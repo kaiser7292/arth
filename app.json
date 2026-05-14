@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Artha",
+    "name": "Artha - Your Money, Your Way",
     "slug": "artha",
-    "version": "18.0.1",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "artha",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "android": {
       "package": "com.souravbaid.artha.staging",
-      "versionCode": 180001,
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#134E4A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
