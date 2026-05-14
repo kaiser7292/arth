@@ -53,3 +53,4 @@ yarn-error.*
 build-*.apk
 build-output/
 builds/
+*.apk
