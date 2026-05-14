@@ -245,6 +245,7 @@ const DOMAIN_GROUPS: Array<{ label: string; slugs: string[] }> = [
       "tags",
       "reconciliation",
       "refunds",
+      "transfers",
       "hisaab",
       "review-queue",
     ],
