@@ -771,7 +771,7 @@ export default function SettingsScreen() {
             <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
               <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">App Name</Text>
               <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
-                Artha - Your Money, Your Way
+                Artha
               </Text>
             </View>
             <View className="flex-row items-center justify-between py-2">
