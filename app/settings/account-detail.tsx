@@ -391,6 +391,7 @@ export default function AccountDetailScreen() {
     { key: "loan", label: "Loan", icon: "document-text-outline" },
     { key: "wallet", label: "Wallet", icon: "phone-portrait-outline" },
     { key: "demat", label: "Demat", icon: "trending-up-outline" },
+    { key: "pension", label: "Pension", icon: "briefcase-outline" },
   ];
 
   return (

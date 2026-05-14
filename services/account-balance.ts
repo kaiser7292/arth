@@ -436,7 +436,7 @@ export async function getUserAdjustmentAbsTotal(
  */
 export async function getAdjustmentAbsTotalByAccountType(
   userId: string,
-  accountType: "credit_card" | "savings" | "loan" | "wallet",
+  accountType: "credit_card" | "savings" | "loan" | "wallet" | "pension",
   monthStart: string,
   monthEnd: string,
 ): Promise<{ total: number; count: number }> {

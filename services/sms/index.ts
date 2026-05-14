@@ -18,6 +18,8 @@ export {
   getSmsEndTimestamp,
   getLastAutoScanRun,
   setLastAutoScanRun,
+  getSmsScanAccountIds,
+  setSmsScanAccountIds,
 } from "./sms-permissions";
 
 export {

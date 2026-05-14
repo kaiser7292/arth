@@ -23,6 +23,7 @@ const KEYS = {
   LAST_AUTO_SCAN_RUN: "last_auto_scan_run_timestamp",
   SMS_START_DATE: "sms_start_date",
   SMS_END_DATE: "sms_end_date",
+  SMS_SCAN_ACCOUNT_IDS: "sms_scan_account_ids",
 } as const;
 
 // ─── Detection Enabled (permission granted + user opted in) ───
@@ -215,4 +216,32 @@ export async function enableSmsDetection(): Promise<boolean> {
 export function disableSmsDetection(): void {
   setSmsDetectionEnabled(false);
   setSmsAutoEnabled(false);
+}
+
+// ─── SMS Scan Account Filter ───
+
+/**
+ * Get the list of account IDs to filter SMS scan by.
+ * Returns null if no filter is set (scan all accounts).
+ */
+export function getSmsScanAccountIds(): string[] | null {
+  const value = storage.getString(KEYS.SMS_SCAN_ACCOUNT_IDS);
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as string[];
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Set the list of account IDs to filter SMS scan by.
+ * Pass null or empty array to clear the filter (scan all accounts).
+ */
+export function setSmsScanAccountIds(accountIds: string[] | null): void {
+  if (accountIds && accountIds.length > 0) {
+    storage.set(KEYS.SMS_SCAN_ACCOUNT_IDS, JSON.stringify(accountIds));
+  } else {
+    storage.delete(KEYS.SMS_SCAN_ACCOUNT_IDS);
+  }
 }

@@ -966,35 +966,60 @@ export const BANK_PATTERNS: BankPattern[] = [
   // "Dear XXXXXXXX6138, your passbook balance against PUPUN**************1275 is Rs. 3,81,039/-. Contribution of Rs. 14,750/- for due month Mar-26 has been received."
   // Also matches the org-level account format: "APHYD00641440000014984".
   // Two IDs, one per employer. We treat each as a separate pension account.
-  // Contribution amount is ignored — the passbook balance already reflects it.
+  // Creates a credit expense for the contribution amount if present.
   {
     name: "EPFO Passbook Balance",
     bank: "EPFO",
-    type: "balance_inquiry",
+    type: "credit",
     test: /passbook\s+balance\s+against\s+[A-Z0-9*]+\s+is\s+Rs\.?\s*[\d,]+/i,
     parse: (body) => {
-      const m = body.match(
+      // Try to match contribution amount (optional)
+      const contribMatch = body.match(
+        /passbook\s+balance\s+against\s+([A-Z0-9*]+)\s+is\s+Rs\.?\s*([\d,]+)[\s\S]*?Contribution\s+of\s+Rs\.?\s*([\d,]+)\s+for\s+due\s+month\s+([A-Za-z]+-\d+)/i,
+      );
+      const balanceMatch = body.match(
         /passbook\s+balance\s+against\s+([A-Z0-9*]+)\s+is\s+Rs\.?\s*([\d,]+)/i,
       );
-      if (!m) return null;
-      // Use the last 4 alphanumeric characters of the account id as the "last4"
-      // identifier — gives us a stable, recognizable tag across both SMS
-      // formats without storing the full masked id.
-      const rawId = m[1];
+      if (!balanceMatch) return null;
+
+      const rawId = balanceMatch[1];
       const cleaned = rawId.replace(/\*/g, "");
       const last4 = cleaned.slice(-4);
+      const balance = parseAmount(balanceMatch[2]);
+
+      let date: string | null = null;
+      let amount = 0;
+      let merchant: string | null = "EPFO Passbook Balance";
+
+      if (contribMatch) {
+        // Contribution present - create credit expense
+        amount = parseAmount(contribMatch[3]);
+        merchant = "EPFO Contribution";
+        const monthStr = contribMatch[4];
+        const monthMatch = monthStr.match(/^([A-Za-z]{3})-(\d{2})$/);
+        if (monthMatch) {
+          const monthNames: Record<string, string> = {
+            Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
+            Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+          };
+          const month = monthNames[monthMatch[1]] || "01";
+          const year = monthMatch[2].startsWith("2") ? `20${monthMatch[2].slice(-2)}` : `200${monthMatch[2].slice(-1)}`;
+          date = `${year}-${month}-01`;
+        }
+      }
+
       return {
-        amount: 0,
-        merchant: null,
+        amount,
+        merchant,
         cardLast4: last4,
-        date: null,
+        date,
         bank: "EPFO",
-        type: "balance_inquiry",
+        type: contribMatch ? "credit" : "balance_inquiry",
         skip: false,
         dueDate: null,
         isForecast: false,
         confidence: 0.95,
-        availableBalance: parseAmount(m[2]),
+        availableBalance: balance,
         accountType: "pension" as const,
       };
     },

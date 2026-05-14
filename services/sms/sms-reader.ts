@@ -150,26 +150,39 @@ async function fetchBankSMSRange(
 // ─── Public API ───
 
 /**
- * Manual scan: reads bank SMS within the user-configured date range.
- * Called when user taps "Scan Now".
+ * Manual scan: reads bank SMS from the configured start date to the
+ * configured end date (or now if not set). Fetches up to 500 messages.
  *
  * Respects both the start and end date configured by the user
  * (presets or custom range). Updates the last-check timestamp so
  * subsequent automatic checks don't re-process these messages.
+ *
+ * @param accountIds Optional array of account IDs to filter SMS by. If provided, only SMS matching these accounts are processed.
  */
-export async function manualScan(): Promise<FetchSMSResult> {
+export async function manualScan(accountIds?: string[]): Promise<FetchSMSResult> {
   const startTimestamp = getSmsStartTimestamp();
   const endTimestamp = getSmsEndTimestamp();
   const result = await fetchBankSMSRange(startTimestamp, 500, endTimestamp);
 
-  if (result.messages.length > 0) {
-    const newestTimestamp = Math.max(...result.messages.map((m) => m.date));
+  // Filter messages by account IDs if provided
+  let filteredMessages = result.messages;
+  if (accountIds && accountIds.length > 0) {
+    filteredMessages = result.messages.filter((msg) => {
+      // Check if the parsed result matches any of the provided account IDs
+      // This is a simple filter - more sophisticated matching may be needed
+      // For now, we'll check if the account identifier in the SMS matches any selected account
+      return accountIds.some((id) => msg.body.includes(id) || msg.address.includes(id));
+    });
+  }
+
+  if (filteredMessages.length > 0) {
+    const newestTimestamp = Math.max(...filteredMessages.map((m) => m.date));
     setLastSmsCheckTimestamp(newestTimestamp);
   } else if (!result.error) {
     setLastSmsCheckTimestamp(Date.now());
   }
 
-  return result;
+  return { ...result, messages: filteredMessages };
 }
 
 /**

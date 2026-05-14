@@ -92,8 +92,11 @@ function inferAccountType(parsed: ParsedSMS): "savings" | "credit_card" | "loan"
  */
 export function inferAccountTypeFromKeywords(
   smsBody: string,
-): "savings" | "credit_card" | "loan" | "wallet" | null {
+): "savings" | "credit_card" | "loan" | "wallet" | "pension" | null {
   const body = smsBody.toUpperCase();
+
+  // Pension keywords (EPFO, NPS, etc.)
+  if (/EPFO|PASSBOOK\s+BALANCE.*PENSION|NPS|NATIONAL\s+PENSION/i.test(body)) return "pension";
 
   // Credit card keywords
   if (/CREDIT\s*CARD|CC\s*NO|CARD\s+NO\.?\s*XX/i.test(body)) return "credit_card";
@@ -1517,6 +1520,38 @@ export async function getDematSummary(
     totalPortfolio: row?.total ?? 0,
     totalFund,
     accountCount: accounts.length,
+  };
+}
+
+/**
+ * Summary across all pension accounts for the home screen card.
+ */
+export async function getPensionSummary(
+  userId: string,
+): Promise<{ totalBalance: number; accountCount: number; lastContributionDate: string | null }> {
+  const db = getDatabase();
+
+  const accounts = await db.getAllAsync<{ id: string; last_known_balance: number | null; last_balance_date: string | null }>(
+    `SELECT id, last_known_balance, last_balance_date FROM financial_accounts
+     WHERE user_id = ? AND is_active = 1 AND account_type = 'pension';`,
+    userId,
+  );
+
+  if (accounts.length === 0) {
+    return { totalBalance: 0, accountCount: 0, lastContributionDate: null };
+  }
+
+  const totalBalance = accounts.reduce((sum, a) => sum + (a.last_known_balance ?? 0), 0);
+  const lastContributionDate = accounts
+    .map((a) => a.last_balance_date)
+    .filter((d): d is string => d !== null)
+    .sort()
+    .pop() ?? null;
+
+  return {
+    totalBalance,
+    accountCount: accounts.length,
+    lastContributionDate,
   };
 }
 

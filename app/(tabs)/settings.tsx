@@ -1,4 +1,5 @@
 import { Card, DateInput, LearnMoreChip, ScreenContainer } from "@/components/ui";
+import { MultiSelectAccountPicker } from "@/components/expense/MultiSelectAccountPicker";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useAlert } from "@/hooks/use-alert";
@@ -21,10 +22,12 @@ import {
     disableSmsDetection,
     enableSmsDetection,
     getSmsEndDate,
+    getSmsScanAccountIds as getStoredSmsScanAccountIds,
     getSmsStartDate,
     isSmsDetectionEnabled,
     runSmsScan,
     setSmsEndDate,
+    setSmsScanAccountIds as saveSmsScanAccountIds,
     setSmsStartDate,
 } from "@/services/sms";
 import { countUnrecognisedSms } from "@/services/sms/user-sms-templates";
@@ -110,6 +113,8 @@ export default function SettingsScreen() {
   const [smsScanCreated, setSmsScanCreated] = useState(0);
   const [smsStartDateStr, setSmsStartDateStr] = useState(() => getSmsStartDate());
   const [smsEndDateStr, setSmsEndDateStr] = useState(() => getSmsEndDate());
+  const [smsScanAccountIds, setSmsScanAccountIds] = useState<string[] | null>(null);
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customMode, setCustomMode] = useState(false);
   const [customFromText, setCustomFromText] = useState("");
@@ -142,6 +147,7 @@ export default function SettingsScreen() {
       setSmsScanCreated(0);
       setDupScanResult(null);
       setDupGroupCount(0);
+      setSmsScanAccountIds(getStoredSmsScanAccountIds());
     }, []),
   );
 
@@ -200,7 +206,7 @@ export default function SettingsScreen() {
     setSmsScanResult(null);
     setSmsScanCreated(0);
     try {
-      const outcome = await runSmsScan({ manual: true });
+      const outcome = await runSmsScan({ manual: true, accountIds: smsScanAccountIds ?? undefined });
       if (outcome.reason === "error") {
         setSmsScanResult(`Error: ${outcome.error ?? "Scan failed"}`);
       } else if (outcome.reason === "no_permission") {
@@ -222,7 +228,7 @@ export default function SettingsScreen() {
     }
     setSmsScanning(false);
     handleDuplicateScan(true);
-  }, [smsStartDateStr, smsEndDateStr]);
+  }, [smsStartDateStr, smsEndDateStr, smsScanAccountIds]);
 
   const handleDuplicateScan = useCallback(async (silent = false) => {
     setDupScanning(true);
@@ -608,6 +614,15 @@ export default function SettingsScreen() {
 
               {smsEnabled && (
                 <>
+                  <Pressable onPress={() => setShowAccountPicker(true)} className="flex-row items-center justify-between px-3 py-2 mt-2 rounded-lg bg-border-light dark:bg-border-dark">
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      {smsScanAccountIds && smsScanAccountIds.length > 0
+                        ? `${smsScanAccountIds.length} account${smsScanAccountIds.length > 1 ? "s" : ""} selected`
+                        : "Filter by accounts"}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+                  </Pressable>
+
                   <Pressable onPress={handleManualScan} disabled={smsScanning} className="flex-row items-center justify-center py-3 mt-2 rounded-lg" style={{ backgroundColor: accent[500] }}>
                     {smsScanning ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
@@ -783,6 +798,17 @@ export default function SettingsScreen() {
           </Card>
         </View>
       </ScrollView>
+
+      <MultiSelectAccountPicker
+        visible={showAccountPicker}
+        selectedIds={smsScanAccountIds ?? []}
+        onSelect={(ids) => {
+          setSmsScanAccountIds(ids.length > 0 ? ids : null);
+          saveSmsScanAccountIds(ids.length > 0 ? ids : null);
+        }}
+        onClose={() => setShowAccountPicker(false)}
+        title="Select Accounts to Filter SMS"
+      />
     </ScreenContainer>
   );
 }
