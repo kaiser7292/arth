@@ -1,0 +1,4912 @@
+{
+  "version": "2026-04-29",
+  "source": "https://github.com/greggles/mcc-codes (Unlicense)",
+  "count": 981,
+  "entries": [
+    {
+      "code": "0742",
+      "description": "Veterinary Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "0763",
+      "description": "Agricultural Co-operatives",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "0780",
+      "description": "Horticultural Services, Landscaping Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "1520",
+      "description": "General Contractors-Residential and Commercial",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "1711",
+      "description": "Air Conditioning Contractors – Sales and Installation, Heating Contractors – Sales, Service, Installation",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "1731",
+      "description": "Electrical Contractors",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "1740",
+      "description": "Insulation – Contractors, Masonry, Stonework Contractors, Plastering Contractors, Stonework and Masonry Contractors, Tile Settings Contractors",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "1750",
+      "description": "Carpentry Contractors",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "1761",
+      "description": "Roofing – Contractors, Sheet Metal Work – Contractors, Siding – Contractors",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "1771",
+      "description": "Contractors – Concrete Work",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "1799",
+      "description": "Contractors – Special Trade, Not Elsewhere Classified",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "2741",
+      "description": "Miscellaneous Publishing and Printing",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "2791",
+      "description": "Typesetting, Plate Making, & Related Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "2842",
+      "description": "Specialty Cleaning, Polishing, and Sanitation Preparations",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3000",
+      "description": "UNITED AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3001",
+      "description": "AMERICAN AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3002",
+      "description": "PAN AMERICAN",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3003",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3004",
+      "description": "TRANS WORLD AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3005",
+      "description": "BRITISH AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3006",
+      "description": "JAPAN AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3007",
+      "description": "AIR FRANCE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3008",
+      "description": "LUFTHANSA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3009",
+      "description": "AIR CANADA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3010",
+      "description": "KLM (ROYAL DUTCH AIRLINES)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3011",
+      "description": "AEORFLOT",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3012",
+      "description": "QANTAS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3013",
+      "description": "ALITALIA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3014",
+      "description": "SAUDIA ARABIAN AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3015",
+      "description": "SWISSAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3016",
+      "description": "SAS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3017",
+      "description": "SOUTH AFRICAN AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3018",
+      "description": "VARIG (BRAZIL)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3019",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3020",
+      "description": "AIR-INDIA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3021",
+      "description": "AIR ALGERIE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3022",
+      "description": "PHILIPPINE AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3023",
+      "description": "MEXICANA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3024",
+      "description": "PAKISTAN INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3025",
+      "description": "AIR NEW ZEALAND",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3026",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3027",
+      "description": "UTA/INTERAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3028",
+      "description": "AIR MALTA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3029",
+      "description": "SABENA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3030",
+      "description": "AEROLINEAS ARGENTINAS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3031",
+      "description": "OLYMPIC AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3032",
+      "description": "EL AL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3033",
+      "description": "ANSETT AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3034",
+      "description": "AUSTRAINLIAN AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3035",
+      "description": "TAP (PORTUGAL)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3036",
+      "description": "VASP (BRAZIL)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3037",
+      "description": "EGYPTAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3038",
+      "description": "KUWAIT AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3039",
+      "description": "AVIANCA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3040",
+      "description": "GULF AIR (BAHRAIN)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3041",
+      "description": "BALKAN-BULGARIAN AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3042",
+      "description": "FINNAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3043",
+      "description": "AER LINGUS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3044",
+      "description": "AIR LANKA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3045",
+      "description": "NIGERIA AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3046",
+      "description": "CRUZEIRO DO SUL (BRAZIJ)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3047",
+      "description": "THY (TURKEY)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3048",
+      "description": "ROYAL AIR MAROC",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3049",
+      "description": "TUNIS AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3050",
+      "description": "ICELANDAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3051",
+      "description": "AUSTRIAN AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3052",
+      "description": "LANCHILE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3053",
+      "description": "AVIACO (SPAIN)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3054",
+      "description": "LADECO (CHILE)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3055",
+      "description": "LAB (BOLIVIA)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3056",
+      "description": "QUEBECAIRE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3057",
+      "description": "EASTWEST AIRLINES (AUSTRALIA)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3058",
+      "description": "DELTA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3059",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3060",
+      "description": "NORTHWEST",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3061",
+      "description": "CONTINENTAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3062",
+      "description": "WESTERN",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3063",
+      "description": "US AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3064",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3065",
+      "description": "AIRINTER",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3066",
+      "description": "SOUTHWEST",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3067",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3068",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3069",
+      "description": "SUN COUNTRY AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3070",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3071",
+      "description": "AIR BRITISH COLUBIA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3072",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3073",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3074",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3075",
+      "description": "SINGAPORE AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3076",
+      "description": "AEROMEXICO",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3077",
+      "description": "THAI AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3078",
+      "description": "CHINA AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3079",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3080",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3081",
+      "description": "NORDAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3082",
+      "description": "KOREAN AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3083",
+      "description": "AIR AFRIGUE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3084",
+      "description": "EVA AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3085",
+      "description": "MIDWEST EXPRESS AIRLINES, INC.",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3086",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3087",
+      "description": "METRO AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3088",
+      "description": "CROATIA AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3089",
+      "description": "TRANSAERO",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3090",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3091",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3092",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3093",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3094",
+      "description": "ZAMBIA AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3095",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3096",
+      "description": "AIR ZIMBABWE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3097",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3098",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3099",
+      "description": "CATHAY PACIFIC",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3100",
+      "description": "MALAYSIAN AIRLINE SYSTEM",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3101",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3102",
+      "description": "IBERIA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3103",
+      "description": "GARUDA (INDONESIA)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3104",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3105",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3106",
+      "description": "BRAATHENS S.A.F.E. (NORWAY)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3107",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3108",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3109",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3110",
+      "description": "WINGS AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3111",
+      "description": "BRITISH MIDLAND",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3112",
+      "description": "WINDWARD ISLAND",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3113",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3114",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3115",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3116",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3117",
+      "description": "VIASA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3118",
+      "description": "VALLEY AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3119",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3120",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3121",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3122",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3123",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3124",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3125",
+      "description": "TAN",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3126",
+      "description": "TALAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3127",
+      "description": "TACA INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3128",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3129",
+      "description": "SURINAM AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3130",
+      "description": "SUN WORLD INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3131",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3132",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3133",
+      "description": "SUNBELT AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3134",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3135",
+      "description": "SUDAN AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3136",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3137",
+      "description": "SINGLETON",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3138",
+      "description": "SIMMONS AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3139",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3140",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3141",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3142",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3143",
+      "description": "SCENIC AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3144",
+      "description": "VIRGIN ATLANTIC",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3145",
+      "description": "SAN JUAN AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3146",
+      "description": "LUXAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3147",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3148",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3149",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3150",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3151",
+      "description": "AIR ZAIRE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3152",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3153",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3154",
+      "description": "PRINCEVILLE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3155",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3156",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3157",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3158",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3159",
+      "description": "PBA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3160",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3161",
+      "description": "ALL NIPPON AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3162",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3163",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3164",
+      "description": "NORONTAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3165",
+      "description": "NEW YORK HELICOPTER",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3166",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3167",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3168",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3169",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3170",
+      "description": "NOUNT COOK",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3171",
+      "description": "CANADIAN AIRLINES INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3172",
+      "description": "NATIONAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3173",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3174",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3175",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3176",
+      "description": "METROFLIGHT AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3177",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3178",
+      "description": "MESA AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3179",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3180",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3181",
+      "description": "MALEV",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3182",
+      "description": "LOT (POLAND)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3183",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3184",
+      "description": "LIAT",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3185",
+      "description": "LAV (VENEZUELA)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3186",
+      "description": "LAP (PARAGUAY)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3187",
+      "description": "LACSA (COSTA RICA)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3188",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3189",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3190",
+      "description": "JUGOSLAV AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3191",
+      "description": "ISLAND AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3192",
+      "description": "IRAN AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3193",
+      "description": "INDIAN AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3194",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3195",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3196",
+      "description": "HAWAIIAN AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3197",
+      "description": "HAVASU AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3198",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3199",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3200",
+      "description": "FUYANA AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3201",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3202",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3203",
+      "description": "GOLDEN PACIFIC AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3204",
+      "description": "FREEDOM AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3205",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3206",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3207",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3208",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3209",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3210",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3211",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3212",
+      "description": "DOMINICANA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3213",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3214",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3215",
+      "description": "DAN AIR SERVICES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3216",
+      "description": "CUMBERLAND AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3217",
+      "description": "CSA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3218",
+      "description": "CROWN AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3219",
+      "description": "COPA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3220",
+      "description": "COMPANIA FAUCETT",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3221",
+      "description": "TRANSPORTES AEROS MILITARES ECCUATORANOS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3222",
+      "description": "COMMAND AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3223",
+      "description": "COMAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3224",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3225",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3226",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3227",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3228",
+      "description": "CAYMAN AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3229",
+      "description": "SAETA SOCIAEDAD ECUATORIANOS DE TRANSPORTES AEREOS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3230",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3231",
+      "description": "SASHA SERVICIO AERO DE HONDURAS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3232",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3233",
+      "description": "CAPITOL AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3234",
+      "description": "BWIA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3235",
+      "description": "BROKWAY AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3236",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3237",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3238",
+      "description": "BEMIDJI AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3239",
+      "description": "BAR HARBOR AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3240",
+      "description": "BAHAMASAIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3241",
+      "description": "AVIATECA (GUATEMALA)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3242",
+      "description": "AVENSA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3243",
+      "description": "AUSTRIAN AIR SERVICE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3244",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3245",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3246",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3247",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3248",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3249",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3250",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3251",
+      "description": "ALOHA AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3252",
+      "description": "ALM",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3253",
+      "description": "AMERICA WEST",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3254",
+      "description": "TRUMP AIRLINE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3255",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3256",
+      "description": "ALASKA AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3257",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3258",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3259",
+      "description": "AMERICAN TRANS AIR",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3260",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3261",
+      "description": "AIR CHINA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3262",
+      "description": "RENO AIR, INC.",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3263",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3264",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3265",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3266",
+      "description": "AIR SEYCHELLES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3267",
+      "description": "AIR PANAMA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3268",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3269",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3270",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3271",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3272",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3273",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3274",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3275",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3276",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3277",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3278",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3279",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3280",
+      "description": "AIR JAMAICA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3281",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3282",
+      "description": "AIR DJIBOUTI",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3283",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3284",
+      "description": "AERO VIRGIN ISLANDS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3285",
+      "description": "AERO PERU",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3286",
+      "description": "AEROLINEAS NICARAGUENSIS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3287",
+      "description": "AERO COACH AVAIATION",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3288",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3289",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3290",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3291",
+      "description": "ARIANA AFGHAN",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3292",
+      "description": "CYPRUS AIRWAYS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3293",
+      "description": "ECUATORIANA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3294",
+      "description": "ETHIOPIAN AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3295",
+      "description": "KENYA AIRLINES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3296",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3297",
+      "description": "Airlines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3298",
+      "description": "AIR MAURITIUS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3299",
+      "description": "WIDERO’S FLYVESELSKAP",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3351",
+      "description": "AFFILIATED AUTO RENTAL",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3352",
+      "description": "AMERICAN INTL RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3353",
+      "description": "BROOKS RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3354",
+      "description": "ACTION AUTO RENTAL",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3355",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3356",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3357",
+      "description": "HERTZ RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3358",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3359",
+      "description": "PAYLESS CAR RENTAL",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3360",
+      "description": "SNAPPY CAR RENTAL",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3361",
+      "description": "AIRWAYS RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3362",
+      "description": "ALTRA AUTO RENTAL",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3363",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3364",
+      "description": "AGENCY RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3365",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3366",
+      "description": "BUDGET RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3367",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3368",
+      "description": "HOLIDAY RENT-A-WRECK",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3369",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3370",
+      "description": "RENT-A-WRECK",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3371",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3372",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3373",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3374",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3375",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3376",
+      "description": "AJAX RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3377",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3378",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3379",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3380",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3381",
+      "description": "EUROP CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3382",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3383",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3384",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3385",
+      "description": "TROPICAL RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3386",
+      "description": "SHOWCASE RENTAL CARS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3387",
+      "description": "ALAMO RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3388",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3389",
+      "description": "AVIS RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3390",
+      "description": "DOLLAR RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3391",
+      "description": "EUROPE BY CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3392",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3393",
+      "description": "NATIONAL CAR RENTAL",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3394",
+      "description": "KEMWELL GROUP RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3395",
+      "description": "THRIFTY RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3396",
+      "description": "TILDEN TENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3397",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3398",
+      "description": "ECONO-CAR RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3399",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3400",
+      "description": "AUTO HOST COST CAR RENTALS",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3401",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3402",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3403",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3404",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3405",
+      "description": "ENTERPRISE RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3406",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3407",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3408",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3409",
+      "description": "GENERAL RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3410",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3411",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3412",
+      "description": "A-1 RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3413",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3414",
+      "description": "GODFREY NATL RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3415",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3416",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3417",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3418",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3419",
+      "description": "ALPHA RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3420",
+      "description": "ANSA INTL RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3421",
+      "description": "ALLSTAE RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3422",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3423",
+      "description": "AVCAR RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3424",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3425",
+      "description": "AUTOMATE RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3426",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3427",
+      "description": "AVON RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3428",
+      "description": "CAREY RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3429",
+      "description": "INSURANCE RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3430",
+      "description": "MAJOR RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3431",
+      "description": "REPLACEMENT RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3432",
+      "description": "RESERVE RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3433",
+      "description": "UGLY DUCKLING RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3434",
+      "description": "USA RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3435",
+      "description": "VALUE RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3436",
+      "description": "AUTOHANSA RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3437",
+      "description": "CITE RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3438",
+      "description": "INTERENT RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3439",
+      "description": "MILLEVILLE RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3440",
+      "description": "VIA ROUTE RENT-A-CAR",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3441",
+      "description": "Car Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "3501",
+      "description": "HOLIDAY INNS, HOLIDAY INN EXPRESS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3502",
+      "description": "BEST WESTERN HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3503",
+      "description": "SHERATON HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3504",
+      "description": "HILTON HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3505",
+      "description": "FORTE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3506",
+      "description": "GOLDEN TULIP HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3507",
+      "description": "FRIENDSHIP INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3508",
+      "description": "QUALITY INNS, QUALITY SUITES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3509",
+      "description": "MARRIOTT HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3510",
+      "description": "DAYS INN, DAYSTOP",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3511",
+      "description": "ARABELLA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3512",
+      "description": "INTER-CONTINENTAL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3513",
+      "description": "WESTIN HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3514",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3515",
+      "description": "RODEWAY INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3516",
+      "description": "LA QUINTA MOTOR INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3517",
+      "description": "AMERICANA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3518",
+      "description": "SOL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3519",
+      "description": "PULLMAN INTERNATIONAL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3520",
+      "description": "MERIDIEN HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3521",
+      "description": "CREST HOTELS (see FORTE HOTELS)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3522",
+      "description": "TOKYO HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3523",
+      "description": "PENNSULA HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3524",
+      "description": "WELCOMGROUP HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3525",
+      "description": "DUNFEY HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3526",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3527",
+      "description": "DOWNTOWNER-PASSPORT HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3528",
+      "description": "RED LION HOTELS, RED LION INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3529",
+      "description": "CP HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3530",
+      "description": "RENAISSANCE HOTELS, STOUFFER HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3531",
+      "description": "ASTIR HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3532",
+      "description": "SUN ROUTE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3533",
+      "description": "HOTEL IBIS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3534",
+      "description": "SOUTHERN PACIFIC HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3535",
+      "description": "HILTON INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3536",
+      "description": "AMFAC HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3537",
+      "description": "ANA HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3538",
+      "description": "CONCORDE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3539",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3540",
+      "description": "IBEROTEL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3541",
+      "description": "HOTEL OKURA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3542",
+      "description": "ROYAL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3543",
+      "description": "FOUR SEASONS HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3544",
+      "description": "CIGA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3545",
+      "description": "SHANGRI-LA INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3546",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3547",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3548",
+      "description": "HOTELES MELIA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3549",
+      "description": "AUBERGE DES GOVERNEURS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3550",
+      "description": "REGAL 8 INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3551",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3552",
+      "description": "COAST HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3553",
+      "description": "PARK INNS INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3554",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3555",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3556",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3557",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3558",
+      "description": "JOLLY HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3559",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3560",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3561",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3562",
+      "description": "COMFORT INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3563",
+      "description": "JOURNEY’S END MOTLS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3564",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3565",
+      "description": "RELAX INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3566",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3567",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3568",
+      "description": "LADBROKE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3569",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3570",
+      "description": "FORUM HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3571",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3572",
+      "description": "MIYAKO HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3573",
+      "description": "SANDMAN HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3574",
+      "description": "VENTURE INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3575",
+      "description": "VAGABOND HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3576",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3577",
+      "description": "MANDARIN ORIENTAL HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3578",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3579",
+      "description": "HOTEL MERCURE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3580",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3581",
+      "description": "DELTA HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3582",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3583",
+      "description": "SAS HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3584",
+      "description": "PRINCESS HOTELS INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3585",
+      "description": "HUNGAR HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3586",
+      "description": "SOKOS HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3587",
+      "description": "DORAL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3588",
+      "description": "HELMSLEY HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3589",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3590",
+      "description": "FAIRMONT HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3591",
+      "description": "SONESTA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3592",
+      "description": "OMNI HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3593",
+      "description": "CUNARD HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3594",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3595",
+      "description": "HOSPITALITY INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3596",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3597",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3598",
+      "description": "REGENT INTERNATIONAL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3599",
+      "description": "PANNONIA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3600",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3601",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3602",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3603",
+      "description": "NOAH’S HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3604",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3605",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3606",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3607",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3608",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3609",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3610",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3611",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3612",
+      "description": "MOVENPICK HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3613",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3614",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3615",
+      "description": "TRAVELODGE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3616",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3617",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3618",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3619",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3620",
+      "description": "TELFORD INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3621",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3622",
+      "description": "MERLIN HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3623",
+      "description": "DORINT HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3624",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3625",
+      "description": "HOTLE UNIVERSALE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3626",
+      "description": "PRINCE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3627",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3628",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3629",
+      "description": "DAN HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3630",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3631",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3632",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3633",
+      "description": "RANK HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3634",
+      "description": "SWISSOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3635",
+      "description": "RESO HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3636",
+      "description": "SAROVA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3637",
+      "description": "RAMADA INNS, RAMADA LIMITED",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3638",
+      "description": "HO JO INN, HOWARD JOHNSON",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3639",
+      "description": "MOUNT CHARLOTTE THISTLE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3640",
+      "description": "HYATT HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3641",
+      "description": "SOFITEL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3642",
+      "description": "NOVOTEL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3643",
+      "description": "STEIGENBERGER HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3644",
+      "description": "ECONO LODGES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3645",
+      "description": "QUEENS MOAT HOUSES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3646",
+      "description": "SWALLOW HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3647",
+      "description": "HUSA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3648",
+      "description": "DE VERE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3649",
+      "description": "RADISSON HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3650",
+      "description": "RED ROOK INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3651",
+      "description": "IMPERIAL LONDON HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3652",
+      "description": "EMBASSY HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3653",
+      "description": "PENTA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3654",
+      "description": "LOEWS HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3655",
+      "description": "SCANDIC HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3656",
+      "description": "SARA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3657",
+      "description": "OBEROI HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3658",
+      "description": "OTANI HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3659",
+      "description": "TAJ HOTELS INTERNATIONAL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3660",
+      "description": "KNIGHTS INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3661",
+      "description": "METROPOLE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3662",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3663",
+      "description": "HOTELES EL PRESIDENTS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3664",
+      "description": "FLAG INN",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3665",
+      "description": "HAMPTON INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3666",
+      "description": "STAKIS HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3667",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3668",
+      "description": "MARITIM HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3669",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3670",
+      "description": "ARCARD HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3671",
+      "description": "ARCTIA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3672",
+      "description": "CAMPANIEL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3673",
+      "description": "IBUSZ HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3674",
+      "description": "RANTASIPI HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3675",
+      "description": "INTERHOTEL CEDOK",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3676",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3677",
+      "description": "CLIMAT DE FRANCE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3678",
+      "description": "CUMULUS HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3679",
+      "description": "DANUBIUS HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3680",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3681",
+      "description": "ADAMS MARK HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3682",
+      "description": "ALLSTAR INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3683",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3684",
+      "description": "BUDGET HOST INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3685",
+      "description": "BUDGETEL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3686",
+      "description": "SUISSE CHALETS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3687",
+      "description": "CLARION HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3688",
+      "description": "COMPRI HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3689",
+      "description": "CONSORT HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3690",
+      "description": "COURTYARD BY MARRIOTT",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3691",
+      "description": "DILLION INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3692",
+      "description": "DOUBLETREE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3693",
+      "description": "DRURY INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3694",
+      "description": "ECONOMY INNS OF AMERICA",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3695",
+      "description": "EMBASSY SUITES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3696",
+      "description": "EXEL INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3697",
+      "description": "FARFIELD HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3698",
+      "description": "HARLEY HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3699",
+      "description": "MIDWAY MOTOR LODGE",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3700",
+      "description": "MOTEL 6",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3701",
+      "description": "GUEST QUARTERS (Formally PICKETT SUITE HOTELS)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3702",
+      "description": "THE REGISTRY HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3703",
+      "description": "RESIDENCE INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3704",
+      "description": "ROYCE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3705",
+      "description": "SANDMAN INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3706",
+      "description": "SHILO INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3707",
+      "description": "SHONEY’S INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3708",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3709",
+      "description": "SUPER8 MOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3710",
+      "description": "THE RITZ CARLTON HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3711",
+      "description": "FLAG INNS (AUSRALIA)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3712",
+      "description": "GOLDEN CHAIN HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3713",
+      "description": "QUALITY PACIFIC HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3714",
+      "description": "FOUR SEASONS HOTEL (AUSTRALIA)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3715",
+      "description": "FARIFIELD INN",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3716",
+      "description": "CARLTON HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3717",
+      "description": "CITY LODGE HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3718",
+      "description": "KAROS HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3719",
+      "description": "PROTEA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3720",
+      "description": "SOUTHERN SUN HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3721",
+      "description": "HILTON CONRAD",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3722",
+      "description": "WYNDHAM HOTEL AND RESORTS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3723",
+      "description": "RICA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3724",
+      "description": "INER NOR HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3725",
+      "description": "SEAINES PLANATION",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3726",
+      "description": "RIO SUITES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3727",
+      "description": "BROADMOOR HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3728",
+      "description": "BALLY’S HOTEL AND CASINO",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3729",
+      "description": "JOHN ASCUAGA’S NUGGET",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3730",
+      "description": "MGM GRAND HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3731",
+      "description": "HARRAH’S HOTELS AND CASINOS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3732",
+      "description": "OPRYLAND HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3733",
+      "description": "BOCA RATON RESORT",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3734",
+      "description": "HARVEY/BRISTOL HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3735",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3736",
+      "description": "COLORADO BELLE/EDGEWATER RESORT",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3737",
+      "description": "RIVIERA HOTEL AND CASINO",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3738",
+      "description": "TROPICANA RESORT AND CASINO",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3739",
+      "description": "WOODSIDE HOTELS AND RESORTS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3740",
+      "description": "TOWNPLACE SUITES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3741",
+      "description": "MILLENIUM BROADWAY HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3742",
+      "description": "CLUB MED",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3743",
+      "description": "BILTMORE HOTEL AND SUITES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3744",
+      "description": "CAREFREE RESORTS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3745",
+      "description": "ST. REGIS HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3746",
+      "description": "THE ELIOT HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3747",
+      "description": "CLUBCORP/CLUB RESORTS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3748",
+      "description": "WELESLEY INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3749",
+      "description": "THE BEVERLY HILLS HOTEL",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3750",
+      "description": "CROWNE PLAZA HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3751",
+      "description": "HOMEWOOD SUITES",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3752",
+      "description": "PEABODY HOTELS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3753",
+      "description": "GREENBRIAH RESORTS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3754",
+      "description": "AMELIA ISLAND PLANATION",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3755",
+      "description": "THE HOMESTEAD",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3756",
+      "description": "SOUTH SEAS RESORTS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3757",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3758",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3759",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3760",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3761",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3762",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3763",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3764",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3765",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3766",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3767",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3768",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3769",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3770",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3771",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3772",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3773",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3774",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3775",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3776",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3777",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3778",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3779",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3780",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3781",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3782",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3783",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3784",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3785",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3786",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3787",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3788",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3789",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3790",
+      "description": "Hotels/Motels/Inns/Resorts",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3816",
+      "description": "Home2Suites",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "3835",
+      "description": "* MASTERS ECONOMY INNS",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4011",
+      "description": "Railroads",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4111",
+      "description": "Local/Suburban Commuter Passenger Transportation – Railroads, Feries, Local Water Transportation.",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4112",
+      "description": "Passenger Railways",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4119",
+      "description": "Ambulance Services",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4121",
+      "description": "Taxicabs and Limousines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4131",
+      "description": "Bus Lines, Including Charters, Tour Buses",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4214",
+      "description": "Motor Freight Carriers, Moving and Storage Companies, Trucking – Local/Long Distance, Delivery Services – Local",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4215",
+      "description": "Courier Services – Air or Ground, Freight forwarders",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4225",
+      "description": "Public warehousing, Storage",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4411",
+      "description": "Cruise and Steamship Lines",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4457",
+      "description": "Boat Rentals and Leases",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4468",
+      "description": "Marinas, Marine Service, and Supplies",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4511",
+      "description": "Airlines, Air Carriers ( not listed elsewhere)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4582",
+      "description": "Airports, Airport Terminals, Flying Fields",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4722",
+      "description": "Travel Agencies and Tour Operations",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4723",
+      "description": "Package Tour Operators (For use in Germany only)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4784",
+      "description": "Toll and Bridge Fees",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4789",
+      "description": "Transportation Services, Not elsewhere classified)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "4812",
+      "description": "Telecommunications Equipment including telephone sales",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "4814",
+      "description": "Fax services, Telecommunication Services",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "4815",
+      "description": "VisaPhone",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "4816",
+      "description": "Computer Network Services",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "4821",
+      "description": "Telegraph services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "4829",
+      "description": "Money Orders – Wire Transfer",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "4899",
+      "description": "Cable and other pay television (previously Cable Services)",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "4900",
+      "description": "Electric, Gas, Sanitary and Water Utilities",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "5013",
+      "description": "Motor vehicle supplies and new parts",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5021",
+      "description": "Office and Commercial Furniture",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5039",
+      "description": "Construction Materials, Not Elsewhere Classified",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5044",
+      "description": "Office, Photographic, Photocopy, and Microfilm Equipment",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5045",
+      "description": "Computers, Computer Peripheral Equipment, Software",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5046",
+      "description": "Commercial Equipment, Not Elsewhere Classified",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5047",
+      "description": "Medical, Dental Ophthalmic, Hospital Equipment and Supplies",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "5051",
+      "description": "Metal Service Centers and Offices",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5065",
+      "description": "Electrical Parts and Equipment",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "5072",
+      "description": "Hardware Equipment and Supplies",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5074",
+      "description": "Plumbing and Heating Equipment and Supplies",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5085",
+      "description": "Industrial Supplies, Not Elsewhere Classified",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5094",
+      "description": "Precious Stones and Metals, Watches and Jewelry",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5099",
+      "description": "Durable Goods, Not Elsewhere Classified",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5111",
+      "description": "Stationery, Office Supplies, Printing, and Writing Paper",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5122",
+      "description": "Drugs, Drug Proprietors, and Druggist’s Sundries",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "5131",
+      "description": "Piece Goods, Notions, and Other Dry Goods",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5137",
+      "description": "Men’s Women’s and Children’s Uniforms and Commercial Clothing",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5139",
+      "description": "Commercial Footwear",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5169",
+      "description": "Chemicals and Allied Products, Not Elsewhere Classified",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5172",
+      "description": "Petroleum and Petroleum Products",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5192",
+      "description": "Books, Periodicals, and Newspapers",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5193",
+      "description": "Florists’ Supplies, Nursery Stock and Flowers",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5198",
+      "description": "Paints, Varnishes, and Supplies",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5199",
+      "description": "Non-durable Goods, Not Elsewhere Classified",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5200",
+      "description": "Home Supply Warehouse Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5211",
+      "description": "Lumber and Building Materials Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5231",
+      "description": "Glass, Paint, and Wallpaper Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5251",
+      "description": "Hardware Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5261",
+      "description": "Nurseries – Lawn and Garden Supply Store",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5271",
+      "description": "Mobile Home Dealers",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5300",
+      "description": "Wholesale Clubs",
+      "category_name": "Grocery & Supplies"
+    },
+    {
+      "code": "5309",
+      "description": "Duty Free Store",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5310",
+      "description": "Discount Stores",
+      "category_name": "Grocery & Supplies"
+    },
+    {
+      "code": "5311",
+      "description": "Department Stores",
+      "category_name": "Grocery & Supplies"
+    },
+    {
+      "code": "5331",
+      "description": "Variety Stores",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5399",
+      "description": "Misc. General Merchandise",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5411",
+      "description": "Grocery Stores, Supermarkets",
+      "category_name": "Grocery & Supplies"
+    },
+    {
+      "code": "5422",
+      "description": "Meat Provisioners – Freezer and Locker",
+      "category_name": "Grocery & Supplies"
+    },
+    {
+      "code": "5441",
+      "description": "Candy, Nut, and Confectionery Stores",
+      "category_name": "Grocery & Supplies"
+    },
+    {
+      "code": "5451",
+      "description": "Dairy Products Stores",
+      "category_name": "Grocery & Supplies"
+    },
+    {
+      "code": "5462",
+      "description": "Bakeries",
+      "category_name": "Grocery & Supplies"
+    },
+    {
+      "code": "5499",
+      "description": "Misc. Food Stores – Convenience Stores and Specialty Markets",
+      "category_name": "Grocery & Supplies"
+    },
+    {
+      "code": "5511",
+      "description": "Car and Truck Dealers (New and Used) Sales, Service, Repairs, Parts, and Leasing",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "5521",
+      "description": "Automobile and Truck Dealers (Used Only)",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "5531",
+      "description": "Automobile Supply Stores",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5532",
+      "description": "Automotive Tire Stores",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5533",
+      "description": "Automotive Parts, Accessories Stores",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5541",
+      "description": "Service Stations ( with or without ancillary services)",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "5542",
+      "description": "Automated Fuel Dispensers",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "5551",
+      "description": "Boat Dealers",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5561",
+      "description": "Recreational and Utility Trailers, Camp Dealers",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "5571",
+      "description": "Motorcycle Dealers",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "5592",
+      "description": "Motor Home Dealers",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5598",
+      "description": "Snowmobile Dealers",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5599",
+      "description": "Miscellaneous Auto Dealers ",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "5611",
+      "description": "Men’s and Boy’s Clothing and Accessories Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5621",
+      "description": "Women’s Ready-to-Wear Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5631",
+      "description": "Women’s Accessory and Specialty Shops",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5641",
+      "description": "Children’s and Infant’s Wear Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5651",
+      "description": "Family Clothing Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5655",
+      "description": "Sports Apparel, Riding Apparel Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5661",
+      "description": "Shoe Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5681",
+      "description": "Furriers and Fur Shops",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5691",
+      "description": "Men’s and Women’s Clothing Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5697",
+      "description": "Tailors, Seamstress, Mending, and Alterations",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5698",
+      "description": "Wig and Toupee Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5699",
+      "description": "Miscellaneous Apparel and Accessory Shops",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5712",
+      "description": "Furniture, Home Furnishings, and Equipment Stores, ExceptAppliances",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5713",
+      "description": "Floor Covering Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5714",
+      "description": "Drapery, Window Covering and Upholstery Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5718",
+      "description": "Fireplace, Fireplace Screens, and Accessories Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5719",
+      "description": "Miscellaneous Home Furnishing Specialty Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5722",
+      "description": "Household Appliance Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5732",
+      "description": "Electronic Sales",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5733",
+      "description": "Music Stores, Musical Instruments, Piano Sheet Music",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5734",
+      "description": "Computer Software Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5735",
+      "description": "Record Shops",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5811",
+      "description": "Caterers",
+      "category_name": "Food"
+    },
+    {
+      "code": "5812",
+      "description": "Eating places and Restaurants",
+      "category_name": "Food"
+    },
+    {
+      "code": "5813",
+      "description": "Drinking Places (Alcoholic Beverages), Bars, Taverns, Cocktail lounges, Nightclubs and Discotheques",
+      "category_name": "Food"
+    },
+    {
+      "code": "5814",
+      "description": "Fast Food Restaurants",
+      "category_name": "Food"
+    },
+    {
+      "code": "5815",
+      "description": "Digital Goods: Media, Books, Movies, Music",
+      "category_name": "Subscriptions"
+    },
+    {
+      "code": "5816",
+      "description": "Digital Goods: Games",
+      "category_name": "Subscriptions"
+    },
+    {
+      "code": "5817",
+      "description": "Digital Goods: Applications (Excludes Games)",
+      "category_name": "Subscriptions"
+    },
+    {
+      "code": "5818",
+      "description": "Digital Goods: Large Digital Goods Merchant",
+      "category_name": "Subscriptions"
+    },
+    {
+      "code": "5832",
+      "description": "Antique Shops – Sales, Repairs, and Restoration Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "5912",
+      "description": "Drug Stores and Pharmacies",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "5921",
+      "description": "Package Stores – Beer, Wine, and Liquor",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5931",
+      "description": "Used Merchandise and Secondhand Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5932",
+      "description": "Antique Shops",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5933",
+      "description": "Pawn Shops and Salvage Yards",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5935",
+      "description": "Wrecking and Salvage Yards",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5937",
+      "description": "Antique Reproductions",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5940",
+      "description": "Bicycle Shops – Sales and Service",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5941",
+      "description": "Sporting Goods Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5942",
+      "description": "Book Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5943",
+      "description": "Stationery Stores, Office and School Supply Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5944",
+      "description": "Watch, Clock, Jewelry, and Silverware Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5945",
+      "description": "Hobby, Toy, and Game Shops",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5946",
+      "description": "Camera and Photographic Supply Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5947",
+      "description": "Card Shops, Gift, Novelty, and Souvenir Shops",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5948",
+      "description": "Leather Goods Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5949",
+      "description": "Sewing, Needle, Fabric, and Price Goods Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5950",
+      "description": "Glassware/Crystal Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5960",
+      "description": "Direct Marketing- Insurance Service",
+      "category_name": "Insurance"
+    },
+    {
+      "code": "5961",
+      "description": "Mail Order Houses Including Catalog Order Stores, Book/Record Clubs (No longer permitted for U.S. original presentments)",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5962",
+      "description": "Direct Marketing – Travel Related Arrangements Services",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5963",
+      "description": "Door-to-Door Sales",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5964",
+      "description": "Direct Marketing – Catalog Merchant",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5965",
+      "description": "Direct Marketing – Catalog and Catalog and Retail Merchant",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5966",
+      "description": "Direct Marketing- Outbound Telemarketing Merchant",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5967",
+      "description": "Direct Marketing – Inbound Teleservices Merchant",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5968",
+      "description": "Direct Marketing – Continuity/Subscription Merchant",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5969",
+      "description": "Direct Marketing – Not Elsewhere Classified",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5970",
+      "description": "Artist’s Supply and Craft Shops",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5971",
+      "description": "Art Dealers and Galleries",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5972",
+      "description": "Stamp and Coin Stores – Philatelic and Numismatic Supplies",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5973",
+      "description": "Religious Goods Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5975",
+      "description": "Hearing Aids – Sales, Service, and Supply Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5976",
+      "description": "Orthopedic Goods Prosthetic Devices",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5977",
+      "description": "Cosmetic Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5978",
+      "description": "Typewriter Stores – Sales, Rental, Service",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5983",
+      "description": "Fuel – Fuel Oil, Wood, Coal, Liquefied Petroleum",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "5992",
+      "description": "Florists",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5993",
+      "description": "Cigar Stores and Stands",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5994",
+      "description": "News Dealers and Newsstands",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5995",
+      "description": "Pet Shops, Pet Foods, and Supplies Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5996",
+      "description": "Swimming Pools – Sales, Service, and Supplies",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5997",
+      "description": "Electric Razor Stores – Sales and Service",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5998",
+      "description": "Tent and Awning Shops",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "5999",
+      "description": "Miscellaneous and Specialty Retail Stores",
+      "category_name": "Shopping & Gifts"
+    },
+    {
+      "code": "6010",
+      "description": "Financial Institutions – Manual Cash Disbursements",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "6011",
+      "description": "Financial Institutions – Manual Cash Disbursements",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "6012",
+      "description": "Financial Institutions – Merchandise and Services",
+      "category_name": "EMIs"
+    },
+    {
+      "code": "6051",
+      "description": "Non-Financial Institutions – Foreign Currency, Money Orders (not wire transfer) and Travelers Cheques",
+      "category_name": "EMIs"
+    },
+    {
+      "code": "6211",
+      "description": "Security Brokers/Dealers",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "6300",
+      "description": "Insurance Sales, Underwriting, and Premiums",
+      "category_name": "Insurance"
+    },
+    {
+      "code": "6381",
+      "description": "Insurance Premiums, (no longer valid for first presentment work)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "6399",
+      "description": "Insurance, Not Elsewhere Classified ( no longer valid forfirst presentment work)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "6513",
+      "description": "Real Estate Agents and Managers - Rentals",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "7011",
+      "description": "Lodging – Hotels, Motels, Resorts, Central Reservation Services (not elsewhere classified)",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "7012",
+      "description": "Timeshares",
+      "category_name": "Travel & Going Out"
+    },
+    {
+      "code": "7032",
+      "description": "Sporting and Recreational Camps",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7033",
+      "description": "Trailer Parks and Camp Grounds",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7210",
+      "description": "Laundry, Cleaning, and Garment Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7211",
+      "description": "Laundry – Family and Commercial",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7216",
+      "description": "Dry Cleaners",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7217",
+      "description": "Carpet and Upholstery Cleaning",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7221",
+      "description": "Photographic Studios",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7230",
+      "description": "Barber and Beauty Shops",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7251",
+      "description": "Shop Repair Shops and Shoe Shine Parlors, and Hat Cleaning Shops",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7261",
+      "description": "Funeral Service and Crematories",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7273",
+      "description": "Dating and Escort Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7276",
+      "description": "Tax Preparation Service",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7277",
+      "description": "Counseling Service – Debt, Marriage, Personal",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7278",
+      "description": "Buying/Shopping Services, Clubs",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7296",
+      "description": "Clothing Rental – Costumes, Formal Wear, Uniforms",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7297",
+      "description": "Massage Parlors",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7298",
+      "description": "Health and Beauty Shops",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7299",
+      "description": "Miscellaneous Personal Services ( not elsewhere classifies)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7311",
+      "description": "Advertising Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7321",
+      "description": "Consumer Credit Reporting Agencies",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7332",
+      "description": "Blueprinting and Photocopying Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7333",
+      "description": "Commercial Photography, Art and Graphics",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7338",
+      "description": "Quick Copy, Reproduction and Blueprinting Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7339",
+      "description": "Stenographic and Secretarial Support Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7342",
+      "description": "Exterminating and Disinfecting Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7349",
+      "description": "Cleaning and Maintenance, Janitorial Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7361",
+      "description": "Employment Agencies, Temporary Help Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7372",
+      "description": "Computer Programming, Integrated Systems Design and Data Processing Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7375",
+      "description": "Information Retrieval Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7379",
+      "description": "Computer Maintenance and Repair Services, Not Elsewhere Classified",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7392",
+      "description": "Management, Consulting, and Public Relations Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7393",
+      "description": "Protective and Security Services – Including Armored Carsand Guard Dogs",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7394",
+      "description": "Equipment Rental and Leasing Services, Tool Rental, Furniture Rental, and Appliance Rental",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7395",
+      "description": "Photofinishing Laboratories, Photo Developing",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7399",
+      "description": "Business Services, Not Elsewhere Classified",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7511",
+      "description": "Truck Stop",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7512",
+      "description": "Car Rental Companies ( Not Listed Below)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7513",
+      "description": "Truck and Utility Trailer Rentals",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "7519",
+      "description": "Motor Home and Recreational Vehicle Rentals",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7523",
+      "description": "Automobile Parking Lots and Garages",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "7531",
+      "description": "Automotive Body Repair Shops",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "7534",
+      "description": "Tire Re-treading and Repair Shops",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7535",
+      "description": "Paint Shops – Automotive",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "7538",
+      "description": "Automotive Service Shops",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "7542",
+      "description": "Car Washes",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "7549",
+      "description": "Towing Services",
+      "category_name": "Car & Vehicles"
+    },
+    {
+      "code": "7622",
+      "description": "Radio Repair Shops",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7623",
+      "description": "Air Conditioning and Refrigeration Repair Shops",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7629",
+      "description": "Electrical And Small Appliance Repair Shops",
+      "category_name": "Rent & Utilities"
+    },
+    {
+      "code": "7631",
+      "description": "Watch, Clock, and Jewelry Repair",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7641",
+      "description": "Furniture, Furniture Repair, and Furniture Refinishing",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7692",
+      "description": "Welding Repair",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7699",
+      "description": "Repair Shops and Related Services –Miscellaneous",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7800",
+      "description": "Government-Owned Lotteries",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7801",
+      "description": "Government-Licensed On-Line Casinos (On-Line Gambling)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7802",
+      "description": "Government-Licensed Horse/Dog Racing",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7829",
+      "description": "Motion Pictures and Video Tape Production and Distribution",
+      "category_name": "Subscriptions"
+    },
+    {
+      "code": "7832",
+      "description": "Motion Picture Theaters",
+      "category_name": "Subscriptions"
+    },
+    {
+      "code": "7841",
+      "description": "Video Tape Rental Stores",
+      "category_name": "Subscriptions"
+    },
+    {
+      "code": "7911",
+      "description": "Dance Halls, Studios and Schools",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7922",
+      "description": "Theatrical Producers (Except Motion Pictures), Ticket Agencies",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7929",
+      "description": "Bands, Orchestras, and Miscellaneous Entertainers (Not Elsewhere Classified)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7932",
+      "description": "Billiard and Pool Establishments",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7933",
+      "description": "Bowling Alleys",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7941",
+      "description": "Commercial Sports, Athletic Fields, Professional Sport Clubs, and Sport Promoters",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7991",
+      "description": "Tourist Attractions and Exhibits",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7992",
+      "description": "Golf Courses – Public",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7993",
+      "description": "Video Amusement Game Supplies",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7994",
+      "description": "Video Game Arcades/Establishments",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7995",
+      "description": "Betting (including Lottery Tickets, Casino Gaming Chips, Off-track Betting and Wagers at Race Tracks)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7996",
+      "description": "Amusement Parks, Carnivals, Circuses, Fortune Tellers",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7997",
+      "description": "Membership Clubs (Sports, Recreation, Athletic), Country Clubs, and Private Golf Courses",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7998",
+      "description": "Aquariums, Sea-aquariums, Dolphinariums",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "7999",
+      "description": "Recreation Services (Not Elsewhere Classified)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "8011",
+      "description": "Doctors and Physicians (Not Elsewhere Classified)",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8021",
+      "description": "Dentists and Orthodontists",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8031",
+      "description": "Osteopaths",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8041",
+      "description": "Chiropractors",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8042",
+      "description": "Optometrists and Ophthalmologists",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8043",
+      "description": "Opticians, Opticians Goods and Eyeglasses",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8044",
+      "description": "Opticians, Optical Goods, and Eyeglasses (no longer validfor first presentments)",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8049",
+      "description": "Podiatrists and Chiropodists",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8050",
+      "description": "Nursing and Personal Care Facilities",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8062",
+      "description": "Hospitals",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8071",
+      "description": "Medical and Dental Laboratories",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8099",
+      "description": "Medical Services and Health Practitioners (Not Elsewhere Classified)",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8111",
+      "description": "Legal Services and Attorneys",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "8211",
+      "description": "Elementary and Secondary Schools",
+      "category_name": "Family"
+    },
+    {
+      "code": "8220",
+      "description": "Colleges, Junior Colleges, Universities, and ProfessionalSchools",
+      "category_name": "Family"
+    },
+    {
+      "code": "8241",
+      "description": "Correspondence Schools",
+      "category_name": "Family"
+    },
+    {
+      "code": "8244",
+      "description": "Business and Secretarial Schools",
+      "category_name": "Family"
+    },
+    {
+      "code": "8249",
+      "description": "Vocational Schools and Trade Schools",
+      "category_name": "Family"
+    },
+    {
+      "code": "8299",
+      "description": "Schools and Educational Services ( Not Elsewhere Classified)",
+      "category_name": "Family"
+    },
+    {
+      "code": "8351",
+      "description": "Child Care Services",
+      "category_name": "Family"
+    },
+    {
+      "code": "8398",
+      "description": "Charitable and Social Service Organizations",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "8641",
+      "description": "Civic, Fraternal, and Social Associations",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "8651",
+      "description": "Political Organizations",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "8661",
+      "description": "Religious Organizations",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "8675",
+      "description": "Automobile Associations",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "8699",
+      "description": "Membership Organizations ( Not Elsewhere Classified)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "8734",
+      "description": "Testing Laboratories ( non-medical)",
+      "category_name": "Health & Medicine"
+    },
+    {
+      "code": "8911",
+      "description": "Architectural – Engineering and Surveying Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "8931",
+      "description": "Accounting, Auditing, and Bookkeeping Services",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "8999",
+      "description": "Professional Services ( Not Elsewhere Defined)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9211",
+      "description": "Court Costs, including Alimony and Child Support",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9222",
+      "description": "Fines",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9223",
+      "description": "Bail and Bond Payments",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9311",
+      "description": "Tax Payments",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9399",
+      "description": "Government Services ( Not Elsewhere Classified)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9402",
+      "description": "Postal Services – Government Only",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9405",
+      "description": "Intra – Government Transactions",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9700",
+      "description": "Automated Referral Service ( For Visa Only)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9701",
+      "description": "Visa Credential Service ( For Visa Only)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9702",
+      "description": "GCAS Emergency Services ( For Visa Only)",
+      "category_name": "Miscellaneous"
+    },
+    {
+      "code": "9950",
+      "description": "Intra – Company Purchases ( For Visa Only)",
+      "category_name": "Miscellaneous"
+    }
+  ]
+}

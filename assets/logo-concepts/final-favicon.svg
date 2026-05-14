@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- Favicon: simplified at 48x48 — just background + अ, no coin details (too small) -->
+  <rect width="48" height="48" rx="10" ry="10" fill="#134E4A"/>
+  <circle cx="24" cy="24" r="18" fill="none" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="24" y="28" text-anchor="middle" dominant-baseline="central"
+        font-family="Noto Sans Devanagari, Devanagari MT, Kohinoor Devanagari, sans-serif"
+        font-size="24" font-weight="bold" fill="white">अ</text>
+</svg>

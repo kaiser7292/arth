@@ -1,0 +1,79 @@
+import { View, Text, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { StatusColors, Shadows } from "@/constants/theme";
+import { MiniTrendSpark } from "./MiniTrendSpark";
+import type { InsightSeverity } from "@/services/insight-engine";
+
+const SEVERITY_ICONS: Record<InsightSeverity, keyof typeof Ionicons.glyphMap> = {
+  celebrate: "sparkles",
+  info: "bulb-outline",
+  warning: "warning-outline",
+  critical: "alert-circle",
+};
+
+interface InsightCardProps {
+  severity: InsightSeverity;
+  title: string;
+  detail: string;
+  trendData?: number[];
+  onPress?: () => void;
+}
+
+export function InsightCard({
+  severity,
+  title,
+  detail,
+  trendData,
+  onPress,
+}: InsightCardProps) {
+  const { colorScheme } = useColorScheme();
+  const statusColors = StatusColors[colorScheme];
+
+  const severityColor = {
+    celebrate: statusColors.success,
+    info: statusColors.muted,
+    warning: statusColors.warning,
+    critical: statusColors.danger,
+  }[severity];
+
+  return (
+    <Pressable
+      onPress={onPress}
+      className="rounded-2xl bg-surface-light-alt dark:bg-surface-dark-alt p-4 mb-3"
+      style={Shadows.card}
+      accessibilityLabel={`${severity}: ${title}. ${detail}. Tap for details`}
+      accessibilityRole="button"
+    >
+      <View className="flex-row items-start justify-between">
+        <View className="flex-row items-start flex-1 mr-3">
+          <View
+            className="w-7 h-7 rounded-full items-center justify-center mr-3 mt-0.5"
+            style={{ backgroundColor: `${severityColor}18` }}
+          >
+            <Ionicons name={SEVERITY_ICONS[severity]} size={16} color={severityColor} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+              {title}
+            </Text>
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" numberOfLines={2}>
+              {detail}
+            </Text>
+          </View>
+        </View>
+
+        <View className="flex-row items-center gap-2">
+          {trendData && trendData.length >= 2 && (
+            <MiniTrendSpark data={trendData} color={severityColor} />
+          )}
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={statusColors.muted}
+          />
+        </View>
+      </View>
+    </Pressable>
+  );
+}

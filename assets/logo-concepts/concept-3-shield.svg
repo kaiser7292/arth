@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Rounded blue background -->
+  <rect width="1024" height="1024" rx="200" ry="200" fill="#2563EB"/>
+  <!-- Shield shape -->
+  <path d="M512 150
+           C512 150 780 200 780 200
+           C780 200 790 420 790 500
+           C790 650 680 780 512 880
+           C344 780 234 650 234 500
+           C234 420 244 200 244 200
+           C244 200 512 150 512 150Z"
+        fill="#3B82F6" stroke="white" stroke-width="4" opacity="0.5"/>
+  <!-- Inner shield highlight -->
+  <path d="M512 200
+           C512 200 730 240 730 240
+           C730 240 738 430 738 490
+           C738 620 645 730 512 820
+           C379 730 286 620 286 490
+           C286 430 294 240 294 240
+           C294 240 512 200 512 200Z"
+        fill="none" stroke="white" stroke-width="2" opacity="0.3"/>
+  <!-- Devanagari अ -->
+  <text x="512" y="560" text-anchor="middle" dominant-baseline="central"
+        font-family="Noto Sans Devanagari, Devanagari MT, Kohinoor Devanagari, sans-serif"
+        font-size="420" font-weight="bold" fill="white">अ</text>
+</svg>

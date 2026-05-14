@@ -1,0 +1,414 @@
+/**
+ * Hisaab PDF Export Service — V6.0.1
+ *
+ * Generates bank-statement-style PDF statements with:
+ * - Opening balance, date range header
+ * - Dr (debit) / Cr (credit+settlement) / Running Balance columns
+ * - Totals row with total Dr, total Cr
+ * - Closing balance
+ *
+ * Uses expo-print (HTML -> PDF) + expo-sharing.
+ */
+
+import * as Print from "expo-print";
+import { File, Paths } from "expo-file-system";
+import {
+  getPerson,
+  getBalanceAsOfDate,
+  getEntriesByDateRangeAsc,
+  getEntries,
+  getPersonBalance,
+  enrichEntriesFromExpenses,
+} from "@/services/hisaab";
+import type { HisaabEntry } from "@/services/hisaab";
+import type { ExportDateRange } from "@/components/hisaab/ExportFormatPicker";
+import { getCategoryById } from "@/services/category";
+
+// ─── Helpers ───
+
+function htmlEscape(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// v15.9.0: exports honor the user's locale preferences (currency symbol,
+// number grouping, date format). All values go through these three helpers,
+// which read from MMKV at export time.
+import { formatNumber } from "@/utils/format";
+import { formatDate as formatDateLocale } from "@/utils/date";
+import { getCurrency } from "@/services/locale-preferences";
+import { getCurrencyDef } from "@/constants/currencies";
+
+function formatNum(n: number): string {
+  return formatNumber(n);
+}
+
+function formatDate(dateStr: string): string {
+  return formatDateLocale(dateStr);
+}
+
+/** Currency symbol prefix for amounts — empty string when user picked "None". */
+function currencyPrefix(): string {
+  const code = getCurrency();
+  if (code === "NONE") return "";
+  return getCurrencyDef(code).symbol;
+}
+
+function formatPeriod(startDate: string, endDate: string): string {
+  return `${formatDate(startDate)} — ${formatDate(endDate)}`;
+}
+
+function balanceLabel(balance: number): string {
+  if (balance > 0) return `${formatNum(balance)} Dr`;
+  if (balance < 0) return `${formatNum(Math.abs(balance))} Cr`;
+  return "Nil";
+}
+
+// ─── HTML Templates ───
+
+function statementStyles(): string {
+  return `
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; color: #1A1A1A; font-size: 12px; }
+
+    .stmt-container { padding: 28px 24px; }
+
+    /* Header */
+    .stmt-header { background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%); color: white; padding: 24px 28px; margin: -28px -24px 24px; }
+    .stmt-header h1 { font-size: 18px; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px; }
+    .stmt-header .subtitle { font-size: 11px; opacity: 0.7; margin-bottom: 12px; }
+    .stmt-header .meta { display: flex; justify-content: space-between; margin-top: 8px; }
+    .stmt-header .meta-item { font-size: 11px; }
+    .stmt-header .meta-label { opacity: 0.6; display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+    .stmt-header .meta-value { font-weight: 600; font-size: 13px; }
+
+    /* Info box */
+    .info-row { display: flex; justify-content: space-between; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; }
+    .info-cell .label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B; margin-bottom: 3px; }
+    .info-cell .value { font-size: 14px; font-weight: 700; color: #1E293B; }
+    .info-cell .value.dr { color: #EF4444; }
+    .info-cell .value.cr { color: #22C55E; }
+    .info-cell .value.nil { color: #64748B; }
+
+    /* Statement table */
+    .stmt-table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+    .stmt-table thead th { background: #F1F5F9; border-top: 2px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; padding: 8px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; font-weight: 700; }
+    .stmt-table thead th.right { text-align: right; }
+    .stmt-table tbody td { padding: 7px 10px; border-bottom: 1px solid #F1F5F9; font-size: 11px; vertical-align: top; }
+    .stmt-table tbody td.right { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+    .stmt-table tbody td.dr { color: #EF4444; }
+    .stmt-table tbody td.cr { color: #22C55E; }
+    .stmt-table tbody td.date { white-space: nowrap; color: #64748B; }
+    .stmt-table tbody td.desc { max-width: 160px; word-break: break-word; }
+    .stmt-table tbody td.bal { font-weight: 600; color: #1E293B; }
+
+    /* Totals / closing */
+    .stmt-table tfoot td { padding: 10px 10px; font-weight: 700; font-size: 11px; border-top: 2px solid #CBD5E1; }
+    .stmt-table tfoot td.right { text-align: right; font-variant-numeric: tabular-nums; }
+    .stmt-table tfoot td.label { text-transform: uppercase; letter-spacing: 0.5px; color: #475569; }
+
+    .closing-row { background: #F8FAFC; }
+    .closing-row td { border-top: 1px solid #E2E8F0 !important; border-bottom: 2px solid #CBD5E1 !important; }
+
+    /* Footer */
+    .stmt-footer { margin-top: 24px; text-align: center; font-size: 9px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 12px; }
+    .stmt-footer .app-name { font-weight: 600; letter-spacing: 0.5px; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 32px 20px; color: #94A3B8; font-size: 13px; }
+
+    /* Legend */
+    .legend { margin-top: 16px; padding: 10px 14px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; font-size: 10px; color: #92400E; line-height: 1.5; }
+
+    /* Verdict banner */
+    .verdict { padding: 12px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; font-weight: 700; text-align: center; }
+    .verdict.owes-you { background: #FEF2F2; border: 1px solid #FECACA; color: #EF4444; }
+    .verdict.you-owe { background: #F0FDF4; border: 1px solid #BBF7D0; color: #22C55E; }
+    .verdict.settled { background: #F8FAFC; border: 1px solid #E2E8F0; color: #64748B; }
+
+    /* Status + type badges */
+    .badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-left: 4px; vertical-align: middle; }
+    .badge-settlement { background: #DBEAFE; color: #1D4ED8; }
+    .badge-pending { background: #FEF3C7; color: #B45309; }
+    .badge-disputed { background: #FEE2E2; color: #EF4444; }
+  `;
+}
+
+function personStatementHtml(
+  name: string,
+  periodLabel: string,
+  startDate: string,
+  endDate: string,
+  openingBalance: number,
+  entries: HisaabEntry[],
+  totalDebits: number,
+  totalCreditsAndSettlements: number,
+  closingBalance: number,
+  categoryMap: Map<string, string>,
+  accountMap: Map<string, string>,
+): string {
+  const today = new Date().toLocaleDateString("en-IN", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+
+  // v15.9.0: honor user's currency pref. "None" currency → no symbol.
+  const sym = currencyPrefix();
+
+  const obClass = openingBalance > 0 ? "dr" : openingBalance < 0 ? "cr" : "nil";
+  const cbClass = closingBalance > 0 ? "dr" : closingBalance < 0 ? "cr" : "nil";
+
+  // Count pending/disputed
+  const pendingCount = entries.filter((e) => e.status === "pending").length;
+  const disputedCount = entries.filter((e) => e.status === "disputed").length;
+
+  // Verdict: from the account holder's (recipient's) perspective
+  let verdictText: string;
+  let verdictClass: string;
+  if (closingBalance > 0) {
+    verdictText = `Balance Due: ${sym}${formatNum(closingBalance)}`;
+    verdictClass = "owes-you";
+  } else if (closingBalance < 0) {
+    verdictText = `Credit Balance: ${sym}${formatNum(Math.abs(closingBalance))}`;
+    verdictClass = "you-owe";
+  } else {
+    verdictText = "All Settled — No Balance Due";
+    verdictClass = "settled";
+  }
+
+  // Build transaction rows with running balance
+  let runningBalance = openingBalance;
+  const rows = entries
+    .map((e) => {
+      const isDr = e.type === "debit";
+      if (isDr) {
+        runningBalance += e.amount;
+      } else {
+        runningBalance -= e.amount;
+      }
+
+      const drCell = isDr ? `${sym}${formatNum(e.amount)}` : "";
+      const crCell = !isDr ? `${sym}${formatNum(e.amount)}` : "";
+      const balCell = `${sym}${balanceLabel(runningBalance)}`;
+      const desc = htmlEscape(e.description || (e.type === "settlement" ? "Settlement" : "—"));
+      const categoryName = htmlEscape(e.category_id ? (categoryMap.get(e.category_id) ?? "") : "");
+      const merchantName = htmlEscape(e.merchant_name ?? "");
+      const accountName = htmlEscape(accountMap.get(e.id) ?? "");
+
+      // Type badge for settlements
+      const settlementBadge = e.type === "settlement" ? `<span class="badge badge-settlement">Settlement</span>` : "";
+
+      // Status badge for non-confirmed entries
+      let statusBadge = "";
+      if (e.status === "pending") statusBadge = `<span class="badge badge-pending">Pending</span>`;
+      else if (e.status === "disputed") statusBadge = `<span class="badge badge-disputed">Disputed</span>`;
+
+      return `
+        <tr>
+          <td class="date">${formatDate(e.date)}</td>
+          <td class="desc">${desc}${settlementBadge}${statusBadge}</td>
+          <td>${categoryName}</td>
+          <td>${merchantName}</td>
+          <td>${accountName}</td>
+          <td class="right ${isDr ? "dr" : ""}">${drCell}</td>
+          <td class="right ${!isDr ? "cr" : ""}">${crCell}</td>
+          <td class="right bal">${balCell}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const hasEntries = entries.length > 0;
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${statementStyles()}</style></head><body>
+    <div class="stmt-container">
+      <div class="stmt-header">
+        <h1>HISAAB STATEMENT</h1>
+        <div class="subtitle">Account of: ${htmlEscape(name)}</div>
+        <div class="meta">
+          <div class="meta-item">
+            <span class="meta-label">Period</span>
+            <span class="meta-value">${formatPeriod(startDate, endDate)}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Generated</span>
+            <span class="meta-value">${today}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="verdict ${verdictClass}">${verdictText}</div>
+
+      <div class="info-row">
+        <div class="info-cell">
+          <div class="label">Opening Balance</div>
+          <div class="value ${obClass}">${sym}${balanceLabel(openingBalance)}</div>
+        </div>
+        <div class="info-cell">
+          <div class="label">Total Debits</div>
+          <div class="value dr">${hasEntries ? `${sym}${formatNum(totalDebits)}` : "—"}</div>
+        </div>
+        <div class="info-cell">
+          <div class="label">Total Credits</div>
+          <div class="value cr">${hasEntries ? `${sym}${formatNum(totalCreditsAndSettlements)}` : "—"}</div>
+        </div>
+        <div class="info-cell">
+          <div class="label">Closing Balance</div>
+          <div class="value ${cbClass}">${sym}${balanceLabel(closingBalance)}</div>
+        </div>
+      </div>
+
+      ${(pendingCount > 0 || disputedCount > 0) ? `
+        <div style="margin-bottom: 12px; padding: 8px 14px; background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 6px; font-size: 10px; color: #92400E;">
+          ${pendingCount > 0 ? `<strong>${pendingCount}</strong> pending` : ""}${pendingCount > 0 && disputedCount > 0 ? " · " : ""}${disputedCount > 0 ? `<strong>${disputedCount}</strong> disputed` : ""} transaction${(pendingCount + disputedCount) > 1 ? "s" : ""} in this period
+        </div>
+      ` : ""}
+
+      ${hasEntries ? `
+        <table class="stmt-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Merchant</th>
+              <th>Account</th>
+              <th class="right">Debit (Dr)</th>
+              <th class="right">Credit (Cr)</th>
+              <th class="right">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td class="label" colspan="5">Totals</td>
+              <td class="right dr">${sym}${formatNum(totalDebits)}</td>
+              <td class="right cr">${sym}${formatNum(totalCreditsAndSettlements)}</td>
+              <td></td>
+            </tr>
+            <tr class="closing-row">
+              <td class="label" colspan="5">Closing Balance</td>
+              <td colspan="2"></td>
+              <td class="right ${cbClass}" style="font-size: 13px;">${sym}${balanceLabel(closingBalance)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      ` : `<p class="empty">No transactions in this period.</p>`}
+
+      <div class="legend">
+        <strong>Dr (Debit)</strong> = amount spent on your behalf · <strong>Cr (Credit)</strong> = amount you paid back · <strong>Settlement</strong> = partial/full payment to settle dues<br>
+        Positive balance (Dr) = amount owed to you · Negative balance (Cr) = amount you owe
+      </div>
+
+      <div class="stmt-footer">
+        <span class="app-name">Artha (अर्थ)</span> · Generated on ${today}
+      </div>
+    </div>
+  </body></html>`;
+}
+
+
+// ─── Public API ───
+
+/**
+ * Generate a bank-statement-style PDF for one hisaab person with date range.
+ * Returns the temporary file URI.
+ */
+export async function generatePersonPDF(
+  personId: string,
+  userId: string,
+  dateRange?: ExportDateRange,
+): Promise<string> {
+  const person = await getPerson(personId);
+  if (!person) throw new Error("Person not found");
+
+  let openingBalance: number;
+  let entries: HisaabEntry[];
+  let startDate: string;
+  let endDate: string;
+  let periodLabel: string;
+
+  if (dateRange) {
+    startDate = dateRange.startDate;
+    endDate = dateRange.endDate;
+    periodLabel = dateRange.label;
+
+    const [ob, rangeEntries] = await Promise.all([
+      getBalanceAsOfDate(personId, startDate),
+      getEntriesByDateRangeAsc(personId, startDate, endDate),
+    ]);
+    openingBalance = ob;
+    entries = rangeEntries;
+  } else {
+    // Fallback: all entries
+    startDate = "2000-01-01";
+    endDate = "2099-12-31";
+    periodLabel = "All Time";
+    openingBalance = person.initial_balance;
+    const allEntries = await getEntries(personId);
+    // Reverse to ASC for statement
+    entries = [...allEntries].reverse();
+  }
+
+  // Compute totals
+  const totalDebits = entries
+    .filter((e) => e.type === "debit")
+    .reduce((s, e) => s + e.amount, 0);
+  const totalCredits = entries
+    .filter((e) => e.type !== "debit")
+    .reduce((s, e) => s + e.amount, 0);
+  const closingBalance = openingBalance + totalDebits - totalCredits;
+
+  // Enrich entries from linked expenses (fills missing category/merchant, builds account map)
+  const accountMap = await enrichEntriesFromExpenses(entries);
+
+  // Resolve category names
+  const categoryMap = new Map<string, string>();
+  const uniqueCatIds = new Set(entries.map((e) => e.category_id).filter(Boolean) as string[]);
+  for (const catId of uniqueCatIds) {
+    const cat = await getCategoryById(catId);
+    if (cat) categoryMap.set(catId, cat.name);
+  }
+
+  const html = personStatementHtml(
+    person.name,
+    periodLabel,
+    startDate,
+    endDate,
+    openingBalance,
+    entries,
+    totalDebits,
+    totalCredits,
+    closingBalance,
+    categoryMap,
+    accountMap,
+  );
+
+  const { uri } = await Print.printToFileAsync({ html });
+
+  const safeName = person.name.replace(/[^a-zA-Z0-9]/g, "_");
+  const safePeriod = periodLabel.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_");
+  // v16.0.8 — second-level timestamp so back-to-back exports don't collide.
+  // Previous date-only timestamp (`YYYY-MM-DD`) let a second export in the
+  // same day throw `FileAlreadyExistsException` from `File.move()`.
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const fileName = `Hisaab_${safeName}_${safePeriod}_${timestamp}.pdf`;
+  const dest = new File(Paths.cache, fileName);
+  // Defensive: if a file with this exact name somehow exists (clock skew,
+  // leftover from a crashed run), delete it so `move` doesn't trip.
+  try {
+    if (dest.exists) dest.delete();
+  } catch {
+    // Non-fatal; `move` will raise a clearer error if this matters.
+  }
+  await new File(uri).move(dest);
+
+  return dest.uri;
+}
+
+
+/**
+ * Generate HTML for a person statement (exposed for testing).
+ */
+export { personStatementHtml as _personStatementHtml };
+

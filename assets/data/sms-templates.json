@@ -1,0 +1,474 @@
+{
+  "version": "2026-04-30",
+  "source": "Artha-authored from real SMS samples collected on Sourav's own devices and public bank SMS format documentation. Fallback-only — hardcoded BANK_PATTERNS always run first.",
+  "notes": [
+    "Named capture groups consumed by sms-template-matcher.ts: amount, account, merchant, ref, balance, dueDate.",
+    "tx_type: debit | credit | upi_debit | upi_credit | cc_debit | cc_credit | reminder_hint | balance_inquiry.",
+    "priority: lower number = higher precedence within the same bank. Default 100.",
+    "Regex compiled at runtime with the `i` flag. Patterns authored to minimise cross-bank collisions.",
+    "Reminder entries are consumed by reminder-hints.ts and never materialise as expenses."
+  ],
+  "count": 56,
+  "entries": [
+    {
+      "id": "pnb_debit_for_rs",
+      "bank_name": "PNB",
+      "template_id": "pnb_ac_debited_for_rs",
+      "pattern_regex": "\\b[Aa]/?c\\s*(?:no\\s+)?[*Xx]+(?<account>\\d{2,4})\\b[^\\n]*?\\bdebited\\s+for\\s+(?:Rs\\.?|INR)\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "debit",
+      "priority": 10
+    },
+    {
+      "id": "pnb_credit_with_rs",
+      "bank_name": "PNB",
+      "template_id": "pnb_ac_credited_with_rs",
+      "pattern_regex": "\\b[Aa]c\\s*[*Xx]+(?<account>\\d{4,})\\s+Credited\\s+with\\s+(?:Rs\\.?|INR)\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "credit",
+      "priority": 10
+    },
+    {
+      "id": "pnb_credit_rs_has_been",
+      "bank_name": "PNB",
+      "template_id": "pnb_rs_has_been_credited",
+      "pattern_regex": "(?:Rs\\.?|INR)\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+has\\s+been\\s+credited\\s+to\\s+(?:your\\s+)?[Aa]/?c\\s+[*Xx]+(?<account>\\d{2,})",
+      "tx_type": "credit",
+      "priority": 20
+    },
+    {
+      "id": "pnb_imps_debit",
+      "bank_name": "PNB",
+      "template_id": "pnb_imps_debit",
+      "pattern_regex": "IMPS\\s+(?:ref\\s+no\\s+)?(?<ref>\\d{10,})[^\\n]*?\\b[*Xx]+(?<account>\\d{2,})[^\\n]*?(?:Rs\\.?|INR)\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "debit",
+      "priority": 30
+    },
+    {
+      "id": "pnb_upi_debit",
+      "bank_name": "PNB",
+      "template_id": "pnb_upi_debit",
+      "pattern_regex": "UPI[:\\s]+(?<ref>\\d+)[^\\n]*?(?:Rs\\.?|INR)\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+debited",
+      "tx_type": "upi_debit",
+      "priority": 15
+    },
+    {
+      "id": "pnb_reminder_si_auto_pay",
+      "bank_name": "PNB",
+      "template_id": "pnb_auto_pay_activation",
+      "pattern_regex": "auto\\s+pay\\s+facility[^\\n]*?activated[^\\n]*?from\\s+(?<merchant>[^.]+?)\\s+[Aa]n\\s+initial\\s+amount\\s+of\\s+(?:Rs\\.?|INR)\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "reminder_hint",
+      "priority": 50
+    },
+
+    {
+      "id": "canara_debit_inr_has_been",
+      "bank_name": "Canara Bank",
+      "template_id": "canara_inr_has_been_debited",
+      "pattern_regex": "(?:[Aa]n\\s+amount\\s+of\\s+)?INR\\s+(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+has\\s+been\\s+DEBITED\\s+to\\s+your\\s+(?:account|A/c)\\s+[*Xx]+(?<account>\\d{2,})",
+      "tx_type": "debit",
+      "priority": 10
+    },
+    {
+      "id": "canara_credit_inr_has_been",
+      "bank_name": "Canara Bank",
+      "template_id": "canara_inr_has_been_credited",
+      "pattern_regex": "(?:[Aa]n\\s+amount\\s+of\\s+)?INR\\s+(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+has\\s+been\\s+CREDITED\\s+to\\s+your\\s+(?:account|A/c)\\s+[*Xx]+(?<account>\\d{2,})",
+      "tx_type": "credit",
+      "priority": 10
+    },
+    {
+      "id": "canara_upi_debit_paid",
+      "bank_name": "Canara Bank",
+      "template_id": "canara_rs_paid_upi",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+paid\\s+to\\s+(?<merchant>[^,.]+?)(?:,\\s*UPI\\s+Ref\\s+(?<ref>\\d+))?",
+      "tx_type": "upi_debit",
+      "priority": 15
+    },
+    {
+      "id": "canara_balance_avail",
+      "bank_name": "Canara Bank",
+      "template_id": "canara_avail_bal",
+      "pattern_regex": "(?:Total\\s+)?Avail\\.?bal\\s+INR\\s+(?<balance>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "balance_inquiry",
+      "priority": 100
+    },
+
+    {
+      "id": "bob_transfer_from_ac",
+      "bank_name": "Bank of Baroda",
+      "template_id": "bob_rs_transferred_from",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+transferred\\s+from\\s+A/c\\s+[.*Xx]+(?<account>\\d{2,})\\s+to:\\s*(?<merchant>[^.]+?)(?:\\.|$)",
+      "tx_type": "debit",
+      "priority": 10
+    },
+    {
+      "id": "bob_dr_from",
+      "bank_name": "Bank of Baroda",
+      "template_id": "bob_rs_dr_from",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+Dr\\.?\\s+from\\s+A/C?\\s+[*Xx]+(?<account>\\d{2,})",
+      "tx_type": "debit",
+      "priority": 15
+    },
+    {
+      "id": "bob_cr_to",
+      "bank_name": "Bank of Baroda",
+      "template_id": "bob_rs_cr_to",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+Cr\\.?\\s+to\\s+(?<merchant>\\S+@\\S+?)\\b",
+      "tx_type": "upi_credit",
+      "priority": 15
+    },
+    {
+      "id": "bob_credited_to_ac",
+      "bank_name": "Bank of Baroda",
+      "template_id": "bob_rs_credited_to_ac",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+Credited\\s+to\\s+A/c\\s+[.*Xx]+(?<account>\\d{2,})",
+      "tx_type": "credit",
+      "priority": 20
+    },
+    {
+      "id": "bob_imps_credit",
+      "bank_name": "Bank of Baroda",
+      "template_id": "bob_imps_credit",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+credited\\s+to\\s+A/c\\s+[*Xx]+(?<account>\\d{2,})\\s+via\\s+IMPS/(?<ref>\\d+)\\s+by\\s+(?<merchant>[^.]+?)(?:\\.|$)",
+      "tx_type": "credit",
+      "priority": 12
+    },
+    {
+      "id": "bob_cash_deposit",
+      "bank_name": "Bank of Baroda",
+      "template_id": "bob_deposited_in_cash",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+deposited\\s+in\\s+cash\\s+to\\s+A/c\\s+[*Xx]+(?<account>\\d{2,})",
+      "tx_type": "credit",
+      "priority": 25
+    },
+    {
+      "id": "bobcard_spent",
+      "bank_name": "Bank of Baroda",
+      "template_id": "bobcard_inr_spent",
+      "pattern_regex": "ALERT:\\s*INR\\s+(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+(?:is\\s+)?spent\\s+on\\s+your\\s+BOBCARD\\s+ending\\s+(?<account>\\d{4})(?:\\s+at\\s+(?<merchant>[\\w &.\\-_]+?)(?:\\s+on|\\.|$))?",
+      "tx_type": "cc_debit",
+      "priority": 10
+    },
+
+    {
+      "id": "union_debit_sb",
+      "bank_name": "Union Bank of India",
+      "template_id": "union_sb_ac_debited",
+      "pattern_regex": "(?:Your\\s+)?SB\\s+A/c\\s+[*X]+(?<account>\\d{2,5})\\s+(?:is\\s+)?Debited\\s+for\\s+Rs[:.]?\\s*(?<amount>[\\d,]+(?:\\.\\d{1,2})?)",
+      "tx_type": "debit",
+      "priority": 10
+    },
+    {
+      "id": "union_credit_sb",
+      "bank_name": "Union Bank of India",
+      "template_id": "union_sb_ac_credited",
+      "pattern_regex": "(?:Your\\s+)?SB\\s+A/c\\s+[*X]+(?<account>\\d{2,5})\\s+(?:is\\s+)?Credited\\s+for\\s+Rs[:.]?\\s*(?<amount>[\\d,]+(?:\\.\\d{1,2})?)",
+      "tx_type": "credit",
+      "priority": 10
+    },
+    {
+      "id": "union_balance",
+      "bank_name": "Union Bank of India",
+      "template_id": "union_avl_bal",
+      "pattern_regex": "Avl\\s+Bal\\s+Rs[:.]?\\s*(?<balance>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "balance_inquiry",
+      "priority": 100
+    },
+    {
+      "id": "union_ref_no",
+      "bank_name": "Union Bank of India",
+      "template_id": "union_ref_no",
+      "pattern_regex": "ref\\s+no\\s+(?<ref>[\\w\\d]+)",
+      "tx_type": "balance_inquiry",
+      "priority": 110
+    },
+
+    {
+      "id": "indian_bank_debit_rs",
+      "bank_name": "Indian Bank",
+      "template_id": "indian_bank_debited_rs",
+      "pattern_regex": "A/c\\s+[*X]+(?<account>\\d{3,4})\\b[^\\n]*?debited\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "debit",
+      "priority": 10
+    },
+    {
+      "id": "indian_bank_credit_rs",
+      "bank_name": "Indian Bank",
+      "template_id": "indian_bank_credited_rs",
+      "pattern_regex": "A/c\\s+[*X]+(?<account>\\d{3,4})\\b[^\\n]*?credited\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "credit",
+      "priority": 10
+    },
+    {
+      "id": "indian_bank_credit_rs_reverse",
+      "bank_name": "Indian Bank",
+      "template_id": "indian_bank_rs_credited_to",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+credited\\s+to\\s+A/c\\s+[*X]+(?<account>\\d{3,4})",
+      "tx_type": "credit",
+      "priority": 20
+    },
+    {
+      "id": "indian_bank_upi_debit",
+      "bank_name": "Indian Bank",
+      "template_id": "indian_bank_upi_debit_ref",
+      "pattern_regex": "A/c\\s+[*X]+(?<account>\\d{3,4})\\s+debited\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+to\\s+(?<merchant>[^.]+?)\\s*\\.?\\s*UPI:(?<ref>\\d+)",
+      "tx_type": "upi_debit",
+      "priority": 5
+    },
+    {
+      "id": "indian_bank_withdrawal",
+      "bank_name": "Indian Bank",
+      "template_id": "indian_bank_atm_withdrawn",
+      "pattern_regex": "withdrawn\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+at\\s+(?<merchant>[^.]+?)\\s+on",
+      "tx_type": "debit",
+      "priority": 15
+    },
+    {
+      "id": "indian_bank_balance",
+      "bank_name": "Indian Bank",
+      "template_id": "indian_bank_available_balance",
+      "pattern_regex": "(?:Bal|Available\\s+Balance)[:\\s\\-]+Rs\\.?\\s*(?<balance>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "balance_inquiry",
+      "priority": 100
+    },
+
+    {
+      "id": "central_bank_debit_by_rs",
+      "bank_name": "Central Bank of India",
+      "template_id": "central_debited_by_rs",
+      "pattern_regex": "A/c\\s+[*Xx]+(?<account>\\d{2,4})\\s+Debited\\s+by\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "debit",
+      "priority": 10
+    },
+    {
+      "id": "central_bank_credit_by_rs",
+      "bank_name": "Central Bank of India",
+      "template_id": "central_credited_by_rs",
+      "pattern_regex": "A/c\\s+[*Xx]+(?<account>\\d{2,4})\\s+Credited\\s+by\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "credit",
+      "priority": 10
+    },
+    {
+      "id": "central_bank_credit_via_neft",
+      "bank_name": "Central Bank of India",
+      "template_id": "central_credited_via_neft",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{1,2})?)\\s+credited\\s+to\\s+your\\s+A/c\\s+[*Xx]+(?<account>\\d{2,6})\\s+(?:on\\s+\\S+\\s+)?through\\s+NEFT(?:[^\\n]*?Ref\\s+No\\.?/?(?<ref>[\\w/.]+))?(?:[^\\n]*?By\\.?(?<merchant>[^-]+?))?(?:-CBoI|$)",
+      "tx_type": "credit",
+      "priority": 5
+    },
+    {
+      "id": "central_bank_signature_ending",
+      "bank_name": "Central Bank of India",
+      "template_id": "central_signature_cboi",
+      "pattern_regex": "-CBoI\\b",
+      "tx_type": "balance_inquiry",
+      "priority": 200
+    },
+
+    {
+      "id": "iob_credit_by_rs",
+      "bank_name": "Indian Overseas Bank",
+      "template_id": "iob_credited_by_rs",
+      "pattern_regex": "a/c\\s+no\\.\\s+[*X]+(?<account>\\d{2,4})\\s+is\\s+credited\\s+by\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "credit",
+      "priority": 10
+    },
+    {
+      "id": "iob_debit_by_rs",
+      "bank_name": "Indian Overseas Bank",
+      "template_id": "iob_debited_by_rs",
+      "pattern_regex": "a/c\\s+no\\.\\s+[*X]+(?<account>\\d{2,4})\\s+is\\s+debited\\s+by\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "debit",
+      "priority": 10
+    },
+    {
+      "id": "iob_credit_with_rs",
+      "bank_name": "Indian Overseas Bank",
+      "template_id": "iob_credited_with_rs",
+      "pattern_regex": "credited\\s+with\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "credit",
+      "priority": 20
+    },
+    {
+      "id": "iob_debit_for_rs",
+      "bank_name": "Indian Overseas Bank",
+      "template_id": "iob_debited_for_rs",
+      "pattern_regex": "debited\\s+for\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "debit",
+      "priority": 20
+    },
+    {
+      "id": "iob_upi_ref_parenthesised",
+      "bank_name": "Indian Overseas Bank",
+      "template_id": "iob_upi_ref_paren",
+      "pattern_regex": "\\(UPI\\s+Ref\\s+no\\s+(?<ref>\\d+)\\)",
+      "tx_type": "upi_credit",
+      "priority": 30
+    },
+    {
+      "id": "iob_upi_merchant_from",
+      "bank_name": "Indian Overseas Bank",
+      "template_id": "iob_upi_from_merchant",
+      "pattern_regex": "from\\s+(?<merchant>[^(]+?)(?:\\(UPI\\s+Ref\\s+no\\s+(?<ref>\\d+))",
+      "tx_type": "balance_inquiry",
+      "priority": 40
+    },
+
+    {
+      "id": "uco_debit_with_rs",
+      "bank_name": "UCO Bank",
+      "template_id": "uco_debited_with_rs",
+      "pattern_regex": "A/c\\s+[*X]+(?<account>\\d{2,4})\\s+Debited\\s+with\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)(?:\\s+on\\s+\\S+)?\\s+by\\s+(?<merchant>[\\w\\-]+)\\.?(?:Avl\\s+Bal\\s+Rs\\.?\\s*(?<balance>[\\d,]+(?:\\.\\d{2})?))?",
+      "tx_type": "debit",
+      "priority": 10
+    },
+    {
+      "id": "uco_credit_with_rs",
+      "bank_name": "UCO Bank",
+      "template_id": "uco_credited_with_rs",
+      "pattern_regex": "A/c\\s+[*X]+(?<account>\\d{2,4})\\s+Credited\\s+with\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)(?:\\s+on\\s+\\S+)?\\s+by\\s+(?<merchant>[\\w\\-]+)\\.?(?:Avl\\s+Bal\\s+Rs\\.?\\s*(?<balance>[\\d,]+(?:\\.\\d{2})?))?",
+      "tx_type": "credit",
+      "priority": 10
+    },
+
+    {
+      "id": "boi_debit_upi",
+      "bank_name": "Bank of India",
+      "template_id": "boi_rs_debited_upi",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+debited\\s+A/c\\s*[*Xx]+(?<account>\\d{2,4})\\s+and\\s+credited\\s+to\\s+(?<merchant>[^.]+?)\\s+via\\s+UPI\\s+Ref\\s+No\\s+(?<ref>\\d+)",
+      "tx_type": "upi_debit",
+      "priority": 5
+    },
+    {
+      "id": "boi_neft_credit",
+      "bank_name": "Bank of India",
+      "template_id": "boi_rs_credited_neft",
+      "pattern_regex": "Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+Credited\\s+in\\s+your\\s+Ac\\s+[*Xx]+(?<account>\\d{2,4})\\s+on\\s+\\S+\\s+By\\s+(?<merchant>[^.]+?)\\s*\\.?(?:Avl\\s+Bal\\s+(?<balance>[\\d,]+(?:\\.\\d{2})?))?",
+      "tx_type": "credit",
+      "priority": 10
+    },
+    {
+      "id": "boi_cash_deposit_cdm",
+      "bank_name": "Bank of India",
+      "template_id": "boi_cash_deposited_cdm",
+      "pattern_regex": "BOI\\s*-\\s*Cash\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+deposited\\s+in\\s+your\\s+account\\s+[*Xx]+(?<account>\\d{2,4})[^\\n]*?at\\s+(?<merchant>[^.]+?)\\s+ON\\s+\\S+[^\\n]*?Available\\s+balance\\s+Rs\\.?\\s*(?<balance>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "credit",
+      "priority": 15
+    },
+    {
+      "id": "boi_debit_rs_inr",
+      "bank_name": "Bank of India",
+      "template_id": "boi_rs_debited_generic",
+      "pattern_regex": "(?:Rs\\.?|INR)\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+debited\\s+(?:from\\s+)?A/?c\\s*[*Xx]+(?<account>\\d{2,4})",
+      "tx_type": "debit",
+      "priority": 30
+    },
+
+    {
+      "id": "bom_debit_rs",
+      "bank_name": "Bank of Maharashtra",
+      "template_id": "bom_rs_debited",
+      "pattern_regex": "A/c\\s+[*Xx]+(?<account>\\d{2,4})\\s+(?:is\\s+)?debited\\s+(?:by\\s+|with\\s+)?(?:Rs\\.?|INR)\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "debit",
+      "priority": 10
+    },
+    {
+      "id": "bom_credit_rs",
+      "bank_name": "Bank of Maharashtra",
+      "template_id": "bom_rs_credited",
+      "pattern_regex": "A/c\\s+[*Xx]+(?<account>\\d{2,4})\\s+(?:is\\s+)?credited\\s+(?:by\\s+|with\\s+)?(?:Rs\\.?|INR)\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "credit",
+      "priority": 10
+    },
+
+    {
+      "id": "psb_debit_with_rs",
+      "bank_name": "Punjab & Sind Bank",
+      "template_id": "psb_debited_with_rs",
+      "pattern_regex": "A/[Cc]\\s+No\\s+\\*+(?<account>\\d{2,})\\s+Debited\\s+with\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s*(?:--\\s*(?<merchant>[^(\\r\\n]+?)\\s*\\(CLR\\s+BAL\\s+(?<balance>[\\d,]+(?:\\.\\d{2})?))?",
+      "tx_type": "debit",
+      "priority": 10
+    },
+    {
+      "id": "psb_credit_with_rs",
+      "bank_name": "Punjab & Sind Bank",
+      "template_id": "psb_credited_with_rs",
+      "pattern_regex": "A/[Cc]\\s+No\\s+\\*+(?<account>\\d{2,})\\s+Credited\\s+with\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s*(?:--\\s*(?<merchant>[^(\\r\\n]+?)\\s*\\(CLR\\s+BAL\\s+(?<balance>[\\d,]+(?:\\.\\d{2})?))?",
+      "tx_type": "credit",
+      "priority": 10
+    },
+    {
+      "id": "psb_upi_ref",
+      "bank_name": "Punjab & Sind Bank",
+      "template_id": "psb_upi_ref",
+      "pattern_regex": "UPI/(?:CR|DR)/(?<ref>\\d+)/(?<merchant>[^/]+)/",
+      "tx_type": "upi_debit",
+      "priority": 20
+    },
+
+    {
+      "id": "generic_amount_extractor",
+      "bank_name": "__generic__",
+      "template_id": "generic_amount_fallback",
+      "pattern_regex": "(?:Rs\\.?|INR|\\u20B9)\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "balance_inquiry",
+      "priority": 900
+    },
+    {
+      "id": "generic_account_last4",
+      "bank_name": "__generic__",
+      "template_id": "generic_account_last4",
+      "pattern_regex": "(?:a/c|ac|account|acct)[\\s*\\-]*(?:no\\.?\\s*)?[xX*]*(?<account>\\d{4})",
+      "tx_type": "balance_inquiry",
+      "priority": 910
+    },
+    {
+      "id": "generic_upi_ref",
+      "bank_name": "__generic__",
+      "template_id": "generic_upi_ref",
+      "pattern_regex": "UPI(?:\\s+Ref(?:\\.?\\s+(?:No|ID))?|\\s*[:])[\\s.]*(?<ref>\\d{6,})",
+      "tx_type": "balance_inquiry",
+      "priority": 920
+    },
+
+    {
+      "id": "reminder_si_pre_notice",
+      "bank_name": "__generic__",
+      "template_id": "reminder_standing_instruction_prenotice",
+      "pattern_regex": "Payment\\s+of\\s+INR\\s+(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+towards\\s+Merchant\\s+(?<merchant>\\S+)\\s+[^\\n]*?Standing\\s+Instruction[^\\n]*?due\\s+by\\s+(?<dueDate>\\d{2}/\\d{2}/\\d{4})",
+      "tx_type": "reminder_hint",
+      "priority": 5
+    },
+    {
+      "id": "reminder_emi_prenotice",
+      "bank_name": "__generic__",
+      "template_id": "reminder_emi_prenotice",
+      "pattern_regex": "EMI\\s+of\\s+INR\\s+(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+(?:for|on)\\s+[^\\n]*?Loan\\s+A/c\\s+(?<account>\\d{2,})\\s+is\\s+due\\s+on\\s+(?<dueDate>\\d{2}[-/]\\d{2}[-/]\\d{2,4})",
+      "tx_type": "reminder_hint",
+      "priority": 5
+    },
+    {
+      "id": "reminder_bill_due_cc",
+      "bank_name": "__generic__",
+      "template_id": "reminder_cc_bill_due",
+      "pattern_regex": "Amount\\s+Due\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+on\\s+[^\\n]*?Credit\\s+Card\\s+(?<account>\\d{4})[^\\n]*?Pay\\s+(?:instantly\\s+)?by\\s+(?<dueDate>\\d{2}/\\w{3}/\\d{2,4})",
+      "tx_type": "reminder_hint",
+      "priority": 5
+    },
+    {
+      "id": "reminder_auto_debit_prenotice",
+      "bank_name": "__generic__",
+      "template_id": "reminder_auto_debit_prenotice",
+      "pattern_regex": "INR\\s+(?<amount>[\\d,]+(?:\\.\\d{2})?)\\s+for\\s+(?<merchant>\\S+)\\s+will\\s+be\\s+auto\\s+debited[^\\n]*?by\\s+(?<dueDate>\\d{2}[-/]\\d{2}[-/]\\d{2,4})",
+      "tx_type": "reminder_hint",
+      "priority": 5
+    },
+    {
+      "id": "reminder_upi_mandate_created",
+      "bank_name": "__generic__",
+      "template_id": "reminder_upi_mandate_created",
+      "pattern_regex": "UPI-Mandate\\s+successfully\\s+created\\s+towards\\s+(?<merchant>\\S+)\\s+for\\s+Rs\\.?\\s*(?<amount>[\\d,]+(?:\\.\\d{2})?)",
+      "tx_type": "reminder_hint",
+      "priority": 5
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Rounded blue background -->
+  <rect width="1024" height="1024" rx="200" ry="200" fill="#2563EB"/>
+  <!-- Single thin white ring — seal/stamp aesthetic -->
+  <circle cx="512" cy="512" r="360" fill="none" stroke="white" stroke-width="6"/>
+  <!-- Devanagari अ -->
+  <text x="512" y="580" text-anchor="middle" dominant-baseline="central"
+        font-family="Noto Sans Devanagari, Devanagari MT, Kohinoor Devanagari, sans-serif"
+        font-size="460" font-weight="bold" fill="white">अ</text>
+</svg>

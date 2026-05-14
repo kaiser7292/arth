@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 432" width="432" height="432">
+  <!-- Android adaptive foreground: coin ring + अ on transparent, with safe-zone padding -->
+  <circle cx="216" cy="216" r="165" fill="none" stroke="#F59E0B" stroke-width="6"/>
+  <circle cx="216" cy="216" r="150" fill="none" stroke="#F59E0B" stroke-width="1.5"/>
+  <g fill="#F59E0B" opacity="0.6">
+    <circle cx="216" cy="59" r="2.5"/><circle cx="293" cy="81" r="2.5"/>
+    <circle cx="351" cy="139" r="2.5"/><circle cx="373" cy="216" r="2.5"/>
+    <circle cx="351" cy="293" r="2.5"/><circle cx="293" cy="351" r="2.5"/>
+    <circle cx="216" cy="373" r="2.5"/><circle cx="139" cy="351" r="2.5"/>
+    <circle cx="81" cy="293" r="2.5"/><circle cx="59" cy="216" r="2.5"/>
+    <circle cx="81" cy="139" r="2.5"/><circle cx="139" cy="81" r="2.5"/>
+  </g>
+  <text x="216" y="245" text-anchor="middle" dominant-baseline="central"
+        font-family="Noto Sans Devanagari, Devanagari MT, Kohinoor Devanagari, sans-serif"
+        font-size="200" font-weight="bold" fill="white">अ</text>
+</svg>

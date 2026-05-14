@@ -1,0 +1,191 @@
+name: Build APK
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'services/**'
+      - 'database/**'
+      - 'constants/**'
+      - 'hooks/**'
+      - 'utils/**'
+      - 'assets/**'
+      - 'app.json'
+      - 'package.json'
+      - 'tailwind.config.js'
+      - 'babel.config.js'
+      - 'metro.config.js'
+      - 'tsconfig.json'
+      - '.expo-shared/**'
+      - 'docs/help/**'
+      - 'plugins/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Self-hosted runner on dev machine — persistent ~/.gradle avoids re-downloading
+    # Maven artifacts on every run. Machine must be on with the runner service running.
+    # Setup: GitHub repo → Settings → Actions → Runners → New self-hosted runner (Windows x64)
+    runs-on: self-hosted
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Git is installed via Scoop — add its bin dir so bash is on PATH for all
+      # subsequent run: steps (which use shell: bash via the job-level default).
+      - name: Add Git Bash to PATH
+        shell: powershell
+        run: Add-Content $env:GITHUB_PATH "$env:USERPROFILE\scoop\apps\git\current\bin"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # Android SDK is pre-installed on the self-hosted runner (Android Studio).
+      # No setup-android action needed — sdk.dir is written to local.properties below.
+
+      # Cache node_modules directly — skipping npm ci saves 2-4 min vs relying only
+      # on the setup-node npm global cache (which still has to extract tarballs).
+      - name: Cache node_modules
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts --prefer-offline
+
+      - name: Determine branch and package name
+        id: config
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+            echo "branch=staging" >> $GITHUB_OUTPUT
+            echo "package_name=com.souravbaid.artha.staging" >> $GITHUB_OUTPUT
+            echo "apk_name=artha-staging" >> $GITHUB_OUTPUT
+            echo "release_suffix=-staging" >> $GITHUB_OUTPUT
+            # Build only arm64-v8a for staging — covers all modern Android phones,
+            # cuts native compile time by ~75% vs building all 4 ABIs.
+            echo "abi_flag=-PreactNativeArchitectures=arm64-v8a" >> $GITHUB_OUTPUT
+          else
+            echo "branch=main" >> $GITHUB_OUTPUT
+            echo "package_name=com.souravbaid.artha" >> $GITHUB_OUTPUT
+            echo "apk_name=artha" >> $GITHUB_OUTPUT
+            echo "release_suffix=" >> $GITHUB_OUTPUT
+            # Production builds include all ABIs for maximum device compatibility.
+            echo "abi_flag=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update package name for staging
+        if: steps.config.outputs.branch == 'staging'
+        run: |
+          sed -i 's/"package": "com.souravbaid.artha"/"package": "com.souravbaid.artha.staging"/g' app.json
+          sed -i 's/"name": "Artha"/"name": "Artha Stg"/g' app.json
+
+      # Cache the generated android/ directory keyed on files that affect native code.
+      # On a cache-hit (JS-only changes) expo prebuild is skipped entirely and Gradle
+      # only re-bundles JS (~3-5 min instead of ~30 min for a full native rebuild).
+      - name: Cache android directory
+        id: android-cache
+        uses: actions/cache@v4
+        with:
+          path: android
+          key: android-${{ runner.os }}-${{ steps.config.outputs.branch }}-${{ hashFiles('package.json', 'package-lock.json', 'app.json', 'plugins/**', 'babel.config.js', 'metro.config.js') }}
+          restore-keys: |
+            android-${{ runner.os }}-${{ steps.config.outputs.branch }}-
+
+      - name: Expo prebuild
+        if: steps.android-cache.outputs.cache-hit != 'true'
+        run: npx expo prebuild --platform android --clean
+
+      # ~/.gradle persists on the self-hosted machine between runs — no cache action needed.
+      # Gradle's build cache (in ~/.gradle/caches/build-cache-*) avoids recompiling
+      # native modules whose inputs haven't changed.
+
+      - name: Create local.properties
+        run: |
+          # Convert Windows backslashes to forward slashes for Gradle compatibility
+          echo "sdk.dir=$(echo "${ANDROID_HOME}" | tr '\\' '/')" > android/local.properties
+
+      - name: Copy tailwind config
+        run: cp tailwind.config.js android/tailwind.config.js
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Get app version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+      - name: Build APK
+        run: |
+          cd android
+          ./gradlew assembleRelease \
+            --build-cache \
+            -PappVersionName=${{ steps.version.outputs.version }} \
+            -PappVersionCode=${{ steps.version.outputs.version_code }} \
+            ${{ steps.config.outputs.abi_flag }}
+
+      - name: Get APK path
+        id: apk
+        run: echo "path=android/app/build/outputs/apk/release/app-release.apk" >> $GITHUB_OUTPUT
+
+      - name: Rename APK
+        run: |
+          mv ${{ steps.apk.outputs.path }} ${{ steps.config.outputs.apk_name }}-${{ steps.version.outputs.version }}.apk
+
+      - name: Create Release and Upload APK
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version }}${{ steps.config.outputs.release_suffix }}
+          name: Artha v${{ steps.version.outputs.version }}${{ steps.config.outputs.release_suffix }}
+          body: |
+            ## Artha v${{ steps.version.outputs.version }}${{ steps.config.outputs.release_suffix }}
+            
+            ### Changes
+            ${{ github.event.head_commit.message }}
+            
+            ### Branch
+            ${{ steps.config.outputs.branch }}
+            
+            ### Package Name
+            ${{ steps.config.outputs.package_name }}
+            
+            ### Download
+            Download the APK from the assets below.
+          draft: false
+          prerelease: ${{ steps.config.outputs.branch == 'staging' }}
+          files: ${{ steps.config.outputs.apk_name }}-${{ steps.version.outputs.version }}.apk

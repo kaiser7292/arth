@@ -1,0 +1,113 @@
+import { View, Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import type { Advisory, AdvisorySeverity } from "@/utils/financial-cockpit";
+
+interface AdvisoryCardProps {
+  advisory: Advisory;
+}
+
+interface SeverityStyle {
+  bg: string;
+  bgDark: string;
+  border: string;
+  text: string;
+  textDark: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
+
+const SEVERITY_STYLES: Record<AdvisorySeverity, SeverityStyle> = {
+  critical: {
+    bg: "#FEF2F2",
+    bgDark: "#3B0000",
+    border: "#EF4444",
+    text: "#991B1B",
+    textDark: "#FCA5A5",
+    icon: "warning-outline",
+  },
+  warning: {
+    bg: "#FEF9E7",
+    bgDark: "#332B00",
+    border: "#F59E0B",
+    text: "#92400E",
+    textDark: "#FBBF24",
+    icon: "alert-circle-outline",
+  },
+  info: {
+    bg: "#EFF6FF",
+    bgDark: "#1E293B",
+    border: "#3B82F6",
+    text: "#1E40AF",
+    textDark: "#93C5FD",
+    icon: "information-circle-outline",
+  },
+  celebrate: {
+    bg: "#F0FDF4",
+    bgDark: "#052E16",
+    border: "#22C55E",
+    text: "#166534",
+    textDark: "#86EFAC",
+    icon: "sparkles-outline",
+  },
+};
+
+export function AdvisoryCard({ advisory }: AdvisoryCardProps) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const style = SEVERITY_STYLES[advisory.severity];
+
+  return (
+    <View
+      className="mb-2 rounded-xl overflow-hidden"
+      style={{
+        backgroundColor: isDark ? style.bgDark : style.bg,
+        borderLeftWidth: 3,
+        borderLeftColor: style.border,
+      }}
+    >
+      <View className="px-3 py-2.5">
+        {/* Title row */}
+        <View className="flex-row items-center mb-1">
+          <Ionicons
+            name={style.icon}
+            size={16}
+            color={style.border}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            className="text-sm font-semibold flex-1"
+            style={{ color: isDark ? style.textDark : style.text }}
+          >
+            {advisory.title}
+          </Text>
+        </View>
+
+        {/* Message */}
+        <Text
+          className="text-xs ml-5.5"
+          style={{ color: isDark ? style.textDark : style.text, marginLeft: 22, opacity: 0.85 }}
+        >
+          {advisory.message}
+        </Text>
+
+        {/* Action */}
+        {advisory.action && (
+          <View
+            className="mt-1.5 ml-5.5 py-1 px-2 rounded self-start"
+            style={{
+              backgroundColor: style.border + "14",
+              marginLeft: 22,
+            }}
+          >
+            <Text
+              className="text-xs font-medium"
+              style={{ color: style.border }}
+            >
+              → {advisory.action}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Dark Teal — rich, unique, wealth -->
+  <rect width="1024" height="1024" rx="200" ry="200" fill="#134E4A"/>
+  <circle cx="512" cy="512" r="390" fill="none" stroke="#F59E0B" stroke-width="14"/>
+  <circle cx="512" cy="512" r="355" fill="none" stroke="#F59E0B" stroke-width="3"/>
+  <g fill="#F59E0B" opacity="0.6">
+    <circle cx="512" cy="140" r="6"/><circle cx="694" cy="192" r="6"/>
+    <circle cx="832" cy="330" r="6"/><circle cx="884" cy="512" r="6"/>
+    <circle cx="832" cy="694" r="6"/><circle cx="694" cy="832" r="6"/>
+    <circle cx="512" cy="884" r="6"/><circle cx="330" cy="832" r="6"/>
+    <circle cx="192" cy="694" r="6"/><circle cx="140" cy="512" r="6"/>
+    <circle cx="192" cy="330" r="6"/><circle cx="330" cy="192" r="6"/>
+  </g>
+  <text x="512" y="580" text-anchor="middle" dominant-baseline="central"
+        font-family="Noto Sans Devanagari, Devanagari MT, Kohinoor Devanagari, sans-serif"
+        font-size="480" font-weight="bold" fill="white">अ</text>
+</svg>

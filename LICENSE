@@ -1,0 +1,59 @@
+PROPRIETARY LICENSE — ALL RIGHTS RESERVED
+
+Copyright (c) 2025-2026 Sourav Baid. All rights reserved.
+
+Artha is proprietary software. This repository, its source code, compiled
+binaries (including APK / AAB files), assets, documentation, and derivative
+works are the exclusive property of Sourav Baid.
+
+NO LICENSE IS GRANTED by making this source code available (whether via a
+private repository, a tester invitation, a collaboration arrangement, a
+leak, a fork, or any other means of access). Access to the source does
+not imply permission to use it.
+
+You may NOT, without prior written permission from Sourav Baid:
+
+  1. Copy, reproduce, or redistribute any portion of this repository, in
+     source or binary form.
+  2. Modify, adapt, translate, or create derivative works.
+  3. Use the code, assets, or any portion of the work for commercial
+     purposes of any kind, including but not limited to selling,
+     sub-licensing, incorporating into another product, using in a paid
+     service, or monetizing via advertising.
+  4. Use the code or assets for non-commercial purposes, including but not
+     limited to personal side-projects, educational demos, or learning
+     exercises that are shared publicly.
+  5. Publish the source code or any portion thereof publicly.
+  6. Reverse engineer, decompile, or disassemble compiled binaries
+     (including distributed APK / AAB files) except to the extent the
+     applicable law expressly permits such activity despite this limitation.
+  7. Remove or alter any copyright, trademark, or other proprietary notices.
+
+The only permitted use of compiled binaries (e.g. APKs downloaded from an
+official distribution channel such as the Google Play Store) is:
+
+  - Installation on personal devices for personal, non-commercial use by
+    the installing end-user.
+  - Normal end-user interaction with the application as intended.
+
+Any use beyond this — including enterprise deployment, redistribution,
+bundling, or resale of the compiled app — requires a separate commercial
+license obtained in writing from Sourav Baid.
+
+This license does NOT grant rights to any trademarks, service marks, trade
+names, logos, or brand indicia (including but not limited to the name
+"Artha"), whether registered or unregistered.
+
+THIS WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR TITLE. IN NO EVENT
+SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM OR IN CONNECTION WITH THIS WORK OR ITS USE.
+
+THIRD-PARTY DEPENDENCIES bundled via package.json retain their own
+licenses and are not governed by this file. See the `node_modules/` tree
+or the output of `npx license-checker` for their individual terms.
+
+For commercial licensing enquiries, contact:
+  Sourav Baid
+  (Contact details to be added on request)

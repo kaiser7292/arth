@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Splash icon: coin design at 400x400 -->
+  <rect width="400" height="400" rx="80" ry="80" fill="#134E4A"/>
+  <circle cx="200" cy="200" r="152" fill="none" stroke="#F59E0B" stroke-width="5.5"/>
+  <circle cx="200" cy="200" r="139" fill="none" stroke="#F59E0B" stroke-width="1.2"/>
+  <g fill="#F59E0B" opacity="0.6">
+    <circle cx="200" cy="55" r="2.3"/><circle cx="271" cy="75" r="2.3"/>
+    <circle cx="325" cy="129" r="2.3"/><circle cx="345" cy="200" r="2.3"/>
+    <circle cx="325" cy="271" r="2.3"/><circle cx="271" cy="325" r="2.3"/>
+    <circle cx="200" cy="345" r="2.3"/><circle cx="129" cy="325" r="2.3"/>
+    <circle cx="75" cy="271" r="2.3"/><circle cx="55" cy="200" r="2.3"/>
+    <circle cx="75" cy="129" r="2.3"/><circle cx="129" cy="75" r="2.3"/>
+  </g>
+  <text x="200" y="226" text-anchor="middle" dominant-baseline="central"
+        font-family="Noto Sans Devanagari, Devanagari MT, Kohinoor Devanagari, sans-serif"
+        font-size="188" font-weight="bold" fill="white">अ</text>
+</svg>
