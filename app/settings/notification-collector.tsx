@@ -1,6 +1,7 @@
 import { Card, ScreenContainer } from '@/components/ui';
 import { StatusColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAlert } from '@/hooks/use-alert';
 import {
     clearAllNotifications,
     deleteNotification,
@@ -16,9 +17,10 @@ import {
 import { formatTimestampInTimezone } from '@/utils/timezone';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 
 export default function NotificationCollectorScreen() {
+  const alert = useAlert();
   const { colors, colorScheme } = useColorScheme();
   const sc = StatusColors[colorScheme];
   const [notifications, setNotifications] = useState<CollectedNotification[]>([]);
@@ -72,9 +74,9 @@ export default function NotificationCollectorScreen() {
       setNotes('');
       setSelectedId(null);
       await loadNotifications();
-      Alert.alert('Success', 'Marked as useful');
+      alert('Success', 'Marked as useful');
     } catch (error) {
-      Alert.alert('Error', 'Failed to mark as useful');
+      alert('Error', 'Failed to mark as useful');
     }
   };
 
@@ -82,14 +84,14 @@ export default function NotificationCollectorScreen() {
     try {
       await markNotificationAsNotUseful(id);
       await loadNotifications();
-      Alert.alert('Success', 'Marked as not useful');
+      alert('Success', 'Marked as not useful');
     } catch (error) {
-      Alert.alert('Error', 'Failed to mark as not useful');
+      alert('Error', 'Failed to mark as not useful');
     }
   };
 
   const handleDelete = async (id: number) => {
-    Alert.alert(
+    alert(
       'Delete Notification',
       'Are you sure you want to delete this notification?',
       [
@@ -102,7 +104,7 @@ export default function NotificationCollectorScreen() {
               await deleteNotification(id);
               await loadNotifications();
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete');
+              alert('Error', 'Failed to delete');
             }
           },
         },
@@ -111,7 +113,7 @@ export default function NotificationCollectorScreen() {
   };
 
   const handleClearAll = () => {
-    Alert.alert(
+    alert(
       'Clear All Notifications',
       'Are you sure you want to delete all notifications?',
       [
@@ -123,9 +125,9 @@ export default function NotificationCollectorScreen() {
             try {
               await clearAllNotifications();
               await loadNotifications();
-              Alert.alert('Success', 'All notifications cleared');
+              alert('Success', 'All notifications cleared');
             } catch (error) {
-              Alert.alert('Error', 'Failed to clear notifications');
+              alert('Error', 'Failed to clear notifications');
             }
           },
         },
@@ -138,7 +140,7 @@ export default function NotificationCollectorScreen() {
     await setNotificationCollectionEnabled(enabled);
 
     if (enabled) {
-      Alert.alert(
+      alert(
         'Collection Enabled',
         'Notifications will now be collected automatically. Make sure to grant notification listener permission in system settings.',
         [{ text: 'OK' }]

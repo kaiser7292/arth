@@ -1,6 +1,7 @@
 import { Card, ScreenContainer } from '@/components/ui';
 import { StatusColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAlert } from '@/hooks/use-alert';
 import {
     clearKiteCredentials,
     exchangeRequestToken,
@@ -13,10 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 export default function KiteConnectScreen() {
+  const alert = useAlert();
   const { colors, colorScheme } = useColorScheme();
   const sc = StatusColors[colorScheme];
   const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +46,7 @@ export default function KiteConnectScreen() {
     try {
       const credentials = await getKiteCredentials();
       if (!credentials?.apiKey) {
-        Alert.alert(
+        alert(
           'API Key Required',
           'Please enter your Kite API key first. You can get it from https://developers.kite.trade/apps',
           [
@@ -62,12 +64,12 @@ export default function KiteConnectScreen() {
       setLoginUrl(url);
       setShowWebView(true);
     } catch (error) {
-      Alert.alert('Error', 'Failed to initiate Kite login');
+      alert('Error', 'Failed to initiate Kite login');
     }
   };
 
   const handleDisconnectPress = () => {
-    Alert.alert(
+    alert(
       'Disconnect Kite',
       'Are you sure you want to disconnect from Kite? This will clear your credentials.',
       [
@@ -79,9 +81,9 @@ export default function KiteConnectScreen() {
             try {
               await clearKiteCredentials();
               setIsAuthenticated(false);
-              Alert.alert('Success', 'Disconnected from Kite');
+              alert('Success', 'Disconnected from Kite');
             } catch (error) {
-              Alert.alert('Error', 'Failed to disconnect');
+              alert('Error', 'Failed to disconnect');
             }
           },
         },
@@ -107,15 +109,15 @@ export default function KiteConnectScreen() {
           const credentials = await exchangeRequestToken(requestToken);
           await storeKiteAccessToken(credentials);
           setIsAuthenticated(true);
-          Alert.alert('Success', 'Successfully connected to Kite!');
+          alert('Success', 'Successfully connected to Kite!');
         } catch (error) {
-          Alert.alert('Error', 'Failed to complete authentication');
+          alert('Error', 'Failed to complete authentication');
           console.error('Token exchange error:', error);
         } finally {
           setIsLoading(false);
         }
       } else {
-        Alert.alert('Error', 'Authentication failed or was cancelled');
+        alert('Error', 'Authentication failed or was cancelled');
       }
     }
   };

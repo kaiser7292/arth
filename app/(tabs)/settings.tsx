@@ -166,12 +166,25 @@ export default function SettingsScreen() {
     setSmsToggling(true);
     try {
       if (enable) {
-        const granted = await enableSmsDetection();
-        if (granted) {
-          setSmsEnabled(true);
-        } else {
-          alert("Permission Denied", "SMS reading requires SMS permission. You can enable it later in Settings.");
-        }
+        // Show explanation dialog before requesting permission
+        alert(
+          "Read Bank SMS",
+          "Artha can read your bank transaction SMS (ICICI, HDFC, Axis, SBI, UPI) to detect expenses.\n\nWhat happens:\n• Only bank/UPI SMS are read — personal messages are ignored\n• All processing happens on your device\n• Detected expenses go to a review queue — you approve each one\n• You can scan manually or turn on automatic scanning\n\nWe'll ask for SMS permission next.",
+          [
+            { text: "Not Now", style: "cancel" },
+            {
+              text: "Continue",
+              onPress: async () => {
+                const granted = await enableSmsDetection();
+                if (granted) {
+                  setSmsEnabled(true);
+                } else {
+                  alert("Permission Denied", "SMS reading requires SMS permission. You can enable it later in Settings.");
+                }
+              },
+            },
+          ],
+        );
       } else {
         disableSmsDetection();
         setSmsEnabled(false);
@@ -758,7 +771,7 @@ export default function SettingsScreen() {
             <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
               <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">App Name</Text>
               <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
-                Aartha Stg (अर्थ) - Staging
+                Artha (अर्थ)
               </Text>
             </View>
             <View className="flex-row items-center justify-between py-2">

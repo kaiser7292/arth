@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -10,6 +10,7 @@ import {
 import { logger } from '@/utils/logger';
 
 export default function KiteConnectApiKeyScreen() {
+  const alert = useAlert();
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,24 +36,24 @@ export default function KiteConnectApiKeyScreen() {
 
   const handleSave = async () => {
     if (!apiKey.trim()) {
-      Alert.alert('Error', 'Please enter your API key');
+      alert('Error', 'Please enter your API key');
       return;
     }
 
     setIsSaving(true);
     try {
       await storeKiteApiKey(apiKey.trim());
-      Alert.alert('Success', 'API key saved successfully');
+      alert('Success', 'API key saved successfully');
       router.back();
     } catch (error) {
-      Alert.alert('Error', 'Failed to save API key');
+      alert('Error', 'Failed to save API key');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleClear = () => {
-    Alert.alert(
+    alert(
       'Clear API Key',
       'Are you sure you want to clear the API key?',
       [
@@ -64,10 +65,10 @@ export default function KiteConnectApiKeyScreen() {
             try {
               await clearKiteCredentials();
               setApiKey('');
-              Alert.alert('Success', 'API key cleared');
+              alert('Success', 'API key cleared');
             } catch (e) {
               logger.error('Failed to clear Kite credentials:', e);
-              Alert.alert('Error', 'Failed to clear API key');
+              alert('Error', 'Failed to clear API key');
             }
           },
         },

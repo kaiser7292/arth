@@ -12,7 +12,7 @@
  *  - User can set an earlier date for historic data setup
  */
 
-import { Platform, PermissionsAndroid, Alert } from "react-native";
+import { Platform, PermissionsAndroid } from "react-native";
 import { settingsStorage as storage } from "@/services/storage";
 
 const KEYS = {
@@ -165,9 +165,9 @@ export async function hasSmsPermission(): Promise<boolean> {
 // ─── Permission Request ───
 
 /**
- * Request READ_SMS permission with a contextual explanation.
- * Shows an alert explaining why before the OS permission dialog.
+ * Request READ_SMS permission.
  * Returns true if permission was granted, false otherwise.
+ * Note: The explanation dialog should be shown in the UI layer before calling this.
  */
 export async function requestSmsPermission(): Promise<boolean> {
   if (Platform.OS !== "android") return false;
@@ -177,10 +177,6 @@ export async function requestSmsPermission(): Promise<boolean> {
   if (alreadyGranted) return true;
 
   markSmsPermissionAsked();
-
-  // Show contextual explanation first
-  const userWantsToProceed = await showPermissionExplanation();
-  if (!userWantsToProceed) return false;
 
   // Request the actual OS permission
   const result = await PermissionsAndroid.request(
@@ -196,30 +192,6 @@ export async function requestSmsPermission(): Promise<boolean> {
   );
 
   return result === PermissionsAndroid.RESULTS.GRANTED;
-}
-
-/**
- * Show a pre-permission explanation dialog.
- * Returns a promise that resolves to true if user taps "Continue".
- */
-function showPermissionExplanation(): Promise<boolean> {
-  return new Promise((resolve) => {
-    Alert.alert(
-      "Read Bank SMS",
-      "Artha can read your bank transaction SMS (ICICI, HDFC, Axis, SBI, UPI) " +
-        "to detect expenses.\n\n" +
-        "What happens:\n" +
-        "• Only bank/UPI SMS are read — personal messages are ignored\n" +
-        "• All processing happens on your device\n" +
-        "• Detected expenses go to a review queue — you approve each one\n" +
-        "• You can scan manually or turn on automatic scanning\n\n" +
-        "We'll ask for SMS permission next.",
-      [
-        { text: "Not Now", style: "cancel", onPress: () => resolve(false) },
-        { text: "Continue", onPress: () => resolve(true) },
-      ],
-    );
-  });
 }
 
 /**

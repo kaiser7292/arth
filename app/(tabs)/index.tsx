@@ -284,7 +284,7 @@ export default function HomeScreen() {
         <View className="px-4 pt-5 pb-3 flex-row items-start justify-between">
           <View>
             <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
-              Artha Stg (अर्थ)
+              Artha (अर्थ)
             </Text>
             <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
               {monthLabel}
