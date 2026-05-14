@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "android": {
-      "package": "com.souravbaid.artha.staging",
+      "package": "com.souravbaid.artha",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#134E4A",
