@@ -162,7 +162,7 @@ export default function AccountDetailScreen() {
       // Load current fund from the snapshots table (single source of truth).
       // The legacy acct.fund_balance scalar is deprecated; seed the input with
       // the latest snapshot value instead.
-      if (acct.account_type === "demat") {
+      if (acct.account_type === "demat" || acct.account_type === "pension") {
         const currentFund = await getCurrentFundBalance(acct.id);
         setFundBalanceValue(String(currentFund));
       } else {
@@ -237,7 +237,7 @@ export default function AccountDetailScreen() {
         await updateAccountFinancials(account.id, {
           credit_limit: cl != null && !isNaN(cl) && cl >= 0 ? cl : undefined,
         });
-      } else if (accountType === "demat") {
+      } else if (accountType === "demat" || accountType === "pension") {
         const fund = parseFloat(fundBalanceValue.replace(/,/g, ""));
         if (!isNaN(fund)) {
           await updateFundBalance(account.id, fund);
@@ -391,6 +391,7 @@ export default function AccountDetailScreen() {
     { key: "loan", label: "Loan", icon: "document-text-outline" },
     { key: "wallet", label: "Wallet", icon: "phone-portrait-outline" },
     { key: "demat", label: "Demat", icon: "trending-up-outline" },
+    { key: "pension", label: "Pension", icon: "briefcase-outline" },
   ];
 
   return (
@@ -565,8 +566,8 @@ export default function AccountDetailScreen() {
             </Card>
           )}
 
-          {/* Demat: Fund Balance */}
-          {accountType === "demat" && (
+          {/* Demat/Pension: Fund Balance */}
+          {(accountType === "demat" || accountType === "pension") && (
             <Card className="mb-3">
               <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
                 Idle Cash / Fund Balance

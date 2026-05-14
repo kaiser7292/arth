@@ -52,7 +52,7 @@ export default {
         user_id TEXT NOT NULL REFERENCES users(id),
         account_identifier TEXT NOT NULL,
         bank_name TEXT NOT NULL,
-        account_type TEXT NOT NULL CHECK(account_type IN ('savings','credit_card','loan','wallet','demat')),
+        account_type TEXT NOT NULL,
         account_label TEXT,
         credit_limit REAL,
         last_known_balance REAL,

@@ -54,6 +54,7 @@ export interface HomePreloadData {
   ccAccounts: FinancialAccount[];
   bankAccounts: FinancialAccount[];
   walletAccounts: FinancialAccount[];
+  pensionAccounts: FinancialAccount[];
   ccExpenseTotals: Record<string, number>;
   computedBalanceMap: Record<string, number | null>;
   dematSummary: { totalPortfolio: number; totalFund: number; accountCount: number };
@@ -110,6 +111,11 @@ export interface WalletsPreloadData {
   adjustmentStats: { total: number; count: number };
 }
 
+export interface PensionAccountsPreloadData {
+  summaries: AccountSummaryRow[];
+  adjustmentStats: { total: number; count: number };
+}
+
 // ---------------------------------------------------------------------------
 // Cache — single-use per screen. `consume*` clears after read so stale data
 // doesn't haunt the next focus.
@@ -122,6 +128,7 @@ interface Cache {
   creditCards: CreditCardsPreloadData | null;
   bankAccounts: BankAccountsPreloadData | null;
   wallets: WalletsPreloadData | null;
+  pensionAccounts: PensionAccountsPreloadData | null;
 }
 const cache: Cache = {
   home: null,
@@ -130,6 +137,7 @@ const cache: Cache = {
   creditCards: null,
   bankAccounts: null,
   wallets: null,
+  pensionAccounts: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -173,6 +181,7 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
       ccAccounts: allAccounts.filter((a) => a.account_type === "credit_card"),
       bankAccounts: allAccounts.filter((a) => a.account_type === "savings"),
       walletAccounts: allAccounts.filter((a) => a.account_type === "wallet"),
+      pensionAccounts: allAccounts.filter((a) => a.account_type === "pension"),
       ccExpenseTotals: ccTotals,
       computedBalanceMap: balances,
       dematSummary: dematSum,
@@ -264,7 +273,7 @@ async function loadCreditCardsSection(): Promise<CreditCardsPreloadData | null> 
 }
 
 async function loadAccountGroupSection(
-  accountType: "savings" | "wallet",
+  accountType: "savings" | "wallet" | "pension",
 ): Promise<{ summaries: AccountSummaryRow[]; adjustmentStats: { total: number; count: number } } | null> {
   try {
     const month = getCurrentMonth();
@@ -334,13 +343,14 @@ async function loadAccountGroupSection(
  * back to their own fetch path gracefully.
  */
 export async function preloadHomeData(): Promise<void> {
-  const [home, accounts, balanceSheet, creditCards, bankAccounts, wallets] = await Promise.all([
+  const [home, accounts, balanceSheet, creditCards, bankAccounts, wallets, pensionAccounts] = await Promise.all([
     loadHomeSection(),
     loadAccountsSection(),
     loadBalanceSheetSection(),
     loadCreditCardsSection(),
     loadAccountGroupSection("savings"),
     loadAccountGroupSection("wallet"),
+    loadAccountGroupSection("pension"),
   ]);
   cache.home = home;
   cache.accounts = accounts;
@@ -348,6 +358,7 @@ export async function preloadHomeData(): Promise<void> {
   cache.creditCards = creditCards;
   cache.bankAccounts = bankAccounts;
   cache.wallets = wallets;
+  cache.pensionAccounts = pensionAccounts;
 }
 
 export function consumeHomePreload(): HomePreloadData | null {
@@ -383,5 +394,11 @@ export function consumeBankAccountsPreload(): BankAccountsPreloadData | null {
 export function consumeWalletsPreload(): WalletsPreloadData | null {
   const data = cache.wallets;
   cache.wallets = null;
+  return data;
+}
+
+export function consumePensionAccountsPreload(): PensionAccountsPreloadData | null {
+  const data = cache.pensionAccounts;
+  cache.pensionAccounts = null;
   return data;
 }

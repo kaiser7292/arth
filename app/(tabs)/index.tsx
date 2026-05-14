@@ -11,6 +11,7 @@ import { CreditCardDashboard } from "@/components/home/CreditCardDashboard";
 import { DematSummaryCard } from "@/components/home/DematSummaryCard";
 import { LoanSummaryCard } from "@/components/home/LoanSummaryCard";
 import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
+import { PensionSummaryCard } from "@/components/home/PensionSummaryCard";
 import { WalletSummary } from "@/components/home/WalletSummary";
 import { Card, ProgressBar, ScreenContainer, StatusPill } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -94,6 +95,7 @@ export default function HomeScreen() {
   const [ccAccounts, setCcAccounts] = useState<FinancialAccount[]>(preloaded?.ccAccounts ?? []);
   const [bankAccounts, setBankAccounts] = useState<FinancialAccount[]>(preloaded?.bankAccounts ?? []);
   const [walletAccounts, setWalletAccounts] = useState<FinancialAccount[]>(preloaded?.walletAccounts ?? []);
+  const [pensionAccounts, setPensionAccounts] = useState<FinancialAccount[]>(preloaded?.pensionAccounts ?? []);
   const [ccExpenseTotals, setCcExpenseTotals] = useState<Record<string, number>>(preloaded?.ccExpenseTotals ?? {});
   const [computedBalanceMap, setComputedBalanceMap] = useState<Record<string, number | null>>(preloaded?.computedBalanceMap ?? {});
   const [dematSummary, setDematSummary] = useState(preloaded?.dematSummary ?? { totalPortfolio: 0, totalFund: 0, accountCount: 0 });
@@ -174,6 +176,7 @@ export default function HomeScreen() {
       setCcAccounts(allAccounts.filter((a) => a.account_type === "credit_card"));
       setBankAccounts(allAccounts.filter((a) => a.account_type === "savings"));
       setWalletAccounts(allAccounts.filter((a) => a.account_type === "wallet"));
+      setPensionAccounts(allAccounts.filter((a) => a.account_type === "pension"));
       setCcExpenseTotals(ccTotals);
       setComputedBalanceMap(balances);
       setDematSummary(dematSum);
@@ -691,6 +694,9 @@ export default function HomeScreen() {
         )}
         {isHomeCardVisible("demat") && (
           <DematSummaryCard totalPortfolio={dematSummary.totalPortfolio} totalFund={dematSummary.totalFund} accountCount={dematSummary.accountCount} />
+        )}
+        {isHomeCardVisible("pension") && (
+          <PensionSummaryCard accounts={pensionAccounts} computedBalances={computedBalanceMap} expenseTotals={ccExpenseTotals} />
         )}
         {isHomeCardVisible("loans") && loansSummary && loansSummary.activeCount > 0 && (
           <LoanSummaryCard summary={loansSummary} />

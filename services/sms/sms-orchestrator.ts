@@ -49,12 +49,15 @@ export const SCAN_COOLDOWN_MS = 30 * 60 * 1000;
  * @param options.notify - default true. When true and new transactions are
  *   found, sends a local notification (subject to user notification prefs).
  *   Ignored when manual=true (the UI surfaces results directly).
+ * @param options.accountIds - optional list of account IDs to filter SMS scan by.
+ *   If provided, only SMS matching these accounts will be processed.
  */
 export async function runSmsScan(
-  options: { manual?: boolean; notify?: boolean } = {},
+  options: { manual?: boolean; notify?: boolean; accountIds?: string[] } = {},
 ): Promise<ScanOutcome> {
   const manual = options.manual ?? false;
   const notify = options.notify ?? true;
+  const accountIds = options.accountIds;
 
   if (!isSmsDetectionEnabled()) {
     return { ran: false, created: 0, credits: 0, skipped: 0, totalScanned: 0, reason: "sms_disabled" };
@@ -72,7 +75,7 @@ export async function runSmsScan(
   }
 
   try {
-    const readResult = manual ? await manualReadSms() : await checkForNewBankSMS();
+    const readResult = manual ? await manualReadSms(accountIds) : await checkForNewBankSMS();
     if (readResult.error) {
       return {
         ran: false,

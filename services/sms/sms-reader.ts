@@ -82,16 +82,18 @@ async function readSmsFromDevice(filter: Record<string, unknown>): Promise<RawSM
 // ─── Core fetch function ───
 
 /**
- * Fetch bank SMS from inbox for a given time range.
+ * Fetch bank SMS from inbox within a time range.
  *
  * @param sinceTimestamp - Only fetch SMS newer than this (ms).
  * @param maxCount - Maximum SMS to read. Default 500.
  * @param untilTimestamp - Only fetch SMS older than this (ms). 0 = no upper limit.
+ * @param accountIds - optional list of account IDs to filter SMS by
  */
 async function fetchBankSMSRange(
   sinceTimestamp: number,
   maxCount: number = 500,
   untilTimestamp: number = 0,
+  accountIds?: string[],
 ): Promise<FetchSMSResult> {
   if (Platform.OS !== "android") {
     return { messages: [], count: 0, error: "SMS reading is Android-only" };
@@ -150,17 +152,21 @@ async function fetchBankSMSRange(
 // ─── Public API ───
 
 /**
- * Manual scan: reads bank SMS within the user-configured date range.
- * Called when user taps "Scan Now".
+ * Manual SMS scan — user taps "Scan Now".
+ *
+ * Reads SMS from the user-configured start date (default: 7 days ago)
+ * up to the configured end date (default: today).
  *
  * Respects both the start and end date configured by the user
  * (presets or custom range). Updates the last-check timestamp so
  * subsequent automatic checks don't re-process these messages.
+ *
+ * @param accountIds - optional list of account IDs to filter SMS by
  */
-export async function manualScan(): Promise<FetchSMSResult> {
+export async function manualScan(accountIds?: string[]): Promise<FetchSMSResult> {
   const startTimestamp = getSmsStartTimestamp();
   const endTimestamp = getSmsEndTimestamp();
-  const result = await fetchBankSMSRange(startTimestamp, 500, endTimestamp);
+  const result = await fetchBankSMSRange(startTimestamp, 500, endTimestamp, accountIds);
 
   if (result.messages.length > 0) {
     const newestTimestamp = Math.max(...result.messages.map((m) => m.date));

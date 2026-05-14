@@ -26,7 +26,11 @@ import {
     runSmsScan,
     setSmsEndDate,
     setSmsStartDate,
+    getSmsScanAccountIds,
+    setSmsScanAccountIds,
 } from "@/services/sms";
+import { getActiveAccounts } from "@/services/financial-account";
+import type { FinancialAccount } from "@/services/financial-account";
 import { countUnrecognisedSms } from "@/services/sms/user-sms-templates";
 import { ac } from "@/utils/accent";
 import { formatDisplayDate as formatDateLabel } from "@/utils/date";
@@ -110,6 +114,8 @@ export default function SettingsScreen() {
   const [smsScanCreated, setSmsScanCreated] = useState(0);
   const [smsStartDateStr, setSmsStartDateStr] = useState(() => getSmsStartDate());
   const [smsEndDateStr, setSmsEndDateStr] = useState(() => getSmsEndDate());
+  const [smsScanAccountIds, setSmsScanAccountIds] = useState<string[]>(() => getSmsScanAccountIds());
+  const [allAccounts, setAllAccounts] = useState<FinancialAccount[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customMode, setCustomMode] = useState(false);
   const [customFromText, setCustomFromText] = useState("");
@@ -133,6 +139,10 @@ export default function SettingsScreen() {
         .catch(() => {
           /* non-fatal */
         });
+      setSmsScanAccountIds(getSmsScanAccountIds());
+      getActiveAccounts(DEFAULT_USER_ID).then(setAllAccounts).catch(() => {
+        /* non-fatal */
+      });
       // v15.11.3: scan-result CTAs ("Review N expenses" / "Review N duplicate
       // groups") are actionable signals tied to the just-run scan. When the
       // user returns to Settings after tapping one of those CTAs — whether
@@ -200,7 +210,7 @@ export default function SettingsScreen() {
     setSmsScanResult(null);
     setSmsScanCreated(0);
     try {
-      const outcome = await runSmsScan({ manual: true });
+      const outcome = await runSmsScan({ manual: true, accountIds: smsScanAccountIds });
       if (outcome.reason === "error") {
         setSmsScanResult(`Error: ${outcome.error ?? "Scan failed"}`);
       } else if (outcome.reason === "no_permission") {
@@ -608,6 +618,49 @@ export default function SettingsScreen() {
 
               {smsEnabled && (
                 <>
+                  {/* Account Filter */}
+                  <View className="mt-4">
+                    <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+                      Filter SMS by Account
+                    </Text>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+                      Select specific accounts to scan SMS for. Leave empty to scan all accounts.
+                    </Text>
+                    {allAccounts.length > 0 ? (
+                      <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+                        {allAccounts.map((account) => {
+                          const isSelected = smsScanAccountIds.includes(account.id);
+                          return (
+                            <Pressable
+                              key={account.id}
+                              onPress={() => {
+                                const newSelection = isSelected
+                                  ? smsScanAccountIds.filter((id) => id !== account.id)
+                                  : [...smsScanAccountIds, account.id];
+                                setSmsScanAccountIds(newSelection);
+                              }}
+                              className={`px-3 py-2 rounded-full border ${
+                                isSelected
+                                  ? "bg-primary/10 border-primary"
+                                  : "bg-transparent border-border-light dark:border-border-dark"
+                              }`}
+                            >
+                              <Text
+                                className={`text-xs ${
+                                  isSelected ? "text-primary" : "text-text-secondary dark:text-text-dark-secondary"
+                                }`}
+                              >
+                                {account.bank_name} ••••{account.account_identifier}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    ) : (
+                      <Text className="text-xs text-text-tertiary">No accounts available</Text>
+                    )}
+                  </View>
+
                   <Pressable onPress={handleManualScan} disabled={smsScanning} className="flex-row items-center justify-center py-3 mt-2 rounded-lg" style={{ backgroundColor: accent[500] }}>
                     {smsScanning ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />

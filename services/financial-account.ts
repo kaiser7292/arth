@@ -114,6 +114,46 @@ export function inferAccountTypeFromKeywords(
 }
 
 /**
+ * Validate account type value.
+ * Ensures only valid account types are stored in the database.
+ */
+export function isValidAccountType(type: string): type is AccountType {
+  return ['savings', 'credit_card', 'loan', 'wallet', 'demat', 'pension'].includes(type);
+}
+
+/**
+ * Get pension account summary.
+ * Returns total balance, account count, and last contribution date for all pension accounts.
+ */
+export async function getPensionSummary(userId: string): Promise<{
+  totalBalance: number;
+  accountCount: number;
+  lastContributionDate: string | null;
+}> {
+  const db = getDatabase();
+  const accounts = await db.getAllAsync<FinancialAccount>(
+    `SELECT * FROM financial_accounts WHERE user_id = ? AND account_type = 'pension' AND is_active = 1`,
+    userId,
+  );
+
+  const totalBalance = accounts.reduce((sum, acc) => sum + (acc.last_known_balance ?? 0), 0);
+  const accountCount = accounts.length;
+
+  // Get the most recent balance date from any pension account
+  const lastContributionDate = accounts
+    .map((acc) => acc.last_balance_date)
+    .filter((date): date is string => date !== null)
+    .sort()
+    .pop() ?? null;
+
+  return {
+    totalBalance,
+    accountCount,
+    lastContributionDate,
+  };
+}
+
+/**
  * Discover or update a financial account from parsed SMS data.
  * Creates the account if it doesn't exist, updates balance/limit info if it does.
  * Returns the account ID.
@@ -184,6 +224,10 @@ export async function createManualAccount(params: {
   fundBalance?: number;
   accountNumber?: string;
 }): Promise<string> {
+  if (!isValidAccountType(params.accountType)) {
+    throw new Error(`Invalid account type: ${params.accountType}`);
+  }
+  
   const db = getDatabase();
   const id = generateUUID();
   const today = new Date().toISOString().split("T")[0];
@@ -609,6 +653,10 @@ export async function updateAccountType(
   accountId: string,
   newType: AccountType,
 ): Promise<void> {
+  if (!isValidAccountType(newType)) {
+    throw new Error(`Invalid account type: ${newType}`);
+  }
+  
   const db = getDatabase();
 
   // Clear fields that don't apply to the new type

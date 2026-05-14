@@ -23,6 +23,7 @@ export type HomeCardId =
   | "bank_balances"
   | "wallets"
   | "demat"
+  | "pension"
   | "reminders"
   | "simulator"
   | "loans";
@@ -100,6 +101,12 @@ export const HOME_CARDS: HomeCardMeta[] = [
     id: "demat",
     label: "Demat portfolio + fund",
     description: "Broker portfolio value + idle cash",
+    defaultVisible: true,
+  },
+  {
+    id: "pension",
+    label: "Pension",
+    description: "EPF/PPF balance across your pension accounts",
     defaultVisible: true,
   },
   {

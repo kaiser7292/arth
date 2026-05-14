@@ -27,6 +27,7 @@ export default function ReconciliationStackLayout() {
       <Stack.Screen name="credit-cards" options={{ title: "Credit Card Details" }} />
       <Stack.Screen name="bank-accounts" options={{ title: "Bank Account Details" }} />
       <Stack.Screen name="wallets" options={{ title: "Wallet Details" }} />
+      <Stack.Screen name="pension-accounts" options={{ title: "Pension Account Details" }} />
       <Stack.Screen name="account-ledger" options={{ title: "Account Ledger" }} />
       <Stack.Screen name="demat-portfolio" options={{ title: "Demat Portfolio" }} />
     </Stack>
