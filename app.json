@@ -2,7 +2,7 @@
   "expo": {
     "name": "Aartha Stg",
     "slug": "artha",
-    "version": "17.7.4",
+    "version": "18.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "artha",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "android": {
       "package": "com.souravbaid.artha.staging",
-      "versionCode": 170704,
+      "versionCode": 180000,
       "adaptiveIcon": {
         "backgroundColor": "#134E4A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
