@@ -834,9 +834,8 @@ export default function SettingsScreen() {
               <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Version</Text>
               <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
                 {(() => {
-                  const cfg = require("expo-constants").default.expoConfig;
-                  const v = cfg?.version ?? "—";
-                  const sha = cfg?.extra?.commitSha;
+                  const v = require("expo-constants").default.expoConfig?.version ?? "—";
+                  const sha = require("@/constants/build-info").COMMIT_SHA;
                   return sha ? `${v} - ${sha}` : v;
                 })()}
               </Text>
