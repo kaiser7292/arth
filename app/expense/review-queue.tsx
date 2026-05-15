@@ -280,7 +280,7 @@ export default function ReviewQueueScreen() {
           onPress: async () => {
             try {
               await approveExpenses(realized.map((item) => item.id));
-              setItems((prev) => prev.filter((i) => i.nature !== "realized" && i.nature !== "credit"));
+              loadItems();
             } catch (e) {
               logger.error("Approve auto-detected failed:", e);
               alert("Error", "Some items may have been approved. " + (e instanceof Error ? e.message : ""));
@@ -305,7 +305,7 @@ export default function ReviewQueueScreen() {
           onPress: async () => {
             try {
               await rejectExpenses(realized.map((item) => item.id));
-              setItems((prev) => prev.filter((i) => i.nature !== "realized" && i.nature !== "credit"));
+              loadItems();
             } catch (e) {
               logger.error("Reject auto-detected failed:", e);
               alert("Error", "Some items may have been rejected. " + (e instanceof Error ? e.message : ""));
