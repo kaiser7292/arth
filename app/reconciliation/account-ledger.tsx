@@ -245,68 +245,52 @@ useDataRefresh(
       setClosing(balanceData.closing);
 
       // Fetch individual transactions — aggregated across pool siblings when applicable.
-      const expenseLists = await Promise.all(
-        ledgerAccountIds.map((id) => getLedgerExpenses(id, startDate, endDate)),
-      );
-      const creditLists = await Promise.all(
-        ledgerAccountIds.map((id) => getCreditsForMonth(id, startDate, endDate)),
-      );
-      const transferLists = await Promise.all(
-        ledgerAccountIds.map((id) => getTransfersForMonth(id, startDate, endDate)),
-      );
+      const [expenseLists, creditLists, transferLists] = await Promise.all([
+        Promise.all(ledgerAccountIds.map((id) => getLedgerExpenses(id, startDate, endDate))),
+        Promise.all(ledgerAccountIds.map((id) => getCreditsForMonth(id, startDate, endDate))),
+        Promise.all(ledgerAccountIds.map((id) => getTransfersForMonth(id, startDate, endDate))),
+      ]);
       const expenses = expenseLists.flat();
       const credits = creditLists.flat();
-      // Dedup transfers — intra-pool transfers would otherwise show twice (once per side).
       const seenTransferIds = new Set<string>();
       const transfers = transferLists.flat().filter((t) => {
         if (seenTransferIds.has(t.id)) return false;
         seenTransferIds.add(t.id);
         return true;
       });
-      // Perf (v14.8.0): reuse allAccountsForMin fetched above; no second
-      // round-trip for the same query.
       setAllAccountsState(allAccountsForMin);
 
-      // Build account name map for transfer display with inactive account fallback
       const activeAcctMap = new Map<string, string>();
-      const inactiveAcctMap = new Map<string, { name: string; isInactive: boolean }>();
-      
-      // Build active account map
       for (const a of allAccountsForMin) {
         activeAcctMap.set(a.id, a.account_label || `${a.bank_name} ****${a.account_identifier}`);
       }
-      
-      // Fetch inactive accounts for fallback
-      const allAccounts = await getAllAccounts(DEFAULT_USER_ID);
-      for (const a of allAccounts) {
-        if (a.is_active === 0) {
-          inactiveAcctMap.set(a.id, {
-            name: a.account_label || `${a.bank_name} ****${a.account_identifier}`,
-            isInactive: true,
-          });
+
+      let inactiveAcctMap = new Map<string, { name: string; isInactive: boolean }>();
+      try {
+        const allAccounts = await getAllAccounts(DEFAULT_USER_ID);
+        for (const a of allAccounts) {
+          if (a.is_active === 0) {
+            inactiveAcctMap.set(a.id, {
+              name: a.account_label || `${a.bank_name} ****${a.account_identifier}`,
+              isInactive: true,
+            });
+          }
         }
+      } catch {
+        // Non-critical — transfers will show "(Account deleted)" for inactive accounts
       }
-      
-      // Combined lookup function: check active first, then inactive
-      const getAccountName = (accountId: string | null): string => {
-        if (!accountId) return "(Account deleted)";
-        
-        // Check active accounts first
-        const activeName = activeAcctMap.get(accountId);
+
+      const getAccountName = (acctId: string | null): string => {
+        if (!acctId) return "(Account deleted)";
+        const activeName = activeAcctMap.get(acctId);
         if (activeName) return activeName;
-        
-        // Check inactive accounts as fallback
-        const inactiveInfo = inactiveAcctMap.get(accountId);
+        const inactiveInfo = inactiveAcctMap.get(acctId);
         if (inactiveInfo) return `${inactiveInfo.name} (Inactive)`;
-        
-        // Account not found at all
         return "(Account deleted)";
       };
-      
+
       setAccountMap(activeAcctMap);
 
-      // Lookup of accountId → last-4, used to stamp individual ledger entries
-      // with which sibling card they belong to (shared-pool CC view).
       const last4Map = new Map<string, string>();
       if (isPoolCC) {
         for (const a of allAccountsForMin) {
@@ -317,21 +301,27 @@ useDataRefresh(
       // Build combined ledger entries
       const ledger: LedgerEntry[] = [];
 
-      // Batch-resolve hisaab person names for split expenses — single query
-      // via getPersonsByIds. Previously fired one getPerson() per split
-      // partner (N+1).
-      const personIds = Array.from(
-        new Set(expenses.filter((e) => e.split_person_id).map((e) => e.split_person_id!)),
-      );
-      const personsById = await getPersonsByIds(personIds);
-      const personMap = new Map<string, string>();
-      for (const [pid, p] of personsById) personMap.set(pid, p.name);
+      let personMap = new Map<string, string>();
+      try {
+        const personIds = Array.from(
+          new Set(expenses.filter((e) => e.split_person_id).map((e) => e.split_person_id!)),
+        );
+        if (personIds.length > 0) {
+          const personsById = await getPersonsByIds(personIds);
+          for (const [pid, p] of personsById) personMap.set(pid, p.name);
+        }
+      } catch {
+        // Non-critical — split names will show as null
+      }
 
-      // v15.12.1: for every credit row, look up any linked hisaab settlement
-      // (both recordSettlement-created AND linkCreditAsSettlement-linked).
-      // One batch query — previously there was no UI surface for this on the
-      // account ledger at all.
-      const settlementByCreditId = await getSettlementsForCredits(credits.map((c) => c.id));
+      let settlementByCreditId = new Map<string, { entryId: string; personId: string; personName: string }>();
+      try {
+        if (credits.length > 0) {
+          settlementByCreditId = await getSettlementsForCredits(credits.map((c) => c.id));
+        }
+      } catch {
+        // Non-critical — hisaab links won't show on credit rows
+      }
 
       for (const exp of expenses) {
         const isAdjustment = exp.nature === "ledger_adjustment";
@@ -362,8 +352,6 @@ useDataRefresh(
 
       for (const cr of credits) {
         const settlement = settlementByCreditId.get(cr.id);
-        // v15.13.1: SMS refund credits carry refund_of_expense_id pointing at
-        // the original expense. Tapping the ledger row deep-links there.
         const isRefundCredit = !!cr.refund_of_expense_id;
         ledger.push({
           id: cr.id,
@@ -389,8 +377,6 @@ useDataRefresh(
       for (const tr of transfers) {
         const isIn = poolIdSet.has(tr.to_account_id);
         const counterId = isIn ? tr.from_account_id : tr.to_account_id;
-        // For pool ledgers, attribute the transfer to whichever side belongs
-        // to the pool — that's the sibling the money moved in/out of.
         const poolSideId = poolIdSet.has(tr.to_account_id)
           ? tr.to_account_id
           : poolIdSet.has(tr.from_account_id)
@@ -415,7 +401,6 @@ useDataRefresh(
         });
       }
 
-      // Sort by date descending
       ledger.sort((a, b) => b.date.localeCompare(a.date));
       setEntries(ledger);
     }, [accountId, month, startDate, endDate]),
