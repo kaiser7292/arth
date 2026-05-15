@@ -566,8 +566,8 @@ export default function AccountDetailScreen() {
             </Card>
           )}
 
-          {/* Demat/Pension: Fund Balance */}
-          {(accountType === "demat" || accountType === "pension") && (
+          {/* Demat: Fund Balance */}
+          {accountType === "demat" && (
             <Card className="mb-3">
               <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
                 Idle Cash / Fund Balance

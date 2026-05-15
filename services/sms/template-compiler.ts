@@ -82,7 +82,8 @@ export type CompileResult = CompileSuccess | CompileError;
 // lookahead for the next anchor character so the merchant capture stops
 // correctly even when the surrounding anchor is short.
 const FIELD_REGEX: Record<TaggedField, string> = {
-  amount: "[\\d,]+(?:\\.\\d{1,2})?",
+  // v15.13.0: removed comma from amount regex since normalization strips thousands commas
+  amount: "\\d+(?:\\.\\d{1,2})?",
   // v15.10.0: account accepts either last 3-6 digits of a card/savings
   // (existing behavior) OR a multi-word nickname for a wallet-style account
   // (e.g. "Amazon Pay Wallet", "TataNeu Coins"). The digit alternation is
@@ -95,7 +96,8 @@ const FIELD_REGEX: Record<TaggedField, string> = {
   // For month-year formats, the parser converts to end-of-month date.
   // The matcher infers the year from context for 2-digit years.
   date: "(?:\\d{1,2}[-/][A-Za-z0-9]{2,4}[-/]\\d{2,4}(?:\\s+\\d{2}:\\d{2}(?::\\d{2})?)?|[A-Za-z]{3}(?:[-/\\s]\\d{2,4}))",
-  balance: "[\\d,]+(?:\\.\\d{1,2})?",
+  // v15.13.0: removed comma from balance regex since normalization strips thousands commas
+  balance: "\\d+(?:\\.\\d{1,2})?",
   // ref is the free-text "remarks / description" field — may be a UPI/NEFT
   // id, a multi-word remark, or a slash-separated payload. Non-greedy so
   // trailing anchor text can terminate it; same last-field-greedy fallback
@@ -576,18 +578,20 @@ export function testTemplate(
     const value = m.groups[field];
     if (value == null) continue;
     
-    // Search for the value in the normalized body without cursor constraint.
-    // This handles cases where fields appear in different orders in the text.
-    // Use lastIndexOf to handle duplicate values (e.g., same amount appears twice).
-    const normIdx = normBody.lastIndexOf(value);
+    // v15.13.0: For amount/balance fields, strip commas from the value before
+    // searching in the normalized body, since normalization strips commas.
+    // This handles cases where the original SMS has "3,456" but the normalized
+    // SMS has "3456".
+    const searchValue = (field === "amount" || field === "balance")
+      ? value.replace(/,/g, "")
+      : value;
+    
+    const normIdx = normBody.lastIndexOf(searchValue);
     if (normIdx < 0) {
-      // Couldn't locate in normalized space — fall back to the raw lowercase
-      // value. Only happens if the regex used complex alternatives that
-      // don't produce a unique substring; very rare.
       result[field] = value;
       continue;
     }
-    const normEnd = normIdx + value.length;
+    const normEnd = normIdx + searchValue.length;
     const origStart = norm.normalizedToOriginal[normIdx];
     const origEnd = (norm.normalizedToOriginal[normEnd - 1] ?? origStart) + 1;
     if (origStart == null || origEnd <= origStart) {
