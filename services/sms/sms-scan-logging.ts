@@ -90,7 +90,7 @@ export interface ScanDetailRow {
 }
 
 const MAX_RUNS_KEPT = 30;
-const BODY_PREVIEW_LENGTH = 120;
+const BODY_PREVIEW_LENGTH = 500;
 
 function truncateBody(body: string | null | undefined): string | null {
   if (!body) return null;

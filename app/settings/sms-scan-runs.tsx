@@ -362,8 +362,6 @@ export default function SmsScanRunsScreen() {
   }
 
   function SmsDetailCard({ detail }: { detail: ScanDetailRow }) {
-    const [expanded, setExpanded] = useState(false);
-
     const dateStr = detail.sms_date
       ? new Date(detail.sms_date).toLocaleString([], {
           month: "short",
@@ -373,49 +371,57 @@ export default function SmsScanRunsScreen() {
         })
       : null;
 
+    const hasParsedData = detail.parsed_amount != null || detail.parsed_merchant || detail.parsed_type;
+
     return (
-      <Pressable onPress={() => setExpanded(!expanded)} className="mb-2">
+      <View className="mb-2">
         <Card>
-          <View className="flex-row items-start">
-            <View className="flex-1">
+          {/* Sender + date header */}
+          {(detail.sms_address || dateStr) && (
+            <View className="flex-row items-center justify-between mb-1.5">
               {detail.sms_address && (
-                <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-0.5">
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
                   {detail.sms_address}
-                  {dateStr ? ` · ${dateStr}` : ""}
                 </Text>
               )}
-              <Text
-                className="text-sm text-text-primary dark:text-text-dark-primary"
-                numberOfLines={expanded ? undefined : 2}
-              >
-                {detail.sms_body_preview ?? "No preview available"}
-              </Text>
+              {dateStr && (
+                <Text className="text-xs text-text-tertiary">
+                  {dateStr}
+                </Text>
+              )}
             </View>
-            {detail.parsed_amount != null && detail.parsed_amount > 0 && (
-              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary ml-2">
-                {formatAmount(detail.parsed_amount)}
-              </Text>
-            )}
+          )}
+
+          {/* Full raw SMS body */}
+          <View className="bg-surface-light-alt dark:bg-surface-dark rounded-lg p-2.5 mb-2">
+            <Text className="text-xs text-text-primary dark:text-text-dark-primary leading-[18px]" selectable>
+              {detail.sms_body_preview ?? "No SMS body available"}
+            </Text>
           </View>
 
-          {/* Metadata row */}
-          <View className="flex-row flex-wrap items-center mt-2">
-            {detail.parsed_merchant && (
-              <MetadataPill label={detail.parsed_merchant} />
-            )}
-            {detail.parsed_type && (
-              <MetadataPill label={detail.parsed_type} />
-            )}
-            {detail.filter_reason && (
-              <MetadataPill
-                label={formatFilterReason(detail.filter_reason)}
-                isWarning
-              />
-            )}
-            {detail.matched_template_id && (
-              <MetadataPill label="Template" isAccent />
-            )}
-          </View>
+          {/* Parsed fields table */}
+          {hasParsedData && (
+            <View className="border-t border-border-light dark:border-border-dark pt-2">
+              <Text className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">
+                Parsed Values
+              </Text>
+              {detail.parsed_amount != null && (
+                <ParsedRow label="Amount" value={formatAmount(detail.parsed_amount)} />
+              )}
+              {detail.parsed_merchant && (
+                <ParsedRow label="Merchant" value={detail.parsed_merchant} />
+              )}
+              {detail.parsed_type && (
+                <ParsedRow label="Type" value={detail.parsed_type} />
+              )}
+              {detail.matched_template_id && (
+                <ParsedRow label="Matched By" value="User Template" isAccent />
+              )}
+              {detail.filter_reason && (
+                <ParsedRow label="Filter" value={formatFilterReason(detail.filter_reason)} isWarning />
+              )}
+            </View>
+          )}
 
           {/* Teach action for unrecognized */}
           {detail.category === "unrecognized" && (
@@ -432,37 +438,24 @@ export default function SmsScanRunsScreen() {
             </Pressable>
           )}
         </Card>
-      </Pressable>
+      </View>
     );
   }
 
-  function MetadataPill({
-    label,
-    isWarning,
-    isAccent,
-  }: {
-    label: string;
-    isWarning?: boolean;
-    isAccent?: boolean;
-  }) {
-    const bgColor = isWarning
-      ? StatusColors[colorScheme].warning + "18"
-      : isAccent
-        ? accent[500] + "18"
-        : colors.border + "40";
-    const textColor = isWarning
+  function ParsedRow({ label, value, isWarning, isAccent }: { label: string; value: string; isWarning?: boolean; isAccent?: boolean }) {
+    const valueColor = isWarning
       ? StatusColors[colorScheme].warning
       : isAccent
         ? accent[500]
-        : colors.textSecondary;
-
+        : undefined;
     return (
-      <View
-        className="rounded-full px-2 py-0.5 mr-1.5 mb-1"
-        style={{ backgroundColor: bgColor }}
-      >
-        <Text className="text-[10px] font-medium" style={{ color: textColor }}>
-          {label}
+      <View className="flex-row items-center justify-between py-0.5">
+        <Text className="text-xs text-text-tertiary">{label}</Text>
+        <Text
+          className="text-xs font-medium text-text-primary dark:text-text-dark-primary"
+          style={valueColor ? { color: valueColor } : undefined}
+        >
+          {value}
         </Text>
       </View>
     );
