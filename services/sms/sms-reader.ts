@@ -13,17 +13,18 @@
  */
 
 import { Platform } from "react-native";
+import { parseBankSMS } from "./bank-patterns";
 import { isBankSender, looksLikeTransaction } from "./bank-senders";
 import {
-  hasSmsPermission,
-  getLastSmsCheckTimestamp,
-  setLastSmsCheckTimestamp,
-  getSmsStartTimestamp,
-  getSmsEndTimestamp,
+    getLastSmsCheckTimestamp,
+    getSmsEndTimestamp,
+    getSmsStartTimestamp,
+    hasSmsPermission,
+    setLastSmsCheckTimestamp,
 } from "./sms-permissions";
 import {
-  loadUserSenderClaims,
-  matchesAnyUserSenderPattern,
+    loadUserSenderClaims,
+    matchesAnyUserSenderPattern,
 } from "./user-sms-templates";
 
 // ─── Types ───
@@ -133,6 +134,19 @@ async function fetchBankSMSRange(
     // If maxDate isn't supported by the native module, filter in JS
     if (untilTimestamp > 0) {
       bankSms = bankSms.filter((sms) => sms.date <= untilTimestamp);
+    }
+
+    // Filter by account IDs if provided
+    if (accountIds && accountIds.length > 0) {
+      bankSms = bankSms.filter((sms) => {
+        const parsed = parseBankSMS(sms.body);
+        if (!parsed || !parsed.cardLast4) return false;
+        
+        // Check if this SMS matches any of the selected account IDs
+        // Account IDs in the database may be full identifiers, but cardLast4 is just last 4 digits
+        // We need to check if the account ID ends with the cardLast4
+        return accountIds.some((accountId) => accountId.endsWith(parsed.cardLast4!));
+      });
     }
 
     return {
