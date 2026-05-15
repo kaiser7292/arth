@@ -1,7 +1,7 @@
-import { Stack } from "expo-router";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors } from "@/constants/theme";
 import { HeaderBackHome } from "@/components/ui/HeaderBackHome";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Stack } from "expo-router";
 
 export default function ReconciliationStackLayout() {
   const { colorScheme } = useColorScheme();
@@ -29,7 +29,7 @@ export default function ReconciliationStackLayout() {
       <Stack.Screen name="wallets" options={{ title: "Wallet Details" }} />
       <Stack.Screen name="pension-accounts" options={{ title: "Pension Account Details" }} />
       <Stack.Screen name="account-ledger" options={{ title: "Account Ledger" }} />
-      <Stack.Screen name="demat-portfolio" options={{ title: "Demat Portfolio" }} />
+      <Stack.Screen name="demat-portfolio" options={{ title: "Portfolio Details" }} />
     </Stack>
   );
 }

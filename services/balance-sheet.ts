@@ -19,9 +19,9 @@
  */
 
 import { getDatabase } from "@/database";
-import { getMonthBalanceSummary, getClosingBalance } from "@/services/account-balance";
-import { getLoanOutstandingsByFA } from "@/services/loan-accounts";
+import { getClosingBalance, getMonthBalanceSummary } from "@/services/account-balance";
 import { V15_FLAGS } from "@/services/feature-flags";
+import { getLoanOutstandingsByFA } from "@/services/loan-accounts";
 
 export interface BalanceSheetRow {
   /** Short label for the row, e.g. "HDFC ••••1234" or "Credit cards utilized". */
@@ -271,7 +271,7 @@ export async function getBalanceSheetColumn(
 
   const dematIds = accounts.filter((a) => a.account_type === "demat").map((a) => a.id);
   const balanceEligible = accounts.filter(
-    (a) => a.account_type === "savings" || a.account_type === "wallet" || a.account_type === "credit_card",
+    (a) => a.account_type === "savings" || a.account_type === "wallet" || a.account_type === "credit_card" || a.account_type === "pension",
   );
 
   // Fire everything in parallel. Promise.all gives us across-account concurrency.
@@ -312,6 +312,10 @@ export async function getBalanceSheetColumn(
     } else if (a.account_type === "wallet") {
       const r = balanceMap.get(a.id);
       if (r) assets.push({ label: name, group: "wallet", amount: r.value, accountId: a.id, isFallback: r.isFallback });
+    } else if (a.account_type === "pension") {
+      // Treat pension accounts same as savings - use ledger-based balance calculation
+      const r = balanceMap.get(a.id);
+      if (r) assets.push({ label: name, group: "pension", amount: r.value, accountId: a.id, isFallback: r.isFallback });
     } else if (a.account_type === "demat") {
       // Portfolio — include ONLY when a snapshot exists within the window.
       // Absent → row omitted → UI cell shows "—".
@@ -357,16 +361,6 @@ export async function getBalanceSheetColumn(
         const val = a.last_known_balance ?? 0;
         if (val > 0) {
           liabilities.push({ label: name, group: "loan", amount: val, accountId: a.id, isFallback: true });
-        }
-      }
-    } else if (a.account_type === "pension") {
-      // Pension balance = last_known_balance (EPF passbook from SMS).
-      // No snapshot history today, so historic FY columns omit pension rows
-      // (render as "—"). Live column shows the latest passbook value.
-      if (isLive) {
-        const val = a.last_known_balance ?? 0;
-        if (val > 0) {
-          assets.push({ label: name, group: "pension", amount: val, accountId: a.id, isFallback: true });
         }
       }
     }

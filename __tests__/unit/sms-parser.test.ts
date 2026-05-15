@@ -1211,6 +1211,62 @@ describe("IDFC First CC Due", () => {
   });
 });
 
+describe("EPFO Pension", () => {
+  it("parses EPFO passbook balance with masked account ID", () => {
+    const result = parseBankSMS(
+      "Dear XXXXXXXX6138, your passbook balance against PUPUN**************1275 is Rs. 3,81,039/-. Contribution of Rs. 14,750/- for due month Mar-26 has been received.",
+    );
+    expect(result).not.toBeNull();
+    expect(result!.amount).toBe(14750); // Contribution amount
+    expect(result!.merchant).toBe("PUPUN**************1275"); // Full passbook ID
+    expect(result!.cardLast4).toBe("6138"); // UAN/account ID from beginning
+    expect(result!.date).toBe("2026-03-31"); // Month-end date
+    expect(result!.bank).toBe("EPFO");
+    expect(result!.type).toBe("credit");
+    expect(result!.accountType).toBe("pension");
+    expect(result!.availableBalance).toBe(381039); // Passbook balance
+    expect(result!.isForecast).toBe(false);
+  });
+
+  it("parses EPFO passbook balance with org-level account ID", () => {
+    const result = parseBankSMS(
+      "Dear XXXXXXXX6138, your passbook balance against APHYD00641440000014984 is Rs. 5,42,180/-. Contribution of Rs. 15,000/- for due month Apr-26 has been received.",
+    );
+    expect(result).not.toBeNull();
+    expect(result!.amount).toBe(15000);
+    expect(result!.merchant).toBe("APHYD00641440000014984");
+    expect(result!.cardLast4).toBe("6138");
+    expect(result!.date).toBe("2026-04-30"); // Month-end date
+    expect(result!.bank).toBe("EPFO");
+    expect(result!.type).toBe("credit");
+    expect(result!.accountType).toBe("pension");
+    expect(result!.availableBalance).toBe(542180);
+    expect(result!.isForecast).toBe(false);
+  });
+
+  it("parses EPFO with Jan-25 date", () => {
+    const result = parseBankSMS(
+      "Dear XXXXXXXX6138,your passbook balance against APHYD00641440000014984 is Rs. 1,77,791/-. Contribution of Rs. 8,736/- for due month Jan-25 has been received.",
+    );
+    expect(result).not.toBeNull();
+    expect(result!.amount).toBe(8736);
+    expect(result!.date).toBe("2025-01-31"); // Month-end date
+    expect(result!.cardLast4).toBe("6138");
+    expect(result!.accountType).toBe("pension");
+  });
+
+  it("parses EPFO with Mar-25 date", () => {
+    const result = parseBankSMS(
+      "Dear XXXXXXXX6138,your passbook balance against APHYD00641440000014984 is Rs. 1,95,263/-. Contribution of Rs. 8,736/- for due month Mar-25 has been received.",
+    );
+    expect(result).not.toBeNull();
+    expect(result!.amount).toBe(8736);
+    expect(result!.date).toBe("2025-03-31"); // Month-end date
+    expect(result!.cardLast4).toBe("6138");
+    expect(result!.accountType).toBe("pension");
+  });
+});
+
 // ─── Pattern count validation ───
 
 describe("Pattern count", () => {

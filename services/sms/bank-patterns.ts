@@ -966,35 +966,52 @@ export const BANK_PATTERNS: BankPattern[] = [
   // "Dear XXXXXXXX6138, your passbook balance against PUPUN**************1275 is Rs. 3,81,039/-. Contribution of Rs. 14,750/- for due month Mar-26 has been received."
   // Also matches the org-level account format: "APHYD00641440000014984".
   // Two IDs, one per employer. We treat each as a separate pension account.
-  // Contribution amount is ignored — the passbook balance already reflects it.
+  // Contribution amount is captured as credit amount, date is parsed as month-end date.
   {
     name: "EPFO Passbook Balance",
     bank: "EPFO",
-    type: "balance_inquiry",
+    type: "credit",
     test: /passbook\s+balance\s+against\s+[A-Z0-9*]+\s+is\s+Rs\.?\s*[\d,]+/i,
     parse: (body) => {
       const m = body.match(
-        /passbook\s+balance\s+against\s+([A-Z0-9*]+)\s+is\s+Rs\.?\s*([\d,]+)/i,
+        /Dear\s+([A-Z0-9]+)[,\s]+your\s+passbook\s+balance\s+against\s+([A-Z0-9*]+)\s+is\s+Rs\.?\s*([\d,]+)/i,
       );
       if (!m) return null;
-      // Use the last 4 alphanumeric characters of the account id as the "last4"
-      // identifier — gives us a stable, recognizable tag across both SMS
-      // formats without storing the full masked id.
-      const rawId = m[1];
-      const cleaned = rawId.replace(/\*/g, "");
-      const last4 = cleaned.slice(-4);
+      
+      // Extract only numeric digits from the account ID for cardLast4
+      const accountId = m[1].replace(/\D/g, ''); // Remove non-digits
+      const cardLast4 = accountId.length >= 4 ? accountId.slice(-4) : accountId;
+      
+      // Extract contribution amount if present
+      const contribMatch = body.match(/Contribution\s+of\s+Rs\.?\s*([\d,]+)\s*\/-\s+for\s+due\s+month\s+(\w{3})-(\d{2})/i);
+      let contributionAmount = 0;
+      let date = null;
+      
+      if (contribMatch) {
+        contributionAmount = parseAmount(contribMatch[1]);
+        const monthKey = contribMatch[2].charAt(0).toUpperCase() + contribMatch[2].slice(1).toLowerCase();
+        const month = MONTH_MAP[monthKey];
+        if (month) {
+          const year = parseInt(contribMatch[3], 10);
+          const fullYear = year < 50 ? 2000 + year : 1900 + year;
+          // Use month-end date (last day of the month)
+          const lastDay = new Date(fullYear, parseInt(month, 10), 0).getDate();
+          date = `${fullYear}-${month}-${lastDay.toString().padStart(2, '0')}`;
+        }
+      }
+      
       return {
-        amount: 0,
-        merchant: null,
-        cardLast4: last4,
-        date: null,
+        amount: contributionAmount,
+        merchant: m[2], // Store full passbook ID in merchant/notes
+        cardLast4: cardLast4, // Use last 4 digits of account ID
+        date: date,
         bank: "EPFO",
-        type: "balance_inquiry",
+        type: "credit",
         skip: false,
         dueDate: null,
         isForecast: false,
         confidence: 0.95,
-        availableBalance: parseAmount(m[2]),
+        availableBalance: parseAmount(m[3]),
         accountType: "pension" as const,
       };
     },

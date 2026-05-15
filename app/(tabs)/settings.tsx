@@ -1,4 +1,5 @@
 import { Card, DateInput, LearnMoreChip, ScreenContainer } from "@/components/ui";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useAlert } from "@/hooks/use-alert";
@@ -38,7 +39,7 @@ import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
 
 const SMS_DATE_PRESETS = [
   { label: "Today", daysBack: 0 },
@@ -823,99 +824,92 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
 
-      {/* Account Picker Modal */}
-      <Modal
-        visible={showAccountPicker}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowAccountPicker(false)}
-      >
-        <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-background dark:bg-background-dark rounded-t-3xl p-4 pb-8">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-lg font-semibold text-text-primary dark:text-text-dark-primary">
-                Select Accounts
-              </Text>
-              <Pressable onPress={() => setShowAccountPicker(false)}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </Pressable>
-            </View>
-
-            <ScrollView className="max-h-96">
-              <Pressable
-                onPress={() => {
-                  setSmsScanAccountIds([]);
-                  setShowAccountPicker(false);
-                }}
-                className={`flex-row items-center justify-between py-3 px-4 rounded-lg mb-2 border ${
-                  smsScanAccountIds.length === 0
-                    ? "bg-primary/10 border-primary"
-                    : "border-border-light dark:border-border-dark"
-                }`}
-              >
-                <View className="flex-1">
-                  <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
-                    All accounts
-                  </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                    Scan SMS for all accounts
-                  </Text>
-                </View>
-                <Ionicons
-                  name={smsScanAccountIds.length === 0 ? "checkbox" : "square-outline"}
-                  size={22}
-                  color={smsScanAccountIds.length === 0 ? colors.blue : colors.textSecondary}
-                />
-              </Pressable>
-
-              {allAccounts.map((account) => {
-                const isSelected = smsScanAccountIds.includes(account.id);
-                return (
-                  <Pressable
-                    key={account.id}
-                    onPress={() => {
-                      const newSelection = isSelected
-                        ? smsScanAccountIds.filter((id) => id !== account.id)
-                        : [...smsScanAccountIds, account.id];
-                      setSmsScanAccountIds(newSelection);
-                    }}
-                    className={`flex-row items-center justify-between py-3 px-4 rounded-lg mb-2 border ${
-                      isSelected
-                        ? "bg-primary/10 border-primary"
-                        : "border-border-light dark:border-border-dark"
-                    }`}
-                  >
-                    <View className="flex-1">
-                      <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
-                        {account.bank_name}
-                      </Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                        ••••{account.account_identifier}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name={isSelected ? "checkbox" : "square-outline"}
-                      size={22}
-                      color={isSelected ? colors.blue : colors.textSecondary}
-                    />
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            <Pressable
-              onPress={() => {
-                saveSmsScanAccountIds(smsScanAccountIds);
-                setShowAccountPicker(false);
-              }}
-              className="flex-row items-center justify-center py-3 mt-4 rounded-lg"
-              style={{ backgroundColor: accent[500] }}
-            >
-              <Text className="text-sm font-medium text-white">Done</Text>
+      {/* Account Picker Bottom Sheet */}
+      <BottomSheet visible={showAccountPicker} onClose={() => setShowAccountPicker(false)}>
+        <View className="px-4 pb-4">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-semibold text-text-primary dark:text-text-dark-primary">
+              Select Accounts
+            </Text>
+            <Pressable onPress={() => setShowAccountPicker(false)}>
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </Pressable>
           </View>
+
+          <ScrollView className="max-h-96">
+            <Pressable
+              onPress={() => {
+                setSmsScanAccountIds([]);
+                setShowAccountPicker(false);
+              }}
+              className={`flex-row items-center justify-between py-3 px-4 rounded-lg mb-2 border ${
+                smsScanAccountIds.length === 0
+                  ? "bg-primary/10 border-primary"
+                  : "border-border-light dark:border-border-dark"
+              }`}
+            >
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                  All accounts
+                </Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                  Scan SMS for all accounts
+                </Text>
+              </View>
+              <Ionicons
+                name={smsScanAccountIds.length === 0 ? "checkbox" : "square-outline"}
+                size={22}
+                color={smsScanAccountIds.length === 0 ? colors.blue : colors.textSecondary}
+              />
+            </Pressable>
+
+            {allAccounts.map((account) => {
+              const isSelected = smsScanAccountIds.includes(account.id);
+              return (
+                <Pressable
+                  key={account.id}
+                  onPress={() => {
+                    const newSelection = isSelected
+                      ? smsScanAccountIds.filter((id) => id !== account.id)
+                      : [...smsScanAccountIds, account.id];
+                    setSmsScanAccountIds(newSelection);
+                  }}
+                  className={`flex-row items-center justify-between py-3 px-4 rounded-lg mb-2 border ${
+                    isSelected
+                      ? "bg-primary/10 border-primary"
+                      : "border-border-light dark:border-border-dark"
+                  }`}
+                >
+                  <View className="flex-1">
+                    <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                      {account.bank_name}
+                    </Text>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                      ••••{account.account_identifier}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={isSelected ? "checkbox" : "square-outline"}
+                    size={22}
+                    color={isSelected ? colors.blue : colors.textSecondary}
+                  />
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          <Pressable
+            onPress={() => {
+              saveSmsScanAccountIds(smsScanAccountIds);
+              setShowAccountPicker(false);
+            }}
+            className="flex-row items-center justify-center py-3 mt-4 rounded-lg"
+            style={{ backgroundColor: accent[500] }}
+          >
+            <Text className="text-sm font-medium text-white">Done</Text>
+          </Pressable>
         </View>
-      </Modal>
+      </BottomSheet>
     </ScreenContainer>
   );
 }

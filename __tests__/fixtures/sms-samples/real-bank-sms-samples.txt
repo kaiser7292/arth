@@ -115,3 +115,8 @@ Axis Bank Card no. XX2445
 IND*LinkedI
 Avl Limit: INR 646685.88
 Not you? SMS BLOCK 2445 to 919951860002
+--- EPFO Pension ---
+Dear XXXXXXXX6138, your passbook balance against PUPUN**************1275 is Rs. 3,81,039/-. Contribution of Rs. 14,750/- for due month Mar-26 has been received.
+Dear XXXXXXXX6138, your passbook balance against APHYD00641440000014984 is Rs. 5,42,180/-. Contribution of Rs. 15,000/- for due month Apr-26 has been received.
+Dear XXXXXXXX6138,your passbook balance against APHYD00641440000014984 is Rs. 1,77,791/-. Contribution of Rs. 8,736/- for due month Jan-25 has been received.
+Dear XXXXXXXX6138,your passbook balance against APHYD00641440000014984 is Rs. 1,95,263/-. Contribution of Rs. 8,736/- for due month Mar-25 has been received.

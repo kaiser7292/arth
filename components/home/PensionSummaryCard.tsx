@@ -1,21 +1,23 @@
-import { memo } from "react";
-import { View, Text, Pressable } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/ui";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import type { FinancialAccount } from "@/services/financial-account";
 import { ac, acAlpha } from "@/utils/accent";
 import { formatAmount } from "@/utils/format";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
-import type { FinancialAccount } from "@/services/financial-account";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { memo } from "react";
+import { Pressable, Text, View } from "react-native";
 
 interface PensionSummaryCardProps {
   accounts: FinancialAccount[];
   computedBalances: Record<string, number | null>;
-  expenseTotals: Record<string, number>;
+  creditTotals: Record<string, number>;
+  lastContributionDate: string | null;
+  ytdContributions: number;
 }
 
-function PensionSummaryCardImpl({ accounts, computedBalances, expenseTotals }: PensionSummaryCardProps) {
+function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, lastContributionDate, ytdContributions }: PensionSummaryCardProps) {
   const router = useRouter();
   const { accent, colorScheme, colors } = useColorScheme();
 
@@ -24,7 +26,7 @@ function PensionSummaryCardImpl({ accounts, computedBalances, expenseTotals }: P
   // Use computed balance (from ledger) if available, else SMS balance, else 0
   const getBalance = (a: FinancialAccount) => computedBalances[a.id] ?? a.last_known_balance ?? 0;
   const totalBalance = accounts.reduce((sum, a) => sum + getBalance(a), 0);
-  const totalSpent = accounts.reduce((sum, a) => sum + (expenseTotals[a.id] ?? 0), 0);
+  const totalCredits = accounts.reduce((sum, a) => sum + (creditTotals[a.id] ?? 0), 0);
 
   return (
     <View>
@@ -62,7 +64,7 @@ function PensionSummaryCardImpl({ accounts, computedBalances, expenseTotals }: P
             />
           </View>
 
-          {/* Balance + Spent */}
+          {/* Balance + Contributions */}
           <View className="flex-row justify-between mb-1">
             <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Total Balance</Text>
             <Text
@@ -72,13 +74,30 @@ function PensionSummaryCardImpl({ accounts, computedBalances, expenseTotals }: P
               {formatAmount(totalBalance)}
             </Text>
           </View>
-          <View className="flex-row justify-between">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Spent this month</Text>
+          <View className="flex-row justify-between mb-1">
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Contributions (month)</Text>
             <Text
               className="text-sm font-semibold"
-              style={{ color: totalSpent > 0 ? STATUS_COLORS.error : colors.text }}
+              style={{ color: totalCredits > 0 ? STATUS_COLORS.success : colors.text }}
             >
-              {formatAmount(totalSpent)}
+              {formatAmount(totalCredits)}
+            </Text>
+          </View>
+          {lastContributionDate && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Last contribution</Text>
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                {new Date(lastContributionDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+              </Text>
+            </View>
+          )}
+          <View className="flex-row justify-between">
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">YTD Contributions</Text>
+            <Text
+              className="text-sm font-semibold"
+              style={{ color: ytdContributions > 0 ? STATUS_COLORS.success : colors.text }}
+            >
+              {formatAmount(ytdContributions)}
             </Text>
           </View>
         </Card>

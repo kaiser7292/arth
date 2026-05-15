@@ -1,26 +1,26 @@
-import { useState, useCallback, useMemo } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, PeriodNavigator } from "@/components/ui";
+import { Card, PeriodNavigator, ScreenContainer } from "@/components/ui";
+import { DEFAULT_USER_ID } from "@/constants/app";
+import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { acAlpha } from "@/utils/accent";
-import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
-import { DEFAULT_USER_ID } from "@/constants/app";
-import { getActiveAccounts, getAccountLatestStaleCheckDates } from "@/services/financial-account";
-import type { FinancialAccount } from "@/services/financial-account";
 import {
-  getMonthBalanceSummary,
-  getAccountExpensesTotal,
-  getAccountCreditsTotal,
-  getAccountAdjustmentNet,
-  getAdjustmentAbsTotalByAccountType,
+    getAccountAdjustmentNet,
+    getAccountCreditsTotal,
+    getAccountExpensesTotal,
+    getAdjustmentAbsTotalByAccountType,
+    getMonthBalanceSummary,
 } from "@/services/account-balance";
 import { getCurrentMonth } from "@/services/budget";
+import type { FinancialAccount } from "@/services/financial-account";
+import { getAccountLatestStaleCheckDates, getActiveAccounts } from "@/services/financial-account";
 import { consumePensionAccountsPreload } from "@/services/home-preload";
+import { acAlpha } from "@/utils/accent";
 import { getMonthDateRange } from "@/utils/budget-helpers";
+import { formatAmount } from "@/utils/format";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 const preloaded = consumePensionAccountsPreload();
 
@@ -101,8 +101,16 @@ export default function PensionAccountsScreen() {
 
   // Overall totals
   const totalBalance = summaries.reduce((sum, s) => sum + s.current, 0);
-  const totalExpenses = summaries.reduce((sum, s) => sum + s.expenses, 0);
   const totalCredits = summaries.reduce((sum, s) => sum + s.credits, 0);
+  const lastContributionDate = summaries.reduce((latest, s) => {
+    if (!s.account.last_balance_date) return latest;
+    if (!latest) return s.account.last_balance_date;
+    return s.account.last_balance_date > latest ? s.account.last_balance_date : latest;
+  }, null as string | null);
+
+  // YTD contributions - calculate from current month credits (simplified approach)
+  // In a real implementation, this would need proper FY calculation
+  const ytdCredits = totalCredits; // Placeholder - will need proper FY calculation
 
   return (
     <ScreenContainer padTop={false}>
@@ -131,19 +139,25 @@ export default function PensionAccountsScreen() {
             </Text>
           </View>
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Expenses this month</Text>
-            <Text className="text-sm font-semibold" style={{ color: totalExpenses > 0 ? sc.danger : colors.text }}>
-              {formatAmount(totalExpenses)}
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Contributions (month)</Text>
+            <Text className="text-sm font-semibold" style={{ color: totalCredits > 0 ? sc.success : colors.text }}>
+              {formatAmount(totalCredits)}
             </Text>
           </View>
-          {totalCredits > 0 && (
-            <View className="flex-row justify-between">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Credits this month</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
-                {formatAmount(totalCredits)}
+          {lastContributionDate && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Last contribution</Text>
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                {new Date(lastContributionDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
               </Text>
             </View>
           )}
+          <View className="flex-row justify-between">
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">YTD Contributions</Text>
+            <Text className="text-sm font-semibold" style={{ color: ytdCredits > 0 ? sc.success : colors.text }}>
+              {formatAmount(ytdCredits)}
+            </Text>
+          </View>
 
           {/* Drift indicator — manual ledger adjustments across all pension accounts this month.
               Proxy for how much course-correction was needed — higher = less trust in auto-detected balances. */}
@@ -206,22 +220,29 @@ export default function PensionAccountsScreen() {
                   {formatAmount(opening)}
                 </Text>
               </View>
-              {expenses > 0 && (
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Expenses</Text>
-                  <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
-                    −{formatAmount(expenses)}
-                  </Text>
-                </View>
-              )}
               {credits > 0 && (
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Credits / Refunds</Text>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Contributions (month)</Text>
                   <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                     +{formatAmount(credits)}
                   </Text>
                 </View>
               )}
+              {account.last_balance_date && (
+                <View className="flex-row justify-between mb-1">
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Last contribution</Text>
+                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    {new Date(account.last_balance_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                  </Text>
+                </View>
+              )}
+              {/* YTD contributions - simplified placeholder */}
+              <View className="flex-row justify-between mb-1">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">YTD Contributions</Text>
+                <Text className="text-sm font-semibold" style={{ color: credits > 0 ? sc.success : colors.text }}>
+                  {formatAmount(credits)}
+                </Text>
+              </View>
               {/* Auto-detected (SMS) balance — crossed out when stale */}
               {account.last_known_balance != null && (
                 <View className="flex-row justify-between mb-1">

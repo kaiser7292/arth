@@ -19,7 +19,7 @@ import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useForecastActions } from "@/hooks/use-forecast-actions";
-import { getComputedBalances } from "@/services/account-balance";
+import { getAccountCreditsTotal, getComputedBalances } from "@/services/account-balance";
 import { getBudgetsForMonth, getCurrentMonth } from "@/services/budget";
 import { scanAllDuplicatesCached } from "@/services/duplicate-detection";
 import type { Expense } from "@/services/expense";
@@ -99,6 +99,9 @@ export default function HomeScreen() {
   const [ccExpenseTotals, setCcExpenseTotals] = useState<Record<string, number>>(preloaded?.ccExpenseTotals ?? {});
   const [computedBalanceMap, setComputedBalanceMap] = useState<Record<string, number | null>>(preloaded?.computedBalanceMap ?? {});
   const [dematSummary, setDematSummary] = useState(preloaded?.dematSummary ?? { totalPortfolio: 0, totalFund: 0, accountCount: 0 });
+  const [pensionCreditTotals, setPensionCreditTotals] = useState<Record<string, number>>({});
+  const [pensionLastContributionDate, setPensionLastContributionDate] = useState<string | null>(null);
+  const [pensionYtdContributions, setPensionYtdContributions] = useState<number>(0);
   // v17.4.0 — Loans summary (home stat card + Goals entry)
   const [loansSummary, setLoansSummary] = useState<LoansSummary | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -176,10 +179,38 @@ export default function HomeScreen() {
       setCcAccounts(allAccounts.filter((a) => a.account_type === "credit_card"));
       setBankAccounts(allAccounts.filter((a) => a.account_type === "savings"));
       setWalletAccounts(allAccounts.filter((a) => a.account_type === "wallet"));
-      setPensionAccounts(allAccounts.filter((a) => a.account_type === "pension"));
+      const pensionAccts = allAccounts.filter((a) => a.account_type === "pension");
+      setPensionAccounts(pensionAccts);
       setCcExpenseTotals(ccTotals);
       setComputedBalanceMap(balances);
       setDematSummary(dematSum);
+
+      // Calculate pension contribution metrics
+      const pensionCreditTotalsMap: Record<string, number> = {};
+      let lastContributionDate: string | null = null;
+      let ytdCredits = 0;
+
+      // Get financial year start (April 1st for Indian FY)
+      const currentYear = new Date().getFullYear();
+      const fyStart = `${currentYear}-${new Date().getMonth() >= 3 ? '04' : currentYear - 1}-01`;
+
+      for (const acct of pensionAccts) {
+        const credits = await getAccountCreditsTotal(acct.id, startDate, endDate);
+        pensionCreditTotalsMap[acct.id] = credits;
+
+        // Track last contribution date
+        if (acct.last_balance_date && (!lastContributionDate || acct.last_balance_date > lastContributionDate)) {
+          lastContributionDate = acct.last_balance_date;
+        }
+
+        // Calculate YTD contributions
+        const ytdCreditsForAcct = await getAccountCreditsTotal(acct.id, fyStart, today);
+        ytdCredits += ytdCreditsForAcct;
+      }
+
+      setPensionCreditTotals(pensionCreditTotalsMap);
+      setPensionLastContributionDate(lastContributionDate);
+      setPensionYtdContributions(ytdCredits);
     } catch {
       // DB not ready
     }
@@ -696,7 +727,7 @@ export default function HomeScreen() {
           <DematSummaryCard totalPortfolio={dematSummary.totalPortfolio} totalFund={dematSummary.totalFund} accountCount={dematSummary.accountCount} />
         )}
         {isHomeCardVisible("pension") && (
-          <PensionSummaryCard accounts={pensionAccounts} computedBalances={computedBalanceMap} expenseTotals={ccExpenseTotals} />
+          <PensionSummaryCard accounts={pensionAccounts} computedBalances={computedBalanceMap} creditTotals={pensionCreditTotals} lastContributionDate={pensionLastContributionDate} ytdContributions={pensionYtdContributions} />
         )}
         {isHomeCardVisible("loans") && loansSummary && loansSummary.activeCount > 0 && (
           <LoanSummaryCard summary={loansSummary} />
