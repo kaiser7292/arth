@@ -68,15 +68,12 @@ export interface MonthBalanceSummary {
 /**
  * Get or create the opening balance record for an account+month.
  * If no record exists, chains from the previous month's closing balance.
- * Recursively builds intermediate months if gaps exist in the chain.
- * If no previous month exists within 60 months, returns null (user must seed).
+ * If no previous month exists, returns null (user must seed).
  */
 export async function getOrCreateMonthBalance(
   accountId: string,
   month: string,
-  _depth: number = 0,
 ): Promise<AccountMonthBalance | null> {
-  if (_depth > 60) return null;
   const db = getDatabase();
 
   // Check if record already exists
@@ -86,18 +83,6 @@ export async function getOrCreateMonthBalance(
     month,
   );
   if (existing) {
-    // v15.3.0 fix: self-heal stale opening chains for savings/wallet/loan/pension
-    // accounts. Previously, the row was materialised once (e.g. when the
-    // user first navigated to that future month) and frozen at whichever
-    // prev-month closing was live at that instant. If the prev month kept
-    // accruing activity afterwards — SMS credits, transfers, new expenses
-    // — the downstream opening never updated, so the ledger showed
-    //   April closing = 113,241.28
-    //   May opening   =      22.28    (stale, chained from April's Day-1 state)
-    //
-    // CC accounts are unaffected (autoSeedCreditCards hard-resets opening
-    // to 0 every month by design). Manual overrides (is_manual_override=1)
-    // are respected — user took control, we don't stomp it.
     if (existing.is_manual_override === 0) {
       const prevMonth = getPreviousMonth(month);
       const prevClosing = await getClosingBalance(accountId, prevMonth);
@@ -119,16 +104,11 @@ export async function getOrCreateMonthBalance(
     return existing;
   }
 
-  // Recursively chain from previous month's closing balance.
-  // This handles gaps: if 2026-01 is seeded and 2026-05 is requested,
-  // it builds 02 → 03 → 04 → 05 in sequence.
-  // Safety cap: stop after 60 months (5 years) to prevent runaway recursion.
+  // Try to chain from previous month's closing balance
   const prevMonth = getPreviousMonth(month);
-  const prevRecord = await getOrCreateMonthBalance(accountId, prevMonth, _depth + 1);
-  if (!prevRecord) return null; // No chain anchor — user must seed
-
   const prevClosing = await getClosingBalance(accountId, prevMonth);
-  if (prevClosing == null) return null;
+
+  if (prevClosing == null) return null; // No chain anchor — user must seed
 
   // Create new record with chained opening balance
   const id = generateUUID();
