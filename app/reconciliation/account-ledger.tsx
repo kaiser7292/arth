@@ -11,6 +11,8 @@ import {
     adjustAccountAvailable,
     clearAccountLedger,
     computeUnseededBalance,
+    getEarliestMonth,
+    getEarliestMonthForAccounts,
     getLedgerExpenses,
     getMonthBalanceSummary,
     isAccountSeeded,
@@ -35,7 +37,6 @@ import { getActiveAccounts, getAllAccounts } from "@/services/financial-account"
 import { getPersonsByIds, getSettlementsForCredits } from "@/services/hisaab";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatAdjustmentDescription, formatAmount } from "@/utils/format";
-import { getErrorMessage } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -169,6 +170,13 @@ export default function AccountLedgerScreen() {
   // Account lookup for transfer display
   const [accountMap, setAccountMap] = useState<Map<string, string>>(new Map());
 
+  // Month bounds for navigation
+  const [minMonth, setMinMonth] = useState<string | undefined>(undefined);
+  const maxMonth = useMemo(() => {
+    const now = new Date();
+    const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
+    return `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
@@ -196,6 +204,12 @@ useDataRefresh(
               )
               .map((a) => a.id)
           : [accountId];
+      const earliest =
+        groupIds.length > 1
+          ? await getEarliestMonthForAccounts(groupIds)
+          : await getEarliestMonth(accountId);
+      setMinMonth(earliest ?? undefined);
+
       const accountSeeded = await isAccountSeeded(accountId);
       setSeeded(accountSeeded);
 
@@ -216,27 +230,26 @@ useDataRefresh(
         setPoolSiblings([]);
       }
 
-      let balanceData: { opening: number; expenses: number; credits: number; closing: number } = { opening: 0, expenses: 0, credits: 0, closing: 0 };
+      let balanceData: { opening: number; expenses: number; credits: number; closing: number };
 
-      try {
-        if (accountSeeded) {
-          const summaries = await Promise.all(
-            ledgerAccountIds.map((id) => getMonthBalanceSummary(id, month)),
-          );
-          let opening = 0, expenses = 0, credits = 0, closing = 0;
-          for (const summary of summaries) {
-            if (!summary) continue;
-            opening += summary.opening_balance;
-            expenses += summary.expenses;
-            credits += summary.credits;
-            closing += summary.closing_balance;
-          }
-          balanceData = { opening, expenses, credits, closing };
-        } else {
-          balanceData = await computeUnseededBalance(accountId, month);
+      if (accountSeeded) {
+        // Perf (v14.8.0): parallel fan-out across pool siblings instead of a
+        // serial for-await loop. Shared-pool CCs with 5 sibling cards drop
+        // from 5 serial queries to 1 round-trip.
+        const summaries = await Promise.all(
+          ledgerAccountIds.map((id) => getMonthBalanceSummary(id, month)),
+        );
+        let opening = 0, expenses = 0, credits = 0, closing = 0;
+        for (const summary of summaries) {
+          if (!summary) continue;
+          opening += summary.opening_balance;
+          expenses += summary.expenses;
+          credits += summary.credits;
+          closing += summary.closing_balance;
         }
-      } catch {
-        // Balance computation failed — still load transactions below
+        balanceData = { opening, expenses, credits, closing };
+      } else {
+        balanceData = await computeUnseededBalance(accountId, month);
       }
 
       setOpening(balanceData.opening);
@@ -245,52 +258,68 @@ useDataRefresh(
       setClosing(balanceData.closing);
 
       // Fetch individual transactions — aggregated across pool siblings when applicable.
-      const [expenseLists, creditLists, transferLists] = await Promise.all([
-        Promise.all(ledgerAccountIds.map((id) => getLedgerExpenses(id, startDate, endDate))),
-        Promise.all(ledgerAccountIds.map((id) => getCreditsForMonth(id, startDate, endDate))),
-        Promise.all(ledgerAccountIds.map((id) => getTransfersForMonth(id, startDate, endDate))),
-      ]);
+      const expenseLists = await Promise.all(
+        ledgerAccountIds.map((id) => getLedgerExpenses(id, startDate, endDate)),
+      );
+      const creditLists = await Promise.all(
+        ledgerAccountIds.map((id) => getCreditsForMonth(id, startDate, endDate)),
+      );
+      const transferLists = await Promise.all(
+        ledgerAccountIds.map((id) => getTransfersForMonth(id, startDate, endDate)),
+      );
       const expenses = expenseLists.flat();
       const credits = creditLists.flat();
+      // Dedup transfers — intra-pool transfers would otherwise show twice (once per side).
       const seenTransferIds = new Set<string>();
       const transfers = transferLists.flat().filter((t) => {
         if (seenTransferIds.has(t.id)) return false;
         seenTransferIds.add(t.id);
         return true;
       });
+      // Perf (v14.8.0): reuse allAccountsForMin fetched above; no second
+      // round-trip for the same query.
       setAllAccountsState(allAccountsForMin);
 
+      // Build account name map for transfer display with inactive account fallback
       const activeAcctMap = new Map<string, string>();
+      const inactiveAcctMap = new Map<string, { name: string; isInactive: boolean }>();
+      
+      // Build active account map
       for (const a of allAccountsForMin) {
         activeAcctMap.set(a.id, a.account_label || `${a.bank_name} ****${a.account_identifier}`);
       }
-
-      let inactiveAcctMap = new Map<string, { name: string; isInactive: boolean }>();
-      try {
-        const allAccounts = await getAllAccounts(DEFAULT_USER_ID);
-        for (const a of allAccounts) {
-          if (a.is_active === 0) {
-            inactiveAcctMap.set(a.id, {
-              name: a.account_label || `${a.bank_name} ****${a.account_identifier}`,
-              isInactive: true,
-            });
-          }
+      
+      // Fetch inactive accounts for fallback
+      const allAccounts = await getAllAccounts(DEFAULT_USER_ID);
+      for (const a of allAccounts) {
+        if (a.is_active === 0) {
+          inactiveAcctMap.set(a.id, {
+            name: a.account_label || `${a.bank_name} ****${a.account_identifier}`,
+            isInactive: true,
+          });
         }
-      } catch {
-        // Non-critical — transfers will show "(Account deleted)" for inactive accounts
       }
-
-      const getAccountName = (acctId: string | null): string => {
-        if (!acctId) return "(Account deleted)";
-        const activeName = activeAcctMap.get(acctId);
+      
+      // Combined lookup function: check active first, then inactive
+      const getAccountName = (accountId: string | null): string => {
+        if (!accountId) return "(Account deleted)";
+        
+        // Check active accounts first
+        const activeName = activeAcctMap.get(accountId);
         if (activeName) return activeName;
-        const inactiveInfo = inactiveAcctMap.get(acctId);
+        
+        // Check inactive accounts as fallback
+        const inactiveInfo = inactiveAcctMap.get(accountId);
         if (inactiveInfo) return `${inactiveInfo.name} (Inactive)`;
+        
+        // Account not found at all
         return "(Account deleted)";
       };
-
+      
       setAccountMap(activeAcctMap);
 
+      // Lookup of accountId → last-4, used to stamp individual ledger entries
+      // with which sibling card they belong to (shared-pool CC view).
       const last4Map = new Map<string, string>();
       if (isPoolCC) {
         for (const a of allAccountsForMin) {
@@ -301,27 +330,21 @@ useDataRefresh(
       // Build combined ledger entries
       const ledger: LedgerEntry[] = [];
 
-      let personMap = new Map<string, string>();
-      try {
-        const personIds = Array.from(
-          new Set(expenses.filter((e) => e.split_person_id).map((e) => e.split_person_id!)),
-        );
-        if (personIds.length > 0) {
-          const personsById = await getPersonsByIds(personIds);
-          for (const [pid, p] of personsById) personMap.set(pid, p.name);
-        }
-      } catch {
-        // Non-critical — split names will show as null
-      }
+      // Batch-resolve hisaab person names for split expenses — single query
+      // via getPersonsByIds. Previously fired one getPerson() per split
+      // partner (N+1).
+      const personIds = Array.from(
+        new Set(expenses.filter((e) => e.split_person_id).map((e) => e.split_person_id!)),
+      );
+      const personsById = await getPersonsByIds(personIds);
+      const personMap = new Map<string, string>();
+      for (const [pid, p] of personsById) personMap.set(pid, p.name);
 
-      let settlementByCreditId = new Map<string, { entryId: string; personId: string; personName: string }>();
-      try {
-        if (credits.length > 0) {
-          settlementByCreditId = await getSettlementsForCredits(credits.map((c) => c.id));
-        }
-      } catch {
-        // Non-critical — hisaab links won't show on credit rows
-      }
+      // v15.12.1: for every credit row, look up any linked hisaab settlement
+      // (both recordSettlement-created AND linkCreditAsSettlement-linked).
+      // One batch query — previously there was no UI surface for this on the
+      // account ledger at all.
+      const settlementByCreditId = await getSettlementsForCredits(credits.map((c) => c.id));
 
       for (const exp of expenses) {
         const isAdjustment = exp.nature === "ledger_adjustment";
@@ -352,6 +375,8 @@ useDataRefresh(
 
       for (const cr of credits) {
         const settlement = settlementByCreditId.get(cr.id);
+        // v15.13.1: SMS refund credits carry refund_of_expense_id pointing at
+        // the original expense. Tapping the ledger row deep-links there.
         const isRefundCredit = !!cr.refund_of_expense_id;
         ledger.push({
           id: cr.id,
@@ -368,8 +393,6 @@ useDataRefresh(
           canDelete: true,
           sourceAccountId: cr.account_id ?? undefined,
           cardLast4: cr.account_id ? last4Map.get(cr.account_id) : undefined,
-          rawSourceText: cr.raw_source_text,
-          sourceSmsAddress: cr.source_sms_address,
           updatedAt: cr.updated_at,
         });
       }
@@ -377,6 +400,8 @@ useDataRefresh(
       for (const tr of transfers) {
         const isIn = poolIdSet.has(tr.to_account_id);
         const counterId = isIn ? tr.from_account_id : tr.to_account_id;
+        // For pool ledgers, attribute the transfer to whichever side belongs
+        // to the pool — that's the sibling the money moved in/out of.
         const poolSideId = poolIdSet.has(tr.to_account_id)
           ? tr.to_account_id
           : poolIdSet.has(tr.from_account_id)
@@ -401,6 +426,7 @@ useDataRefresh(
         });
       }
 
+      // Sort by date descending
       ledger.sort((a, b) => b.date.localeCompare(a.date));
       setEntries(ledger);
     }, [accountId, month, startDate, endDate]),
@@ -549,7 +575,7 @@ useDataRefresh(
           { target, bucketId },
         );
       } catch (e) {
-        alert("Something went wrong", getErrorMessage(e));
+        alert("Error", e instanceof Error ? e.message : String(e));
       } finally {
         setPendingDematTransfer(null);
       }
@@ -571,7 +597,7 @@ useDataRefresh(
             try {
               await deleteTransfer(id);
             } catch (e) {
-              alert("Couldn't delete", getErrorMessage(e));
+              alert("Delete failed", e instanceof Error ? e.message : String(e));
             }
           },
         },
@@ -667,7 +693,7 @@ useDataRefresh(
   return (
     <ScreenContainer padTop={false}>
       {/* Month navigator */}
-      <PeriodNavigator mode="month" value={month} onChange={setMonth} />
+      <PeriodNavigator mode="month" value={month} onChange={setMonth} minMonth={minMonth} maxMonth={maxMonth} />
 
       <KeyboardAvoidingView
         className="flex-1"
@@ -992,24 +1018,16 @@ useDataRefresh(
                         ? () => router.push(`/expense/${entry.linkedExpenseId}` as never)
                         : entry.type === "credit" && entry.linkedHisaabPersonId
                           ? () => router.push(`/hisaab/ledger?personId=${entry.linkedHisaabPersonId}` as never)
-                          : // v17.6.0: SMS-detected credits show source SMS modal
-                            entry.type === "credit" && entry.rawSourceText && !entry.isRefund
-                            ? () =>
-                                setSourceSmsModal({
-                                  body: entry.rawSourceText!,
-                                  address: entry.sourceSmsAddress ?? null,
-                                  description: entry.description,
-                                })
-                            : entry.type === "credit" && entry.canDelete
-                              ? () => handleStartEditCredit(entry)
-                              : isTransfer && entry.rawSourceText
-                                ? () =>
-                                    setSourceSmsModal({
-                                      body: entry.rawSourceText!,
-                                      address: entry.sourceSmsAddress ?? null,
-                                      description: entry.description,
-                                    })
-                                : undefined
+                          : entry.type === "credit" && entry.canDelete
+                            ? () => handleStartEditCredit(entry)
+                            : isTransfer && entry.rawSourceText
+                              ? () =>
+                                  setSourceSmsModal({
+                                    body: entry.rawSourceText!,
+                                    address: entry.sourceSmsAddress ?? null,
+                                    description: entry.description,
+                                  })
+                              : undefined
                 }
                 onLongPress={
                   entry.type === "credit" && entry.canDelete
@@ -1214,8 +1232,7 @@ useDataRefresh(
             <Pressable
               onPress={() => {
                 setShowFabMenu(false);
-                const today = new Date().toISOString().split("T")[0];
-                setCreditDate(today >= startDate && today <= endDate ? today : startDate);
+                setCreditDate(new Date().toISOString().split("T")[0]);
                 setShowAddCredit(true);
                 setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
               }}
@@ -1230,8 +1247,7 @@ useDataRefresh(
             <Pressable
               onPress={() => {
                 setShowFabMenu(false);
-                const today = new Date().toISOString().split("T")[0];
-                setTransferDate(today >= startDate && today <= endDate ? today : startDate);
+                setTransferDate(new Date().toISOString().split("T")[0]);
                 setShowAddTransfer(true);
                 setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
               }}
