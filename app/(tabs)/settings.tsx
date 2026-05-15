@@ -141,9 +141,7 @@ export default function SettingsScreen() {
         .catch(() => {
           /* non-fatal */
         });
-      // v15.13.0: Don't refresh smsScanAccountIds on focus to prevent overwriting
-      // user's current selection. The state is initialized correctly on mount
-      // and is updated when the user changes it in the picker.
+      setSmsScanAccountIds(getSmsScanAccountIds());
       getActiveAccounts(DEFAULT_USER_ID).then(setAllAccounts).catch(() => {
         /* non-fatal */
       });
@@ -804,10 +802,18 @@ export default function SettingsScreen() {
           <Card title="About & Help" className="mb-4">
             {getFlag("v15_help_center") && (
               <SettingsRow
+                label="SMS Scan Runs"
+                subtitle="View scan history and details"
+                icon="list-outline"
+                onPress={() => router.push("/settings/sms-scan-runs")}
+              />
+            )}
+            {getFlag("v15_help_center") && (
+              <SettingsRow
+                label="Browse unrecognised SMS"
+                subtitle="Teach Artha to parse new senders"
                 icon="help-circle-outline"
-                label="Help Center"
-                subtitle="Ask anything in plain English"
-                onPress={() => router.push("/settings/help" as never)}
+                onPress={() => router.push("/settings/unrecognised-sms")}
               />
             )}
             <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
@@ -908,7 +914,7 @@ export default function SettingsScreen() {
             className="flex-row items-center justify-center py-3 mt-4 rounded-lg"
             style={{ backgroundColor: accent[500] }}
           >
-            <Text className="text-sm font-medium text-white">Apply</Text>
+            <Text className="text-sm font-medium text-white">Done</Text>
           </Pressable>
         </View>
       </BottomSheet>

@@ -10,7 +10,6 @@
  */
 
 import { getDatabase } from "@/database";
-import { getClosingBalance } from "@/services/account-balance";
 import { bumpDataVersion } from "@/services/settings";
 import { round2 } from "@/utils/math";
 import { generateUUID } from "@/utils/uuid";
@@ -41,8 +40,6 @@ export interface AccountCredit {
 /**
  * Add a credit transaction to an account.
  * Creates an `expenses` row with nature='credit' and status='approved'.
- * Also seeds the month balance record if it doesn't exist, so the credit
- * is included in the balance summary.
  */
 export async function addCredit(params: {
   accountId: string;
@@ -67,46 +64,8 @@ export async function addCredit(params: {
     params.accountId,
     now,
   );
-  
-  // v15.13.0: Auto-seed the month balance record if it doesn't exist.
-  // This ensures manual credits are included in the balance summary.
-  const month = params.date.substring(0, 7);
-  const existing = await db.getFirstAsync<{ id: string }>(
-    "SELECT id FROM account_month_balances WHERE account_id = ? AND month = ?;",
-    params.accountId,
-    month,
-  );
-  if (!existing) {
-    // Try to chain from previous month's closing balance
-    const prevMonth = getPreviousMonth(month);
-    const prevClosing = await getClosingBalance(params.accountId, prevMonth);
-    
-    if (prevClosing != null) {
-      // Create month balance record with chained opening
-      const balanceId = generateUUID();
-      await db.runAsync(
-        `INSERT INTO account_month_balances (id, account_id, month, opening_balance)
-         VALUES (?, ?, ?, ?);`,
-        balanceId,
-        params.accountId,
-        month,
-        prevClosing,
-      );
-    }
-    // If prevClosing is null, the account needs manual seeding - user must seed it
-  }
-  
   await bumpDataVersion();
   return id;
-}
-
-/**
- * Helper to get previous month in YYYY-MM format
- */
-function getPreviousMonth(month: string): string {
-  const [year, m] = month.split("-").map(Number);
-  const d = new Date(year, m - 2, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 /**

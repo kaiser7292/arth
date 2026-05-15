@@ -5,11 +5,14 @@ cd /d %REPO_ROOT%
 
 REM Stash uncommitted changes so they don't leak into the builds branch commit.
 REM If the script exits early, app.json is restored and stash is popped.
-git diff-index --quiet HEAD --exit-code >nul 2>&1
+git diff-index --quiet HEAD >nul 2>&1
 if errorlevel 1 (
     echo Stashing uncommitted changes...
     git stash push -m "build-local-stash" --include-untracked >nul 2>&1
-    REM Ignore stash failure if there's nothing to stash
+    if errorlevel 1 (
+        echo ERROR: git stash failed
+        exit /b 1
+    )
     set STASHED=1
 ) else (
     set STASHED=0
