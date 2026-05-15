@@ -13,9 +13,8 @@ import { getActiveAccounts, getAccountLatestStaleCheckDates } from "@/services/f
 import type { FinancialAccount } from "@/services/financial-account";
 import {
   getMonthBalanceSummary,
-  getAccountExpensesTotal,
-  getAccountCreditsTotal,
-  getAccountAdjustmentNet,
+  computeUnseededBalance,
+  getEarliestMonthForAccounts,
   getAdjustmentAbsTotalByAccountType,
 } from "@/services/account-balance";
 import { getCurrentMonth } from "@/services/budget";
@@ -42,10 +41,14 @@ export default function BankAccountsScreen() {
   const [summaries, setSummaries] = useState<AccountSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
+  const [minMonth, setMinMonth] = useState<string | undefined>(undefined);
+  const maxMonth = useMemo(() => {
+    const now = new Date();
+    const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
+    return `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
-
-  // monthLabel and handleMonthShift replaced by PeriodNavigator
 
   useDataRefresh(
     useCallback(async () => {
@@ -57,7 +60,11 @@ export default function BankAccountsScreen() {
       const bankAccounts = allAccounts.filter((a) => a.account_type === "savings");
       setAdjustmentStats(adjStats);
 
-      // Parallelise per-account fetches — one Promise.all across the group.
+      if (bankAccounts.length > 0) {
+        const earliest = await getEarliestMonthForAccounts(bankAccounts.map((a) => a.id));
+        setMinMonth(earliest ?? undefined);
+      }
+
       const results: AccountSummary[] = await Promise.all(
         bankAccounts.map(async (account) => {
           const summary = await getMonthBalanceSummary(account.id, month);
@@ -78,19 +85,13 @@ export default function BankAccountsScreen() {
               autoDetectedStale,
             };
           }
-          // Not seeded — treat opening as 0; unseeded accounts still reflect
-          // manual course-corrections via signed adjustments.
-          const [expenses, credits, adjNet] = await Promise.all([
-            getAccountExpensesTotal(account.id, startDate, endDate),
-            getAccountCreditsTotal(account.id, startDate, endDate),
-            getAccountAdjustmentNet(account.id, startDate, endDate),
-          ]);
+          const unseeded = await computeUnseededBalance(account.id, month);
           return {
             account,
-            opening: 0,
-            expenses,
-            credits,
-            current: 0 - expenses + credits + adjNet,
+            opening: unseeded.opening,
+            expenses: unseeded.expenses,
+            credits: unseeded.credits,
+            current: unseeded.closing,
             seeded: false,
             autoDetectedStale,
           };
@@ -109,7 +110,7 @@ export default function BankAccountsScreen() {
   return (
     <ScreenContainer padTop={false}>
       {/* Month navigator */}
-      <PeriodNavigator mode="month" value={month} onChange={setMonth} />
+      <PeriodNavigator mode="month" value={month} onChange={setMonth} minMonth={minMonth} maxMonth={maxMonth} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Overall summary card */}

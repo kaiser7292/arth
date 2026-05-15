@@ -799,10 +799,12 @@ export async function approveExpense(id: string): Promise<void> {
     try {
       const parsed = parseBankSMS(row.raw_source_text);
       if (parsed && parsed.cardLast4) {
-        const { discoverOrUpdateAccount } = await import("@/services/financial-account");
+        const { discoverOrUpdateAccount, linkExpenseToAccount } = await import("@/services/financial-account");
         const accountId = await discoverOrUpdateAccount(row.user_id, parsed);
         if (accountId) {
           await db.runAsync(`UPDATE expenses SET account_id = ? WHERE id = ?;`, accountId, id);
+        } else {
+          await linkExpenseToAccount(row.user_id, id, parsed.cardLast4, parsed.bank, parsed.accountNickname);
         }
       }
     } catch (e) {

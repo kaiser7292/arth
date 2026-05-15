@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { logger } from "@/utils/logger";
 import { View, Text, ScrollView, Pressable, Keyboard } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
@@ -82,6 +82,11 @@ export default function AccountDetailScreen() {
   const [allModes, setAllModes] = useState<PaymentMode[]>([]);
   const [siblingCards, setSiblingCards] = useState<FinancialAccount[]>([]);
   const [ledgerMonth, setLedgerMonth] = useState(getCurrentMonth());
+  const maxMonth = useMemo(() => {
+    const now = new Date();
+    const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
+    return `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
   const [ledgerSummary, setLedgerSummary] = useState<MonthBalanceSummary | null>(null);
   const [seeded, setSeeded] = useState(false);
 
@@ -911,7 +916,7 @@ export default function AccountDetailScreen() {
               </View>
             ) : (
               <View>
-                <PeriodNavigator mode="month" value={ledgerMonth} onChange={setLedgerMonth} variant="inline" />
+                <PeriodNavigator mode="month" value={ledgerMonth} onChange={setLedgerMonth} maxMonth={maxMonth} variant="inline" />
 
                 {!ledgerSummary ? (
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-4">

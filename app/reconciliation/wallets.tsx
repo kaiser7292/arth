@@ -4,10 +4,8 @@ import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import {
-    getAccountAdjustmentNet,
-    getAccountCreditsTotal,
-    getAccountExpensesTotal,
     getAdjustmentAbsTotalByAccountType,
+    computeUnseededBalance,
     getEarliestMonthForAccounts,
     getMonthBalanceSummary,
 } from "@/services/account-balance";
@@ -43,6 +41,11 @@ export default function WalletsScreen() {
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
   const [minMonth, setMinMonth] = useState<string | undefined>(undefined);
+  const maxMonth = useMemo(() => {
+    const now = new Date();
+    const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
+    return `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
@@ -79,17 +82,13 @@ export default function WalletsScreen() {
               autoDetectedStale,
             };
           }
-          const [expenses, credits, adjNet] = await Promise.all([
-            getAccountExpensesTotal(account.id, startDate, endDate),
-            getAccountCreditsTotal(account.id, startDate, endDate),
-            getAccountAdjustmentNet(account.id, startDate, endDate),
-          ]);
+          const unseeded = await computeUnseededBalance(account.id, month);
           return {
             account,
-            opening: 0,
-            expenses,
-            credits,
-            current: 0 - expenses + credits + adjNet,
+            opening: unseeded.opening,
+            expenses: unseeded.expenses,
+            credits: unseeded.credits,
+            current: unseeded.closing,
             seeded: false,
             autoDetectedStale,
           };
@@ -106,7 +105,7 @@ export default function WalletsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <PeriodNavigator mode="month" value={month} onChange={setMonth} minMonth={minMonth} />
+      <PeriodNavigator mode="month" value={month} onChange={setMonth} minMonth={minMonth} maxMonth={maxMonth} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Overall summary card */}

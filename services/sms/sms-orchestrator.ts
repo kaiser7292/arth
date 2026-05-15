@@ -92,12 +92,31 @@ export async function runSmsScan(
     // Phase 1: Read SMS from device (no account filtering here anymore)
     const readResult = manual ? await manualReadSms() : await checkForNewBankSMS();
     if (readResult.error) {
+      const scanRunId = await saveScanRun({
+        userId: DEFAULT_USER_ID,
+        isManual: manual,
+        startDate: manual ? getSmsStartDate() : null,
+        endDate: manual ? getSmsEndDate() : null,
+        accountIds: accountIds ?? null,
+        smsReadCount: 0,
+        hardcodedMatchCount: 0,
+        templateMatchCount: 0,
+        filteredCount: 0,
+        unrecognizedCount: 0,
+        skippedCount: 0,
+        expenseCreatedCount: 0,
+        creditCreatedCount: 0,
+        durationMs: Date.now() - startTime,
+        error: readResult.error,
+        details: [],
+      });
       return {
         ran: false,
         created: 0,
         credits: 0,
         skipped: 0,
         totalScanned: 0,
+        scanRunId,
         reason: "error",
         error: readResult.error,
       };
@@ -232,6 +251,25 @@ export async function runSmsScan(
       scanRunId,
     };
   } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    await saveScanRun({
+      userId: DEFAULT_USER_ID,
+      isManual: manual,
+      startDate: manual ? getSmsStartDate() : null,
+      endDate: manual ? getSmsEndDate() : null,
+      accountIds: accountIds ?? null,
+      smsReadCount: 0,
+      hardcodedMatchCount: 0,
+      templateMatchCount: 0,
+      filteredCount: 0,
+      unrecognizedCount: 0,
+      skippedCount: 0,
+      expenseCreatedCount: 0,
+      creditCreatedCount: 0,
+      durationMs: Date.now() - startTime,
+      error: errorMsg,
+      details: [],
+    }).catch(() => {});
     return {
       ran: false,
       created: 0,
@@ -239,7 +277,7 @@ export async function runSmsScan(
       skipped: 0,
       totalScanned: 0,
       reason: "error",
-      error: e instanceof Error ? e.message : String(e),
+      error: errorMsg,
     };
   }
 }

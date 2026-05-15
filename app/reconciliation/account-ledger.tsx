@@ -1243,7 +1243,8 @@ useDataRefresh(
             <Pressable
               onPress={() => {
                 setShowFabMenu(false);
-                setCreditDate(new Date().toISOString().split("T")[0]);
+                const today = new Date().toISOString().split("T")[0];
+                setCreditDate(today >= startDate && today <= endDate ? today : startDate);
                 setShowAddCredit(true);
                 setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
               }}
@@ -1258,7 +1259,8 @@ useDataRefresh(
             <Pressable
               onPress={() => {
                 setShowFabMenu(false);
-                setTransferDate(new Date().toISOString().split("T")[0]);
+                const today = new Date().toISOString().split("T")[0];
+                setTransferDate(today >= startDate && today <= endDate ? today : startDate);
                 setShowAddTransfer(true);
                 setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
               }}
