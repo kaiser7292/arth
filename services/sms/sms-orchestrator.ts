@@ -199,8 +199,23 @@ export async function runSmsScan(
       });
     }
 
-    // Unrecognized + skipped are tracked by parseResult counts
-    // (their details are already in pending_sms as 'failed' status)
+    for (const sms of parseResult.unrecognizedSms) {
+      details.push({
+        smsBodyPreview: sms.body,
+        smsDate: sms.smsDate,
+        smsAddress: sms.address,
+        category: "unrecognized",
+      });
+    }
+
+    for (const sms of parseResult.skippedSms) {
+      details.push({
+        smsBodyPreview: sms.body,
+        smsDate: sms.smsDate,
+        smsAddress: sms.address,
+        category: "skipped",
+      });
+    }
 
     const durationMs = Date.now() - startTime;
     const scanRunId = await saveScanRun({

@@ -24,6 +24,12 @@ import { hasSenderScopedUserTemplate } from "./user-sms-templates";
 import { resolveBankFromSender } from "@/services/public-data/lookup";
 import { logger } from "@/utils/logger";
 
+export interface UnmatchedSms {
+  address: string;
+  body: string;
+  smsDate: number;
+}
+
 export interface ParseResult {
   /** Number of SMS successfully parsed */
   parsed: number;
@@ -37,6 +43,10 @@ export interface ParseResult {
   errors: string[];
   /** The parsed items ready for review */
   items: ParsedItem[];
+  /** SMS that didn't match any pattern (for scan run logging) */
+  unrecognizedSms: UnmatchedSms[];
+  /** SMS that were skipped (OTP, balance checks, etc.) */
+  skippedSms: UnmatchedSms[];
 }
 
 export interface ParsedItem {
@@ -63,6 +73,8 @@ export async function parseSmsBatch(
     duplicates: 0,
     errors: [],
     items: [],
+    unrecognizedSms: [],
+    skippedSms: [],
   };
 
   for (const sms of messages) {
@@ -130,6 +142,7 @@ export async function parseSmsBatch(
       // browser if the template (somehow) didn't match so they can debug.
       if (!parsed) {
         result.unrecognized++;
+        result.unrecognizedSms.push({ address: sms.address, body: sms.body, smsDate: sms.date });
         const userClaimsSender = await hasSenderScopedUserTemplate(sms.address);
         const looksTransactional =
           isBankSender(sms.address) ||
@@ -188,6 +201,7 @@ export async function parseSmsBatch(
 
       if (parsed.skip) {
         result.skipped++;
+        result.skippedSms.push({ address: sms.address, body: sms.body, smsDate: sms.date });
         // Still store it as "ignored" for audit trail
         const id = generateUUID();
         await db.runAsync(

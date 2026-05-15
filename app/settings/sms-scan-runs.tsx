@@ -1,12 +1,13 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
   FlatList,
   Pressable,
   ActivityIndicator,
+  BackHandler,
 } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, ScreenContainer } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -47,6 +48,17 @@ export default function SmsScanRunsScreen() {
   const [details, setDetails] = useState<ScanDetailRow[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ScanDetailCategory | null>(null);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (viewMode !== "list") {
+        handleBack();
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [viewMode]);
 
   useFocusEffect(
     useCallback(() => {
@@ -527,18 +539,18 @@ export default function SmsScanRunsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      {/* Custom sub-header for drilldown navigation */}
-      {showBackButton && (
-        <Pressable
-          onPress={handleBack}
-          className="flex-row items-center mb-3 py-1"
-        >
-          <Ionicons name="chevron-back" size={18} color={accent[500]} />
-          <Text className="text-sm font-medium ml-0.5" style={{ color: accent[500] }}>
-            Back
-          </Text>
-        </Pressable>
-      )}
+      <Stack.Screen
+        options={{
+          title,
+          headerLeft: showBackButton
+            ? () => (
+                <Pressable onPress={handleBack} hitSlop={8}>
+                  <Ionicons name="chevron-back" size={24} color={accent[500]} />
+                </Pressable>
+              )
+            : undefined,
+        }}
+      />
 
       {viewMode === "list" && (
         <>

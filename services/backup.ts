@@ -706,6 +706,25 @@ export async function restoreBackup(
       } catch {
         // account_credits table may not exist in some schema states; ignore.
       }
+
+      // Post-restore: repair hisaab↔expense links using expense_splits as bridge.
+      // If a hisaab_entry has linked_expense_id = NULL but expense_splits has a
+      // row pointing at it (hisaab_entry_id = entry.id), recover the link.
+      try {
+        await db.execAsync(`
+          UPDATE hisaab_entries
+          SET linked_expense_id = (
+            SELECT es.expense_id FROM expense_splits es
+            WHERE es.hisaab_entry_id = hisaab_entries.id
+            LIMIT 1
+          ),
+          updated_at = datetime('now')
+          WHERE linked_expense_id IS NULL
+            AND id IN (SELECT hisaab_entry_id FROM expense_splits WHERE hisaab_entry_id IS NOT NULL);
+        `);
+      } catch {
+        // expense_splits may not exist; ignore.
+      }
     });
     } finally {
       // Always re-enable FKs — restore transaction is done, normal write
