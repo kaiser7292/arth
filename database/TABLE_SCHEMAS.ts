@@ -76,6 +76,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "applied_rule_id", // migration 017 — smart-rule that auto-categorized this expense
     "reclassified_as_transfer", // migration 046
     "linked_transfer_id", // migration 046
+    "source_sms_address", // migration 048
   ] as const,
 
   budgets: [
