@@ -141,7 +141,9 @@ export default function SettingsScreen() {
         .catch(() => {
           /* non-fatal */
         });
-      setSmsScanAccountIds(getSmsScanAccountIds());
+      // v15.13.0: Don't refresh smsScanAccountIds on focus to prevent overwriting
+      // user's current selection. The state is initialized correctly on mount
+      // and is updated when the user changes it in the picker.
       getActiveAccounts(DEFAULT_USER_ID).then(setAllAccounts).catch(() => {
         /* non-fatal */
       });
@@ -906,7 +908,7 @@ export default function SettingsScreen() {
             className="flex-row items-center justify-center py-3 mt-4 rounded-lg"
             style={{ backgroundColor: accent[500] }}
           >
-            <Text className="text-sm font-medium text-white">Done</Text>
+            <Text className="text-sm font-medium text-white">Apply</Text>
           </Pressable>
         </View>
       </BottomSheet>
