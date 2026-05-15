@@ -393,6 +393,8 @@ useDataRefresh(
           canDelete: true,
           sourceAccountId: cr.account_id ?? undefined,
           cardLast4: cr.account_id ? last4Map.get(cr.account_id) : undefined,
+          rawSourceText: cr.raw_source_text,
+          sourceSmsAddress: cr.source_sms_address,
           updatedAt: cr.updated_at,
         });
       }

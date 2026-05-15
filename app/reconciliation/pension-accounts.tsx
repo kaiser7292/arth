@@ -4,11 +4,11 @@ import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import {
-    getAccountAdjustmentNet,
-    getAccountCreditsTotal,
-    getAccountExpensesTotal,
-    getAdjustmentAbsTotalByAccountType,
-    getMonthBalanceSummary,
+  getAccountAdjustmentNet,
+  getAccountCreditsTotal,
+  getAccountExpensesTotal,
+  getAdjustmentAbsTotalByAccountType,
+  getMonthBalanceSummary,
 } from "@/services/account-balance";
 import { getCurrentMonth } from "@/services/budget";
 import type { FinancialAccount } from "@/services/financial-account";
@@ -23,6 +23,12 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 const preloaded = consumePensionAccountsPreload();
+
+function getPreviousMonth(month: string): string {
+  const [year, m] = month.split("-").map(Number);
+  const d = new Date(year, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 interface AccountSummary {
   account: FinancialAccount;
@@ -76,25 +82,27 @@ export default function PensionAccountsScreen() {
               autoDetectedStale,
             };
           }
-          // Not seeded — try to get opening from carry-forward, else 0
-          const monthSummary = await getMonthBalanceSummary(account.id, month);
-          if (monthSummary) {
-            return {
-              account,
-              opening: monthSummary.opening_balance,
-              expenses: monthSummary.expenses,
-              credits: monthSummary.credits,
-              current: monthSummary.closing_balance,
-              seeded: false, // Still marked as not manually seeded by user
-              autoDetectedStale,
-            };
-          }
-          // Fallback to manual calculation if carry-forward fails
+          // Not seeded — calculate current month data first
           const [expenses, credits, adjNet] = await Promise.all([
             getAccountExpensesTotal(account.id, startDate, endDate),
             getAccountCreditsTotal(account.id, startDate, endDate),
             getAccountAdjustmentNet(account.id, startDate, endDate),
           ]);
+          // Try carry-forward from previous month
+          const prevMonth = getPreviousMonth(month);
+          const prevSummary = await getMonthBalanceSummary(account.id, prevMonth);
+          if (prevSummary) {
+            return {
+              account,
+              opening: prevSummary.closing_balance,
+              expenses,
+              credits,
+              current: prevSummary.closing_balance - expenses + credits + adjNet,
+              seeded: false,
+              autoDetectedStale,
+            };
+          }
+          // Fallback to manual calculation if carry-forward fails
           return {
             account,
             opening: 0,

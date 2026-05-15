@@ -66,6 +66,8 @@ export interface CreateUserTemplateInput {
   /** v15.11.0 — sender-based routing. Required for new templates. */
   senderPattern: string;
   senderMatchMode: SenderMatchMode;
+  /** v15.13.0 — optional pre-compiled regex to override auto-generated one. */
+  patternRegex?: string;
 }
 
 export interface UpdateUserTemplateInput {
@@ -77,6 +79,8 @@ export interface UpdateUserTemplateInput {
   priority?: number;
   senderPattern?: string;
   senderMatchMode?: SenderMatchMode;
+  /** v15.13.0 — optional pre-compiled regex to override auto-generated one. */
+  patternRegex?: string;
 }
 
 export class UserTemplateCompileError extends Error {
@@ -121,13 +125,26 @@ export async function getUserTemplate(id: string): Promise<UserSmsTemplate | nul
 export async function createUserTemplate(
   input: CreateUserTemplateInput,
 ): Promise<UserSmsTemplate> {
-  // Compile first — never store an invalid regex.
-  const compiled = compileTemplate({
-    smsBody: input.sampleSms,
-    spans: input.spans,
-  });
-  if (!compiled.ok) {
-    throw new UserTemplateCompileError(compiled.reason, compiled.detail);
+  // v15.13.0: if manual regex is provided, validate it instead of compiling
+  let patternRegex: string;
+  if (input.patternRegex) {
+    // Validate the manual regex
+    try {
+      new RegExp(input.patternRegex, "i");
+      patternRegex = input.patternRegex;
+    } catch (e) {
+      throw new UserTemplateCompileError("invalid_regex", e instanceof Error ? e.message : String(e));
+    }
+  } else {
+    // Compile from spans
+    const compiled = compileTemplate({
+      smsBody: input.sampleSms,
+      spans: input.spans,
+    });
+    if (!compiled.ok) {
+      throw new UserTemplateCompileError(compiled.reason, compiled.detail);
+    }
+    patternRegex = compiled.patternRegex;
   }
 
   const db = getDatabase();
@@ -150,7 +167,7 @@ export async function createUserTemplate(
     id,
     input.bankName.trim(),
     label,
-    compiled.patternRegex,
+    patternRegex,
     input.txType,
     input.priority ?? 100,
     DEFAULT_USER_ID,
@@ -210,11 +227,21 @@ export async function updateUserTemplate(
     throw new Error(`User template ${id} not found`);
   }
 
-  // Recompile if sample or spans changed. If only bankName/txType/label
-  // changed, keep the existing regex.
+  // v15.13.0: if manual regex is provided, validate it instead of compiling
   let patternRegex = existing.pattern_regex;
   let sampleSms = existing.sample_sms ?? "";
-  if (input.sampleSms !== undefined || input.spans !== undefined) {
+  
+  if (input.patternRegex !== undefined) {
+    // Validate the manual regex
+    try {
+      new RegExp(input.patternRegex, "i");
+      patternRegex = input.patternRegex;
+    } catch (e) {
+      throw new UserTemplateCompileError("invalid_regex", e instanceof Error ? e.message : String(e));
+    }
+  } else if (input.sampleSms !== undefined || input.spans !== undefined) {
+    // Recompile if sample or spans changed. If only bankName/txType/label
+    // changed, keep the existing regex.
     const newBody = input.sampleSms ?? existing.sample_sms ?? "";
     const newSpans = input.spans ?? []; // caller must provide; absent spans = error
     if (newSpans.length === 0) {

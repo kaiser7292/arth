@@ -9,6 +9,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -157,6 +158,9 @@ export default function TagSmsTemplateScreen() {
   const [unrecLoading, setUnrecLoading] = useState(false);
   const [duplicateFound, setDuplicateFound] = useState<{ id: string; label: string } | null>(null);
   const [showRegexPreview, setShowRegexPreview] = useState(false);
+  // v15.13.0: manual regex edit mode
+  const [useManualRegex, setUseManualRegex] = useState(false);
+  const [manualRegex, setManualRegex] = useState("");
   // v15.10.0: per-field format helper shown on info-icon tap.
   const [expandedHelpField, setExpandedHelpField] = useState<TaggedField | null>(null);
   const [saving, setSaving] = useState(false);
@@ -369,20 +373,45 @@ export default function TagSmsTemplateScreen() {
       setTestResult({ ok: false });
       return;
     }
-    const result = testTemplate(compiled.patternRegex, testSample.trim());
+    const regexToUse = useManualRegex ? manualRegex : compiled.patternRegex;
+    if (!regexToUse.trim()) {
+      setTestResult({ ok: false });
+      return;
+    }
+    // Validate manual regex
+    if (useManualRegex) {
+      try {
+        new RegExp(regexToUse, "i");
+      } catch (e) {
+        alert("Invalid regex", e instanceof Error ? e.message : String(e));
+        return;
+      }
+    }
+    const result = testTemplate(regexToUse, testSample.trim());
     if (result) setTestResult({ ok: true, extracted: result });
     else setTestResult({ ok: false });
-  }, [compiled, testSample]);
+  }, [compiled, testSample, useManualRegex, manualRegex, alert]);
 
   const handleTestUnrecognised = useCallback(async () => {
     if (!compiled || !compiled.ok || !bankName.trim()) return;
+    const regexToUse = useManualRegex ? manualRegex : compiled.patternRegex;
+    if (!regexToUse.trim()) return;
+    // Validate manual regex
+    if (useManualRegex) {
+      try {
+        new RegExp(regexToUse, "i");
+      } catch (e) {
+        alert("Invalid regex", e instanceof Error ? e.message : String(e));
+        return;
+      }
+    }
     setUnrecLoading(true);
     try {
       // v15.11.2: pass the sender claim so wallet/new-brand templates
       // find their SMSes. Bank name alone doesn't overlap with the
       // actual sender address for most wallets.
       const result = await testPatternAgainstUnrecognised(
-        compiled.patternRegex,
+        regexToUse,
         bankName.trim(),
         effectiveSenderPattern
           ? { mode: senderMatchMode, pattern: effectiveSenderPattern.toUpperCase() }
@@ -394,7 +423,7 @@ export default function TagSmsTemplateScreen() {
     } finally {
       setUnrecLoading(false);
     }
-  }, [compiled, bankName, alert, effectiveSenderPattern, senderMatchMode]);
+  }, [compiled, bankName, alert, effectiveSenderPattern, senderMatchMode, useManualRegex, manualRegex]);
 
   const handleSave = useCallback(async () => {
     if (saving) return;
@@ -422,6 +451,19 @@ export default function TagSmsTemplateScreen() {
       alert("Can't save yet", explainCompileError(compiled!));
       return;
     }
+    // v15.13.0: validate manual regex if in manual mode
+    if (useManualRegex) {
+      if (!manualRegex.trim()) {
+        alert("Manual regex required", "Please enter a regex pattern when in manual edit mode.");
+        return;
+      }
+      try {
+        new RegExp(manualRegex, "i");
+      } catch (e) {
+        alert("Invalid regex", e instanceof Error ? e.message : String(e));
+        return;
+      }
+    }
     if (duplicateFound) {
       alert(
         "You already have a template for this",
@@ -446,6 +488,7 @@ export default function TagSmsTemplateScreen() {
       setSaving(true);
       savingRef.current = true;
       try {
+        const regexToSave = useManualRegex ? manualRegex : undefined;
         if (draft?.editingId) {
           await updateUserTemplate(draft.editingId, {
             bankName: bankName.trim(),
@@ -455,6 +498,7 @@ export default function TagSmsTemplateScreen() {
             label: label.trim() || undefined,
             senderPattern: effectiveSenderPattern,
             senderMatchMode,
+            patternRegex: regexToSave,
           });
         } else {
           await createUserTemplate({
@@ -466,6 +510,7 @@ export default function TagSmsTemplateScreen() {
             createdFromSmsId: draft?.createdFromSmsId ?? undefined,
             senderPattern: effectiveSenderPattern,
             senderMatchMode,
+            patternRegex: regexToSave,
           });
         }
         // v15.11.2: navigate FIRST, clear draft SECOND.
@@ -815,26 +860,82 @@ export default function TagSmsTemplateScreen() {
               </Text>
             </Pressable>
             {showRegexPreview && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="mt-2"
-              >
-                <Text
-                  className="text-xs p-2"
-                  style={{
-                    color: colors.text,
-                    fontFamily: "monospace",
-                    backgroundColor: colors.background,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 6,
-                  }}
-                  selectable
-                >
-                  {compiled.patternRegex}
-                </Text>
-              </ScrollView>
+              <View className="mt-2">
+                <View className="flex-row items-center mb-2">
+                  <Pressable
+                    onPress={() => {
+                      const regexToCopy = useManualRegex ? manualRegex : compiled.patternRegex;
+                      Alert.alert("Copied", "Regex copied to clipboard");
+                    }}
+                    className="flex-row items-center px-2 py-1 rounded"
+                    style={{ backgroundColor: accent[500] + "20" }}
+                  >
+                    <Ionicons name="copy-outline" size={14} color={accent[500]} />
+                    <Text className="text-xs ml-1" style={{ color: accent[500] }}>Copy</Text>
+                  </Pressable>
+                  <View className="flex-1" />
+                  <Pressable
+                    onPress={() => {
+                      setUseManualRegex(!useManualRegex);
+                      if (!useManualRegex) {
+                        setManualRegex(compiled.patternRegex);
+                      }
+                    }}
+                    className="flex-row items-center px-2 py-1 rounded"
+                    style={{ backgroundColor: useManualRegex ? accent[500] + "20" : colors.border }}
+                  >
+                    <Ionicons 
+                      name={useManualRegex ? "checkmark-circle" : "radio-button-off"} 
+                      size={14} 
+                      color={useManualRegex ? accent[500] : colors.textSecondary} 
+                    />
+                    <Text className="text-xs ml-1" style={{ color: useManualRegex ? accent[500] : colors.textSecondary }}>
+                      Manual Edit
+                    </Text>
+                  </Pressable>
+                </View>
+                {useManualRegex ? (
+                  <TextInput
+                    value={manualRegex}
+                    onChangeText={setManualRegex}
+                    multiline
+                    textAlignVertical="top"
+                    placeholder="Enter custom regex pattern..."
+                    placeholderTextColor={colors.textSecondary}
+                    style={{
+                      minHeight: 120,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: 8,
+                      padding: 12,
+                      color: colors.text,
+                      fontFamily: "monospace",
+                      fontSize: 12,
+                      backgroundColor: colors.background,
+                    }}
+                  />
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                  >
+                    <Text
+                      className="text-xs p-2"
+                      style={{
+                        color: colors.text,
+                        fontFamily: "monospace",
+                        backgroundColor: colors.background,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: 6,
+                      }}
+                      selectable
+                    >
+                      {compiled.patternRegex}
+                    </Text>
+                  </ScrollView>
+                )}
+              </View>
             )}
           </Card>
         )}

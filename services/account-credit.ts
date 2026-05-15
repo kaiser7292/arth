@@ -28,6 +28,10 @@ export interface AccountCredit {
    * link a refund row to its originating expense.
    */
   refund_of_expense_id: string | null;
+  /** v15.12.1: full SMS body preserved for SMS-detected credits */
+  raw_source_text: string | null;
+  /** v15.12.1: DLT sender ID of the originating SMS */
+  source_sms_address: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -78,8 +82,9 @@ export async function getCreditsForMonth(
     // "refund of …" link back to the originating expense when the credit is
     // an SMS-detected refund. Applies uniformly to CC, savings, wallets,
     // loans, demat — every account type that goes through this loader.
+    // v15.12.1: include raw_source_text and source_sms_address for source SMS modal
     `SELECT id, account_id, user_id, amount, description, date, source,
-            refund_of_expense_id,
+            refund_of_expense_id, raw_source_text, source_sms_address,
             created_at, updated_at, deleted_at
      FROM expenses
      WHERE account_id = ? AND deleted_at IS NULL

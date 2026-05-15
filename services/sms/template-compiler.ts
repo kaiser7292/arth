@@ -100,7 +100,10 @@ const FIELD_REGEX: Record<TaggedField, string> = {
   // id, a multi-word remark, or a slash-separated payload. Non-greedy so
   // trailing anchor text can terminate it; same last-field-greedy fallback
   // as merchant is applied in the compile step.
-  ref: "[A-Za-z0-9 &.,'*\\-\\/:#]+?",
+  // v15.13.0: made more restrictive to avoid matching long passbook IDs.
+  // Passbook IDs should be left in anchor text (not tagged as ref) so they
+  // get wildcarded by the passbook ID wildcarding logic.
+  ref: "[A-Za-z0-9 &.,'*\\-\\/:#]{1,30}?",
 };
 
 /**
@@ -115,6 +118,42 @@ const FIELD_REGEX: Record<TaggedField, string> = {
  * URL with the same scheme+domain structure.
  */
 const URL_REGEX = /https?:\/\/[^\s]+/gi;
+
+/**
+ * Detect passbook IDs and similar long account identifiers.
+ * These are alphanumeric strings (8+ chars) that look like:
+ * - EPFO passbook IDs: APHYD00641440000014984
+ * - Account numbers: 1234567890123
+ * - UAN numbers: 101234567890
+ *
+ * Pattern: 8+ alphanumeric characters, mix of letters and numbers.
+ * Avoid matching regular words by requiring at least 2 digits.
+ * Also require at least 2 letters to avoid matching pure numbers.
+ */
+const PASSBOOK_ID_REGEX = /[A-Za-z0-9]{12,}/g;
+
+function wildcardizePassbookIds(text: string): { out: string; passbookPlaceholders: string[] } {
+  // Swap each passbook ID for a sentinel placeholder so the subsequent
+  // escapeLiteral whitespace/regex-special handling doesn't touch it.
+  // Then we swap the placeholders back with a compiled passbook ID regex.
+  const passbookPlaceholders: string[] = [];
+  const out = text.replace(PASSBOOK_ID_REGEX, (match) => {
+    // Only wildcardize if it looks like a real account identifier:
+    // - Contains at least 2 digits (to avoid matching regular words)
+    // - Contains at least 2 letters (to avoid matching pure numbers)
+    const digitCount = (match.match(/\d/g) || []).length;
+    const letterCount = (match.match(/[A-Za-z]/g) || []).length;
+    if (digitCount < 2 || letterCount < 2) {
+      // Not a passbook ID - leave as-is (will be escaped as literal)
+      return match;
+    }
+    // Replace with pattern that matches any similar alphanumeric ID
+    const placeholder = `\x00PBK${passbookPlaceholders.length}\x00`;
+    passbookPlaceholders.push("[A-Z0-9]{8,}");
+    return placeholder;
+  });
+  return { out, passbookPlaceholders };
+}
 
 function wildcardizeUrls(text: string): { out: string; urlPlaceholders: string[] } {
   // Swap each URL for a sentinel placeholder so the subsequent
@@ -155,12 +194,19 @@ function escapeLiteral(text: string): string {
   // + `\S*` so per-message unique path tokens (shortener slugs) don't
   // defeat matching on subsequent SMSes.
   //
-  // Pipeline: URL-wildcard (first, before escape), then whitespace
-  // sentinel, then escape, then swap sentinels back. Order matters —
-  // URL placeholders must survive both the whitespace and the escape
-  // passes, and the URL's own regex must NOT be escaped.
+  // v15.13.0: additionally replace passbook ID literals with a wildcard
+  // pattern so account-specific identifiers don't break matching across
+  // different accounts (e.g., EPFO passbook IDs like APHYD00641440000014984).
+  //
+  // Pipeline: passbook-wildcard → URL-wildcard → whitespace sentinel →
+  // escape → swap sentinels back. Order matters — passbook/URL placeholders
+  // must survive both the whitespace and the escape passes, and their
+  // regexes must NOT be escaped.
   const URL_SENTINEL_RE = /\x00URL(\d+)\x00/g;
-  const { out: urlMasked, urlPlaceholders } = wildcardizeUrls(text);
+  const PBK_SENTINEL_RE = /\x00PBK(\d+)\x00/g;
+  
+  const { out: pbkMasked, passbookPlaceholders } = wildcardizePassbookIds(text);
+  const { out: urlMasked, urlPlaceholders } = wildcardizeUrls(pbkMasked);
 
   const WS_SENTINEL = "\x00WS\x00";
   const wsMasked = urlMasked.replace(/\s+/g, WS_SENTINEL);
@@ -169,10 +215,14 @@ function escapeLiteral(text: string): string {
 
   const withWs = escaped.replace(new RegExp(WS_SENTINEL, "g"), "\\s+");
 
+  // Swap passbook sentinels back FIRST (before URLs) to avoid any
+  // potential collision if a passbook ID somehow appears in a URL.
+  const withPbk = withWs.replace(PBK_SENTINEL_RE, (_, idx) => passbookPlaceholders[Number(idx)] ?? "[A-Z0-9]{8,}");
+  
   // Swap URL sentinels back LAST, using their already-compiled regex
   // fragments (which include the needed escapes on the scheme+host
   // portion but leave \S* raw).
-  return withWs.replace(URL_SENTINEL_RE, (_, idx) => urlPlaceholders[Number(idx)] ?? "\\S+");
+  return withPbk.replace(URL_SENTINEL_RE, (_, idx) => urlPlaceholders[Number(idx)] ?? "\\S+");
 }
 
 function sortSpans(spans: TaggedSpan[]): TaggedSpan[] {
