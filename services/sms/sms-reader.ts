@@ -12,6 +12,8 @@
  * of card/account numbers are stored.
  */
 
+import { DEFAULT_USER_ID } from "@/constants/app";
+import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { Platform } from "react-native";
 import { parseBankSMS } from "./bank-patterns";
 import { isBankSender, looksLikeTransaction } from "./bank-senders";
@@ -138,14 +140,17 @@ async function fetchBankSMSRange(
 
     // Filter by account IDs if provided
     if (accountIds && accountIds.length > 0) {
+      // Fetch account_identifier values for the selected account IDs
+      const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
+      const selectedAccounts = allAccounts.filter((acc: FinancialAccount) => accountIds.includes(acc.id));
+      const accountIdentifiers = selectedAccounts.map((acc: FinancialAccount) => acc.account_identifier);
+
       bankSms = bankSms.filter((sms) => {
         const parsed = parseBankSMS(sms.body);
         if (!parsed || !parsed.cardLast4) return false;
         
-        // Check if this SMS matches any of the selected account IDs
-        // Account IDs in the database may be full identifiers, but cardLast4 is just last 4 digits
-        // We need to check if the account ID ends with the cardLast4
-        return accountIds.some((accountId) => accountId.endsWith(parsed.cardLast4!));
+        // Check if this SMS matches any of the selected account identifiers
+        return accountIdentifiers.includes(parsed.cardLast4!);
       });
     }
 
