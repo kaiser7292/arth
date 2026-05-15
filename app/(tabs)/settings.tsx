@@ -802,18 +802,10 @@ export default function SettingsScreen() {
           <Card title="About & Help" className="mb-4">
             {getFlag("v15_help_center") && (
               <SettingsRow
-                label="SMS Scan Runs"
-                subtitle="View scan history and details"
-                icon="list-outline"
-                onPress={() => router.push("/settings/sms-scan-runs")}
-              />
-            )}
-            {getFlag("v15_help_center") && (
-              <SettingsRow
-                label="Browse unrecognised SMS"
-                subtitle="Teach Artha to parse new senders"
                 icon="help-circle-outline"
-                onPress={() => router.push("/settings/unrecognised-sms")}
+                label="Help Center"
+                subtitle="Ask anything in plain English"
+                onPress={() => router.push("/settings/help" as never)}
               />
             )}
             <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">

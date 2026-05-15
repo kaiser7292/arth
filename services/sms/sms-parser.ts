@@ -44,8 +44,6 @@ export interface ParsedItem {
   parsed: ParsedSMS;
   rawBody: string;
   smsDate: number;
-  /** v15.13.0: Source of the parse (hardcoded pattern vs template) */
-  parseSource: "hardcoded" | "template" | "unrecognized" | "skipped";
 }
 
 /**
@@ -82,7 +80,6 @@ export async function parseSmsBatch(
 
       // Parse the SMS body
       let parsed = parseBankSMS(sms.body);
-      let parseSource: "hardcoded" | "template" | "unrecognized" | "skipped" = "hardcoded";
 
       // v15 Phase 2 template fallback: if hardcoded BANK_PATTERNS missed, try
       // the DB-backed templates (system-seeded + user-authored).
@@ -116,9 +113,6 @@ export async function parseSmsBatch(
         if (shouldTry) {
           try {
             parsed = await tryTemplateMatch(sms.body, sms.address);
-            if (parsed) {
-              parseSource = "template";
-            }
           } catch (e) {
             logger.warn("Template fallback failed (non-fatal):", e);
           }
@@ -135,7 +129,6 @@ export async function parseSmsBatch(
       // the user should still see their wallet SMSes in the unrecognised
       // browser if the template (somehow) didn't match so they can debug.
       if (!parsed) {
-        parseSource = "unrecognized";
         result.unrecognized++;
         const userClaimsSender = await hasSenderScopedUserTemplate(sms.address);
         const looksTransactional =
@@ -194,7 +187,6 @@ export async function parseSmsBatch(
       }
 
       if (parsed.skip) {
-        parseSource = "skipped";
         result.skipped++;
         // Still store it as "ignored" for audit trail
         const id = generateUUID();
@@ -237,7 +229,6 @@ export async function parseSmsBatch(
         parsed,
         rawBody: sms.body,
         smsDate: sms.date,
-        parseSource,
       });
     } catch (e) {
       result.errors.push(

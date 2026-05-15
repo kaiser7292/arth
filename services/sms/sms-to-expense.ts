@@ -17,7 +17,7 @@ import { autoPopulateAccountMode, findPaymentModeByType } from "@/services/accou
 import { autoDetectTransfer, createTransfer } from "@/services/account-transfer";
 import { findMatchingForecast, findRefundTarget } from "@/services/expense";
 import { findMatchingRepaymentForecast, markRepaymentAsPaid } from "@/services/expense-forecasts";
-import { discoverOrUpdateAccount, handlePaymentReceived, linkExpenseToAccount, updateAccountDues, updateNachInfo, type FinancialAccount } from "@/services/financial-account";
+import { discoverOrUpdateAccount, handlePaymentReceived, linkExpenseToAccount, updateAccountDues, updateNachInfo } from "@/services/financial-account";
 import { cleanMerchantName, normalizeMerchantName } from "@/services/merchant-alias";
 import { bumpDataVersion } from "@/services/settings";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
@@ -571,9 +571,6 @@ function buildDescription(parsed: ParsedSMS): string {
 /**
  * Process a batch of parsed items — creates pending expenses for each.
  * Returns the count of expenses created.
- * 
- * v15.13.0: Added account filtering after template matching to ensure
- * template-based SMS are not filtered out during account selection.
  */
 export async function processParseResults(
   userId: string,
@@ -583,57 +580,13 @@ export async function processParseResults(
     rawBody: string;
     smsDate?: number;
   }>,
-  accountIds?: string[],
 ): Promise<{ created: number; credits: number; skipped: number; errors: string[] }> {
   let created = 0;
   let credits = 0;
   let skipped = 0;
   const errors: string[] = [];
 
-  // v15.13.0: Filter by account IDs if provided (moved from sms-reader.ts)
-  // This happens after template matching, so template-based SMS are included
-  let filteredItems = items;
-  if (accountIds && accountIds.length > 0) {
-    const { getActiveAccounts } = await import("@/services/financial-account");
-    const allAccounts = await getActiveAccounts(userId);
-    const selectedAccounts = allAccounts.filter((acc: FinancialAccount) => accountIds.includes(acc.id));
-    
-    // Group accounts by type for different matching logic
-    const pensionAccounts = selectedAccounts.filter((acc) => acc.account_type === "pension");
-    const otherAccounts = selectedAccounts.filter((acc) => acc.account_type !== "pension");
-    
-    const otherAccountIdentifiers = otherAccounts.map((acc) => acc.account_identifier);
-    const pensionAccountIdentifiers = pensionAccounts.map((acc) => acc.account_identifier);
-
-    filteredItems = items.filter((item) => {
-      const parsed = item.parsed;
-      
-      // For pension accounts (EPFO), match by merchant (passbook ID) in addition to cardLast4
-      if (parsed.bank === "EPFO" && pensionAccountIdentifiers.length > 0) {
-        // Try cardLast4 first (UAN last 4 digits)
-        if (parsed.cardLast4 && pensionAccountIdentifiers.includes(parsed.cardLast4)) {
-          return true;
-        }
-        // Try merchant field (passbook ID) for accounts created with passbook ID
-        if (parsed.merchant) {
-          return pensionAccountIdentifiers.some((id) => 
-            parsed.merchant!.includes(id) || id.includes(parsed.merchant!)
-          );
-        }
-        return false;
-      }
-      
-      // For other accounts, match by cardLast4 only
-      if (otherAccountIdentifiers.length > 0) {
-        if (!parsed.cardLast4) return false;
-        return otherAccountIdentifiers.includes(parsed.cardLast4);
-      }
-      
-      return false;
-    });
-  }
-
-  for (const item of filteredItems) {
+  for (const item of items) {
     const result = await createExpenseFromSms(
       userId,
       item.pendingSmsId,
