@@ -33,6 +33,9 @@ export interface TemplateDraft {
   /** v15.11.0 — sender-based routing */
   senderPattern: string;
   senderMatchMode: SenderMatchMode;
+  /** v15.13.0 — manual regex preserved across edit sessions */
+  manualRegex?: string | null;
+  useManualRegex?: boolean;
 }
 
 let current: TemplateDraft | null = null;

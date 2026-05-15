@@ -9,7 +9,7 @@ import {
   type UserSmsTemplate,
 } from "@/services/sms/user-sms-templates";
 import { startDraft } from "@/services/sms/template-draft-store";
-import { deriveSpansFromRegex } from "@/services/sms/template-compiler";
+import { compileTemplate, deriveSpansFromRegex } from "@/services/sms/template-compiler";
 
 /**
  * v15.6.0 — Edit an existing user SMS template.
@@ -47,6 +47,17 @@ export default function EditSmsTemplateScreen() {
           sampleBody.length > 0
             ? deriveSpansFromRegex(t.pattern_regex, sampleBody) ?? []
             : [];
+        // Detect if the stored regex was manually edited by comparing against
+        // what auto-compile would produce from the restored spans.
+        let isManualRegex = false;
+        let manualRegexValue: string | null = null;
+        if (restoredSpans.length > 0 && sampleBody.length > 0) {
+          const autoCompiled = compileTemplate({ smsBody: sampleBody, spans: restoredSpans });
+          if (autoCompiled.ok && autoCompiled.patternRegex !== t.pattern_regex) {
+            isManualRegex = true;
+            manualRegexValue = t.pattern_regex;
+          }
+        }
         startDraft({
           editingId: t.id,
           smsBody: sampleBody,
@@ -57,6 +68,8 @@ export default function EditSmsTemplateScreen() {
           createdFromSmsId: t.created_from_sms_id,
           senderPattern: t.sender_pattern ?? "",
           senderMatchMode: t.sender_match_mode ?? "code",
+          useManualRegex: isManualRegex,
+          manualRegex: manualRegexValue,
         });
         router.replace("/settings/sms-templates/tag" as never);
       } catch (e) {

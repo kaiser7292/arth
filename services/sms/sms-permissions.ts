@@ -8,7 +8,7 @@
  *  - Auto:   background task checks every ~15 min (opt-in)
  *
  * Start date: user picks from when to read SMS history.
- *  - If auto mode is off, defaults to "today"
+ *  - If not set, defaults to 7 days ago
  *  - User can set an earlier date for historic data setup
  */
 
@@ -81,7 +81,7 @@ export function setLastAutoScanRun(timestamp: number): void {
 /**
  * Get the date from which to start reading SMS.
  * Returns an ISO date string (YYYY-MM-DD).
- * Defaults to today if not set.
+ * Defaults to 7 days ago if not set.
  */
 export function getSmsStartDate(): string {
   return storage.getString(KEYS.SMS_START_DATE) ?? defaultStartDate();

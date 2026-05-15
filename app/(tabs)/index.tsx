@@ -46,7 +46,7 @@ import {
     unacknowledgedBreaches,
 } from "@/services/min-balance";
 import { bumpDataVersion, dismissBackupWarning, shouldShowBackupWarning } from "@/services/settings";
-import { getLastAutoScanRun, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
+import { getLastAutoScanRun, getSmsScanAccountIds, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
 import { ac, acAlpha } from "@/utils/accent";
 import {
     getBudgetStatus,
@@ -270,7 +270,8 @@ export default function HomeScreen() {
     if (smsScanning) return;
     setSmsScanning(true);
     try {
-      await runSmsScan({ manual: true });
+      const accountIds = getSmsScanAccountIds();
+      await runSmsScan({ manual: true, accountIds });
       const ts = getLastAutoScanRun();
       setLastScanTs(ts > 0 ? ts : Date.now());
       bumpDataVersion();

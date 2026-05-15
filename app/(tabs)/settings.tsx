@@ -234,7 +234,7 @@ export default function SettingsScreen() {
     }
     setSmsScanning(false);
     handleDuplicateScan(true);
-  }, [smsStartDateStr, smsEndDateStr]);
+  }, [smsStartDateStr, smsEndDateStr, smsScanAccountIds]);
 
   const handleDuplicateScan = useCallback(async (silent = false) => {
     setDupScanning(true);
@@ -565,9 +565,9 @@ export default function SettingsScreen() {
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">Detect expenses from SMS</Text>
                   </View>
                   {smsToggling ? (
-                    <ActivityIndicator size="small" color={colors.blue} />
+                    <ActivityIndicator size="small" color={accent[500]} />
                   ) : (
-                    <Switch value={smsEnabled} onValueChange={handleSmsToggle} trackColor={{ false: "#E5E5E3", true: colors.blue }} thumbColor={smsEnabled ? "#FFFFFF" : "#9CA3AF"} />
+                    <Switch value={smsEnabled} onValueChange={handleSmsToggle} trackColor={{ false: colors.border, true: accent[500] }} thumbColor={smsEnabled ? "#FFFFFF" : colors.textSecondary} />
                   )}
                 </View>
               </>
@@ -577,7 +577,11 @@ export default function SettingsScreen() {
                   <Pressable onPress={() => setShowDatePicker(!showDatePicker)} className="flex-row items-center justify-between py-3 border-b border-border-light dark:border-border-dark">
                     <View>
                       <Text className="text-sm text-text-primary dark:text-text-dark-primary">Scan Date Range</Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">From {formatDateLabel(smsStartDateStr)} onwards</Text>
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                        {smsEndDateStr === dateMinusDays(0)
+                          ? `From ${formatDateLabel(smsStartDateStr)} → Today`
+                          : `${formatDateLabel(smsStartDateStr)} → ${formatDateLabel(smsEndDateStr)}`}
+                      </Text>
                     </View>
                     <Ionicons name={showDatePicker ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
                   </Pressable>
@@ -840,13 +844,14 @@ export default function SettingsScreen() {
             <Pressable
               onPress={() => {
                 setSmsScanAccountIds([]);
-                setShowAccountPicker(false);
+                saveSmsScanAccountIds([]);
               }}
               className={`flex-row items-center justify-between py-3 px-4 rounded-lg mb-2 border ${
-                smsScanAccountIds.length === 0
-                  ? "bg-primary/10 border-primary"
-                  : "border-border-light dark:border-border-dark"
+                smsScanAccountIds.length === 0 ? "" : "border-border-light dark:border-border-dark"
               }`}
+              style={smsScanAccountIds.length === 0
+                ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 700) }
+                : undefined}
             >
               <View className="flex-1">
                 <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
@@ -859,7 +864,7 @@ export default function SettingsScreen() {
               <Ionicons
                 name={smsScanAccountIds.length === 0 ? "checkbox" : "square-outline"}
                 size={22}
-                color={smsScanAccountIds.length === 0 ? colors.blue : colors.textSecondary}
+                color={smsScanAccountIds.length === 0 ? accent[500] : colors.textSecondary}
               />
             </Pressable>
 
@@ -873,12 +878,14 @@ export default function SettingsScreen() {
                       ? smsScanAccountIds.filter((id) => id !== account.id)
                       : [...smsScanAccountIds, account.id];
                     setSmsScanAccountIds(newSelection);
+                    saveSmsScanAccountIds(newSelection);
                   }}
                   className={`flex-row items-center justify-between py-3 px-4 rounded-lg mb-2 border ${
-                    isSelected
-                      ? "bg-primary/10 border-primary"
-                      : "border-border-light dark:border-border-dark"
+                    isSelected ? "" : "border-border-light dark:border-border-dark"
                   }`}
+                  style={isSelected
+                    ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 700) }
+                    : undefined}
                 >
                   <View className="flex-1">
                     <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
@@ -891,7 +898,7 @@ export default function SettingsScreen() {
                   <Ionicons
                     name={isSelected ? "checkbox" : "square-outline"}
                     size={22}
-                    color={isSelected ? colors.blue : colors.textSecondary}
+                    color={isSelected ? accent[500] : colors.textSecondary}
                   />
                 </Pressable>
               );
@@ -899,10 +906,7 @@ export default function SettingsScreen() {
           </ScrollView>
 
           <Pressable
-            onPress={() => {
-              saveSmsScanAccountIds(smsScanAccountIds);
-              setShowAccountPicker(false);
-            }}
+            onPress={() => setShowAccountPicker(false)}
             className="flex-row items-center justify-center py-3 mt-4 rounded-lg"
             style={{ backgroundColor: accent[500] }}
           >

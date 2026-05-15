@@ -239,6 +239,7 @@ export async function updateUserTemplate(
     } catch (e) {
       throw new UserTemplateCompileError("invalid_regex", e instanceof Error ? e.message : String(e));
     }
+    if (input.sampleSms !== undefined) sampleSms = input.sampleSms;
   } else if (input.sampleSms !== undefined || input.spans !== undefined) {
     // Recompile if sample or spans changed. If only bankName/txType/label
     // changed, keep the existing regex.
@@ -423,22 +424,17 @@ export async function diagnoseUserTemplate(
 
   const db = getDatabase();
   const thirtyDaysAgoMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  // v15.11.2: use the template's OWN sender_pattern (if set) as the
-  // primary relevance signal. Pre-v15.11.2 fell back to the first 4
-  // chars of bank_name, which for a wallet template like bank_name=
-  // "TataNeu" produced senderPrefix="TATA" — and that doesn't appear
-  // in the real sender "VM-MYTNEU-S". Wallet SMSes were silently
-  // filtered out of the scan scope before the regex ever got to try.
   const senderPrefix = t.bank_name.trim().split(" ")[0].substring(0, 4);
   const claimed: UserSenderClaim[] =
     t.sender_match_mode && t.sender_pattern
       ? [{ mode: t.sender_match_mode, pattern: t.sender_pattern.toUpperCase() }]
       : [];
+  // Include ALL recent SMS (any status) so already-processed SMS also count
+  // as matches — users want to verify the template is working, not just see
+  // the unprocessed backlog.
   const rows = await db.getAllAsync<{ body: string; address: string }>(
     `SELECT body, address FROM pending_sms
-      WHERE status IN ('pending', 'failed')
-        AND expense_id IS NULL
-        AND sms_date >= ?
+      WHERE sms_date >= ?
       ORDER BY sms_date DESC
       LIMIT 500;`,
     thirtyDaysAgoMs,
@@ -451,10 +447,6 @@ export async function diagnoseUserTemplate(
     return { matched: 0, scanned: rows.length, sampleMatches: [], sampleMisses: [] };
   }
 
-  // First pass: likely same bank/wallet. Three signals, any one wins:
-  //   1. sender matches the template's sender pattern (authoritative)
-  //   2. sender address contains the first 4 chars of bank_name (legacy)
-  //   3. body has bank-style transaction keywords
   const sampleMatches: string[] = [];
   const sampleMisses: string[] = [];
   let matched = 0;
@@ -466,9 +458,6 @@ export async function diagnoseUserTemplate(
       looksLikeTransaction(r.body);
     if (!looksRelated) continue;
     scanned++;
-    // v15.11.1: compiled templates live in normalized-space — must
-    // normalize the incoming body before regex.test, matching the
-    // production matcher path.
     if (re.test(normalizeSms(r.body).text)) {
       matched++;
       if (sampleMatches.length < 3) sampleMatches.push(r.body.slice(0, 100));

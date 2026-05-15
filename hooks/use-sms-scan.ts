@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { runSmsScan, type ScanOutcome } from "@/services/sms";
+import { getSmsScanAccountIds, runSmsScan, type ScanOutcome } from "@/services/sms";
 
 /**
  * Hook for screens that offer a manual "Scan now" button.
@@ -15,7 +15,8 @@ export function useSmsScan() {
     if (scanning) return { ran: false, created: 0, credits: 0, skipped: 0, totalScanned: 0, reason: "cooldown" };
     setScanning(true);
     try {
-      const outcome = await runSmsScan({ manual: true });
+      const accountIds = getSmsScanAccountIds();
+      const outcome = await runSmsScan({ manual: true, accountIds });
       setLastOutcome(outcome);
       return outcome;
     } finally {

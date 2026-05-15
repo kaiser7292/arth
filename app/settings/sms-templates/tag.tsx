@@ -158,9 +158,10 @@ export default function TagSmsTemplateScreen() {
   const [unrecLoading, setUnrecLoading] = useState(false);
   const [duplicateFound, setDuplicateFound] = useState<{ id: string; label: string } | null>(null);
   const [showRegexPreview, setShowRegexPreview] = useState(false);
-  // v15.13.0: manual regex edit mode
-  const [useManualRegex, setUseManualRegex] = useState(false);
-  const [manualRegex, setManualRegex] = useState("");
+  // v15.13.0: manual regex edit mode — restored from draft when editing a template
+  // that was previously saved with a manual override.
+  const [useManualRegex, setUseManualRegex] = useState(draft?.useManualRegex ?? false);
+  const [manualRegex, setManualRegex] = useState(draft?.manualRegex ?? "");
   // v15.10.0: per-field format helper shown on info-icon tap.
   const [expandedHelpField, setExpandedHelpField] = useState<TaggedField | null>(null);
   const [saving, setSaving] = useState(false);
@@ -183,8 +184,8 @@ export default function TagSmsTemplateScreen() {
 
   // Persist changes to draft store so Back re-entry doesn't lose them.
   useEffect(() => {
-    updateDraft({ spans, bankName, txType, label, senderPattern, senderMatchMode });
-  }, [spans, bankName, txType, label, senderPattern, senderMatchMode]);
+    updateDraft({ spans, bankName, txType, label, senderPattern, senderMatchMode, useManualRegex, manualRegex });
+  }, [spans, bankName, txType, label, senderPattern, senderMatchMode, useManualRegex, manualRegex]);
 
   // v15.11.0: the "effective" sender string we'll actually save, after
   // auto-extraction when mode = code. Displayed below the input so the user
@@ -447,11 +448,8 @@ export default function TagSmsTemplateScreen() {
       alert("Amount is required", "Every template needs the amount tagged — otherwise Artha can't tell what the transaction is worth.");
       return;
     }
-    if (!compiled || !compiled.ok) {
-      alert("Can't save yet", explainCompileError(compiled!));
-      return;
-    }
-    // v15.13.0: validate manual regex if in manual mode
+    // v15.13.0: validate manual regex if in manual mode — compile from spans
+    // is NOT required when the user has a valid manual regex.
     if (useManualRegex) {
       if (!manualRegex.trim()) {
         alert("Manual regex required", "Please enter a regex pattern when in manual edit mode.");
@@ -463,6 +461,9 @@ export default function TagSmsTemplateScreen() {
         alert("Invalid regex", e instanceof Error ? e.message : String(e));
         return;
       }
+    } else if (!compiled || !compiled.ok) {
+      alert("Can't save yet", explainCompileError(compiled!));
+      return;
     }
     if (duplicateFound) {
       alert(
@@ -537,7 +538,7 @@ export default function TagSmsTemplateScreen() {
         setSaving(false);
       }
     }
-  }, [saving, bankName, spans, compiled, smsBody, txType, label, draft, router, alert, duplicateFound, effectiveSenderPattern, senderMatchMode]);
+  }, [saving, bankName, spans, compiled, smsBody, txType, label, draft, router, alert, duplicateFound, effectiveSenderPattern, senderMatchMode, useManualRegex, manualRegex]);
 
   if (!smsBody) {
     return (
@@ -1046,7 +1047,7 @@ export default function TagSmsTemplateScreen() {
         <Button
           title={saving ? "Saving…" : draft?.editingId ? "Save Changes" : "Save Template"}
           onPress={handleSave}
-          disabled={saving || !compiled || !compiled.ok}
+          disabled={saving || (!useManualRegex && (!compiled || !compiled.ok))}
           loading={saving}
         />
       </ScrollView>

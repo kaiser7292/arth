@@ -87,14 +87,42 @@ const passCurrency: Pass = (text, offsets) => {
   return cur;
 };
 
-/** Step 3: strip Indian-lakh thousands commas between digits (1,23,456 → 123456). */
+/** Step 3: strip Indian-lakh thousands commas between digits (1,23,456 → 123456).
+ * Uses a dedicated offset-preserving removal instead of the generic replaceAll,
+ * because removing a comma from "1,34" must map "134" → [orig_of_1, orig_of_3, orig_of_4],
+ * not [orig_of_1, orig_of_1, orig_of_1]. */
 const passThousandsCommas: Pass = (text, offsets) => {
-  // Repeatedly collapse "d,d" → "dd" until no change.
   let cur = { text, offsets };
   for (let i = 0; i < 5; i++) {
-    const next = replaceAll(cur.text, cur.offsets, /(\d),(\d{2,3}(?!\d))/g, (m) => m.replace(",", ""));
-    if (next.text === cur.text) break;
-    cur = next;
+    const re = /(\d),(\d{2,3}(?!\d))/g;
+    let m: RegExpExecArray | null;
+    let newText = "";
+    let newOffsets: number[] = [];
+    let lastEnd = 0;
+    let changed = false;
+    while ((m = re.exec(cur.text)) !== null) {
+      changed = true;
+      // Copy everything before the match unchanged
+      for (let j = lastEnd; j < m.index; j++) {
+        newText += cur.text[j];
+        newOffsets.push(cur.offsets[j]);
+      }
+      // Copy the match characters EXCEPT the comma, preserving their original offsets
+      for (let j = m.index; j < m.index + m[0].length; j++) {
+        if (cur.text[j] !== ",") {
+          newText += cur.text[j];
+          newOffsets.push(cur.offsets[j]);
+        }
+      }
+      lastEnd = m.index + m[0].length;
+    }
+    if (!changed) break;
+    // Copy remainder
+    for (let j = lastEnd; j < cur.text.length; j++) {
+      newText += cur.text[j];
+      newOffsets.push(cur.offsets[j]);
+    }
+    cur = { text: newText, offsets: newOffsets };
   }
   return cur;
 };
