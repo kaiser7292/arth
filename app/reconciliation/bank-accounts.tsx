@@ -14,7 +14,6 @@ import type { FinancialAccount } from "@/services/financial-account";
 import {
   getMonthBalanceSummary,
   computeUnseededBalance,
-  getEarliestMonthForAccounts,
   getAdjustmentAbsTotalByAccountType,
 } from "@/services/account-balance";
 import { getCurrentMonth } from "@/services/budget";
@@ -41,12 +40,6 @@ export default function BankAccountsScreen() {
   const [summaries, setSummaries] = useState<AccountSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
-  const [minMonth, setMinMonth] = useState<string | undefined>(undefined);
-  const maxMonth = useMemo(() => {
-    const now = new Date();
-    const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
-    return `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, "0")}`;
-  }, []);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
@@ -59,11 +52,6 @@ export default function BankAccountsScreen() {
       ]);
       const bankAccounts = allAccounts.filter((a) => a.account_type === "savings");
       setAdjustmentStats(adjStats);
-
-      if (bankAccounts.length > 0) {
-        const earliest = await getEarliestMonthForAccounts(bankAccounts.map((a) => a.id));
-        setMinMonth(earliest ?? undefined);
-      }
 
       const results: AccountSummary[] = await Promise.all(
         bankAccounts.map(async (account) => {
@@ -110,7 +98,7 @@ export default function BankAccountsScreen() {
   return (
     <ScreenContainer padTop={false}>
       {/* Month navigator */}
-      <PeriodNavigator mode="month" value={month} onChange={setMonth} minMonth={minMonth} maxMonth={maxMonth} />
+      <PeriodNavigator mode="month" value={month} onChange={setMonth} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Overall summary card */}

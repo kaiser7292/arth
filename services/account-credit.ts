@@ -10,7 +10,6 @@
  */
 
 import { getDatabase } from "@/database";
-import { getOrCreateMonthBalance } from "@/services/account-balance";
 import { bumpDataVersion } from "@/services/settings";
 import { round2 } from "@/utils/math";
 import { generateUUID } from "@/utils/uuid";
@@ -65,24 +64,6 @@ export async function addCredit(params: {
     params.accountId,
     now,
   );
-
-  // Ensure the month balance chain exists for this account+month.
-  // Without this, pension/savings accounts that have never been seeded
-  // would show opening=0 because getMonthBalanceSummary returns null.
-  // If getOrCreateMonthBalance returns null (no anchor exists at all),
-  // seed this month at 0 to establish the chain anchor.
-  const creditMonth = params.date.substring(0, 7);
-  const monthRecord = await getOrCreateMonthBalance(params.accountId, creditMonth);
-  if (!monthRecord) {
-    const balanceId = generateUUID();
-    await db.runAsync(
-      `INSERT OR IGNORE INTO account_month_balances (id, account_id, month, opening_balance)
-       VALUES (?, ?, ?, 0);`,
-      balanceId,
-      params.accountId,
-      creditMonth,
-    );
-  }
 
   await bumpDataVersion();
   return id;

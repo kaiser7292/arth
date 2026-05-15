@@ -11,8 +11,6 @@ import {
     adjustAccountAvailable,
     clearAccountLedger,
     computeUnseededBalance,
-    getEarliestMonth,
-    getEarliestMonthForAccounts,
     getLedgerExpenses,
     getMonthBalanceSummary,
     isAccountSeeded,
@@ -171,13 +169,6 @@ export default function AccountLedgerScreen() {
   // Account lookup for transfer display
   const [accountMap, setAccountMap] = useState<Map<string, string>>(new Map());
 
-  // Month bounds for navigation
-  const [minMonth, setMinMonth] = useState<string | undefined>(undefined);
-  const maxMonth = useMemo(() => {
-    const now = new Date();
-    const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
-    return `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, "0")}`;
-  }, []);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
@@ -205,12 +196,6 @@ useDataRefresh(
               )
               .map((a) => a.id)
           : [accountId];
-      const earliest =
-        groupIds.length > 1
-          ? await getEarliestMonthForAccounts(groupIds)
-          : await getEarliestMonth(accountId);
-      setMinMonth(earliest ?? undefined);
-
       const accountSeeded = await isAccountSeeded(accountId);
       setSeeded(accountSeeded);
 
@@ -231,26 +216,27 @@ useDataRefresh(
         setPoolSiblings([]);
       }
 
-      let balanceData: { opening: number; expenses: number; credits: number; closing: number };
+      let balanceData: { opening: number; expenses: number; credits: number; closing: number } = { opening: 0, expenses: 0, credits: 0, closing: 0 };
 
-      if (accountSeeded) {
-        // Perf (v14.8.0): parallel fan-out across pool siblings instead of a
-        // serial for-await loop. Shared-pool CCs with 5 sibling cards drop
-        // from 5 serial queries to 1 round-trip.
-        const summaries = await Promise.all(
-          ledgerAccountIds.map((id) => getMonthBalanceSummary(id, month)),
-        );
-        let opening = 0, expenses = 0, credits = 0, closing = 0;
-        for (const summary of summaries) {
-          if (!summary) continue;
-          opening += summary.opening_balance;
-          expenses += summary.expenses;
-          credits += summary.credits;
-          closing += summary.closing_balance;
+      try {
+        if (accountSeeded) {
+          const summaries = await Promise.all(
+            ledgerAccountIds.map((id) => getMonthBalanceSummary(id, month)),
+          );
+          let opening = 0, expenses = 0, credits = 0, closing = 0;
+          for (const summary of summaries) {
+            if (!summary) continue;
+            opening += summary.opening_balance;
+            expenses += summary.expenses;
+            credits += summary.credits;
+            closing += summary.closing_balance;
+          }
+          balanceData = { opening, expenses, credits, closing };
+        } else {
+          balanceData = await computeUnseededBalance(accountId, month);
         }
-        balanceData = { opening, expenses, credits, closing };
-      } else {
-        balanceData = await computeUnseededBalance(accountId, month);
+      } catch {
+        // Balance computation failed — still load transactions below
       }
 
       setOpening(balanceData.opening);
@@ -696,7 +682,7 @@ useDataRefresh(
   return (
     <ScreenContainer padTop={false}>
       {/* Month navigator */}
-      <PeriodNavigator mode="month" value={month} onChange={setMonth} minMonth={minMonth} maxMonth={maxMonth} />
+      <PeriodNavigator mode="month" value={month} onChange={setMonth} />
 
       <KeyboardAvoidingView
         className="flex-1"

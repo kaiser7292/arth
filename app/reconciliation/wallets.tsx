@@ -6,7 +6,6 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import {
     getAdjustmentAbsTotalByAccountType,
     computeUnseededBalance,
-    getEarliestMonthForAccounts,
     getMonthBalanceSummary,
 } from "@/services/account-balance";
 import { getCurrentMonth } from "@/services/budget";
@@ -40,12 +39,6 @@ export default function WalletsScreen() {
   const [summaries, setSummaries] = useState<WalletSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
-  const [minMonth, setMinMonth] = useState<string | undefined>(undefined);
-  const maxMonth = useMemo(() => {
-    const now = new Date();
-    const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
-    return `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, "0")}`;
-  }, []);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
@@ -58,9 +51,6 @@ export default function WalletsScreen() {
       ]);
       const wallets = allAccounts.filter((a) => a.account_type === "wallet");
       setAdjustmentStats(adjStats);
-
-      const earliest = await getEarliestMonthForAccounts(wallets.map((a) => a.id));
-      setMinMonth(earliest ?? undefined);
 
       const results: WalletSummary[] = await Promise.all(
         wallets.map(async (account) => {
@@ -105,7 +95,7 @@ export default function WalletsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <PeriodNavigator mode="month" value={month} onChange={setMonth} minMonth={minMonth} maxMonth={maxMonth} />
+      <PeriodNavigator mode="month" value={month} onChange={setMonth} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Overall summary card */}
