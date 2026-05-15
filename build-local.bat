@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-set REPO_ROOT=C:\Users\soura\OneDrive\Documents\artha
+set REPO_ROOT=c:\Users\soura\CascadeProjects\artha
 cd /d %REPO_ROOT%
 
 REM Stash uncommitted changes so they don't leak into the builds branch commit.

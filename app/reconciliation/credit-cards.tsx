@@ -459,7 +459,7 @@ export default function CreditCardsScreen() {
                 return (
                   <Pressable
                     key={account.id}
-                    onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id } })}
+                    onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id, month } })}
                     className="py-3 border-t border-border-light dark:border-border-dark"
                   >
                     {/* Card name + chevron */}

@@ -165,7 +165,7 @@ export default function BankAccountsScreen() {
         {summaries.map(({ account, opening, expenses, credits, current, seeded, autoDetectedStale }) => (
           <Card key={account.id} className="mx-4 mb-2">
             <Pressable
-              onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id } })}
+              onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id, month } })}
             >
               {/* Account header */}
               <View className="flex-row items-center mb-3">

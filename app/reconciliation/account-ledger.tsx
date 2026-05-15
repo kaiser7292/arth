@@ -1018,16 +1018,24 @@ useDataRefresh(
                         ? () => router.push(`/expense/${entry.linkedExpenseId}` as never)
                         : entry.type === "credit" && entry.linkedHisaabPersonId
                           ? () => router.push(`/hisaab/ledger?personId=${entry.linkedHisaabPersonId}` as never)
-                          : entry.type === "credit" && entry.canDelete
-                            ? () => handleStartEditCredit(entry)
-                            : isTransfer && entry.rawSourceText
-                              ? () =>
-                                  setSourceSmsModal({
-                                    body: entry.rawSourceText!,
-                                    address: entry.sourceSmsAddress ?? null,
-                                    description: entry.description,
-                                  })
-                              : undefined
+                          : // v17.6.0: SMS-detected credits show source SMS modal
+                            entry.type === "credit" && entry.rawSourceText && !entry.isRefund
+                            ? () =>
+                                setSourceSmsModal({
+                                  body: entry.rawSourceText!,
+                                  address: entry.sourceSmsAddress ?? null,
+                                  description: entry.description,
+                                })
+                            : entry.type === "credit" && entry.canDelete
+                              ? () => handleStartEditCredit(entry)
+                              : isTransfer && entry.rawSourceText
+                                ? () =>
+                                    setSourceSmsModal({
+                                      body: entry.rawSourceText!,
+                                      address: entry.sourceSmsAddress ?? null,
+                                      description: entry.description,
+                                    })
+                                : undefined
                 }
                 onLongPress={
                   entry.type === "credit" && entry.canDelete

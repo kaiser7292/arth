@@ -136,6 +136,11 @@ export const BANK_SENDERS: BankSender[] = [
   { code: "GOOGLP", bank: "Google Pay", type: "upi" },
   { code: "GPAYIN", bank: "Google Pay", type: "upi" },
   { code: "PHNEPE", bank: "PhonePe", type: "upi" },
+
+  // EPFO (Employees' Provident Fund Organisation)
+  { code: "EPFO", bank: "EPFO", type: "bank" },
+  { code: "EPFOIND", bank: "EPFO", type: "bank" },
+  { code: "UMANG", bank: "EPFO", type: "bank" },
 ];
 
 /**
