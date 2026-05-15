@@ -23,8 +23,8 @@ import { generateUUID } from "@/utils/uuid";
  * ledger math — used by getClosingBalance, getMonthBalanceSummary,
  * getComputedBalances, and getComputedBalanceComponents.
  *
- * Savings/wallet (balance model): closing = opening − expenses + credits − tOut + tIn + adjNet
- * Credit card (utilized model):    closing = opening + expenses − credits + tOut − tIn + adjNet
+ * Savings/wallet/pension (balance model): closing = opening − expenses + credits − tOut + tIn + adjNet
+ * Credit card (utilized model):         closing = opening + expenses − credits + tOut − tIn + adjNet
  *
  * For a CC, opening seeds at 0 (cycle start, nothing owed). Spends raise
  * closing; payments/refunds lower it. Goal: end cycle at 0 = fully paid back.
@@ -83,7 +83,7 @@ export async function getOrCreateMonthBalance(
     month,
   );
   if (existing) {
-    // v15.3.0 fix: self-heal stale opening chains for savings/wallet/loan
+    // v15.3.0 fix: self-heal stale opening chains for savings/wallet/loan/pension
     // accounts. Previously, the row was materialised once (e.g. when the
     // user first navigated to that future month) and frozen at whichever
     // prev-month closing was live at that instant. If the prev month kept

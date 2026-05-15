@@ -143,14 +143,41 @@ async function fetchBankSMSRange(
       // Fetch account_identifier values for the selected account IDs
       const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
       const selectedAccounts = allAccounts.filter((acc: FinancialAccount) => accountIds.includes(acc.id));
-      const accountIdentifiers = selectedAccounts.map((acc: FinancialAccount) => acc.account_identifier);
+      
+      // Group accounts by type for different matching logic
+      const pensionAccounts = selectedAccounts.filter((acc) => acc.account_type === "pension");
+      const otherAccounts = selectedAccounts.filter((acc) => acc.account_type !== "pension");
+      
+      const otherAccountIdentifiers = otherAccounts.map((acc) => acc.account_identifier);
+      const pensionAccountIdentifiers = pensionAccounts.map((acc) => acc.account_identifier);
 
       bankSms = bankSms.filter((sms) => {
         const parsed = parseBankSMS(sms.body);
-        if (!parsed || !parsed.cardLast4) return false;
+        if (!parsed) return false;
         
-        // Check if this SMS matches any of the selected account identifiers
-        return accountIdentifiers.includes(parsed.cardLast4!);
+        // For pension accounts (EPFO), match by merchant (passbook ID) in addition to cardLast4
+        // This handles cases where user manually created account with passbook ID as account_identifier
+        if (parsed.bank === "EPFO" && pensionAccountIdentifiers.length > 0) {
+          // Try cardLast4 first (UAN last 4 digits)
+          if (parsed.cardLast4 && pensionAccountIdentifiers.includes(parsed.cardLast4)) {
+            return true;
+          }
+          // Try merchant field (passbook ID) for accounts created with passbook ID
+          if (parsed.merchant) {
+            return pensionAccountIdentifiers.some((id) => 
+              parsed.merchant!.includes(id) || id.includes(parsed.merchant!)
+            );
+          }
+          return false;
+        }
+        
+        // For other accounts, match by cardLast4 only
+        if (otherAccountIdentifiers.length > 0) {
+          if (!parsed.cardLast4) return false;
+          return otherAccountIdentifiers.includes(parsed.cardLast4);
+        }
+        
+        return false;
       });
     }
 

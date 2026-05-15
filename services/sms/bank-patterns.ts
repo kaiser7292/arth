@@ -195,9 +195,34 @@ function parseDDMMMYYYYSpaced(raw: string): string | null {
   return `${m[3]}-${month}-${day}`;
 }
 
-/** Try multiple date formats: DD-MMM-YY, DDMmmYY, DD-MM-YY, DD-MM-YYYY, D-M-YYYY, DD/MM/YYYY, DD MMM YYYY */
+/** Parse "JAN 2026" or "JAN-26" or "SEP-25" (month-year) → end-of-month date "2026-01-31" */
+function parseMonthYear(raw: string): string | null {
+  const m = raw.match(/([A-Za-z]{3})(?:[-/\s](\d{2,4}))?/);
+  if (!m) return null;
+  const monthKey = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+  const month = MONTH_MAP[monthKey];
+  if (!month) return null;
+  
+  let year: string;
+  if (m[2]) {
+    // Year provided (2 or 4 digits)
+    const yearNum = parseInt(m[2], 10);
+    year = yearNum < 50 ? `20${yearNum.toString().padStart(2, "0")}` : 
+            yearNum < 100 ? `19${yearNum.toString().padStart(2, "0")}` : 
+            yearNum.toString();
+  } else {
+    // No year provided, use current year
+    year = new Date().getFullYear().toString();
+  }
+  
+  // Get last day of the month
+  const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+  return `${year}-${month}-${lastDay.toString().padStart(2, "0")}`;
+}
+
+/** Try multiple date formats: DD-MMM-YY, DDMmmYY, DD-MM-YY, DD-MM-YYYY, D-M-YYYY, DD/MM/YYYY, DD MMM YYYY, Month-Year */
 function parseDateAny(raw: string): string | null {
-  return parseDDMMMYY(raw) ?? parseDDMMMYYCompact(raw) ?? parseDDMMYY(raw) ?? parseDMYYYY(raw) ?? parseDDMMYYYY(raw) ?? parseDDMMMYYYYSpaced(raw) ?? null;
+  return parseDDMMMYY(raw) ?? parseDDMMMYYCompact(raw) ?? parseDDMMYY(raw) ?? parseDMYYYY(raw) ?? parseDDMMYYYY(raw) ?? parseDDMMMYYYYSpaced(raw) ?? parseMonthYear(raw) ?? null;
 }
 
 /** Parse "21/APR/2026" (DD/MMM/YYYY) → "2026-04-21" */

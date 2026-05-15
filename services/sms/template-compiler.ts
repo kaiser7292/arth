@@ -91,10 +91,10 @@ const FIELD_REGEX: Record<TaggedField, string> = {
   // can't swallow the rest of the SMS.
   account: "(?:\\d{3,6}|[A-Za-z][A-Za-z0-9 &.'\\-]{1,49})",
   merchant: "[A-Za-z0-9 &.,'*\\-\\/]+?",
-  // Date matches D-M-Y in multiple formats; the matcher infers the year
-  // from context. We don't pin a single format here because banks sending
-  // the same template shape vary (e.g. "10-04-26" vs "10/APR/2026").
-  date: "\\d{1,2}[-/][A-Za-z0-9]{2,4}[-/]\\d{2,4}(?:\\s+\\d{2}:\\d{2}(?::\\d{2})?)?",
+  // Date matches D-M-Y in multiple formats OR month-year formats (JAN 2026, JAN-26, SEP-25).
+  // For month-year formats, the parser converts to end-of-month date.
+  // The matcher infers the year from context for 2-digit years.
+  date: "(?:\\d{1,2}[-/][A-Za-z0-9]{2,4}[-/]\\d{2,4}(?:\\s+\\d{2}:\\d{2}(?::\\d{2})?)?|[A-Za-z]{3}(?:[-/\\s]\\d{2,4}))",
   balance: "[\\d,]+(?:\\.\\d{1,2})?",
   // ref is the free-text "remarks / description" field — may be a UPI/NEFT
   // id, a multi-word remark, or a slash-separated payload. Non-greedy so
@@ -362,11 +362,11 @@ export function autoTag(smsBody: string): TaggedSpan[] {
     1,
   );
 
-  // DATE: "10-04-26" / "10/04/2026" / "10-APR-2026"
+  // DATE: "10-04-26" / "10/04/2026" / "10-APR-2026" / "JAN 2026" / "JAN-26" / "SEP-25"
   pushFirst(
     "date",
-    /\b(\d{1,2}[-\/][A-Za-z0-9]{2,4}[-\/]\d{2,4}(?:\s+\d{2}:\d{2}(?::\d{2})?)?)\b/,
-    1,
+    /\b(?:\d{1,2}[-\/][A-Za-z0-9]{2,4}[-\/]\d{2,4}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|[A-Za-z]{3}(?:[-/\s]\d{2,4})?)\b/,
+    0,
   );
 
   // REF: "UPI Ref no 123456789012" / "RRN 12345" / "IMPS ref 555"
@@ -449,7 +449,6 @@ export function deriveSpansFromRegex(
   if (!m || !m.groups) return null;
 
   const spans: TaggedSpan[] = [];
-  let cursor = 0;
   const fieldOrder: TaggedField[] = ["amount", "account", "merchant", "date", "balance", "ref"];
   const orderInPattern: TaggedField[] = [];
   const namedRe = /\(\?<(amount|account|merchant|date|balance|ref)>/g;
@@ -462,10 +461,13 @@ export function deriveSpansFromRegex(
   for (const field of walkOrder) {
     const value = m.groups[field];
     if (value == null) continue;
-    const normIdx = norm.text.indexOf(value, cursor);
+    
+    // Search for the value in the normalized body without cursor constraint.
+    // This handles cases where fields appear in different orders in the text.
+    // Use lastIndexOf to handle duplicate values (e.g., same amount appears twice).
+    const normIdx = norm.text.lastIndexOf(value);
     if (normIdx < 0) return null;
     const normEnd = normIdx + value.length;
-    cursor = normEnd;
     // Map normalized index range back into original-space so the tagger
     // UI can highlight the right tokens.
     const origStart = norm.normalizedToOriginal[normIdx];
@@ -511,11 +513,6 @@ export function testTemplate(
   if (!m || !m.groups) return null;
 
   const result: Partial<Record<TaggedField, string>> = {};
-  // RegExp.exec doesn't give us per-named-group indices natively, so walk
-  // the capture order and slide a cursor through the normalized body to
-  // locate each value. Then translate those normalized offsets back to
-  // original-space via the offset map.
-  let cursor = 0;
   const fieldOrder: TaggedField[] = ["amount", "account", "merchant", "date", "balance", "ref"];
   const orderInPattern: TaggedField[] = [];
   const namedRe = /\(\?<(amount|account|merchant|date|balance|ref)>/g;
@@ -528,7 +525,11 @@ export function testTemplate(
   for (const field of walkOrder) {
     const value = m.groups[field];
     if (value == null) continue;
-    const normIdx = normBody.indexOf(value, cursor);
+    
+    // Search for the value in the normalized body without cursor constraint.
+    // This handles cases where fields appear in different orders in the text.
+    // Use lastIndexOf to handle duplicate values (e.g., same amount appears twice).
+    const normIdx = normBody.lastIndexOf(value);
     if (normIdx < 0) {
       // Couldn't locate in normalized space — fall back to the raw lowercase
       // value. Only happens if the regex used complex alternatives that
@@ -537,7 +538,6 @@ export function testTemplate(
       continue;
     }
     const normEnd = normIdx + value.length;
-    cursor = normEnd;
     const origStart = norm.normalizedToOriginal[normIdx];
     const origEnd = (norm.normalizedToOriginal[normEnd - 1] ?? origStart) + 1;
     if (origStart == null || origEnd <= origStart) {

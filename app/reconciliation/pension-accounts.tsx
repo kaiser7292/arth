@@ -76,8 +76,20 @@ export default function PensionAccountsScreen() {
               autoDetectedStale,
             };
           }
-          // Not seeded — treat opening as 0; unseeded accounts still reflect
-          // manual course-corrections via signed adjustments.
+          // Not seeded — try to get opening from carry-forward, else 0
+          const monthSummary = await getMonthBalanceSummary(account.id, month);
+          if (monthSummary) {
+            return {
+              account,
+              opening: monthSummary.opening_balance,
+              expenses: monthSummary.expenses,
+              credits: monthSummary.credits,
+              current: monthSummary.closing_balance,
+              seeded: false, // Still marked as not manually seeded by user
+              autoDetectedStale,
+            };
+          }
+          // Fallback to manual calculation if carry-forward fails
           const [expenses, credits, adjNet] = await Promise.all([
             getAccountExpensesTotal(account.id, startDate, endDate),
             getAccountCreditsTotal(account.id, startDate, endDate),
@@ -101,6 +113,7 @@ export default function PensionAccountsScreen() {
 
   // Overall totals
   const totalBalance = summaries.reduce((sum, s) => sum + s.current, 0);
+  const totalOpening = summaries.reduce((sum, s) => sum + s.opening, 0);
   const totalCredits = summaries.reduce((sum, s) => sum + s.credits, 0);
   const lastContributionDate = summaries.reduce((latest, s) => {
     if (!s.account.last_balance_date) return latest;
@@ -130,18 +143,18 @@ export default function PensionAccountsScreen() {
           </View>
 
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Current Balance</Text>
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Opening Balance</Text>
+            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              {formatAmount(totalOpening)}
+            </Text>
+          </View>
+          <View className="flex-row justify-between mb-1">
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Closing Balance</Text>
             <Text
               className="text-sm font-bold"
               style={{ color: totalBalance >= 0 ? sc.success : sc.danger }}
             >
               {formatAmount(totalBalance)}
-            </Text>
-          </View>
-          <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Contributions (month)</Text>
-            <Text className="text-sm font-semibold" style={{ color: totalCredits > 0 ? sc.success : colors.text }}>
-              {formatAmount(totalCredits)}
             </Text>
           </View>
           {lastContributionDate && (
@@ -177,7 +190,7 @@ export default function PensionAccountsScreen() {
         {summaries.map(({ account, opening, expenses, credits, current, seeded, autoDetectedStale }) => (
           <Card key={account.id} className="mx-4 mb-2">
             <Pressable
-              onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id } })}
+              onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id, month } })}
             >
               {/* Account header */}
               <View className="flex-row items-center mb-3">

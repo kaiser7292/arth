@@ -23,7 +23,6 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
 
   if (accounts.length === 0) return null;
 
-  // Use computed balance (from ledger) if available, else SMS balance, else 0
   const getBalance = (a: FinancialAccount) => computedBalances[a.id] ?? a.last_known_balance ?? 0;
   const totalBalance = accounts.reduce((sum, a) => sum + getBalance(a), 0);
   const totalCredits = accounts.reduce((sum, a) => sum + (creditTotals[a.id] ?? 0), 0);
@@ -74,20 +73,11 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
               {formatAmount(totalBalance)}
             </Text>
           </View>
-          <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Contributions (month)</Text>
-            <Text
-              className="text-sm font-semibold"
-              style={{ color: totalCredits > 0 ? STATUS_COLORS.success : colors.text }}
-            >
-              {formatAmount(totalCredits)}
-            </Text>
-          </View>
           {lastContributionDate && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Last contribution</Text>
               <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
-                {new Date(lastContributionDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                {new Date(lastContributionDate + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
               </Text>
             </View>
           )}
