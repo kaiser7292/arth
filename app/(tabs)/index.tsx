@@ -189,7 +189,6 @@ export default function HomeScreen() {
       setCcAccounts(allAccounts.filter((a) => a.account_type === "credit_card"));
       setBankAccounts(allAccounts.filter((a) => a.account_type === "savings"));
       setWalletAccounts(allAccounts.filter((a) => a.account_type === "wallet"));
-      const pensionAccts = allAccounts.filter((a) => a.account_type === "pension");
       setPensionAccounts(pensionAccts);
       setCcExpenseTotals(ccTotals);
       setComputedBalanceMap(balances);
