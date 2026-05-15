@@ -23,7 +23,7 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
 
   if (accounts.length === 0) return null;
 
-  const getBalance = (a: FinancialAccount) => computedBalances[a.id] ?? a.last_known_balance ?? 0;
+  const getBalance = (a: FinancialAccount) => computedBalances[a.id] ?? 0;
   const totalBalance = accounts.reduce((sum, a) => sum + getBalance(a), 0);
   const totalCredits = accounts.reduce((sum, a) => sum + (creditTotals[a.id] ?? 0), 0);
 

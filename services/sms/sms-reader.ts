@@ -46,6 +46,10 @@ export interface RawSMS {
 export interface FetchSMSResult {
   messages: RawSMS[];
   count: number;
+  /** Total raw SMS returned by the native module (before bank filtering). */
+  rawCount: number;
+  /** Oldest timestamp among ALL raw SMS (before filtering). Used for pagination. */
+  oldestRawTimestamp: number;
   error: string | null;
 }
 
@@ -94,12 +98,12 @@ async function fetchBankSMSRange(
   untilTimestamp: number = 0,
 ): Promise<FetchSMSResult> {
   if (Platform.OS !== "android") {
-    return { messages: [], count: 0, error: "SMS reading is Android-only" };
+    return { messages: [], count: 0, rawCount: 0, oldestRawTimestamp: 0, error: "SMS reading is Android-only" };
   }
 
   const hasPermission = await hasSmsPermission();
   if (!hasPermission) {
-    return { messages: [], count: 0, error: "SMS permission not granted" };
+    return { messages: [], count: 0, rawCount: 0, oldestRawTimestamp: 0, error: "SMS permission not granted" };
   }
 
   try {
@@ -111,6 +115,10 @@ async function fetchBankSMSRange(
     };
 
     const allSms = await readSmsFromDevice(filter);
+    const rawCount = allSms.length;
+    const oldestRawTimestamp = rawCount > 0
+      ? Math.min(...allSms.map((m) => m.date))
+      : 0;
 
     // v15.11.2: pre-load user sender claims so the sync filter below can
     // include SMSes from brands the user has explicitly taught via the
@@ -140,12 +148,16 @@ async function fetchBankSMSRange(
     return {
       messages: bankSms,
       count: bankSms.length,
+      rawCount,
+      oldestRawTimestamp,
       error: null,
     };
   } catch (e) {
     return {
       messages: [],
       count: 0,
+      rawCount: 0,
+      oldestRawTimestamp: 0,
       error: e instanceof Error ? e.message : String(e),
     };
   }
@@ -174,19 +186,20 @@ export async function manualScan(): Promise<FetchSMSResult> {
   for (let batch = 0; batch < MAX_BATCHES; batch++) {
     const result = await fetchBankSMSRange(startTimestamp, 500, currentEnd);
     if (result.error) {
-      return { messages: allMessages, count: allMessages.length, error: result.error };
+      return { messages: allMessages, count: allMessages.length, rawCount: 0, oldestRawTimestamp: 0, error: result.error };
     }
-    if (result.messages.length === 0) break;
+    if (result.rawCount === 0) break;
 
     allMessages.push(...result.messages);
 
-    // Native module returns newest-first. If we got fewer than 500, we've
-    // exhausted the range. Otherwise, shrink the window to fetch older SMS.
-    if (result.messages.length < 500) break;
+    // Use rawCount (pre-filter) to decide if the native module hit its cap.
+    // If raw < 500, the inbox is exhausted for this window regardless of
+    // how many passed the bank filter.
+    if (result.rawCount < 500) break;
 
-    const oldestInBatch = Math.min(...result.messages.map((m) => m.date));
-    // Move the window end to just before the oldest message in this batch
-    currentEnd = oldestInBatch - 1;
+    // Shrink window using the oldest timestamp from the FULL raw batch
+    // (not just filtered results). This correctly pages past non-bank SMS.
+    currentEnd = result.oldestRawTimestamp - 1;
     if (currentEnd <= startTimestamp) break;
   }
 
@@ -205,7 +218,7 @@ export async function manualScan(): Promise<FetchSMSResult> {
     setLastSmsCheckTimestamp(Date.now());
   }
 
-  return { messages: deduped, count: deduped.length, error: null };
+  return { messages: deduped, count: deduped.length, rawCount: deduped.length, oldestRawTimestamp: 0, error: null };
 }
 
 /**

@@ -159,7 +159,7 @@ gh release upload vX.Y.Z ./build-*.apk
 - **MAJOR** (X+1.0.0): >5 new features
 
 ### Version Sources
-- `app.json` → `expo.version` (display version, e.g., "17.6.5")
+- `app.json` → `expo.version` (display version, e.g., "1.0.0")
 - `app.json` → `expo.android.versionCode` (integer, e.g., 170605)
 - Formula: `major * 10000 + minor * 100 + patch`
 

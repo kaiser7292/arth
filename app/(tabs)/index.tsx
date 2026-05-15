@@ -19,7 +19,7 @@ import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useForecastActions } from "@/hooks/use-forecast-actions";
-import { getAccountCreditsTotal, getComputedBalances } from "@/services/account-balance";
+import { getAccountCreditsTotal, getComputedBalances, getCurrentBalance } from "@/services/account-balance";
 import { getBudgetsForMonth, getCurrentMonth } from "@/services/budget";
 import { scanAllDuplicatesCached } from "@/services/duplicate-detection";
 import type { Expense } from "@/services/expense";
@@ -150,6 +150,16 @@ export default function HomeScreen() {
       // until the user scrolled to force a re-layout.
       const allIds = allAccounts.map((a) => a.id);
       const balances = await getComputedBalances(allIds);
+
+      // Pension accounts may not have an opening row in account_month_balances
+      // for the current month (getComputedBalances returns null for those).
+      // Fall back to getCurrentBalance which chains from the previous month.
+      const pensionAccts = allAccounts.filter((a) => a.account_type === "pension");
+      for (const p of pensionAccts) {
+        if (balances[p.id] === null || balances[p.id] === undefined) {
+          balances[p.id] = await getCurrentBalance(p.id);
+        }
+      }
 
       const activeDues = forecasts.filter(
         (f) => f.due_date && f.status !== "rejected",

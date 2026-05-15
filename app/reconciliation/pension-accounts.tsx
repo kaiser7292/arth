@@ -8,6 +8,7 @@ import {
   getAccountCreditsTotal,
   getAccountExpensesTotal,
   getAdjustmentAbsTotalByAccountType,
+  getEarliestMonthForAccounts,
   getMonthBalanceSummary,
 } from "@/services/account-balance";
 import { getCurrentMonth } from "@/services/budget";
@@ -48,6 +49,12 @@ export default function PensionAccountsScreen() {
   const [summaries, setSummaries] = useState<AccountSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
+  const [minMonth, setMinMonth] = useState<string | undefined>(undefined);
+  const maxMonth = useMemo(() => {
+    const now = new Date();
+    const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
+    return `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
@@ -60,6 +67,11 @@ export default function PensionAccountsScreen() {
       ]);
       const pensionAccounts = allAccounts.filter((a) => a.account_type === "pension");
       setAdjustmentStats(adjStats);
+
+      if (pensionAccounts.length > 0) {
+        const earliest = await getEarliestMonthForAccounts(pensionAccounts.map((a) => a.id));
+        setMinMonth(earliest ?? undefined);
+      }
 
       // Parallelise per-account fetches — one Promise.all across the group.
       const results: AccountSummary[] = await Promise.all(
@@ -149,7 +161,7 @@ export default function PensionAccountsScreen() {
   return (
     <ScreenContainer padTop={false}>
       {/* Month navigator */}
-      <PeriodNavigator mode="month" value={month} onChange={setMonth} />
+      <PeriodNavigator mode="month" value={month} onChange={setMonth} minMonth={minMonth} maxMonth={maxMonth} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Overall summary card */}

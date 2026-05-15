@@ -4,7 +4,7 @@
 
 Artha is a personal finance mobile app for Android (iOS planned) built with React Native + Expo. It replaces Excel-based finance tracking with a full-featured mobile app.
 
-**Current Version:** 17.6.5 (versionCode 170605)
+**Current Version:** 1.0.0 (versionCode 1)
 **Repository:** github.com/kaiser7292/artha
 **Owner:** Sourav Baid (kaiser7292)
 
