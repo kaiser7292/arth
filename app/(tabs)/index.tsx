@@ -191,8 +191,9 @@ export default function HomeScreen() {
       let ytdCredits = 0;
 
       // Get financial year start (April 1st for Indian FY)
-      const currentYear = new Date().getFullYear();
-      const fyStart = `${currentYear}-${new Date().getMonth() >= 3 ? '04' : currentYear - 1}-01`;
+      const now = new Date();
+      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      const fyStart = `${fyYear}-04-01`;
 
       for (const acct of pensionAccts) {
         const credits = await getAccountCreditsTotal(acct.id, startDate, endDate);

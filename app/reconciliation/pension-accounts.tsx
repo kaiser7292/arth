@@ -18,7 +18,7 @@ import { acAlpha } from "@/utils/accent";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
@@ -129,9 +129,22 @@ export default function PensionAccountsScreen() {
     return s.account.last_balance_date > latest ? s.account.last_balance_date : latest;
   }, null as string | null);
 
-  // YTD contributions - calculate from current month credits (simplified approach)
-  // In a real implementation, this would need proper FY calculation
-  const ytdCredits = totalCredits; // Placeholder - will need proper FY calculation
+  // YTD contributions — sum credits from Indian FY start (April 1st) to today
+  const [ytdCredits, setYtdCredits] = useState(0);
+  useFocusEffect(
+    useCallback(async () => {
+      const now = new Date();
+      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      const fyStart = `${fyYear}-04-01`;
+      const today = now.toISOString().split("T")[0];
+      const accounts = summaries.map((s) => s.account);
+      let total = 0;
+      for (const acct of accounts) {
+        total += await getAccountCreditsTotal(acct.id, fyStart, today);
+      }
+      setYtdCredits(total);
+    }, [summaries]),
+  );
 
   return (
     <ScreenContainer padTop={false}>
