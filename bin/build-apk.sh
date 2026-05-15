@@ -67,7 +67,8 @@ IFS='.' read -r MAJOR MINOR PATCH <<< "$APP_VERSION"
 MAJOR=${MAJOR:-0}; MINOR=${MINOR:-0}; PATCH=${PATCH:-0}
 APP_VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
 
-echo "==> Version: $APP_VERSION (versionCode $APP_VERSION_CODE)"
+COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+echo "==> Version: $APP_VERSION (versionCode $APP_VERSION_CODE), commit $COMMIT_SHA"
 
 cd android
 

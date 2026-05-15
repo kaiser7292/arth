@@ -833,7 +833,12 @@ export default function SettingsScreen() {
             <View className="flex-row items-center justify-between py-2">
               <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Version</Text>
               <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
-                {require("expo-constants").default.expoConfig?.version ?? "—"}
+                {(() => {
+                  const cfg = require("expo-constants").default.expoConfig;
+                  const v = cfg?.version ?? "—";
+                  const sha = cfg?.extra?.commitSha;
+                  return sha ? `${v} - ${sha}` : v;
+                })()}
               </Text>
             </View>
           </Card>
