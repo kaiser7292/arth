@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
+  TextInput,
   FlatList,
   Pressable,
   ActivityIndicator,
@@ -48,6 +49,7 @@ export default function SmsScanRunsScreen() {
   const [details, setDetails] = useState<ScanDetailRow[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ScanDetailCategory | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -91,10 +93,12 @@ export default function SmsScanRunsScreen() {
     if (viewMode === "category") {
       setViewMode("drilldown");
       setSelectedCategory(null);
+      setSearchQuery("");
     } else if (viewMode === "drilldown") {
       setViewMode("list");
       setSelectedRun(null);
       setDetails([]);
+      setSearchQuery("");
     } else {
       router.back();
     }
@@ -315,10 +319,19 @@ export default function SmsScanRunsScreen() {
 
     const meta = CATEGORY_META[selectedCategory];
     const categoryDetails = details.filter((d) => d.category === selectedCategory);
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = query
+      ? categoryDetails.filter(
+          (d) =>
+            (d.sms_body_preview ?? "").toLowerCase().includes(query) ||
+            (d.sms_address ?? "").toLowerCase().includes(query) ||
+            (d.parsed_merchant ?? "").toLowerCase().includes(query),
+        )
+      : categoryDetails;
 
     return (
       <View className="flex-1">
-        <View className="flex-row items-center mb-3">
+        <View className="flex-row items-center mb-2">
           <View
             className="w-8 h-8 rounded-full items-center justify-center mr-2"
             style={{
@@ -339,23 +352,43 @@ export default function SmsScanRunsScreen() {
             />
           </View>
           <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
-            {meta.label} ({categoryDetails.length})
+            {meta.label} ({filtered.length}{query ? ` of ${categoryDetails.length}` : ""})
           </Text>
         </View>
 
+        {/* Search */}
+        <View className="flex-row items-center mb-3 border rounded-lg px-3 py-2" style={{ borderColor: colors.border }}>
+          <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search SMS body, sender, merchant..."
+            placeholderTextColor={colors.textSecondary}
+            className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>
+              <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+            </Pressable>
+          )}
+        </View>
+
         <FlatList
-          data={categoryDetails}
+          data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={({ item: detail }) => <SmsDetailCard detail={detail} />}
           ListEmptyComponent={
             <View className="items-center py-8">
               <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
-                No details recorded for this category
+                {query ? "No SMS matching your search" : "No details recorded for this category"}
               </Text>
             </View>
           }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 32 }}
+          keyboardShouldPersistTaps="handled"
         />
       </View>
     );
