@@ -1,0 +1,590 @@
+import { useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Card, ScreenContainer } from "@/components/ui";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { StatusColors } from "@/constants/theme";
+import { DEFAULT_USER_ID } from "@/constants/app";
+import {
+  getScanRuns,
+  getScanRunDetails,
+  type ScanRunRow,
+  type ScanDetailRow,
+  type ScanDetailCategory,
+} from "@/services/sms";
+import { formatAmount } from "@/utils/format";
+import { formatDate } from "@/utils/date";
+
+type ViewMode = "list" | "drilldown" | "category";
+
+const CATEGORY_META: Record<
+  ScanDetailCategory,
+  { label: string; icon: string; colorKey: "success" | "warning" | "danger" | "info" }
+> = {
+  hardcoded: { label: "Bank Pattern Matches", icon: "shield-checkmark-outline", colorKey: "success" },
+  template: { label: "Template Matches", icon: "construct-outline", colorKey: "info" },
+  filtered: { label: "Filtered Out", icon: "funnel-outline", colorKey: "warning" },
+  unrecognized: { label: "Unrecognized", icon: "help-circle-outline", colorKey: "danger" },
+  skipped: { label: "Skipped (OTP, etc.)", icon: "close-circle-outline", colorKey: "danger" },
+};
+
+export default function SmsScanRunsScreen() {
+  const router = useRouter();
+  const { accent, colorScheme, colors } = useColorScheme();
+
+  const [loading, setLoading] = useState(true);
+  const [runs, setRuns] = useState<ScanRunRow[]>([]);
+
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [selectedRun, setSelectedRun] = useState<ScanRunRow | null>(null);
+  const [details, setDetails] = useState<ScanDetailRow[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<ScanDetailCategory | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadRuns();
+    }, []),
+  );
+
+  async function loadRuns() {
+    setLoading(true);
+    const rows = await getScanRuns(DEFAULT_USER_ID);
+    setRuns(rows);
+    setLoading(false);
+  }
+
+  async function openDrilldown(run: ScanRunRow) {
+    setSelectedRun(run);
+    setViewMode("drilldown");
+    setDetailsLoading(true);
+    const d = await getScanRunDetails(run.id);
+    setDetails(d);
+    setDetailsLoading(false);
+  }
+
+  function openCategory(cat: ScanDetailCategory) {
+    setSelectedCategory(cat);
+    setViewMode("category");
+  }
+
+  function handleBack() {
+    if (viewMode === "category") {
+      setViewMode("drilldown");
+      setSelectedCategory(null);
+    } else if (viewMode === "drilldown") {
+      setViewMode("list");
+      setSelectedRun(null);
+      setDetails([]);
+    } else {
+      router.back();
+    }
+  }
+
+  // ─── List View ───
+
+  function renderRunCard({ item }: { item: ScanRunRow }) {
+    const accountLabel = item.account_ids
+      ? `${JSON.parse(item.account_ids).length} account${JSON.parse(item.account_ids).length > 1 ? "s" : ""}`
+      : "All accounts";
+    const dateLabel = item.start_date
+      ? `${formatDate(item.start_date)} → ${item.end_date ? formatDate(item.end_date) : "Today"}`
+      : "Since last check";
+    const createdAt = new Date(item.created_at + "Z");
+    const timeStr = createdAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const dateStr = formatDate(item.created_at.slice(0, 10));
+
+    const totalExpenses = item.expense_created_count + item.credit_created_count;
+
+    return (
+      <Pressable onPress={() => openDrilldown(item)} className="mb-3">
+        <Card>
+          <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-row items-center">
+              <View
+                className="w-7 h-7 rounded-full items-center justify-center mr-2"
+                style={{ backgroundColor: accent[500] + "18" }}
+              >
+                <Ionicons
+                  name={item.is_manual ? "scan-outline" : "time-outline"}
+                  size={14}
+                  color={accent[500]}
+                />
+              </View>
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                {item.is_manual ? "Manual Scan" : "Auto Scan"}
+              </Text>
+            </View>
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              {dateStr} · {timeStr}
+            </Text>
+          </View>
+
+          <View className="flex-row items-center mb-2">
+            <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">
+              {dateLabel} · {accountLabel}
+            </Text>
+          </View>
+
+          {/* Funnel summary */}
+          <View className="flex-row flex-wrap items-center">
+            <FunnelPill label={`${item.sms_read_count} read`} />
+            <FunnelArrow />
+            <FunnelPill
+              label={`${item.hardcoded_match_count + item.template_match_count} parsed`}
+              colorKey="success"
+            />
+            {item.filtered_count > 0 && (
+              <>
+                <FunnelArrow />
+                <FunnelPill label={`${item.filtered_count} filtered`} colorKey="warning" />
+              </>
+            )}
+            <FunnelArrow />
+            <FunnelPill
+              label={`${totalExpenses} created`}
+              colorKey={totalExpenses > 0 ? "success" : undefined}
+            />
+          </View>
+
+          {item.error && (
+            <Text className="text-xs text-danger mt-1">{item.error}</Text>
+          )}
+        </Card>
+      </Pressable>
+    );
+  }
+
+  // ─── Drilldown View ───
+
+  function renderDrilldown() {
+    if (!selectedRun) return null;
+
+    const categories: ScanDetailCategory[] = [
+      "hardcoded",
+      "template",
+      "filtered",
+      "unrecognized",
+      "skipped",
+    ];
+
+    const counts: Record<ScanDetailCategory, number> = {
+      hardcoded: selectedRun.hardcoded_match_count,
+      template: selectedRun.template_match_count,
+      filtered: selectedRun.filtered_count,
+      unrecognized: selectedRun.unrecognized_count,
+      skipped: selectedRun.skipped_count,
+    };
+
+    const filterReasons = details
+      .filter((d) => d.category === "filtered")
+      .reduce<Record<string, number>>((acc, d) => {
+        const reason = d.filter_reason ?? "unknown";
+        acc[reason] = (acc[reason] ?? 0) + 1;
+        return acc;
+      }, {});
+
+    return (
+      <View className="flex-1">
+        {/* Header summary */}
+        <Card className="mb-3">
+          <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+            Pipeline Summary
+          </Text>
+          <View className="flex-row items-center flex-wrap">
+            <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mr-2">
+              {selectedRun.sms_read_count}
+            </Text>
+            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              SMS read
+            </Text>
+          </View>
+          <View className="mt-2 flex-row flex-wrap">
+            <MiniStat
+              label="Parsed"
+              value={selectedRun.hardcoded_match_count + selectedRun.template_match_count}
+              color={StatusColors[colorScheme].success}
+            />
+            <MiniStat
+              label="Filtered"
+              value={selectedRun.filtered_count}
+              color={StatusColors[colorScheme].warning}
+            />
+            <MiniStat
+              label="Created"
+              value={selectedRun.expense_created_count + selectedRun.credit_created_count}
+              color={accent[500]}
+            />
+          </View>
+          {selectedRun.duration_ms != null && (
+            <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary mt-2">
+              Completed in {selectedRun.duration_ms}ms
+            </Text>
+          )}
+        </Card>
+
+        {/* Category cards */}
+        {detailsLoading ? (
+          <ActivityIndicator size="small" color={accent[500]} className="mt-4" />
+        ) : (
+          <FlatList
+            data={categories.filter((c) => counts[c] > 0)}
+            keyExtractor={(item) => item}
+            renderItem={({ item: cat }) => {
+              const meta = CATEGORY_META[cat];
+              const count = counts[cat];
+              const catColor =
+                meta.colorKey === "info"
+                  ? accent[500]
+                  : StatusColors[colorScheme][meta.colorKey];
+
+              return (
+                <Pressable
+                  onPress={() => openCategory(cat)}
+                  className="mb-2"
+                >
+                  <Card>
+                    <View className="flex-row items-center">
+                      <View
+                        className="w-8 h-8 rounded-full items-center justify-center mr-3"
+                        style={{ backgroundColor: catColor + "18" }}
+                      >
+                        <Ionicons name={meta.icon as any} size={16} color={catColor} />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                          {meta.label} ({count})
+                        </Text>
+                        {cat === "filtered" && Object.keys(filterReasons).length > 0 && (
+                          <View className="mt-1">
+                            {Object.entries(filterReasons).map(([reason, cnt]) => (
+                              <Text
+                                key={reason}
+                                className="text-xs text-text-tertiary dark:text-text-dark-secondary"
+                              >
+                                • {cnt} — {formatFilterReason(reason)}
+                              </Text>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                    </View>
+                  </Card>
+                </Pressable>
+              );
+            }}
+            ListEmptyComponent={
+              <View className="items-center py-8">
+                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                  No SMS in this scan
+                </Text>
+              </View>
+            }
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 32 }}
+          />
+        )}
+      </View>
+    );
+  }
+
+  // ─── Category Detail View ───
+
+  function renderCategoryDetail() {
+    if (!selectedCategory) return null;
+
+    const meta = CATEGORY_META[selectedCategory];
+    const categoryDetails = details.filter((d) => d.category === selectedCategory);
+
+    return (
+      <View className="flex-1">
+        <View className="flex-row items-center mb-3">
+          <View
+            className="w-8 h-8 rounded-full items-center justify-center mr-2"
+            style={{
+              backgroundColor:
+                (meta.colorKey === "info"
+                  ? accent[500]
+                  : StatusColors[colorScheme][meta.colorKey]) + "18",
+            }}
+          >
+            <Ionicons
+              name={meta.icon as any}
+              size={16}
+              color={
+                meta.colorKey === "info"
+                  ? accent[500]
+                  : StatusColors[colorScheme][meta.colorKey]
+              }
+            />
+          </View>
+          <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+            {meta.label} ({categoryDetails.length})
+          </Text>
+        </View>
+
+        <FlatList
+          data={categoryDetails}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item: detail }) => <SmsDetailCard detail={detail} />}
+          ListEmptyComponent={
+            <View className="items-center py-8">
+              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                No details recorded for this category
+              </Text>
+            </View>
+          }
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 32 }}
+        />
+      </View>
+    );
+  }
+
+  function SmsDetailCard({ detail }: { detail: ScanDetailRow }) {
+    const [expanded, setExpanded] = useState(false);
+
+    const dateStr = detail.sms_date
+      ? new Date(detail.sms_date).toLocaleString([], {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : null;
+
+    return (
+      <Pressable onPress={() => setExpanded(!expanded)} className="mb-2">
+        <Card>
+          <View className="flex-row items-start">
+            <View className="flex-1">
+              {detail.sms_address && (
+                <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-0.5">
+                  {detail.sms_address}
+                  {dateStr ? ` · ${dateStr}` : ""}
+                </Text>
+              )}
+              <Text
+                className="text-sm text-text-primary dark:text-text-dark-primary"
+                numberOfLines={expanded ? undefined : 2}
+              >
+                {detail.sms_body_preview ?? "No preview available"}
+              </Text>
+            </View>
+            {detail.parsed_amount != null && detail.parsed_amount > 0 && (
+              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary ml-2">
+                {formatAmount(detail.parsed_amount)}
+              </Text>
+            )}
+          </View>
+
+          {/* Metadata row */}
+          <View className="flex-row flex-wrap items-center mt-2">
+            {detail.parsed_merchant && (
+              <MetadataPill label={detail.parsed_merchant} />
+            )}
+            {detail.parsed_type && (
+              <MetadataPill label={detail.parsed_type} />
+            )}
+            {detail.filter_reason && (
+              <MetadataPill
+                label={formatFilterReason(detail.filter_reason)}
+                isWarning
+              />
+            )}
+            {detail.matched_template_id && (
+              <MetadataPill label="Template" isAccent />
+            )}
+          </View>
+
+          {/* Teach action for unrecognized */}
+          {detail.category === "unrecognized" && (
+            <Pressable
+              onPress={() => {
+                router.push("/settings/sms-templates/unrecognised" as never);
+              }}
+              className="flex-row items-center mt-2 pt-2 border-t border-border-light dark:border-border-dark"
+            >
+              <Ionicons name="add-circle-outline" size={14} color={accent[500]} />
+              <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+                Teach Artha this SMS
+              </Text>
+            </Pressable>
+          )}
+        </Card>
+      </Pressable>
+    );
+  }
+
+  function MetadataPill({
+    label,
+    isWarning,
+    isAccent,
+  }: {
+    label: string;
+    isWarning?: boolean;
+    isAccent?: boolean;
+  }) {
+    const bgColor = isWarning
+      ? StatusColors[colorScheme].warning + "18"
+      : isAccent
+        ? accent[500] + "18"
+        : colors.border + "40";
+    const textColor = isWarning
+      ? StatusColors[colorScheme].warning
+      : isAccent
+        ? accent[500]
+        : colors.textSecondary;
+
+    return (
+      <View
+        className="rounded-full px-2 py-0.5 mr-1.5 mb-1"
+        style={{ backgroundColor: bgColor }}
+      >
+        <Text className="text-[10px] font-medium" style={{ color: textColor }}>
+          {label}
+        </Text>
+      </View>
+    );
+  }
+
+  // ─── Shared Components ───
+
+  function FunnelPill({
+    label,
+    colorKey,
+  }: {
+    label: string;
+    colorKey?: "success" | "warning" | "danger";
+  }) {
+    const pillColor = colorKey
+      ? StatusColors[colorScheme][colorKey]
+      : colors.textSecondary;
+
+    return (
+      <View
+        className="rounded-full px-2 py-0.5"
+        style={{ backgroundColor: pillColor + "18" }}
+      >
+        <Text className="text-[10px] font-medium" style={{ color: pillColor }}>
+          {label}
+        </Text>
+      </View>
+    );
+  }
+
+  function FunnelArrow() {
+    return (
+      <Ionicons
+        name="arrow-forward"
+        size={10}
+        color={colors.textSecondary}
+        style={{ marginHorizontal: 3 }}
+      />
+    );
+  }
+
+  function MiniStat({
+    label,
+    value,
+    color,
+  }: {
+    label: string;
+    value: number;
+    color: string;
+  }) {
+    return (
+      <View className="mr-4 mb-1">
+        <Text className="text-lg font-bold" style={{ color }}>
+          {value}
+        </Text>
+        <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">
+          {label}
+        </Text>
+      </View>
+    );
+  }
+
+  // ─── Main Render ───
+
+  const showBackButton = viewMode !== "list";
+  const title =
+    viewMode === "list"
+      ? "SMS Scan Runs"
+      : viewMode === "drilldown" && selectedRun
+        ? `Scan · ${formatDate(selectedRun.created_at.slice(0, 10))}`
+        : selectedCategory
+          ? CATEGORY_META[selectedCategory].label
+          : "Details";
+
+  return (
+    <ScreenContainer padTop={false}>
+      {/* Custom sub-header for drilldown navigation */}
+      {showBackButton && (
+        <Pressable
+          onPress={handleBack}
+          className="flex-row items-center mb-3 py-1"
+        >
+          <Ionicons name="chevron-back" size={18} color={accent[500]} />
+          <Text className="text-sm font-medium ml-0.5" style={{ color: accent[500] }}>
+            Back
+          </Text>
+        </Pressable>
+      )}
+
+      {viewMode === "list" && (
+        <>
+          {loading ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color={accent[500]} />
+            </View>
+          ) : runs.length === 0 ? (
+            <View className="flex-1 items-center justify-center">
+              <Ionicons name="scan-outline" size={48} color={colors.textSecondary} />
+              <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-3">
+                No scan history
+              </Text>
+              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center mt-1 px-8">
+                Run an SMS scan from Settings to see results here.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={runs}
+              keyExtractor={(item) => item.id}
+              renderItem={renderRunCard}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 32 }}
+            />
+          )}
+        </>
+      )}
+
+      {viewMode === "drilldown" && renderDrilldown()}
+      {viewMode === "category" && renderCategoryDetail()}
+    </ScreenContainer>
+  );
+}
+
+function formatFilterReason(reason: string): string {
+  if (reason.startsWith("account_mismatch:")) {
+    const card = reason.split(":")[1];
+    return `Account ••••${card} not in selection`;
+  }
+  switch (reason) {
+    case "account_mismatch":
+      return "Account not in selection";
+    case "no_card_identifier":
+      return "No card/account number found";
+    default:
+      return reason;
+  }
+}

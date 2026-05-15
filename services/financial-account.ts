@@ -213,6 +213,10 @@ export async function discoverOrUpdateAccount(
 /**
  * Manually create a financial account (not from SMS).
  * Sets discovered_from_sms = 0 to distinguish from auto-discovered accounts.
+ *
+ * If a deactivated account with the same identifier already exists (e.g. user
+ * deleted it then re-adds), it is reactivated and updated rather than creating
+ * a duplicate that would violate the unique index.
  */
 export async function createManualAccount(params: {
   userId: string;
@@ -227,8 +231,42 @@ export async function createManualAccount(params: {
   if (!isValidAccountType(params.accountType)) {
     throw new Error(`Invalid account type: ${params.accountType}`);
   }
-  
+
   const db = getDatabase();
+
+  const existing = await db.getFirstAsync<{ id: string; is_active: number }>(
+    `SELECT id, is_active FROM financial_accounts
+     WHERE user_id = ? AND account_identifier = ? AND bank_name = ? AND account_type = ?;`,
+    params.userId,
+    params.accountIdentifier,
+    params.bankName,
+    params.accountType,
+  );
+
+  if (existing) {
+    if (existing.is_active) {
+      throw new Error(
+        `You already have an active ${params.bankName} account with this number. Check your existing accounts.`,
+      );
+    }
+    // Reactivate the deactivated account and update its fields
+    const today = new Date().toISOString().split("T")[0];
+    await db.runAsync(
+      `UPDATE financial_accounts
+       SET is_active = 1, account_label = ?, last_known_balance = ?, last_balance_date = ?,
+           fund_balance = ?, account_number = ?, updated_at = datetime('now')
+       WHERE id = ?;`,
+      params.accountLabel ?? null,
+      params.initialBalance ?? null,
+      params.initialBalance != null ? today : null,
+      params.fundBalance ?? 0,
+      params.accountNumber ?? null,
+      existing.id,
+    );
+    await bumpDataVersion();
+    return existing.id;
+  }
+
   const id = generateUUID();
   const today = new Date().toISOString().split("T")[0];
   await db.runAsync(

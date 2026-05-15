@@ -68,3 +68,15 @@ export type { SmsExpenseResult } from "./sms-to-expense";
 
 export { runSmsScan, SCAN_COOLDOWN_MS } from "./sms-orchestrator";
 export type { ScanOutcome } from "./sms-orchestrator";
+
+export {
+  getScanRuns,
+  getScanRunDetails,
+  deleteScanRun,
+  saveScanRun,
+} from "./sms-scan-logging";
+export type {
+  ScanRunRow,
+  ScanDetailRow,
+  ScanDetailCategory,
+} from "./sms-scan-logging";

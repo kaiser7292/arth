@@ -757,6 +757,42 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "value",
     "updated_at",
   ] as const,
+
+  sms_scan_runs: [
+    "id",
+    "user_id",
+    "is_manual",
+    "start_date",
+    "end_date",
+    "account_ids",
+    "sms_read_count",
+    "hardcoded_match_count",
+    "template_match_count",
+    "filtered_count",
+    "unrecognized_count",
+    "skipped_count",
+    "expense_created_count",
+    "credit_created_count",
+    "duration_ms",
+    "error",
+    "created_at",
+  ] as const,
+
+  sms_scan_details: [
+    "id",
+    "scan_run_id",
+    "pending_sms_id",
+    "sms_address",
+    "sms_body_preview",
+    "sms_date",
+    "category",
+    "matched_template_id",
+    "filter_reason",
+    "parsed_amount",
+    "parsed_merchant",
+    "parsed_type",
+    "created_at",
+  ] as const,
 } as const;
 
 // Type helper to get column names for a specific table

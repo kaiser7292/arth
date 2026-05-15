@@ -14,6 +14,7 @@ import {
   hardDeleteCategory,
 } from "@/services/category";
 import type { Category } from "@/services/category";
+import { getErrorMessage } from "@/utils/error-message";
 
 export default function CategoriesScreen() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function CategoriesScreen() {
         await updateCategory(cat.id, { is_active: newActive });
         loadCategories();
       } catch (e) {
-        alert("Error", e instanceof Error ? e.message : "Failed to update category.");
+        alert("Couldn't update", getErrorMessage(e, "Failed to update category."));
       }
     },
     [loadCategories],
@@ -73,7 +74,7 @@ export default function CategoriesScreen() {
         );
         loadCategories();
       } catch (e) {
-        alert("Error", e instanceof Error ? e.message : "Failed to reorder.");
+        alert("Couldn't reorder", getErrorMessage(e, "Failed to reorder."));
       }
     },
     [categories, loadCategories],
@@ -93,7 +94,7 @@ export default function CategoriesScreen() {
         );
         loadCategories();
       } catch (e) {
-        alert("Error", e instanceof Error ? e.message : "Failed to reorder.");
+        alert("Couldn't reorder", getErrorMessage(e, "Failed to reorder."));
       }
     },
     [categories, loadCategories],
@@ -119,7 +120,7 @@ export default function CategoriesScreen() {
               await hardDeleteCategory(cat.id);
               loadCategories();
             } catch (e) {
-              alert("Error", e instanceof Error ? e.message : "Failed to delete category.");
+              alert("Couldn't delete", getErrorMessage(e, "Failed to delete category."));
             }
           },
         },

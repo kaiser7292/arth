@@ -8,6 +8,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { listRules, deleteRule, type SmartRule } from "@/services/smart-rules";
 import { StatusColors } from "@/constants/theme";
+import { getErrorMessage } from "@/utils/error-message";
 
 export default function SmartRulesListScreen() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function SmartRulesListScreen() {
       const rows = await listRules();
       setRules(rows);
     } catch (e) {
-      alert("Couldn't load rules", e instanceof Error ? e.message : String(e));
+      alert("Couldn't load rules", getErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -52,7 +53,7 @@ export default function SmartRulesListScreen() {
               await deleteRule(rule.id);
               await load();
             } catch (e) {
-              alert("Delete failed", e instanceof Error ? e.message : String(e));
+              alert("Couldn't delete", getErrorMessage(e));
             }
           },
         },

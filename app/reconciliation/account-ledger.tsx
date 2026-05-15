@@ -37,6 +37,7 @@ import { getActiveAccounts, getAllAccounts } from "@/services/financial-account"
 import { getPersonsByIds, getSettlementsForCredits } from "@/services/hisaab";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatAdjustmentDescription, formatAmount } from "@/utils/format";
+import { getErrorMessage } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -577,7 +578,7 @@ useDataRefresh(
           { target, bucketId },
         );
       } catch (e) {
-        alert("Error", e instanceof Error ? e.message : String(e));
+        alert("Something went wrong", getErrorMessage(e));
       } finally {
         setPendingDematTransfer(null);
       }
@@ -599,7 +600,7 @@ useDataRefresh(
             try {
               await deleteTransfer(id);
             } catch (e) {
-              alert("Delete failed", e instanceof Error ? e.message : String(e));
+              alert("Couldn't delete", getErrorMessage(e));
             }
           },
         },

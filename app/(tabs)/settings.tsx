@@ -701,6 +701,18 @@ export default function SettingsScreen() {
                 </Pressable>
               )}
 
+              <Pressable
+                onPress={() => router.push("/settings/sms-scan-runs" as never)}
+                className="flex-row items-center mt-3 pt-3 border-t border-border-light dark:border-border-dark"
+              >
+                <Ionicons name="analytics-outline" size={18} color={accent[500]} />
+                <View className="flex-1 ml-3">
+                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">Scan Runs</Text>
+                  <Text className="text-xs text-text-tertiary mt-0.5">View scan history and pipeline details</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+              </Pressable>
+
               <View className="mt-4 pt-4 border-t border-border-light dark:border-border-dark">
                 <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mb-2">Duplicate scan</Text>
                 <View className="flex-row items-center mb-2">

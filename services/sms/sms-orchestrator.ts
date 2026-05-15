@@ -2,11 +2,11 @@
  * SMS Scan Orchestrator
  *
  * Single entry point for running an end-to-end SMS scan:
- *   read → parse → process → (optional) notify.
+ *   read → parse → filter (account) → process → log → (optional) notify.
  *
- * Used by the app-open auto-scan (cooldown-gated) and by manual "Scan now"
- * buttons. Both paths share identical logic; only the cooldown behavior and
- * optional notification differ.
+ * v17.6.6: Account filtering moved HERE from sms-reader.ts so that user
+ * templates get a chance to match before any filtering. The scan run is
+ * logged with per-SMS detail for the Scan Runs UI.
  */
 
 import {
@@ -18,6 +18,9 @@ import {
   getLastAutoScanRun,
   setLastAutoScanRun,
   hasSmsPermission,
+  getSmsScanAccountIds,
+  getSmsStartDate,
+  getSmsEndDate,
 } from "@/services/sms";
 import {
   isNotificationEnabled,
@@ -26,6 +29,15 @@ import {
   hasNotificationPermission,
 } from "@/services/notifications";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
+import { parseBankSMS } from "./bank-patterns";
+import type { ParsedSMS } from "./bank-patterns";
+import type { ParsedItem } from "./sms-parser";
+import {
+  saveScanRun,
+  type ScanDetail,
+  type ScanDetailCategory,
+} from "./sms-scan-logging";
 
 export interface ScanOutcome {
   ran: boolean;
@@ -33,6 +45,7 @@ export interface ScanOutcome {
   credits: number;
   skipped: number;
   totalScanned: number;
+  scanRunId?: string | null;
   reason?: "sms_disabled" | "no_permission" | "cooldown" | "no_new_sms" | "error";
   error?: string;
 }
@@ -50,7 +63,7 @@ export const SCAN_COOLDOWN_MS = 30 * 60 * 1000;
  *   found, sends a local notification (subject to user notification prefs).
  *   Ignored when manual=true (the UI surfaces results directly).
  * @param options.accountIds - optional list of account IDs to filter SMS scan by.
- *   If provided, only SMS matching these accounts will be processed.
+ *   If provided, only parsed SMS matching these accounts will be processed.
  */
 export async function runSmsScan(
   options: { manual?: boolean; notify?: boolean; accountIds?: string[] } = {},
@@ -58,6 +71,7 @@ export async function runSmsScan(
   const manual = options.manual ?? false;
   const notify = options.notify ?? true;
   const accountIds = options.accountIds;
+  const startTime = Date.now();
 
   if (!isSmsDetectionEnabled()) {
     return { ran: false, created: 0, credits: 0, skipped: 0, totalScanned: 0, reason: "sms_disabled" };
@@ -75,7 +89,8 @@ export async function runSmsScan(
   }
 
   try {
-    const readResult = manual ? await manualReadSms(accountIds) : await checkForNewBankSMS();
+    // Phase 1: Read SMS from device (no account filtering here anymore)
+    const readResult = manual ? await manualReadSms() : await checkForNewBankSMS();
     if (readResult.error) {
       return {
         ran: false,
@@ -90,30 +105,112 @@ export async function runSmsScan(
 
     if (readResult.count === 0) {
       setLastAutoScanRun(Date.now());
-      return { ran: true, created: 0, credits: 0, skipped: 0, totalScanned: 0, reason: "no_new_sms" };
+      const scanRunId = await saveScanRun({
+        userId: DEFAULT_USER_ID,
+        isManual: manual,
+        startDate: manual ? getSmsStartDate() : null,
+        endDate: manual ? getSmsEndDate() : null,
+        accountIds: accountIds ?? null,
+        smsReadCount: 0,
+        hardcodedMatchCount: 0,
+        templateMatchCount: 0,
+        filteredCount: 0,
+        unrecognizedCount: 0,
+        skippedCount: 0,
+        expenseCreatedCount: 0,
+        creditCreatedCount: 0,
+        durationMs: Date.now() - startTime,
+        details: [],
+      });
+      return { ran: true, created: 0, credits: 0, skipped: 0, totalScanned: 0, scanRunId, reason: "no_new_sms" };
     }
 
+    // Phase 2: Parse SMS (hardcoded + template matching)
     const parseResult = await parseSmsBatch(DEFAULT_USER_ID, readResult.messages);
-    if (parseResult.items.length === 0) {
-      setLastAutoScanRun(Date.now());
-      return { ran: true, created: 0, credits: 0, skipped: 0, totalScanned: readResult.count };
+
+    // Phase 3: Account filtering (post-parse, so templates had their chance)
+    const { passed, filtered, filterDetails } = await filterByAccount(
+      parseResult.items,
+      accountIds,
+    );
+
+    // Phase 4: Process (create expenses/credits)
+    let processResult = { created: 0, credits: 0, skipped: 0, errors: [] as string[] };
+    if (passed.length > 0) {
+      processResult = await processParseResults(
+        DEFAULT_USER_ID,
+        passed.map((item) => ({
+          pendingSmsId: item.pendingSmsId,
+          parsed: item.parsed,
+          rawBody: item.rawBody,
+          smsDate: item.smsDate,
+        })),
+      );
     }
 
-    const processResult = await processParseResults(
-      DEFAULT_USER_ID,
-      parseResult.items.map((item) => ({
+    // Phase 5: Build scan details for logging
+    const details: ScanDetail[] = [];
+
+    for (const item of passed) {
+      const cat: ScanDetailCategory = item.parsed._matchSource === "template"
+        ? "template"
+        : "hardcoded";
+      details.push({
         pendingSmsId: item.pendingSmsId,
-        parsed: item.parsed,
-        rawBody: item.rawBody,
+        smsBodyPreview: item.rawBody,
         smsDate: item.smsDate,
-      })),
-    );
+        category: cat,
+        matchedTemplateId: item.parsed._matchedTemplateId ?? null,
+        parsedAmount: item.parsed.amount ?? null,
+        parsedMerchant: item.parsed.merchant ?? null,
+        parsedType: item.parsed.type ?? null,
+      });
+    }
+
+    for (const fd of filterDetails) {
+      details.push({
+        pendingSmsId: fd.pendingSmsId,
+        smsBodyPreview: fd.rawBody,
+        smsDate: fd.smsDate,
+        category: "filtered",
+        filterReason: fd.reason,
+        parsedAmount: fd.parsed?.amount ?? null,
+        parsedMerchant: fd.parsed?.merchant ?? null,
+        parsedType: fd.parsed?.type ?? null,
+      });
+    }
+
+    // Unrecognized + skipped are tracked by parseResult counts
+    // (their details are already in pending_sms as 'failed' status)
+
+    const durationMs = Date.now() - startTime;
+    const scanRunId = await saveScanRun({
+      userId: DEFAULT_USER_ID,
+      isManual: manual,
+      startDate: manual ? getSmsStartDate() : null,
+      endDate: manual ? getSmsEndDate() : null,
+      accountIds: accountIds ?? null,
+      smsReadCount: readResult.count,
+      hardcodedMatchCount: passed.filter(
+        (i) => i.parsed._matchSource !== "template",
+      ).length,
+      templateMatchCount: passed.filter(
+        (i) => i.parsed._matchSource === "template",
+      ).length,
+      filteredCount: filtered.length,
+      unrecognizedCount: parseResult.unrecognized,
+      skippedCount: parseResult.skipped,
+      expenseCreatedCount: processResult.created,
+      creditCreatedCount: processResult.credits,
+      durationMs,
+      details,
+    });
 
     // Only auto-scan sends a notification — manual scans surface results in-UI.
     if (!manual && notify && processResult.created > 0) {
       const canNotify = isNotificationEnabled("sms_scan") && (await hasNotificationPermission());
       if (canNotify) {
-        const notifItems = parseResult.items
+        const notifItems = passed
           .filter((item) => item.parsed.merchant && item.parsed.amount > 0)
           .map((item) => ({ merchant: item.parsed.merchant!, amount: item.parsed.amount }));
         const body = formatSmsScanBody(notifItems);
@@ -132,6 +229,7 @@ export async function runSmsScan(
       credits: processResult.credits,
       skipped: processResult.skipped,
       totalScanned: readResult.count,
+      scanRunId,
     };
   } catch (e) {
     return {
@@ -144,4 +242,104 @@ export async function runSmsScan(
       error: e instanceof Error ? e.message : String(e),
     };
   }
+}
+
+// ─── Account Filtering (post-parse) ───
+
+interface FilterResult {
+  passed: ParsedItem[];
+  filtered: ParsedItem[];
+  filterDetails: Array<{
+    pendingSmsId: string;
+    rawBody: string;
+    smsDate: number;
+    reason: string;
+    parsed: ParsedSMS | null;
+  }>;
+}
+
+async function filterByAccount(
+  items: ParsedItem[],
+  accountIds?: string[],
+): Promise<FilterResult> {
+  if (!accountIds || accountIds.length === 0) {
+    return { passed: items, filtered: [], filterDetails: [] };
+  }
+
+  const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
+  const selectedAccounts = allAccounts.filter((acc: FinancialAccount) =>
+    accountIds.includes(acc.id),
+  );
+
+  const pensionAccounts = selectedAccounts.filter(
+    (acc) => acc.account_type === "pension",
+  );
+  const otherAccounts = selectedAccounts.filter(
+    (acc) => acc.account_type !== "pension",
+  );
+
+  const otherIdentifiers = otherAccounts.map((acc) => acc.account_identifier);
+  const pensionIdentifiers = pensionAccounts.map((acc) => acc.account_identifier);
+
+  const passed: ParsedItem[] = [];
+  const filtered: ParsedItem[] = [];
+  const filterDetails: FilterResult["filterDetails"] = [];
+
+  for (const item of items) {
+    const parsed = item.parsed;
+
+    // EPFO/pension matching
+    if (parsed.bank === "EPFO" && pensionIdentifiers.length > 0) {
+      if (parsed.cardLast4 && pensionIdentifiers.includes(parsed.cardLast4)) {
+        passed.push(item);
+        continue;
+      }
+      if (
+        parsed.merchant &&
+        pensionIdentifiers.some(
+          (id) => parsed.merchant!.includes(id) || id.includes(parsed.merchant!),
+        )
+      ) {
+        passed.push(item);
+        continue;
+      }
+      filtered.push(item);
+      filterDetails.push({
+        pendingSmsId: item.pendingSmsId,
+        rawBody: item.rawBody,
+        smsDate: item.smsDate,
+        reason: "account_mismatch",
+        parsed,
+      });
+      continue;
+    }
+
+    // Regular account matching via cardLast4
+    if (!parsed.cardLast4) {
+      filtered.push(item);
+      filterDetails.push({
+        pendingSmsId: item.pendingSmsId,
+        rawBody: item.rawBody,
+        smsDate: item.smsDate,
+        reason: "no_card_identifier",
+        parsed,
+      });
+      continue;
+    }
+
+    if (otherIdentifiers.includes(parsed.cardLast4)) {
+      passed.push(item);
+    } else {
+      filtered.push(item);
+      filterDetails.push({
+        pendingSmsId: item.pendingSmsId,
+        rawBody: item.rawBody,
+        smsDate: item.smsDate,
+        reason: `account_mismatch:${parsed.cardLast4}`,
+        parsed,
+      });
+    }
+  }
+
+  return { passed, filtered, filterDetails };
 }

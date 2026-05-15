@@ -21,6 +21,7 @@ import {
 import { getCategories } from "@/services/category";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
+import { getErrorMessage } from "@/utils/error-message";
 
 type PatternType = "fixed" | "semi" | "variable";
 
@@ -110,7 +111,7 @@ export default function PatternLibraryScreen() {
 
       alert("Pattern Scan Complete", lines.join("\n\n"));
     } catch (e) {
-      alert("Scan Failed", e instanceof Error ? e.message : String(e));
+      alert("Scan failed", getErrorMessage(e));
     } finally {
       setRescanning(false);
     }

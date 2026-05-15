@@ -12,10 +12,7 @@
  * of card/account numbers are stored.
  */
 
-import { DEFAULT_USER_ID } from "@/constants/app";
-import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { Platform } from "react-native";
-import { parseBankSMS } from "./bank-patterns";
 import { isBankSender, looksLikeTransaction } from "./bank-senders";
 import {
     getLastSmsCheckTimestamp,
@@ -90,13 +87,11 @@ async function readSmsFromDevice(filter: Record<string, unknown>): Promise<RawSM
  * @param sinceTimestamp - Only fetch SMS newer than this (ms).
  * @param maxCount - Maximum SMS to read. Default 500.
  * @param untilTimestamp - Only fetch SMS older than this (ms). 0 = no upper limit.
- * @param accountIds - optional list of account IDs to filter SMS by
  */
 async function fetchBankSMSRange(
   sinceTimestamp: number,
   maxCount: number = 500,
   untilTimestamp: number = 0,
-  accountIds?: string[],
 ): Promise<FetchSMSResult> {
   if (Platform.OS !== "android") {
     return { messages: [], count: 0, error: "SMS reading is Android-only" };
@@ -138,48 +133,9 @@ async function fetchBankSMSRange(
       bankSms = bankSms.filter((sms) => sms.date <= untilTimestamp);
     }
 
-    // Filter by account IDs if provided
-    if (accountIds && accountIds.length > 0) {
-      // Fetch account_identifier values for the selected account IDs
-      const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
-      const selectedAccounts = allAccounts.filter((acc: FinancialAccount) => accountIds.includes(acc.id));
-      
-      // Group accounts by type for different matching logic
-      const pensionAccounts = selectedAccounts.filter((acc) => acc.account_type === "pension");
-      const otherAccounts = selectedAccounts.filter((acc) => acc.account_type !== "pension");
-      
-      const otherAccountIdentifiers = otherAccounts.map((acc) => acc.account_identifier);
-      const pensionAccountIdentifiers = pensionAccounts.map((acc) => acc.account_identifier);
-
-      bankSms = bankSms.filter((sms) => {
-        const parsed = parseBankSMS(sms.body);
-        if (!parsed) return false;
-        
-        // For pension accounts (EPFO), match by merchant (passbook ID) in addition to cardLast4
-        // This handles cases where user manually created account with passbook ID as account_identifier
-        if (parsed.bank === "EPFO" && pensionAccountIdentifiers.length > 0) {
-          // Try cardLast4 first (UAN last 4 digits)
-          if (parsed.cardLast4 && pensionAccountIdentifiers.includes(parsed.cardLast4)) {
-            return true;
-          }
-          // Try merchant field (passbook ID) for accounts created with passbook ID
-          if (parsed.merchant) {
-            return pensionAccountIdentifiers.some((id) => 
-              parsed.merchant!.includes(id) || id.includes(parsed.merchant!)
-            );
-          }
-          return false;
-        }
-        
-        // For other accounts, match by cardLast4 only
-        if (otherAccountIdentifiers.length > 0) {
-          if (!parsed.cardLast4) return false;
-          return otherAccountIdentifiers.includes(parsed.cardLast4);
-        }
-        
-        return false;
-      });
-    }
+    // Account filtering removed in v17.6.6 — moved to the orchestrator
+    // (sms-orchestrator.ts) so that user templates get a chance to match
+    // before any account-based filtering discards SMS.
 
     return {
       messages: bankSms,
@@ -203,25 +159,53 @@ async function fetchBankSMSRange(
  * Reads SMS from the user-configured start date (default: 7 days ago)
  * up to the configured end date (default: today).
  *
- * Respects both the start and end date configured by the user
- * (presets or custom range). Updates the last-check timestamp so
- * subsequent automatic checks don't re-process these messages.
- *
- * @param accountIds - optional list of account IDs to filter SMS by
+ * Uses pagination (500 per batch, oldest-first via shrinking the window)
+ * so that long date ranges (e.g. 2 years) aren't silently truncated by
+ * the native module's maxCount cap.
  */
-export async function manualScan(accountIds?: string[]): Promise<FetchSMSResult> {
+export async function manualScan(): Promise<FetchSMSResult> {
   const startTimestamp = getSmsStartTimestamp();
   const endTimestamp = getSmsEndTimestamp();
-  const result = await fetchBankSMSRange(startTimestamp, 500, endTimestamp, accountIds);
 
-  if (result.messages.length > 0) {
-    const newestTimestamp = Math.max(...result.messages.map((m) => m.date));
+  const allMessages: RawSMS[] = [];
+  let currentEnd = endTimestamp;
+  const MAX_BATCHES = 20;
+
+  for (let batch = 0; batch < MAX_BATCHES; batch++) {
+    const result = await fetchBankSMSRange(startTimestamp, 500, currentEnd);
+    if (result.error) {
+      return { messages: allMessages, count: allMessages.length, error: result.error };
+    }
+    if (result.messages.length === 0) break;
+
+    allMessages.push(...result.messages);
+
+    // Native module returns newest-first. If we got fewer than 500, we've
+    // exhausted the range. Otherwise, shrink the window to fetch older SMS.
+    if (result.messages.length < 500) break;
+
+    const oldestInBatch = Math.min(...result.messages.map((m) => m.date));
+    // Move the window end to just before the oldest message in this batch
+    currentEnd = oldestInBatch - 1;
+    if (currentEnd <= startTimestamp) break;
+  }
+
+  // Deduplicate by SMS _id (batches may overlap at boundaries)
+  const seen = new Set<string>();
+  const deduped = allMessages.filter((m) => {
+    if (seen.has(m._id)) return false;
+    seen.add(m._id);
+    return true;
+  });
+
+  if (deduped.length > 0) {
+    const newestTimestamp = Math.max(...deduped.map((m) => m.date));
     setLastSmsCheckTimestamp(newestTimestamp);
-  } else if (!result.error) {
+  } else {
     setLastSmsCheckTimestamp(Date.now());
   }
 
-  return result;
+  return { messages: deduped, count: deduped.length, error: null };
 }
 
 /**

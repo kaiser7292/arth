@@ -13,6 +13,7 @@ import {
 import type { ReminderWithSource } from "@/services/expense";
 import { StatusColors } from "@/constants/theme";
 import { formatDate } from "@/utils/date";
+import { getErrorMessage } from "@/utils/error-message";
 
 /**
  * Settings → Reminders.
@@ -35,7 +36,7 @@ export default function RecurringRulesScreen() {
       const data = await getRecurringReminders(DEFAULT_USER_ID);
       setReminders(data);
     } catch (e) {
-      alert("Couldn't load", e instanceof Error ? e.message : String(e));
+      alert("Couldn't load", getErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -67,7 +68,7 @@ export default function RecurringRulesScreen() {
                 await stopRecurringRule(reminder.rule.id);
                 setReminders((prev) => prev.filter((r) => r.rule.id !== reminder.rule.id));
               } catch (e) {
-                alert("Couldn't stop", e instanceof Error ? e.message : String(e));
+                alert("Couldn't stop", getErrorMessage(e));
               }
             },
           },

@@ -53,6 +53,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="sms-templates/tag" options={{ title: "Tag Fields" }} />
       <Stack.Screen name="sms-templates/[id]" options={{ title: "Template" }} />
       <Stack.Screen name="sms-templates/unrecognised" options={{ title: "Unrecognised SMS" }} />
+      <Stack.Screen name="sms-scan-runs" options={{ title: "SMS Scan Runs" }} />
       <Stack.Screen name="help/index" options={{ title: "Help Center" }} />
       <Stack.Screen name="help/[slug]" options={{ title: "" }} />
     </Stack>

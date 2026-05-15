@@ -15,6 +15,7 @@ import {
 } from "@/services/payment-mode";
 import type { PaymentMode, PaymentModeType } from "@/services/payment-mode";
 import { TYPE_ICONS } from "@/constants/icons";
+import { getErrorMessage } from "@/utils/error-message";
 
 
 
@@ -46,7 +47,7 @@ export default function PaymentModesScreen() {
         await updatePaymentMode(pm.id, { is_active: newActive });
         loadModes();
       } catch (e) {
-        alert("Error", e instanceof Error ? e.message : "Failed to update payment mode.");
+        alert("Couldn't update", getErrorMessage(e, "Failed to update payment mode."));
       }
     },
     [loadModes],
@@ -72,7 +73,7 @@ export default function PaymentModesScreen() {
               await hardDeletePaymentMode(pm.id);
               loadModes();
             } catch (e) {
-              alert("Error", e instanceof Error ? e.message : "Failed to delete payment mode.");
+              alert("Couldn't delete", getErrorMessage(e, "Failed to delete payment mode."));
             }
           },
         },

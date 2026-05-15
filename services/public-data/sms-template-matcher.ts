@@ -235,6 +235,8 @@ export async function tryTemplateMatch(
       isForecast: false,
       upiRef: groups["ref"] ?? null,
       availableBalance: groups["balance"] ? parseAmount(groups["balance"]) : null,
+      _matchSource: "template" as const,
+      _matchedTemplateId: row.id,
     };
   }
 

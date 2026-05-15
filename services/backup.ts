@@ -132,6 +132,9 @@ const BACKUP_TABLES = [
   "loan_corrections",
   // v17.5.38 — field-level edit history. Depends on expenses.
   "expense_edit_history",
+  // v17.6.x — SMS scan run logging. sms_scan_details depends on sms_scan_runs.
+  "sms_scan_runs",
+  "sms_scan_details",
 ];
 
 // ---------------------------------------------------------------------------

@@ -19,6 +19,7 @@ import {
   type CreateSmartRuleInput,
 } from "@/services/smart-rules";
 import { getCategories, type Category } from "@/services/category";
+import { getErrorMessage } from "@/utils/error-message";
 
 /**
  * Smart-rule detail / create form. Route: /settings/smart-rules/[id]
@@ -78,7 +79,7 @@ export default function SmartRuleDetailScreen() {
         }
         hydrateFromRule(r);
       } catch (e) {
-        alert("Couldn't load", e instanceof Error ? e.message : String(e));
+        alert("Couldn't load", getErrorMessage(e));
       } finally {
         setLoading(false);
       }
@@ -124,7 +125,7 @@ export default function SmartRuleDetailScreen() {
       }
       router.back();
     } catch (e) {
-      alert("Couldn't save", e instanceof Error ? e.message : String(e));
+      alert("Couldn't save", getErrorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -154,14 +155,14 @@ export default function SmartRuleDetailScreen() {
                 });
                 alert("Done", `Applied to ${applied} expense${applied === 1 ? "" : "s"}.`);
               } catch (e) {
-                alert("Retroactive apply failed", e instanceof Error ? e.message : String(e));
+                alert("Couldn't apply", getErrorMessage(e));
               }
             },
           },
         ],
       );
     } catch (e) {
-      alert("Preview failed", e instanceof Error ? e.message : String(e));
+      alert("Couldn't preview", getErrorMessage(e));
     }
   }, [isCreate, id, alert]);
 

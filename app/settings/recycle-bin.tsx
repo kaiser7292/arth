@@ -10,6 +10,7 @@ import { StatusColors } from "@/constants/theme";
 import { ac } from "@/utils/accent";
 import { formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
+import { getErrorMessage } from "@/utils/error-message";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getDeletedExpenses, getRejectedExpenses,
@@ -178,7 +179,7 @@ export default function RecycleBinScreen() {
           text: actionLabel, style: destructive ? "destructive" : "default",
           onPress: async () => {
             setPurging(true);
-            try { await action(); } catch (e) { alert("Error", e instanceof Error ? e.message : String(e)); }
+            try { await action(); } catch (e) { alert("Something went wrong", getErrorMessage(e)); }
             setPurging(false);
           },
         },

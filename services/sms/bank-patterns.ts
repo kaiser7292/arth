@@ -69,6 +69,10 @@ export interface ParsedSMS {
    * numeric account_identifier. Only populated when cardLast4 is null.
    */
   accountNickname?: string | null;
+  /** Internal: which pipeline stage produced this parse (hardcoded patterns or DB template). */
+  _matchSource?: "hardcoded" | "template";
+  /** Internal: ID of the sms_template_patterns row that matched (template only). */
+  _matchedTemplateId?: string | null;
 }
 
 export interface BankPattern {

@@ -16,6 +16,7 @@ import {
   TAG_COLORS,
 } from "@/services/tags";
 import type { Tag } from "@/services/tags";
+import { getErrorMessage } from "@/utils/error-message";
 
 export default function TagsSettingsScreen() {
   const alert = useAlert();
@@ -63,7 +64,7 @@ export default function TagsSettingsScreen() {
       setShowAdd(false);
       loadTags();
     } catch (e) {
-      alert("Error", e instanceof Error ? e.message : "Failed to create tag.");
+      alert("Couldn't create tag", getErrorMessage(e, "Failed to create tag."));
     }
   }, [newTagName, newTagColor, loadTags]);
 
@@ -85,7 +86,7 @@ export default function TagsSettingsScreen() {
                 await deleteTag(tag.id);
                 loadTags();
               } catch (e) {
-                alert("Error", e instanceof Error ? e.message : "Failed to delete tag.");
+                alert("Couldn't delete tag", getErrorMessage(e, "Failed to delete tag."));
               }
             },
           },
@@ -110,7 +111,7 @@ export default function TagsSettingsScreen() {
       setEditingId(null);
       loadTags();
     } catch (e) {
-      alert("Error", e instanceof Error ? e.message : "Failed to update tag.");
+      alert("Couldn't update tag", getErrorMessage(e, "Failed to update tag."));
     }
   }, [editingId, editName, editColor, loadTags]);
 
