@@ -143,15 +143,13 @@ function statementStyles(): string {
     .totals-table col.col-text { width: 63%; }
     .totals-table col.col-amt { width: 13%; }
     .totals-table td { padding: 8px 6px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .totals-table td.label { text-transform: uppercase; letter-spacing: 0.5px; color: #475569; border-top: 2px solid #CBD5E1; }
-    .totals-table td.dr { text-align: right; color: #EF4444; border-top: 2px solid #CBD5E1; }
-    .totals-table td.cr { text-align: right; color: #22C55E; border-top: 2px solid #CBD5E1; }
-    .totals-table td.bal { text-align: right; border-top: 2px solid #CBD5E1; }
-    .totals-table .closing td { background: #F8FAFC; border-top: 1px solid #E2E8F0; border-bottom: 2px solid #CBD5E1; }
-    .totals-table .closing td.value { font-size: 13px; }
-    .totals-table .closing td.value.dr { color: #EF4444; }
-    .totals-table .closing td.value.cr { color: #22C55E; }
-    .totals-table .closing td.value.nil { color: #64748B; }
+    .totals-table td.label { text-transform: uppercase; letter-spacing: 0.5px; color: #475569; border-top: 2px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; }
+    .totals-table td.dr { text-align: right; color: #EF4444; border-top: 2px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; }
+    .totals-table td.cr { text-align: right; color: #22C55E; border-top: 2px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; }
+    .totals-table td.value { text-align: right; font-size: 13px; border-top: 2px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; }
+    .totals-table td.value.dr { color: #EF4444; }
+    .totals-table td.value.cr { color: #22C55E; }
+    .totals-table td.value.nil { color: #64748B; }
 
     /* Footer */
     .stmt-footer { margin-top: 24px; text-align: center; font-size: 9px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 12px; }
@@ -351,15 +349,9 @@ function personStatementHtml(
             <col class="col-amt" />
           </colgroup>
           <tr>
-            <td class="label">Totals</td>
+            <td class="label">Totals / Closing</td>
             <td class="dr">${sym}${formatNum(totalDebits)}</td>
             <td class="cr">${sym}${formatNum(totalCreditsAndSettlements)}</td>
-            <td class="bal"></td>
-          </tr>
-          <tr class="closing">
-            <td class="label">Closing Balance</td>
-            <td></td>
-            <td></td>
             <td class="value ${cbClass}">${sym}${balanceLabel(closingBalance)}</td>
           </tr>
         </table>
