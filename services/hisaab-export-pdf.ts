@@ -121,28 +121,37 @@ function statementStyles(): string {
 
     /* Statement table */
     .stmt-table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
-    .stmt-table thead th { background: #F1F5F9; border-top: 2px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; padding: 8px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; font-weight: 700; }
+    .stmt-table { table-layout: fixed; }
+    .stmt-table col.col-date { width: 9%; }
+    .stmt-table col.col-desc { width: 18%; }
+    .stmt-table col.col-cat { width: 12%; }
+    .stmt-table col.col-merchant { width: 12%; }
+    .stmt-table col.col-account { width: 12%; }
+    .stmt-table col.col-amount { width: 13%; }
+    .stmt-table thead th { background: #F1F5F9; border-top: 2px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; padding: 8px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; font-weight: 700; }
     .stmt-table thead th.right { text-align: right; }
-    .stmt-table tbody td { padding: 7px 10px; border-bottom: 1px solid #F1F5F9; font-size: 11px; vertical-align: top; }
+    .stmt-table tbody td { padding: 7px 6px; border-bottom: 1px solid #F1F5F9; font-size: 11px; vertical-align: top; }
     .stmt-table tbody td.right { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
     .stmt-table tbody td.dr { color: #EF4444; }
     .stmt-table tbody td.cr { color: #22C55E; }
     .stmt-table tbody td.date { white-space: nowrap; color: #64748B; }
-    .stmt-table tbody td.desc { max-width: 160px; word-break: break-word; }
+    .stmt-table tbody td.desc { word-break: break-word; }
     .stmt-table tbody td.bal { font-weight: 600; color: #1E293B; }
 
-    /* Totals / closing (after table) */
-    .totals-section { border-top: 2px solid #CBD5E1; padding: 12px 10px; margin-bottom: 0; }
-    .totals-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; margin-bottom: 8px; }
-    .totals-label { text-transform: uppercase; letter-spacing: 0.5px; color: #475569; }
-    .totals-dr { color: #EF4444; font-variant-numeric: tabular-nums; }
-    .totals-cr { color: #22C55E; font-variant-numeric: tabular-nums; }
-    .closing-section { display: flex; justify-content: space-between; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px 14px; }
-    .closing-label { text-transform: uppercase; letter-spacing: 0.5px; color: #475569; font-size: 11px; font-weight: 700; }
-    .closing-value { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .closing-value.dr { color: #EF4444; }
-    .closing-value.cr { color: #22C55E; }
-    .closing-value.nil { color: #64748B; }
+    /* Totals / closing (after table — uses same table for column alignment) */
+    .totals-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    .totals-table col.col-text { width: 63%; }
+    .totals-table col.col-amt { width: 13%; }
+    .totals-table td { padding: 8px 6px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .totals-table td.label { text-transform: uppercase; letter-spacing: 0.5px; color: #475569; border-top: 2px solid #CBD5E1; }
+    .totals-table td.dr { text-align: right; color: #EF4444; border-top: 2px solid #CBD5E1; }
+    .totals-table td.cr { text-align: right; color: #22C55E; border-top: 2px solid #CBD5E1; }
+    .totals-table td.bal { text-align: right; border-top: 2px solid #CBD5E1; }
+    .totals-table .closing td { background: #F8FAFC; border-top: 1px solid #E2E8F0; border-bottom: 2px solid #CBD5E1; }
+    .totals-table .closing td.value { font-size: 13px; }
+    .totals-table .closing td.value.dr { color: #EF4444; }
+    .totals-table .closing td.value.cr { color: #22C55E; }
+    .totals-table .closing td.value.nil { color: #64748B; }
 
     /* Footer */
     .stmt-footer { margin-top: 24px; text-align: center; font-size: 9px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 12px; }
@@ -308,6 +317,16 @@ function personStatementHtml(
 
       ${hasEntries ? `
         <table class="stmt-table">
+          <colgroup>
+            <col class="col-date" />
+            <col class="col-desc" />
+            <col class="col-cat" />
+            <col class="col-merchant" />
+            <col class="col-account" />
+            <col class="col-amount" />
+            <col class="col-amount" />
+            <col class="col-amount" />
+          </colgroup>
           <thead>
             <tr>
               <th>Date</th>
@@ -324,17 +343,26 @@ function personStatementHtml(
             ${rows}
           </tbody>
         </table>
-        <div class="totals-section">
-          <div class="totals-row">
-            <span class="totals-label">Totals</span>
-            <span class="totals-dr">${sym}${formatNum(totalDebits)} Dr</span>
-            <span class="totals-cr">${sym}${formatNum(totalCreditsAndSettlements)} Cr</span>
-          </div>
-          <div class="closing-section">
-            <span class="closing-label">Closing Balance</span>
-            <span class="closing-value ${cbClass}">${sym}${balanceLabel(closingBalance)}</span>
-          </div>
-        </div>
+        <table class="totals-table">
+          <colgroup>
+            <col class="col-text" />
+            <col class="col-amt" />
+            <col class="col-amt" />
+            <col class="col-amt" />
+          </colgroup>
+          <tr>
+            <td class="label">Totals</td>
+            <td class="dr">${sym}${formatNum(totalDebits)}</td>
+            <td class="cr">${sym}${formatNum(totalCreditsAndSettlements)}</td>
+            <td class="bal"></td>
+          </tr>
+          <tr class="closing">
+            <td class="label">Closing Balance</td>
+            <td></td>
+            <td></td>
+            <td class="value ${cbClass}">${sym}${balanceLabel(closingBalance)}</td>
+          </tr>
+        </table>
       ` : `<p class="empty">No transactions in this period.</p>`}
 
       <div class="legend">

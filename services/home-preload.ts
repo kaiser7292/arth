@@ -21,6 +21,7 @@ import type { FinancialAccount, DematAccountSummary } from "@/services/financial
 import {
   getComputedBalances,
   getComputedBalanceComponents,
+  computeUnseededBalance,
   getEarliestMonthForAccounts,
   getAdjustmentAbsTotalByAccountType,
   getMonthBalanceSummary,
@@ -167,6 +168,13 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
 
     const allIds = allAccounts.map((a) => a.id);
     const balances = await getComputedBalances(allIds);
+    const pensionAccts = allAccounts.filter((a) => a.account_type === "pension");
+    for (const p of pensionAccts) {
+      if (balances[p.id] === null || balances[p.id] === undefined) {
+        const unseeded = await computeUnseededBalance(p.id, month);
+        balances[p.id] = unseeded.closing;
+      }
+    }
     const activeDues = forecasts.filter((f) => f.due_date && f.status !== "rejected");
 
     return {
