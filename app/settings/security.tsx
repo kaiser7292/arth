@@ -97,7 +97,7 @@ export default function SecuritySettingsScreen() {
   }, []);
 
   const onLockNow = useCallback(() => {
-    alert("Lock Artha now?", "You'll need to unlock with biometric to continue.", [
+    alert("Lock Arth now?", "You'll need to unlock with biometric to continue.", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Lock",
@@ -124,7 +124,7 @@ export default function SecuritySettingsScreen() {
                 </Text>
                 <Text className="text-xs text-text-tertiary mt-0.5">
                   {canEnable
-                    ? `Use ${biometricLabel} to unlock Artha`
+                    ? `Use ${biometricLabel} to unlock Arth`
                     : !hasHardware
                     ? "This device has no biometric hardware"
                     : "Set up biometric or passcode on your device first"}
@@ -163,7 +163,7 @@ export default function SecuritySettingsScreen() {
                   </Pressable>
                 ))}
                 <Text className="text-xs text-text-tertiary mt-3">
-                  "Never" means Artha only locks on cold start (after closing the app completely).
+                  "Never" means Arth only locks on cold start (after closing the app completely).
                   Any other option also locks when the app is backgrounded for that long.
                 </Text>
               </Card>
@@ -176,7 +176,7 @@ export default function SecuritySettingsScreen() {
                       Lock Now
                     </Text>
                     <Text className="text-xs text-text-tertiary mt-0.5">
-                      Immediately lock Artha
+                      Immediately lock Arth
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
@@ -186,7 +186,7 @@ export default function SecuritySettingsScreen() {
           )}
 
           <Text className="text-xs text-text-tertiary px-2">
-            App lock preferences are stored on this device only. Uninstalling Artha or restoring from
+            App lock preferences are stored on this device only. Uninstalling Arth or restoring from
             a backup on another device will start with the lock off — you can turn it on again from
             this screen.
           </Text>

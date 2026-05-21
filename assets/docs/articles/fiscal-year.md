@@ -18,7 +18,7 @@ phrasings:
   - Does budget use fiscal year?
 ---
 
-Artha keeps two time concepts separate and uses them for different things.
+Arth keeps two time concepts separate and uses them for different things.
 
 - **Calendar month** — the 1st to the end of the month. Drives monthly budgets and everything on the Home tab's month-to-date spend.
 - **Fiscal year (FY)** — a 12-month window you configure. Drives yearly reports, yearly plan, salary calculator, and YoY comparisons.

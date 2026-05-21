@@ -130,7 +130,7 @@ export default function UnrecognisedSmsScreen() {
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
           <Text className="text-xs text-text-tertiary">
-            Bank SMS from the last 30 days that Artha couldn't read. Tap "Teach" to build a template.
+            Bank SMS from the last 30 days that Arth couldn't read. Tap "Teach" to build a template.
           </Text>
         </View>
 
@@ -233,8 +233,8 @@ export default function UnrecognisedSmsScreen() {
                     style={{ color: accentColor }}
                   >
                     {item.count > 1
-                      ? `Teach Artha (${item.count} similar SMS)`
-                      : "Teach Artha to read this"}
+                      ? `Teach Arth (${item.count} similar SMS)`
+                      : "Teach Arth to read this"}
                   </Text>
                 </Pressable>
               </Card>

@@ -42,7 +42,7 @@ export default function LockScreen() {
     setInFlight(true);
     setLastError(null);
     const result: UnlockResult = await promptUnlock({
-      promptMessage: "Unlock Artha",
+      promptMessage: "Unlock Arth",
     });
     setInFlight(false);
 
@@ -110,7 +110,7 @@ export default function LockScreen() {
           marginBottom: 8,
         }}
       >
-        Artha is locked
+        Arth is locked
       </Text>
       <Text
         style={{

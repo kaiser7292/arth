@@ -19,7 +19,7 @@ phrasings:
   - UI audit log screen
 ---
 
-The Audit Log is a read-only timeline of every action you've taken on records in Artha — both the ones Artha auto-detected from SMS and the ones you entered manually. Designed for retrospective cleanup and for answering "wait, what happened to that ₹50,000 credit last Thursday?"
+The Audit Log is a read-only timeline of every action you've taken on records in Arth — both the ones Arth auto-detected from SMS and the ones you entered manually. Designed for retrospective cleanup and for answering "wait, what happened to that ₹50,000 credit last Thursday?"
 
 ## Where to find it
 
@@ -68,7 +68,7 @@ Action: Reclassified by Rule. Scan the list, edit any miscategorized ones. You c
 
 ## What it's NOT
 
-- Not a detailed edit history — Artha doesn't version fields per edit. It just tracks the "current action state" of each record.
+- Not a detailed edit history — Arth doesn't version fields per edit. It just tracks the "current action state" of each record.
 - Not a time-stamped event stream — the "when" is the record's `updated_at`, not when you tapped the button.
 - Not a hard-delete restorer — once a record is past 30 days in the Recycle Bin it's gone from the audit log too.
 - Not a bulk-action tool — it's read-only. To undo something, open the record and take the opposite action.

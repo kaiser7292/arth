@@ -22,7 +22,7 @@ phrasings:
   - Where can I find previous deletes?
 ---
 
-Deleting in Artha is a **two-stage** process. A first delete moves the item to the Recycle Bin (soft delete). Everything in the Recycle Bin can be restored. After 30 days, items are auto-purged (permanent deletion). You can also purge manually earlier.
+Deleting in Arth is a **two-stage** process. A first delete moves the item to the Recycle Bin (soft delete). Everything in the Recycle Bin can be restored. After 30 days, items are auto-purged (permanent deletion). You can also purge manually earlier.
 
 ## Where to find it
 

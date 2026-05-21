@@ -151,7 +151,7 @@ function SplashScreen({ step }: { step: string }) {
         अर्थ
       </Text>
       <Text style={{ fontSize: 16, fontWeight: "600", color: isDark ? "#D1D5DB" : "#6B7280", marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>
-        Artha
+        Arth
       </Text>
       <Text style={{ fontSize: 13, color: isDark ? "#6B7280" : "#9CA3AF", marginTop: 12, fontStyle: "italic" }}>
         your finances, your way

@@ -173,7 +173,7 @@ export default function CorrectionForm() {
           <View className="px-4 pt-4 pb-8">
             <View className="mb-4">
               <Text className="text-sm" style={{ color: colors.textSecondary }}>
-                Override Artha's computed numbers when they don't match your bank's. The schedule regenerates from this date forward.
+                Override Arth's computed numbers when they don't match your bank's. The schedule regenerates from this date forward.
               </Text>
             </View>
 
@@ -205,7 +205,7 @@ export default function CorrectionForm() {
                 placeholder="e.g. 500000"
               />
               <Text className="text-xs mb-3" style={{ color: colors.textSecondary }}>
-                Artha's computed value: {formatMoney(Math.round(computedOutstanding))}
+                Arth's computed value: {formatMoney(Math.round(computedOutstanding))}
               </Text>
 
               <Input
@@ -216,7 +216,7 @@ export default function CorrectionForm() {
                 placeholder="e.g. 25000"
               />
               <Text className="text-xs mb-3" style={{ color: colors.textSecondary }}>
-                Artha's computed value: {formatMoney(Math.round(loan.emi_amount))}
+                Arth's computed value: {formatMoney(Math.round(loan.emi_amount))}
               </Text>
 
               <Input

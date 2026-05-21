@@ -38,13 +38,13 @@ phrasings:
   - Insights explore section
 ---
 
-The **Insights screen** is where Artha explains your spending patterns — not as a table of numbers, but as human-readable findings you can act on.
+The **Insights screen** is where Arth explains your spending patterns — not as a table of numbers, but as human-readable findings you can act on.
 
 ## Where to find it
 
 **Home tab → Insights card** (the big "View your insights" row). Tap to open the Insights screen.
 
-Insights is **not** a bottom tab — Artha has five tabs (Home / Transactions / Budget / Goals / Settings) and Insights lives under Home.
+Insights is **not** a bottom tab — Arth has five tabs (Home / Transactions / Budget / Goals / Settings) and Insights lives under Home.
 
 ## What's on the Insights screen
 
@@ -57,7 +57,7 @@ Top to bottom:
 
 ## The five insight types
 
-Each insight card summarises a pattern Artha detected for the current month. What each one means and when it appears:
+Each insight card summarises a pattern Arth detected for the current month. What each one means and when it appears:
 
 - **Budget breach** — a category has spent more than its cap. Example: "Food 35% over budget". Trigger: `category actual > category cap`.
 - **Lifestyle creep** — this year's 3-month average is higher than last year's same 3-month average by **more than 15%**. Example: "Lifestyle creep +22% YoY". Formula: `(current 3mo total / same 3mo last year) − 1 > 0.15`.
@@ -99,7 +99,7 @@ The comparison **refreshes automatically** every time you return to the screen, 
 
 ## Patterns
 
-**Insights screen → Patterns.** Shows **recurring merchants** Artha has detected automatically (same merchant, similar amount, similar cadence). These are subscription-shaped patterns. Not the same as user-set **Reminders** — Reminders are explicit bills you asked Artha to track.
+**Insights screen → Patterns.** Shows **recurring merchants** Arth has detected automatically (same merchant, similar amount, similar cadence). These are subscription-shaped patterns. Not the same as user-set **Reminders** — Reminders are explicit bills you asked Arth to track.
 
 ## Merchants
 

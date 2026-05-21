@@ -1,7 +1,7 @@
 ---
 title: Importing from Excel
 slug: excel-import
-summary: Bulk-import expenses, credits, and hisaab entries from a spreadsheet using Artha's templates.
+summary: Bulk-import expenses, credits, and hisaab entries from a spreadsheet using Arth's templates.
 tags: [excel, import, bulk, spreadsheet, template, csv, migration]
 contextKeys: [settings-import]
 phrasings:
@@ -27,7 +27,7 @@ Bulk-load expenses, credits (salary / refunds), or hisaab entries from an Excel 
 
 - `.xlsx`, `.xls`, `.csv`
 - Google Sheets — download as Excel (`.xlsx`) first.
-- Multi-sheet files are fine — Artha asks which sheet to import.
+- Multi-sheet files are fine — Arth asks which sheet to import.
 
 ## Step 1 — Get the template
 
@@ -94,7 +94,7 @@ There's no one-click undo for a bulk import. Your options:
 
 **Category "Food" doesn't match — my category is "Food & Groceries".** Update the sheet's category column to `Food & Groceries` exactly, OR create a `Food` category first and merge it into `Food & Groceries` later via Settings tab → Master Data → Categories.
 
-**I imported from Axio / Walnut / Money Manager.** Export as CSV from the source app, then map columns to Artha's template. A few minutes of spreadsheet work.
+**I imported from Axio / Walnut / Money Manager.** Export as CSV from the source app, then map columns to Arth's template. A few minutes of spreadsheet work.
 
 **Dates look weird after import.** Almost always an Excel auto-formatting issue. Open the date column in Excel, format as `YYYY-MM-DD`, re-save.
 

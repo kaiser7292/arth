@@ -561,7 +561,7 @@ export default function AccountDetailScreen() {
                 keyboardType="numeric"
               />
               <Text className="text-xs text-text-tertiary mt-2">
-                Artha will show an alert on Home if this account's closing balance drops below this. Leave at 0 or blank to disable for this account.
+                Arth will show an alert on Home if this account's closing balance drops below this. Leave at 0 or blank to disable for this account.
               </Text>
             </Card>
           )}

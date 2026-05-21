@@ -62,7 +62,7 @@ To create the split:
 4. Pick a split mode from the list above.
 5. Tap **Save**.
 
-Artha then does the book-keeping automatically:
+Arth then does the book-keeping automatically:
 
 - Your share goes into your budget.
 - Their share becomes a hisaab entry — "they owe ₹X".
@@ -79,7 +79,7 @@ When money moves and you want to log it manually:
 3. Enter the amount + date + optionally the account the money landed in.
 4. Save.
 
-The settlement shows up in the ledger and nets the balance down. If you picked an account, Artha also records a credit on that account to keep your balances honest.
+The settlement shows up in the ledger and nets the balance down. If you picked an account, Arth also records a credit on that account to keep your balances honest.
 
 ### Option B — mark an existing credit as a settlement
 

@@ -17,7 +17,7 @@ phrasings:
   - Rule by account
 ---
 
-Smart rules are explicit "IF this THEN that" rules you define once and Artha applies forever. They run before every other auto-detection — so they always win over learned mappings and built-in merchant aliases.
+Smart rules are explicit "IF this THEN that" rules you define once and Arth applies forever. They run before every other auto-detection — so they always win over learned mappings and built-in merchant aliases.
 
 ## Where to find them
 
@@ -63,7 +63,7 @@ After saving a rule, you can apply it to existing expenses:
 
 ## Rules vs learned mappings
 
-Artha has two separate systems for auto-categorization. They don't conflict — smart rules run first, then learned mappings.
+Arth has two separate systems for auto-categorization. They don't conflict — smart rules run first, then learned mappings.
 
 **Smart rule** — an explicit IF / THEN you write yourself.
 
@@ -73,9 +73,9 @@ Artha has two separate systems for auto-categorization. They don't conflict — 
 - **Where to see it** — Settings tab → Automation → Smart Rules. Every rule is listed, editable, and deletable.
 - **In backup** — yes, rules travel with your backup file.
 
-**Learned mapping** — an invisible pattern Artha derives from your behaviour.
+**Learned mapping** — an invisible pattern Arth derives from your behaviour.
 
-- **How it's created** — Artha creates one automatically after you correct the **same merchant** to the same category **3 times**.
+- **How it's created** — Arth creates one automatically after you correct the **same merchant** to the same category **3 times**.
 - **When it fires** — on the 4th and later expenses from that merchant.
 - **What it can do** — set category only. Can't touch tags, payment mode, or auto-approval.
 - **Where to see it** — not exposed in the UI. It's internal.
@@ -99,7 +99,7 @@ Rule: merchant contains "Amazon" + min amount 5000 → action: add tag "Big Purc
 **"Every UPI to my landlord should be Rent category, auto-approved."**
 Rule: merchant pattern matching your landlord's name + payment mode = UPI → action: set category Rent + auto-approve ON.
 
-**"I want to rebuild what Artha 'learned' — can I see it?"**
+**"I want to rebuild what Arth 'learned' — can I see it?"**
 Learned mappings are internal. Smart rules are the visible, editable layer. Migrate important learned patterns into explicit rules.
 
 **"Delete a rule — what happens to already-categorized expenses?"**

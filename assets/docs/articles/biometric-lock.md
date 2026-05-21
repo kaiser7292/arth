@@ -1,12 +1,12 @@
 ---
 title: Locking the app with Face / Fingerprint
 slug: biometric-lock
-summary: Optional biometric app-lock. Artha asks for Face / Fingerprint before opening, with a configurable timeout and device-passcode fallback.
+summary: Optional biometric app-lock. Arth asks for Face / Fingerprint before opening, with a configurable timeout and device-passcode fallback.
 tags: [security, privacy, biometric, fingerprint, face-id, face-unlock, lock, passcode, app-lock]
 contextKeys: [settings-security, app-launch, lock-screen]
 phrasings:
   - How do I lock the app with fingerprint?
-  - Face unlock Artha
+  - Face unlock Arth
   - Biometric app lock
   - Can I require Face ID?
   - App lock timeout
@@ -21,13 +21,13 @@ phrasings:
   - UI app lock toggle
 ---
 
-Artha can require a biometric check (Face ID / fingerprint) before opening. This is an **optional** extra layer on top of the OS-level disk encryption. Off by default.
+Arth can require a biometric check (Face ID / fingerprint) before opening. This is an **optional** extra layer on top of the OS-level disk encryption. Off by default.
 
 ## Turn it on
 
 1. Open the **Settings tab → Security & Privacy → App Lock**.
 2. Toggle **App Lock** on.
-3. Artha asks for a biometric check right away — this proves you can authenticate on this device.
+3. Arth asks for a biometric check right away — this proves you can authenticate on this device.
 4. Pick a **timeout** — how long after you last unlocked before the app re-locks:
    - **Immediately** — every time you open the app.
    - **After 1 minute** / **After 5 minutes** / **After 15 minutes** — a grace window after you last unlocked.
@@ -49,7 +49,7 @@ On the same Security & Privacy screen there's a **Lock Now** button. Useful if y
 
 ## What data the lock protects
 
-Everything in the app. The lock screen blocks the entire UI until you authenticate. Artha **never reads your biometric data itself** — that stays in the secure enclave (Android StrongBox / iOS Secure Enclave). Artha just gets a yes / no from the OS.
+Everything in the app. The lock screen blocks the entire UI until you authenticate. Arth **never reads your biometric data itself** — that stays in the secure enclave (Android StrongBox / iOS Secure Enclave). Arth just gets a yes / no from the OS.
 
 ## Lock preferences are device-local
 
@@ -68,7 +68,7 @@ Consequence: after restoring a backup on a new device, the lock is off by defaul
 
 **I tried to turn the lock off but it's asking for biometric — I want out!** Expected behavior — this is the anti-bypass guard. If biometric is broken, use the device-passcode fallback — same lock screen, just pick **Use passcode**.
 
-**What if I forget my password but have biometric?** There's no Artha "password". Biometric / device-passcode is the only auth. There's nothing to forget.
+**What if I forget my password but have biometric?** There's no Arth "password". Biometric / device-passcode is the only auth. There's nothing to forget.
 
 **Does the lock work with the Android pattern lock?** Yes — it uses whatever device credential the OS supports as fallback (PIN, pattern, passcode).
 

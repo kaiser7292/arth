@@ -1,23 +1,23 @@
 ---
 title: Reconciling a ledger
 slug: reconciliation
-summary: Match Artha's running balance against your bank statement and fix the first date where they diverge.
+summary: Match Arth's running balance against your bank statement and fix the first date where they diverge.
 tags: [reconciliation, ledger, balance, audit, mismatch, statement]
 contextKeys: [account-ledger, reconciliation, settings-reconciliation]
 phrasings:
-  - My bank balance doesn't match Artha
+  - My bank balance doesn't match Arth
   - Reconcile an account
   - Running balance is off
   - Find missing transactions
   - Why does the ledger not tally?
-  - Statement vs Artha
+  - Statement vs Arth
   - Check account ledger
   - Auto-detected balance is stale
   - How does the ledger compute balance?
   - Why is the credit card utilized wrong?
 ---
 
-Every account has a ledger view — a running balance starting from an opening figure and applying expenses, credits, and transfers in date order. When your bank's number differs from Artha's, reconciliation is how you find and fix the gap.
+Every account has a ledger view — a running balance starting from an opening figure and applying expenses, credits, and transfers in date order. When your bank's number differs from Arth's, reconciliation is how you find and fix the gap.
 
 ## Where to find the ledger
 
@@ -29,7 +29,7 @@ Four paths:
 
 ## How the running balance is computed
 
-Artha never "stores" a balance — it computes it per month:
+Arth never "stores" a balance — it computes it per month:
 
 **Savings / Wallet / Loan:**
 ```
@@ -51,7 +51,7 @@ The two should match. If they don't, either an SMS wasn't parsed, or a charge/pa
 ## Reconcile step-by-step
 
 1. Open the account's ledger.
-2. Scroll to the earliest date where your bank statement and Artha's running balance **agree** — that's your baseline.
+2. Scroll to the earliest date where your bank statement and Arth's running balance **agree** — that's your baseline.
 3. Scroll forward from there; the first row where they disagree is where to focus.
 4. Possible causes:
    - **Missing expense** — an SMS never arrived or was rejected. Add it: **+ Add Entry** on the ledger.
@@ -89,8 +89,8 @@ This creates a ledger-adjustment row (visible in the ledger tagged "[Balance Adj
 
 ## Common situations
 
-**"Bank says I have ₹X, Artha shows ₹Y. Where do I look?"**
-Check the **Balance Source Card** on the account-detail screen. If it says "stale" or shows a mismatch warning, Artha's calculated number is authoritative — a purchase or refund happened after the last balance SMS. Reconcile by scrolling the ledger for the missing row.
+**"Bank says I have ₹X, Arth shows ₹Y. Where do I look?"**
+Check the **Balance Source Card** on the account-detail screen. If it says "stale" or shows a mismatch warning, Arth's calculated number is authoritative — a purchase or refund happened after the last balance SMS. Reconcile by scrolling the ledger for the missing row.
 
 **"Credit card utilized keeps changing."**
 The card's utilized changes every time you log an expense or credit on it. That's correct behavior — the "stored" utilized (in the SMS) is a point-in-time snapshot; the ledger utilized is live.

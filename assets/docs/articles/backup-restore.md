@@ -1,12 +1,12 @@
 ---
 title: Backup and restore
 slug: backup-restore
-summary: Export an encrypted .artha file; restore it on any Android device running Artha.
+summary: Export an encrypted .artha file; restore it on any Android device running Arth.
 tags: [backup, restore, data, security, phone-transfer, migration]
 contextKeys: [settings-backup, home]
 phrasings:
   - How do I back up my data?
-  - I got a new phone, how do I move Artha over?
+  - I got a new phone, how do I move Arth over?
   - Moving to a new device
   - Can I transfer my data to another phone?
   - My phone is dying, how do I save my data?
@@ -18,7 +18,7 @@ phrasings:
   - I forgot my backup password
 ---
 
-Artha is local-only — there is no cloud sync. Moving to a new phone, or protecting yourself from a phone loss, means making a backup file yourself. Backups are encrypted with a password you set.
+Arth is local-only — there is no cloud sync. Moving to a new phone, or protecting yourself from a phone loss, means making a backup file yourself. Backups are encrypted with a password you set.
 
 ## Where to find it
 
@@ -36,12 +36,12 @@ The file contains every expense, account, category, budget, reminder, smart rule
 
 ## Restore on a new phone
 
-1. Install Artha, open it, complete onboarding (you can skip any step).
+1. Install Arth, open it, complete onboarding (you can skip any step).
 2. **Settings tab → Backup & Storage → Backup & Restore**.
 3. Tap **Restore from Backup**.
 4. Pick the `.artha` file.
 5. Enter the password you set.
-6. Artha **replaces all your current data** with everything from the backup. Takes a few seconds.
+6. Arth **replaces all your current data** with everything from the backup. Takes a few seconds.
 
 > Restore replaces everything on the device. Any data you entered since installing is overwritten.
 
@@ -64,8 +64,8 @@ Expected for long-time users. Backup files are not compressed; 5+ years of data 
 Yes, with their consent and your password. They'll see all your financial data — treat it like a password.
 
 **"Moving Android → iOS."**
-Not supported yet — the iOS variant of Artha is planned but not shipped. Android-to-Android works.
+Not supported yet — the iOS variant of Arth is planned but not shipped. Android-to-Android works.
 
 ## Related
-- Why Artha doesn't use the cloud: [Privacy and offline-first](privacy-offline)
+- Why Arth doesn't use the cloud: [Privacy and offline-first](privacy-offline)
 - Turning on biometric app-lock: [Locking the app with Face/Fingerprint](biometric-lock)

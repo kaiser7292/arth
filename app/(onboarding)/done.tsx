@@ -39,7 +39,7 @@ export default function OnboardingDone() {
           You're set
         </Text>
         <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center leading-5 mb-10">
-          Artha will keep working quietly in the background. When a bank SMS comes in or you log an expense manually, it shows up in your dashboard.
+          Arth will keep working quietly in the background. When a bank SMS comes in or you log an expense manually, it shows up in your dashboard.
         </Text>
         <Button
           title="Log my first expense"

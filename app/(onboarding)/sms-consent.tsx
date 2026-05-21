@@ -67,7 +67,7 @@ export default function OnboardingSmsConsent() {
         </Text>
         <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-6 leading-5">
           {Platform.OS === "android"
-            ? "The fastest way to set up Artha. We read your bank SMS on this device, match them to accounts, and queue expenses for your review."
+            ? "The fastest way to set up Arth. We read your bank SMS on this device, match them to accounts, and queue expenses for your review."
             : "SMS auto-detect is only available on Android. You can still log expenses manually or import from Excel."}
         </Text>
 

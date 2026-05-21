@@ -1,15 +1,15 @@
 ---
-title: Teach Artha to read any bank's SMS
+title: Teach Arth to read any bank's SMS
 slug: smart-sms-templates
-summary: Paste an SMS, tap the amount / merchant / card / date to teach Artha any bank's format. Runs entirely on your device, no cloud.
+summary: Paste an SMS, tap the amount / merchant / card / date to teach Arth any bank's format. Runs entirely on your device, no cloud.
 tags: [sms, templates, automation, parser, bank, custom, unrecognised]
 contextKeys: [settings-sms-templates, unrecognised-sms]
 phrasings:
   - My bank's SMS isn't being detected
-  - How to teach Artha a new bank
+  - How to teach Arth a new bank
   - Custom SMS parsing
   - Add support for my bank
-  - Artha is missing my bank's transactions
+  - Arth is missing my bank's transactions
   - Smart SMS Templates
   - Bank not supported
   - Tag SMS fields
@@ -20,24 +20,24 @@ phrasings:
   - Diagnose my template
   - Template not matching
   - Unrecognised SMS not showing
-  - Where can I see SMS Artha couldn't read
+  - Where can I see SMS Arth couldn't read
 ---
 
-Artha ships with parsers for ~30 Indian banks. If your bank isn't in that list — or it sends a format Artha hasn't seen before — you can teach it in a minute.
+Arth ships with parsers for ~30 Indian banks. If your bank isn't in that list — or it sends a format Arth hasn't seen before — you can teach it in a minute.
 
 ## Where to find it
 
 **Settings tab → Automation → Smart SMS Templates.**
 
-The list shows any templates you've built. The **Browse unrecognised SMS** row is always at the top — it tells you how many recent SMS Artha couldn't read (or confirms none are pending). Tap it to teach any of them.
+The list shows any templates you've built. The **Browse unrecognised SMS** row is always at the top — it tells you how many recent SMS Arth couldn't read (or confirms none are pending). Tap it to teach any of them.
 
 Shortcut: the same browser is also reachable from **Settings tab → SMS Detection** when there are unrecognised SMS waiting — a row appears at the bottom of that card.
 
 ## How it works
 
-You give Artha **one real SMS** from the bank. You **tap** the amount, merchant name, card number, and any other useful fields. Artha learns the pattern on your device. Next time an SMS from that bank arrives in the same format, it parses automatically.
+You give Arth **one real SMS** from the bank. You **tap** the amount, merchant name, card number, and any other useful fields. Arth learns the pattern on your device. Next time an SMS from that bank arrives in the same format, it parses automatically.
 
-No code, no cloud, no AI. You tell Artha where the fields live.
+No code, no cloud, no AI. You tell Arth where the fields live.
 
 ## Step by step
 
@@ -45,7 +45,7 @@ No code, no cloud, no AI. You tell Artha where the fields live.
 
 Two ways in:
 
-- **Automatic** — Artha collects SMS it couldn't parse. Tap **Browse unrecognised SMS** from the Smart Templates list. The Unrecognised screen shows the last 30 days, grouped by sender and format so a daily balance SMS doesn't bloat the list. Has a search box (sender + body) and a **Group similar** toggle that collapses repeating patterns into one row with a ×N badge.
+- **Automatic** — Arth collects SMS it couldn't parse. Tap **Browse unrecognised SMS** from the Smart Templates list. The Unrecognised screen shows the last 30 days, grouped by sender and format so a daily balance SMS doesn't bloat the list. Has a search box (sender + body) and a **Group similar** toggle that collapses repeating patterns into one row with a ×N badge.
 - **Manual** — copy an SMS from your Messages app, then tap the **+** button on Smart SMS Templates and paste it.
 
 ### Step 2 — Resume or start fresh
@@ -67,7 +67,7 @@ Tap a field row to activate it — a coloured banner appears at the top confirmi
 
 ### Step 4 — Auto-tag for a head start
 
-Tap **Guess it for me** (top-right of card 1). Artha scans the SMS and pre-fills amount, account, date, ref, and balance where it's confident. It only fills fields you haven't tagged yet — your manual taps always win.
+Tap **Guess it for me** (top-right of card 1). Arth scans the SMS and pre-fills amount, account, date, ref, and balance where it's confident. It only fills fields you haven't tagged yet — your manual taps always win.
 
 ### Step 5 — Clear a field
 
@@ -83,22 +83,22 @@ Each field row with a tag shows a ✕ button. Tap it to clear just that field wi
 
 Every Indian SMS carries a sender ID in the header — like `VM-HDFCBK-S`, `AD-MYTNEU-T`, `JD-AXISBK`. The **middle part** (`HDFCBK`, `MYTNEU`, `AXISBK`) is the bank / wallet / brand code. The prefix (`VM`, `AD`, `JD`) is the phone company that delivered the message and can change over time.
 
-You tell Artha which sender(s) your template should handle:
+You tell Arth which sender(s) your template should handle:
 
 - **Paste the sender** as you see it in your messages app (e.g. `VM-MYTNEU-S`).
 - Pick a **Match mode**:
-  - **Code** *(recommended)* — Artha auto-extracts the middle code and matches any sender with the same code. `VM-MYTNEU-S`, `AD-MYTNEU-T`, `JD-MYTNEU` all match. Survives the brand switching phone companies — which is the #1 reason templates silently stop working.
+  - **Code** *(recommended)* — Arth auto-extracts the middle code and matches any sender with the same code. `VM-MYTNEU-S`, `AD-MYTNEU-T`, `JD-MYTNEU` all match. Survives the brand switching phone companies — which is the #1 reason templates silently stop working.
   - **Exact** — only the exact sender you pasted. Strict. Use if you specifically want to scope to one phone-company route.
   - **Contains** — any sender with your text anywhere in it. Use for weird sender IDs that don't fit the usual pattern.
-- Below the input, Artha shows a preview of what will and won't match.
+- Below the input, Arth shows a preview of what will and won't match.
 
 If you launched from the Unrecognised SMS list, the sender is pre-filled from the pending SMS.
 
-**Why this matters for wallets.** Wallets like TataNeu, Amazon Pay, Paytm, Airtel Money send SMSes too, but Artha doesn't ship with a built-in list of their sender codes. The sender ID is what lets Artha route future SMSes from these brands to your template.
+**Why this matters for wallets.** Wallets like TataNeu, Amazon Pay, Paytm, Airtel Money send SMSes too, but Arth doesn't ship with a built-in list of their sender codes. The sender ID is what lets Arth route future SMSes from these brands to your template.
 
 ### Step 8 — Bank or Wallet name
 
-This is the label Artha uses when it shows you matched expenses (e.g. "TataNeu" under the expense row). For well-known banks, start typing and pick from the suggestion list. For wallets or anything not in the list, type freeform.
+This is the label Arth uses when it shows you matched expenses (e.g. "TataNeu" under the expense row). For well-known banks, start typing and pick from the suggestion list. For wallets or anything not in the list, type freeform.
 
 ### Step 9 — (Optional) Check the pattern
 
@@ -106,12 +106,12 @@ Below the details card is a collapsible **Pattern Preview (advanced)** section. 
 
 ### Step 10 — Test the template
 
-- **Test this SMS** — paste a second sample from the same bank and tap Test. Artha shows what it extracts.
+- **Test this SMS** — paste a second sample from the same bank and tap Test. Arth shows what it extracts.
 - **Test against recent** — runs the template against the last 30 days of unrecognised SMS from this bank and tells you how many would now match. Great sanity check before saving.
 
 ### Step 11 — Save
 
-If a template already exists for this bank + transaction type, Artha warns you and offers to **edit the existing one** instead of creating a duplicate. On save, you land back on the Smart SMS Templates list.
+If a template already exists for this bank + transaction type, Arth warns you and offers to **edit the existing one** instead of creating a duplicate. On save, you land back on the Smart SMS Templates list.
 
 ## What fields can I tag?
 
@@ -119,8 +119,8 @@ You can tag up to six fields. Only **Amount** is required — the rest are optio
 
 - **Amount** *(required)* — the rupee value of the transaction. Example: `INR 521.98`. Long-press to tag only the digits when stuck to a prefix like `Rs.` or `₹`.
 - **Account** — which account the money moved through. Two formats accepted:
-  - **Digits** like `XX2445` or `****1234` — Artha matches these against the last 3–6 digits of your saved card / savings account.
-  - **Text** like `TataNeu` or `Amazon Pay Wallet` — Artha matches this case-insensitively against the label of a wallet account you've already created.
+  - **Digits** like `XX2445` or `****1234` — Arth matches these against the last 3–6 digits of your saved card / savings account.
+  - **Text** like `TataNeu` or `Amazon Pay Wallet` — Arth matches this case-insensitively against the label of a wallet account you've already created.
 - **Merchant** — who you paid. Multi-word supported. Example: `BOOKMYSHOW`, `AMAZON PAY IN E COMMERC`.
 - **Date** — the transaction date. Several D-M-Y formats accepted: `30-04-26`, `30/04/2026`, `30-APR-2026`, `30/APR/2026`.
 - **Balance** — optional balance reading from the SMS (e.g. `Bal: INR 638,980.02`). Used to auto-update the account's last-known balance.
@@ -128,29 +128,29 @@ You can tag up to six fields. Only **Amount** is required — the rest are optio
 
 ## Editing an existing template
 
-Open the template from the list. Artha reloads your original SMS sample **with your previous tags highlighted** — you don't re-tag from scratch. Adjust what needs fixing, save.
+Open the template from the list. Arth reloads your original SMS sample **with your previous tags highlighted** — you don't re-tag from scratch. Adjust what needs fixing, save.
 
 ## Diagnose — checking if a template actually works
 
-Each template card has a **Diagnose** button. Tap it and Artha runs your template's pattern against the last 30 days of real SMS on your phone and reports:
+Each template card has a **Diagnose** button. Tap it and Arth runs your template's pattern against the last 30 days of real SMS on your phone and reports:
 
 - ✅ How many SMS would have matched.
 - A few sample matches (so you can eyeball that they're the right kind of SMS).
 - If nothing matched, a few sample SMS that **looked related** but your pattern didn't catch — useful hints for what to fix.
 
-Use this right after saving a new template to confirm Artha will actually catch future SMS, and any time you suspect a template has silently stopped matching (for instance, when a bank changes their SMS format).
+Use this right after saving a new template to confirm Arth will actually catch future SMS, and any time you suspect a template has silently stopped matching (for instance, when a bank changes their SMS format).
 
-## How templates interact with Artha's built-in parsers
+## How templates interact with Arth's built-in parsers
 
-Artha always tries its built-in parsers first. Your templates run as a fallback — they only fire when nothing hardcoded matched. This means:
+Arth always tries its built-in parsers first. Your templates run as a fallback — they only fire when nothing hardcoded matched. This means:
 
 - Your templates can never override a working built-in parser.
 - A broken template can't cause a working SMS to stop parsing.
-- If Artha ships a built-in parser for your bank in a future release, it'll take over and your template becomes redundant (harmless).
+- If Arth ships a built-in parser for your bank in a future release, it'll take over and your template becomes redundant (harmless).
 
 ## Privacy
 
-The sample SMS is stored on your device with the template so Artha can show you what it learned from. It travels with your backup file (encrypted with your password). If your SMS contains the full card number, OTP, or other sensitive details, **remove them from the sample before saving**.
+The sample SMS is stored on your device with the template so Arth can show you what it learned from. It travels with your backup file (encrypted with your password). If your SMS contains the full card number, OTP, or other sensitive details, **remove them from the sample before saving**.
 
 Templates never leave your device. No cloud, no shared library, no analytics.
 
@@ -164,11 +164,11 @@ Templates never leave your device. No cloud, no shared library, no analytics.
 
 **I need to tag a descriptive reference / remarks.** Use the **Ref / Note** field. It accepts multi-word remarks and slash-separated payloads (e.g. `IMPS/P2A/455612/FROM JOHN SMITH`, `Remarks: DIVIDEND INCOME Q2 2025`).
 
-**I saved a template but nothing's being picked up.** Most common cause: the SMS came from a sender Artha didn't originally know about. When you teach a template from the Browse unrecognised SMS list, Artha automatically registers the sender against your chosen bank. If Diagnose shows 0 matches despite SMS clearly present, open the template, tap **Test against recent**, and tighten or loosen anchor text as needed.
+**I saved a template but nothing's being picked up.** Most common cause: the SMS came from a sender Arth didn't originally know about. When you teach a template from the Browse unrecognised SMS list, Arth automatically registers the sender against your chosen bank. If Diagnose shows 0 matches despite SMS clearly present, open the template, tap **Test against recent**, and tighten or loosen anchor text as needed.
 
 **Delete a template.** List screen → tap **Delete** on the card.
 
-**I already have a template for this bank — Artha won't let me make a second.** Artha warns you to prevent accidental duplicates. Choose **Edit Existing** to update the old one, or **Save Anyway** if you genuinely want two templates for the same bank + type.
+**I already have a template for this bank — Arth won't let me make a second.** Arth warns you to prevent accidental duplicates. Choose **Edit Existing** to update the old one, or **Save Anyway** if you genuinely want two templates for the same bank + type.
 
 ## Related
 

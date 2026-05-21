@@ -230,7 +230,7 @@ export default function NotificationCollectorScreen() {
               No notifications collected yet. Enable auto-collection above and grant notification listener permission in system settings to start collecting data.
             </Text>
             <Text className="text-center mt-4 px-8 text-sm" style={{ color: colors.textSecondary }}>
-              After enabling, go to Android Settings → Apps → Artha → Notifications → Notification access and grant permission.
+              After enabling, go to Android Settings → Apps → Arth → Notifications → Notification access and grant permission.
             </Text>
           </View>
         ) : (

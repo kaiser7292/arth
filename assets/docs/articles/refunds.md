@@ -16,7 +16,7 @@ phrasings:
   - Where do refunds show up?
 ---
 
-A refund is money that came back for a past expense — a return from a shop, a service fee reversed, a duplicate charge refunded. Artha lets you log the refund against the original expense so everything stays linked.
+A refund is money that came back for a past expense — a return from a shop, a service fee reversed, a duplicate charge refunded. Arth lets you log the refund against the original expense so everything stays linked.
 
 ## Why this matters
 
@@ -31,7 +31,7 @@ This is automatic once the refund is linked. No config needed.
 
 1. Open the **original expense** — Transactions tab → tap it.
 2. Scroll down to the **Record a Refund** action.
-3. Artha asks **where the refund landed**:
+3. Arth asks **where the refund landed**:
    - **Same account** — credited back to the original card or wallet (common for card purchases).
    - **Different account** — refund came into a different account (e.g. original paid on credit card, refund went to savings).
 4. If "Different", pick the target account from the picker.
@@ -60,7 +60,7 @@ You can record more than one refund against the same expense. Their amounts sum.
 
 **Amazon refunded ₹500 of a ₹2,500 order.** Record Refund → Same account (gift card or credit card used for the order) → change amount to 500 → Save. Original now shows as **Partial Refund**; ₹2,000 counts in your totals.
 
-**I got a refund but the original expense isn't in Artha yet.** Log the original first (manually, or wait for its SMS), then record the refund against it. A refund without a linked original is technically possible but loses the pills and budget subtraction.
+**I got a refund but the original expense isn't in Arth yet.** Log the original first (manually, or wait for its SMS), then record the refund against it. A refund without a linked original is technically possible but loses the pills and budget subtraction.
 
 **Refund came to a different account (cashback moved to savings).** Record Refund → Different account → pick savings → Save. The credit row hits savings; budget still correctly subtracts from the original expense's category.
 

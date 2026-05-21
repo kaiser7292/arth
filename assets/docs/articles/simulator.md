@@ -28,7 +28,7 @@ phrasings:
   - Home Explore & Tools card
 ---
 
-The **Cash-flow Simulator** is the one Artha screen that looks forward. Everywhere else you see what already happened (or what's realized right now). Here you say what you *expect* to happen, and Artha rolls the math forward: a projected balance at horizon, per-account breakdowns, key moments, and warnings.
+The **Cash-flow Simulator** is the one Arth screen that looks forward. Everywhere else you see what already happened (or what's realized right now). Here you say what you *expect* to happen, and Arth rolls the math forward: a projected balance at horizon, per-account breakdowns, key moments, and warnings.
 
 > Nothing you type here is written to your real ledger. Simulator entries are 100% isolated. Delete a scenario any time — zero side-effects on your real data.
 
@@ -103,7 +103,7 @@ Hisaab entries appear under their direction (Collect → Incoming; Pay back → 
 
 ### Auto-seeded entries
 
-When you create or open a scenario, Artha pre-fills with:
+When you create or open a scenario, Arth pre-fills with:
 
 - Every **active recurring reminder** due before the horizon.
 - Every **open credit-card repayment forecast** due before the horizon.
@@ -189,7 +189,7 @@ These show up inside the Incoming / Outgoing lists with the sublabel "Collect fr
 - **Budget changes.** You can see the simulated spend vs budget, but you can't edit budgets from the simulator.
 - **Salary auto-detection.** The simulator doesn't scan your SMS history for recurring credits. Add them manually, or set them up as reminders so they auto-seed.
 - **Fuzzy amount matching.** The amount must match exactly to the paise. A different amount means a different transaction.
-- **Cross-device sync.** Like everything in Artha — local-first, no cloud.
+- **Cross-device sync.** Like everything in Arth — local-first, no cloud.
 
 ## Backups
 

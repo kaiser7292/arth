@@ -9,7 +9,7 @@ phrasings:
   - Add a new bank account
   - Credit card balance is wrong
   - Available credit limit not updating
-  - What is a demat account in Artha?
+  - What is a demat account in Arth?
   - How do I delete an account?
   - Loan EMI tracking
   - Why are there two accounts for the same card?
@@ -36,7 +36,7 @@ phrasings:
   - Total on demat account card
 ---
 
-Accounts represent where your money actually lives — savings, credit cards, wallets, loans, demat. Artha keeps a running balance for each by applying every expense, credit, and transfer in date order.
+Accounts represent where your money actually lives — savings, credit cards, wallets, loans, demat. Arth keeps a running balance for each by applying every expense, credit, and transfer in date order.
 
 ## Where to find them
 
@@ -54,11 +54,11 @@ Accounts represent where your money actually lives — savings, credit cards, wa
    - **Current balance** (savings/wallet) or **credit limit** + **utilized** (credit card) or **principal remaining** (loan)
 4. Tap **Save**.
 
-Artha uses the last-4 to auto-route incoming SMS. If two cards share the same last-4, rename one with a clearer label.
+Arth uses the last-4 to auto-route incoming SMS. If two cards share the same last-4, rename one with a clearer label.
 
 ## Reading the balance
 
-Balances are **computed**, not stored. For every month, Artha does:
+Balances are **computed**, not stored. For every month, Arth does:
 
 ```
 Opening balance (start of month)
@@ -89,11 +89,11 @@ Check two things:
 1. The payment should be a **transfer** from savings → credit card, not a credit "expense" on the card.
 2. Open the card's **Ledger** (Settings tab → Master Data → Accounts → Credit Cards → tap the card) and scroll to the transfer date. If it's missing, add it manually.
 
-**"Bank says I have ₹X, Artha shows ₹Y."**
+**"Bank says I have ₹X, Arth shows ₹Y."**
 Open the account's ledger and scroll to the first date where the running balance doesn't match the bank. Usually a missing expense or a duplicate. See the reconciliation article.
 
 **"Why do I have two entries for the same card?"**
-If you added the card manually AND an SMS came in that didn't match the last-4, Artha may have auto-created a second. Delete the extra from Settings tab → Master Data → Accounts.
+If you added the card manually AND an SMS came in that didn't match the last-4, Arth may have auto-created a second. Delete the extra from Settings tab → Master Data → Accounts.
 
 **"Delete an account."**
 Settings tab → Master Data → Accounts → tap the account → **Delete** at the bottom. If it has expenses linked, those expenses will lose their account (they won't be deleted). Prefer **Deactivate** instead — it hides the account from new entry but keeps history intact.

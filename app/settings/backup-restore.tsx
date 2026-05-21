@@ -182,7 +182,7 @@ export default function BackupRestoreScreen() {
                   Restore from Backup
                 </Text>
                 <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
-                  Load data from an .artha backup file
+                  Load data from an .arth backup file
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
@@ -359,7 +359,7 @@ export default function BackupRestoreScreen() {
               Restore from Backup
             </Text>
             <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-6">
-              Select your .artha backup file, then enter the password to decrypt.
+              Select your .arth backup file, then enter the password to decrypt.
             </Text>
 
             {/* Step 1: Pick file */}
@@ -386,7 +386,7 @@ export default function BackupRestoreScreen() {
                       {pickedFile.name}
                     </Text>
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                      {pickedFile.sizeLabel} — Valid Artha backup
+                      {pickedFile.sizeLabel} — Valid Arth backup
                     </Text>
                   </View>
                   <Pressable onPress={() => { setPickedFile(null); setPassword(""); }} hitSlop={8}>

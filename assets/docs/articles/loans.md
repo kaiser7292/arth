@@ -1,11 +1,11 @@
 ---
 title: Loans and EMI tracking
 slug: loans
-summary: How Artha tracks your loans — EMIs, prepayments, manual corrections, and what happens when you pay extra.
+summary: How Arth tracks your loans — EMIs, prepayments, manual corrections, and what happens when you pay extra.
 tags: [loans, emi, prepayment, foreclosure, amortization, reduce-emi, reduce-tenure, correction, home-loan, personal-loan, auto-loan]
 contextKeys: [loan-detail, loan-add, loans-list]
 phrasings:
-  - How does Artha track my loan?
+  - How does Arth track my loan?
   - Record a loan prepayment
   - Reduce tenure vs reduce EMI
   - What is a manual correction on a loan?
@@ -28,7 +28,7 @@ phrasings:
   - Next EMI due date
 ---
 
-A **loan** in Artha is a structured obligation with a fixed principal, interest rate, tenure, and monthly EMI. Unlike savings or credit-card accounts where Artha tracks a running balance, a loan tracks an **amortization schedule** — the month-by-month breakdown of how much principal and interest each EMI pays down.
+A **loan** in Arth is a structured obligation with a fixed principal, interest rate, tenure, and monthly EMI. Unlike savings or credit-card accounts where Arth tracks a running balance, a loan tracks an **amortization schedule** — the month-by-month breakdown of how much principal and interest each EMI pays down.
 
 ## Where to find them
 
@@ -46,7 +46,7 @@ Tapping a loan anywhere routes you to the loan detail screen.
 - **Bank / Lender** + optional agreement ID
 - **Currency** (default INR; non-INR loans skip conversion in totals)
 - **Amount approved** (sanctioned) vs **Amount received** (disbursed) — usually the same; sometimes different for home loans disbursed in tranches
-- **Disbursement date** + **EMI start date** — Artha handles broken-period interest if these differ
+- **Disbursement date** + **EMI start date** — Arth handles broken-period interest if these differ
 - **EMI day of month** (1–31)
 - **Interest rate % p.a.** + **Interest type** (fixed / floating)
 - **Tenure (months)** and optional **EMI amount** (auto-computed if left blank)
@@ -54,7 +54,7 @@ Tapping a loan anywhere routes you to the loan detail screen.
 - **Prepayment / Foreclosure rules** from your Key Fact Sheet
 - **Late-payment (penal) charges**
 
-If you already paid some EMIs before adding the loan, enter the count in **EMIs paid so far** — Artha backfills those installments as paid so your outstanding matches reality.
+If you already paid some EMIs before adding the loan, enter the count in **EMIs paid so far** — Arth backfills those installments as paid so your outstanding matches reality.
 
 ## What you see on loan detail
 
@@ -82,11 +82,11 @@ Tap **Record Prepayment** on loan detail. Enter:
 
 ### Small prepayments (≤ one EMI)
 
-When you pay anything up to exactly one EMI extra, Artha uses the **trivial path**: the money just reduces principal, and no strategy choice is offered. The tenure and EMI stay unchanged; the last installment will absorb a small saving. This matches how banks actually process sub-EMI part-payments on statements.
+When you pay anything up to exactly one EMI extra, Arth uses the **trivial path**: the money just reduces principal, and no strategy choice is offered. The tenure and EMI stay unchanged; the last installment will absorb a small saving. This matches how banks actually process sub-EMI part-payments on statements.
 
 ### Prepayment charges
 
-If your loan's Key Fact Sheet specifies a prepayment charge %, Artha applies it to the gross amount (with GST). The net (amount minus charge minus GST) is what actually reduces principal. If your loan has a foreclosure waiver window, Artha detects when it applies.
+If your loan's Key Fact Sheet specifies a prepayment charge %, Arth applies it to the gross amount (with GST). The net (amount minus charge minus GST) is what actually reduces principal. If your loan has a foreclosure waiver window, Arth detects when it applies.
 
 ### After a reduce_emi prepayment
 
@@ -94,7 +94,7 @@ Every scheduled installment from the prepayment date forward gets a new, lower E
 
 ## Manual correction
 
-Sometimes the bank's actual outstanding doesn't exactly match Artha's formula — rounding, mid-cycle rate changes, or a prepayment posted through the bank's app that Artha didn't see. **Manual correction** lets you override:
+Sometimes the bank's actual outstanding doesn't exactly match Arth's formula — rounding, mid-cycle rate changes, or a prepayment posted through the bank's app that Arth didn't see. **Manual correction** lets you override:
 
 - **Effective date**
 - **Outstanding principal** (what the bank says you owe right now)
@@ -102,7 +102,7 @@ Sometimes the bank's actual outstanding doesn't exactly match Artha's formula �
 - **Remaining EMIs** (optional — inferred if blank)
 - **Reason** (free-text note to yourself)
 
-From the correction forward, Artha regenerates the amortization using your overridden numbers. Prepayments recorded after a correction apply on top of the corrected baseline. You can edit or delete a correction later; the schedule rebuilds cleanly either way.
+From the correction forward, Arth regenerates the amortization using your overridden numbers. Prepayments recorded after a correction apply on top of the corrected baseline. You can edit or delete a correction later; the schedule rebuilds cleanly either way.
 
 ## Foreclose quote
 
@@ -116,11 +116,11 @@ Every loan automatically creates a matching entry in **Settings → Master Data 
 
 ## SMS auto-detection and EMI matching
 
-When an EMI payment SMS arrives ("Rs 22,317 debited from A/C XXX for EMI …"), Artha tries to match it to the next unpaid installment within ±5 days and ±5% of the expected EMI. When matched, that installment is stamped `paid` automatically. This keeps working after `reduce_emi` prepayments because the SMS amount lines up with the schedule's new (lower) EMI.
+When an EMI payment SMS arrives ("Rs 22,317 debited from A/C XXX for EMI …"), Arth tries to match it to the next unpaid installment within ±5 days and ±5% of the expected EMI. When matched, that installment is stamped `paid` automatically. This keeps working after `reduce_emi` prepayments because the SMS amount lines up with the schedule's new (lower) EMI.
 
 ## Yearly Plan integration
 
-Active loans feed the **Yearly Plan → Debt Servicing** total — Artha sums every scheduled EMI falling in the FY plus any recorded prepayments within the FY window. This updates automatically when you record a prepayment.
+Active loans feed the **Yearly Plan → Debt Servicing** total — Arth sums every scheduled EMI falling in the FY plus any recorded prepayments within the FY window. This updates automatically when you record a prepayment.
 
 The **YoY Comparison** view has a dedicated **Loans & Debts** category. Row direction is "lower is better" (shrinking outflow year-over-year = good), but the plan-vs-actual gap inverts: paying MORE than planned is treated as GOOD (faster debt payoff).
 
@@ -136,13 +136,13 @@ The **YoY Comparison** view has a dedicated **Loans & Debts** category. Row dire
 ## Common situations
 
 - **"My EMI is wrong after prepayment."** If you chose Reduce EMI, the Hero card should show the new (lower) EMI. If it still shows the old amount, the prepayment might have been recorded with Reduce Tenure (tenure drops, EMI stays same). Check the prepayment row's strategy pill.
-- **"Outstanding is off by a few thousand."** Indian banks round everything to ₹1; Artha's INR loans use rupee rounding too. Small drift from a rate reset or mid-cycle change? Use Manual Correction to realign.
-- **"I paid my bank directly without recording in Artha."** Record a prepayment with today's date — or use Manual Correction to set the new outstanding.
+- **"Outstanding is off by a few thousand."** Indian banks round everything to ₹1; Arth's INR loans use rupee rounding too. Small drift from a rate reset or mid-cycle change? Use Manual Correction to realign.
+- **"I paid my bank directly without recording in Arth."** Record a prepayment with today's date — or use Manual Correction to set the new outstanding.
 - **"I deleted a paid EMI expense — did the schedule unpaid too?"** Yes. Deleting the linked expense reverts its installment to `scheduled`.
 
 ## Non-goals
 
-Artha does not:
+Arth does not:
 - Fetch your actual loan balance from the bank via API (no bank integration).
 - Auto-detect out-of-band prepayments from SMS (a "Rs 1,00,000 debited… loan" with no EMI keyword is matched as a transfer or expense, not as a prepayment). You record prepayments yourself.
 - Handle partial-month interest on manual corrections (the tail regenerates using monthly compounding from the correction date).

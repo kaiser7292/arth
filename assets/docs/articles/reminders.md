@@ -28,7 +28,7 @@ phrasings:
   - Reminders list screen
 ---
 
-Reminders track bills that come back regularly — Netflix, rent, EMIs, insurance premiums, utility bills. Artha reminds you when one is coming up, and lets you link the real expense (with the real amount) when it actually happens.
+Reminders track bills that come back regularly — Netflix, rent, EMIs, insurance premiums, utility bills. Arth reminds you when one is coming up, and lets you link the real expense (with the real amount) when it actually happens.
 
 > Reminders do NOT auto-create expenses with guessed amounts. Rent varies, utilities vary, even subscriptions change. You confirm the amount each cycle.
 
@@ -39,18 +39,18 @@ Reminders track bills that come back regularly — Netflix, rent, EMIs, insuranc
 
 ## Create a reminder
 
-Reminders are always created **from an expense you just paid**. This lets Artha remember the merchant, category, account, and payment mode — so next cycle's entry is already halfway filled out.
+Reminders are always created **from an expense you just paid**. This lets Arth remember the merchant, category, account, and payment mode — so next cycle's entry is already halfway filled out.
 
 1. Open the expense you just paid — Transactions tab → tap it.
 2. Tap **Set reminder**.
 3. Pick:
    - **Repeats** — Weekly / Monthly / Quarterly / Yearly.
-   - **Starts** — a calendar date picker. Artha suggests the next cycle's start (e.g. for Monthly, one month from the expense date). Tap to change.
+   - **Starts** — a calendar date picker. Arth suggests the next cycle's start (e.g. for Monthly, one month from the expense date). Tap to change.
    - **Until** *(optional)* — a calendar date picker. Leave blank for open-ended.
    - **Notes** *(optional)*.
 4. Tap **Save reminder**.
 
-Artha uses this expense as the **source** — it remembers the merchant, category, account, payment mode, and description. These get pre-filled when you log the next cycle. The amount stays blank, so you type the real value each time.
+Arth uses this expense as the **source** — it remembers the merchant, category, account, payment mode, and description. These get pre-filled when you log the next cycle. The amount stays blank, so you type the real value each time.
 
 ## When a reminder is due
 
@@ -71,7 +71,7 @@ Open an expense that's already linked to a reminder — it shows a **Fulfilled a
 
 ## Suggested-reminder banner
 
-Open a realized expense that isn't yet linked. If Artha sees a pending reminder matching its merchant within ±7 days, a soft "Link to a reminder?" banner appears at the top of the expense detail. Tap **Link** to fulfill it, or **Dismiss** to ignore the suggestion for this session.
+Open a realized expense that isn't yet linked. If Arth sees a pending reminder matching its merchant within ±7 days, a soft "Link to a reminder?" banner appears at the top of the expense detail. Tap **Link** to fulfill it, or **Dismiss** to ignore the suggestion for this session.
 
 ## Stop a reminder
 
@@ -90,7 +90,7 @@ Stopping doesn't delete history — every past fulfillment stays in your ledger.
 
 **Reminder for a bill that's already done this year (one-off EMI payoff).** Stop the reminder. Any future cycles won't appear.
 
-**Difference between a reminder and a forecast.** Reminders replaced an older approach where Artha silently pre-created expenses with guessed amounts. Now nothing auto-creates; you confirm the actual amount when you log the expense. Reminder fulfillments are real expenses you logged, not guesses.
+**Difference between a reminder and a forecast.** Reminders replaced an older approach where Arth silently pre-created expenses with guessed amounts. Now nothing auto-creates; you confirm the actual amount when you log the expense. Reminder fulfillments are real expenses you logged, not guesses.
 
 **Keyboard covers the Notes field on the reminder sheet.** The sheet scrolls and both the Starts and Until fields are calendar pickers — you won't need to type dates.
 

@@ -17,7 +17,7 @@ phrasings:
   - How do I see all my aliases?
 ---
 
-Bank SMS often encode merchant names with payment-processor codes — `PYU*Swiggy Food`, `AMZN*MKTPLACE`, `InfoEBA*IPO LLOPP`, `PAYU-1234-MERCHANT`. These are ugly to read AND they break category learning, because every variant looks like a different merchant to Artha.
+Bank SMS often encode merchant names with payment-processor codes — `PYU*Swiggy Food`, `AMZN*MKTPLACE`, `InfoEBA*IPO LLOPP`, `PAYU-1234-MERCHANT`. These are ugly to read AND they break category learning, because every variant looks like a different merchant to Arth.
 
 **Merchant aliases** map the raw string → a clean name you choose.
 
@@ -32,7 +32,7 @@ Bank SMS often encode merchant names with payment-processor codes — `PYU*Swigg
 2. Tap the **Merchant** row.
 3. Type the clean name (e.g. "Swiggy").
 4. Tap **Save**.
-5. Artha asks: **"Apply to past expenses from the same source?"**
+5. Arth asks: **"Apply to past expenses from the same source?"**
    - **Yes** — cleans your history in one go.
    - **No** — keep history as-is; only rename future SMS from this source.
 
@@ -40,7 +40,7 @@ The mapping is saved. Next time the same raw string arrives via SMS, it's rename
 
 ## How automatic matching works
 
-- Artha ships with **~200 pre-loaded aliases** for common Indian merchants (Swiggy, Zomato, Uber, Amazon, Netflix, Flipkart, Myntra, etc.).
+- Arth ships with **~200 pre-loaded aliases** for common Indian merchants (Swiggy, Zomato, Uber, Amazon, Netflix, Flipkart, Myntra, etc.).
 - Your first rename seeds a user-level alias that **overrides built-ins** if they conflict.
 - **Fuzzy matching** catches variants — `Swiggy Ltd`, `SWIGGY LIMITED`, `Swiggy Food Pvt Ltd` all resolve to the same canonical name.
 - The raw text is stored separately (`raw_merchant_name`) so the original SMS content is never lost.
@@ -60,7 +60,7 @@ The mapping is saved. Next time the same raw string arrives via SMS, it's rename
 
 **Rename didn't apply to my old expenses.** You tapped "No" on the apply-to-past prompt. Go to **Settings tab → Automation → Merchant Aliases → tap the alias → Apply to past** to back-fill now.
 
-**Merchant is renamed but the category is still wrong.** Renaming is independent from category. After renaming, correct the category too. After **three** category corrections for the same merchant, Artha learns and auto-categorizes future expenses from that merchant.
+**Merchant is renamed but the category is still wrong.** Renaming is independent from category. After renaming, correct the category too. After **three** category corrections for the same merchant, Arth learns and auto-categorizes future expenses from that merchant.
 
 **I want two merchants with the same raw string categorized differently.** Not supported — the alias is 1:1 (raw → clean). If you need different categories for the same merchant, use per-expense category correction or a smart rule with a sharper condition (e.g. `amount > 500`).
 

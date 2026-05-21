@@ -1,13 +1,13 @@
 ---
 title: Privacy and offline-first
 slug: privacy-offline
-summary: What Artha stores, where, and what never leaves your phone. No cloud, no account, no telemetry.
+summary: What Arth stores, where, and what never leaves your phone. No cloud, no account, no telemetry.
 tags: [privacy, offline, local, cloud, security, permissions]
 contextKeys: [onboarding, settings-about]
 phrasings:
   - Is my data safe?
-  - Does Artha send anything to the cloud?
-  - Is Artha offline?
+  - Does Arth send anything to the cloud?
+  - Is Arth offline?
   - Where is my data stored?
   - Do I need an account?
   - Is this free?
@@ -15,11 +15,11 @@ phrasings:
   - Privacy policy
   - GDPR
   - Does the app need internet?
-  - Can I use Artha without SMS permission?
-  - What does Artha read from my phone?
+  - Can I use Arth without SMS permission?
+  - What does Arth read from my phone?
 ---
 
-Artha is a **local-first** app. There is no server. No account to create. No email to verify. No phone number. Nothing is transmitted.
+Arth is a **local-first** app. There is no server. No account to create. No email to verify. No phone number. Nothing is transmitted.
 
 ## What's stored on your phone
 
@@ -31,7 +31,7 @@ That's all. No photos, no contacts, no files outside of backups you explicitly s
 
 ## What touches the network
 
-**Nothing during normal use.** Artha has:
+**Nothing during normal use.** Arth has:
 - No server or cloud connection.
 - No telemetry.
 - No analytics SDK.
@@ -41,9 +41,9 @@ That's all. No photos, no contacts, no files outside of backups you explicitly s
 
 The app works identically in airplane mode.
 
-## What Artha reads
+## What Arth reads
 
-When you grant **SMS permission**, Artha reads messages from registered banking / UPI sender IDs (transactional-route DLT codes). The reading happens on-device — the OS hands parsed SMS bodies to the app in memory. Artha then:
+When you grant **SMS permission**, Arth reads messages from registered banking / UPI sender IDs (transactional-route DLT codes). The reading happens on-device — the OS hands parsed SMS bodies to the app in memory. Arth then:
 - Tries to extract transaction details using on-device pattern-matching rules.
 - Stores the raw SMS text locally (never sent elsewhere).
 

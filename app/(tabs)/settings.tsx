@@ -181,7 +181,7 @@ export default function SettingsScreen() {
         // Show explanation dialog before requesting permission
         alert(
           "Read Bank SMS",
-          "Artha can read your bank transaction SMS (ICICI, HDFC, Axis, SBI, UPI) to detect expenses.\n\nWhat happens:\n• Only bank/UPI SMS are read — personal messages are ignored\n• All processing happens on your device\n• Detected expenses go to a review queue — you approve each one\n• You can scan manually or turn on automatic scanning\n\nWe'll ask for SMS permission next.",
+          "Arth can read your bank transaction SMS (ICICI, HDFC, Axis, SBI, UPI) to detect expenses.\n\nWhat happens:\n• Only bank/UPI SMS are read — personal messages are ignored\n• All processing happens on your device\n• Detected expenses go to a review queue — you approve each one\n• You can scan manually or turn on automatic scanning\n\nWe'll ask for SMS permission next.",
           [
             { text: "Not Now", style: "cancel" },
             {
@@ -415,7 +415,7 @@ export default function SettingsScreen() {
           <Card title="Automation" className="mb-4">
             <SettingsRow icon="repeat-outline" label="Reminders" subtitle="Rent, subscriptions, anything that repeats" onPress={() => router.push("/settings/recurring-rules" as never)} />
             <SettingsRow icon="sparkles-outline" label="Smart Rules" subtitle="Auto-categorize expenses by merchant, amount, account" onPress={() => router.push("/settings/smart-rules" as never)} />
-            <SettingsRow icon="construct-outline" label="Smart SMS Templates" subtitle="Teach Artha to read SMS from any bank" onPress={() => router.push("/settings/sms-templates" as never)} />
+            <SettingsRow icon="construct-outline" label="Smart SMS Templates" subtitle="Teach Arth to read SMS from any bank" onPress={() => router.push("/settings/sms-templates" as never)} />
             <SettingsRow icon="swap-horizontal-outline" label="Merchant Aliases" subtitle="Clean up SMS merchant names" onPress={() => router.push("/settings/merchant-aliases")} />
             <SettingsRow icon="list-outline" label="Audit Log" subtitle="See every action taken on detected and manual records" onPress={() => router.push("/settings/audit-log" as never)} />
           </Card>
@@ -694,7 +694,7 @@ export default function SettingsScreen() {
                       {unrecognisedSmsCount} unrecognised SMS
                     </Text>
                     <Text className="text-xs text-text-tertiary mt-0.5">
-                      Artha couldn't read these. Tap to teach.
+                      Arth couldn't read these. Tap to teach.
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
@@ -827,7 +827,7 @@ export default function SettingsScreen() {
             <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
               <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">App Name</Text>
               <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
-                Artha
+                Arth
               </Text>
             </View>
             <View className="flex-row items-center justify-between py-2">

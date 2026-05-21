@@ -29,7 +29,7 @@ import { formatError } from "@/utils/error-message";
  * Loan schedule import screen (v17.6.0, Change 4).
  *
  * Lets the user upload a CSV of their bank's authoritative amortization
- * schedule and apply it as the loan's schedule. Useful when Artha's
+ * schedule and apply it as the loan's schedule. Useful when Arth's
  * formula can't match the bank's exact numbers.
  */
 export default function ImportScheduleScreen() {
@@ -94,7 +94,7 @@ export default function ImportScheduleScreen() {
     if (!id || rows.length === 0) return;
     alert(
       "Replace existing schedule?",
-      "This will overwrite Artha's computed amortization schedule with your CSV.\n\nAny prepayments and manual corrections you've recorded for this loan will be cleared — your CSV becomes the single source of truth for the schedule.",
+      "This will overwrite Arth's computed amortization schedule with your CSV.\n\nAny prepayments and manual corrections you've recorded for this loan will be cleared — your CSV becomes the single source of truth for the schedule.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -119,7 +119,7 @@ export default function ImportScheduleScreen() {
     if (!id || !loan) return;
     alert(
       "Go back to calculated schedule?",
-      "Artha will regenerate the amortization schedule using your loan's rate, tenure, and EMI. Your imported schedule will be lost, but prepayments and corrections will come back.",
+      "Arth will regenerate the amortization schedule using your loan's rate, tenure, and EMI. Your imported schedule will be lost, but prepayments and corrections will come back.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -150,7 +150,7 @@ export default function ImportScheduleScreen() {
       if (schedule.length === 0) {
         alert(
           "No schedule yet",
-          "Save the loan first so Artha can compute a starter schedule. Then come back here and download the template.",
+          "Save the loan first so Arth can compute a starter schedule. Then come back here and download the template.",
         );
         return;
       }
@@ -241,7 +241,7 @@ export default function ImportScheduleScreen() {
                   className="text-xs mt-0.5"
                   style={{ color: colors.textSecondary }}
                 >
-                  Artha is treating your CSV as the source of truth. Uploading a new one replaces it. Revert to calculated schedule any time.
+                  Arth is treating your CSV as the source of truth. Uploading a new one replaces it. Revert to calculated schedule any time.
                 </Text>
               </View>
             </View>
@@ -250,7 +250,7 @@ export default function ImportScheduleScreen() {
 
         <Card title="How this works" className="mb-4">
           <Text className="text-sm text-text-primary dark:text-text-dark-primary mb-2">
-            Upload a CSV of your loan's schedule from the bank. Artha will use those numbers instead of the calculated ones.
+            Upload a CSV of your loan's schedule from the bank. Arth will use those numbers instead of the calculated ones.
           </Text>
           <Text
             className="text-xs mt-2"
@@ -273,7 +273,7 @@ export default function ImportScheduleScreen() {
             className="text-xs mt-2"
             style={{ color: colors.textSecondary }}
           >
-            Dates must be in YYYY-MM-DD. Amounts can include ₹ / Rs. / commas — Artha will strip them.
+            Dates must be in YYYY-MM-DD. Amounts can include ₹ / Rs. / commas — Arth will strip them.
           </Text>
         </Card>
 
@@ -302,7 +302,7 @@ export default function ImportScheduleScreen() {
                 className="text-xs"
                 style={{ color: colors.textSecondary }}
               >
-                Pre-filled with Artha's current schedule. Edit amounts in a spreadsheet, then re-import.
+                Pre-filled with Arth's current schedule. Edit amounts in a spreadsheet, then re-import.
               </Text>
             </View>
             <Ionicons

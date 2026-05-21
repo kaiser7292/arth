@@ -1,7 +1,7 @@
 ---
 title: Duplicate expenses
 slug: duplicate-detection
-summary: When two SMS land for the same transaction, Artha groups them and lets you resolve the group in one tap.
+summary: When two SMS land for the same transaction, Arth groups them and lets you resolve the group in one tap.
 tags: [duplicates, merge, sms, cleanup, review]
 contextKeys: [duplicates-list, settings-duplicates, review-queue]
 phrasings:
@@ -11,13 +11,13 @@ phrasings:
   - Merge duplicate expenses
   - My bank sent two SMS for one payment
   - Credit card bill showing twice
-  - How does Artha detect duplicates?
+  - How does Arth detect duplicates?
   - Dismiss a duplicate group
   - Restore a dismissed duplicate
   - Where are my duplicates listed?
 ---
 
-Banks often send more than one SMS for the same transaction — one from the card issuer, another from the merchant network, or one for "amount due" and another for the actual debit. Artha groups these so you can approve the real one and reject the rest in a single step.
+Banks often send more than one SMS for the same transaction — one from the card issuer, another from the merchant network, or one for "amount due" and another for the actual debit. Arth groups these so you can approve the real one and reject the rest in a single step.
 
 ## Where to find duplicates
 
@@ -25,7 +25,7 @@ Banks often send more than one SMS for the same transaction — one from the car
 - **Settings tab → Duplicate Detection panel** — shows "X groups pending" when there are any.
 - **Settings tab → Backup & Storage → Dismissed Duplicate Groups** — groups you previously marked "Keep both" live here and can be restored.
 
-## How Artha detects duplicates
+## How Arth detects duplicates
 
 Two expenses are grouped when **all four** match:
 - **Same account** (or same card)
@@ -63,10 +63,10 @@ This is the classic duplicate. Keep oldest, reject the other. The kept one enter
 Same thing. Usually the bank SMS is more accurate (has the right merchant name). Tap that one to edit, then reject the UPI app's SMS.
 
 **"A duplicate pair doesn't show up here."**
-Check the four match conditions. If the dates are 4+ days apart or amounts differ by more than ₹5, Artha won't auto-group. Log a manual delete instead.
+Check the four match conditions. If the dates are 4+ days apart or amounts differ by more than ₹5, Arth won't auto-group. Log a manual delete instead.
 
 **"Scanned the same SMS twice."**
-Artha deduplicates incoming SMS before creating expenses (same sender + same body + same timestamp = one row). If you see actual exact-copies, it's more likely two SMS with near-identical text from different providers — that's what duplicate detection handles.
+Arth deduplicates incoming SMS before creating expenses (same sender + same body + same timestamp = one row). If you see actual exact-copies, it's more likely two SMS with near-identical text from different providers — that's what duplicate detection handles.
 
 **"I paid a refund, and now the refund shows up as duplicate of the original."**
 Refunds (credits with `refund_of_expense_id`) are explicitly excluded from duplicate detection. If you're still seeing this, the refund row may not have been linked — open the refund expense and check its "Refund of" row.

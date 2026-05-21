@@ -18,7 +18,7 @@ phrasings:
   - Record a refund already captured
 ---
 
-The review queue is the single screen where you clean up anything Artha couldn't act on automatically — auto-detected expenses waiting for your OK, forecasts that look like they already happened, possible duplicates, and expenses with no category yet.
+The review queue is the single screen where you clean up anything Arth couldn't act on automatically — auto-detected expenses waiting for your OK, forecasts that look like they already happened, possible duplicates, and expenses with no category yet.
 
 ## Where to find it
 
@@ -44,14 +44,14 @@ You can also open it from:
 ## Each section, what it means, what to do
 
 ### Auto-Detected
-SMS entries Artha parsed into an expense or a credit. They are NOT in your ledger yet.
+SMS entries Arth parsed into an expense or a credit. They are NOT in your ledger yet.
 - **Green tick** (per row) → approve. The expense enters your budget, category totals, and account balance.
 - **Red cross** (per row) → reject. The row is kept in the recycle bin for 30 days but does not count anywhere.
 - **Approve All / Reject All** buttons at the top of this section.
 - Tap a row to edit merchant, amount, category, account, or payment mode **before** approving.
 
 ### Matches
-Artha noticed an auto-detected expense that looks like an existing forecast (same merchant, similar amount, near the due date). Three options per match:
+Arth noticed an auto-detected expense that looks like an existing forecast (same merchant, similar amount, near the due date). Three options per match:
 - **Realize** — the forecast is replaced by the realized expense. Use when the forecast predicted this exact payment.
 - **Already captured** — you already logged this manually. Drops the auto-detected copy.
 - **Both different** — they are separate transactions. Keeps both.
@@ -73,7 +73,7 @@ Two or more expenses that look like the same transaction (same amount + same mer
 ### Uncategorized
 Realized, approved expenses that never got a category.
 - **Long-press or tap the checkbox** to select rows. Use **Select All** if everything goes into the same bucket.
-- Tap **Assign Category to N Expense(s)** at the bottom to batch-categorize. After three picks for the same merchant, Artha learns the pattern and future expenses come in pre-categorized.
+- Tap **Assign Category to N Expense(s)** at the bottom to batch-categorize. After three picks for the same merchant, Arth learns the pattern and future expenses come in pre-categorized.
 
 ## Common situations
 
@@ -87,10 +87,10 @@ That's the default. Auto-approval is not offered — every first touch is manual
 If the payment came via SMS, let the "Matches" section handle it (tap "Realize"). If you paid manually, approve the forecast anyway — the amount enters the ledger and the forecast clears.
 
 **"I have 200+ uncategorized from an excel import."**
-Use **Filter chip: Uncategorized** → **Select All** → pick the most common category. Repeat a few times with subsets. Artha does not bulk-categorize by merchant yet, but smart rules (Settings tab → Automation → Smart Rules) can auto-categorize future imports.
+Use **Filter chip: Uncategorized** → **Select All** → pick the most common category. Repeat a few times with subsets. Arth does not bulk-categorize by merchant yet, but smart rules (Settings tab → Automation → Smart Rules) can auto-categorize future imports.
 
 ## Related
-- Read about auto-categorization and how Artha learns: [Categories and how they're decided](categories)
+- Read about auto-categorization and how Arth learns: [Categories and how they're decided](categories)
 - Set up automatic rules for recurring patterns: [Auto-categorize with smart rules](smart-rules)
 - Understand duplicate detection: [Duplicate expenses](duplicate-detection)
 - How SMS parsing works on-device: [How SMS detection works](sms-detection)

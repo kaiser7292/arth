@@ -18,7 +18,7 @@ const BULLETS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body
   {
     icon: "sparkles-outline",
     title: "Auto-detect from SMS",
-    body: "Artha reads your bank SMS to log expenses, find accounts, and spot recurring payments. You review before anything is saved.",
+    body: "Arth reads your bank SMS to log expenses, find accounts, and spot recurring payments. You review before anything is saved.",
   },
   {
     icon: "notifications-outline",
@@ -49,7 +49,7 @@ export default function OnboardingWelcome() {
           अर्थ
         </Text>
         <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mb-3">
-          Welcome to Artha
+          Welcome to Arth
         </Text>
         <Text className="text-base text-text-secondary dark:text-text-dark-secondary mb-6 leading-6">
           A private finance tracker that respects your data and your time.

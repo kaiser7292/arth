@@ -15,14 +15,14 @@ phrasings:
   - Set fiscal year start month
   - April March fiscal year India
   - Rupee symbol wrong
-  - Dollar sign Artha
+  - Dollar sign Arth
   - UI region screen
   - UI currency picker
   - Preferences card
   - Locale settings
 ---
 
-Artha has one locale / preferences screen that controls all display formatting: currency symbol, number grouping, date format, and fiscal-year start month.
+Arth has one locale / preferences screen that controls all display formatting: currency symbol, number grouping, date format, and fiscal-year start month.
 
 > This is **display-only**. Changing your currency to USD does not convert existing ₹ amounts — it just changes the symbol shown everywhere. Per-transaction currency and FX conversion are not supported (see "What's not supported" below).
 

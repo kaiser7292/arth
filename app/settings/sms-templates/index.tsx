@@ -21,7 +21,7 @@ import { StatusColors } from "@/constants/theme";
  *
  * Changes since v15.6.x:
  *   - "Browse unrecognised SMS" header is ALWAYS visible, not only when count>0.
- *     Shows the count inline so the user can see at a glance whether Artha has
+ *     Shows the count inline so the user can see at a glance whether Arth has
  *     SMS waiting to be taught.
  *   - Each template card has a "Diagnose" action that runs the regex against
  *     the last 30 days of SMS and reports how many it would match + sample
@@ -117,7 +117,7 @@ export default function SmartSmsTemplatesListScreen() {
         }
         if (scanned === 0) {
           lines.push("");
-          lines.push("No SMS from this bank in the last 30 days — Artha will match it once one arrives.");
+          lines.push("No SMS from this bank in the last 30 days — Arth will match it once one arrives.");
         }
         alert(`Diagnose: ${tpl.template_id ?? tpl.bank_name}`, lines.join("\n"));
       } catch (e) {
@@ -134,7 +134,7 @@ export default function SmartSmsTemplatesListScreen() {
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
           <Text className="text-xs text-text-tertiary">
-            Teach Artha to read SMS from any bank by pasting a sample and tapping the amount, merchant, and card number. Your templates are device-local.
+            Teach Arth to read SMS from any bank by pasting a sample and tapping the amount, merchant, and card number. Your templates are device-local.
           </Text>
         </View>
 
@@ -170,8 +170,8 @@ export default function SmartSmsTemplatesListScreen() {
                     </Text>
                     <Text className="text-xs text-text-tertiary mt-0.5">
                       {unrecognisedCount > 0
-                        ? "Last 30 days of bank SMS that didn't parse. Tap any to teach Artha."
-                        : "Artha has read every bank SMS from the last 30 days."}
+                        ? "Last 30 days of bank SMS that didn't parse. Tap any to teach Arth."
+                        : "Arth has read every bank SMS from the last 30 days."}
                     </Text>
                   </View>
                   <Ionicons
@@ -270,7 +270,7 @@ export default function SmartSmsTemplatesListScreen() {
                   No templates yet
                 </Text>
                 <Text className="text-sm text-text-tertiary text-center mt-2">
-                  If your bank's SMS isn't being detected, tap the button below to teach Artha how to read it.
+                  If your bank's SMS isn't being detected, tap the button below to teach Arth how to read it.
                 </Text>
               </View>
             }
@@ -280,7 +280,7 @@ export default function SmartSmsTemplatesListScreen() {
         <FAB
           icon="add"
           onPress={() => router.push("/settings/sms-templates/new" as never)}
-          accessibilityLabel="Teach Artha a new SMS"
+          accessibilityLabel="Teach Arth a new SMS"
         />
       </View>
     </ScreenContainer>

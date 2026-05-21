@@ -330,7 +330,7 @@ export async function createBackup(password: string): Promise<BackupResult> {
       .toISOString()
       .replace(/[:.]/g, "-")
       .slice(0, 19);
-    const fileName = `artha-backup-${sanitizeFilename(timestamp)}.artha`;
+    const fileName = `arth-backup-${sanitizeFilename(timestamp)}.arth`;
     const backupFile = new File(Paths.cache, fileName);
     await backupFile.write(arrayToBase64(fileData));
 
@@ -410,7 +410,7 @@ export async function saveBackupToStorage(
     sourcePath: filePath,
     encoding: "utf8",
     mimeType: "application/octet-stream",
-    fileName: filePath.split("/").pop() ?? "artha-backup.artha",
+    fileName: filePath.split("/").pop() ?? "arth-backup.arth",
     deleteSourceOnSuccess: true,
   });
 }
@@ -424,7 +424,7 @@ const MAX_BACKUP_FILE_SIZE = 50 * 1024 * 1024;
 
 /**
  * Pick a backup file from the device.
- * Validates file extension (.artha) and size (max 50 MB).
+ * Validates file extension (.arth) and size (max 50 MB).
  */
 export interface PickedBackupFile {
   uri: string;
@@ -448,8 +448,8 @@ export async function pickAndValidateBackupFile(): Promise<PickedBackupFile | nu
 
   // Validate extension
   const ext = asset.name.toLowerCase().match(/\.[^.]+$/)?.[0] ?? "";
-  if (ext !== ".artha") {
-    throw new Error(`Unsupported file type "${ext}". Only .artha backup files are accepted.`);
+  if (ext !== ".arth" && ext !== ".artha") {
+    throw new Error(`Unsupported file type "${ext}". Only .arth backup files are accepted.`);
   }
 
   // Validate file size

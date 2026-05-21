@@ -1,7 +1,7 @@
 ---
 title: Month-end projection — how we forecast your spend
 slug: projection-math
-summary: How Artha projects where you'll land at the end of the month on the Budget and Insights screens, and why the two screens show the same numbers.
+summary: How Arth projects where you'll land at the end of the month on the Budget and Insights screens, and why the two screens show the same numbers.
 tags: [projection, forecast, month-end, budget, insights, analytics, daily-pace, fixed, variable, confidence, spending]
 contextKeys: [budget-home, insights-home, insights-forecast]
 phrasings:
@@ -57,7 +57,7 @@ Each piece is explained below, with a worked example.
 
 ## Fixed spend — two buckets
 
-Fixed spend is anything predictable that repeats every month. Artha splits it into two buckets:
+Fixed spend is anything predictable that repeats every month. Arth splits it into two buckets:
 
 - **Fixed done** — the sum of fixed-category expenses **already paid** this month (in your expense list).
 - **Fixed pending** — the sum of **active reminders** with a `next_due_date` falling in the current month that haven't been paid yet. Every active reminder counts exactly once.
@@ -70,7 +70,7 @@ Fixed spend is anything predictable that repeats every month. Artha splits it in
 
 ## Variable spend — daily pace
 
-Everything that isn't "fixed" is variable. Artha doesn't predict specific future variable transactions — it simply averages your current pace.
+Everything that isn't "fixed" is variable. Arth doesn't predict specific future variable transactions — it simply averages your current pace.
 
 The math, step by step:
 
@@ -97,7 +97,7 @@ If your monthly budget is ₹1,10,000, your **breathing room** is +₹4,600 (pro
 
 ## Confidence — how much to trust the projection
 
-Artha labels every projection as **Low**, **Medium**, or **High** confidence:
+Arth labels every projection as **Low**, **Medium**, or **High** confidence:
 
 - **Low** — first 7 days of the month, OR fewer than 5 variable transactions so far. Daily pace doesn't have enough signal yet.
 - **Medium** — 8–15 days elapsed, OR under 15 transactions. Pace is reasonable but can still shift.
@@ -119,7 +119,7 @@ Both the Budget tab's projection widget and the Insights forecast card call the 
 
 **I marked a reminder as paid. Is it still in fixed pending?** No — once a reminder is fulfilled (linked to a real expense), it moves into fixed done automatically.
 
-**The projection says I'll save ₹5,000 but my gut says I'll overspend.** Your gut might be counting a one-off (a trip, a gift) that Artha can't know about. Projections assume the rest of the month looks like the days elapsed so far.
+**The projection says I'll save ₹5,000 but my gut says I'll overspend.** Your gut might be counting a one-off (a trip, a gift) that Arth can't know about. Projections assume the rest of the month looks like the days elapsed so far.
 
 ## Related
 

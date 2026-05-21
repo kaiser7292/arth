@@ -314,7 +314,7 @@ export default function AddLoanScreen() {
               containerClassName="mb-3"
             />
             <Text className="text-xs text-text-secondary dark:text-text-dark-secondary -mt-2 mb-3">
-              Used to match bank EMI reminders to this loan. If Artha already auto-detected this loan from an SMS, typing the same digits will merge the two cards.
+              Used to match bank EMI reminders to this loan. If Arth already auto-detected this loan from an SMS, typing the same digits will merge the two cards.
             </Text>
             <Input
               label="Agreement ID (optional)"
@@ -467,7 +467,7 @@ export default function AddLoanScreen() {
           {/* v17.5.0 — Historical: how many EMIs already paid? */}
           <Card title="Already in progress?" className="mb-4">
             <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
-              If this loan isn't brand new, how many EMIs have you already paid? Artha will mark those installments as paid so the outstanding principal matches reality.
+              If this loan isn't brand new, how many EMIs have you already paid? Arth will mark those installments as paid so the outstanding principal matches reality.
             </Text>
             <Input
               label="EMIs paid so far"

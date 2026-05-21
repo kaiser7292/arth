@@ -119,7 +119,7 @@ export default function PasteSmsScreen() {
                   Resume unfinished template?
                 </Text>
                 <Text className="text-xs text-text-tertiary mt-0.5">
-                  You started teaching Artha an SMS earlier but didn't save. Continue where you left off, or discard and start over.
+                  You started teaching Arth an SMS earlier but didn't save. Continue where you left off, or discard and start over.
                 </Text>
                 <View className="flex-row mt-2" style={{ gap: 8 }}>
                   <Pressable
@@ -148,10 +148,10 @@ export default function PasteSmsScreen() {
 
         <Card className="mb-4">
           <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mb-2">
-            Paste an SMS Artha couldn't read
+            Paste an SMS Arth couldn't read
           </Text>
           <Text className="text-xs text-text-tertiary mb-3">
-            Copy the raw SMS from your Messages app. Include the whole body so Artha can learn the format.
+            Copy the raw SMS from your Messages app. Include the whole body so Arth can learn the format.
           </Text>
           <TextInput
             multiline
@@ -179,7 +179,7 @@ export default function PasteSmsScreen() {
         </Card>
 
         <Text className="text-xs text-text-tertiary px-2">
-          ⚠️ The SMS body is stored on your device with the template so Artha can show it back to you later. If the SMS contains sensitive details (full account numbers, OTPs), remove them before pasting.
+          ⚠️ The SMS body is stored on your device with the template so Arth can show it back to you later. If the SMS contains sensitive details (full account numbers, OTPs), remove them before pasting.
         </Text>
       </ScrollView>
     </ScreenContainer>

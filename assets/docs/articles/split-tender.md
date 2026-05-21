@@ -1,7 +1,7 @@
 ---
 title: Split-tender purchases
 slug: split-tender
-summary: One purchase paid across up to three payment methods. Artha keeps all legs linked as one purchase.
+summary: One purchase paid across up to three payment methods. Arth keeps all legs linked as one purchase.
 tags: [split-tender, purchase, multi-card, checkout, multi-payment]
 contextKeys: [expense-add, expense-detail, split-tender]
 phrasings:
@@ -17,7 +17,7 @@ phrasings:
 
 Split-tender is when **one purchase** was paid using more than one method. Classic examples: ₹600 of a ₹1,500 Amazon order with a gift card + the rest on a credit card. Or ₹2,000 paid on credit card + ₹500 in cash at a restaurant.
 
-Artha treats each payment leg as its own expense but keeps them linked — you can see "this is one purchase across 3 payments" whenever you open any leg.
+Arth treats each payment leg as its own expense but keeps them linked — you can see "this is one purchase across 3 payments" whenever you open any leg.
 
 **Cap:** 3 legs per purchase.
 
@@ -45,7 +45,7 @@ If you already logged a ₹1,500 expense on one card but meant to split it:
 2. Tap **Edit**.
 3. Tap **+ Add payment method**.
 4. Enter the second leg's amount/account/mode.
-5. Artha auto-subtracts from the first leg: if original was ₹1,500 and you entered a ₹500 second leg, the first leg becomes ₹1,000.
+5. Arth auto-subtracts from the first leg: if original was ₹1,500 and you entered a ₹500 second leg, the first leg becomes ₹1,000.
 6. Tap **Update Purchase**.
 
 ## Open / edit a leg

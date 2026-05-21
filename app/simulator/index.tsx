@@ -234,7 +234,7 @@ export default function SimulatorListScreen() {
               Plan your next month
             </Text>
             <Text className="text-sm text-center mt-2 leading-5" style={{ color: colors.textSecondary }}>
-              Add outgoings and incomings you expect; Artha projects where your
+              Add outgoings and incomings you expect; Arth projects where your
               balances will land. Your real ledger is never touched.
             </Text>
             <Pressable

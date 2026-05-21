@@ -28,7 +28,7 @@ phrasings:
   - Change budget cap for a category
 ---
 
-Budgets are monthly caps per category. Artha tracks actual spend against each cap and shows a progress bar that turns red when you're over.
+Budgets are monthly caps per category. Arth tracks actual spend against each cap and shows a progress bar that turns red when you're over.
 
 ## Where to find it
 
@@ -75,7 +75,7 @@ This is separate from your **fiscal year** (Settings tab → Fiscal Year) — FY
 Likely in the Review Queue. Open **Home → Review Queue**, approve the expense, budget updates.
 
 **"I over-spent. How do I carry the overage forward?"**
-Artha doesn't auto-carry. Deliberately lower next month's cap by the overage amount if you want that behavior.
+Arth doesn't auto-carry. Deliberately lower next month's cap by the overage amount if you want that behavior.
 
 **"Does the forecast for rent show up?"**
 Forecast rows have a "FORECAST" pill and are grey — they don't inflate actuals. When the real rent SMS arrives and you approve it (or tap "Realize" on the match), the forecast goes away and the real expense counts.

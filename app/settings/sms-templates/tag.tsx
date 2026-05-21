@@ -432,12 +432,12 @@ export default function TagSmsTemplateScreen() {
     if (!effectiveSenderPattern) {
       alert(
         "Sender ID required",
-        "Paste the SMS sender ID (e.g. VM-HDFCBK-S, AD-MYTNEU-T) so Artha knows which incoming SMSes this template should handle.",
+        "Paste the SMS sender ID (e.g. VM-HDFCBK-S, AD-MYTNEU-T) so Arth knows which incoming SMSes this template should handle.",
       );
       return;
     }
     if (!bankName.trim()) {
-      alert("Bank / Wallet name required", "Give this template a short name — Artha will label matching expenses with it.");
+      alert("Bank / Wallet name required", "Give this template a short name — Arth will label matching expenses with it.");
       return;
     }
     if (spans.length === 0) {
@@ -445,7 +445,7 @@ export default function TagSmsTemplateScreen() {
       return;
     }
     if (!spans.some((s) => s.field === "amount")) {
-      alert("Amount is required", "Every template needs the amount tagged — otherwise Artha can't tell what the transaction is worth.");
+      alert("Amount is required", "Every template needs the amount tagged — otherwise Arth can't tell what the transaction is worth.");
       return;
     }
     // v15.13.0: validate manual regex if in manual mode — compile from spans
@@ -728,7 +728,7 @@ export default function TagSmsTemplateScreen() {
             autoCapitalize="characters"
           />
           <Text className="text-[11px] text-text-tertiary mt-1 mb-2">
-            Copy the sender shown above the SMS in your messages app. Artha will
+            Copy the sender shown above the SMS in your messages app. Arth will
             match future SMSes from the same sender.
           </Text>
 

@@ -472,7 +472,7 @@ export default function SmsScanRunsScreen() {
             >
               <Ionicons name="add-circle-outline" size={14} color={accent[500]} />
               <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
-                Teach Artha this SMS
+                Teach Arth this SMS
               </Text>
             </Pressable>
           )}
