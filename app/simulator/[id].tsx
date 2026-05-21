@@ -15,6 +15,8 @@ import type { HisaabPerson } from "@/services/hisaab";
 import { getPersonsByIds } from "@/services/hisaab";
 import type {
     CreateEntryInput,
+    EntryFulfillment,
+    FulfilledSummary,
     ScenarioOverview,
     SimulationEntry,
     UpdateEntryInput
@@ -26,7 +28,9 @@ import {
     deleteScenario,
     dismissEntry,
     duplicateEntry,
-    fulfillEntry,
+    fulfillEntryMulti,
+    getEntryFulfillments,
+    getFulfilledSummary,
     getScenarioOverview,
     rescheduleEntry,
     seedScenarioFromReminders,
@@ -112,6 +116,10 @@ export default function ScenarioDetailScreen() {
   // v16.0.8 — projected-balance drawer, closed by default. Shows all
   // accounts with their remaining balance till horizon date.
   const [expandProjected, setExpandProjected] = useState(false);
+  const [fulfilledSummary, setFulfilledSummary] = useState<FulfilledSummary | null>(null);
+  const [expandSummary, setExpandSummary] = useState(false);
+  const [expandedFulfilledId, setExpandedFulfilledId] = useState<string | null>(null);
+  const [fulfillmentDetails, setFulfillmentDetails] = useState<Record<string, EntryFulfillment[]>>({});
   // v16.0.8 — incoming/outgoing entry sections collapsible.
   const [expandOutgoing, setExpandOutgoing] = useState(false);
   const [expandIncoming, setExpandIncoming] = useState(false);
@@ -128,6 +136,10 @@ export default function ScenarioDetailScreen() {
       try {
         const ov = await getScenarioOverview(id, DEFAULT_USER_ID);
         setOverview(ov);
+        const summary = await getFulfilledSummary(id);
+        setFulfilledSummary(summary);
+        setFulfillmentDetails({});
+        setExpandedFulfilledId(null);
       } finally {
         setLoading(false);
         setRecomputing(false);
@@ -310,8 +322,8 @@ export default function ScenarioDetailScreen() {
   );
 
   const handleFulfill = useCallback(
-    async (entryId: string, expenseId: string) => {
-      await fulfillEntry(entryId, expenseId);
+    async (entryId: string, expenseIds: string[]) => {
+      await fulfillEntryMulti(entryId, expenseIds);
       await load(true);
     },
     [load],
@@ -1146,7 +1158,53 @@ export default function ScenarioDetailScreen() {
           </>
         )}
 
-        {/* Fulfilled entries (collapsed) */}
+        {/* Planned vs Actual summary card */}
+        {fulfilledSummary && fulfilledSummary.entries.length > 0 && (
+          <Card className="mx-4 mt-4">
+            <Text className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: colors.textSecondary }}>
+              Planned vs Actual
+            </Text>
+            <View className="flex-row justify-between">
+              <View>
+                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>Planned</Text>
+                <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(fulfilledSummary.totalPlanned)}</Text>
+              </View>
+              <View className="items-center">
+                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>Actual</Text>
+                <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(fulfilledSummary.totalActual)}</Text>
+              </View>
+              <View className="items-end">
+                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>Variance</Text>
+                <Text className="text-sm font-bold" style={{ color: fulfilledSummary.variance > 0 ? sc.danger : fulfilledSummary.variance < 0 ? sc.success : colors.textSecondary }}>
+                  {fulfilledSummary.variance > 0 ? "+" : ""}{formatAmount(fulfilledSummary.variance)}
+                </Text>
+              </View>
+            </View>
+            <Pressable onPress={() => setExpandSummary(!expandSummary)} className="mt-2 pt-2 border-t border-border-light dark:border-border-dark items-center">
+              <Text className="text-xs font-medium" style={{ color: accent[500] }}>
+                {expandSummary ? "Hide breakdown" : "Show breakdown"}
+              </Text>
+            </Pressable>
+            {expandSummary && (
+              <View className="mt-2">
+                {fulfilledSummary.entries.map((item) => (
+                  <View key={item.entryId} className="flex-row items-center py-1.5 border-t border-border-light dark:border-border-dark">
+                    <Text className="text-xs flex-1" style={{ color: colors.text }} numberOfLines={1}>
+                      {item.description || item.merchant_name || "Entry"}
+                    </Text>
+                    <Text className="text-[10px] w-14 text-right" style={{ color: colors.textSecondary }}>{formatAmount(item.planned)}</Text>
+                    <Text className="text-[10px] w-14 text-right" style={{ color: colors.text }}>{formatAmount(item.actual)}</Text>
+                    <Text className="text-[10px] w-14 text-right" style={{ color: item.variance > 0 ? sc.danger : item.variance < 0 ? sc.success : colors.textSecondary }}>
+                      {item.variance > 0 ? "+" : ""}{formatAmount(item.variance)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </Card>
+        )}
+
+        {/* Fulfilled entries */}
         {entries.fulfilled.length > 0 && (
           <View className="mt-4">
             <Text
@@ -1155,36 +1213,93 @@ export default function ScenarioDetailScreen() {
             >
               Already happened · {entries.fulfilled.length}
             </Text>
-            {entries.fulfilled.map((e) => (
-              <Pressable
-                key={e.id}
-                onPress={() => handleOpenFulfilledEntry(e)}
-                onLongPress={() => handleEntryLongPress(e)}
-                className="flex-row items-center mx-4 py-2.5 px-3 rounded-xl mb-1"
-                style={{
-                  backgroundColor: colors.surface,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  opacity: 0.75,
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`View fulfilling transaction for ${e.description || e.merchant_name || "planned entry"}`}
-              >
-                <Ionicons name="checkmark-circle" size={16} color={sc.success} />
-                <View className="flex-1 ml-2">
-                  <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
-                    {e.description || e.merchant_name || (e.category_id && categoryNameMap[e.category_id]) || "Planned entry"}
-                  </Text>
-                  <Text className="text-xs" style={{ color: colors.textSecondary }}>
-                    Linked · {prettyDate(e.date)}
-                  </Text>
+            {entries.fulfilled.map((e) => {
+              const isExpanded = expandedFulfilledId === e.id;
+              const details = fulfillmentDetails[e.id];
+              const actualTotal = details ? details.reduce((s, f) => s + f.amount, 0) : null;
+              const entryVariance = actualTotal !== null ? actualTotal - e.amount : null;
+              return (
+                <View key={e.id}>
+                  <Pressable
+                    onPress={async () => {
+                      if (isExpanded) {
+                        setExpandedFulfilledId(null);
+                      } else {
+                        setExpandedFulfilledId(e.id);
+                        if (!fulfillmentDetails[e.id]) {
+                          const d = await getEntryFulfillments(e.id);
+                          setFulfillmentDetails((prev) => ({ ...prev, [e.id]: d }));
+                        }
+                      }
+                    }}
+                    onLongPress={() => handleEntryLongPress(e)}
+                    className="flex-row items-center mx-4 py-2.5 px-3 rounded-xl mb-1"
+                    style={{
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: isExpanded ? accent[500] + "55" : colors.border,
+                      opacity: isExpanded ? 1 : 0.75,
+                    }}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="checkmark-circle" size={16} color={sc.success} />
+                    <View className="flex-1 ml-2">
+                      <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
+                        {e.description || e.merchant_name || (e.category_id && categoryNameMap[e.category_id]) || "Planned entry"}
+                      </Text>
+                      <View className="flex-row items-center mt-0.5">
+                        <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                          Planned: {formatAmount(e.amount)}
+                        </Text>
+                        {entryVariance !== null && entryVariance !== 0 && (
+                          <Text className="text-xs ml-2" style={{ color: entryVariance > 0 ? sc.danger : sc.success }}>
+                            {entryVariance > 0 ? "+" : ""}{formatAmount(entryVariance)}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    {actualTotal !== null ? (
+                      <Text className="text-sm font-semibold mr-1" style={{ color: colors.text }}>
+                        {formatAmount(actualTotal)}
+                      </Text>
+                    ) : (
+                      <Text className="text-sm font-semibold mr-1" style={{ color: colors.text }}>
+                        {formatAmount(e.amount)}
+                      </Text>
+                    )}
+                    <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={14} color={colors.textSecondary} />
+                  </Pressable>
+
+                  {/* Inline expansion: linked transactions */}
+                  {isExpanded && details && (
+                    <View className="mx-4 ml-10 mb-2">
+                      {details.map((f) => (
+                        <Pressable
+                          key={f.id}
+                          onPress={() => router.push({ pathname: "/expense/[id]", params: { id: f.expense_id } } as never)}
+                          className="flex-row items-center py-2 px-2 rounded-lg mb-1"
+                          style={{ backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border }}
+                        >
+                          <Ionicons name="receipt-outline" size={14} color={colors.textSecondary} />
+                          <View className="flex-1 ml-2">
+                            <Text className="text-xs" style={{ color: colors.text }} numberOfLines={1}>
+                              {f.merchant_name || f.description || "Transaction"}
+                            </Text>
+                            <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                              {prettyDate(f.date)}
+                            </Text>
+                          </View>
+                          <Text className="text-xs font-semibold" style={{ color: colors.text }}>
+                            {formatAmount(f.amount)}
+                          </Text>
+                          <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
                 </View>
-                <Text className="text-sm font-semibold mr-2" style={{ color: colors.text }}>
-                  {formatAmount(e.amount)}
-                </Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-              </Pressable>
-            ))}
+              );
+            })}
           </View>
         )}
       </ScrollView>

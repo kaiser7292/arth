@@ -15,13 +15,6 @@ import { CalendarModal } from "@/components/ui/CalendarModal";
 import type { SimulationEntry } from "@/services/simulator";
 import { getDatabase } from "@/database";
 
-/**
- * Resolve a stale entry. Three actions:
- *   - Reschedule (pick a new future date)
- *   - It happened — link to a real transaction from the last 7 days
- *   - Remove (dismiss)
- */
-
 interface Candidate {
   id: string;
   date: string;
@@ -35,7 +28,7 @@ interface Props {
   entry: SimulationEntry | null;
   userId: string;
   onReschedule: (entryId: string, newDate: string) => void | Promise<void>;
-  onLinkFulfillment: (entryId: string, expenseId: string) => void | Promise<void>;
+  onLinkFulfillment: (entryId: string, expenseIds: string[]) => void | Promise<void>;
   onRemove: (entryId: string) => void | Promise<void>;
   onClose: () => void;
 }
@@ -53,8 +46,8 @@ export function StaleEntryResolveSheet({
   visible,
   entry,
   userId,
-  onReschedule,
   onLinkFulfillment,
+  onReschedule,
   onRemove,
   onClose,
 }: Props) {
@@ -65,10 +58,12 @@ export function StaleEntryResolveSheet({
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [reschedulePickerVisible, setReschedulePickerVisible] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!visible) return;
     setMode("root");
+    setSelectedIds(new Set());
     slideAnim.value = withTiming(0, { duration: 240 });
   }, [visible, slideAnim]);
 
@@ -82,7 +77,6 @@ export function StaleEntryResolveSheet({
     if (!entry) return;
     setLoadingCandidates(true);
     try {
-      // Fetch recent transactions ± 7 days around the entry's planned date.
       const windowStart = addDays(entry.date, -7);
       const windowEnd = addDays(todayIso(), 1);
       const db = getDatabase();
@@ -95,7 +89,7 @@ export function StaleEntryResolveSheet({
            AND date >= ?
            AND date <= ?
          ORDER BY ABS(amount - ?) ASC, ABS(julianday(date) - julianday(?)) ASC
-         LIMIT 20;`,
+         LIMIT 30;`,
         userId,
         windowStart,
         windowEnd,
@@ -112,11 +106,6 @@ export function StaleEntryResolveSheet({
     if (mode === "link") void loadCandidates();
   }, [mode, loadCandidates]);
 
-  // v16.0.1 — hooks order fix: useAnimatedStyle must run on every render to
-  // keep the hook count stable. Early-returning `null` before this hook was
-  // causing "Rendered more hooks than during the previous render" whenever
-  // the sheet toggled visibility. Compute the style unconditionally and bail
-  // out with `null` AFTER all hooks.
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: slideAnim.value }],
   }));
@@ -124,7 +113,21 @@ export function StaleEntryResolveSheet({
   if (!visible || !entry) return null;
 
   const headerLabel =
-    entry.merchant_name || entry.description || (entry.direction === "out" ? "Outgoing" : "Incoming");
+    entry.description || entry.merchant_name || (entry.direction === "out" ? "Outgoing" : "Incoming");
+
+  const selectedTotal = candidates
+    .filter((c) => selectedIds.has(c.id))
+    .reduce((s, c) => s + c.amount, 0);
+  const variance = selectedTotal - entry.amount;
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
     <Modal transparent animationType="none" visible={visible} onRequestClose={handleClose}>
@@ -171,15 +174,14 @@ export function StaleEntryResolveSheet({
               className="flex-row items-center py-3 px-4 rounded-xl mb-2"
               style={{ backgroundColor: ac(accent, colorScheme, 50, 900), borderWidth: 1, borderColor: accent[500] + "55" }}
               accessibilityRole="button"
-              accessibilityLabel="Link to a real transaction"
             >
               <Ionicons name="checkmark-circle-outline" size={20} color={accent[500]} />
               <View className="flex-1 ml-3">
                 <Text className="text-sm font-semibold" style={{ color: colors.text }}>
-                  It happened — link to a real transaction
+                  It happened — link to transactions
                 </Text>
                 <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                  Pick the matching row from your ledger.
+                  Select one or more matching transactions from your ledger.
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
@@ -190,7 +192,6 @@ export function StaleEntryResolveSheet({
               className="flex-row items-center py-3 px-4 rounded-xl mb-2"
               style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
               accessibilityRole="button"
-              accessibilityLabel="Reschedule to a later date"
             >
               <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
               <View className="flex-1 ml-3">
@@ -212,7 +213,6 @@ export function StaleEntryResolveSheet({
               className="flex-row items-center py-3 px-4 rounded-xl"
               style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
               accessibilityRole="button"
-              accessibilityLabel="Remove planned entry"
             >
               <Ionicons name="trash-outline" size={20} color={"#DC2626"} />
               <View className="flex-1 ml-3">
@@ -230,7 +230,7 @@ export function StaleEntryResolveSheet({
         {mode === "link" && (
           <View className="px-5 pb-4">
             <Text className="text-xs mb-2" style={{ color: colors.textSecondary }}>
-              Closest matches from your ledger:
+              Select transactions to link (closest matches shown):
             </Text>
             {loadingCandidates ? (
               <View className="items-center py-6">
@@ -241,38 +241,94 @@ export function StaleEntryResolveSheet({
                 No recent transactions to pick from. Try Reschedule or Remove.
               </Text>
             ) : (
-              <ScrollView style={{ maxHeight: 360 }} nestedScrollEnabled>
-                {candidates.map((c) => (
-                  <Pressable
-                    key={c.id}
-                    onPress={async () => {
-                      await onLinkFulfillment(entry.id, c.id);
-                      handleClose();
-                    }}
-                    className="flex-row items-center py-3 px-3 rounded-lg mb-1.5"
-                    style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-                  >
-                    <View className="flex-1">
-                      <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
-                        {c.merchant || c.description || "Transaction"}
+              <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled>
+                {candidates.map((c) => {
+                  const isSelected = selectedIds.has(c.id);
+                  return (
+                    <Pressable
+                      key={c.id}
+                      onPress={() => toggleSelect(c.id)}
+                      className="flex-row items-center py-3 px-3 rounded-lg mb-1.5"
+                      style={{
+                        backgroundColor: isSelected ? ac(accent, colorScheme, 50, 900) : colors.surface,
+                        borderWidth: 1,
+                        borderColor: isSelected ? accent[500] + "55" : colors.border,
+                      }}
+                    >
+                      <Ionicons
+                        name={isSelected ? "checkbox" : "square-outline"}
+                        size={20}
+                        color={isSelected ? accent[500] : colors.textSecondary}
+                      />
+                      <View className="flex-1 ml-2">
+                        <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
+                          {c.merchant || c.description || "Transaction"}
+                        </Text>
+                        <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                          {prettyDate(c.date)}
+                        </Text>
+                      </View>
+                      <Text className="text-sm font-bold ml-2" style={{ color: colors.text }}>
+                        {formatAmount(c.amount)}
                       </Text>
-                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                        {prettyDate(c.date)}
-                      </Text>
-                    </View>
-                    <Text className="text-sm font-bold ml-2" style={{ color: colors.text }}>
-                      {formatAmount(c.amount)}
-                    </Text>
-                  </Pressable>
-                ))}
+                    </Pressable>
+                  );
+                })}
               </ScrollView>
             )}
+
+            {/* Running total + variance */}
+            {selectedIds.size > 0 && (
+              <View
+                className="mt-3 px-3 py-2.5 rounded-xl"
+                style={{ backgroundColor: ac(accent, colorScheme, 50, 900), borderWidth: 1, borderColor: accent[500] + "33" }}
+              >
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                    Selected: {formatAmount(selectedTotal)} ({selectedIds.size})
+                  </Text>
+                  <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                    Planned: {formatAmount(entry.amount)}
+                  </Text>
+                </View>
+                <View className="flex-row items-center mt-1">
+                  <Ionicons
+                    name={variance > 0 ? "trending-up" : variance < 0 ? "trending-down" : "checkmark-circle"}
+                    size={12}
+                    color={variance > 0 ? "#EF4444" : variance < 0 ? "#22C55E" : colors.textSecondary}
+                  />
+                  <Text
+                    className="text-xs font-semibold ml-1"
+                    style={{ color: variance > 0 ? "#EF4444" : variance < 0 ? "#22C55E" : colors.textSecondary }}
+                  >
+                    {variance === 0 ? "Exact match" : variance > 0 ? `${formatAmount(variance)} over` : `${formatAmount(Math.abs(variance))} under`}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Link Selected button */}
+            {selectedIds.size > 0 && (
+              <Pressable
+                onPress={async () => {
+                  await onLinkFulfillment(entry.id, Array.from(selectedIds));
+                  handleClose();
+                }}
+                className="mt-3 py-3 rounded-xl items-center"
+                style={{ backgroundColor: accent[500] }}
+                accessibilityRole="button"
+              >
+                <Text className="text-sm font-bold text-white">
+                  Link Selected ({selectedIds.size})
+                </Text>
+              </Pressable>
+            )}
+
             <Pressable
-              onPress={() => setMode("root")}
-              className="mt-3 py-2.5 rounded-lg items-center"
+              onPress={() => { setMode("root"); setSelectedIds(new Set()); }}
+              className="mt-2 py-2.5 rounded-lg items-center"
               style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
               accessibilityRole="button"
-              accessibilityLabel="Back to actions"
             >
               <Text className="text-sm" style={{ color: colors.textSecondary }}>
                 Back

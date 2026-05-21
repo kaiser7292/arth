@@ -628,6 +628,13 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "updated_at",
   ] as const,
 
+  simulation_entry_fulfillments: [
+    "id",
+    "entry_id",
+    "expense_id",
+    "created_at",
+  ] as const,
+
   // v17.0.0 — expense → investment bucket link (migration 028)
   expense_investment_links: [
     "id",

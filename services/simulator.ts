@@ -699,16 +699,133 @@ export async function fulfillEntry(
   expenseId: string,
 ): Promise<void> {
   const db = getDatabase();
-  await db.runAsync(
-    `UPDATE simulation_entries
-     SET status = 'fulfilled',
-         fulfilled_expense_id = ?,
-         updated_at = datetime('now')
-     WHERE id = ?;`,
-    expenseId,
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `UPDATE simulation_entries
+       SET status = 'fulfilled',
+           fulfilled_expense_id = ?,
+           updated_at = datetime('now')
+       WHERE id = ?;`,
+      expenseId,
+      entryId,
+    );
+    const id = generateUUID();
+    await db.runAsync(
+      `INSERT OR IGNORE INTO simulation_entry_fulfillments (id, entry_id, expense_id)
+       VALUES (?, ?, ?);`,
+      id, entryId, expenseId,
+    );
+  });
+  bumpDataVersion();
+}
+
+export async function fulfillEntryMulti(
+  entryId: string,
+  expenseIds: string[],
+): Promise<void> {
+  if (expenseIds.length === 0) return;
+  const db = getDatabase();
+  await db.withTransactionAsync(async () => {
+    for (const expenseId of expenseIds) {
+      const id = generateUUID();
+      await db.runAsync(
+        `INSERT OR IGNORE INTO simulation_entry_fulfillments (id, entry_id, expense_id)
+         VALUES (?, ?, ?);`,
+        id, entryId, expenseId,
+      );
+    }
+    await db.runAsync(
+      `UPDATE simulation_entries
+       SET status = 'fulfilled',
+           fulfilled_expense_id = ?,
+           updated_at = datetime('now')
+       WHERE id = ?;`,
+      expenseIds[0],
+      entryId,
+    );
+  });
+  bumpDataVersion();
+}
+
+export interface EntryFulfillment {
+  id: string;
+  expense_id: string;
+  amount: number;
+  date: string;
+  description: string | null;
+  merchant_name: string | null;
+}
+
+export async function getEntryFulfillments(entryId: string): Promise<EntryFulfillment[]> {
+  const db = getDatabase();
+  const links = await db.getAllAsync<{ id: string; expense_id: string }>(
+    `SELECT id, expense_id FROM simulation_entry_fulfillments WHERE entry_id = ?;`,
     entryId,
   );
-  bumpDataVersion();
+  if (links.length === 0) {
+    const entry = await db.getFirstAsync<{ fulfilled_expense_id: string | null }>(
+      `SELECT fulfilled_expense_id FROM simulation_entries WHERE id = ?;`,
+      entryId,
+    );
+    if (!entry?.fulfilled_expense_id) return [];
+    const exp = await db.getFirstAsync<{ amount: number; date: string; description: string | null; merchant_name: string | null }>(
+      `SELECT amount, date, description, merchant_name FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
+      entry.fulfilled_expense_id,
+    );
+    if (exp) return [{ id: "legacy", expense_id: entry.fulfilled_expense_id, ...exp }];
+    return [];
+  }
+  const results: EntryFulfillment[] = [];
+  for (const link of links) {
+    const exp = await db.getFirstAsync<{ amount: number; date: string; description: string | null; merchant_name: string | null }>(
+      `SELECT amount, date, description, merchant_name FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
+      link.expense_id,
+    );
+    if (exp) {
+      results.push({ id: link.id, expense_id: link.expense_id, ...exp });
+    }
+  }
+  return results;
+}
+
+export interface FulfilledSummary {
+  totalPlanned: number;
+  totalActual: number;
+  variance: number;
+  entries: Array<{
+    entryId: string;
+    planned: number;
+    actual: number;
+    variance: number;
+    description: string | null;
+    merchant_name: string | null;
+  }>;
+}
+
+export async function getFulfilledSummary(scenarioId: string): Promise<FulfilledSummary> {
+  const db = getDatabase();
+  const fulfilled = await db.getAllAsync<SimulationEntry>(
+    `SELECT * FROM simulation_entries WHERE scenario_id = ? AND status = 'fulfilled';`,
+    scenarioId,
+  );
+  let totalPlanned = 0;
+  let totalActual = 0;
+  const entries: FulfilledSummary["entries"] = [];
+  for (const entry of fulfilled) {
+    const fulfillments = await getEntryFulfillments(entry.id);
+    const actual = fulfillments.reduce((s, f) => s + f.amount, 0);
+    totalPlanned += entry.amount;
+    totalActual += actual;
+    entries.push({
+      entryId: entry.id,
+      planned: entry.amount,
+      actual,
+      variance: actual - entry.amount,
+      description: entry.description,
+      merchant_name: entry.merchant_name,
+    });
+  }
+  return { totalPlanned, totalActual, variance: totalActual - totalPlanned, entries };
 }
 
 export async function dismissEntry(entryId: string): Promise<void> {

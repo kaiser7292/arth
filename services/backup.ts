@@ -117,6 +117,8 @@ const BACKUP_TABLES = [
   "simulation_entries",
   // v16.0.5 — per-scenario hisaab inclusions (FK to scenarios).
   "simulation_hisaab_inclusions",
+  // v1.1.0 — multi-link fulfillments (entry → many expenses). FK to simulation_entries.
+  "simulation_entry_fulfillments",
   // v17.0.0 — expense→investment-bucket links. Depends on expenses + investment_buckets
   // (both listed earlier). ON DELETE CASCADE means orphans can't survive anyway.
   "expense_investment_links",
