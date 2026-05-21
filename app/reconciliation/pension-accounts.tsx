@@ -13,11 +13,13 @@ import { getCurrentMonth } from "@/services/budget";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getAccountLatestStaleCheckDates, getActiveAccounts } from "@/services/financial-account";
 import { consumePensionAccountsPreload } from "@/services/home-preload";
+import { getFYStartMonth } from "@/services/settings";
 import { acAlpha } from "@/utils/accent";
 import { getMonthDateRange } from "@/utils/budget-helpers";
+import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
@@ -41,6 +43,8 @@ export default function PensionAccountsScreen() {
   const [summaries, setSummaries] = useState<AccountSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
+  const [ytdCredits, setYtdCredits] = useState(0);
+  const [ytdPerAccount, setYtdPerAccount] = useState<Record<string, number>>({});
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
@@ -92,6 +96,21 @@ export default function PensionAccountsScreen() {
       );
 
       setSummaries(results);
+
+      // YTD contributions: FY start → end of viewed month
+      const fyStartMonth = getFYStartMonth();
+      const fy = getCurrentFY(fyStartMonth, new Date(`${month}-01`));
+      const fyRange = getFYRange(fy, fyStartMonth);
+      const fyStart = `${fyRange.start.getFullYear()}-${String(fyRange.start.getMonth() + 1).padStart(2, "0")}-01`;
+      let ytdTotal = 0;
+      const ytdMap: Record<string, number> = {};
+      for (const { account } of results) {
+        const acctYtd = await getAccountCreditsTotal(account.id, fyStart, endDate);
+        ytdMap[account.id] = acctYtd;
+        ytdTotal += acctYtd;
+      }
+      setYtdCredits(ytdTotal);
+      setYtdPerAccount(ytdMap);
     }, [month, startDate, endDate]),
   );
 
@@ -104,23 +123,6 @@ export default function PensionAccountsScreen() {
     if (!latest) return s.account.last_balance_date;
     return s.account.last_balance_date > latest ? s.account.last_balance_date : latest;
   }, null as string | null);
-
-  // YTD contributions — sum credits from Indian FY start (April 1st) to today
-  const [ytdCredits, setYtdCredits] = useState(0);
-  useFocusEffect(
-    useCallback(async () => {
-      const now = new Date();
-      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-      const fyStart = `${fyYear}-04-01`;
-      const today = now.toISOString().split("T")[0];
-      const accounts = summaries.map((s) => s.account);
-      let total = 0;
-      for (const acct of accounts) {
-        total += await getAccountCreditsTotal(acct.id, fyStart, today);
-      }
-      setYtdCredits(total);
-    }, [summaries]),
-  );
 
   return (
     <ScreenContainer padTop={false}>
@@ -246,11 +248,10 @@ export default function PensionAccountsScreen() {
                   </Text>
                 </View>
               )}
-              {/* YTD contributions - simplified placeholder */}
               <View className="flex-row justify-between mb-1">
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">YTD Contributions</Text>
-                <Text className="text-sm font-semibold" style={{ color: credits > 0 ? sc.success : colors.text }}>
-                  {formatAmount(credits)}
+                <Text className="text-sm font-semibold" style={{ color: (ytdPerAccount[account.id] ?? 0) > 0 ? sc.success : colors.text }}>
+                  {formatAmount(ytdPerAccount[account.id] ?? 0)}
                 </Text>
               </View>
               {/* Auto-detected (SMS) balance — crossed out when stale */}

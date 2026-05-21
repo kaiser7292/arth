@@ -19,7 +19,7 @@ import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useForecastActions } from "@/hooks/use-forecast-actions";
-import { getAccountCreditsTotal, getComputedBalances, getCurrentBalance } from "@/services/account-balance";
+import { getAccountCreditsTotal, getComputedBalances, computeUnseededBalance } from "@/services/account-balance";
 import { getBudgetsForMonth, getCurrentMonth } from "@/services/budget";
 import { scanAllDuplicatesCached } from "@/services/duplicate-detection";
 import type { Expense } from "@/services/expense";
@@ -45,7 +45,8 @@ import {
     detectBreaches,
     unacknowledgedBreaches,
 } from "@/services/min-balance";
-import { bumpDataVersion, dismissBackupWarning, shouldShowBackupWarning } from "@/services/settings";
+import { bumpDataVersion, dismissBackupWarning, getFYStartMonth, shouldShowBackupWarning } from "@/services/settings";
+import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
 import { getLastAutoScanRun, getSmsScanAccountIds, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
 import { ac, acAlpha } from "@/utils/accent";
 import {
@@ -151,13 +152,11 @@ export default function HomeScreen() {
       const allIds = allAccounts.map((a) => a.id);
       const balances = await getComputedBalances(allIds);
 
-      // Pension accounts may not have an opening row in account_month_balances
-      // for the current month (getComputedBalances returns null for those).
-      // Fall back to getCurrentBalance which chains from the previous month.
       const pensionAccts = allAccounts.filter((a) => a.account_type === "pension");
       for (const p of pensionAccts) {
         if (balances[p.id] === null || balances[p.id] === undefined) {
-          balances[p.id] = await getCurrentBalance(p.id);
+          const unseeded = await computeUnseededBalance(p.id, month);
+          balances[p.id] = unseeded.closing;
         }
       }
 
@@ -199,21 +198,19 @@ export default function HomeScreen() {
       let lastContributionDate: string | null = null;
       let ytdCredits = 0;
 
-      // Get financial year start (April 1st for Indian FY)
-      const now = new Date();
-      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-      const fyStart = `${fyYear}-04-01`;
+      const fyStartMonth = getFYStartMonth();
+      const fy = getCurrentFY(fyStartMonth);
+      const fyRange = getFYRange(fy, fyStartMonth);
+      const fyStart = `${fyRange.start.getFullYear()}-${String(fyRange.start.getMonth() + 1).padStart(2, "0")}-01`;
 
       for (const acct of pensionAccts) {
         const credits = await getAccountCreditsTotal(acct.id, startDate, endDate);
         pensionCreditTotalsMap[acct.id] = credits;
 
-        // Track last contribution date
         if (acct.last_balance_date && (!lastContributionDate || acct.last_balance_date > lastContributionDate)) {
           lastContributionDate = acct.last_balance_date;
         }
 
-        // Calculate YTD contributions
         const ytdCreditsForAcct = await getAccountCreditsTotal(acct.id, fyStart, today);
         ytdCredits += ytdCreditsForAcct;
       }

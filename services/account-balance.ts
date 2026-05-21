@@ -1075,7 +1075,12 @@ export async function adjustAccountAvailable(params: {
     }
   } else {
     const summary = await getMonthBalanceSummary(params.accountId, month);
-    if (summary) currentClosing = summary.closing_balance;
+    if (summary) {
+      currentClosing = summary.closing_balance;
+    } else {
+      const unseeded = await computeUnseededBalance(params.accountId, month);
+      currentClosing = unseeded.closing;
+    }
   }
 
   // Desired closing:
