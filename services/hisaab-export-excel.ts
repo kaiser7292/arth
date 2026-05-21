@@ -193,9 +193,11 @@ export async function generatePersonExcel(
   // Closing balance row
   stmtRows.push(["", "CLOSING BALANCE", "", "", "", "", "", "", balanceLabel(closingBalance)]);
 
-  // Blank row + legend
+  // Blank row + legend + branding
   stmtRows.push([]);
-  stmtRows.push(["Note: Dr (Debit) = amount spent on your behalf. Cr (Credit) = amount you paid back or settled. Positive balance (Dr) = amount owed to you."]);
+  stmtRows.push(["Note: Dr (Debit) = they owe you more. Cr (Credit) = you paid them back. Balance Dr = net amount they owe you. Balance Cr = net amount you owe them."]);
+  stmtRows.push([]);
+  stmtRows.push(["Arth — Your Finance, Your Way | Created by Sourav Baid"]);
 
   const stmtSheet = XLSX.utils.aoa_to_sheet(stmtRows);
 

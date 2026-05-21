@@ -73,7 +73,10 @@ function statementStyles(): string {
     .stmt-container { padding: 28px 24px; }
 
     /* Header */
-    .stmt-header { background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%); color: white; padding: 24px 28px; margin: -28px -24px 24px; }
+    .stmt-header { background: linear-gradient(135deg, #134E4A 0%, #0F766E 100%); color: white; padding: 24px 28px; margin: -28px -24px 24px; }
+    .stmt-header .brand { display: flex; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+    .stmt-header .brand-name { font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+    .stmt-header .brand-tagline { font-size: 9px; opacity: 0.7; margin-left: 10px; letter-spacing: 0.3px; }
     .stmt-header h1 { font-size: 18px; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px; }
     .stmt-header .subtitle { font-size: 11px; opacity: 0.7; margin-bottom: 12px; }
     .stmt-header .meta { display: flex; justify-content: space-between; margin-top: 8px; }
@@ -221,6 +224,10 @@ function personStatementHtml(
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${statementStyles()}</style></head><body>
     <div class="stmt-container">
       <div class="stmt-header">
+        <div class="brand">
+          <span class="brand-name">Arth</span>
+          <span class="brand-tagline">Your Finance, Your Way</span>
+        </div>
         <h1>HISAAB STATEMENT</h1>
         <div class="subtitle">Account of: ${htmlEscape(name)}</div>
         <div class="meta">
@@ -296,12 +303,12 @@ function personStatementHtml(
       ` : `<p class="empty">No transactions in this period.</p>`}
 
       <div class="legend">
-        <strong>Dr (Debit)</strong> = amount spent on your behalf · <strong>Cr (Credit)</strong> = amount you paid back · <strong>Settlement</strong> = partial/full payment to settle dues<br>
-        Positive balance (Dr) = amount owed to you · Negative balance (Cr) = amount you owe
+        <strong>Dr (Debit)</strong> = they spent on your behalf / they owe you more · <strong>Cr (Credit)</strong> = you paid them back / settled dues<br>
+        <strong>Balance Dr</strong> = net amount they owe you · <strong>Balance Cr</strong> = net amount you owe them · <strong>Nil</strong> = settled
       </div>
 
       <div class="stmt-footer">
-        <span class="app-name">Artha (अर्थ)</span> · Generated on ${today}
+        <span class="app-name">Arth</span> · Your Finance, Your Way · Created by Sourav Baid · Generated on ${today}
       </div>
     </div>
   </body></html>`;
