@@ -457,10 +457,16 @@ export default function SmsScanRunsScreen() {
           )}
 
           {/* Teach action for unrecognized */}
-          {detail.category === "unrecognized" && (
+          {detail.category === "unrecognized" && detail.sms_body_preview && (
             <Pressable
               onPress={() => {
-                router.push("/settings/sms-templates/unrecognised" as never);
+                router.push({
+                  pathname: "/settings/sms-templates/new",
+                  params: {
+                    prefilledBody: detail.sms_body_preview!,
+                    senderAddress: detail.sms_address ?? undefined,
+                  },
+                } as never);
               }}
               className="flex-row items-center mt-2 pt-2 border-t border-border-light dark:border-border-dark"
             >
