@@ -1270,10 +1270,10 @@ export default function ScenarioDetailScreen() {
                     <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={14} color={colors.textSecondary} />
                   </Pressable>
 
-                  {/* Inline expansion: linked transactions */}
-                  {isExpanded && details && (
+                  {/* Inline expansion: linked transactions + link more */}
+                  {isExpanded && (
                     <View className="mx-4 ml-10 mb-2">
-                      {details.map((f) => (
+                      {details && details.length > 0 ? details.map((f) => (
                         <Pressable
                           key={f.id}
                           onPress={() => router.push({ pathname: "/expense/[id]", params: { id: f.expense_id } } as never)}
@@ -1294,7 +1294,21 @@ export default function ScenarioDetailScreen() {
                           </Text>
                           <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} style={{ marginLeft: 4 }} />
                         </Pressable>
-                      ))}
+                      )) : (
+                        <Text className="text-xs py-2" style={{ color: colors.textSecondary }}>
+                          No transactions linked yet.
+                        </Text>
+                      )}
+                      <Pressable
+                        onPress={() => setStaleSheetEntry(e)}
+                        className="flex-row items-center justify-center py-2 mt-1 rounded-lg"
+                        style={{ borderWidth: 1, borderColor: accent[500] + "44", borderStyle: "dashed" }}
+                      >
+                        <Ionicons name="add-circle-outline" size={14} color={accent[500]} />
+                        <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+                          {details && details.length > 0 ? "Link more transactions" : "Link transactions"}
+                        </Text>
+                      </Pressable>
                     </View>
                   )}
                 </View>
