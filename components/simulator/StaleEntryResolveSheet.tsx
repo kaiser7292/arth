@@ -126,11 +126,6 @@ export function StaleEntryResolveSheet({
     transform: [{ translateY: slideAnim.value }],
   }));
 
-  if (!visible || !entry) return null;
-
-  const headerLabel =
-    entry.description || entry.merchant_name || (entry.direction === "out" ? "Outgoing" : "Incoming");
-
   const query = searchQuery.toLowerCase().trim();
   const filteredCandidates = useMemo(() => {
     if (!query) return candidates;
@@ -141,6 +136,11 @@ export function StaleEntryResolveSheet({
         String(c.amount).includes(query),
     );
   }, [candidates, query]);
+
+  if (!visible || !entry) return null;
+
+  const headerLabel =
+    entry.description || entry.merchant_name || (entry.direction === "out" ? "Outgoing" : "Incoming");
 
   const selectedTotal = candidates
     .filter((c) => selectedIds.has(c.id))
