@@ -629,6 +629,12 @@ export async function updateEntry(
     `UPDATE simulation_entries SET ${sets.join(", ")} WHERE id = ?;`,
     ...values,
   );
+  if (patch.date !== undefined || patch.amount !== undefined) {
+    await db.runAsync(
+      `DELETE FROM simulation_entry_fulfillments WHERE entry_id = ?;`,
+      entryId,
+    );
+  }
   bumpDataVersion();
 }
 
@@ -689,6 +695,10 @@ export async function rescheduleEntry(
      WHERE id = ?;`,
     newDate,
     origForAudit,
+    entryId,
+  );
+  await db.runAsync(
+    `DELETE FROM simulation_entry_fulfillments WHERE entry_id = ?;`,
     entryId,
   );
   bumpDataVersion();
