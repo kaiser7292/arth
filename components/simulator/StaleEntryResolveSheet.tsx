@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { View, Text, Pressable, Modal, ScrollView, ActivityIndicator } from "react-native";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { View, Text, TextInput, Pressable, Modal, FlatList, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
@@ -21,6 +21,7 @@ interface Candidate {
   amount: number;
   description: string | null;
   merchant: string | null;
+  nature: string;
 }
 
 interface Props {
@@ -39,7 +40,15 @@ function prettyDate(ymd: string): string {
   if (parts.length !== 3 || parts.some(isNaN)) return ymd;
   const [y, m, d] = parts;
   const dt = new Date(y, m - 1, d);
-  return dt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return dt.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function natureBadge(nature: string): { label: string; color: string } {
+  switch (nature) {
+    case "credit": return { label: "Credit", color: "#22C55E" };
+    case "ledger_adjustment": return { label: "Adjustment", color: "#F59E0B" };
+    default: return { label: "Expense", color: "#6B7280" };
+  }
 }
 
 export function StaleEntryResolveSheet({
@@ -59,11 +68,13 @@ export function StaleEntryResolveSheet({
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [reschedulePickerVisible, setReschedulePickerVisible] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!visible) return;
     setMode("root");
     setSelectedIds(new Set());
+    setSearchQuery("");
     slideAnim.value = withTiming(0, { duration: 240 });
   }, [visible, slideAnim]);
 
@@ -77,24 +88,29 @@ export function StaleEntryResolveSheet({
     if (!entry) return;
     setLoadingCandidates(true);
     try {
-      const windowStart = addDays(entry.date, -7);
-      const windowEnd = addDays(todayIso(), 1);
+      const windowStart = addDays(entry.date, -30);
+      const windowEnd = todayIso();
       const db = getDatabase();
       const rows = await db.getAllAsync<Candidate>(
-        `SELECT id, date, amount, description, merchant_name as merchant
-         FROM expenses
-         WHERE user_id = ?
-           AND nature IN ('realized','credit')
-           AND deleted_at IS NULL
-           AND date >= ?
-           AND date <= ?
-         ORDER BY ABS(amount - ?) ASC, ABS(julianday(date) - julianday(?)) ASC
-         LIMIT 30;`,
+        `SELECT e.id, e.date, e.amount, e.description, e.merchant_name as merchant, e.nature
+         FROM expenses e
+         WHERE e.user_id = ?
+           AND e.nature IN ('realized', 'credit', 'ledger_adjustment')
+           AND e.status = 'approved'
+           AND e.deleted_at IS NULL
+           AND e.date >= ?
+           AND e.date <= ?
+           AND e.id NOT IN (
+             SELECT sef.expense_id FROM simulation_entry_fulfillments sef
+           )
+           AND e.id NOT IN (
+             SELECT se.fulfilled_expense_id FROM simulation_entries se
+             WHERE se.fulfilled_expense_id IS NOT NULL
+           )
+         ORDER BY e.date DESC;`,
         userId,
         windowStart,
         windowEnd,
-        entry.amount,
-        entry.date,
       );
       setCandidates(rows);
     } finally {
@@ -115,6 +131,17 @@ export function StaleEntryResolveSheet({
   const headerLabel =
     entry.description || entry.merchant_name || (entry.direction === "out" ? "Outgoing" : "Incoming");
 
+  const query = searchQuery.toLowerCase().trim();
+  const filteredCandidates = useMemo(() => {
+    if (!query) return candidates;
+    return candidates.filter(
+      (c) =>
+        (c.merchant ?? "").toLowerCase().includes(query) ||
+        (c.description ?? "").toLowerCase().includes(query) ||
+        String(c.amount).includes(query),
+    );
+  }, [candidates, query]);
+
   const selectedTotal = candidates
     .filter((c) => selectedIds.has(c.id))
     .reduce((s, c) => s + c.amount, 0);
@@ -127,6 +154,46 @@ export function StaleEntryResolveSheet({
       else next.add(id);
       return next;
     });
+  };
+
+  const renderCandidate = ({ item: c }: { item: Candidate }) => {
+    const isSelected = selectedIds.has(c.id);
+    const badge = natureBadge(c.nature);
+    return (
+      <Pressable
+        onPress={() => toggleSelect(c.id)}
+        className="flex-row items-center py-2.5 px-3 rounded-lg mb-1.5"
+        style={{
+          backgroundColor: isSelected ? ac(accent, colorScheme, 50, 900) : colors.surface,
+          borderWidth: 1,
+          borderColor: isSelected ? accent[500] + "55" : colors.border,
+        }}
+      >
+        <Ionicons
+          name={isSelected ? "checkbox" : "square-outline"}
+          size={20}
+          color={isSelected ? accent[500] : colors.textSecondary}
+        />
+        <View className="flex-1 ml-2">
+          <View className="flex-row items-center">
+            <Text className="text-sm font-semibold flex-1" style={{ color: colors.text }} numberOfLines={1}>
+              {c.merchant || c.description || "Transaction"}
+            </Text>
+            <View className="rounded-full px-1.5 py-0.5 ml-1" style={{ backgroundColor: badge.color + "18" }}>
+              <Text className="text-[9px] font-semibold" style={{ color: badge.color }}>
+                {badge.label}
+              </Text>
+            </View>
+          </View>
+          <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+            {prettyDate(c.date)}
+          </Text>
+        </View>
+        <Text className="text-sm font-bold ml-2" style={{ color: colors.text }}>
+          {formatAmount(c.amount)}
+        </Text>
+      </Pressable>
+    );
   };
 
   return (
@@ -228,53 +295,47 @@ export function StaleEntryResolveSheet({
         )}
 
         {mode === "link" && (
-          <View className="px-5 pb-4">
-            <Text className="text-xs mb-2" style={{ color: colors.textSecondary }}>
-              Select transactions to link (closest matches shown):
+          <View className="px-5 pb-4 flex-1">
+            {/* Search */}
+            <View className="flex-row items-center mb-2 border rounded-lg px-3 py-2" style={{ borderColor: colors.border }}>
+              <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search by merchant, description, amount..."
+                placeholderTextColor={colors.textSecondary}
+                className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>
+                  <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+                </Pressable>
+              )}
+            </View>
+
+            <Text className="text-[10px] mb-1.5" style={{ color: colors.textSecondary }}>
+              Showing transactions from last 30 days ({filteredCandidates.length}{query ? ` of ${candidates.length}` : ""})
             </Text>
+
             {loadingCandidates ? (
               <View className="items-center py-6">
                 <ActivityIndicator color={colors.textSecondary} />
               </View>
-            ) : candidates.length === 0 ? (
+            ) : filteredCandidates.length === 0 ? (
               <Text className="text-sm py-4" style={{ color: colors.textSecondary }}>
-                No recent transactions to pick from. Try Reschedule or Remove.
+                {query ? "No transactions match your search." : "No recent transactions to pick from. Try Reschedule or Remove."}
               </Text>
             ) : (
-              <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled>
-                {candidates.map((c) => {
-                  const isSelected = selectedIds.has(c.id);
-                  return (
-                    <Pressable
-                      key={c.id}
-                      onPress={() => toggleSelect(c.id)}
-                      className="flex-row items-center py-3 px-3 rounded-lg mb-1.5"
-                      style={{
-                        backgroundColor: isSelected ? ac(accent, colorScheme, 50, 900) : colors.surface,
-                        borderWidth: 1,
-                        borderColor: isSelected ? accent[500] + "55" : colors.border,
-                      }}
-                    >
-                      <Ionicons
-                        name={isSelected ? "checkbox" : "square-outline"}
-                        size={20}
-                        color={isSelected ? accent[500] : colors.textSecondary}
-                      />
-                      <View className="flex-1 ml-2">
-                        <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
-                          {c.merchant || c.description || "Transaction"}
-                        </Text>
-                        <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                          {prettyDate(c.date)}
-                        </Text>
-                      </View>
-                      <Text className="text-sm font-bold ml-2" style={{ color: colors.text }}>
-                        {formatAmount(c.amount)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
+              <FlatList
+                data={filteredCandidates}
+                keyExtractor={(item) => item.id}
+                renderItem={renderCandidate}
+                style={{ maxHeight: 280 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              />
             )}
 
             {/* Running total + variance */}
@@ -325,7 +386,7 @@ export function StaleEntryResolveSheet({
             )}
 
             <Pressable
-              onPress={() => { setMode("root"); setSelectedIds(new Set()); }}
+              onPress={() => { setMode("root"); setSelectedIds(new Set()); setSearchQuery(""); }}
               className="mt-2 py-2.5 rounded-lg items-center"
               style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
               accessibilityRole="button"

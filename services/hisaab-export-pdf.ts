@@ -53,6 +53,30 @@ function currencyPrefix(): string {
   return getCurrencyDef(code).symbol;
 }
 
+// Logo loaded at runtime from the bundled asset via RN's require + fetch.
+let cachedLogoBase64: string | null = null;
+async function getLogoBase64(): Promise<string> {
+  if (cachedLogoBase64) return cachedLogoBase64;
+  try {
+    const { resolveAssetSource } = require("react-native/Libraries/Image/resolveAssetSource");
+    const source = resolveAssetSource(require("@/assets/images/splash-icon.png"));
+    if (source?.uri) {
+      const response = await fetch(source.uri);
+      const blob = await response.blob();
+      const b64 = await new Promise<string>((resolve) => {
+        const reader = new (globalThis as any).FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(",")[1] ?? "");
+        reader.readAsDataURL(blob);
+      });
+      cachedLogoBase64 = b64;
+      return b64;
+    }
+  } catch {
+    // Non-fatal — PDF renders without logo
+  }
+  return "";
+}
+
 function formatPeriod(startDate: string, endDate: string): string {
   return `${formatDate(startDate)} — ${formatDate(endDate)}`;
 }
@@ -75,8 +99,11 @@ function statementStyles(): string {
     /* Header */
     .stmt-header { background: linear-gradient(135deg, #134E4A 0%, #0F766E 100%); color: white; padding: 24px 28px; margin: -28px -24px 24px; }
     .stmt-header .brand { display: flex; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+    .stmt-header .brand-logo { width: 28px; height: 28px; border-radius: 6px; margin-right: 10px; }
+    .stmt-header .brand-text { flex: 1; }
     .stmt-header .brand-name { font-size: 20px; font-weight: 800; letter-spacing: 1px; }
-    .stmt-header .brand-tagline { font-size: 9px; opacity: 0.7; margin-left: 10px; letter-spacing: 0.3px; }
+    .stmt-header .brand-tagline { font-size: 9px; opacity: 0.7; letter-spacing: 0.3px; }
+    .stmt-header .brand-creator { font-size: 9px; opacity: 0.5; margin-left: auto; letter-spacing: 0.3px; }
     .stmt-header h1 { font-size: 18px; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px; }
     .stmt-header .subtitle { font-size: 11px; opacity: 0.7; margin-bottom: 12px; }
     .stmt-header .meta { display: flex; justify-content: space-between; margin-top: 8px; }
@@ -104,13 +131,18 @@ function statementStyles(): string {
     .stmt-table tbody td.desc { max-width: 160px; word-break: break-word; }
     .stmt-table tbody td.bal { font-weight: 600; color: #1E293B; }
 
-    /* Totals / closing */
-    .stmt-table tfoot td { padding: 10px 10px; font-weight: 700; font-size: 11px; border-top: 2px solid #CBD5E1; }
-    .stmt-table tfoot td.right { text-align: right; font-variant-numeric: tabular-nums; }
-    .stmt-table tfoot td.label { text-transform: uppercase; letter-spacing: 0.5px; color: #475569; }
-
-    .closing-row { background: #F8FAFC; }
-    .closing-row td { border-top: 1px solid #E2E8F0 !important; border-bottom: 2px solid #CBD5E1 !important; }
+    /* Totals / closing (after table) */
+    .totals-section { border-top: 2px solid #CBD5E1; padding: 12px 10px; margin-bottom: 0; }
+    .totals-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; margin-bottom: 8px; }
+    .totals-label { text-transform: uppercase; letter-spacing: 0.5px; color: #475569; }
+    .totals-dr { color: #EF4444; font-variant-numeric: tabular-nums; }
+    .totals-cr { color: #22C55E; font-variant-numeric: tabular-nums; }
+    .closing-section { display: flex; justify-content: space-between; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px 14px; }
+    .closing-label { text-transform: uppercase; letter-spacing: 0.5px; color: #475569; font-size: 11px; font-weight: 700; }
+    .closing-value { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .closing-value.dr { color: #EF4444; }
+    .closing-value.cr { color: #22C55E; }
+    .closing-value.nil { color: #64748B; }
 
     /* Footer */
     .stmt-footer { margin-top: 24px; text-align: center; font-size: 9px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 12px; }
@@ -148,6 +180,7 @@ function personStatementHtml(
   closingBalance: number,
   categoryMap: Map<string, string>,
   accountMap: Map<string, string>,
+  logoBase64: string,
 ): string {
   const today = new Date().toLocaleDateString("en-IN", {
     day: "numeric", month: "long", year: "numeric",
@@ -225,8 +258,12 @@ function personStatementHtml(
     <div class="stmt-container">
       <div class="stmt-header">
         <div class="brand">
-          <span class="brand-name">Arth</span>
-          <span class="brand-tagline">Your Finance, Your Way</span>
+          ${logoBase64 ? `<img class="brand-logo" src="data:image/png;base64,${logoBase64}" />` : ""}
+          <div class="brand-text">
+            <span class="brand-name">Arth</span>
+            <span class="brand-tagline"> · Your Finance, Your Way</span>
+          </div>
+          <span class="brand-creator">Created by Sourav Baid</span>
         </div>
         <h1>HISAAB STATEMENT</h1>
         <div class="subtitle">Account of: ${htmlEscape(name)}</div>
@@ -286,20 +323,18 @@ function personStatementHtml(
           <tbody>
             ${rows}
           </tbody>
-          <tfoot>
-            <tr>
-              <td class="label" colspan="5">Totals</td>
-              <td class="right dr">${sym}${formatNum(totalDebits)}</td>
-              <td class="right cr">${sym}${formatNum(totalCreditsAndSettlements)}</td>
-              <td></td>
-            </tr>
-            <tr class="closing-row">
-              <td class="label" colspan="5">Closing Balance</td>
-              <td colspan="2"></td>
-              <td class="right ${cbClass}" style="font-size: 13px;">${sym}${balanceLabel(closingBalance)}</td>
-            </tr>
-          </tfoot>
         </table>
+        <div class="totals-section">
+          <div class="totals-row">
+            <span class="totals-label">Totals</span>
+            <span class="totals-dr">${sym}${formatNum(totalDebits)} Dr</span>
+            <span class="totals-cr">${sym}${formatNum(totalCreditsAndSettlements)} Cr</span>
+          </div>
+          <div class="closing-section">
+            <span class="closing-label">Closing Balance</span>
+            <span class="closing-value ${cbClass}">${sym}${balanceLabel(closingBalance)}</span>
+          </div>
+        </div>
       ` : `<p class="empty">No transactions in this period.</p>`}
 
       <div class="legend">
@@ -377,6 +412,8 @@ export async function generatePersonPDF(
     if (cat) categoryMap.set(catId, cat.name);
   }
 
+  const logoBase64 = await getLogoBase64();
+
   const html = personStatementHtml(
     person.name,
     periodLabel,
@@ -389,6 +426,7 @@ export async function generatePersonPDF(
     closingBalance,
     categoryMap,
     accountMap,
+    logoBase64,
   );
 
   const { uri } = await Print.printToFileAsync({ html });
