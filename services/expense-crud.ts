@@ -51,6 +51,8 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
     logger.warn("Smart rule application failed in createExpense (non-fatal):", e);
   }
 
+  const description = input.description || input.merchant_name || null;
+
   const now = new Date().toISOString(); // Local time in ISO format
   await db.runAsync(
     `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, nature, is_right_spend, refund_of_expense_id, purchase_group_id, due_date, applied_rule_id, source, status, created_at)
@@ -59,7 +61,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
     input.user_id,
     round2(input.amount),
     input.currency ?? "INR",
-    input.description ?? null,
+    description,
     input.merchant_name ?? null,
     categoryId,
     paymentModeId,

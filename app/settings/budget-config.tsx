@@ -242,6 +242,7 @@ export default function BudgetConfigScreen() {
           </View>
         }
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 120 }}
       />
 
       {/* Save button */}
