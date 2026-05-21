@@ -208,7 +208,7 @@ export default function SmsScanRunsScreen() {
       }, {});
 
     return (
-      <View className="flex-1">
+      <View className="flex-1 px-4">
         {/* Header summary */}
         <Card className="mb-3">
           <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
@@ -330,7 +330,7 @@ export default function SmsScanRunsScreen() {
       : categoryDetails;
 
     return (
-      <View className="flex-1">
+      <View className="flex-1 px-4">
         <View className="flex-row items-center mb-2">
           <View
             className="w-8 h-8 rounded-full items-center justify-center mr-2"
@@ -600,7 +600,7 @@ export default function SmsScanRunsScreen() {
               keyExtractor={(item) => item.id}
               renderItem={renderRunCard}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 32 }}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
             />
           )}
         </>

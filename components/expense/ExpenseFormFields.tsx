@@ -10,7 +10,7 @@ import { formatDateForDisplay, formatDateForStorage } from "@/utils/expense-vali
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 
 // ---------------------------------------------------------------------------
 // Searchable Picker List — shared helper for all pickers
@@ -596,7 +596,6 @@ interface RightSpendToggleProps {
 }
 
 export function RightSpendToggle({ isRightSpend, onToggle }: RightSpendToggleProps) {
-  const { colorScheme } = useColorScheme();
   const isUnavoidable = isRightSpend;
   return (
     <View className="mb-6">
@@ -621,16 +620,12 @@ export function RightSpendToggle({ isRightSpend, onToggle }: RightSpendTogglePro
             </Text>
           </View>
         </View>
-        <View
-          className={`w-12 h-7 rounded-full justify-center ${
-            isUnavoidable
-              ? "items-end"
-              : "bg-muted-light dark:bg-muted-dark items-start"
-          }`}
-          style={isUnavoidable ? { backgroundColor: "#3B82F6" } : undefined}
-        >
-          <View className="w-5 h-5 rounded-full bg-white m-1 shadow" />
-        </View>
+        <Switch
+          value={isUnavoidable}
+          onValueChange={onToggle}
+          trackColor={{ false: "#767577", true: "#3B82F6" }}
+          thumbColor="#FFFFFF"
+        />
       </Pressable>
     </View>
   );

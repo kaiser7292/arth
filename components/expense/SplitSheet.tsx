@@ -85,7 +85,7 @@ export function SplitSheet({
     opacity: slideAnim.value * 0.5,
   }));
 
-  // Load persons
+  // Load persons + reset state on open
   useEffect(() => {
     if (visible) {
       getPersonsWithBalances(DEFAULT_USER_ID).then(setPersons);
@@ -98,11 +98,15 @@ export function SplitSheet({
         setPaidBy("me");
       } else {
         setStep("paidBy");
+        setPaidBy("me");
+        setSplitMode("equal");
       }
 
-      if (preselectedPersonId) {
-        setSelectedPersonId(preselectedPersonId);
-      }
+      setSelectedPersonId(preselectedPersonId ?? null);
+      setExactAmount("");
+      setPercentage("50");
+      setShowAddPerson(false);
+      setNewPersonName("");
     } else {
       slideAnim.value = withTiming(0, { duration: 200 });
     }
