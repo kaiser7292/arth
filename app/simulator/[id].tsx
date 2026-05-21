@@ -157,6 +157,12 @@ export default function ScenarioDetailScreen() {
   // v16.0.5 — resolve person names for any included hisaab rows so the
   // starting-balance drawer can label them. Runs whenever the list of
   // included ids changes.
+  const categoryNameMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of categories) m[c.id] = c.name;
+    return m;
+  }, [categories]);
+
   const includedPersonIds = useMemo(
     () => (overview?.hisaabIncluded ?? []).map((i) => i.person_id),
     [overview?.hisaabIncluded],
@@ -217,7 +223,7 @@ export default function ScenarioDetailScreen() {
   const handleEntryLongPress = useCallback(
     (entry: SimulationEntry) => {
       alert(
-        entry.merchant_name || entry.description || "Planned entry",
+        entry.description || entry.merchant_name || (entry.category_id && categoryNameMap[entry.category_id]) || "Planned entry",
         formatAmount(entry.amount),
         [
           { text: "Cancel", style: "cancel" },
@@ -887,11 +893,11 @@ export default function ScenarioDetailScreen() {
                 onPress={() => setStaleSheetEntry(e)}
                 className="flex-row items-center py-2 border-t border-border-light dark:border-border-dark"
                 accessibilityRole="button"
-                accessibilityLabel={`Resolve stale entry ${e.merchant_name ?? e.description ?? "entry"}`}
+                accessibilityLabel={`Resolve stale entry ${e.description ?? e.merchant_name ?? "entry"}`}
               >
                 <View className="flex-1">
                   <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
-                    {e.merchant_name || e.description || "Planned entry"}
+                    {e.description || e.merchant_name || (e.category_id && categoryNameMap[e.category_id]) || "Planned entry"}
                   </Text>
                   <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
                     Was due {prettyDate(e.date)}
@@ -1083,10 +1089,10 @@ export default function ScenarioDetailScreen() {
                 </Pressable>
                 {expandOutgoing && (
                   <>
-                    <EntryGroup label="Today" items={outgoingGrouped.today} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} direction="out" />
-                    <EntryGroup label="Tomorrow" items={outgoingGrouped.tomorrow} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} direction="out" />
-                    <EntryGroup label="This week" items={outgoingGrouped.thisWeek} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} direction="out" />
-                    <EntryGroup label="Later" items={outgoingGrouped.later} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} direction="out" />
+                    <EntryGroup label="Today" items={outgoingGrouped.today} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
+                    <EntryGroup label="Tomorrow" items={outgoingGrouped.tomorrow} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
+                    <EntryGroup label="This week" items={outgoingGrouped.thisWeek} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
+                    <EntryGroup label="Later" items={outgoingGrouped.later} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
                   </>
                 )}
               </View>
@@ -1129,10 +1135,10 @@ export default function ScenarioDetailScreen() {
                 </Pressable>
                 {expandIncoming && (
                   <>
-                    <EntryGroup label="Today" items={incomingGrouped.today} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} direction="in" />
-                    <EntryGroup label="Tomorrow" items={incomingGrouped.tomorrow} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} direction="in" />
-                    <EntryGroup label="This week" items={incomingGrouped.thisWeek} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} direction="in" />
-                    <EntryGroup label="Later" items={incomingGrouped.later} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} direction="in" />
+                    <EntryGroup label="Today" items={incomingGrouped.today} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
+                    <EntryGroup label="Tomorrow" items={incomingGrouped.tomorrow} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
+                    <EntryGroup label="This week" items={incomingGrouped.thisWeek} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
+                    <EntryGroup label="Later" items={incomingGrouped.later} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
                   </>
                 )}
               </View>
@@ -1162,12 +1168,12 @@ export default function ScenarioDetailScreen() {
                   opacity: 0.75,
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={`View fulfilling transaction for ${e.merchant_name || e.description || "planned entry"}`}
+                accessibilityLabel={`View fulfilling transaction for ${e.description || e.merchant_name || "planned entry"}`}
               >
                 <Ionicons name="checkmark-circle" size={16} color={sc.success} />
                 <View className="flex-1 ml-2">
                   <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
-                    {e.merchant_name || e.description || "Planned entry"}
+                    {e.description || e.merchant_name || (e.category_id && categoryNameMap[e.category_id]) || "Planned entry"}
                   </Text>
                   <Text className="text-xs" style={{ color: colors.textSecondary }}>
                     Linked · {prettyDate(e.date)}
@@ -1315,6 +1321,7 @@ function EntryGroup({
   onLongPress,
   onDuplicate,
   personMap,
+  categoryNames,
   total,
   direction,
 }: {
@@ -1325,6 +1332,7 @@ function EntryGroup({
   onLongPress: (e: SimulationEntry) => void;
   onDuplicate: (id: string) => void;
   personMap: Record<string, HisaabPerson>;
+  categoryNames?: Record<string, string>;
   total?: number;
   direction?: "out" | "in";
 }) {
@@ -1422,7 +1430,7 @@ function EntryGroup({
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
-                {titleOverride ?? e.merchant_name ?? e.description ?? (e.direction === "out" ? "Outgoing" : "Incoming")}
+                {titleOverride ?? e.description ?? e.merchant_name ?? (e.category_id && categoryNames?.[e.category_id]) ?? (e.direction === "out" ? "Outgoing" : "Incoming")}
               </Text>
               {/* Sublabel priority: hisaab → account + date. */}
               <View className="flex-row items-center mt-0.5 flex-wrap">

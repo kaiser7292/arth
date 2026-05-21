@@ -202,6 +202,10 @@ export default function BalanceSheetScreen() {
       router.push("/reconciliation/demat-portfolio" as never);
       return;
     }
+    if (meta.group === "pension") {
+      router.push("/reconciliation/pension-accounts" as never);
+      return;
+    }
     if (meta.group === "loan" && meta.accountId) {
       router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: meta.accountId } });
     }
