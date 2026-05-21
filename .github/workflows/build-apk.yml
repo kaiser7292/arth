@@ -88,7 +88,7 @@ jobs:
           if [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
             echo "branch=staging" >> $GITHUB_OUTPUT
             echo "package_name=com.souravbaid.artha.staging" >> $GITHUB_OUTPUT
-            echo "apk_name=artha-staging" >> $GITHUB_OUTPUT
+            echo "apk_name=arth-staging" >> $GITHUB_OUTPUT
             echo "release_suffix=-staging" >> $GITHUB_OUTPUT
             # Build only arm64-v8a for staging — covers all modern Android phones,
             # cuts native compile time by ~75% vs building all 4 ABIs.
@@ -96,7 +96,7 @@ jobs:
           else
             echo "branch=main" >> $GITHUB_OUTPUT
             echo "package_name=com.souravbaid.artha" >> $GITHUB_OUTPUT
-            echo "apk_name=artha" >> $GITHUB_OUTPUT
+            echo "apk_name=arth" >> $GITHUB_OUTPUT
             echo "release_suffix=" >> $GITHUB_OUTPUT
             # Production builds include all ABIs for maximum device compatibility.
             echo "abi_flag=" >> $GITHUB_OUTPUT
@@ -106,7 +106,7 @@ jobs:
         if: steps.config.outputs.branch == 'staging'
         run: |
           sed -i 's/"package": "com.souravbaid.artha"/"package": "com.souravbaid.artha.staging"/g' app.json
-          sed -i 's/"name": "Artha"/"name": "Artha Stg"/g' app.json
+          sed -i 's/"name": "Arth"/"name": "Arth Stg"/g' app.json
 
       # Cache the generated android/ directory keyed on files that affect native code.
       # On a cache-hit (JS-only changes) expo prebuild is skipped entirely and Gradle
@@ -162,8 +162,12 @@ jobs:
         run: echo "path=android/app/build/outputs/apk/release/app-release.apk" >> $GITHUB_OUTPUT
 
       - name: Rename APK
+        id: rename
         run: |
-          mv ${{ steps.apk.outputs.path }} ${{ steps.config.outputs.apk_name }}-${{ steps.version.outputs.version }}.apk
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          APK_FILE="${{ steps.config.outputs.apk_name }}-${{ steps.version.outputs.version }}-${TIMESTAMP}.apk"
+          mv ${{ steps.apk.outputs.path }} "$APK_FILE"
+          echo "apk_file=$APK_FILE" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload APK
         uses: softprops/action-gh-release@v1
@@ -171,9 +175,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ steps.version.outputs.version }}${{ steps.config.outputs.release_suffix }}
-          name: Artha v${{ steps.version.outputs.version }}${{ steps.config.outputs.release_suffix }}
+          name: Arth v${{ steps.version.outputs.version }}${{ steps.config.outputs.release_suffix }}
           body: |
-            ## Artha v${{ steps.version.outputs.version }}${{ steps.config.outputs.release_suffix }}
+            ## Arth v${{ steps.version.outputs.version }}${{ steps.config.outputs.release_suffix }}
             
             ### Changes
             ${{ github.event.head_commit.message }}
@@ -188,4 +192,4 @@ jobs:
             Download the APK from the assets below.
           draft: false
           prerelease: ${{ steps.config.outputs.branch == 'staging' }}
-          files: ${{ steps.config.outputs.apk_name }}-${{ steps.version.outputs.version }}.apk
+          files: ${{ steps.rename.outputs.apk_file }}
