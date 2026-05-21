@@ -51,7 +51,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
     logger.warn("Smart rule application failed in createExpense (non-fatal):", e);
   }
 
-  const description = input.description || input.merchant_name || null;
+  const description = input.description ?? input.merchant_name ?? null;
 
   const now = new Date().toISOString(); // Local time in ISO format
   await db.runAsync(
