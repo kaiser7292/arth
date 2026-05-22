@@ -1475,10 +1475,11 @@ function EntryGroup({
     <View className="mt-3">
       {/* v16.0.5 — stronger header: text-xs bold + count chip. v16.0.8 — added total. */}
       <View className="mx-4 mb-1.5 flex-row items-center justify-between">
-        <View className="flex-row items-center">
+        <View className="flex-row items-center" style={{ flexShrink: 0 }}>
           <Text
             className="text-xs font-bold uppercase tracking-wider"
             style={{ color: colors.textSecondary }}
+            numberOfLines={1}
           >
             {label}
           </Text>
@@ -1492,7 +1493,11 @@ function EntryGroup({
           </View>
         </View>
         {direction && (
-          <Text className="text-xs font-bold" style={{ color: totalColor }}>
+          <Text
+            className="text-xs font-bold ml-2"
+            style={{ color: totalColor, flexShrink: 1 }}
+            numberOfLines={1}
+          >
             {totalPrefix}{formatAmount(groupTotal)}
           </Text>
         )}
