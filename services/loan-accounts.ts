@@ -432,7 +432,7 @@ export async function getPrepayments(loanId: string): Promise<LoanPrepaymentRow[
 export async function getCorrections(loanId: string): Promise<LoanCorrectionRow[]> {
   const db = getDatabase();
   return db.getAllAsync<LoanCorrectionRow>(
-    "SELECT * FROM loan_corrections WHERE loan_account_id = ? ORDER BY effective_date ASC;",
+    "SELECT * FROM loan_corrections WHERE loan_account_id = ? AND deleted_at IS NULL ORDER BY effective_date ASC;",
     loanId,
   );
 }
@@ -593,6 +593,7 @@ export async function getLoanOutstandingsByLoanId(
     db.getAllAsync<LoanCorrectionRow>(
       `SELECT * FROM loan_corrections
        WHERE loan_account_id IN (${placeholders})
+         AND deleted_at IS NULL
        ORDER BY loan_account_id ASC, effective_date ASC;`,
       ...ids,
     ),
@@ -737,6 +738,7 @@ export async function getLoanOutstandingsByFA(
     db.getAllAsync<LoanCorrectionRow>(
       `SELECT * FROM loan_corrections
        WHERE loan_account_id IN (${placeholders})
+         AND deleted_at IS NULL
        ORDER BY loan_account_id ASC, effective_date ASC;`,
       ...ids,
     ),
