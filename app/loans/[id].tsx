@@ -1,4 +1,5 @@
 import { ForeclosureQuoteSheet } from "@/components/loans/ForeclosureQuoteSheet";
+import { LinkInstallmentSheet } from "@/components/loans/LinkInstallmentSheet";
 import { Button, Card, LoadingState, MetricRow, ScreenContainer } from "@/components/ui";
 import { StatusColors } from "@/constants/theme";
 import { getDatabase } from "@/database";
@@ -54,6 +55,7 @@ export default function LoanDetailScreen() {
 
   // v17.1.0 — foreclosure sheet (kept as-is)
   const [foreclosureSheetVisible, setForeclosureSheetVisible] = useState(false);
+  const [linkInstallment, setLinkInstallment] = useState<LoanScheduleEntry | null>(null);
   // v17.6.0 — CSV schedule import sheet
   // v17.6.0 — CSV schedule import sheet
 
@@ -702,13 +704,16 @@ export default function LoanDetailScreen() {
               : `First 5 and last 5 of ${schedule.length} installments`}
           </Text>
           {visibleSchedule.map((e, i) => (
-            <View
+            <Pressable
               key={e.id}
+              onPress={() => setLinkInstallment(e)}
               className={`flex-row items-center py-2 ${
                 i < visibleSchedule.length - 1
                   ? "border-b border-border-light dark:border-border-dark"
                   : ""
               }`}
+              accessibilityRole="button"
+              accessibilityLabel={`Installment ${e.installment_num}, ${e.status}`}
             >
               <View style={{ width: 36 }}>
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
@@ -741,7 +746,8 @@ export default function LoanDetailScreen() {
                   {e.status}
                 </Text>
               </View>
-            </View>
+              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 6 }} />
+            </Pressable>
           ))}
           {schedule.length > 10 && (
             <Pressable
@@ -791,6 +797,13 @@ export default function LoanDetailScreen() {
             ],
           );
         }}
+      />
+
+      <LinkInstallmentSheet
+        visible={linkInstallment !== null}
+        installment={linkInstallment}
+        onClose={() => setLinkInstallment(null)}
+        onLinked={() => load()}
       />
 
     </ScreenContainer>

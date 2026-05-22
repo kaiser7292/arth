@@ -1745,6 +1745,134 @@ export async function deleteCorrection(correctionId: string): Promise<void> {
   bumpDataVersion();
 }
 
+// ─── Manual link/unlink of past expenses to scheduled installments ────
+
+/**
+ * Link a past expense to a specific scheduled installment. Marks the
+ * installment paid + creates a part-prepayment row for any excess (>1%
+ * over scheduled EMI). Used when SMS auto-match missed an EMI (loan was
+ * added late, scan didn't run, expense outside ±5 days, etc.).
+ */
+export async function linkExpenseToInstallment(
+  scheduleId: string,
+  expenseId: string,
+): Promise<void> {
+  const db = getDatabase();
+  const installment = await db.getFirstAsync<LoanScheduleEntry>(
+    `SELECT * FROM loan_schedule_entries WHERE id = ?;`,
+    scheduleId,
+  );
+  if (!installment) throw new Error("Installment not found");
+  const expense = await db.getFirstAsync<{
+    amount: number;
+    date: string;
+    nature: string;
+    deleted_at: string | null;
+  }>(
+    `SELECT amount, date, nature, deleted_at FROM expenses WHERE id = ?;`,
+    expenseId,
+  );
+  if (!expense || expense.deleted_at || expense.nature !== "realized") {
+    throw new Error("Expense not found or not eligible");
+  }
+
+  await db.runAsync(
+    `UPDATE loan_schedule_entries
+     SET status = 'paid', linked_expense_id = ?, paid_date = ?, paid_amount = ?
+     WHERE id = ?;`,
+    expenseId,
+    expense.date,
+    expense.amount,
+    scheduleId,
+  );
+
+  const excess = expense.amount - installment.emi_amount;
+  if (excess > installment.emi_amount * 0.01) {
+    try {
+      await recordPrepayment(installment.loan_account_id, {
+        prepayment_date: expense.date,
+        amount: excess,
+        prepayment_charge: 0,
+        gst_on_charge: 0,
+        kind: "part_payment",
+        strategy: "reduce_tenure",
+        linked_expense_id: expenseId,
+        notes: "Auto-detected from over-payment on linked EMI",
+      });
+    } catch (e) {
+      logger.warn("Auto-prepayment from EMI excess failed (non-fatal):", e);
+    }
+  }
+  bumpDataVersion();
+}
+
+/**
+ * Reverse a previous link — installment becomes scheduled again, no
+ * cascading prepayment removal (user can delete the prepayment manually
+ * if they wish).
+ */
+export async function unlinkExpenseFromInstallment(scheduleId: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE loan_schedule_entries
+     SET status = 'scheduled', linked_expense_id = NULL, paid_date = NULL, paid_amount = NULL
+     WHERE id = ?;`,
+    scheduleId,
+  );
+  bumpDataVersion();
+}
+
+/**
+ * Find candidate expenses for linking to an EMI installment. Returns
+ * realized expenses NOT already linked to any loan installment, in a date
+ * window around the due date. Sorted by closeness to the EMI amount.
+ */
+export async function getLinkableExpenses(
+  userId: string,
+  emiAmount: number,
+  dueDate: string,
+  daysWindow: number = 60,
+): Promise<Array<{ id: string; date: string; amount: number; description: string | null; merchant: string | null }>> {
+  const db = getDatabase();
+  const lo = shiftDateLocal(dueDate, -daysWindow);
+  const hi = shiftDateLocal(dueDate, daysWindow);
+  return db.getAllAsync<{
+    id: string;
+    date: string;
+    amount: number;
+    description: string | null;
+    merchant: string | null;
+  }>(
+    `SELECT e.id, e.date, e.amount, e.description, e.merchant_name as merchant
+     FROM expenses e
+     WHERE e.user_id = ?
+       AND e.nature = 'realized'
+       AND e.status = 'approved'
+       AND e.deleted_at IS NULL
+       AND e.date >= ? AND e.date <= ?
+       AND e.id NOT IN (
+         SELECT linked_expense_id FROM loan_schedule_entries
+         WHERE linked_expense_id IS NOT NULL
+       )
+     ORDER BY ABS(e.amount - ?) ASC, e.date DESC
+     LIMIT 100;`,
+    userId,
+    lo,
+    hi,
+    emiAmount,
+  );
+}
+
+function shiftDateLocal(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
 // ─── Internal: DB-row → engine-type converters ────────────
 
 function toScheduleEngineType(rows: LoanScheduleEntry[]): ScheduleEntry[] {
