@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useRouter } from "expo-router";
 import { ac } from "@/utils/accent";
 import { formatAmount } from "@/utils/format";
 import {
@@ -43,6 +44,7 @@ function prettyDate(ymd: string): string {
 
 export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }: Props) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const router = useRouter();
   const slideAnim = useSharedValue(400);
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -192,11 +194,38 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
               style={{ backgroundColor: ac(accent, colorScheme, 50, 900), borderWidth: 1, borderColor: accent[500] + "33" }}
             >
               <Ionicons name="checkmark-circle" size={18} color={accent[500]} />
-              <Text className="text-sm ml-2 flex-1" style={{ color: colors.text }}>
-                Linked to a transaction
-                {installment.paid_amount != null ? ` · ${formatAmount(installment.paid_amount)}` : ""}
-              </Text>
+              <View className="flex-1 ml-2">
+                <Text className="text-sm" style={{ color: colors.text }}>
+                  Paid {installment.paid_amount != null ? formatAmount(installment.paid_amount) : ""}
+                  {installment.paid_date ? ` on ${prettyDate(installment.paid_date)}` : ""}
+                </Text>
+                {installment.linked_expense_id && (
+                  <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                    Linked to a transaction in your ledger
+                  </Text>
+                )}
+              </View>
             </View>
+            {installment.linked_expense_id && (
+              <Pressable
+                onPress={() => {
+                  handleClose();
+                  setTimeout(() => {
+                    router.push({
+                      pathname: "/expense/[id]",
+                      params: { id: installment.linked_expense_id! },
+                    } as never);
+                  }, 220);
+                }}
+                className="flex-row items-center justify-center py-3 rounded-xl mb-2"
+                style={{ backgroundColor: accent[500] }}
+              >
+                <Ionicons name="receipt-outline" size={18} color="#FFFFFF" />
+                <Text className="text-sm font-semibold ml-2" style={{ color: "#FFFFFF" }}>
+                  View expense
+                </Text>
+              </Pressable>
+            )}
             <Pressable
               onPress={handleUnlink}
               disabled={working}
