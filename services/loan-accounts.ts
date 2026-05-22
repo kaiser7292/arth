@@ -1748,10 +1748,13 @@ export async function deleteCorrection(correctionId: string): Promise<void> {
 // ─── Manual link/unlink of past expenses to scheduled installments ────
 
 /**
- * Link a past expense to a specific scheduled installment. Marks the
- * installment paid + creates a part-prepayment row for any excess (>1%
- * over scheduled EMI). Used when SMS auto-match missed an EMI (loan was
- * added late, scan didn't run, expense outside ±5 days, etc.).
+ * Link a past expense to a specific scheduled installment. Goes through
+ * the canonical expense-loan-link service so the expense is properly
+ * excluded from regular-spend calculations and the existing
+ * "Mark as loan payment" UI on the expense screen reflects the link.
+ *
+ * If the expense exceeds the scheduled EMI by >1%, a part-prepayment row
+ * is created for the excess.
  */
 export async function linkExpenseToInstallment(
   scheduleId: string,
@@ -1776,15 +1779,10 @@ export async function linkExpenseToInstallment(
     throw new Error("Expense not found or not eligible");
   }
 
-  await db.runAsync(
-    `UPDATE loan_schedule_entries
-     SET status = 'paid', linked_expense_id = ?, paid_date = ?, paid_amount = ?
-     WHERE id = ?;`,
-    expenseId,
-    expense.date,
-    expense.amount,
-    scheduleId,
-  );
+  // Use the existing expense-loan-link service so expense_loan_links is
+  // populated (canonical source of truth for "is this expense an EMI?").
+  const { linkExpenseAsEMI } = await import("./expense-loan-link");
+  await linkExpenseAsEMI(expenseId, installment.loan_account_id, scheduleId);
 
   const excess = expense.amount - installment.emi_amount;
   if (excess > installment.emi_amount * 0.01) {
@@ -1807,12 +1805,28 @@ export async function linkExpenseToInstallment(
 }
 
 /**
- * Reverse a previous link — installment becomes scheduled again, no
- * cascading prepayment removal (user can delete the prepayment manually
- * if they wish).
+ * Reverse a previous link — installment becomes scheduled again. Goes
+ * through the canonical expense-loan-link service to also remove the
+ * expense_loan_links row.
  */
 export async function unlinkExpenseFromInstallment(scheduleId: string): Promise<void> {
   const db = getDatabase();
+  const installment = await db.getFirstAsync<{ linked_expense_id: string | null }>(
+    `SELECT linked_expense_id FROM loan_schedule_entries WHERE id = ?;`,
+    scheduleId,
+  );
+  if (installment?.linked_expense_id) {
+    const { unlinkExpenseFromLoan } = await import("./expense-loan-link");
+    try {
+      await unlinkExpenseFromLoan(installment.linked_expense_id);
+      bumpDataVersion();
+      return;
+    } catch {
+      // Fall through to direct unlink if the canonical path fails (e.g.
+      // schedule_entry was paid via a different code path that didn't
+      // create an expense_loan_links row — defensive).
+    }
+  }
   await db.runAsync(
     `UPDATE loan_schedule_entries
      SET status = 'scheduled', linked_expense_id = NULL, paid_date = NULL, paid_amount = NULL
@@ -1850,9 +1864,11 @@ export async function getLinkableExpenses(
        AND e.status = 'approved'
        AND e.deleted_at IS NULL
        AND e.date >= ? AND e.date <= ?
-       AND e.id NOT IN (
-         SELECT linked_expense_id FROM loan_schedule_entries
-         WHERE linked_expense_id IS NOT NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = e.id
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id
        )
      ORDER BY ABS(e.amount - ?) ASC, e.date DESC
      LIMIT 100;`,
