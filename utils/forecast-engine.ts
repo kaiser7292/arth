@@ -124,10 +124,10 @@ export function forecastMonthEnd(input: ForecastInput): MonthEndForecast {
     // Historical: use same-month-last-year if available, else 3-month avg
     const historicalTotal = cat.sameMonthLastYear ?? cat.historicalMonthlyAvg;
 
-    // Blended prediction
-    const predictedTotal = round2(
-      paceBasedTotal * paceWeight + historicalTotal * histWeight,
-    );
+    // Blended prediction. Floor at spentSoFar — projection can never be
+    // less than what's already been spent on this category.
+    const blended = paceBasedTotal * paceWeight + historicalTotal * histWeight;
+    const predictedTotal = round2(Math.max(blended, cat.spentSoFar));
 
     // Budget breach
     const willExceedBudget = cat.budget > 0 && predictedTotal > cat.budget;

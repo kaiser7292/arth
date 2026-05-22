@@ -105,12 +105,14 @@ export async function forecastMonthEndRealistic(input: ForecastInput): Promise<R
   const variableDailyRate = variableDaysElapsed > 0 ? variableSpent / variableDaysElapsed : 0;
   const variableProjectedRemaining = variableDailyRate * daysLeft;
 
-  // Blend with historical for early-month stability
-  const blendedVariable = blendProjection(
+  // Blend with historical for early-month stability. Floor at variableSpent
+  // — historical blending must never project less than what's already spent.
+  const blendedVariableRaw = blendProjection(
     variableSpent + variableProjectedRemaining,
     historicalVariableAvg,
     variableDaysElapsed
   );
+  const blendedVariable = Math.max(blendedVariableRaw, variableSpent);
 
   // Category paces
   const categoryPaces = calculateCategoryPaces(variableExpenses, variableDaysElapsed, daysLeft, budgets);
