@@ -333,19 +333,27 @@ export default function SimulatorListScreen() {
                     {/* Hero — today → horizon */}
                     <View className="mt-4 flex-row items-end justify-between">
                       <View className="flex-1">
-                        <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                        <Text
+                          className="text-[10px] font-semibold uppercase"
+                          style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
+                          numberOfLines={1}
+                        >
                           Today
                         </Text>
-                        <Text className="text-sm font-semibold mt-0.5" style={{ color: colors.text }}>
+                        <Text className="text-sm font-semibold mt-0.5" style={{ color: colors.text }} numberOfLines={1}>
                           {formatAmount(netWorthStart)}
                         </Text>
                       </View>
-                      <Ionicons name="arrow-forward" size={14} color={colors.textSecondary} style={{ marginBottom: 2 }} />
+                      <Ionicons name="arrow-forward" size={14} color={colors.textSecondary} style={{ marginBottom: 2, marginHorizontal: 6 }} />
                       <View className="flex-1 items-end">
-                        <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                        <Text
+                          className="text-[10px] font-semibold uppercase"
+                          style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
+                          numberOfLines={1}
+                        >
                           {prettyDate(scenario.horizon_date)}
                         </Text>
-                        <Text className="text-xl font-bold mt-0.5" style={{ color: colors.text }}>
+                        <Text className="text-xl font-bold mt-0.5" style={{ color: colors.text }} numberOfLines={1}>
                           {formatAmount(netWorthEnd)}
                         </Text>
                       </View>
