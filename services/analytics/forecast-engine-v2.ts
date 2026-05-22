@@ -131,7 +131,10 @@ export async function forecastMonthEndRealistic(input: ForecastInput): Promise<R
   // The blended variable can dip below variableSpent when historical average
   // is lower than current pace (common early in the month) — but you can't
   // un-spend money. Projection must be ≥ what's already on the books.
-  const totalSpentSoFar = fixedDoneTotal + variableSpent;
+  // Use the raw expense sum (not fixedDoneTotal + variableSpent) because
+  // multiple expenses matching the same fixed classification only get one
+  // entry in fixedDoneTotal — the rest would be lost.
+  const totalSpentSoFar = expenses.reduce((s, e) => s + e.amount, 0);
   const paceProjected = fixedDoneTotal + fixedPendingTotal + blendedVariable;
   const minProjected = totalSpentSoFar + fixedPendingTotal;
   const projectedTotal = Math.round(Math.max(paceProjected, minProjected));
