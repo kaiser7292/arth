@@ -19,7 +19,7 @@
  */
 
 import { getDatabase } from "@/database";
-import { getClosingBalance, getMonthBalanceSummary } from "@/services/account-balance";
+import { computeUnseededBalance, getClosingBalance, getMonthBalanceSummary } from "@/services/account-balance";
 import { V15_FLAGS } from "@/services/feature-flags";
 import { getLoanOutstandingsByFA } from "@/services/loan-accounts";
 
@@ -224,16 +224,32 @@ async function getAccountClosingForDate(
   asOfDate: string,
   isLive: boolean,
   lastKnownBalance: number | null,
+  accountType: string,
 ): Promise<{ value: number; isFallback: boolean } | null> {
   const month = yyyymm(asOfDate);
   if (isLive) {
     const summary = await getMonthBalanceSummary(accountId, month);
     if (summary) return { value: summary.closing_balance, isFallback: false };
+    // Pension accounts are typically unseeded — fall back to chained
+    // computation from earliest activity month so they show as authoritative
+    // (not italic/grey "fallback") in the balance sheet.
+    if (accountType === "pension") {
+      const unseeded = await computeUnseededBalance(accountId, month);
+      if (unseeded.closing !== 0 || unseeded.credits !== 0 || unseeded.expenses !== 0) {
+        return { value: unseeded.closing, isFallback: false };
+      }
+    }
     if (lastKnownBalance != null) return { value: lastKnownBalance, isFallback: true };
     return null;
   }
   const closing = await getClosingBalance(accountId, month);
   if (closing != null) return { value: closing, isFallback: false };
+  if (accountType === "pension") {
+    const unseeded = await computeUnseededBalance(accountId, month);
+    if (unseeded.closing !== 0 || unseeded.credits !== 0 || unseeded.expenses !== 0) {
+      return { value: unseeded.closing, isFallback: false };
+    }
+  }
   return null;
 }
 
@@ -290,6 +306,7 @@ export async function getBalanceSheetColumn(
         asOfDate,
         isLive,
         a.account_type === "credit_card" ? null : a.last_known_balance,
+        a.account_type,
       ),
     ),
   ]);
