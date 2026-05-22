@@ -590,7 +590,7 @@ export default function BudgetScreen() {
                   <View className="items-center">
                     <Text className="text-xs text-text-tertiary">Avg/Day</Text>
                     <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
-                      {formatAmount(Math.round(totalSpent / daysTotal))}/day
+                      {formatAmount(Math.round(totalSpent / daysTotal))}
                     </Text>
                   </View>
                   <View className="items-end">
