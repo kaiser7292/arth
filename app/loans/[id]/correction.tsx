@@ -40,6 +40,7 @@ export default function CorrectionForm() {
   const [outstanding, setOutstanding] = useState("");
   const [emi, setEmi] = useState("");
   const [tenureRemaining, setTenureRemaining] = useState("");
+  const [interestRate, setInterestRate] = useState("");
   const [reason, setReason] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -75,6 +76,9 @@ export default function CorrectionForm() {
                 ? String(correction.tenure_remaining_months)
                 : "",
             );
+            setInterestRate(
+              correction.interest_rate_pa != null ? String(correction.interest_rate_pa) : "",
+            );
             setReason(correction.reason ?? "");
           }
         } else if (l) {
@@ -95,8 +99,9 @@ export default function CorrectionForm() {
   const outstandingNum = parseFloat(outstanding) || 0;
   const emiNum = parseFloat(emi) || 0;
   const tenureNum = tenureRemaining ? parseInt(tenureRemaining, 10) : undefined;
+  const rateNum = interestRate ? parseFloat(interestRate) : undefined;
 
-  const canSubmit = outstandingNum > 0 && emiNum > 0;
+  const canSubmit = outstandingNum > 0 && emiNum > 0 && (rateNum === undefined || (rateNum > 0 && rateNum < 100));
 
   const handleSave = async () => {
     if (!loan || !canSubmit || !id) return;
@@ -108,6 +113,7 @@ export default function CorrectionForm() {
         outstanding_principal: outstandingNum,
         emi_amount: emiNum,
         tenure_remaining_months: tenureNum,
+        interest_rate_pa: rateNum,
         reason: reason.trim() || undefined,
       };
 
@@ -228,10 +234,21 @@ export default function CorrectionForm() {
               />
 
               <Input
+                label="New Interest Rate % (optional)"
+                value={interestRate}
+                onChangeText={setInterestRate}
+                keyboardType="decimal-pad"
+                placeholder={`Current: ${loan.interest_rate_pa}%`}
+              />
+              <Text className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+                Fill this only if your bank changed the rate (floating-rate repricing).
+              </Text>
+
+              <Input
                 label="Reason (optional)"
                 value={reason}
                 onChangeText={setReason}
-                placeholder="e.g. Rate reset, interest-day convention"
+                placeholder="e.g. Rate reset, repricing, statement reconciliation"
               />
             </View>
 

@@ -48,6 +48,7 @@ import migration046 from "./046_reclassification_flag";
 import migration047 from "./047_sms_scan_runs";
 import migration048 from "./048_expenses_source_sms_address";
 import migration049 from "./049_simulation_entry_fulfillments";
+import migration050 from "./050_loan_correction_rate";
 
 export interface Migration {
   version: number;
@@ -56,7 +57,7 @@ export interface Migration {
 }
 
 /** All migrations in order. Add new migrations to the end of this array. */
-const migrations: Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006, migration007, migration008, migration009, migration010, migration011, migration012, migration013, migration014, migration015, migration016, migration017, migration018, migration019, migration020, migration021, migration022, migration023, migration024, migration025, migration026, migration027, migration028, migration029, migration030, migration031, migration032, migration033, migration034, migration035, migration036, migration038, migration039, migration040, migration042, migration043, migration045, migration046, migration047, migration048, migration049];
+const migrations: Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006, migration007, migration008, migration009, migration010, migration011, migration012, migration013, migration014, migration015, migration016, migration017, migration018, migration019, migration020, migration021, migration022, migration023, migration024, migration025, migration026, migration027, migration028, migration029, migration030, migration031, migration032, migration033, migration034, migration035, migration036, migration038, migration039, migration040, migration042, migration043, migration045, migration046, migration047, migration048, migration049, migration050];
 
 /**
  * Run all pending schema migrations.

@@ -45,12 +45,14 @@ export async function tryMatchExpenseToEMI(
     );
     if (!expense || expense.deleted_at || expense.nature !== "realized") return null;
 
-    const amountLow = expense.amount * 0.95;
-    const amountHigh = expense.amount * 1.05;
+    // v1.2.0 — match EMIs where the scheduled EMI is at or below the expense.
+    // If expense is bigger by more than 1%, treat the excess as a part-prepayment
+    // (auto-create a loan_prepayments row so outstanding stays accurate).
+    const amountLow = expense.amount * 0.95; // allow 5% underpay (rounding)
+    const amountHigh = expense.amount * 1.05; // exact match
     const dateLow = shiftDate(expense.date, -5);
     const dateHigh = shiftDate(expense.date, 5);
 
-    // Find candidate scheduled EMIs on active loans matching amount + date window
     const candidates = await db.getAllAsync<MatchCandidate>(
       `SELECT se.id as schedule_id, se.loan_account_id, se.installment_num,
               se.due_date, se.emi_amount, fa.bank_name, fa.account_identifier
@@ -58,22 +60,23 @@ export async function tryMatchExpenseToEMI(
        JOIN loan_accounts la ON la.id = se.loan_account_id
        JOIN financial_accounts fa ON fa.id = la.financial_account_id
        WHERE fa.user_id = ? AND la.status = 'active' AND se.status = 'scheduled'
-         AND se.emi_amount >= ? AND se.emi_amount <= ?
+         AND se.emi_amount <= ?
+         AND se.emi_amount >= ?
          AND se.due_date >= ? AND se.due_date <= ?
-       ORDER BY ABS(julianday(se.due_date) - julianday(?)) ASC
+       ORDER BY ABS(se.emi_amount - ?) ASC, ABS(julianday(se.due_date) - julianday(?)) ASC
        LIMIT 1;`,
       userId,
-      amountLow,
-      amountHigh,
+      amountHigh, // EMI ≤ expense × 1.05 (exact or within rounding)
+      amountLow,  // EMI ≥ expense × 0.95 (don't match wildly different amounts)
       dateLow,
       dateHigh,
+      expense.amount,
       expense.date,
     );
 
     const match = candidates[0];
     if (!match) return null;
 
-    // Mark installment paid + link
     await db.runAsync(
       `UPDATE loan_schedule_entries
        SET status = 'paid', linked_expense_id = ?, paid_date = ?, paid_amount = ?
@@ -83,6 +86,26 @@ export async function tryMatchExpenseToEMI(
       expense.amount,
       match.schedule_id,
     );
+
+    // If user paid more than scheduled EMI by >1%, treat excess as part-prepayment.
+    const excess = expense.amount - match.emi_amount;
+    if (excess > match.emi_amount * 0.01) {
+      try {
+        const { recordPrepayment } = await import("./loan-accounts");
+        await recordPrepayment(match.loan_account_id, {
+          prepayment_date: expense.date,
+          amount: excess,
+          prepayment_charge: 0,
+          gst_on_charge: 0,
+          kind: "part_payment",
+          strategy: "reduce_tenure",
+          linked_expense_id: expenseId,
+          notes: "Auto-detected from over-payment on EMI",
+        });
+      } catch (e) {
+        logger.warn("Auto-prepayment from EMI excess failed (non-fatal):", e);
+      }
+    }
 
     logger.info(`Matched expense ${expenseId} to loan installment ${match.installment_num}`);
     bumpDataVersion();

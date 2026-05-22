@@ -127,6 +127,8 @@ export interface LoanCorrectionRow {
   outstanding_principal: number;
   emi_amount: number;
   tenure_remaining_months: number | null;
+  /** v1.2.0 — optional rate override; null = rate didn't change */
+  interest_rate_pa: number | null;
   reason: string | null;
   created_at: string;
   updated_at: string;
@@ -1398,7 +1400,8 @@ async function rebuildLoanSchedule(loanId: string): Promise<void> {
     return a.kind === "prepayment" ? -1 : 1;
   });
 
-  const engineParams = loanToParams(loan);
+  let engineParams = loanToParams(loan);
+  let runningLoan = loan;
   for (const evt of events) {
     if (evt.kind === "prepayment") {
       const p = evt.row;
@@ -1411,7 +1414,13 @@ async function rebuildLoanSchedule(loanId: string): Promise<void> {
         strategy: p.strategy ?? undefined,
       });
     } else {
-      schedule = applyCorrection(schedule, loan, evt.row);
+      schedule = applyCorrection(schedule, runningLoan, evt.row);
+      // v1.2.0 — if correction carried a rate override, propagate it so
+      // subsequent prepayments and corrections use the new rate.
+      if (evt.row.interest_rate_pa != null) {
+        runningLoan = { ...runningLoan, interest_rate_pa: evt.row.interest_rate_pa };
+        engineParams = { ...engineParams, interest_rate_pa: evt.row.interest_rate_pa };
+      }
     }
   }
 
@@ -1512,7 +1521,10 @@ function applyCorrection(
   const lastKept = kept[kept.length - 1];
   const startNum = lastKept ? lastKept.installment_num + 1 : 1;
 
-  const monthlyRate = loan.interest_rate_pa / 12 / 100;
+  // v1.2.0 — correction can carry a rate override (floating-rate repricing).
+  // Falls back to the loan's current rate when correction.interest_rate_pa is null.
+  const effectiveRate = correction.interest_rate_pa ?? loan.interest_rate_pa;
+  const monthlyRate = effectiveRate / 12 / 100;
   const emi = correction.emi_amount;
   // If user-supplied remaining tenure is present, honor it; otherwise use
   // a conservative cap bounded by total tenure. Validation upstream already
@@ -1632,6 +1644,7 @@ export async function createCorrection(
     outstanding_principal: number;
     emi_amount: number;
     tenure_remaining_months?: number;
+    interest_rate_pa?: number;
     reason?: string;
   },
 ): Promise<string> {
@@ -1642,14 +1655,15 @@ export async function createCorrection(
     await db.runAsync(
       `INSERT INTO loan_corrections (
         id, loan_account_id, effective_date, outstanding_principal, emi_amount,
-        tenure_remaining_months, reason
-      ) VALUES (?, ?, ?, ?, ?, ?, ?);`,
+        tenure_remaining_months, interest_rate_pa, reason
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
       id,
       loanId,
       params.effective_date,
       params.outstanding_principal,
       params.emi_amount,
       params.tenure_remaining_months ?? null,
+      params.interest_rate_pa ?? null,
       params.reason ?? null,
     );
     await rebuildLoanSchedule(loanId);
@@ -1674,6 +1688,7 @@ export async function updateCorrection(
     outstanding_principal: number;
     emi_amount: number;
     tenure_remaining_months?: number;
+    interest_rate_pa?: number;
     reason?: string;
   },
 ): Promise<void> {
@@ -1690,12 +1705,13 @@ export async function updateCorrection(
     await db.runAsync(
       `UPDATE loan_corrections
        SET effective_date = ?, outstanding_principal = ?, emi_amount = ?,
-           tenure_remaining_months = ?, reason = ?, updated_at = datetime('now')
+           tenure_remaining_months = ?, interest_rate_pa = ?, reason = ?, updated_at = datetime('now')
        WHERE id = ?;`,
       params.effective_date,
       params.outstanding_principal,
       params.emi_amount,
       params.tenure_remaining_months ?? null,
+      params.interest_rate_pa ?? null,
       params.reason ?? null,
       correctionId,
     );

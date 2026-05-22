@@ -744,6 +744,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "outstanding_principal",
     "emi_amount",
     "tenure_remaining_months",
+    "interest_rate_pa", // migration 050 — optional rate change
     "reason",
     "created_at",
     "updated_at",
