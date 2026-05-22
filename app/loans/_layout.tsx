@@ -25,7 +25,6 @@ export default function LoansLayout() {
       }}
     >
       <Stack.Screen name="add" options={{ title: "Add Loan" }} />
-      <Stack.Screen name="import-schedule" options={{ title: "Import Schedule" }} />
       <Stack.Screen name="[id]" options={{ title: "Loan Details" }} />
       <Stack.Screen name="[id]/correction" options={{ title: "Manual Correction" }} />
       <Stack.Screen name="[id]/prepayment" options={{ title: "Record Prepayment" }} />

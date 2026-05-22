@@ -80,8 +80,8 @@ export interface LoanAccount {
   notes: string | null;
   /** v17.5.2 — rupee rounding matches Indian bank statements; paise for non-INR. */
   round_mode: "rupee" | "paise";
-  /** v17.6.0 — 'generated' (engine-computed) | 'manual_csv' (user-uploaded CSV schedule). */
-  schedule_source: "generated" | "manual_csv";
+  /** Always 'generated' as of v1.2.0 — manual_csv was retired (migration 051). */
+  schedule_source: "generated";
   /** v17.6.0 — last EMI-reminder SMS metadata (used for the loan detail banner). */
   last_sms_reminder_at: string | null;
   last_sms_reminder_due_date: string | null;
@@ -1056,11 +1056,7 @@ export async function updateLoan(
  * manual-CSV schedule and rebuild the engine-computed one.
  *
  * Preserves paid/prepaid count from the previous schedule (same approach as
- * updateLoan's scheduleAffected branch). The caller should have flipped
- * `schedule_source` back to `'generated'` via revertToGeneratedSchedule
- * BEFORE calling this — otherwise the loan is still manual_csv and
- * rebuildLoanSchedule (called indirectly by prepayments/corrections later)
- * would no-op again.
+ * updateLoan's scheduleAffected branch).
  */
 export async function regenerateScheduleFromParams(loanId: string): Promise<void> {
   const db = getDatabase();
@@ -1337,12 +1333,6 @@ async function rebuildLoanSchedule(loanId: string): Promise<void> {
   const db = getDatabase();
   const loan = await getLoanById(loanId);
   if (!loan) throw new Error("Loan not found");
-
-  // v17.6.0 — manual-CSV schedule is the source of truth. Skip regeneration so
-  // prepayments / corrections don't overwrite the user's uploaded rows.
-  // Prepayments still reduce outstanding via computeOutstandingAt's prepayment
-  // branch; corrections are hidden in the UI for manual-CSV loans.
-  if (loan.schedule_source === "manual_csv") return;
 
   const previous = await getSchedule(loanId);
   const paidCount = previous.filter(

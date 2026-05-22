@@ -313,40 +313,14 @@ export default function LoanDetailScreen() {
               colors={colors}
               colorScheme={colorScheme}
             />
-            {/* v17.6.0 — corrections are incompatible with a manual CSV
-                schedule (the CSV IS the override). Hide when manual_csv. */}
-            {loan.schedule_source !== "manual_csv" && (
-              <ActionTile
-                icon="construct-outline"
-                label="Manual correction"
-                sublabel="Override outstanding / EMI / remaining EMIs"
-                onPress={() => router.push({
-                  pathname: "/loans/[id]/correction",
-                  params: { id: loan.id }
-                } as never)}
-                accent={accent}
-                colors={colors}
-                colorScheme={colorScheme}
-              />
-            )}
             <ActionTile
-              icon="document-text-outline"
-              label={
-                loan.schedule_source === "manual_csv"
-                  ? "Replace custom schedule (CSV)"
-                  : "Import custom schedule (CSV)"
-              }
-              sublabel={
-                loan.schedule_source === "manual_csv"
-                  ? "Upload a new CSV — wipes the current custom schedule"
-                  : "Upload your bank's amortization as a CSV"
-              }
-              onPress={() =>
-                router.push({
-                  pathname: "/loans/import-schedule",
-                  params: { id: loan.id },
-                } as never)
-              }
+              icon="construct-outline"
+              label="Manual correction"
+              sublabel="Override outstanding / EMI / rate / remaining EMIs"
+              onPress={() => router.push({
+                pathname: "/loans/[id]/correction",
+                params: { id: loan.id }
+              } as never)}
               accent={accent}
               colors={colors}
               colorScheme={colorScheme}
