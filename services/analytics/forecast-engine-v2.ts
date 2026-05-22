@@ -125,7 +125,14 @@ export async function forecastMonthEndRealistic(input: ForecastInput): Promise<R
     categoryPaces,
   };
 
-  const projectedTotal = Math.round(fixedDoneTotal + fixedPendingTotal + blendedVariable);
+  // Floor projection at (actual spend so far + pending fixed bills).
+  // The blended variable can dip below variableSpent when historical average
+  // is lower than current pace (common early in the month) — but you can't
+  // un-spend money. Projection must be ≥ what's already on the books.
+  const totalSpentSoFar = fixedDoneTotal + variableSpent;
+  const paceProjected = fixedDoneTotal + fixedPendingTotal + blendedVariable;
+  const minProjected = totalSpentSoFar + fixedPendingTotal;
+  const projectedTotal = Math.round(Math.max(paceProjected, minProjected));
   const totalBudget = budgets.reduce((s, b) => s + b.amount, 0) || null;
   const breathingRoom = totalBudget ? totalBudget - projectedTotal : null;
 

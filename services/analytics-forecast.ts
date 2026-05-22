@@ -195,7 +195,13 @@ export async function getAnalyticsForecast(
   const budget = budgetRow?.total ?? null;
 
   // 9. Projected total
-  const projectedTotal = round2(fixedDoneTotal + fixedPendingTotal + projectedVariable);
+  // Pace-based projection: fixed expenses paid + unpaid bills + variable
+  // extrapolated at the same daily pace. Floor at (totalMonthSpend +
+  // fixedPendingTotal) — projection can never be less than what's already
+  // been spent plus bills we know are coming.
+  const paceProjected = round2(fixedDoneTotal + fixedPendingTotal + projectedVariable);
+  const minProjected = round2(totalMonthSpend + fixedPendingTotal);
+  const projectedTotal = Math.max(paceProjected, minProjected);
 
   // 10. Confidence level
   const dataMonths = await getDataMonthCount(userId);
