@@ -1779,28 +1779,12 @@ export async function linkExpenseToInstallment(
     throw new Error("Expense not found or not eligible");
   }
 
-  // Use the existing expense-loan-link service so expense_loan_links is
-  // populated (canonical source of truth for "is this expense an EMI?").
+  // Use the canonical expense-loan-link service. It handles:
+  //   - inserting expense_loan_links (source of truth)
+  //   - marking the schedule entry paid + linking
+  //   - auto-creating a part-prepayment row for any excess over EMI
   const { linkExpenseAsEMI } = await import("./expense-loan-link");
   await linkExpenseAsEMI(expenseId, installment.loan_account_id, scheduleId);
-
-  const excess = expense.amount - installment.emi_amount;
-  if (excess > installment.emi_amount * 0.01) {
-    try {
-      await recordPrepayment(installment.loan_account_id, {
-        prepayment_date: expense.date,
-        amount: excess,
-        prepayment_charge: 0,
-        gst_on_charge: 0,
-        kind: "part_payment",
-        strategy: "reduce_tenure",
-        linked_expense_id: expenseId,
-        notes: "Auto-detected from over-payment on linked EMI",
-      });
-    } catch (e) {
-      logger.warn("Auto-prepayment from EMI excess failed (non-fatal):", e);
-    }
-  }
   bumpDataVersion();
 }
 

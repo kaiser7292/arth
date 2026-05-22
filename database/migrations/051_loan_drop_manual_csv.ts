@@ -29,28 +29,51 @@ export default {
       "SELECT id, emi_amount FROM loan_accounts WHERE schedule_source = 'manual_csv';",
     );
     for (const loan of loans) {
-      // Anchor: latest paid/prepaid installment, else first scheduled.
-      const anchor = await db.getFirstAsync<{
-        due_date: string;
-        closing_principal: number;
-        opening_principal: number;
+      // Prefer: latest paid/prepaid installment — use its closing_principal
+      // (post-EMI value). The correction at that due_date keeps all paid rows
+      // and regenerates the tail from closing_principal forward.
+      let anchor = await db.getFirstAsync<{
+        effective_date: string;
+        outstanding: number;
       }>(
-        `SELECT due_date, closing_principal, opening_principal
+        `SELECT due_date as effective_date, closing_principal as outstanding
          FROM loan_schedule_entries
-         WHERE loan_account_id = ?
-         ORDER BY
-           CASE WHEN status IN ('paid','prepaid') THEN 0 ELSE 1 END ASC,
-           installment_num DESC
+         WHERE loan_account_id = ? AND status IN ('paid','prepaid')
+         ORDER BY installment_num DESC
          LIMIT 1;`,
         loan.id,
       );
+      // Fallback: no paid rows — anchor at the day BEFORE installment 1 with
+      // its opening_principal (the full disbursed amount). This means the
+      // correction effective_date < every scheduled row's due_date, so the
+      // entire schedule regenerates from outstanding = opening_principal.
       if (!anchor) {
-        // No schedule rows at all — just flip the flag, no correction needed.
-        await db.runAsync(
-          "UPDATE loan_accounts SET schedule_source = 'generated' WHERE id = ?;",
+        const first = await db.getFirstAsync<{
+          due_date: string;
+          opening_principal: number;
+        }>(
+          `SELECT due_date, opening_principal
+           FROM loan_schedule_entries
+           WHERE loan_account_id = ?
+           ORDER BY installment_num ASC
+           LIMIT 1;`,
           loan.id,
         );
-        continue;
+        if (!first) {
+          await db.runAsync(
+            "UPDATE loan_accounts SET schedule_source = 'generated' WHERE id = ?;",
+            loan.id,
+          );
+          continue;
+        }
+        // Anchor effective_date one day before due_date so the correction
+        // applies before any installment, regenerating the full schedule.
+        const dueDateMinus1 = new Date(first.due_date);
+        dueDateMinus1.setDate(dueDateMinus1.getDate() - 1);
+        anchor = {
+          effective_date: dueDateMinus1.toISOString().split("T")[0],
+          outstanding: first.opening_principal,
+        };
       }
       const correctionId = `mig051-${loan.id}`;
       await db.runAsync(
@@ -60,8 +83,8 @@ export default {
         ) VALUES (?, ?, ?, ?, ?, NULL, NULL, 'Migrated from CSV-imported schedule');`,
         correctionId,
         loan.id,
-        anchor.due_date,
-        anchor.closing_principal,
+        anchor.effective_date,
+        anchor.outstanding,
         loan.emi_amount,
       );
       await db.runAsync(

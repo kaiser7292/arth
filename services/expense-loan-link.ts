@@ -149,6 +149,28 @@ export async function linkExpenseAsEMI(
     scheduleEntryId,
   );
 
+  // If user paid more than the scheduled EMI by >1%, treat the excess as a
+  // part-prepayment so outstanding tracking stays accurate. Same logic
+  // applied across all three EMI-link entry points (expense screen,
+  // loan-side link sheet, SMS auto-match) for consistency.
+  const excess = expense.amount - entry.emi_amount;
+  if (excess > entry.emi_amount * 0.01) {
+    try {
+      await recordPrepayment(loanAccountId, {
+        prepayment_date: expense.date,
+        amount: excess,
+        prepayment_charge: 0,
+        gst_on_charge: 0,
+        kind: "part_payment",
+        strategy: "reduce_tenure",
+        linked_expense_id: expenseId,
+        notes: "Auto-detected from over-payment on linked EMI",
+      });
+    } catch {
+      // Non-fatal — link succeeded, just no prepayment row created.
+    }
+  }
+
   bumpDataVersion();
   return id;
 }

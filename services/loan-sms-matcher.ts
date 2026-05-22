@@ -77,34 +77,24 @@ export async function tryMatchExpenseToEMI(
     const match = candidates[0];
     if (!match) return null;
 
-    await db.runAsync(
-      `UPDATE loan_schedule_entries
-       SET status = 'paid', linked_expense_id = ?, paid_date = ?, paid_amount = ?
-       WHERE id = ?;`,
-      expenseId,
-      expense.date,
-      expense.amount,
-      match.schedule_id,
-    );
-
-    // If user paid more than scheduled EMI by >1%, treat excess as part-prepayment.
-    const excess = expense.amount - match.emi_amount;
-    if (excess > match.emi_amount * 0.01) {
-      try {
-        const { recordPrepayment } = await import("./loan-accounts");
-        await recordPrepayment(match.loan_account_id, {
-          prepayment_date: expense.date,
-          amount: excess,
-          prepayment_charge: 0,
-          gst_on_charge: 0,
-          kind: "part_payment",
-          strategy: "reduce_tenure",
-          linked_expense_id: expenseId,
-          notes: "Auto-detected from over-payment on EMI",
-        });
-      } catch (e) {
-        logger.warn("Auto-prepayment from EMI excess failed (non-fatal):", e);
-      }
+    // Route through the canonical link service so expense_loan_links is
+    // populated (otherwise the EMI expense double-counts as regular spend
+    // in financial-cockpit and other consumers). linkExpenseAsEMI also
+    // handles the auto part-prepayment for any excess over the EMI.
+    try {
+      const { linkExpenseAsEMI } = await import("./expense-loan-link");
+      await linkExpenseAsEMI(expenseId, match.loan_account_id, match.schedule_id);
+    } catch (e) {
+      logger.warn("Canonical EMI link failed; falling back to direct update:", e);
+      await db.runAsync(
+        `UPDATE loan_schedule_entries
+         SET status = 'paid', linked_expense_id = ?, paid_date = ?, paid_amount = ?
+         WHERE id = ?;`,
+        expenseId,
+        expense.date,
+        expense.amount,
+        match.schedule_id,
+      );
     }
 
     logger.info(`Matched expense ${expenseId} to loan installment ${match.installment_num}`);
