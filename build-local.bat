@@ -1,10 +1,11 @@
 @echo off
 setlocal EnableDelayedExpansion
-set REPO_ROOT=c:\Users\soura\CascadeProjects\artha
+set REPO_ROOT=C:\Users\soura\artha
 cd /d %REPO_ROOT%
 
-REM Stash uncommitted changes so they don't leak into the builds branch commit.
-REM If the script exits early, app.json is restored and stash is popped.
+REM Stash uncommitted changes so the temporary app.json edit below (and its
+REM `git checkout app.json` revert) can't clobber any in-progress edits of yours.
+REM If the script exits early, app.json is restored and the stash is popped.
 git diff-index --quiet HEAD >nul 2>&1
 if errorlevel 1 (
     echo Stashing uncommitted changes...
@@ -32,21 +33,21 @@ REM Determine if staging branch
 if "%BRANCH%"=="staging" (
     echo Staging branch detected - applying staging modifications
     set PACKAGE_NAME=com.souravbaid.artha.staging
-    set APP_NAME=Artha Staging
-    set APK_NAME=artha-staging
+    set APP_NAME=Arth Stg
+    set APK_NAME=arth-staging
     set ABI_FLAG=-PreactNativeArchitectures=arm64-v8a
 ) else (
     echo Main branch detected
     set PACKAGE_NAME=com.souravbaid.artha
-    set APP_NAME=Artha
-    set APK_NAME=artha
+    set APP_NAME=Arth
+    set APK_NAME=arth
     set ABI_FLAG=-PreactNativeArchitectures=arm64-v8a
 )
 
 REM Modify package name in app.json
 echo Modifying package name to %PACKAGE_NAME%
 powershell -Command "(Get-Content app.json) -replace '\"package\": \"com.souravbaid.artha\"', '\"package\": \"%PACKAGE_NAME%\"' | Set-Content app.json"
-powershell -Command "(Get-Content app.json) -replace '\"name\": \"Artha\"', '\"name\": \"%APP_NAME%\"' | Set-Content app.json"
+powershell -Command "(Get-Content app.json) -replace '\"name\": \"Arth\"', '\"name\": \"%APP_NAME%\"' | Set-Content app.json"
 
 REM Read version from app.json
 for /f "tokens=*" %%i in ('node -p "require('./app.json').expo.version"') do set VERSION=%%i
@@ -109,19 +110,12 @@ set APK_FILE=%APK_NAME%-%VERSION%-%TIMESTAMP%.apk
 echo Copying APK to builds folder...
 copy "android\app\build\outputs\apk\release\app-release.apk" "builds\%APK_FILE%" >nul
 
-REM Restore app.json BEFORE creating the commit so the package name change
-REM never lands in any branch.
+REM Restore app.json so the package name change never lands in any commit.
 git checkout app.json >nul 2>&1
-
-REM Create an orphan commit on the builds branch with just this APK.
-REM Force-push is required because each build starts from a different parent.
-git add -f "builds\%APK_FILE%"
-git commit -m "[skip ci] Local build: %APK_FILE%" >nul 2>&1
-git push --force origin-builds HEAD:builds/%BRANCH%
 
 echo.
 echo Build OK: builds\%APK_FILE%
-echo Uploaded to: builds/%BRANCH% branch
+echo To publish: gh release upload ^<tag^> builds\%APK_FILE%
 
 if "!STASHED!"=="1" git stash pop >nul 2>&1
 

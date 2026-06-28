@@ -39,6 +39,10 @@ jobs:
     # Maven artifacts on every run. Machine must be on with the runner service running.
     # Setup: GitHub repo → Settings → Actions → Runners → New self-hosted runner (Windows x64)
     runs-on: self-hosted
+    # Without this, a stuck/sleeping/crashed self-hosted runner queues the
+    # workflow indefinitely with no alert — every fix sits unshipped until
+    # someone notices the runner is down.
+    timeout-minutes: 45
 
     defaults:
       run:
@@ -81,6 +85,12 @@ jobs:
       - name: Install dependencies
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts --prefer-offline
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test -- --ci --forceExit
 
       - name: Determine branch and package name
         id: config
@@ -133,6 +143,8 @@ jobs:
           # Convert Windows backslashes to forward slashes for Gradle compatibility
           echo "sdk.dir=$(echo "${ANDROID_HOME}" | tr '\\' '/')" > android/local.properties
 
+      # NativeWind/Metro resolves tailwind.config.js relative to android/ during
+      # the Expo autolinking phase; expo prebuild doesn't copy it there itself.
       - name: Copy tailwind config
         run: cp tailwind.config.js android/tailwind.config.js
 
