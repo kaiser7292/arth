@@ -559,6 +559,9 @@ export async function permanentlyDeleteExpense(id: string): Promise<void> {
     // is hard-deleted. Clear the fulfillment row explicitly so audit history
     // doesn't point at a phantom expense id.
     await db.runAsync("DELETE FROM reminder_fulfillments WHERE expense_id = ?;", id);
+    // expense_edit_history.expense_id has no FK — clear explicitly or the row
+    // becomes a ghost entry the Edit History screen would otherwise still show.
+    await db.runAsync("DELETE FROM expense_edit_history WHERE expense_id = ?;", id);
     // expense_tags has ON DELETE CASCADE — handled automatically
     await db.runAsync("DELETE FROM expenses WHERE id = ?;", id);
 
@@ -708,6 +711,9 @@ export async function purgeOldDeletedExpenses(userId: string, daysOld = 30): Pro
     await db.runAsync(`UPDATE account_transfers SET linked_forecast_id = NULL WHERE linked_forecast_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
     await db.runAsync(`UPDATE account_transfers SET linked_expense_id = NULL WHERE linked_expense_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
     await db.runAsync(`DELETE FROM reminder_fulfillments WHERE expense_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
+    // expense_edit_history.expense_id has no FK — clear explicitly, mirroring
+    // the single-row permanentlyDeleteExpense path.
+    await db.runAsync(`DELETE FROM expense_edit_history WHERE expense_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
     // If any recycled expenses are the source of a recurring rule, the
     // rule row cascades via ON DELETE CASCADE. But forecasts materialized
     // from those rules still carry a recurring_rule_id stamp (plain column,

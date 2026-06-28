@@ -759,13 +759,6 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "edited_at",
     "undone",
   ] as const,
-  // v17.x — per-user key-value settings (migration 043)
-  settings: [
-    "user_id",
-    "key",
-    "value",
-    "updated_at",
-  ] as const,
 
   sms_scan_runs: [
     "id",

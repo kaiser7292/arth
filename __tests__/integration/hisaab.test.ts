@@ -13,6 +13,7 @@
 import {
     createEntry,
     createPerson,
+    deactivateHisaabPerson,
     deleteEntry,
     getEntries,
     getEntriesByDateRange,
@@ -105,8 +106,7 @@ describe("Person CRUD", () => {
   });
 
   it("deactivates a person (soft delete)", async () => {
-    // TODO: Fix deactivateHisaabPerson import issue
-    // await deactivateHisaabPerson("person-1");
+    await deactivateHisaabPerson("person-1");
 
     const update = executedRuns.find((r) => r.sql.includes("UPDATE hisaab_persons"));
     expect(update).toBeDefined();

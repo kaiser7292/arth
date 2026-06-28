@@ -43,7 +43,7 @@ export const MIN_PASSWORD_LENGTH = 8;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const APP_VERSION: string = require("../app.json").expo.version;
 const MAGIC_HEADER = "ARTHA_BKP"; // 9 bytes — must stay exactly 9
-if (__DEV__ && MAGIC_HEADER.length !== 9) {
+if (MAGIC_HEADER.length !== 9) {
   throw new Error(`MAGIC_HEADER must be exactly 9 bytes, got ${MAGIC_HEADER.length}`);
 }
 const SALT_LENGTH = 32; // 32 bytes
@@ -53,7 +53,7 @@ const LEGACY_V2_KEY_ITERATIONS = 100000; // For restoring V2 backups created bef
 
 /** Strip path traversal characters from a filename. */
 function sanitizeFilename(name: string): string {
-  return name.replace(/[/\\.\0]/g, "").replace(/\.\./g, "");
+  return name.replace(/\.{2,}/g, "").replace(/[/\\\0]/g, "");
 }
 
 // Tables to include in backup (order matters for restore — parents before children)
@@ -165,10 +165,8 @@ async function deriveKey(
  * Returns base64-encoded ciphertext. GCM provides both confidentiality and integrity.
  */
 // The native module supports GCM at runtime, but the shipped .d.ts omits it
-// from the Algorithms union. Cast at the boundary with a typed alias so the
-// intent is explicit and the rest of the codebase stays strictly typed.
-// Tracking: upstream react-native-aes-crypto@3.x typings drift.
-type AesAlgorithmGCM = "aes-256-gcm";
+// from the Algorithms union. Cast at the boundary so the rest of the codebase
+// stays strictly typed. Tracking: upstream react-native-aes-crypto@3.x typings drift.
 const AES_256_GCM = "aes-256-gcm" as unknown as Parameters<typeof Aes.encrypt>[3];
 
 async function encryptData(
@@ -189,9 +187,6 @@ async function decryptData(
 ): Promise<string> {
   return Aes.decrypt(ciphertext, keyHex, ivHex, AES_256_GCM);
 }
-
-// Silence "unused type" warning in strict-locals mode without turning off the lint.
-export type _AesAlgorithmGCM = AesAlgorithmGCM;
 
 // ---------------------------------------------------------------------------
 // Legacy V1 key derivation + XOR encryption (for backward-compatible restore)

@@ -3,7 +3,7 @@ import { ALLOWED_DEEP_LINK_SCREENS } from "@/constants/routes";
 import { initDatabase } from "@/database";
 import { AlertProvider } from "@/hooks/use-alert";
 import { AccentProvider } from "@/hooks/use-color-scheme";
-import { shouldShowLock } from "@/services/biometric-lock";
+import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
 import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
 import { preloadHomeData } from "@/services/home-preload";
@@ -14,6 +14,7 @@ import { seedDefaultPaymentModes } from "@/services/payment-mode";
 import { seedPublicData } from "@/services/public-data";
 import { getOnboardingCompletedVersion } from "@/services/settings";
 import { runSmsScan } from "@/services/sms";
+import { settingsStorage } from "@/services/storage";
 import { logger } from "@/utils/logger";
 import * as BackgroundFetch from "expo-background-fetch";
 import * as Notifications from "expo-notifications";
@@ -170,8 +171,14 @@ function SplashScreen({ step }: { step: string }) {
  * still has leftovers.
  */
 const LEGACY_SMS_CHECK_TASK = "ARTHA_SMS_CHECK";
+const LEGACY_CLEANUP_DONE_KEY = "legacy_sms_task_cleaned";
 
 async function cleanupLegacyScheduledScan(): Promise<void> {
+  // Once confirmed clean, skip this every-startup pass — it was unconditionally
+  // cancelling ALL scheduled notifications (Layer 1 EMI/reminder/daily alarms)
+  // on every cold start, which on battery-aggressive Android OEMs (MIUI,
+  // ColorOS) can get the app rate-limited for notifications.
+  if (settingsStorage.getBoolean(LEGACY_CLEANUP_DONE_KEY)) return;
   try {
     const isRegistered = await TaskManager.isTaskRegisteredAsync(LEGACY_SMS_CHECK_TASK);
     if (isRegistered) {
@@ -192,6 +199,7 @@ async function cleanupLegacyScheduledScan(): Promise<void> {
   } catch (e) {
     logger.warn("Legacy scheduled notification cleanup failed:", e);
   }
+  settingsStorage.set(LEGACY_CLEANUP_DONE_KEY, true);
 }
 
 export default function RootLayout(): React.JSX.Element {
@@ -209,6 +217,10 @@ export default function RootLayout(): React.JSX.Element {
 
   // Detect fresh install once at component mount
   const isFreshInstall = !getOnboardingCompletedVersion();
+  // If migrateExistingUser() fails, getOnboardingCompletedVersion() stays null
+  // even for a genuine existing user — don't let that send them to the
+  // onboarding wizard. See the redirect effect below.
+  const migrationFailedRef = useRef(false);
 
   const MIN_STEP_DURATION = 1200;
 
@@ -238,7 +250,7 @@ export default function RootLayout(): React.JSX.Element {
         // APIs are no-ops when there's nothing to clean up.
         await cleanupLegacyScheduledScan();
 
-        setInitStepThrottled(isFreshInstall ? "Setting up your database for the first time..." : "Preparing database...");
+        setInitStepThrottled(isFreshInstall ? "Setting up for the first time..." : "Preparing database...");
         
         // Set app start time for cold start detection in biometric lock
         const { setAppStartTime } = await import("@/services/biometric-lock");
@@ -257,9 +269,10 @@ export default function RootLayout(): React.JSX.Element {
             ? seedPublicData().catch((e) => logger.warn("Public-data seed failed (non-fatal):", e))
             : Promise.resolve(),
           getFlag("v15_onboarding_wizard")
-            ? migrateExistingUser().catch((e) =>
-                logger.warn("Onboarding migration failed (non-fatal):", e),
-              )
+            ? migrateExistingUser().catch((e) => {
+                logger.warn("Onboarding migration failed (non-fatal):", e);
+                migrationFailedRef.current = true;
+              })
             : Promise.resolve(),
         ]);
         // v17.5.9 — splash must NOT wait for preload. preloadHomeData
@@ -368,9 +381,17 @@ export default function RootLayout(): React.JSX.Element {
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const screen = response.notification.request.content.data?.screen;
-        if (screen && typeof screen === "string" && routerRef.current && ALLOWED_SCREENS.has(screen)) {
-          routerRef.current.push(screen as never);
+        if (!screen || typeof screen !== "string" || !routerRef.current || !ALLOWED_SCREENS.has(screen)) {
+          return;
         }
+        if (getFlag("v15_biometric_lock") && shouldShowLock()) {
+          // Defer this navigation until after unlock instead of bypassing the
+          // lock screen entirely — see services/biometric-lock.ts.
+          setPendingDeepLink(screen);
+          routerRef.current.replace("/(lock)/lock" as never);
+          return;
+        }
+        routerRef.current.push(screen as never);
       },
     );
     return () => subscription.remove();
@@ -384,10 +405,14 @@ export default function RootLayout(): React.JSX.Element {
 
   // v15: redirect fresh installs into the onboarding wizard.
   // migrateExistingUser() stamps upgraders before this runs, so only genuine
-  // fresh installs have a null stamp and get redirected.
+  // fresh installs have a null stamp and get redirected. If that migration
+  // check failed, we don't know whether this is a fresh install or an
+  // existing user whose stamp-write failed — err on the side of not
+  // interrupting an existing user with the wizard.
   useEffect(() => {
     if (!dbReady || !minSplashDone || !lockEvaluated) return;
     if (!getFlag("v15_onboarding_wizard")) return;
+    if (migrationFailedRef.current) return;
     if (getOnboardingCompletedVersion()) return;
     if (!routerRef.current) return;
     routerRef.current.replace("/(onboarding)/welcome" as never);

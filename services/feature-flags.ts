@@ -43,8 +43,9 @@ export const V15_FLAGS = {
   v17_loans_v1: true,
 } as const;
 
-export type V15FlagName = keyof typeof V15_FLAGS;
+// Type name kept generic (not "V15FlagName") since V15_FLAGS now also holds v17+ flags.
+export type FeatureFlagName = keyof typeof V15_FLAGS;
 
-export function getFlag(name: V15FlagName): boolean {
+export function getFlag(name: FeatureFlagName): boolean {
   return V15_FLAGS[name];
 }

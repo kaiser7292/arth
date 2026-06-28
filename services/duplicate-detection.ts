@@ -13,10 +13,10 @@
  * Can be triggered manually from settings or auto-run after SMS scan.
  */
 
-import { duplicateDismissalsStorage as dismissStorage } from "./storage";
+import { duplicateDismissalsStorage as dismissStorage, settingsStorage } from "./storage";
 import { getDatabase } from "@/database";
 import type { Expense } from "@/services/expense";
-import { subscribeDataVersion } from "@/services/settings";
+import { getDataVersion, subscribeDataVersion } from "@/services/settings";
 
 // ---------------------------------------------------------------------------
 // Dismissed groups ("Keep both" state)
@@ -488,6 +488,7 @@ export async function scanAllDuplicates(
 // scan — the second caller waits for the first rather than running its own.
 
 const SCAN_CACHE_TTL_MS = 60_000;
+const PERSISTED_SCAN_KEY = "duplicate_scan_cache_v1";
 interface ScanCacheEntry {
   userId: string;
   at: number;
@@ -499,6 +500,38 @@ let inFlight: Promise<DuplicateScanResult> | null = null;
 /** Drop the cached scan. Call from any code path that mutates expenses. */
 export function invalidateDuplicateScanCache(): void {
   scanCache = null;
+  settingsStorage.delete(PERSISTED_SCAN_KEY);
+}
+
+// Cold-start variant of the cache above: scanCache resets to null on every
+// JS reload, so without this, the first call after every app launch redid
+// the full (expensive, history-scaling) scan even if nothing changed since
+// the app was last closed. Persisted entry is only trusted if dataVersion
+// hasn't moved since it was written — any mutation invalidates it via the
+// subscribeDataVersion hook below, same as the in-memory cache.
+interface PersistedScanEntry {
+  userId: string;
+  dataVersion: number;
+  result: DuplicateScanResult;
+}
+
+function loadPersistedScan(userId: string): DuplicateScanResult | null {
+  const raw = settingsStorage.getString(PERSISTED_SCAN_KEY);
+  if (!raw) return null;
+  try {
+    const entry: PersistedScanEntry = JSON.parse(raw);
+    if (entry.userId === userId && entry.dataVersion === getDataVersion()) {
+      return entry.result;
+    }
+  } catch {
+    // Corrupt/old-shape entry — ignore and let a fresh scan replace it.
+  }
+  return null;
+}
+
+function savePersistedScan(userId: string, result: DuplicateScanResult): void {
+  const entry: PersistedScanEntry = { userId, dataVersion: getDataVersion(), result };
+  settingsStorage.set(PERSISTED_SCAN_KEY, JSON.stringify(entry));
 }
 
 // Auto-invalidate whenever any expense mutation bumps the global data version.
@@ -508,6 +541,7 @@ export function invalidateDuplicateScanCache(): void {
 try {
   subscribeDataVersion(() => {
     scanCache = null;
+    settingsStorage.delete(PERSISTED_SCAN_KEY);
   });
 } catch {
   // No-op: test environment without a full MMKV listener surface.
@@ -528,11 +562,19 @@ export async function scanAllDuplicatesCached(
   ) {
     return scanCache.result;
   }
+  // In-memory cache missed — likely a cold start. Check the persisted
+  // cross-restart cache before paying for a fresh scan.
+  const persisted = loadPersistedScan(userId);
+  if (persisted) {
+    scanCache = { userId, at: now, result: persisted };
+    return persisted;
+  }
   if (inFlight) return inFlight;
   inFlight = (async () => {
     try {
       const result = await scanAllDuplicates(userId);
       scanCache = { userId, at: Date.now(), result };
+      savePersistedScan(userId, result);
       return result;
     } finally {
       inFlight = null;

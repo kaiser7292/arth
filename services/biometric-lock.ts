@@ -26,6 +26,7 @@ const KEYS = {
   LAST_UNLOCK_AT: "biometric_last_unlock_at",
   APP_START_TIME: "biometric_app_start_time",
   HOME_SCREEN_LANDED: "biometric_home_screen_landed",
+  PENDING_DEEP_LINK: "biometric_pending_deep_link",
 } as const;
 
 export type LockTimeoutOption = "immediate" | "1m" | "5m" | "15m" | "never";
@@ -115,6 +116,22 @@ export function getHasLandedOnHome(): boolean {
 }
 
 /**
+ * Remembers a notification's deep-link target while the lock screen is
+ * shown, so the unlock flow can finish the navigation the notification tap
+ * started instead of just dropping it.
+ */
+export function setPendingDeepLink(screen: string): void {
+  storage.set(KEYS.PENDING_DEEP_LINK, screen);
+}
+
+/** Returns and clears the pending deep-link target, if any. */
+export function consumePendingDeepLink(): string | null {
+  const screen = storage.getString(KEYS.PENDING_DEEP_LINK) ?? null;
+  if (screen) storage.delete(KEYS.PENDING_DEEP_LINK);
+  return screen;
+}
+
+/**
  * Should the app show the lock screen right now?
  *
  * Decision tree:
@@ -201,7 +218,7 @@ export async function promptUnlock(options?: {
 
   try {
     const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: options?.promptMessage ?? "Unlock Artha",
+      promptMessage: options?.promptMessage ?? "Unlock Arth",
       fallbackLabel: "Use Passcode",
       disableDeviceFallback: options?.allowDeviceCredentials === false,
       cancelLabel: "Cancel",

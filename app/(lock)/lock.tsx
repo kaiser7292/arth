@@ -2,6 +2,7 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
     clearAppStartTime,
+    consumePendingDeepLink,
     describeBiometricType,
     getBiometricCapability,
     promptUnlock,
@@ -51,7 +52,8 @@ export default function LockScreen() {
       // Clear app start time and home screen flag to prevent cold start re-lock
       clearAppStartTime();
       setHasLandedOnHome(false);
-      router.replace("/(tabs)" as never);
+      const pendingScreen = consumePendingDeepLink();
+      router.replace((pendingScreen ?? "/(tabs)") as never);
       return;
     }
 

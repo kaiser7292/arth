@@ -21,6 +21,9 @@ import { DEFAULT_MERCHANT_MAPPINGS } from "@/database/defaults/merchant-mappings
 import { bumpDataVersion } from "@/services/settings";
 import { getFlag } from "@/services/feature-flags";
 import { resolveMerchantBrand } from "@/services/public-data/lookup";
+import { settingsStorage } from "@/services/storage";
+
+const MERCHANT_MAPPINGS_SEEDED_KEY = "merchant_mappings_seeded";
 
 /** Minimum corrections before a learned mapping overrides rules */
 const LEARNING_THRESHOLD = 3;
@@ -302,13 +305,20 @@ export async function recordCategoryCorrection(
  * Skips entries that already exist (by keyword).
  */
 export async function seedMerchantMappings(): Promise<void> {
+  // Cheap skip on every cold start after the first successful seed — avoids
+  // even the COUNT query below on every initDatabase() call.
+  if (settingsStorage.getBoolean(MERCHANT_MAPPINGS_SEEDED_KEY)) return;
+
   const db = getDatabase();
 
   const existing = await db.getFirstAsync<{ count: number }>(
     "SELECT COUNT(*) as count FROM merchant_mappings;",
   );
 
-  if (existing && existing.count > 0) return; // Already seeded
+  if (existing && existing.count > 0) {
+    settingsStorage.set(MERCHANT_MAPPINGS_SEEDED_KEY, true);
+    return; // Already seeded
+  }
 
   await db.withTransactionAsync(async () => {
     for (const mapping of DEFAULT_MERCHANT_MAPPINGS) {
@@ -322,5 +332,6 @@ export async function seedMerchantMappings(): Promise<void> {
       );
     }
   });
+  settingsStorage.set(MERCHANT_MAPPINGS_SEEDED_KEY, true);
   await bumpDataVersion();
 }

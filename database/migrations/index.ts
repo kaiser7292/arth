@@ -43,7 +43,7 @@ import migration040 from "./040_expense_edit_history";
 // 041: removed in v17.5.x — notification_collector_triggers migration deleted with feature
 import migration042 from "./042_simulator_transfers";
 import migration043 from "./043_loan_corrections_deleted_at";
-import migration045 from "./045_app_logs";
+// 045: removed — app_logs migration deleted with feature (unused local crash log, never wired up; services/app-log.ts + pii-redactor.ts deleted alongside)
 import migration046 from "./046_reclassification_flag";
 import migration047 from "./047_sms_scan_runs";
 import migration048 from "./048_expenses_source_sms_address";
@@ -58,7 +58,7 @@ export interface Migration {
 }
 
 /** All migrations in order. Add new migrations to the end of this array. */
-const migrations: Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006, migration007, migration008, migration009, migration010, migration011, migration012, migration013, migration014, migration015, migration016, migration017, migration018, migration019, migration020, migration021, migration022, migration023, migration024, migration025, migration026, migration027, migration028, migration029, migration030, migration031, migration032, migration033, migration034, migration035, migration036, migration038, migration039, migration040, migration042, migration043, migration045, migration046, migration047, migration048, migration049, migration050, migration051];
+const migrations: Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006, migration007, migration008, migration009, migration010, migration011, migration012, migration013, migration014, migration015, migration016, migration017, migration018, migration019, migration020, migration021, migration022, migration023, migration024, migration025, migration026, migration027, migration028, migration029, migration030, migration031, migration032, migration033, migration034, migration035, migration036, migration038, migration039, migration040, migration042, migration043, migration046, migration047, migration048, migration049, migration050, migration051];
 
 /**
  * Run all pending schema migrations.

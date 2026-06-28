@@ -40,6 +40,8 @@ import { Platform } from "react-native";
 const LAST_NOTIF_CHECK_KEY = "notif_last_check_ts";
 const COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours (reduced from 12)
 const LAST_SCHEDULE_SYNC_KEY = "notif_last_schedule_sync_ts";
+const LAST_MONTHLY_SUMMARY_SENT_KEY = "notif_monthly_summary_last_sent_month";
+const EMI_LAST_NOTIFIED_PREFIX = "notif_emi_last_notified_";
 
 const NOTIF_CHECK_TASK = "ARTHA_NOTIF_CHECK";
 
@@ -332,7 +334,12 @@ export async function cancelMonthlySummaryNotification(): Promise<void> {
  */
 export async function syncAllScheduledNotifications(userId: string): Promise<void> {
   const lastSync = storage.getNumber(LAST_SCHEDULE_SYNC_KEY) ?? 0;
-  if (Date.now() - lastSync < 5 * 60 * 1000) return;
+  // 1 hour — was 5 minutes, which on frequent app-opens churned (cancel +
+  // reschedule) every Layer 1 EMI/reminder/daily alarm several times an hour.
+  // forceSyncScheduledNotifications() bypasses this for callers right after
+  // a real data mutation, so this debounce only affects the "nothing
+  // relevant changed" app-open case.
+  if (Date.now() - lastSync < 60 * 60 * 1000) return;
   storage.set(LAST_SCHEDULE_SYNC_KEY, Date.now());
 
   if (!(await hasNotificationPermission())) return;
@@ -400,6 +407,20 @@ function daysFromNow(dateStr: string): number {
 
 function expenseLabel(e: Expense): string {
   return e.merchant_name || e.description || "Payment";
+}
+
+/**
+ * App-open EMI checks (Layer 2) run on every app-open past the 6h cooldown,
+ * independent of Layer 1's scheduled "due tomorrow" alarm — without this
+ * guard, opening the app repeatedly in one day re-sends the same
+ * upcoming/overdue EMI notification each time.
+ */
+function shouldNotifyEmiToday(emiId: string, today: string): boolean {
+  return storage.getString(`${EMI_LAST_NOTIFIED_PREFIX}${emiId}`) !== today;
+}
+
+function markEmiNotifiedToday(emiId: string, today: string): void {
+  storage.set(`${EMI_LAST_NOTIFIED_PREFIX}${emiId}`, today);
 }
 
 // ─── Layer 2: App-Open Immediate Checks ───
@@ -540,19 +561,23 @@ export async function checkAndNotifyLoanEMIs(userId: string): Promise<number> {
 
     let count = 0;
     for (const e of upcoming) {
+      if (!shouldNotifyEmiToday(e.id, today)) continue;
       await sendLocalNotification(
         `EMI due ${e.due_date === today ? "today" : "soon"}: ${e.bank_name}`,
         `EMI of ${formatAmount(e.emi_amount)} on ${e.due_date}.`,
         { screen: "/goals/loans" },
       );
+      markEmiNotifiedToday(e.id, today);
       count++;
     }
     for (const e of overdue) {
+      if (!shouldNotifyEmiToday(e.id, today)) continue;
       await sendLocalNotification(
         `EMI overdue: ${e.bank_name}`,
         `${formatAmount(e.emi_amount)} was due ${e.due_date}. Link a payment or check with your bank.`,
         { screen: "/goals/loans" },
       );
+      markEmiNotifiedToday(e.id, today);
       count++;
     }
     return count;
@@ -651,7 +676,11 @@ export async function runDailyNotificationCheck(userId: string): Promise<{
   const loanEMIs = await checkAndNotifyLoanEMIs(userId);
 
   if (new Date().getDate() === 1) {
-    sendMonthlySummaryNow(userId).catch((e) => logger.warn("Monthly summary failed", e));
+    const thisMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    if (storage.getString(LAST_MONTHLY_SUMMARY_SENT_KEY) !== thisMonth) {
+      storage.set(LAST_MONTHLY_SUMMARY_SENT_KEY, thisMonth);
+      sendMonthlySummaryNow(userId).catch((e) => logger.warn("Monthly summary failed", e));
+    }
   }
 
   return { overdue, upcoming, recurringReminders, loanEMIs, skipped: false };
