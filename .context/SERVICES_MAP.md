@@ -32,6 +32,8 @@ All business logic lives in `services/`. UI components call services; services c
 | `account-master.ts` | Account list/management |
 | `balance-source.ts` | SMS-reported vs calculated balance tracking, staleness detection |
 | `balance-sheet.ts` | Net worth computation (assets − liabilities) |
+| `demat-transfer.ts` | Side-effects when a transfer lands in a demat account (fund vs portfolio, optional investment-bucket link) |
+| `min-balance.ts` | Savings account min-balance breach detection + per-month acknowledgement (MMKV) |
 
 ### Loans
 | File | Purpose |
@@ -40,7 +42,6 @@ All business logic lives in `services/`. UI components call services; services c
 | `loan-engine.ts` | Pure math: amortization, prepayment strategies, INR rounding |
 | `loan-sms-matcher.ts` | Match SMS-detected expenses to loan installments |
 | `loan-emi-reminder.ts` | EMI reminder notifications |
-| `loan-schedule-import.ts` | Import amortization from external sources |
 | `loan-account-merge.ts` | Merge duplicate loan records |
 
 ### Budget & Planning
@@ -60,7 +61,12 @@ All business logic lives in `services/`. UI components call services; services c
 | `analytics-forecast.ts` | Month-end projection |
 | `analytics/classifier.ts` | Spending classification engine |
 | `analytics/pattern-learner.ts` | Recurring pattern detection |
-| `analytics/forecast-engine-v2.ts` | Advanced forecasting |
+| `analytics/forecast-engine-v2.ts` | Advanced forecasting (current) |
+| `analytics/data-layer.ts` | Shared query layer feeding pure analytics functions (expenses, budgets, categories, recurring, yearly plan) |
+| `analytics/lifecycle.ts` | Orchestrates classification seeding + pattern detection on app lifecycle events |
+| `analytics/seed-classifications.ts` | Seeds spend classifications from detected recurring transactions |
+| `forecast-engine.ts` | Legacy (v1) month/year-end forecast engine — superseded by `analytics/forecast-engine-v2.ts` for new code |
+| `spend-classification.ts` | Unified "unavoidable vs discretionary" spend split — single source of truth so Monthly Summary and Spending Split agree |
 | `financial-cockpit.ts` | Financial health dashboard data |
 
 ### Hisaab (Family Ledger)
@@ -85,6 +91,7 @@ All business logic lives in `services/`. UI components call services; services c
 | `sms/template-draft-store.ts` | Draft persistence across template screens |
 | `sms/sms-permissions.ts` | SMS permission handling |
 | `sms/sms-orchestrator.ts` | Background SMS scan orchestration |
+| `sms/sms-scan-logging.ts` | Writes `sms_scan_runs` + `sms_scan_details` rows per scan, for the Scan Runs UI |
 
 ### Simulator
 | File | Purpose |
@@ -96,6 +103,7 @@ All business logic lives in `services/`. UI components call services; services c
 | File | Purpose |
 |------|---------|
 | `smart-rules.ts` | Rule evaluation, CRUD, retroactive apply |
+| `smart-categorizer.ts` | Auto-categorization: keyword rules for 200+ Indian merchants, plus learns from user corrections after N repeats |
 | `recurring-rules.ts` | Reminder rules, fulfillment, cycle advancement |
 | `recurring-detector.ts` | Pattern detection for recurring expenses |
 | `merchant-alias.ts` | Merchant name normalization |
@@ -118,6 +126,7 @@ All business logic lives in `services/`. UI components call services; services c
 | `notification-scheduler.ts` | Background notification scheduling |
 | `save-to-phone.ts` | Android SAF file save helper |
 | `saved-filter-views.ts` | Named filter view persistence |
+| `home-card-preferences.ts` | Per-card show/hide preferences for the Home screen |
 
 ### Data & Reference
 | File | Purpose |
@@ -139,3 +148,7 @@ All business logic lives in `services/`. UI components call services; services c
 | `docs/articles.ts` | Article content loading |
 | `audit-log.ts` | Cross-entity audit trail |
 | `kite-connect.ts` | Zerodha Kite Connect integration |
+
+---
+
+Note: `index.ts` barrel files in `services/`, `services/sms/`, `services/analytics/`, and `services/public-data/` are re-export points only — no logic of their own, not itemized above. (105 service files total as of this audit; verify with `find services -name "*.ts" -not -name "*.test.ts" | wc -l` if it's been a while.)

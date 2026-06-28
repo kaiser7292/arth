@@ -1,4 +1,4 @@
-# Artha (अर्थ) — CLAUDE.md
+# Arth — CLAUDE.md
 
 ## What This Is
 
@@ -7,12 +7,16 @@ Personal finance app for Android. React Native + Expo, 100% local (SQLite + MMKV
 **Owner:** Sourav Baid (non-technical user building this as a personal tool)
 **Repo:** github.com/kaiser7292/artha
 
+### Naming: "Arth" vs "Artha"
+The app was rebranded from **Artha** to **Arth** (commit `815a3e2`, 2026-05-22) — every user-visible string (home screen, onboarding, settings, help articles, etc.) now says "Arth." **"Artha" intentionally remains** at the technical layer only: GitHub repo name, Android package id (`com.souravbaid.artha`), Expo slug/scheme, and the backup file's internal `MAGIC_HEADER`/legacy `.artha` extension (kept for backward compatibility). When discussing the product with the owner, call it **Arth**; "Artha" in code/config/docs below refers to the project, not a naming bug.
+
 ---
 
 ## Quick Reference
 
 | What | Where |
 |------|-------|
+| **Where's the problem? (start here for bug reports)** | `.context/FEATURE_MAP.md` |
 | Architecture, stack, patterns | `.context/ARCHITECTURE.md` |
 | Database schema & migrations | `.context/DATABASE_SCHEMA.md` |
 | Service map (where logic lives) | `.context/SERVICES_MAP.md` |
@@ -69,12 +73,12 @@ artha/
 │   ├── loans/              # Loan sheets
 │   ├── simulator/          # Simulator sheets
 │   └── account/            # Account-related components
-├── services/               # Business logic (83 service files)
+├── services/               # Business logic (105 service files)
 │   ├── sms/                # SMS reading, parsing, orchestration, templates
 │   ├── docs/               # Help center article service
 │   ├── analytics/          # Analytics computation
 │   └── public-data/        # Bundled reference data (IFSC, MCC, templates)
-├── database/               # SQLite schema + migrations (48 migrations)
+├── database/               # SQLite schema + migrations (49 migration files, schema version 051)
 ├── utils/                  # Helpers, formatters, validators
 ├── constants/              # Theme, config, category defaults
 ├── hooks/                  # Custom React hooks
@@ -147,7 +151,7 @@ chore(scope): description
 ```
 
 ### Working Reference Versions
-The latest GitHub release (currently v1.0.0 / v18.0.0) ships an APK that the user trusts as a known-good baseline. When a regression appears, diffing against the working tag is faster than guessing — `git diff <tag>..HEAD -- <path>`.
+The latest GitHub release (currently v1.1.0 / v18.0.0) ships an APK that the user trusts as a known-good baseline. When a regression appears, diffing against the working tag is faster than guessing — `git diff <tag>..HEAD -- <path>`.
 
 ---
 

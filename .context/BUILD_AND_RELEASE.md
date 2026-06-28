@@ -14,15 +14,16 @@ The project uses GitHub Actions for automated APK builds. This is the recommende
 | Aspect | Staging | Main |
 |--------|---------|------|
 | **Package Name** | `com.souravbaid.artha.staging` | `com.souravbaid.artha` |
-| **App Name** | "Artha Stg" | "Artha" |
+| **App Name** | "Arth Stg" | "Arth" |
 | **Release Tag** | `vX.Y.Z-staging` | `vX.Y.Z` |
 | **Purpose** | Testing new features | Production builds |
 | **Install Behavior** | Separate app | Updates main app |
 
 ### GitHub Actions Workflow
 - **Triggers**: Push to `staging` or `main` branches
-- **Staging**: Automatically changes package name to `com.souravbaid.artha.staging` and app name to "Artha Stg"
-- **Main**: Uses production package name `com.souravbaid.artha` and app name "Artha"
+- **Runner**: Self-hosted on the dev machine (Windows) — see `.github/workflows/build-apk.yml`. Sets up Java 21 via `actions/setup-java`; Android SDK is pre-installed (Android Studio), not provisioned per-run.
+- **Staging**: Automatically changes package name to `com.souravbaid.artha.staging` and app name to "Arth Stg" (`sed` on `app.json`)
+- **Main**: Uses production package name `com.souravbaid.artha` and app name "Arth"
 - **Output**: Creates GitHub release with APK
 
 ### Workflow File
@@ -85,24 +86,13 @@ copy ..\tailwind.config.js tailwind.config.js
 
 ## Build Command
 
-### Primary (v15.9.2+): Direct Gradle Wrapper
+### Primary (v15.9.2+): Direct Gradle Wrapper — macOS only
 
-#### macOS
+`bin/build-apk.sh` hardcodes macOS SDK paths (`JAVA_HOME=/Applications/Android Studio.app/...`, `ANDROID_HOME=$HOME/Library/Android/sdk`) — it will fail as-is on Windows. There is no `build-apk.bat` of that exact name, but see "Windows local build" below for the actual (currently broken) equivalent.
+
 ```bash
-cd ~/accounts-manager-app && ./bin/build-apk.sh
-```
-
-#### Windows
-```batch
-build-apk.bat
-```
-
-Clean build (after branch switch or cache corruption):
-```bash
-./bin/build-apk.sh --clean  # macOS
-```
-```batch
-# Delete android directory first, then run build-apk.bat  # Windows
+./bin/build-apk.sh             # from repo root, macOS
+./bin/build-apk.sh --clean     # after a branch switch or cache corruption
 ```
 
 **What it does:**
@@ -110,9 +100,11 @@ Clean build (after branch switch or cache corruption):
 2. Ensures `android/local.properties` and tailwind symlink exist
 3. Reads version from `app.json`, computes versionCode
 4. Runs `./gradlew assembleRelease` with version params
-5. Copies APK to `./build-<timestamp>.apk`
+5. Copies APK to `./build-<timestamp>.apk` at repo root
 
-**Output:** `~/accounts-manager-app/build-<timestamp>.apk`
+### Windows local build (currently broken — see `.context/KNOWN_ISSUES.md`)
+
+Root-level `.bat` files: `install-deps.bat`, `install-sdk.bat`, `configure-android.bat`, `prebuild-android.bat` are working one-time setup helpers (correct paths, match `SETUP_GUIDE_WINDOWS.md`). `build-local.bat` is meant to be the actual build+package step — `expo prebuild`, Gradle build, copy APK, then push it to a `builds/<branch>` branch on a remote called `origin-builds` — but it currently cannot run: it hardcodes a stale repo path (`c:\Users\soura\CascadeProjects\artha`, a near-empty leftover directory, not this repo) and `origin-builds` isn't a configured remote. Until fixed, the only reliable Windows build path is the GitHub Actions self-hosted runner (push to `staging`/`main` — see above), which does its own `expo prebuild` + Gradle invocation independent of any of these scripts.
 
 ### Fallback: EAS Build Local
 ```bash

@@ -12,7 +12,10 @@ This folder contains comprehensive project knowledge files designed for any LLM 
 
 | File | What It Covers | Read When... |
 |------|---------------|--------------|
-| [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) | What Artha is, feature set, core philosophy | Starting any session |
+| [FEATURE_MAP.md](FEATURE_MAP.md) | Symptom/screen → feature area → files, in plain English | **A bug is reported — read this first** |
+| [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | Verified, still-open bugs from the May 2026 audit, plain-English + technical | Before reporting something as new — it may already be cataloged here |
+| [features/*.md](features/) | Deep dives (functional + technical) on the 5 historically buggiest areas: ledger/balances, SMS pipeline, loans, hisaab, backup/restore | The symptom matches one of those 5 areas |
+| [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) | What Arth is, feature set, core philosophy | Starting any session |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Tech stack, directory structure, data flow, patterns | Understanding how code is organized |
 | [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | All tables, columns, migrations, backup system | Working with data/DB changes |
 | [SERVICES_MAP.md](SERVICES_MAP.md) | Every service file and its purpose | Finding where logic lives |

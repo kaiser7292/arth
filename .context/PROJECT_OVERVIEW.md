@@ -1,8 +1,8 @@
-# Artha (अर्थ) — Project Overview
+# Arth — Project Overview
 
-## What Is Artha?
+## What Is Arth?
 
-Artha is a personal finance mobile app for Android (iOS planned) built with React Native + Expo. It replaces Excel-based finance tracking with a full-featured mobile app.
+Arth (user-facing name; project/repo/package id remain "Artha" — see CLAUDE.md "Naming" note) is a personal finance mobile app for Android (iOS planned) built with React Native + Expo. It replaces Excel-based finance tracking with a full-featured mobile app.
 
 **Current Version:** 1.0.0 (versionCode 1)
 **Repository:** github.com/kaiser7292/artha
@@ -38,7 +38,7 @@ Artha is a personal finance mobile app for Android (iOS planned) built with Reac
 ## Key Design Decisions
 
 - No external dependencies for core logic (no Firebase, no Supabase, no Redux)
-- SQLite as the single source of truth (41 migrations to date)
+- SQLite as the single source of truth (49 migration files to date, schema version 051)
 - MMKV for device-local settings that don't travel with backup (biometric, theme, filter dismissals)
 - File-based routing (Expo Router)
 - NativeWind (Tailwind CSS for React Native) for styling

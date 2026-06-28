@@ -250,23 +250,24 @@ build-apk.bat
 
 ### Staging Builds
 - Package name: `com.souravbaid.artha.staging`
-- App name: "Artha Stg"
-- Separate app from main Artha
+- App name: "Arth Stg"
+- Separate app from main Arth
 - For testing new features
 
 ### Main Builds
 - Package name: `com.souravbaid.artha`
-- App name: "Artha"
+- App name: "Arth"
 - Production builds
 
 ## Automated Builds with GitHub Actions
 
-The project uses GitHub Actions for automated APK builds:
+The project uses GitHub Actions for automated APK builds, on a **self-hosted runner on this Windows machine** (not GitHub-hosted):
 
 - **Triggers**: Push to `staging` or `main` branches
-- **Staging**: Changes package name to `com.souravbaid.artha.staging`, app name to "Artha Stg"
-- **Main**: Uses production package name `com.souravbaid.artha`, app name "Artha"
+- **Staging**: Changes package name to `com.souravbaid.artha.staging`, app name to "Arth Stg"
+- **Main**: Uses production package name `com.souravbaid.artha`, app name "Arth"
 - **Output**: Creates GitHub release with APK
+- This is the only working build path on Windows — `bin/build-apk.sh` is macOS-only (hardcoded Mac SDK paths) and there is no `build-apk.bat`.
 
 ### Workflow
 1. Push changes to staging → GitHub Actions builds staging APK → Creates release → Uploads APK
