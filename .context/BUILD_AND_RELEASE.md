@@ -1,8 +1,37 @@
 # Build & Release Process
 
-## Automated Builds with GitHub Actions (Recommended)
+## Complete Release Checklist (Do This Every Release)
 
-The project uses GitHub Actions for automated APK builds. This is the recommended workflow.
+```
+1. Make code changes, test locally
+2. Bump version in app.json  (expo.version + expo.android.versionCode)
+3. Commit the version bump:  git commit -m "chore(release): bump version to X.Y.Z"
+4. Commit all other changes: git commit -m "feat/fix/chore: description"
+5. Create and push git tag:  git tag vX.Y.Z && git push origin master --tags
+6. Run local build:          build-local.bat  (from repo root)
+7. Create GitHub release:    gh release create vX.Y.Z --title "Arth vX.Y.Z" --notes "..."
+8. Upload APK:               gh release upload vX.Y.Z builds\<apk-file>
+```
+
+### Version Bump Rules
+- **PATCH** (X.Y.Z+1): Bug fixes, no new features
+- **MINOR** (X.Y+1.0): 1–5 new features
+- **MAJOR** (X+1.0.0): 6+ new features
+
+### How to Bump Version (app.json)
+```json
+"version": "1.1.2",
+"android": {
+  "versionCode": 10102
+}
+```
+Formula: `versionCode = major * 10000 + minor * 100 + patch`
+
+---
+
+## Automated Builds with GitHub Actions
+
+The CI workflow only fires on pushes to `staging` or `main` branches (NOT `master`). The self-hosted runner must be online.
 
 ### Workflow
 1. Push changes to `staging` → GitHub Actions builds staging APK → Creates release → Uploads APK

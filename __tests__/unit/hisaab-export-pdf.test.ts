@@ -208,12 +208,12 @@ describe("personStatementHtml", () => {
   it("includes explanatory legend", () => {
     const html = makeHtml();
     expect(html).toContain("Dr (Debit)");
-    expect(html).toContain("amount spent on your behalf");
+    expect(html).toContain("they spent on your behalf");
   });
 
-  it("includes Artha branding in footer", () => {
+  it("includes Arth branding in footer", () => {
     const html = makeHtml();
-    expect(html).toContain("Artha");
+    expect(html).toContain("Arth");
     expect(html).toContain("अर्थ");
   });
 

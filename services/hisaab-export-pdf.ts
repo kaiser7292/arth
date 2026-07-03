@@ -101,7 +101,8 @@ function statementStyles(): string {
     .stmt-header .brand { display: flex; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.15); }
     .stmt-header .brand-logo { width: 28px; height: 28px; border-radius: 6px; margin-right: 10px; }
     .stmt-header .brand-text { flex: 1; }
-    .stmt-header .brand-name { font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+    .stmt-header .brand-name { font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
+    .stmt-header .brand-roman { font-size: 11px; font-weight: 600; opacity: 0.75; margin-left: 6px; letter-spacing: 1.5px; vertical-align: middle; }
     .stmt-header .brand-tagline { font-size: 9px; opacity: 0.7; letter-spacing: 0.3px; }
     .stmt-header .brand-creator { font-size: 9px; opacity: 0.5; margin-left: auto; letter-spacing: 0.3px; }
     .stmt-header h1 { font-size: 18px; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px; }
@@ -267,7 +268,7 @@ function personStatementHtml(
         <div class="brand">
           ${logoBase64 ? `<img class="brand-logo" src="data:image/png;base64,${logoBase64}" />` : ""}
           <div class="brand-text">
-            <span class="brand-name">Arth</span>
+            <span class="brand-name">अर्थ</span><span class="brand-roman">Arth</span>
             <span class="brand-tagline"> · Your Finance, Your Way</span>
           </div>
           <span class="brand-creator">Created by Sourav Baid</span>
@@ -363,7 +364,7 @@ function personStatementHtml(
       </div>
 
       <div class="stmt-footer">
-        <span class="app-name">Arth</span> · Your Finance, Your Way · Created by Sourav Baid · Generated on ${today}
+        <span class="app-name">अर्थ · Arth</span> · Your Finance, Your Way · Created by Sourav Baid · Generated on ${today}
       </div>
     </div>
   </body></html>`;
