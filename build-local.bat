@@ -136,7 +136,20 @@ if "%IS_STAGING%"=="0" (
     gh release view !TAG! --repo kaiser7292/artha >nul 2>&1
     if errorlevel 1 (
         echo Creating GitHub release !TAG!...
-        gh release create !TAG! --title "Arth !TAG!" --generate-notes --repo kaiser7292/artha
+        if exist "RELEASE_NOTES.txt" (
+            echo Using RELEASE_NOTES.txt for release body
+            gh release create !TAG! --title "Arth !TAG!" --notes-file RELEASE_NOTES.txt --repo kaiser7292/artha
+        ) else (
+            echo WARNING: RELEASE_NOTES.txt not found - using auto-generated notes
+            gh release create !TAG! --title "Arth !TAG!" --generate-notes --repo kaiser7292/artha
+        )
+        REM Archive the notes so they survive for reference
+        if exist "RELEASE_NOTES.txt" (
+            if not exist "releases" mkdir releases
+            copy "RELEASE_NOTES.txt" "releases\!TAG!.md" >nul
+            del "RELEASE_NOTES.txt"
+            echo Archived release notes to releases\!TAG!.md
+        )
     ) else (
         echo GitHub release !TAG! already exists - uploading APK to it
     )
