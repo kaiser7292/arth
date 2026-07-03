@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, Pressable, ScrollView, ActivityIndicator, Switch } from "react-native";
+import { View, Text, Pressable, ScrollView, ActivityIndicator, Switch, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer } from "@/components/ui";
@@ -15,10 +15,19 @@ import {
   updateRule,
   previewRetroactiveApply,
   runRetroactiveApply,
+  OPERATORS_BY_FIELD,
+  FIELD_LABELS,
+  OPERATOR_LABELS,
   type SmartRule,
   type CreateSmartRuleInput,
+  type RuleCondition,
+  type RuleAction,
+  type ConditionField,
+  type ConditionOperator,
 } from "@/services/smart-rules";
 import { getCategories, type Category } from "@/services/category";
+import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
+import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { getErrorMessage } from "@/utils/error-message";
 
 /**
@@ -26,9 +35,28 @@ import { getErrorMessage } from "@/utils/error-message";
  *   - "new" → create mode
  *   - an actual UUID → edit mode
  *
- * Layout: a Conditions card + an Actions card + Retroactive-apply card
- * (edit mode only) + Save / Cancel footer.
+ * Rebuilt on the migration-053 conditions model: Match ALL/ANY + a
+ * dynamic list of (field, operator, value) conditions, replacing the
+ * old fixed 7-field form.
  */
+
+const FIELD_OPTIONS: { key: ConditionField; label: string }[] = (
+  Object.keys(FIELD_LABELS) as ConditionField[]
+).map((key) => ({ key, label: FIELD_LABELS[key] }));
+
+function fieldLabel(field: ConditionField): string {
+  return FIELD_LABELS[field] ?? field;
+}
+
+function defaultOperatorFor(field: ConditionField): ConditionOperator {
+  return OPERATORS_BY_FIELD[field][0];
+}
+
+function defaultConditionFor(field: ConditionField): RuleCondition {
+  const operator = defaultOperatorFor(field);
+  return { field, operator, value: operator === "is_empty" || operator === "is_not_empty" ? null : "" };
+}
+
 export default function SmartRuleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const isCreate = id === "new";
@@ -40,31 +68,32 @@ export default function SmartRuleDetailScreen() {
   const [loading, setLoading] = useState(!isCreate);
   const [saving, setSaving] = useState(false);
 
-  const [form, setForm] = useState<CreateSmartRuleInput & { is_active: boolean; action_mark_auto: boolean }>({
-    name: "",
-    priority: 100,
-    is_active: true,
-    match_merchant_contains: null,
-    match_merchant_regex: null,
-    match_min_amount: null,
-    match_max_amount: null,
-    match_account_id: null,
-    match_payment_mode: null,
-    match_sms_keyword: null,
-    action_category_id: null,
-    action_payment_mode: null,
-    action_tag_ids: null,
-    action_is_right_spend: null,
-    action_mark_auto: false,
-  });
+  const [name, setName] = useState("");
+  const [priority, setPriority] = useState("100");
+  const [isActive, setIsActive] = useState(true);
+  const [matchMode, setMatchMode] = useState<"all" | "any">("all");
+  const [conditions, setConditions] = useState<RuleCondition[]>([defaultConditionFor("merchant")]);
+
+  // Actions kept as the same fixed set the form has always exposed
+  // (category / right-spend / auto-approve) — just persisted into the new
+  // actions[] array on save instead of fixed columns.
+  const [actionCategoryId, setActionCategoryId] = useState<string | null>(null);
+  const [actionIsRightSpend, setActionIsRightSpend] = useState<number | null>(null);
+  const [actionMarkAuto, setActionMarkAuto] = useState(false);
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
+  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
 
-  const [minAmtStr, setMinAmtStr] = useState("");
-  const [maxAmtStr, setMaxAmtStr] = useState("");
+  // Index of the condition row whose Field/Operator picker is expanded, and a search query for it.
+  const [expandedFieldRow, setExpandedFieldRow] = useState<number | null>(null);
+  const [expandedOperatorRow, setExpandedOperatorRow] = useState<number | null>(null);
+  const [fieldSearch, setFieldSearch] = useState("");
 
   useEffect(() => {
     getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => setCategories([]));
+    getPaymentModes(DEFAULT_USER_ID).then(setPaymentModes).catch(() => setPaymentModes([]));
+    getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch(() => setAccounts([]));
   }, []);
 
   useEffect(() => {
@@ -88,35 +117,69 @@ export default function SmartRuleDetailScreen() {
   }, [id, isCreate]);
 
   const hydrateFromRule = (r: SmartRule) => {
-    setForm({
-      name: r.name,
-      priority: r.priority,
-      is_active: r.is_active === 1,
-      match_merchant_contains: r.match_merchant_contains,
-      match_merchant_regex: r.match_merchant_regex,
-      match_min_amount: r.match_min_amount,
-      match_max_amount: r.match_max_amount,
-      match_account_id: r.match_account_id,
-      match_payment_mode: r.match_payment_mode,
-      match_sms_keyword: r.match_sms_keyword,
-      action_category_id: r.action_category_id,
-      action_payment_mode: r.action_payment_mode,
-      action_tag_ids: r.action_tag_ids ? (JSON.parse(r.action_tag_ids) as string[]) : null,
-      action_is_right_spend: r.action_is_right_spend,
-      action_mark_auto: r.action_mark_auto === 1,
-    });
-    setMinAmtStr(r.match_min_amount !== null ? String(r.match_min_amount) : "");
-    setMaxAmtStr(r.match_max_amount !== null ? String(r.match_max_amount) : "");
+    setName(r.name);
+    setPriority(String(r.priority));
+    setIsActive(r.is_active === 1);
+    setMatchMode(r.match_mode);
+    setConditions(r.conditions.length > 0 ? r.conditions : [defaultConditionFor("merchant")]);
+
+    for (const action of r.actions) {
+      if (action.type === "category" && action.category_id) setActionCategoryId(action.category_id);
+      if (action.type === "is_right_spend" && action.is_right_spend !== undefined) {
+        setActionIsRightSpend(action.is_right_spend ? 1 : 0);
+      }
+      if (action.type === "mark_auto") setActionMarkAuto(true);
+    }
   };
+
+  const updateCondition = useCallback((index: number, patch: Partial<RuleCondition>) => {
+    setConditions((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
+  }, []);
+
+  const setConditionField = useCallback((index: number, field: ConditionField) => {
+    setConditions((prev) => prev.map((c, i) => (i === index ? defaultConditionFor(field) : c)));
+    setExpandedFieldRow(null);
+    setFieldSearch("");
+  }, []);
+
+  const setConditionOperator = useCallback((index: number, operator: ConditionOperator) => {
+    setConditions((prev) =>
+      prev.map((c, i) =>
+        i === index
+          ? { ...c, operator, value: operator === "is_empty" || operator === "is_not_empty" ? null : operator === "between" ? [0, 0] : "" }
+          : c,
+      ),
+    );
+    setExpandedOperatorRow(null);
+  }, []);
+
+  const addCondition = useCallback(() => {
+    setConditions((prev) => [...prev, defaultConditionFor("merchant")]);
+  }, []);
+
+  const removeCondition = useCallback((index: number) => {
+    setConditions((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+  }, []);
+
+  const buildActions = useCallback((): RuleAction[] => {
+    const actions: RuleAction[] = [];
+    if (actionCategoryId) actions.push({ type: "category", category_id: actionCategoryId });
+    if (actionIsRightSpend !== null) actions.push({ type: "is_right_spend", is_right_spend: actionIsRightSpend === 1 });
+    if (actionMarkAuto) actions.push({ type: "mark_auto" });
+    return actions;
+  }, [actionCategoryId, actionIsRightSpend, actionMarkAuto]);
 
   const onSave = useCallback(async () => {
     if (saving) return;
     setSaving(true);
     try {
       const input: CreateSmartRuleInput = {
-        ...form,
-        match_min_amount: minAmtStr.trim() ? parseFloat(minAmtStr) : null,
-        match_max_amount: maxAmtStr.trim() ? parseFloat(maxAmtStr) : null,
+        name,
+        priority: parseInt(priority, 10) || 100,
+        is_active: isActive,
+        match_mode: matchMode,
+        conditions,
+        actions: buildActions(),
       };
       if (isCreate) {
         await createRule(input);
@@ -129,7 +192,7 @@ export default function SmartRuleDetailScreen() {
     } finally {
       setSaving(false);
     }
-  }, [saving, form, minAmtStr, maxAmtStr, isCreate, id, alert, router]);
+  }, [saving, name, priority, isActive, matchMode, conditions, buildActions, isCreate, id, alert, router]);
 
   const onRetroactive = useCallback(async () => {
     if (isCreate) return;
@@ -167,9 +230,15 @@ export default function SmartRuleDetailScreen() {
   }, [isCreate, id, alert]);
 
   const categoryLabel = useMemo(() => {
-    if (!form.action_category_id) return "Not set";
-    return categories.find((c) => c.id === form.action_category_id)?.name ?? "Unknown";
-  }, [form.action_category_id, categories]);
+    if (!actionCategoryId) return "Not set";
+    return categories.find((c) => c.id === actionCategoryId)?.name ?? "Unknown";
+  }, [actionCategoryId, categories]);
+
+  const filteredFields = useMemo(() => {
+    const q = fieldSearch.trim().toLowerCase();
+    if (!q) return FIELD_OPTIONS;
+    return FIELD_OPTIONS.filter((f) => f.label.toLowerCase().includes(q));
+  }, [fieldSearch]);
 
   if (loading) {
     return (
@@ -189,83 +258,241 @@ export default function SmartRuleDetailScreen() {
             <Input
               label="Rule name"
               placeholder="e.g. Swiggy → Food"
-              value={form.name}
-              onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
+              value={name}
+              onChangeText={setName}
               containerClassName="mb-3"
             />
             <Input
               label="Priority (lower = tried first)"
               placeholder="100"
               keyboardType="numeric"
-              value={String(form.priority ?? 100)}
-              onChangeText={(v) => setForm((f) => ({ ...f, priority: parseInt(v, 10) || 100 }))}
+              value={priority}
+              onChangeText={setPriority}
               containerClassName="mb-3"
             />
             <View className="flex-row items-center justify-between py-2">
               <Text className="text-sm text-text-primary dark:text-text-dark-primary">Active</Text>
               <Switch
-                value={form.is_active}
-                onValueChange={(v) => setForm((f) => ({ ...f, is_active: v }))}
+                value={isActive}
+                onValueChange={setIsActive}
                 trackColor={{ false: colors.border, true: accentColor }}
               />
             </View>
           </Card>
 
-          <Card title="WHEN (conditions)" className="mb-4">
-            <Input
-              label="Merchant contains"
-              placeholder="e.g. swiggy"
-              value={form.match_merchant_contains ?? ""}
-              onChangeText={(v) => setForm((f) => ({ ...f, match_merchant_contains: v || null }))}
-              containerClassName="mb-3"
-            />
-            <Input
-              label="Merchant regex (advanced)"
-              placeholder="e.g. ^AMZN(\\.in)?"
-              value={form.match_merchant_regex ?? ""}
-              onChangeText={(v) => setForm((f) => ({ ...f, match_merchant_regex: v || null }))}
-              autoCapitalize="none"
-              autoCorrect={false}
-              containerClassName="mb-3"
-            />
-            <View className="flex-row mb-3">
-              <Input
-                label="Min amount"
-                placeholder="e.g. 100"
-                keyboardType="numeric"
-                value={minAmtStr}
-                onChangeText={setMinAmtStr}
-                containerClassName="flex-1 mr-2"
-              />
-              <Input
-                label="Max amount"
-                placeholder="e.g. 2000"
-                keyboardType="numeric"
-                value={maxAmtStr}
-                onChangeText={setMaxAmtStr}
-                containerClassName="flex-1 ml-2"
-              />
-            </View>
-            <Input
-              label="SMS body contains (when triggered by SMS)"
-              placeholder="e.g. UPI"
-              value={form.match_sms_keyword ?? ""}
-              onChangeText={(v) => setForm((f) => ({ ...f, match_sms_keyword: v || null }))}
-            />
-            <Text className="text-xs text-text-tertiary mt-3">
-              All configured conditions must match. Leave fields blank to skip them.
+          <Card className="mb-4">
+            <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-3">
+              When (conditions)
             </Text>
+
+            <View className="flex-row mb-4">
+              <Pressable
+                onPress={() => setMatchMode("all")}
+                className="flex-1 py-2.5 rounded-l-lg items-center"
+                style={{ backgroundColor: matchMode === "all" ? accentColor : "transparent", borderWidth: matchMode === "all" ? 0 : 1, borderColor: colors.border }}
+              >
+                <Text className={matchMode === "all" ? "text-white font-semibold" : "text-text-secondary dark:text-text-dark-secondary"}>
+                  Match ALL
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setMatchMode("any")}
+                className="flex-1 py-2.5 rounded-r-lg items-center"
+                style={{ backgroundColor: matchMode === "any" ? accentColor : "transparent", borderWidth: matchMode === "any" ? 0 : 1, borderColor: colors.border, borderLeftWidth: 0 }}
+              >
+                <Text className={matchMode === "any" ? "text-white font-semibold" : "text-text-secondary dark:text-text-dark-secondary"}>
+                  Match ANY
+                </Text>
+              </Pressable>
+            </View>
+
+            {conditions.map((condition, index) => {
+              const availableOperators = OPERATORS_BY_FIELD[condition.field];
+              const fieldExpanded = expandedFieldRow === index;
+              const operatorExpanded = expandedOperatorRow === index;
+              const needsValue = condition.operator !== "is_empty" && condition.operator !== "is_not_empty";
+              const isPicker = condition.field === "account_id" || condition.field === "payment_mode" || condition.field === "category_id";
+
+              return (
+                <View
+                  key={index}
+                  className="mb-3 p-3 rounded-xl border border-border-light dark:border-border-dark"
+                >
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-xs font-semibold tracking-wider uppercase text-text-tertiary">
+                      Condition {index + 1}
+                    </Text>
+                    {conditions.length > 1 && (
+                      <Pressable
+                        onPress={() => removeCondition(index)}
+                        hitSlop={8}
+                        className="w-6 h-6 rounded-full items-center justify-center bg-surface-light-alt dark:bg-surface-dark-alt"
+                      >
+                        <Ionicons name="close" size={14} color={colors.textSecondary} />
+                      </Pressable>
+                    )}
+                  </View>
+
+                  {/* Field */}
+                  <Pressable
+                    onPress={() => {
+                      setExpandedFieldRow(fieldExpanded ? null : index);
+                      setExpandedOperatorRow(null);
+                      setFieldSearch("");
+                    }}
+                    className="flex-row items-center justify-between py-2"
+                  >
+                    <View>
+                      <Text className="text-xs text-text-tertiary">Field</Text>
+                      <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                        {fieldLabel(condition.field)}
+                      </Text>
+                    </View>
+                    <Ionicons name={fieldExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                  </Pressable>
+
+                  {fieldExpanded && (
+                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                      <View className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark">
+                        <Ionicons name="search" size={14} color={colors.textSecondary} />
+                        <TextInput
+                          placeholder="Search fields..."
+                          placeholderTextColor={colors.tabIconDefault}
+                          value={fieldSearch}
+                          onChangeText={setFieldSearch}
+                          className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
+                        />
+                      </View>
+                      {filteredFields.map((f) => (
+                        <Pressable
+                          key={f.key}
+                          onPress={() => setConditionField(index, f.key)}
+                          className="px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                        >
+                          <Text className="text-sm text-text-primary dark:text-text-dark-primary">{f.label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Operator */}
+                  <Pressable
+                    onPress={() => {
+                      setExpandedOperatorRow(operatorExpanded ? null : index);
+                      setExpandedFieldRow(null);
+                    }}
+                    className="flex-row items-center justify-between py-2"
+                  >
+                    <View>
+                      <Text className="text-xs text-text-tertiary">Operator</Text>
+                      <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                        {OPERATOR_LABELS[condition.operator]}
+                      </Text>
+                    </View>
+                    <Ionicons name={operatorExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                  </Pressable>
+
+                  {operatorExpanded && (
+                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                      {availableOperators.map((op) => (
+                        <Pressable
+                          key={op}
+                          onPress={() => setConditionOperator(index, op)}
+                          className="px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                        >
+                          <Text className="text-sm text-text-primary dark:text-text-dark-primary">{OPERATOR_LABELS[op]}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Value */}
+                  {needsValue && (
+                    <View className="mt-1">
+                      <Text className="text-xs text-text-tertiary mb-1.5">Value</Text>
+                      {condition.operator === "between" ? (
+                        <View className="flex-row">
+                          <TextInput
+                            placeholder="Min"
+                            placeholderTextColor={colors.tabIconDefault}
+                            keyboardType="numeric"
+                            value={Array.isArray(condition.value) ? String(condition.value[0]) : ""}
+                            onChangeText={(v) => {
+                              const max = Array.isArray(condition.value) ? condition.value[1] : 0;
+                              updateCondition(index, { value: [parseFloat(v) || 0, max] });
+                            }}
+                            className="flex-1 mr-2 rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
+                          />
+                          <TextInput
+                            placeholder="Max"
+                            placeholderTextColor={colors.tabIconDefault}
+                            keyboardType="numeric"
+                            value={Array.isArray(condition.value) ? String(condition.value[1]) : ""}
+                            onChangeText={(v) => {
+                              const min = Array.isArray(condition.value) ? condition.value[0] : 0;
+                              updateCondition(index, { value: [min, parseFloat(v) || 0] });
+                            }}
+                            className="flex-1 rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
+                          />
+                        </View>
+                      ) : isPicker ? (
+                        <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+                          {(condition.field === "account_id" ? accounts.map((a) => ({ id: a.id, name: a.account_label || a.bank_name }))
+                            : condition.field === "payment_mode" ? paymentModes.map((m) => ({ id: m.id, name: m.name }))
+                            : categories.map((c) => ({ id: c.id, name: c.name }))
+                          ).map((opt) => (
+                            <Pressable
+                              key={opt.id}
+                              onPress={() => updateCondition(index, { value: opt.id })}
+                              className="px-3 py-1.5 rounded-full border"
+                              style={{
+                                backgroundColor: condition.value === opt.id ? accentColor : "transparent",
+                                borderColor: condition.value === opt.id ? accentColor : colors.border,
+                              }}
+                            >
+                              <Text className={condition.value === opt.id ? "text-white text-xs font-medium" : "text-text-secondary dark:text-text-dark-secondary text-xs"}>
+                                {opt.name}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      ) : (
+                        <TextInput
+                          placeholder={condition.field === "amount" ? "e.g. 500" : "e.g. swiggy"}
+                          placeholderTextColor={colors.tabIconDefault}
+                          keyboardType={condition.field === "amount" ? "numeric" : "default"}
+                          autoCapitalize="none"
+                          value={String(condition.value ?? "")}
+                          onChangeText={(v) =>
+                            updateCondition(index, { value: condition.field === "amount" ? parseFloat(v) || 0 : v })
+                          }
+                          className="rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
+                        />
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+
+            <Pressable
+              onPress={addCondition}
+              className="flex-row items-center justify-center py-2.5 rounded-lg border border-dashed border-border-light dark:border-border-dark"
+            >
+              <Ionicons name="add" size={16} color={accentColor} />
+              <Text className="text-sm font-medium ml-1.5" style={{ color: accentColor }}>
+                Add condition
+              </Text>
+            </Pressable>
           </Card>
 
           <Card title="THEN (actions)" className="mb-4">
             <Pressable
               onPress={() => {
-                // Simple category picker inline — show next category in list (demo)
                 if (categories.length === 0) return;
-                const cur = categories.findIndex((c) => c.id === form.action_category_id);
+                const cur = categories.findIndex((c) => c.id === actionCategoryId);
                 const nextIdx = (cur + 1) % (categories.length + 1);
-                const next = nextIdx === categories.length ? null : categories[nextIdx].id;
-                setForm((f) => ({ ...f, action_category_id: next }));
+                setActionCategoryId(nextIdx === categories.length ? null : categories[nextIdx].id);
               }}
               className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
             >
@@ -284,15 +511,11 @@ export default function SmartRuleDetailScreen() {
               <View className="flex-1">
                 <Text className="text-sm text-text-primary dark:text-text-dark-primary">Mark unavoidable</Text>
                 <Text className="text-xs text-text-tertiary mt-0.5">
-                  {form.action_is_right_spend === 1 ? "Will mark as unavoidable" : form.action_is_right_spend === 0 ? "Will mark as discretionary" : "Not set"}
+                  {actionIsRightSpend === 1 ? "Will mark as unavoidable" : actionIsRightSpend === 0 ? "Will mark as discretionary" : "Not set"}
                 </Text>
               </View>
               <Pressable
-                onPress={() => {
-                  const next =
-                    form.action_is_right_spend === null ? 1 : form.action_is_right_spend === 1 ? 0 : null;
-                  setForm((f) => ({ ...f, action_is_right_spend: next }));
-                }}
+                onPress={() => setActionIsRightSpend(actionIsRightSpend === null ? 1 : actionIsRightSpend === 1 ? 0 : null)}
                 className="px-3 py-1 rounded-full border border-border-light dark:border-border-dark"
               >
                 <Text className="text-xs text-text-primary dark:text-text-dark-primary">Cycle</Text>
@@ -309,8 +532,8 @@ export default function SmartRuleDetailScreen() {
                 </Text>
               </View>
               <Switch
-                value={form.action_mark_auto}
-                onValueChange={(v) => setForm((f) => ({ ...f, action_mark_auto: v }))}
+                value={actionMarkAuto}
+                onValueChange={setActionMarkAuto}
                 trackColor={{ false: colors.border, true: accentColor }}
               />
             </View>

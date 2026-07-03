@@ -1,22 +1,26 @@
 /**
- * v15.2.0 — Smart rules.
+ * v15.2.0 — Smart rules. Redesigned in migration 053 to a dynamic
+ * conditions/actions model (was: fixed match_X / action_X columns).
  *
  * User-defined rules that auto-apply category / payment mode / tags / flags
- * to new expenses based on matchers on merchant, amount, account, payment
- * mode, or raw SMS body.
+ * to new expenses based on a set of conditions over merchant, description,
+ * amount, account, payment mode, category, or raw SMS body.
  *
  * Design:
- *   - Rules are stored in `smart_rules` (migration 017).
+ *   - Rules are stored in `smart_rules` (migration 017, reshaped in 053).
+ *   - `conditions` / `actions` are JSON arrays persisted as TEXT columns.
+ *   - `match_mode` controls how conditions combine: 'all' (AND) or 'any' (OR).
+ *   - A rule with zero conditions never matches (safety) — CRUD rejects this.
  *   - `expenses.applied_rule_id` stamps which rule fired (plain column).
  *   - Evaluation is a pure function (`evaluateRule`) so it's unit-testable
  *     without a DB.
- *   - Conditions use AND semantics (ALL must match). If a rule has no
- *     conditions it's considered ALWAYS-MATCH and should be rejected at
- *     CRUD time; evaluator will treat it as no-match for safety.
- *   - Actions apply in order: category → payment_mode → tags (append) →
- *     is_right_spend → mark_auto. Any existing value on the incoming
- *     expense takes precedence (rule doesn't stomp user-set fields).
+ *   - Actions apply in the order they're defined; later actions of the same
+ *     type win. Any existing value on the incoming expense takes precedence
+ *     (rule doesn't stomp user-set fields) — enforced by the caller, same
+ *     as before.
  *   - Priority ascending; first match wins; tiebreak by created_at ASC.
+ *   - Soft-deleted (deleted_at) like the rest of the app; deleteRule() never
+ *     hard-deletes.
  */
 
 import { getDatabase } from "@/database";
@@ -28,31 +32,100 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 
 // ─── Types ───
 
+export type ConditionField =
+  | "merchant"
+  | "description"
+  | "amount"
+  | "account_id"
+  | "payment_mode"
+  | "category_id"
+  | "sms_body";
+
+export type ConditionOperator =
+  | "equals"
+  | "not_equals"
+  | "is_empty"
+  | "is_not_empty"
+  | "contains"
+  | "not_contains"
+  | "starts_with"
+  | "ends_with"
+  | "regex"
+  | "greater_than"
+  | "less_than"
+  | "between";
+
+/** Which operators make sense for which field — drives the UI's operator picker. */
+export const OPERATORS_BY_FIELD: Record<ConditionField, ConditionOperator[]> = {
+  merchant: ["contains", "not_contains", "starts_with", "ends_with", "regex", "equals", "not_equals", "is_empty", "is_not_empty"],
+  description: ["contains", "not_contains", "starts_with", "ends_with", "regex", "equals", "not_equals", "is_empty", "is_not_empty"],
+  sms_body: ["contains", "not_contains", "starts_with", "ends_with", "regex", "is_empty", "is_not_empty"],
+  amount: ["equals", "not_equals", "greater_than", "less_than", "between"],
+  account_id: ["equals", "not_equals", "is_empty", "is_not_empty"],
+  payment_mode: ["equals", "not_equals", "is_empty", "is_not_empty"],
+  category_id: ["equals", "not_equals", "is_empty", "is_not_empty"],
+};
+
+/** UI label for each condition field — shared by the editor and list screens. */
+export const FIELD_LABELS: Record<ConditionField, string> = {
+  merchant: "Merchant",
+  description: "Description",
+  amount: "Amount",
+  account_id: "Account",
+  payment_mode: "Payment mode",
+  category_id: "Category",
+  sms_body: "SMS body",
+};
+
+/** UI label for each operator — shared by the editor and list screens. */
+export const OPERATOR_LABELS: Record<ConditionOperator, string> = {
+  equals: "equals",
+  not_equals: "doesn't equal",
+  is_empty: "is empty",
+  is_not_empty: "is not empty",
+  contains: "contains",
+  not_contains: "doesn't contain",
+  starts_with: "starts with",
+  ends_with: "ends with",
+  regex: "matches regex",
+  greater_than: "is at least",
+  less_than: "is at most",
+  between: "is between",
+};
+
+export interface RuleCondition {
+  field: ConditionField;
+  operator: ConditionOperator;
+  /** null for is_empty/is_not_empty. A [min, max] tuple for between. */
+  value: string | number | [number, number] | null;
+}
+
+export type ActionType = "category" | "payment_mode" | "tags" | "is_right_spend" | "mark_auto";
+
+export interface RuleAction {
+  type: ActionType;
+  category_id?: string;
+  payment_mode?: string;
+  tag_ids?: string[];
+  is_right_spend?: boolean;
+}
+
 export interface SmartRule {
   id: string;
   user_id: string;
   name: string;
   priority: number;
   is_active: number;
+  match_mode: "all" | "any";
+  conditions: RuleCondition[];
+  actions: RuleAction[];
 
-  match_merchant_contains: string | null;
-  match_merchant_regex: string | null;
-  match_min_amount: number | null;
-  match_max_amount: number | null;
-  match_account_id: string | null;
-  match_payment_mode: string | null;
-  match_sms_keyword: string | null;
-
-  action_category_id: string | null;
-  action_payment_mode: string | null;
-  action_tag_ids: string | null;
-  action_is_right_spend: number | null;
-  action_mark_auto: number;
   /** v17.2.0 — if set, post-create hook creates an expense_investment_links row. */
   action_link_to_investment_bucket_id: string | null;
 
   apply_count: number;
   last_applied_at: string | null;
+  deleted_at: string | null;
 
   created_at: string;
   updated_at: string;
@@ -62,18 +135,9 @@ export interface CreateSmartRuleInput {
   name: string;
   priority?: number;
   is_active?: boolean;
-  match_merchant_contains?: string | null;
-  match_merchant_regex?: string | null;
-  match_min_amount?: number | null;
-  match_max_amount?: number | null;
-  match_account_id?: string | null;
-  match_payment_mode?: string | null;
-  match_sms_keyword?: string | null;
-  action_category_id?: string | null;
-  action_payment_mode?: string | null;
-  action_tag_ids?: string[] | null;
-  action_is_right_spend?: number | null;
-  action_mark_auto?: boolean;
+  match_mode?: "all" | "any";
+  conditions: RuleCondition[];
+  actions: RuleAction[];
   action_link_to_investment_bucket_id?: string | null;
 }
 
@@ -90,6 +154,8 @@ export interface EvaluationTarget {
   account_id: string | null;
   payment_mode_id: string | null;
   sms_body?: string | null;
+  description?: string | null;
+  category_id?: string | null;
 }
 
 export interface RuleApplication {
@@ -101,61 +167,154 @@ export interface RuleApplication {
   mark_auto: boolean;
 }
 
+// ─── Raw DB row (conditions/actions still JSON text) ───
+
+interface SmartRuleRow {
+  id: string;
+  user_id: string;
+  name: string;
+  priority: number;
+  is_active: number;
+  match_mode: string;
+  conditions: string;
+  actions: string;
+  action_link_to_investment_bucket_id: string | null;
+  apply_count: number;
+  last_applied_at: string | null;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function safeParseConditions(raw: string | null | undefined): RuleCondition[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as RuleCondition[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function safeParseActions(raw: string | null | undefined): RuleAction[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as RuleAction[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function fromRow(row: SmartRuleRow): SmartRule {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    name: row.name,
+    priority: row.priority,
+    is_active: row.is_active,
+    match_mode: row.match_mode === "any" ? "any" : "all",
+    conditions: safeParseConditions(row.conditions),
+    actions: safeParseActions(row.actions),
+    action_link_to_investment_bucket_id: row.action_link_to_investment_bucket_id,
+    apply_count: row.apply_count,
+    last_applied_at: row.last_applied_at,
+    deleted_at: row.deleted_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
 // ─── Pure evaluator ───
 
+function getFieldValue(field: ConditionField, target: EvaluationTarget): string | number | null {
+  switch (field) {
+    case "merchant":
+      return target.merchant;
+    case "description":
+      return target.description ?? null;
+    case "amount":
+      return target.amount;
+    case "account_id":
+      return target.account_id;
+    case "payment_mode":
+      return target.payment_mode_id;
+    case "category_id":
+      return target.category_id ?? null;
+    case "sms_body":
+      return target.sms_body ?? null;
+  }
+}
+
+function isEmptyValue(v: string | number | null): boolean {
+  return v === null || v === undefined || v === "";
+}
+
+function evaluateCondition(condition: RuleCondition, target: EvaluationTarget): boolean {
+  const fieldValue = getFieldValue(condition.field, target);
+
+  switch (condition.operator) {
+    case "is_empty":
+      return isEmptyValue(fieldValue);
+    case "is_not_empty":
+      return !isEmptyValue(fieldValue);
+    case "equals":
+      return String(fieldValue ?? "").toLowerCase() === String(condition.value ?? "").toLowerCase();
+    case "not_equals":
+      return String(fieldValue ?? "").toLowerCase() !== String(condition.value ?? "").toLowerCase();
+    case "contains":
+      return typeof fieldValue === "string" && typeof condition.value === "string"
+        ? fieldValue.toLowerCase().includes(condition.value.toLowerCase())
+        : false;
+    case "not_contains":
+      return typeof fieldValue === "string" && typeof condition.value === "string"
+        ? !fieldValue.toLowerCase().includes(condition.value.toLowerCase())
+        : true;
+    case "starts_with":
+      return typeof fieldValue === "string" && typeof condition.value === "string"
+        ? fieldValue.toLowerCase().startsWith(condition.value.toLowerCase())
+        : false;
+    case "ends_with":
+      return typeof fieldValue === "string" && typeof condition.value === "string"
+        ? fieldValue.toLowerCase().endsWith(condition.value.toLowerCase())
+        : false;
+    case "regex": {
+      if (typeof condition.value !== "string") return false;
+      try {
+        return new RegExp(condition.value, "i").test(String(fieldValue ?? ""));
+      } catch {
+        // Invalid regex → condition never matches (caller should flag this at CRUD)
+        return false;
+      }
+    }
+    case "greater_than":
+      return typeof fieldValue === "number" && typeof condition.value === "number"
+        ? fieldValue >= condition.value
+        : false;
+    case "less_than":
+      return typeof fieldValue === "number" && typeof condition.value === "number"
+        ? fieldValue <= condition.value
+        : false;
+    case "between": {
+      if (typeof fieldValue !== "number" || !Array.isArray(condition.value)) return false;
+      const [min, max] = condition.value;
+      return fieldValue >= min && fieldValue <= max;
+    }
+  }
+}
+
 /**
- * Does this rule match the target? Returns true only if ALL configured
- * conditions pass. A rule with zero conditions returns false (safety).
+ * Does this rule match the target? 'all' = every condition must pass
+ * (AND), 'any' = at least one must pass (OR). A rule with zero conditions
+ * returns false (safety) — CRUD rejects creating one.
  */
 export function evaluateRule(rule: SmartRule, target: EvaluationTarget): boolean {
   if (!rule.is_active) return false;
+  if (rule.conditions.length === 0) return false;
 
-  let anyCondition = false;
-
-  if (rule.match_merchant_contains) {
-    anyCondition = true;
-    const hay = (target.merchant ?? "").toLowerCase();
-    if (!hay.includes(rule.match_merchant_contains.toLowerCase())) return false;
-  }
-
-  if (rule.match_merchant_regex) {
-    anyCondition = true;
-    try {
-      const rx = new RegExp(rule.match_merchant_regex, "i");
-      if (!rx.test(target.merchant ?? "")) return false;
-    } catch {
-      // Invalid regex → rule never matches (caller should flag this at CRUD)
-      return false;
-    }
-  }
-
-  if (rule.match_min_amount !== null && rule.match_min_amount !== undefined) {
-    anyCondition = true;
-    if (target.amount < rule.match_min_amount) return false;
-  }
-
-  if (rule.match_max_amount !== null && rule.match_max_amount !== undefined) {
-    anyCondition = true;
-    if (target.amount > rule.match_max_amount) return false;
-  }
-
-  if (rule.match_account_id) {
-    anyCondition = true;
-    if (target.account_id !== rule.match_account_id) return false;
-  }
-
-  if (rule.match_payment_mode) {
-    anyCondition = true;
-    if (target.payment_mode_id !== rule.match_payment_mode) return false;
-  }
-
-  if (rule.match_sms_keyword) {
-    anyCondition = true;
-    const body = (target.sms_body ?? "").toLowerCase();
-    if (!body.includes(rule.match_sms_keyword.toLowerCase())) return false;
-  }
-
-  return anyCondition;
+  return rule.match_mode === "any"
+    ? rule.conditions.some((c) => evaluateCondition(c, target))
+    : rule.conditions.every((c) => evaluateCondition(c, target));
 }
 
 /**
@@ -173,36 +332,37 @@ export function findFirstMatch(
 }
 
 /**
- * Parse a stored tag_ids JSON column safely. Returns [] on malformed input
- * (prevents rule-edit crashes when a backup restore from a different version
- * leaves the string in an unexpected shape).
- */
-function safeParseTagIds(raw: string | null | undefined): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((x): x is string => typeof x === "string");
-    }
-  } catch {
-    // Malformed JSON → treat as no tags; rule detail UI can surface this.
-  }
-  return [];
-}
-
-/**
  * Convert a matched rule into a RuleApplication the caller can project onto
- * its expense record.
+ * its expense record. Later actions of the same type win.
  */
 export function materialize(rule: SmartRule): RuleApplication {
-  return {
-    rule,
-    category_id: rule.action_category_id,
-    payment_mode: rule.action_payment_mode,
-    tag_ids: safeParseTagIds(rule.action_tag_ids),
-    is_right_spend: rule.action_is_right_spend,
-    mark_auto: rule.action_mark_auto === 1,
-  };
+  let category_id: string | null = null;
+  let payment_mode: string | null = null;
+  let tag_ids: string[] = [];
+  let is_right_spend: number | null = null;
+  let mark_auto = false;
+
+  for (const action of rule.actions) {
+    switch (action.type) {
+      case "category":
+        if (action.category_id) category_id = action.category_id;
+        break;
+      case "payment_mode":
+        if (action.payment_mode) payment_mode = action.payment_mode;
+        break;
+      case "tags":
+        if (action.tag_ids && action.tag_ids.length > 0) tag_ids = action.tag_ids;
+        break;
+      case "is_right_spend":
+        if (action.is_right_spend !== undefined) is_right_spend = action.is_right_spend ? 1 : 0;
+        break;
+      case "mark_auto":
+        mark_auto = true;
+        break;
+    }
+  }
+
+  return { rule, category_id, payment_mode, tag_ids, is_right_spend, mark_auto };
 }
 
 // ─── DB-backed operations ───
@@ -213,11 +373,12 @@ export function materialize(rule: SmartRule): RuleApplication {
 export async function getActiveRules(): Promise<SmartRule[]> {
   if (!getFlag("v15_smart_rules")) return [];
   const db = getDatabase();
-  return db.getAllAsync<SmartRule>(
+  const rows = await db.getAllAsync<SmartRuleRow>(
     `SELECT * FROM smart_rules
-     WHERE is_active = 1
+     WHERE is_active = 1 AND deleted_at IS NULL
      ORDER BY priority ASC, created_at ASC;`,
   );
+  return rows.map(fromRow);
 }
 
 /**
@@ -264,19 +425,21 @@ export async function stampApplication(ruleId: string): Promise<void> {
 
 export async function listRules(): Promise<SmartRule[]> {
   const db = getDatabase();
-  return db.getAllAsync<SmartRule>(
+  const rows = await db.getAllAsync<SmartRuleRow>(
     `SELECT * FROM smart_rules
+     WHERE deleted_at IS NULL
      ORDER BY is_active DESC, priority ASC, created_at ASC;`,
   );
+  return rows.map(fromRow);
 }
 
 export async function getRule(id: string): Promise<SmartRule | null> {
   const db = getDatabase();
-  const row = await db.getFirstAsync<SmartRule>(
-    `SELECT * FROM smart_rules WHERE id = ?;`,
+  const row = await db.getFirstAsync<SmartRuleRow>(
+    `SELECT * FROM smart_rules WHERE id = ? AND deleted_at IS NULL;`,
     id,
   );
-  return row ?? null;
+  return row ? fromRow(row) : null;
 }
 
 export async function createRule(input: CreateSmartRuleInput): Promise<string> {
@@ -286,30 +449,17 @@ export async function createRule(input: CreateSmartRuleInput): Promise<string> {
   await db.runAsync(
     `INSERT INTO smart_rules (
        id, user_id, name, priority, is_active,
-       match_merchant_contains, match_merchant_regex,
-       match_min_amount, match_max_amount,
-       match_account_id, match_payment_mode, match_sms_keyword,
-       action_category_id, action_payment_mode, action_tag_ids,
-       action_is_right_spend, action_mark_auto,
+       match_mode, conditions, actions,
        action_link_to_investment_bucket_id
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     id,
     DEFAULT_USER_ID,
     input.name.trim(),
     input.priority ?? 100,
     input.is_active === false ? 0 : 1,
-    input.match_merchant_contains?.trim() || null,
-    input.match_merchant_regex?.trim() || null,
-    input.match_min_amount ?? null,
-    input.match_max_amount ?? null,
-    input.match_account_id ?? null,
-    input.match_payment_mode ?? null,
-    input.match_sms_keyword?.trim() || null,
-    input.action_category_id ?? null,
-    input.action_payment_mode ?? null,
-    input.action_tag_ids ? JSON.stringify(input.action_tag_ids) : null,
-    input.action_is_right_spend ?? null,
-    input.action_mark_auto ? 1 : 0,
+    input.match_mode ?? "all",
+    JSON.stringify(input.conditions),
+    JSON.stringify(input.actions),
     input.action_link_to_investment_bucket_id ?? null,
   );
   await bumpDataVersion();
@@ -324,48 +474,9 @@ export async function updateRule(id: string, input: UpdateSmartRuleInput): Promi
     name: input.name ?? existing.name,
     priority: input.priority ?? existing.priority,
     is_active: input.is_active ?? existing.is_active === 1,
-    match_merchant_contains:
-      input.match_merchant_contains !== undefined
-        ? input.match_merchant_contains
-        : existing.match_merchant_contains,
-    match_merchant_regex:
-      input.match_merchant_regex !== undefined
-        ? input.match_merchant_regex
-        : existing.match_merchant_regex,
-    match_min_amount:
-      input.match_min_amount !== undefined ? input.match_min_amount : existing.match_min_amount,
-    match_max_amount:
-      input.match_max_amount !== undefined ? input.match_max_amount : existing.match_max_amount,
-    match_account_id:
-      input.match_account_id !== undefined ? input.match_account_id : existing.match_account_id,
-    match_payment_mode:
-      input.match_payment_mode !== undefined
-        ? input.match_payment_mode
-        : existing.match_payment_mode,
-    match_sms_keyword:
-      input.match_sms_keyword !== undefined
-        ? input.match_sms_keyword
-        : existing.match_sms_keyword,
-    action_category_id:
-      input.action_category_id !== undefined
-        ? input.action_category_id
-        : existing.action_category_id,
-    action_payment_mode:
-      input.action_payment_mode !== undefined
-        ? input.action_payment_mode
-        : existing.action_payment_mode,
-    action_tag_ids:
-      input.action_tag_ids !== undefined
-        ? input.action_tag_ids
-        : safeParseTagIds(existing.action_tag_ids),
-    action_is_right_spend:
-      input.action_is_right_spend !== undefined
-        ? input.action_is_right_spend
-        : existing.action_is_right_spend,
-    action_mark_auto:
-      input.action_mark_auto !== undefined
-        ? input.action_mark_auto
-        : existing.action_mark_auto === 1,
+    match_mode: input.match_mode ?? existing.match_mode,
+    conditions: input.conditions ?? existing.conditions,
+    actions: input.actions ?? existing.actions,
     action_link_to_investment_bucket_id:
       input.action_link_to_investment_bucket_id !== undefined
         ? input.action_link_to_investment_bucket_id
@@ -378,46 +489,66 @@ export async function updateRule(id: string, input: UpdateSmartRuleInput): Promi
   await db.runAsync(
     `UPDATE smart_rules SET
        name = ?, priority = ?, is_active = ?,
-       match_merchant_contains = ?, match_merchant_regex = ?,
-       match_min_amount = ?, match_max_amount = ?,
-       match_account_id = ?, match_payment_mode = ?, match_sms_keyword = ?,
-       action_category_id = ?, action_payment_mode = ?, action_tag_ids = ?,
-       action_is_right_spend = ?, action_mark_auto = ?,
+       match_mode = ?, conditions = ?, actions = ?,
        action_link_to_investment_bucket_id = ?,
        updated_at = datetime('now')
      WHERE id = ?;`,
     merged.name.trim(),
     merged.priority ?? 100,
     merged.is_active === false ? 0 : 1,
-    merged.match_merchant_contains?.trim() || null,
-    merged.match_merchant_regex?.trim() || null,
-    merged.match_min_amount ?? null,
-    merged.match_max_amount ?? null,
-    merged.match_account_id ?? null,
-    merged.match_payment_mode ?? null,
-    merged.match_sms_keyword?.trim() || null,
-    merged.action_category_id ?? null,
-    merged.action_payment_mode ?? null,
-    merged.action_tag_ids ? JSON.stringify(merged.action_tag_ids) : null,
-    merged.action_is_right_spend ?? null,
-    merged.action_mark_auto ? 1 : 0,
+    merged.match_mode ?? "all",
+    JSON.stringify(merged.conditions),
+    JSON.stringify(merged.actions),
     merged.action_link_to_investment_bucket_id ?? null,
     id,
   );
   await bumpDataVersion();
 }
 
+/** Soft-delete, matching the rest of the app — never hard-deletes. */
 export async function deleteRule(id: string): Promise<void> {
   const db = getDatabase();
-  // Clear the applied_rule_id stamp on any expense that referenced this rule.
-  // We don't un-apply the categorization — that's the user's historical truth.
   await db.withTransactionAsync(async () => {
     await db.runAsync(
       `UPDATE expenses SET applied_rule_id = NULL WHERE applied_rule_id = ?;`,
       id,
     );
-    await db.runAsync(`DELETE FROM smart_rules WHERE id = ?;`, id);
+    await db.runAsync(
+      `UPDATE smart_rules SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?;`,
+      id,
+    );
   });
+  await bumpDataVersion();
+}
+
+export async function listDeletedRules(): Promise<SmartRule[]> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<SmartRuleRow>(
+    `SELECT * FROM smart_rules WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC;`,
+  );
+  return rows.map(fromRow);
+}
+
+export async function restoreRule(id: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE smart_rules SET deleted_at = NULL, is_active = 1, updated_at = datetime('now') WHERE id = ?;`,
+    id,
+  );
+  await bumpDataVersion();
+}
+
+export async function restoreAllRules(): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE smart_rules SET deleted_at = NULL, is_active = 1, updated_at = datetime('now') WHERE deleted_at IS NOT NULL;`,
+  );
+  await bumpDataVersion();
+}
+
+export async function purgeDeletedRules(): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(`DELETE FROM smart_rules WHERE deleted_at IS NOT NULL;`);
   await bumpDataVersion();
 }
 
@@ -427,41 +558,26 @@ function assertValidInput(input: CreateSmartRuleInput): void {
   if (!input.name || input.name.trim().length === 0) {
     throw new Error("Rule name is required");
   }
-  const hasCondition =
-    !!(input.match_merchant_contains?.trim() ||
-      input.match_merchant_regex?.trim() ||
-      input.match_min_amount !== null && input.match_min_amount !== undefined ||
-      input.match_max_amount !== null && input.match_max_amount !== undefined ||
-      input.match_account_id ||
-      input.match_payment_mode ||
-      input.match_sms_keyword?.trim());
-  if (!hasCondition) {
+  if (!input.conditions || input.conditions.length === 0) {
     throw new Error("Rule must have at least one condition");
   }
-  const hasAction =
-    !!(input.action_category_id ||
-      input.action_payment_mode ||
-      (input.action_tag_ids && input.action_tag_ids.length > 0) ||
-      input.action_is_right_spend !== null && input.action_is_right_spend !== undefined ||
-      input.action_mark_auto);
-  if (!hasAction) {
+  if (!input.actions || input.actions.length === 0) {
     throw new Error("Rule must have at least one action");
   }
-  if (input.match_merchant_regex?.trim()) {
-    try {
-      new RegExp(input.match_merchant_regex, "i");
-    } catch {
-      throw new Error("Merchant regex is not valid");
+  for (const condition of input.conditions) {
+    if (condition.operator === "regex" && typeof condition.value === "string") {
+      try {
+        new RegExp(condition.value, "i");
+      } catch {
+        throw new Error(`Invalid regex for ${condition.field}`);
+      }
     }
-  }
-  if (
-    input.match_min_amount !== null &&
-    input.match_min_amount !== undefined &&
-    input.match_max_amount !== null &&
-    input.match_max_amount !== undefined &&
-    input.match_min_amount > input.match_max_amount
-  ) {
-    throw new Error("Min amount must be less than or equal to max amount");
+    if (
+      condition.operator === "between" &&
+      (!Array.isArray(condition.value) || condition.value[0] > condition.value[1])
+    ) {
+      throw new Error("Between range's first value must be ≤ the second");
+    }
   }
 }
 
@@ -479,49 +595,61 @@ export interface RetroactivePreview {
   wouldSkip: number;
 }
 
+type RetroactiveCandidate = {
+  id: string;
+  amount: number;
+  merchant_name: string | null;
+  description: string | null;
+  account_id: string | null;
+  payment_mode_id: string | null;
+  category_id: string | null;
+  raw_source_text: string | null;
+};
+
+async function fetchRetroactiveCandidates(sinceDaysAgo: number): Promise<RetroactiveCandidate[]> {
+  const db = getDatabase();
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - sinceDaysAgo);
+  const cutoffIso = cutoff.toISOString().slice(0, 10);
+
+  return db.getAllAsync<RetroactiveCandidate>(
+    `SELECT id, amount, merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text
+     FROM expenses
+     WHERE deleted_at IS NULL
+       AND date >= ?;`,
+    cutoffIso,
+  );
+}
+
+function candidateToTarget(e: RetroactiveCandidate): EvaluationTarget {
+  return {
+    amount: e.amount,
+    merchant: e.merchant_name,
+    description: e.description,
+    account_id: e.account_id,
+    payment_mode_id: e.payment_mode_id,
+    category_id: e.category_id,
+    sms_body: e.raw_source_text,
+  };
+}
+
 /**
  * Preview how many past expenses a rule would affect. Does not write.
  */
 export async function previewRetroactiveApply(
   scope: RetroactiveScope,
 ): Promise<RetroactivePreview> {
-  const db = getDatabase();
   const rule = await getRule(scope.ruleId);
   if (!rule) return { matching: 0, wouldOverwrite: 0, wouldSkip: 0 };
 
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - scope.sinceDaysAgo);
-  const cutoffIso = cutoff.toISOString().slice(0, 10);
-
-  const candidates = await db.getAllAsync<{
-    id: string;
-    amount: number;
-    merchant_name: string | null;
-    account_id: string | null;
-    payment_mode_id: string | null;
-    category_id: string | null;
-    raw_source_text: string | null;
-  }>(
-    `SELECT id, amount, merchant_name, account_id, payment_mode_id, category_id, raw_source_text
-     FROM expenses
-     WHERE deleted_at IS NULL
-       AND date >= ?;`,
-    cutoffIso,
-  );
+  const candidates = await fetchRetroactiveCandidates(scope.sinceDaysAgo);
 
   let matching = 0;
   let wouldOverwrite = 0;
   let wouldSkip = 0;
 
   for (const e of candidates) {
-    const ok = evaluateRule(rule, {
-      amount: e.amount,
-      merchant: e.merchant_name,
-      account_id: e.account_id,
-      payment_mode_id: e.payment_mode_id,
-      sms_body: e.raw_source_text,
-    });
-    if (!ok) continue;
+    if (!evaluateRule(rule, candidateToTarget(e))) continue;
     matching++;
     const alreadyCategorized = e.category_id !== null;
     if (alreadyCategorized && !scope.overwriteExisting) {
@@ -539,39 +667,13 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
   const rule = await getRule(scope.ruleId);
   if (!rule) return 0;
 
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - scope.sinceDaysAgo);
-  const cutoffIso = cutoff.toISOString().slice(0, 10);
-
-  const candidates = await db.getAllAsync<{
-    id: string;
-    amount: number;
-    merchant_name: string | null;
-    account_id: string | null;
-    payment_mode_id: string | null;
-    category_id: string | null;
-    raw_source_text: string | null;
-  }>(
-    `SELECT id, amount, merchant_name, account_id, payment_mode_id, category_id, raw_source_text
-     FROM expenses
-     WHERE deleted_at IS NULL
-       AND date >= ?;`,
-    cutoffIso,
-  );
-
+  const candidates = await fetchRetroactiveCandidates(scope.sinceDaysAgo);
   const application = materialize(rule);
   let applied = 0;
 
   await db.withTransactionAsync(async () => {
     for (const e of candidates) {
-      const ok = evaluateRule(rule, {
-        amount: e.amount,
-        merchant: e.merchant_name,
-        account_id: e.account_id,
-        payment_mode_id: e.payment_mode_id,
-        sms_body: e.raw_source_text,
-      });
-      if (!ok) continue;
+      if (!evaluateRule(rule, candidateToTarget(e))) continue;
       const alreadyCategorized = e.category_id !== null;
       if (alreadyCategorized && !scope.overwriteExisting) continue;
 

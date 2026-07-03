@@ -36,6 +36,8 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
     const rule = await applyRules({
       amount: input.amount,
       merchant: input.merchant_name ?? null,
+      description: input.description ?? null,
+      category_id: categoryId,
       account_id: input.account_id ?? null,
       payment_mode_id: input.payment_mode_id ?? null,
       sms_body: null,

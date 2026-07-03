@@ -100,10 +100,23 @@ export async function listUserTemplates(): Promise<UserSmsTemplate[]> {
   return db.getAllAsync<UserSmsTemplate>(
     `SELECT id, user_id, bank_name, template_id, pattern_regex, tx_type,
             priority, source, sample_sms, created_from_sms_id, source_version,
-            sender_match_mode, sender_pattern
+            sender_match_mode, sender_pattern, deleted_at
      FROM sms_template_patterns
-     WHERE source = 'user'
+     WHERE source = 'user' AND deleted_at IS NULL
      ORDER BY bank_name ASC, priority ASC;`,
+  );
+}
+
+export async function getDeletedUserTemplates(): Promise<UserSmsTemplate[]> {
+  const db = getDatabase();
+  return db.getAllAsync<UserSmsTemplate>(
+    `SELECT id, user_id, bank_name, template_id, pattern_regex, tx_type,
+            priority, source, sample_sms, created_from_sms_id, source_version,
+            sender_match_mode, sender_pattern, deleted_at
+     FROM sms_template_patterns
+     WHERE source = 'user' AND user_id = ? AND deleted_at IS NOT NULL
+     ORDER BY deleted_at DESC;`,
+    DEFAULT_USER_ID,
   );
 }
 
@@ -112,9 +125,9 @@ export async function getUserTemplate(id: string): Promise<UserSmsTemplate | nul
   const row = await db.getFirstAsync<UserSmsTemplate>(
     `SELECT id, user_id, bank_name, template_id, pattern_regex, tx_type,
             priority, source, sample_sms, created_from_sms_id, source_version,
-            sender_match_mode, sender_pattern
+            sender_match_mode, sender_pattern, deleted_at
      FROM sms_template_patterns
-     WHERE id = ? AND source = 'user';`,
+     WHERE id = ? AND source = 'user' AND deleted_at IS NULL;`,
     id,
   );
   return row ?? null;
@@ -299,11 +312,9 @@ export async function updateUserTemplate(
 
 export async function deleteUserTemplate(id: string): Promise<void> {
   const db = getDatabase();
-  const existing = await getUserTemplate(id);
-  if (!existing) return; // idempotent
   try {
     await db.runAsync(
-      `DELETE FROM sms_template_patterns WHERE id = ? AND source = 'user';`,
+      `UPDATE sms_template_patterns SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND source = 'user';`,
       id,
     );
     await bumpDataVersion();
@@ -311,6 +322,33 @@ export async function deleteUserTemplate(id: string): Promise<void> {
     logger.warn(`deleteUserTemplate(${id}) failed:`, e);
     throw e;
   }
+}
+
+export async function restoreUserTemplate(id: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE sms_template_patterns SET deleted_at = NULL, updated_at = datetime('now') WHERE id = ?;`,
+    id,
+  );
+  await bumpDataVersion();
+}
+
+export async function restoreAllUserTemplates(): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE sms_template_patterns SET deleted_at = NULL, updated_at = datetime('now') WHERE source = 'user' AND user_id = ? AND deleted_at IS NOT NULL;`,
+    DEFAULT_USER_ID,
+  );
+  await bumpDataVersion();
+}
+
+export async function purgeDeletedUserTemplates(): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `DELETE FROM sms_template_patterns WHERE source = 'user' AND user_id = ? AND deleted_at IS NOT NULL;`,
+    DEFAULT_USER_ID,
+  );
+  await bumpDataVersion();
 }
 
 // ─── v15.6.0 helpers ───
@@ -331,7 +369,7 @@ export async function findDuplicateUserTemplate(
             priority, source, sample_sms, created_from_sms_id, source_version,
             sender_match_mode, sender_pattern
      FROM sms_template_patterns
-     WHERE source = 'user'
+     WHERE source = 'user' AND deleted_at IS NULL
        AND bank_name = ? COLLATE NOCASE
        AND tx_type = ?;`,
     bankName.trim(),
@@ -506,7 +544,7 @@ export async function loadUserSenderClaims(): Promise<UserSenderClaim[]> {
     }>(
       `SELECT sender_match_mode, sender_pattern
          FROM sms_template_patterns
-        WHERE source = 'user'
+        WHERE source = 'user' AND deleted_at IS NULL
           AND sender_pattern IS NOT NULL
           AND sender_match_mode IS NOT NULL;`,
     );
@@ -570,7 +608,7 @@ export async function hasSenderScopedUserTemplate(
     }>(
       `SELECT sender_match_mode, sender_pattern
          FROM sms_template_patterns
-        WHERE source = 'user'
+        WHERE source = 'user' AND deleted_at IS NULL
           AND sender_pattern IS NOT NULL
           AND sender_match_mode IS NOT NULL;`,
     );

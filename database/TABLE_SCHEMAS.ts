@@ -478,6 +478,9 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "name",
     "priority",
     "is_active",
+    // Legacy fixed-column model — unused since migration 053, kept in the
+    // table (and this whitelist) so a backup taken before the upgrade can
+    // still restore cleanly.
     "match_merchant_contains",
     "match_merchant_regex",
     "match_min_amount",
@@ -490,6 +493,11 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "action_tag_ids",
     "action_is_right_spend",
     "action_mark_auto",
+    // migration 053: dynamic conditions/actions model
+    "match_mode",
+    "conditions",
+    "actions",
+    "deleted_at",
     "action_link_to_investment_bucket_id", // v17.2.0
     "apply_count",
     "last_applied_at",
@@ -578,6 +586,8 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     // v15.11.0 (migration 021)
     "sender_match_mode",
     "sender_pattern",
+    // migration 052
+    "deleted_at",
   ] as const,
 
   // v16.0.0 — cash-flow simulator (migration 025)

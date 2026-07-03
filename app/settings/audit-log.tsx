@@ -15,7 +15,7 @@ import { formatDateTimeInTimezone } from "@/utils/timezone";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, SectionList, Text, TextInput, View } from "react-native";
 
 /**
  * Settings → Automation → Audit Log (v15.12.1 new).
@@ -180,6 +180,40 @@ function objectIcon(o: AuditObjectType): keyof typeof import("@expo/vector-icons
   }
 }
 
+type EntrySection = { title: string; data: AuditLogEntry[] };
+
+function groupEntriesByDate(entries: AuditLogEntry[]): EntrySection[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 6);
+
+  const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  function sectionTitle(dateStr: string): string {
+    const d = new Date(dateStr + "T00:00:00");
+    d.setHours(0, 0, 0, 0);
+    if (d.getTime() === today.getTime()) return "Today";
+    if (d.getTime() === yesterday.getTime()) return "Yesterday";
+    if (d >= weekAgo) return WEEKDAYS[d.getDay()];
+    return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  }
+
+  const buckets = new Map<string, AuditLogEntry[]>();
+  for (const entry of entries) {
+    const ts = entry.actionTimestamp ?? entry.date;
+    const dateKey = ts.slice(0, 10);
+    const title = sectionTitle(dateKey);
+    if (!buckets.has(title)) buckets.set(title, []);
+    buckets.get(title)!.push(entry);
+  }
+
+  return Array.from(buckets.entries()).map(([title, data]) => ({ title, data }));
+}
+
 export default function AuditLogScreen() {
   const router = useRouter();
   const { colors, colorScheme } = useColorScheme();
@@ -195,6 +229,7 @@ export default function AuditLogScreen() {
 
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
+  const sections = groupEntriesByDate(entries);
 
   const load = useCallback(async () => {
     try {
@@ -503,12 +538,24 @@ export default function AuditLogScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={entries}
+        <SectionList
+          sections={sections}
           renderItem={renderItem}
           keyExtractor={(item, idx) => `${item.objectType}:${item.id}:${item.actionType}:${idx}`}
+          renderSectionHeader={({ section }) => (
+            <View className="mx-4 mt-3 mb-1 flex-row items-center">
+              <Text
+                className="text-[10px] font-semibold uppercase"
+                style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
+                numberOfLines={1}
+              >
+                {section.title}
+              </Text>
+              <View className="flex-1 h-px ml-2" style={{ backgroundColor: colors.border }} />
+            </View>
+          )}
           ListHeaderComponent={
-            <View className="mx-4 mt-3 mb-2">
+            <View className="mx-4 mt-3 mb-1">
               <Text className="text-xs" style={{ color: colors.textSecondary }}>
                 Showing {entries.length} {entries.length === 1 ? "event" : "events"}
                 {entries.length >= 500 ? " (capped at 500 — narrow the date range for more)" : ""}
@@ -517,6 +564,7 @@ export default function AuditLogScreen() {
           }
           ListFooterComponent={<View style={{ height: 32 }} />}
           showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
         />
       )}
     </ScreenContainer>

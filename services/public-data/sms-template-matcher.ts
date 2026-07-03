@@ -136,8 +136,9 @@ export async function tryTemplateMatch(
       `SELECT id, bank_name, template_id, pattern_regex, tx_type, priority, source,
               sender_match_mode, sender_pattern
        FROM sms_template_patterns
-       WHERE bank_name = ? OR bank_name = '__generic__'
-          OR (sender_pattern IS NOT NULL AND source = 'user')
+       WHERE (bank_name = ? OR bank_name = '__generic__'
+          OR (sender_pattern IS NOT NULL AND source = 'user'))
+         AND (deleted_at IS NULL)
        ORDER BY
          CASE WHEN sender_pattern IS NOT NULL THEN 0 ELSE 1 END,
          CASE WHEN bank_name = '__generic__' THEN 1 ELSE 0 END,
