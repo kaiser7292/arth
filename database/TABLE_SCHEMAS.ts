@@ -575,6 +575,9 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "pattern_regex",
     "tx_type",
     "priority",
+    // source_version is NOT NULL in the schema (migration 015) — must be in the
+    // whitelist or restore silently drops every row with a NOT NULL violation.
+    "source_version",
     "example_match",
     "created_at",
     "updated_at",

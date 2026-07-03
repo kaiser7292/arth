@@ -22,6 +22,7 @@ import {
   type CreateSmartRuleInput,
   type RuleCondition,
   type RuleAction,
+  type ActionType,
   type ConditionField,
   type ConditionOperator,
 } from "@/services/smart-rules";
@@ -46,6 +47,43 @@ import { getErrorMessage } from "@/utils/error-message";
 const FIELD_OPTIONS: { key: ConditionField; label: string }[] = (
   Object.keys(FIELD_LABELS) as ConditionField[]
 ).map((key) => ({ key, label: FIELD_LABELS[key] }));
+
+// ─── THEN action types ─────────────────────────────────────────────────────
+
+type UIActionType = ActionType | "link_investment_bucket";
+
+type UIRuleAction =
+  | RuleAction
+  | { type: "link_investment_bucket"; bucket_id: string | null };
+
+const ACTION_TYPE_LABELS: Record<UIActionType, string> = {
+  category: "Set category",
+  payment_mode: "Set payment mode",
+  set_description: "Set description",
+  tags: "Add tags",
+  is_right_spend: "Mark unavoidable / discretionary",
+  mark_auto: "Auto-approve from review",
+  split_with_person: "Auto split with person",
+  link_investment_bucket: "Link investment bucket",
+};
+
+const ACTION_TYPE_OPTIONS: { type: UIActionType; label: string }[] = (
+  Object.keys(ACTION_TYPE_LABELS) as UIActionType[]
+).map((type) => ({ type, label: ACTION_TYPE_LABELS[type] }));
+
+function defaultActionFor(type: UIActionType): UIRuleAction {
+  switch (type) {
+    case "category": return { type: "category" };
+    case "payment_mode": return { type: "payment_mode" };
+    case "set_description": return { type: "set_description", description_template: "" };
+    case "tags": return { type: "tags", tag_ids: [] };
+    case "is_right_spend": return { type: "is_right_spend" };
+    case "mark_auto": return { type: "mark_auto" };
+    case "split_with_person": return { type: "split_with_person" };
+    case "link_investment_bucket": return { type: "link_investment_bucket", bucket_id: null };
+    default: return { type: "category" };
+  }
+}
 
 function fieldLabel(field: ConditionField): string {
   return FIELD_LABELS[field] ?? field;
@@ -77,14 +115,8 @@ export default function SmartRuleDetailScreen() {
   const [matchMode, setMatchMode] = useState<"all" | "any">("all");
   const [conditions, setConditions] = useState<RuleCondition[]>([defaultConditionFor("merchant")]);
 
-  const [actionCategoryId, setActionCategoryId] = useState<string | null>(null);
-  const [actionPaymentModeId, setActionPaymentModeId] = useState<string | null>(null);
-  const [actionDescription, setActionDescription] = useState<string>("");
-  const [actionTagIds, setActionTagIds] = useState<string[]>([]);
-  const [actionIsRightSpend, setActionIsRightSpend] = useState<number | null>(null);
-  const [actionMarkAuto, setActionMarkAuto] = useState(false);
-  const [actionSplitPersonId, setActionSplitPersonId] = useState<string | null>(null);
-  const [actionLinkBucketId, setActionLinkBucketId] = useState<string | null>(null);
+  const [actions, setActions] = useState<UIRuleAction[]>([]);
+  const [expandedActionTypeRow, setExpandedActionTypeRow] = useState<number | null>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
@@ -134,18 +166,11 @@ export default function SmartRuleDetailScreen() {
     setMatchMode(r.match_mode);
     setConditions(r.conditions.length > 0 ? r.conditions : [defaultConditionFor("merchant")]);
 
-    for (const action of r.actions) {
-      if (action.type === "category" && action.category_id) setActionCategoryId(action.category_id);
-      if (action.type === "payment_mode" && action.payment_mode) setActionPaymentModeId(action.payment_mode);
-      if (action.type === "set_description" && action.description_template) setActionDescription(action.description_template);
-      if (action.type === "tags" && action.tag_ids) setActionTagIds(action.tag_ids);
-      if (action.type === "is_right_spend" && action.is_right_spend !== undefined) {
-        setActionIsRightSpend(action.is_right_spend ? 1 : 0);
-      }
-      if (action.type === "mark_auto") setActionMarkAuto(true);
-      if (action.type === "split_with_person" && action.person_id) setActionSplitPersonId(action.person_id);
+    const uiActions: UIRuleAction[] = [...r.actions];
+    if (r.action_link_to_investment_bucket_id) {
+      uiActions.push({ type: "link_investment_bucket", bucket_id: r.action_link_to_investment_bucket_id });
     }
-    if (r.action_link_to_investment_bucket_id) setActionLinkBucketId(r.action_link_to_investment_bucket_id);
+    setActions(uiActions);
   };
 
   const updateCondition = useCallback((index: number, patch: Partial<RuleCondition>) => {
@@ -177,17 +202,53 @@ export default function SmartRuleDetailScreen() {
     setConditions((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
   }, []);
 
+  const updateAction = useCallback((index: number, patch: Partial<UIRuleAction>) => {
+    setActions((prev) => prev.map((a, i) => (i === index ? ({ ...a, ...patch } as UIRuleAction) : a)));
+  }, []);
+
+  const setActionType = useCallback((index: number, type: UIActionType) => {
+    setActions((prev) => prev.map((a, i) => (i === index ? defaultActionFor(type) : a)));
+    setExpandedActionTypeRow(null);
+  }, []);
+
+  const addAction = useCallback(() => {
+    setActions((prev) => {
+      const usedTypes = new Set(prev.map((a) => a.type));
+      const nextType = ACTION_TYPE_OPTIONS.find((opt) => !usedTypes.has(opt.type))?.type ?? "category";
+      return [...prev, defaultActionFor(nextType)];
+    });
+  }, []);
+
+  const removeAction = useCallback((index: number) => {
+    setActions((prev) => prev.filter((_, i) => i !== index));
+    setExpandedActionTypeRow(null);
+  }, []);
+
   const buildActions = useCallback((): RuleAction[] => {
-    const actions: RuleAction[] = [];
-    if (actionCategoryId) actions.push({ type: "category", category_id: actionCategoryId });
-    if (actionPaymentModeId) actions.push({ type: "payment_mode", payment_mode: actionPaymentModeId });
-    if (actionDescription.trim()) actions.push({ type: "set_description", description_template: actionDescription.trim() });
-    if (actionTagIds.length > 0) actions.push({ type: "tags", tag_ids: actionTagIds });
-    if (actionIsRightSpend !== null) actions.push({ type: "is_right_spend", is_right_spend: actionIsRightSpend === 1 });
-    if (actionMarkAuto) actions.push({ type: "mark_auto" });
-    if (actionSplitPersonId) actions.push({ type: "split_with_person", person_id: actionSplitPersonId, split_mode: "equal", paid_by: "me" });
-    return actions;
-  }, [actionCategoryId, actionPaymentModeId, actionDescription, actionTagIds, actionIsRightSpend, actionMarkAuto, actionSplitPersonId]);
+    const result: RuleAction[] = [];
+    for (const action of actions) {
+      if (action.type === "link_investment_bucket") continue;
+      const a = action as RuleAction;
+      if (a.type === "category" && !a.category_id) continue;
+      if (a.type === "payment_mode" && !a.payment_mode) continue;
+      if (a.type === "set_description" && !a.description_template?.trim()) continue;
+      if (a.type === "tags" && (!a.tag_ids || a.tag_ids.length === 0)) continue;
+      if (a.type === "split_with_person") {
+        if (!a.person_id) continue;
+        result.push({ type: "split_with_person", person_id: a.person_id, split_mode: "equal", paid_by: "me" });
+        continue;
+      }
+      result.push(a);
+    }
+    return result;
+  }, [actions]);
+
+  const buildLinkBucketId = useCallback((): string | null => {
+    const a = actions.find((x) => x.type === "link_investment_bucket") as
+      | { type: "link_investment_bucket"; bucket_id: string | null }
+      | undefined;
+    return a?.bucket_id ?? null;
+  }, [actions]);
 
   const onSave = useCallback(async () => {
     if (saving) return;
@@ -197,7 +258,7 @@ export default function SmartRuleDetailScreen() {
         name,
         priority: parseInt(priority, 10) || 100,
         is_active: isActive,
-        action_link_to_investment_bucket_id: actionLinkBucketId,
+        action_link_to_investment_bucket_id: buildLinkBucketId(),
         match_mode: matchMode,
         conditions,
         actions: buildActions(),
@@ -213,7 +274,7 @@ export default function SmartRuleDetailScreen() {
     } finally {
       setSaving(false);
     }
-  }, [saving, name, priority, isActive, matchMode, conditions, buildActions, isCreate, id, alert, router]);
+  }, [saving, name, priority, isActive, matchMode, conditions, buildActions, buildLinkBucketId, isCreate, id, alert, router]);
 
   const onRetroactive = useCallback(async () => {
     if (isCreate) return;
@@ -249,11 +310,6 @@ export default function SmartRuleDetailScreen() {
       alert("Couldn't preview", getErrorMessage(e));
     }
   }, [isCreate, id, alert]);
-
-  const categoryLabel = useMemo(() => {
-    if (!actionCategoryId) return "Not set";
-    return categories.find((c) => c.id === actionCategoryId)?.name ?? "Unknown";
-  }, [actionCategoryId, categories]);
 
   const filteredFields = useMemo(() => {
     const q = fieldSearch.trim().toLowerCase();
@@ -507,150 +563,252 @@ export default function SmartRuleDetailScreen() {
             </Pressable>
           </Card>
 
-          <Card title="THEN (actions)" className="mb-4">
-            {/* Set Category */}
-            <Pressable
-              onPress={() => {
-                if (categories.length === 0) return;
-                const cur = categories.findIndex((c) => c.id === actionCategoryId);
-                const nextIdx = (cur + 1) % (categories.length + 1);
-                setActionCategoryId(nextIdx === categories.length ? null : categories[nextIdx].id);
-              }}
-              className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
-            >
-              <View className="flex-1">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">Set category</Text>
-                <Text className="text-base text-text-primary dark:text-text-dark-primary">
-                  {actionCategoryId ? (categories.find((c) => c.id === actionCategoryId)?.name ?? "Unknown") : "Not set"}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-            </Pressable>
+          <Card className="mb-4">
+            <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-3">
+              Then (actions)
+            </Text>
 
-            {/* Set Payment Mode */}
-            <Pressable
-              onPress={() => {
-                if (paymentModes.length === 0) return;
-                const cur = paymentModes.findIndex((m) => m.id === actionPaymentModeId);
-                const nextIdx = (cur + 1) % (paymentModes.length + 1);
-                setActionPaymentModeId(nextIdx === paymentModes.length ? null : paymentModes[nextIdx].id);
-              }}
-              className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
-            >
-              <View className="flex-1">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">Set payment mode</Text>
-                <Text className="text-base text-text-primary dark:text-text-dark-primary">
-                  {actionPaymentModeId ? (paymentModes.find((m) => m.id === actionPaymentModeId)?.name ?? "Unknown") : "Not set"}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-            </Pressable>
+            {actions.map((action, index) => {
+              const typeExpanded = expandedActionTypeRow === index;
 
-            {/* Set Description */}
-            <View className="py-3 border-b border-border-light dark:border-border-dark">
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">Set description</Text>
-              <TextInput
-                placeholder="Leave blank to skip"
-                placeholderTextColor={colors.tabIconDefault}
-                value={actionDescription}
-                onChangeText={setActionDescription}
-                className="rounded-lg border border-border-light dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-dark-primary"
-              />
-            </View>
+              return (
+                <View
+                  key={index}
+                  className="mb-3 p-3 rounded-xl border border-border-light dark:border-border-dark"
+                >
+                  {/* Header */}
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-xs font-semibold tracking-wider uppercase text-text-tertiary">
+                      Action {index + 1}
+                    </Text>
+                    <Pressable
+                      onPress={() => removeAction(index)}
+                      hitSlop={8}
+                      className="w-6 h-6 rounded-full items-center justify-center bg-surface-light-alt dark:bg-surface-dark-alt"
+                    >
+                      <Ionicons name="close" size={14} color={colors.textSecondary} />
+                    </Pressable>
+                  </View>
 
-            {/* Add Tags */}
-            <View className="py-3 border-b border-border-light dark:border-border-dark">
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">Add tags</Text>
-              {tags.length === 0 ? (
-                <Text className="text-xs text-text-tertiary">No tags created yet</Text>
-              ) : (
-                <View className="flex-row flex-wrap" style={{ gap: 8 }}>
-                  {tags.map((t) => {
-                    const selected = actionTagIds.includes(t.id);
-                    return (
+                  {/* Type picker */}
+                  <Pressable
+                    onPress={() => {
+                      setExpandedActionTypeRow(typeExpanded ? null : index);
+                    }}
+                    className="flex-row items-center justify-between py-2"
+                  >
+                    <View>
+                      <Text className="text-xs text-text-tertiary">Action type</Text>
+                      <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                        {ACTION_TYPE_LABELS[action.type]}
+                      </Text>
+                    </View>
+                    <Ionicons name={typeExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                  </Pressable>
+
+                  {typeExpanded && (
+                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                      {ACTION_TYPE_OPTIONS.map((opt) => (
+                        <Pressable
+                          key={opt.type}
+                          onPress={() => setActionType(index, opt.type)}
+                          className="px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                          style={{ backgroundColor: action.type === opt.type ? accentColor + "18" : undefined }}
+                        >
+                          <Text className="text-sm text-text-primary dark:text-text-dark-primary">{opt.label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Value input per type */}
+                  {action.type === "category" && (
+                    <Pressable
+                      onPress={() => {
+                        if (categories.length === 0) return;
+                        const a = action as RuleAction & { type: "category" };
+                        const cur = categories.findIndex((c) => c.id === a.category_id);
+                        const nextIdx = (cur + 1) % (categories.length + 1);
+                        updateAction(index, { category_id: nextIdx === categories.length ? undefined : categories[nextIdx].id });
+                      }}
+                      className="flex-row items-center justify-between py-2"
+                    >
+                      <View>
+                        <Text className="text-xs text-text-tertiary">Category</Text>
+                        <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                          {(action as RuleAction & { type: "category" }).category_id
+                            ? (categories.find((c) => c.id === (action as RuleAction & { type: "category" }).category_id)?.name ?? "Unknown")
+                            : "Tap to select"}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+                    </Pressable>
+                  )}
+
+                  {action.type === "payment_mode" && (
+                    <Pressable
+                      onPress={() => {
+                        if (paymentModes.length === 0) return;
+                        const a = action as RuleAction & { type: "payment_mode" };
+                        const cur = paymentModes.findIndex((m) => m.id === a.payment_mode);
+                        const nextIdx = (cur + 1) % (paymentModes.length + 1);
+                        updateAction(index, { payment_mode: nextIdx === paymentModes.length ? undefined : paymentModes[nextIdx].id });
+                      }}
+                      className="flex-row items-center justify-between py-2"
+                    >
+                      <View>
+                        <Text className="text-xs text-text-tertiary">Payment mode</Text>
+                        <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                          {(action as RuleAction & { type: "payment_mode" }).payment_mode
+                            ? (paymentModes.find((m) => m.id === (action as RuleAction & { type: "payment_mode" }).payment_mode)?.name ?? "Unknown")
+                            : "Tap to select"}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+                    </Pressable>
+                  )}
+
+                  {action.type === "set_description" && (
+                    <View className="mt-1">
+                      <Text className="text-xs text-text-tertiary mb-1.5">Description text</Text>
+                      <TextInput
+                        placeholder="e.g. Monthly subscription"
+                        placeholderTextColor={colors.tabIconDefault}
+                        value={(action as RuleAction & { type: "set_description" }).description_template ?? ""}
+                        onChangeText={(v) => updateAction(index, { description_template: v })}
+                        className="rounded-lg border border-border-light dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-dark-primary"
+                      />
+                    </View>
+                  )}
+
+                  {action.type === "tags" && (
+                    <View className="mt-1">
+                      <Text className="text-xs text-text-tertiary mb-1.5">Select tags</Text>
+                      {tags.length === 0 ? (
+                        <Text className="text-xs text-text-tertiary">No tags created yet</Text>
+                      ) : (
+                        <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+                          {tags.map((t) => {
+                            const selectedIds = (action as RuleAction & { type: "tags" }).tag_ids ?? [];
+                            const selected = selectedIds.includes(t.id);
+                            return (
+                              <Pressable
+                                key={t.id}
+                                onPress={() =>
+                                  updateAction(index, {
+                                    tag_ids: selected
+                                      ? selectedIds.filter((id) => id !== t.id)
+                                      : [...selectedIds, t.id],
+                                  })
+                                }
+                                className="px-3 py-1.5 rounded-full border"
+                                style={{ backgroundColor: selected ? accentColor : "transparent", borderColor: selected ? accentColor : colors.border }}
+                              >
+                                <Text className={selected ? "text-white text-xs font-medium" : "text-text-secondary dark:text-text-dark-secondary text-xs"}>
+                                  {t.name}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {action.type === "is_right_spend" && (
+                    <View className="flex-row items-center justify-between py-2">
+                      <Text className="text-xs text-text-tertiary">
+                        {(action as RuleAction & { type: "is_right_spend" }).is_right_spend === true
+                          ? "Will mark as unavoidable"
+                          : (action as RuleAction & { type: "is_right_spend" }).is_right_spend === false
+                          ? "Will mark as discretionary"
+                          : "Not set — tap to choose"}
+                      </Text>
                       <Pressable
-                        key={t.id}
-                        onPress={() => setActionTagIds((prev) => selected ? prev.filter((id) => id !== t.id) : [...prev, t.id])}
-                        className="px-3 py-1.5 rounded-full border"
-                        style={{ backgroundColor: selected ? accentColor : "transparent", borderColor: selected ? accentColor : colors.border }}
+                        onPress={() => {
+                          const cur = (action as RuleAction & { type: "is_right_spend" }).is_right_spend;
+                          updateAction(index, { is_right_spend: cur === undefined ? true : cur === true ? false : undefined });
+                        }}
+                        className="px-3 py-1 rounded-full border border-border-light dark:border-border-dark"
                       >
-                        <Text className={selected ? "text-white text-xs font-medium" : "text-text-secondary dark:text-text-dark-secondary text-xs"}>
-                          {t.name}
+                        <Text className="text-xs text-text-primary dark:text-text-dark-primary">
+                          {(action as RuleAction & { type: "is_right_spend" }).is_right_spend === true
+                            ? "Unavoidable"
+                            : (action as RuleAction & { type: "is_right_spend" }).is_right_spend === false
+                            ? "Discretionary"
+                            : "Off"}
                         </Text>
                       </Pressable>
-                    );
-                  })}
+                    </View>
+                  )}
+
+                  {action.type === "mark_auto" && (
+                    <View className="py-2">
+                      <Text className="text-xs text-text-tertiary">SMS-detected expenses skip the pending review queue</Text>
+                    </View>
+                  )}
+
+                  {action.type === "split_with_person" && (
+                    <Pressable
+                      onPress={() => {
+                        if (persons.length === 0) return;
+                        const a = action as RuleAction & { type: "split_with_person" };
+                        const cur = persons.findIndex((p) => p.id === a.person_id);
+                        const nextIdx = (cur + 1) % (persons.length + 1);
+                        updateAction(index, { person_id: nextIdx === persons.length ? undefined : persons[nextIdx].id });
+                      }}
+                      className="flex-row items-center justify-between py-2"
+                    >
+                      <View>
+                        <Text className="text-xs text-text-tertiary">Split with</Text>
+                        <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                          {(action as RuleAction & { type: "split_with_person" }).person_id
+                            ? (persons.find((p) => p.id === (action as RuleAction & { type: "split_with_person" }).person_id)?.name ?? "Unknown")
+                            : "Tap to select"}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+                    </Pressable>
+                  )}
+
+                  {action.type === "link_investment_bucket" && (
+                    <Pressable
+                      onPress={() => {
+                        if (buckets.length === 0) return;
+                        const a = action as { type: "link_investment_bucket"; bucket_id: string | null };
+                        const cur = buckets.findIndex((b) => b.id === a.bucket_id);
+                        const nextIdx = (cur + 1) % (buckets.length + 1);
+                        updateAction(index, { bucket_id: nextIdx === buckets.length ? null : buckets[nextIdx].id });
+                      }}
+                      className="flex-row items-center justify-between py-2"
+                    >
+                      <View>
+                        <Text className="text-xs text-text-tertiary">Investment bucket</Text>
+                        <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                          {(action as { type: "link_investment_bucket"; bucket_id: string | null }).bucket_id
+                            ? (buckets.find((b) => b.id === (action as { type: "link_investment_bucket"; bucket_id: string | null }).bucket_id)?.name ?? "Unknown")
+                            : "Tap to select"}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+                    </Pressable>
+                  )}
                 </View>
-              )}
-            </View>
+              );
+            })}
 
-            {/* Mark Unavoidable */}
-            <View className="flex-row items-center justify-between py-3 border-b border-border-light dark:border-border-dark">
-              <View className="flex-1">
-                <Text className="text-sm text-text-primary dark:text-text-dark-primary">Mark unavoidable</Text>
-                <Text className="text-xs text-text-tertiary mt-0.5">
-                  {actionIsRightSpend === 1 ? "Will mark as unavoidable" : actionIsRightSpend === 0 ? "Will mark as discretionary" : "Not set"}
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setActionIsRightSpend(actionIsRightSpend === null ? 1 : actionIsRightSpend === 1 ? 0 : null)}
-                className="px-3 py-1 rounded-full border border-border-light dark:border-border-dark"
-              >
-                <Text className="text-xs text-text-primary dark:text-text-dark-primary">
-                  {actionIsRightSpend === null ? "Off" : actionIsRightSpend === 1 ? "Unavoidable" : "Discretionary"}
-                </Text>
-              </Pressable>
-            </View>
+            {actions.length === 0 && (
+              <Text className="text-sm text-text-tertiary text-center py-2 mb-3">No actions yet — add one below</Text>
+            )}
 
-            {/* Auto-approve */}
-            <View className="flex-row items-center justify-between py-3 border-b border-border-light dark:border-border-dark">
-              <View className="flex-1 mr-3">
-                <Text className="text-sm text-text-primary dark:text-text-dark-primary">Auto-approve from review queue</Text>
-                <Text className="text-xs text-text-tertiary mt-0.5">SMS-detected expenses skip the pending queue</Text>
-              </View>
-              <Switch
-                value={actionMarkAuto}
-                onValueChange={setActionMarkAuto}
-                trackColor={{ false: colors.border, true: accentColor }}
-              />
-            </View>
-
-            {/* Link Investment Bucket */}
             <Pressable
-              onPress={() => {
-                if (buckets.length === 0) return;
-                const cur = buckets.findIndex((b) => b.id === actionLinkBucketId);
-                const nextIdx = (cur + 1) % (buckets.length + 1);
-                setActionLinkBucketId(nextIdx === buckets.length ? null : buckets[nextIdx].id);
-              }}
-              className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+              onPress={addAction}
+              className="flex-row items-center justify-center py-2.5 rounded-lg border border-dashed border-border-light dark:border-border-dark"
             >
-              <View className="flex-1">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">Link investment bucket</Text>
-                <Text className="text-base text-text-primary dark:text-text-dark-primary">
-                  {actionLinkBucketId ? (buckets.find((b) => b.id === actionLinkBucketId)?.name ?? "Unknown") : "Not set"}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-            </Pressable>
-
-            {/* Auto Split */}
-            <Pressable
-              onPress={() => {
-                if (persons.length === 0) return;
-                const cur = persons.findIndex((p) => p.id === actionSplitPersonId);
-                const nextIdx = (cur + 1) % (persons.length + 1);
-                setActionSplitPersonId(nextIdx === persons.length ? null : persons[nextIdx].id);
-              }}
-              className="flex-row items-center py-3"
-            >
-              <View className="flex-1">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">Auto split with</Text>
-                <Text className="text-base text-text-primary dark:text-text-dark-primary">
-                  {actionSplitPersonId ? (persons.find((p) => p.id === actionSplitPersonId)?.name ?? "Unknown") : "Not set"}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+              <Ionicons name="add" size={16} color={accentColor} />
+              <Text className="text-sm font-medium ml-1.5" style={{ color: accentColor }}>
+                Add action
+              </Text>
             </Pressable>
           </Card>
 
