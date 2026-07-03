@@ -46,8 +46,12 @@ export function formatAmount(amount: number, currencyOverride?: CurrencyCode): s
   const code = currencyOverride ?? getCurrency();
   const grouping = getNumberGrouping();
   const def = getCurrencyDef(code);
-  const sign = amount < 0 ? "-" : "";
-  const body = formatPositiveAmount(Math.abs(amount), def.decimals, grouping);
+  const abs = Math.abs(amount);
+  const body = formatPositiveAmount(abs, def.decimals, grouping);
+  // Suppress the minus sign when the formatted body rounds to zero (e.g. -0,
+  // or a tiny floating-point residual like -0.0001 that toFixed(0) renders as "0").
+  const isZeroDisplay = !body.replace(/[0,.]/g, "");
+  const sign = amount < 0 && !isZeroDisplay ? "-" : "";
   if (code === "NONE" || !def.symbol) return `${sign}${body}`;
   return `${sign}${def.symbol}${body}`;
 }
@@ -59,10 +63,19 @@ export function formatAmount(amount: number, currencyOverride?: CurrencyCode): s
  */
 export function formatCompact(n: number): string {
   const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  if (abs >= 100000) return `${sign}${(abs / 100000).toFixed(1)}L`;
-  if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}K`;
-  return `${sign}${Math.round(abs)}`;
+  if (abs >= 100000) {
+    const body = (abs / 100000).toFixed(1) + "L";
+    const sign = n < 0 && !body.replace(/[0,.L]/g, "") ? "" : n < 0 ? "-" : "";
+    return `${sign}${body}`;
+  }
+  if (abs >= 1000) {
+    const body = (abs / 1000).toFixed(1) + "K";
+    const sign = n < 0 && !body.replace(/[0,.K]/g, "") ? "" : n < 0 ? "-" : "";
+    return `${sign}${body}`;
+  }
+  const rounded = Math.round(abs);
+  const sign = n < 0 && rounded !== 0 ? "-" : "";
+  return `${sign}${rounded}`;
 }
 
 /**
@@ -72,11 +85,12 @@ export function formatCompact(n: number): string {
  */
 export function formatNumber(amount: number): string {
   const grouping = getNumberGrouping();
-  const sign = amount < 0 ? "-" : "";
   const abs = Math.abs(amount);
-  // Exports typically use 2 decimals when non-integer, else none.
   const decimals = abs % 1 !== 0 ? 2 : 0;
-  return `${sign}${formatPositiveAmount(abs, decimals, grouping)}`;
+  const body = formatPositiveAmount(abs, decimals, grouping);
+  const isZeroDisplay = !body.replace(/[0,.]/g, "");
+  const sign = amount < 0 && !isZeroDisplay ? "-" : "";
+  return `${sign}${body}`;
 }
 
 /**
@@ -90,8 +104,9 @@ export function formatAmountPreview(
   grouping: NumberGrouping,
 ): string {
   const def = getCurrencyDef(currency);
-  const sign = amount < 0 ? "-" : "";
   const body = formatPositiveAmount(Math.abs(amount), def.decimals, grouping);
+  const isZeroDisplay = !body.replace(/[0,.]/g, "");
+  const sign = amount < 0 && !isZeroDisplay ? "-" : "";
   if (currency === "NONE" || !def.symbol) return `${sign}${body}`;
   return `${sign}${def.symbol}${body}`;
 }
