@@ -197,7 +197,7 @@ export async function generatePersonExcel(
   stmtRows.push([]);
   stmtRows.push(["Note: Dr (Debit) = they owe you more. Cr (Credit) = you paid them back. Balance Dr = net amount they owe you. Balance Cr = net amount you owe them."]);
   stmtRows.push([]);
-  stmtRows.push(["अर्थ (Arth) — Your Finance, Your Way | Created by Sourav Baid"]);
+  stmtRows.push(["Arth (अर्थ) — Your Finance, Your Way | Created by Sourav Baid"]);
 
   const stmtSheet = XLSX.utils.aoa_to_sheet(stmtRows);
 
