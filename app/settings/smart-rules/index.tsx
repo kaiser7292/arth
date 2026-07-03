@@ -145,11 +145,18 @@ export default function SmartRulesListScreen() {
         case "is_right_spend":
           parts.push(action.is_right_spend ? "mark unavoidable" : "mark discretionary");
           break;
+        case "set_description":
+          parts.push("set description");
+          break;
         case "mark_auto":
           parts.push("auto-approve from review");
           break;
+        case "split_with_person":
+          parts.push("auto split");
+          break;
       }
     }
+    if (r.action_link_to_investment_bucket_id) parts.push("link bucket");
     return parts.length > 0 ? parts.join(" · ") : "No actions";
   };
 

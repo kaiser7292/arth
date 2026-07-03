@@ -325,9 +325,10 @@ export default function HomeScreen() {
         {/* App Header */}
         <View className="px-4 pt-5 pb-3 flex-row items-start justify-between">
           <View>
-            <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
-              Arth
-            </Text>
+            <View className="flex-row items-baseline" style={{ gap: 6 }}>
+              <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">Arth</Text>
+              <Text className="text-base text-text-secondary dark:text-text-dark-secondary">अर्थ</Text>
+            </View>
             <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
               {monthLabel}
             </Text>

@@ -100,14 +100,25 @@ export interface RuleCondition {
   value: string | number | [number, number] | null;
 }
 
-export type ActionType = "category" | "payment_mode" | "tags" | "is_right_spend" | "mark_auto";
+export type ActionType =
+  | "category"
+  | "payment_mode"
+  | "set_description"
+  | "tags"
+  | "is_right_spend"
+  | "mark_auto"
+  | "split_with_person";
 
 export interface RuleAction {
   type: ActionType;
   category_id?: string;
   payment_mode?: string;
+  description_template?: string;
   tag_ids?: string[];
   is_right_spend?: boolean;
+  person_id?: string;
+  split_mode?: string;
+  paid_by?: string;
 }
 
 export interface SmartRule {
@@ -162,9 +173,13 @@ export interface RuleApplication {
   rule: SmartRule;
   category_id: string | null;
   payment_mode: string | null;
+  description: string | null;
   tag_ids: string[];
   is_right_spend: number | null;
   mark_auto: boolean;
+  split_person_id: string | null;
+  split_mode: string | null;
+  split_paid_by: string | null;
 }
 
 // ─── Raw DB row (conditions/actions still JSON text) ───
@@ -338,9 +353,13 @@ export function findFirstMatch(
 export function materialize(rule: SmartRule): RuleApplication {
   let category_id: string | null = null;
   let payment_mode: string | null = null;
+  let description: string | null = null;
   let tag_ids: string[] = [];
   let is_right_spend: number | null = null;
   let mark_auto = false;
+  let split_person_id: string | null = null;
+  let split_mode: string | null = null;
+  let split_paid_by: string | null = null;
 
   for (const action of rule.actions) {
     switch (action.type) {
@@ -349,6 +368,9 @@ export function materialize(rule: SmartRule): RuleApplication {
         break;
       case "payment_mode":
         if (action.payment_mode) payment_mode = action.payment_mode;
+        break;
+      case "set_description":
+        if (action.description_template) description = action.description_template;
         break;
       case "tags":
         if (action.tag_ids && action.tag_ids.length > 0) tag_ids = action.tag_ids;
@@ -359,10 +381,17 @@ export function materialize(rule: SmartRule): RuleApplication {
       case "mark_auto":
         mark_auto = true;
         break;
+      case "split_with_person":
+        if (action.person_id) {
+          split_person_id = action.person_id;
+          split_mode = action.split_mode ?? null;
+          split_paid_by = action.paid_by ?? null;
+        }
+        break;
     }
   }
 
-  return { rule, category_id, payment_mode, tag_ids, is_right_spend, mark_auto };
+  return { rule, category_id, payment_mode, description, tag_ids, is_right_spend, mark_auto, split_person_id, split_mode, split_paid_by };
 }
 
 // ─── DB-backed operations ───

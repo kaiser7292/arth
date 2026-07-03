@@ -28,6 +28,9 @@ import {
 import { getCategories, type Category } from "@/services/category";
 import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
+import { getTags, type Tag } from "@/services/tags";
+import { getPersonsWithBalances, type HisaabPersonWithBalance } from "@/services/hisaab";
+import { getAllActiveBuckets, type InvestmentBucket } from "@/services/yearly-plan";
 import { getErrorMessage } from "@/utils/error-message";
 
 /**
@@ -74,16 +77,21 @@ export default function SmartRuleDetailScreen() {
   const [matchMode, setMatchMode] = useState<"all" | "any">("all");
   const [conditions, setConditions] = useState<RuleCondition[]>([defaultConditionFor("merchant")]);
 
-  // Actions kept as the same fixed set the form has always exposed
-  // (category / right-spend / auto-approve) — just persisted into the new
-  // actions[] array on save instead of fixed columns.
   const [actionCategoryId, setActionCategoryId] = useState<string | null>(null);
+  const [actionPaymentModeId, setActionPaymentModeId] = useState<string | null>(null);
+  const [actionDescription, setActionDescription] = useState<string>("");
+  const [actionTagIds, setActionTagIds] = useState<string[]>([]);
   const [actionIsRightSpend, setActionIsRightSpend] = useState<number | null>(null);
   const [actionMarkAuto, setActionMarkAuto] = useState(false);
+  const [actionSplitPersonId, setActionSplitPersonId] = useState<string | null>(null);
+  const [actionLinkBucketId, setActionLinkBucketId] = useState<string | null>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
+  const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
 
   // Index of the condition row whose Field/Operator picker is expanded, and a search query for it.
   const [expandedFieldRow, setExpandedFieldRow] = useState<number | null>(null);
@@ -94,6 +102,9 @@ export default function SmartRuleDetailScreen() {
     getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => setCategories([]));
     getPaymentModes(DEFAULT_USER_ID).then(setPaymentModes).catch(() => setPaymentModes([]));
     getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch(() => setAccounts([]));
+    getTags(DEFAULT_USER_ID).then(setTags).catch(() => setTags([]));
+    getPersonsWithBalances(DEFAULT_USER_ID).then(setPersons).catch(() => setPersons([]));
+    getAllActiveBuckets(DEFAULT_USER_ID).then(setBuckets).catch(() => setBuckets([]));
   }, []);
 
   useEffect(() => {
@@ -125,11 +136,16 @@ export default function SmartRuleDetailScreen() {
 
     for (const action of r.actions) {
       if (action.type === "category" && action.category_id) setActionCategoryId(action.category_id);
+      if (action.type === "payment_mode" && action.payment_mode) setActionPaymentModeId(action.payment_mode);
+      if (action.type === "set_description" && action.description_template) setActionDescription(action.description_template);
+      if (action.type === "tags" && action.tag_ids) setActionTagIds(action.tag_ids);
       if (action.type === "is_right_spend" && action.is_right_spend !== undefined) {
         setActionIsRightSpend(action.is_right_spend ? 1 : 0);
       }
       if (action.type === "mark_auto") setActionMarkAuto(true);
+      if (action.type === "split_with_person" && action.person_id) setActionSplitPersonId(action.person_id);
     }
+    if (r.action_link_to_investment_bucket_id) setActionLinkBucketId(r.action_link_to_investment_bucket_id);
   };
 
   const updateCondition = useCallback((index: number, patch: Partial<RuleCondition>) => {
@@ -164,10 +180,14 @@ export default function SmartRuleDetailScreen() {
   const buildActions = useCallback((): RuleAction[] => {
     const actions: RuleAction[] = [];
     if (actionCategoryId) actions.push({ type: "category", category_id: actionCategoryId });
+    if (actionPaymentModeId) actions.push({ type: "payment_mode", payment_mode: actionPaymentModeId });
+    if (actionDescription.trim()) actions.push({ type: "set_description", description_template: actionDescription.trim() });
+    if (actionTagIds.length > 0) actions.push({ type: "tags", tag_ids: actionTagIds });
     if (actionIsRightSpend !== null) actions.push({ type: "is_right_spend", is_right_spend: actionIsRightSpend === 1 });
     if (actionMarkAuto) actions.push({ type: "mark_auto" });
+    if (actionSplitPersonId) actions.push({ type: "split_with_person", person_id: actionSplitPersonId, split_mode: "equal", paid_by: "me" });
     return actions;
-  }, [actionCategoryId, actionIsRightSpend, actionMarkAuto]);
+  }, [actionCategoryId, actionPaymentModeId, actionDescription, actionTagIds, actionIsRightSpend, actionMarkAuto, actionSplitPersonId]);
 
   const onSave = useCallback(async () => {
     if (saving) return;
@@ -177,6 +197,7 @@ export default function SmartRuleDetailScreen() {
         name,
         priority: parseInt(priority, 10) || 100,
         is_active: isActive,
+        action_link_to_investment_bucket_id: actionLinkBucketId,
         match_mode: matchMode,
         conditions,
         actions: buildActions(),
@@ -487,6 +508,7 @@ export default function SmartRuleDetailScreen() {
           </Card>
 
           <Card title="THEN (actions)" className="mb-4">
+            {/* Set Category */}
             <Pressable
               onPress={() => {
                 if (categories.length === 0) return;
@@ -497,16 +519,72 @@ export default function SmartRuleDetailScreen() {
               className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
             >
               <View className="flex-1">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">
-                  Set category
-                </Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">Set category</Text>
                 <Text className="text-base text-text-primary dark:text-text-dark-primary">
-                  {categoryLabel}
+                  {actionCategoryId ? (categories.find((c) => c.id === actionCategoryId)?.name ?? "Unknown") : "Not set"}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
             </Pressable>
 
+            {/* Set Payment Mode */}
+            <Pressable
+              onPress={() => {
+                if (paymentModes.length === 0) return;
+                const cur = paymentModes.findIndex((m) => m.id === actionPaymentModeId);
+                const nextIdx = (cur + 1) % (paymentModes.length + 1);
+                setActionPaymentModeId(nextIdx === paymentModes.length ? null : paymentModes[nextIdx].id);
+              }}
+              className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+            >
+              <View className="flex-1">
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">Set payment mode</Text>
+                <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                  {actionPaymentModeId ? (paymentModes.find((m) => m.id === actionPaymentModeId)?.name ?? "Unknown") : "Not set"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </Pressable>
+
+            {/* Set Description */}
+            <View className="py-3 border-b border-border-light dark:border-border-dark">
+              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">Set description</Text>
+              <TextInput
+                placeholder="Leave blank to skip"
+                placeholderTextColor={colors.tabIconDefault}
+                value={actionDescription}
+                onChangeText={setActionDescription}
+                className="rounded-lg border border-border-light dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+            </View>
+
+            {/* Add Tags */}
+            <View className="py-3 border-b border-border-light dark:border-border-dark">
+              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">Add tags</Text>
+              {tags.length === 0 ? (
+                <Text className="text-xs text-text-tertiary">No tags created yet</Text>
+              ) : (
+                <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+                  {tags.map((t) => {
+                    const selected = actionTagIds.includes(t.id);
+                    return (
+                      <Pressable
+                        key={t.id}
+                        onPress={() => setActionTagIds((prev) => selected ? prev.filter((id) => id !== t.id) : [...prev, t.id])}
+                        className="px-3 py-1.5 rounded-full border"
+                        style={{ backgroundColor: selected ? accentColor : "transparent", borderColor: selected ? accentColor : colors.border }}
+                      >
+                        <Text className={selected ? "text-white text-xs font-medium" : "text-text-secondary dark:text-text-dark-secondary text-xs"}>
+                          {t.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+
+            {/* Mark Unavoidable */}
             <View className="flex-row items-center justify-between py-3 border-b border-border-light dark:border-border-dark">
               <View className="flex-1">
                 <Text className="text-sm text-text-primary dark:text-text-dark-primary">Mark unavoidable</Text>
@@ -518,18 +596,17 @@ export default function SmartRuleDetailScreen() {
                 onPress={() => setActionIsRightSpend(actionIsRightSpend === null ? 1 : actionIsRightSpend === 1 ? 0 : null)}
                 className="px-3 py-1 rounded-full border border-border-light dark:border-border-dark"
               >
-                <Text className="text-xs text-text-primary dark:text-text-dark-primary">Cycle</Text>
+                <Text className="text-xs text-text-primary dark:text-text-dark-primary">
+                  {actionIsRightSpend === null ? "Off" : actionIsRightSpend === 1 ? "Unavoidable" : "Discretionary"}
+                </Text>
               </Pressable>
             </View>
 
-            <View className="flex-row items-center justify-between py-3">
+            {/* Auto-approve */}
+            <View className="flex-row items-center justify-between py-3 border-b border-border-light dark:border-border-dark">
               <View className="flex-1 mr-3">
-                <Text className="text-sm text-text-primary dark:text-text-dark-primary">
-                  Auto-approve from review queue
-                </Text>
-                <Text className="text-xs text-text-tertiary mt-0.5">
-                  SMS-detected expenses skip the pending queue (default OFF)
-                </Text>
+                <Text className="text-sm text-text-primary dark:text-text-dark-primary">Auto-approve from review queue</Text>
+                <Text className="text-xs text-text-tertiary mt-0.5">SMS-detected expenses skip the pending queue</Text>
               </View>
               <Switch
                 value={actionMarkAuto}
@@ -537,6 +614,44 @@ export default function SmartRuleDetailScreen() {
                 trackColor={{ false: colors.border, true: accentColor }}
               />
             </View>
+
+            {/* Link Investment Bucket */}
+            <Pressable
+              onPress={() => {
+                if (buckets.length === 0) return;
+                const cur = buckets.findIndex((b) => b.id === actionLinkBucketId);
+                const nextIdx = (cur + 1) % (buckets.length + 1);
+                setActionLinkBucketId(nextIdx === buckets.length ? null : buckets[nextIdx].id);
+              }}
+              className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+            >
+              <View className="flex-1">
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">Link investment bucket</Text>
+                <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                  {actionLinkBucketId ? (buckets.find((b) => b.id === actionLinkBucketId)?.name ?? "Unknown") : "Not set"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </Pressable>
+
+            {/* Auto Split */}
+            <Pressable
+              onPress={() => {
+                if (persons.length === 0) return;
+                const cur = persons.findIndex((p) => p.id === actionSplitPersonId);
+                const nextIdx = (cur + 1) % (persons.length + 1);
+                setActionSplitPersonId(nextIdx === persons.length ? null : persons[nextIdx].id);
+              }}
+              className="flex-row items-center py-3"
+            >
+              <View className="flex-1">
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">Auto split with</Text>
+                <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                  {actionSplitPersonId ? (persons.find((p) => p.id === actionSplitPersonId)?.name ?? "Unknown") : "Not set"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            </Pressable>
           </Card>
 
           {!isCreate && (
