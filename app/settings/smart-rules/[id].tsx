@@ -440,15 +440,22 @@ export default function SmartRuleDetailScreen() {
                           className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
                         />
                       </View>
-                      {filteredFields.map((f) => (
-                        <Pressable
-                          key={f.key}
-                          onPress={() => setConditionField(index, f.key)}
-                          className="px-3 py-2.5 border-b border-border-light dark:border-border-dark"
-                        >
-                          <Text className="text-sm text-text-primary dark:text-text-dark-primary">{f.label}</Text>
-                        </Pressable>
-                      ))}
+                      {filteredFields.map((f) => {
+                        const isSelected = condition.field === f.key;
+                        return (
+                          <Pressable
+                            key={f.key}
+                            onPress={() => setConditionField(index, f.key)}
+                            className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                            style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
+                          >
+                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSelected ? accentColor : undefined }}>
+                              {f.label}
+                            </Text>
+                            {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                          </Pressable>
+                        );
+                      })}
                     </View>
                   )}
 
@@ -471,15 +478,22 @@ export default function SmartRuleDetailScreen() {
 
                   {operatorExpanded && (
                     <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
-                      {availableOperators.map((op) => (
-                        <Pressable
-                          key={op}
-                          onPress={() => setConditionOperator(index, op)}
-                          className="px-3 py-2.5 border-b border-border-light dark:border-border-dark"
-                        >
-                          <Text className="text-sm text-text-primary dark:text-text-dark-primary">{OPERATOR_LABELS[op]}</Text>
-                        </Pressable>
-                      ))}
+                      {availableOperators.map((op) => {
+                        const isSelected = condition.operator === op;
+                        return (
+                          <Pressable
+                            key={op}
+                            onPress={() => setConditionOperator(index, op)}
+                            className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                            style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
+                          >
+                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSelected ? accentColor : undefined }}>
+                              {OPERATOR_LABELS[op]}
+                            </Text>
+                            {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                          </Pressable>
+                        );
+                      })}
                     </View>
                   )}
 
@@ -608,16 +622,22 @@ export default function SmartRuleDetailScreen() {
 
                   {typeExpanded && (
                     <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
-                      {ACTION_TYPE_OPTIONS.map((opt) => (
-                        <Pressable
-                          key={opt.type}
-                          onPress={() => setActionType(index, opt.type)}
-                          className="px-3 py-2.5 border-b border-border-light dark:border-border-dark"
-                          style={{ backgroundColor: action.type === opt.type ? accentColor + "18" : undefined }}
-                        >
-                          <Text className="text-sm text-text-primary dark:text-text-dark-primary">{opt.label}</Text>
-                        </Pressable>
-                      ))}
+                      {ACTION_TYPE_OPTIONS.map((opt) => {
+                        const isSelected = action.type === opt.type;
+                        return (
+                          <Pressable
+                            key={opt.type}
+                            onPress={() => setActionType(index, opt.type)}
+                            className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                            style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
+                          >
+                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSelected ? accentColor : undefined }}>
+                              {opt.label}
+                            </Text>
+                            {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                          </Pressable>
+                        );
+                      })}
                     </View>
                   )}
 

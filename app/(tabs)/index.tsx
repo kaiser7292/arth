@@ -327,6 +327,7 @@ export default function HomeScreen() {
           <View>
             <View className="flex-row items-baseline" style={{ gap: 6 }}>
               <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">Arth</Text>
+              <Text className="text-lg text-text-secondary dark:text-text-dark-secondary">·</Text>
               <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">अर्थ</Text>
             </View>
             <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
