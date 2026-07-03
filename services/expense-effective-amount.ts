@@ -100,6 +100,25 @@ export async function sumRefundsByExpenseIds(
 }
 
 /**
+ * List of approved, non-deleted refund credits linked to a single expense.
+ * Used by the expense detail screen to render per-refund rows with Undo buttons.
+ */
+export async function getRefundsForExpense(
+  expenseId: string,
+): Promise<{ id: string; amount: number; date: string; description: string | null }[]> {
+  const db = getDatabase();
+  return db.getAllAsync<{ id: string; amount: number; date: string; description: string | null }>(
+    `SELECT id, amount, date, description FROM expenses
+     WHERE refund_of_expense_id = ?
+       AND nature = 'credit'
+       AND status = 'approved'
+       AND deleted_at IS NULL
+     ORDER BY date DESC, created_at DESC;`,
+    expenseId,
+  );
+}
+
+/**
  * Refund-state classification for UI rendering.
  *   'none'    — no linked refunds (or all refunds are pending/deleted)
  *   'partial' — refunded < original amount

@@ -607,6 +607,7 @@ export async function reclassifyCreditAsTransfer(
     amount: credit.amount,
     description: `Transfer${credit.description ? ` — ${credit.description}` : ""}`,
     date: credit.date,
+    linkedExpenseId: creditId,
     source: "manual",
     rawSourceText,
     sourceSmsAddress,

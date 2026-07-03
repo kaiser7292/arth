@@ -281,11 +281,26 @@ export default function ExpenseDetailScreen() {
     loadData();
   }, [id, router]);
 
-  // Refresh accounts when returning from account-add screen
+  // Refresh accounts + refund data when returning from any sub-screen
   useFocusEffect(
     useCallback(() => {
       getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch((e) => logger.warn("Load accounts failed:", e));
-    }, []),
+      // Re-check refund total + list whenever screen gains focus (e.g. after deleting a refund)
+      if (!expense?.id || expense.nature !== "realized") return;
+      (async () => {
+        try {
+          const { getRefundedAmount, getRefundsForExpense } = await import("@/services/expense");
+          const [amount, list] = await Promise.all([
+            getRefundedAmount(expense.id),
+            getRefundsForExpense(expense.id),
+          ]);
+          setRefundedAmount(amount);
+          setRefunds(list);
+        } catch {
+          // non-fatal — stale values are better than a crash
+        }
+      })();
+    }, [expense?.id, expense?.nature]),
   );
 
   function populateForm(exp: Expense) {
@@ -737,19 +752,27 @@ export default function ExpenseDetailScreen() {
   // account locked.
   const [refundTargetSheetVisible, setRefundTargetSheetVisible] = useState(false);
 
-  // Refunded amount — sum of approved credits linked back to this expense.
+  // Refunded amount + list of refund credits linked back to this expense.
   const [refundedAmount, setRefundedAmount] = useState<number>(0);
+  const [refunds, setRefunds] = useState<{ id: string; amount: number; date: string; description: string | null }[]>([]);
   useEffect(() => {
     if (!expense?.id || expense.nature !== "realized") {
       setRefundedAmount(0);
+      setRefunds([]);
       return;
     }
     (async () => {
       try {
-        const { getRefundedAmount } = await import("@/services/expense");
-        setRefundedAmount(await getRefundedAmount(expense.id));
+        const { getRefundedAmount, getRefundsForExpense } = await import("@/services/expense");
+        const [amount, list] = await Promise.all([
+          getRefundedAmount(expense.id),
+          getRefundsForExpense(expense.id),
+        ]);
+        setRefundedAmount(amount);
+        setRefunds(list);
       } catch {
         setRefundedAmount(0);
+        setRefunds([]);
       }
     })();
   }, [expense?.id, expense?.nature, expense?.updated_at]);
@@ -1256,6 +1279,25 @@ export default function ExpenseDetailScreen() {
       alert("Error", formatError("Undo transfer", e));
     }
   }, [transfer, alert, router]);
+
+  // Undo a single refund credit
+  const handleUndoRefund = useCallback(async (refundCreditId: string) => {
+    try {
+      const { undoRefund } = await import("@/services/expense");
+      await undoRefund(refundCreditId);
+      // Refresh refund state inline — no need to navigate away
+      const { getRefundedAmount, getRefundsForExpense } = await import("@/services/expense");
+      const [amount, list] = await Promise.all([
+        getRefundedAmount(id),
+        getRefundsForExpense(id),
+      ]);
+      setRefundedAmount(amount);
+      setRefunds(list);
+    } catch (e) {
+      logger.error("Undo refund failed:", e);
+      alert("Error", formatError("Undo refund", e));
+    }
+  }, [id, alert]);
 
   // Navigate to account ledger
   const navigateToAccountLedger = useCallback((accountId: string) => {
@@ -2800,8 +2842,63 @@ export default function ExpenseDetailScreen() {
                 </Pressable>
               )}
 
-              {/* Record a refund for this expense */}
-              {expense.nature === "realized" && (
+              {/* Refund Details card — shown when at least one refund has been recorded */}
+              {expense.nature === "realized" && refunds.length > 0 && (
+                <View className="mx-4 mt-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden">
+                  <View className="px-4 pt-3 pb-1">
+                    <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+                      Refund Details
+                    </Text>
+                  </View>
+                  {refunds.map((refund, idx) => (
+                    <View key={refund.id}>
+                      <View className="px-4 py-3">
+                        <View className="flex-row items-center mb-2">
+                          <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                            <Ionicons name="return-up-back-outline" size={20} color={colors.blue} />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                              {refunds.length > 1 ? `Refund ${idx + 1}` : "Refunded"}
+                            </Text>
+                          </View>
+                        </View>
+                        <View className="ml-13 mb-1">
+                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Amount:</Text>
+                          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                            {formatAmount(refund.amount)}
+                          </Text>
+                        </View>
+                        <View className="ml-13">
+                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Date:</Text>
+                          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                            {refund.date}
+                          </Text>
+                        </View>
+                      </View>
+                      <Pressable
+                        onPress={() => handleUndoRefund(refund.id)}
+                        className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-xl bg-surface-light dark:bg-surface-dark"
+                      >
+                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                          <Ionicons name="arrow-undo-outline" size={20} color={colors.blue} />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                            Undo Refund
+                          </Text>
+                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                            Remove this refund record
+                          </Text>
+                        </View>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Record a refund — hidden once the expense is fully refunded */}
+              {expense.nature === "realized" && refundedAmount < expense.amount && (
                 <Pressable
                   onPress={() => setRefundTargetSheetVisible(true)}
                   className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt"

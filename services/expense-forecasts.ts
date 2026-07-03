@@ -502,8 +502,9 @@ export async function markRepaymentAsPaid(
 
   const now = new Date().toISOString(); // Local time in ISO format
   await db.runAsync(
-    `UPDATE expenses SET status = 'rejected', paid_from_account_id = ?, updated_at = ? WHERE id = ?;`,
+    `UPDATE expenses SET status = 'rejected', paid_from_account_id = ?, linked_transfer_id = ?, updated_at = ? WHERE id = ?;`,
     fromAccountId,
+    transferId,
     now,
     forecastId,
   );

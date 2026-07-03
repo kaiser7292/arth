@@ -33,6 +33,7 @@ export {
   deleteAllRejectedExpenses,
   remapExpenses,
   bulkAssignCategory,
+  undoRefund,
 } from "./expense-crud";
 
 export type { FilteredSummary, FilteredSummaryGroup } from "./expense-queries";
@@ -141,6 +142,7 @@ export {
 export {
   effectiveAmountSql,
   getRefundedAmount,
+  getRefundsForExpense,
   sumRefundsByExpenseIds,
   classifyRefund,
 } from "./expense-effective-amount";

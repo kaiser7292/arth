@@ -948,6 +948,26 @@ export async function rejectExpenses(ids: string[]): Promise<void> {
 }
 
 /**
+ * Undo a previously recorded refund — soft-deletes the credit row so the
+ * parent expense returns to its un-refunded (or partially-refunded) state.
+ * Validates that the row is a refund credit before deleting.
+ */
+export async function undoRefund(refundCreditId: string): Promise<void> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{ id: string }>(
+    `SELECT id FROM expenses
+     WHERE id = ? AND nature = 'credit' AND refund_of_expense_id IS NOT NULL AND deleted_at IS NULL;`,
+    refundCreditId,
+  );
+  if (!row) throw new Error("Refund not found or already removed");
+  await db.runAsync(
+    `UPDATE expenses SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?;`,
+    refundCreditId,
+  );
+  bumpDataVersion();
+}
+
+/**
  * Approve a pending CC-repayment credit by running the full Pay flow:
  * deletes the pending credit row, marks the matched forecast paid, creates a
  * savings → CC transfer, and updates CC dues/available.
