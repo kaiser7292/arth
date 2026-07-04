@@ -1,5 +1,5 @@
 import { SearchablePickerList } from "@/components/expense/ExpenseFormFields";
-import { Button, ScreenContainer } from "@/components/ui";
+import { Button, Input, ScreenContainer } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -366,20 +366,13 @@ export default function SimulatorEntryForm() {
 
           {/* Amount */}
           <View className="px-0 pb-3">
-            <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
-            >
-              Amount
-            </Text>
-            <TextInput
+            <Input
+              label="Amount"
               value={amount}
               onChangeText={setAmount}
               placeholder="0"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="numeric"
-              className="border border-border-light dark:border-border-dark rounded-lg px-3 py-3 text-lg font-semibold"
-              style={{ color: colors.text, borderColor: colors.border }}
+              formula
+              className="text-lg font-semibold"
             />
           </View>
 

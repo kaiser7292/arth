@@ -1,6 +1,6 @@
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
-import { Button, Card, DateInput, FAB, FilterChip, PeriodNavigator, ScreenContainer } from "@/components/ui";
+import { Button, Card, DateInput, FAB, FilterChip, Input, PeriodNavigator, ScreenContainer } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { StatusColors } from "@/constants/theme";
@@ -769,13 +769,12 @@ useDataRefresh(
               <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
                 {editingCreditId ? "Edit Credit" : "Add Manual Credit"}
               </Text>
-              <TextInput
-                className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 mb-3 text-sm text-text-primary dark:text-text-dark-primary"
+              <Input
                 placeholder="Amount"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
+                formula
                 value={creditAmount}
                 onChangeText={setCreditAmount}
+                containerClassName="mb-3"
               />
               <TextInput
                 className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 mb-3 text-sm text-text-primary dark:text-text-dark-primary"
@@ -863,13 +862,12 @@ useDataRefresh(
                 <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
               </Pressable>
 
-              <TextInput
-                className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 mb-3 text-sm text-text-primary dark:text-text-dark-primary"
+              <Input
                 placeholder="Amount"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
+                formula
                 value={transferAmount}
                 onChangeText={setTransferAmount}
+                containerClassName="mb-3"
               />
               <TextInput
                 className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 mb-3 text-sm text-text-primary dark:text-text-dark-primary"
@@ -914,14 +912,12 @@ useDataRefresh(
                 Current closing: {formatAmount(closing)}. Enter the actual available and we'll add a single adjustment entry dated today.
               </Text>
               <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1">Actual available</Text>
-              <TextInput
+              <Input
                 value={adjustActual}
                 onChangeText={setAdjustActual}
                 placeholder="e.g. 1,55,000"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
-                className="border rounded-lg px-3 py-2.5 mb-3 text-sm text-text-primary dark:text-text-dark-primary"
-                style={{ borderColor: colors.border }}
+                formula
+                containerClassName="mb-3"
               />
               <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1">Reason (optional)</Text>
               <TextInput

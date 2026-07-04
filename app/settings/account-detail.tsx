@@ -495,6 +495,7 @@ export default function AccountDetailScreen() {
                 onChangeText={(v) => { setCreditLimitValue(v); setDirty(true); }}
                 placeholder="e.g., 200000"
                 keyboardType="numeric"
+                formula
               />
               {siblingCards.length > 0 && (
                 <View
@@ -559,6 +560,7 @@ export default function AccountDetailScreen() {
                 }}
                 placeholder="e.g., 10000 (0 or blank to turn off)"
                 keyboardType="numeric"
+                formula
               />
               <Text className="text-xs text-text-tertiary mt-2">
                 Arth will show an alert on Home if this account's closing balance drops below this. Leave at 0 or blank to disable for this account.
@@ -576,6 +578,7 @@ export default function AccountDetailScreen() {
                 value={fundBalanceValue}
                 onChangeText={(v) => { setFundBalanceValue(v); setDirty(true); }}
                 keyboardType="numeric"
+                formula
                 placeholder="0"
                 onFocus={() => {
                   const sub = Keyboard.addListener("keyboardDidShow", () => {
@@ -607,6 +610,7 @@ export default function AccountDetailScreen() {
                       value={newSnapshotValue}
                       onChangeText={setNewSnapshotValue}
                       keyboardType="numeric"
+                      formula
                       placeholder="e.g. 1,25,000"
                       onFocus={() => {
                         const sub = Keyboard.addListener("keyboardDidShow", () => {
@@ -623,6 +627,7 @@ export default function AccountDetailScreen() {
                       value={newFundSnapshotValue}
                       onChangeText={setNewFundSnapshotValue}
                       keyboardType="numeric"
+                      formula
                       placeholder="Leave blank to carry forward"
                       onFocus={() => {
                         const sub = Keyboard.addListener("keyboardDidShow", () => {
@@ -689,6 +694,7 @@ export default function AccountDetailScreen() {
                               value={editingSnapshotValue}
                               onChangeText={setEditingSnapshotValue}
                               keyboardType="numeric"
+                              formula
                               className="text-xs py-1"
                               containerClassName="flex-1"
                             />
@@ -764,6 +770,7 @@ export default function AccountDetailScreen() {
                                 value={editingFundSnapshotValue}
                                 onChangeText={setEditingFundSnapshotValue}
                                 keyboardType="numeric"
+                                formula
                                 className="text-xs py-1"
                                 containerClassName="flex-1"
                               />
@@ -894,6 +901,7 @@ export default function AccountDetailScreen() {
                   onChangeText={setSeedBalance}
                   placeholder="Account balance"
                   keyboardType="numeric"
+                  formula
                   containerClassName="mb-3"
                 />
                 <Input
@@ -933,6 +941,7 @@ export default function AccountDetailScreen() {
                             value={editingOpeningValue}
                             onChangeText={setEditingOpeningValue}
                             keyboardType="numeric"
+                            formula
                             className="text-xs py-1"
                             containerClassName="w-28"
                           />

@@ -354,6 +354,7 @@ export default function InvestmentBucketsScreen() {
                   value={newBucketTarget}
                   onChangeText={setNewBucketTarget}
                   keyboardType="numeric"
+                  formula
                   placeholder="e.g. 420000"
                   containerClassName="mb-3"
                 />

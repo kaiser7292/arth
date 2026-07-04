@@ -242,6 +242,7 @@ export default function AccountAddScreen() {
                 onChangeText={setFundBalance}
                 placeholder="0"
                 keyboardType="numeric"
+                formula
                 containerClassName="mb-4"
                 onFocus={() => {
                   const sub = Keyboard.addListener("keyboardDidShow", () => {
@@ -257,6 +258,7 @@ export default function AccountAddScreen() {
                 onChangeText={setPortfolioValue}
                 placeholder="Current total portfolio value"
                 keyboardType="numeric"
+                formula
                 containerClassName="mb-2"
                 onFocus={() => {
                   const sub = Keyboard.addListener("keyboardDidShow", () => {
