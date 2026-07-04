@@ -117,6 +117,7 @@ export default function SmartRuleDetailScreen() {
 
   const [actions, setActions] = useState<UIRuleAction[]>([]);
   const [expandedActionTypeRow, setExpandedActionTypeRow] = useState<number | null>(null);
+  const [expandedActionValueRow, setExpandedActionValueRow] = useState<number | null>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
@@ -584,6 +585,7 @@ export default function SmartRuleDetailScreen() {
 
             {actions.map((action, index) => {
               const typeExpanded = expandedActionTypeRow === index;
+              const valueExpanded = expandedActionValueRow === index;
 
               return (
                 <View
@@ -607,6 +609,7 @@ export default function SmartRuleDetailScreen() {
                   {/* Type picker */}
                   <Pressable
                     onPress={() => {
+                      setExpandedActionValueRow(null);
                       setExpandedActionTypeRow(typeExpanded ? null : index);
                     }}
                     className="flex-row items-center justify-between py-2"
@@ -642,51 +645,83 @@ export default function SmartRuleDetailScreen() {
                   )}
 
                   {/* Value input per type */}
-                  {action.type === "category" && (
-                    <Pressable
-                      onPress={() => {
-                        if (categories.length === 0) return;
-                        const a = action as RuleAction & { type: "category" };
-                        const cur = categories.findIndex((c) => c.id === a.category_id);
-                        const nextIdx = (cur + 1) % (categories.length + 1);
-                        updateAction(index, { category_id: nextIdx === categories.length ? undefined : categories[nextIdx].id });
-                      }}
-                      className="flex-row items-center justify-between py-2"
-                    >
-                      <View>
-                        <Text className="text-xs text-text-tertiary">Category</Text>
-                        <Text className="text-base text-text-primary dark:text-text-dark-primary">
-                          {(action as RuleAction & { type: "category" }).category_id
-                            ? (categories.find((c) => c.id === (action as RuleAction & { type: "category" }).category_id)?.name ?? "Unknown")
-                            : "Tap to select"}
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-                    </Pressable>
-                  )}
+                  {action.type === "category" && (() => {
+                    const a = action as RuleAction & { type: "category" };
+                    const selectedCat = categories.find((c) => c.id === a.category_id);
+                    return (
+                      <>
+                        <Pressable
+                          onPress={() => { setExpandedActionTypeRow(null); setExpandedActionValueRow(valueExpanded ? null : index); }}
+                          className="flex-row items-center justify-between py-2"
+                        >
+                          <View>
+                            <Text className="text-xs text-text-tertiary">Category</Text>
+                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedCat ? undefined : colors.tabIconDefault }}>
+                              {selectedCat?.name ?? "Select category"}
+                            </Text>
+                          </View>
+                          <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                        </Pressable>
+                        {valueExpanded && (
+                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                            {categories.map((c) => {
+                              const isSel = a.category_id === c.id;
+                              return (
+                                <Pressable
+                                  key={c.id}
+                                  onPress={() => { updateAction(index, { category_id: c.id }); setExpandedActionValueRow(null); }}
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                  style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
+                                >
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : undefined }}>{c.name}</Text>
+                                  {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </>
+                    );
+                  })()}
 
-                  {action.type === "payment_mode" && (
-                    <Pressable
-                      onPress={() => {
-                        if (paymentModes.length === 0) return;
-                        const a = action as RuleAction & { type: "payment_mode" };
-                        const cur = paymentModes.findIndex((m) => m.id === a.payment_mode);
-                        const nextIdx = (cur + 1) % (paymentModes.length + 1);
-                        updateAction(index, { payment_mode: nextIdx === paymentModes.length ? undefined : paymentModes[nextIdx].id });
-                      }}
-                      className="flex-row items-center justify-between py-2"
-                    >
-                      <View>
-                        <Text className="text-xs text-text-tertiary">Payment mode</Text>
-                        <Text className="text-base text-text-primary dark:text-text-dark-primary">
-                          {(action as RuleAction & { type: "payment_mode" }).payment_mode
-                            ? (paymentModes.find((m) => m.id === (action as RuleAction & { type: "payment_mode" }).payment_mode)?.name ?? "Unknown")
-                            : "Tap to select"}
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-                    </Pressable>
-                  )}
+                  {action.type === "payment_mode" && (() => {
+                    const a = action as RuleAction & { type: "payment_mode" };
+                    const selectedMode = paymentModes.find((m) => m.id === a.payment_mode);
+                    return (
+                      <>
+                        <Pressable
+                          onPress={() => { setExpandedActionTypeRow(null); setExpandedActionValueRow(valueExpanded ? null : index); }}
+                          className="flex-row items-center justify-between py-2"
+                        >
+                          <View>
+                            <Text className="text-xs text-text-tertiary">Payment mode</Text>
+                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedMode ? undefined : colors.tabIconDefault }}>
+                              {selectedMode?.name ?? "Select payment mode"}
+                            </Text>
+                          </View>
+                          <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                        </Pressable>
+                        {valueExpanded && (
+                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                            {paymentModes.map((m) => {
+                              const isSel = a.payment_mode === m.id;
+                              return (
+                                <Pressable
+                                  key={m.id}
+                                  onPress={() => { updateAction(index, { payment_mode: m.id }); setExpandedActionValueRow(null); }}
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                  style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
+                                >
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : undefined }}>{m.name}</Text>
+                                  {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </>
+                    );
+                  })()}
 
                   {action.type === "set_description" && (
                     <View className="mt-1">
@@ -735,32 +770,48 @@ export default function SmartRuleDetailScreen() {
                     </View>
                   )}
 
-                  {action.type === "is_right_spend" && (
-                    <View className="flex-row items-center justify-between py-2">
-                      <Text className="text-xs text-text-tertiary">
-                        {(action as RuleAction & { type: "is_right_spend" }).is_right_spend === true
-                          ? "Will mark as unavoidable"
-                          : (action as RuleAction & { type: "is_right_spend" }).is_right_spend === false
-                          ? "Will mark as discretionary"
-                          : "Not set — tap to choose"}
-                      </Text>
-                      <Pressable
-                        onPress={() => {
-                          const cur = (action as RuleAction & { type: "is_right_spend" }).is_right_spend;
-                          updateAction(index, { is_right_spend: cur === undefined ? true : cur === true ? false : undefined });
-                        }}
-                        className="px-3 py-1 rounded-full border border-border-light dark:border-border-dark"
-                      >
-                        <Text className="text-xs text-text-primary dark:text-text-dark-primary">
-                          {(action as RuleAction & { type: "is_right_spend" }).is_right_spend === true
-                            ? "Unavoidable"
-                            : (action as RuleAction & { type: "is_right_spend" }).is_right_spend === false
-                            ? "Discretionary"
-                            : "Off"}
-                        </Text>
-                      </Pressable>
-                    </View>
-                  )}
+                  {action.type === "is_right_spend" && (() => {
+                    const a = action as RuleAction & { type: "is_right_spend" };
+                    const opts = [
+                      { value: true as boolean | undefined, label: "Unavoidable" },
+                      { value: false as boolean | undefined, label: "Discretionary" },
+                    ];
+                    const selectedLabel = a.is_right_spend === true ? "Unavoidable" : a.is_right_spend === false ? "Discretionary" : null;
+                    return (
+                      <>
+                        <Pressable
+                          onPress={() => { setExpandedActionTypeRow(null); setExpandedActionValueRow(valueExpanded ? null : index); }}
+                          className="flex-row items-center justify-between py-2"
+                        >
+                          <View>
+                            <Text className="text-xs text-text-tertiary">Classification</Text>
+                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedLabel ? undefined : colors.tabIconDefault }}>
+                              {selectedLabel ?? "Select classification"}
+                            </Text>
+                          </View>
+                          <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                        </Pressable>
+                        {valueExpanded && (
+                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                            {opts.map((opt) => {
+                              const isSel = a.is_right_spend === opt.value;
+                              return (
+                                <Pressable
+                                  key={String(opt.value)}
+                                  onPress={() => { updateAction(index, { is_right_spend: opt.value }); setExpandedActionValueRow(null); }}
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                  style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
+                                >
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : undefined }}>{opt.label}</Text>
+                                  {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </>
+                    );
+                  })()}
 
                   {action.type === "mark_auto" && (
                     <View className="py-2">
@@ -768,51 +819,87 @@ export default function SmartRuleDetailScreen() {
                     </View>
                   )}
 
-                  {action.type === "split_with_person" && (
-                    <Pressable
-                      onPress={() => {
-                        if (persons.length === 0) return;
-                        const a = action as RuleAction & { type: "split_with_person" };
-                        const cur = persons.findIndex((p) => p.id === a.person_id);
-                        const nextIdx = (cur + 1) % (persons.length + 1);
-                        updateAction(index, { person_id: nextIdx === persons.length ? undefined : persons[nextIdx].id });
-                      }}
-                      className="flex-row items-center justify-between py-2"
-                    >
-                      <View>
-                        <Text className="text-xs text-text-tertiary">Split with</Text>
-                        <Text className="text-base text-text-primary dark:text-text-dark-primary">
-                          {(action as RuleAction & { type: "split_with_person" }).person_id
-                            ? (persons.find((p) => p.id === (action as RuleAction & { type: "split_with_person" }).person_id)?.name ?? "Unknown")
-                            : "Tap to select"}
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-                    </Pressable>
-                  )}
+                  {action.type === "split_with_person" && (() => {
+                    const a = action as RuleAction & { type: "split_with_person" };
+                    const selectedPerson = persons.find((p) => p.id === a.person_id);
+                    return (
+                      <>
+                        <Pressable
+                          onPress={() => { setExpandedActionTypeRow(null); setExpandedActionValueRow(valueExpanded ? null : index); }}
+                          className="flex-row items-center justify-between py-2"
+                        >
+                          <View>
+                            <Text className="text-xs text-text-tertiary">Split with</Text>
+                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedPerson ? undefined : colors.tabIconDefault }}>
+                              {selectedPerson?.name ?? "Select person"}
+                            </Text>
+                          </View>
+                          <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                        </Pressable>
+                        {valueExpanded && (
+                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                            {persons.length === 0 ? (
+                              <Text className="text-sm text-text-tertiary px-3 py-2.5">No people in Hisaab yet</Text>
+                            ) : persons.map((p) => {
+                              const isSel = a.person_id === p.id;
+                              return (
+                                <Pressable
+                                  key={p.id}
+                                  onPress={() => { updateAction(index, { person_id: p.id }); setExpandedActionValueRow(null); }}
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                  style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
+                                >
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : undefined }}>{p.name}</Text>
+                                  {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </>
+                    );
+                  })()}
 
-                  {action.type === "link_investment_bucket" && (
-                    <Pressable
-                      onPress={() => {
-                        if (buckets.length === 0) return;
-                        const a = action as { type: "link_investment_bucket"; bucket_id: string | null };
-                        const cur = buckets.findIndex((b) => b.id === a.bucket_id);
-                        const nextIdx = (cur + 1) % (buckets.length + 1);
-                        updateAction(index, { bucket_id: nextIdx === buckets.length ? null : buckets[nextIdx].id });
-                      }}
-                      className="flex-row items-center justify-between py-2"
-                    >
-                      <View>
-                        <Text className="text-xs text-text-tertiary">Investment bucket</Text>
-                        <Text className="text-base text-text-primary dark:text-text-dark-primary">
-                          {(action as { type: "link_investment_bucket"; bucket_id: string | null }).bucket_id
-                            ? (buckets.find((b) => b.id === (action as { type: "link_investment_bucket"; bucket_id: string | null }).bucket_id)?.name ?? "Unknown")
-                            : "Tap to select"}
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-                    </Pressable>
-                  )}
+                  {action.type === "link_investment_bucket" && (() => {
+                    const a = action as { type: "link_investment_bucket"; bucket_id: string | null };
+                    const selectedBucket = buckets.find((b) => b.id === a.bucket_id);
+                    return (
+                      <>
+                        <Pressable
+                          onPress={() => { setExpandedActionTypeRow(null); setExpandedActionValueRow(valueExpanded ? null : index); }}
+                          className="flex-row items-center justify-between py-2"
+                        >
+                          <View>
+                            <Text className="text-xs text-text-tertiary">Investment bucket</Text>
+                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedBucket ? undefined : colors.tabIconDefault }}>
+                              {selectedBucket?.name ?? "Select bucket"}
+                            </Text>
+                          </View>
+                          <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                        </Pressable>
+                        {valueExpanded && (
+                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                            {buckets.length === 0 ? (
+                              <Text className="text-sm text-text-tertiary px-3 py-2.5">No investment buckets created yet</Text>
+                            ) : buckets.map((b) => {
+                              const isSel = a.bucket_id === b.id;
+                              return (
+                                <Pressable
+                                  key={b.id}
+                                  onPress={() => { updateAction(index, { bucket_id: b.id }); setExpandedActionValueRow(null); }}
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                  style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
+                                >
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : undefined }}>{b.name}</Text>
+                                  {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </>
+                    );
+                  })()}
                 </View>
               );
             })}
