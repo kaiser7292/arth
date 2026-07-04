@@ -15,11 +15,12 @@ import {
   getLifeMilestoneById,
   getMilestoneContributions,
   getMilestoneContributionForFY,
-  getMilestoneContributionsByIdForFY,
   getMilestoneTotalMonths,
   createMilestoneContribution,
   updateMilestoneContribution,
   deleteMilestoneContribution,
+  getCombinedMilestoneContributions,
+  getCombinedMilestoneActualForFY,
 } from "@/services/life-milestone";
 import type {
   LifeMilestone,
@@ -49,6 +50,9 @@ export default function MilestoneDetailScreen() {
   const [contributions, setContributions] = useState<
     MilestoneContribution[]
   >([]);
+  const [combinedContributions, setCombinedContributions] = useState<
+    { amount: number; date: string; source: string; label: string | null }[]
+  >([]);
   const [linkedBuckets, setLinkedBuckets] = useState<InvestmentBucket[]>([]);
   const [linkedBucketTotal, setLinkedBucketTotal] = useState(0);
   interface FYBreakdownRow { fy: number; label: string; planned: number; actual: number; isCurrent: boolean }
@@ -65,14 +69,16 @@ export default function MilestoneDetailScreen() {
   const loadData = useCallback(async () => {
     if (!milestoneId) return;
     try {
-      const [m, c, lb, lbt] = await Promise.all([
+      const [m, c, cc, lb, lbt] = await Promise.all([
         getLifeMilestoneById(milestoneId),
         getMilestoneContributions(milestoneId),
+        getCombinedMilestoneContributions(milestoneId),
         getLinkedBucketsForMilestone(milestoneId),
         getLinkedBucketContributionsTotal(milestoneId),
       ]);
       setMilestone(m);
       setContributions(c);
+      setCombinedContributions(cc);
       setLinkedBuckets(lb);
       setLinkedBucketTotal(lbt);
 
@@ -85,8 +91,8 @@ export default function MilestoneDetailScreen() {
           const fy = sfy + i;
           const planned = getMilestoneContributionForFY(m, String(fy));
           const { start, end } = getFYRange(fy, startMonth);
-          const actuals = await getMilestoneContributionsByIdForFY(
-            [m.id],
+          const actual = await getCombinedMilestoneActualForFY(
+            m.id,
             formatLocalDate(start),
             formatLocalDate(end),
           );
@@ -94,7 +100,7 @@ export default function MilestoneDetailScreen() {
             fy,
             label: getFYLabel(fy, startMonth),
             planned,
-            actual: actuals.get(m.id) ?? 0,
+            actual,
             isCurrent: fy === currentFY,
           });
         }
@@ -116,7 +122,7 @@ export default function MilestoneDetailScreen() {
 
   const monthlyHistoryByFY = useMemo(() => {
     const groups = new Map<string, { total: number; count: number }>();
-    for (const c of contributions) {
+    for (const c of combinedContributions) {
       const month = c.date.slice(0, 7);
       const existing = groups.get(month) ?? { total: 0, count: 0 };
       groups.set(month, {
@@ -149,7 +155,7 @@ export default function MilestoneDetailScreen() {
         months: items,
         total: items.reduce((s, i) => s + i.total, 0),
       }));
-  }, [contributions, startMonth, currentFY]);
+  }, [combinedContributions, startMonth, currentFY]);
 
   const monthlyHistory = useMemo(
     () => monthlyHistoryByFY.flatMap((g) => g.months),
@@ -191,8 +197,8 @@ export default function MilestoneDetailScreen() {
       }
     }
 
-    // Average from actual contributions
-    const totalContributed = contributions.reduce(
+    // Average from all contributions (direct + linked buckets)
+    const totalContributed = combinedContributions.reduce(
       (s, c) => s + c.amount,
       0,
     );
@@ -216,7 +222,7 @@ export default function MilestoneDetailScreen() {
       monthlyNeeded,
       monthsToTarget,
     };
-  }, [milestone, contributions, monthlyHistory]);
+  }, [milestone, combinedContributions, monthlyHistory]);
 
   // ─── Actions ─────────────────────────────────────────────
 

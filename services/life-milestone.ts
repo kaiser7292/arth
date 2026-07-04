@@ -453,3 +453,110 @@ export async function deleteMilestoneContribution(
   );
   await bumpDataVersion();
 }
+
+// ─── Combined Contributions (direct + linked buckets) ──────
+
+interface CombinedContribution {
+  amount: number;
+  date: string;
+  source: "direct" | "bucket" | "expense_link";
+  label: string | null;
+}
+
+/**
+ * All contributions toward a milestone: direct milestone_contributions +
+ * approved investment_contributions from linked buckets +
+ * expense_investment_links from linked buckets. Used for monthly history.
+ */
+export async function getCombinedMilestoneContributions(
+  milestoneId: string,
+): Promise<CombinedContribution[]> {
+  const db = getDatabase();
+  return db.getAllAsync<CombinedContribution>(
+    `SELECT amount, date, 'direct' as source, NULL as label
+       FROM milestone_contributions WHERE life_milestone_id = ?
+     UNION ALL
+     SELECT ic.amount, ic.date, 'bucket' as source, ib.name as label
+       FROM investment_contributions ic
+       JOIN investment_buckets ib ON ic.investment_bucket_id = ib.id
+       WHERE ib.linked_milestone_id = ? AND ic.status = 'approved'
+     UNION ALL
+     SELECT l.contribution_amount as amount, e.date, 'expense_link' as source, ib.name as label
+       FROM expense_investment_links l
+       JOIN expenses e ON e.id = l.expense_id
+       JOIN investment_buckets ib ON ib.id = l.investment_bucket_id
+       WHERE ib.linked_milestone_id = ? AND e.deleted_at IS NULL
+     ORDER BY date DESC;`,
+    milestoneId,
+    milestoneId,
+    milestoneId,
+  );
+}
+
+/**
+ * Total actual contributions for a milestone in a date range,
+ * including linked bucket contributions. Used for FY breakdown and YoY.
+ */
+export async function getCombinedMilestoneActualForFY(
+  milestoneId: string,
+  startDate: string,
+  endDate: string,
+): Promise<number> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{ total: number }>(
+    `SELECT (
+       SELECT COALESCE(SUM(amount), 0) FROM milestone_contributions
+       WHERE life_milestone_id = ? AND date >= ? AND date <= ?
+     ) + (
+       SELECT COALESCE(SUM(ic.amount), 0)
+       FROM investment_contributions ic
+       JOIN investment_buckets ib ON ic.investment_bucket_id = ib.id
+       WHERE ib.linked_milestone_id = ? AND ic.status = 'approved'
+         AND ic.date >= ? AND ic.date <= ?
+     ) + (
+       SELECT COALESCE(SUM(l.contribution_amount), 0)
+       FROM expense_investment_links l
+       JOIN expenses e ON e.id = l.expense_id
+       JOIN investment_buckets ib ON ib.id = l.investment_bucket_id
+       WHERE ib.linked_milestone_id = ? AND e.deleted_at IS NULL
+         AND e.date >= ? AND e.date <= ?
+     ) as total;`,
+    milestoneId, startDate, endDate,
+    milestoneId, startDate, endDate,
+    milestoneId, startDate, endDate,
+  );
+  return row?.total ?? 0;
+}
+
+/**
+ * Combined FY actuals for multiple milestones. Used by YoY comparison.
+ */
+export async function getCombinedMilestoneContributionsForFY(
+  milestoneIds: string[],
+  fyStartDate: string,
+  fyEndDate: string,
+): Promise<number> {
+  if (milestoneIds.length === 0) return 0;
+  let total = 0;
+  for (const id of milestoneIds) {
+    total += await getCombinedMilestoneActualForFY(id, fyStartDate, fyEndDate);
+  }
+  return total;
+}
+
+/**
+ * Combined FY actuals per-milestone (keyed by id). Used by milestones list.
+ */
+export async function getCombinedMilestoneActualsByIdForFY(
+  milestoneIds: string[],
+  fyStartDate: string,
+  fyEndDate: string,
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (milestoneIds.length === 0) return result;
+  for (const id of milestoneIds) {
+    const total = await getCombinedMilestoneActualForFY(id, fyStartDate, fyEndDate);
+    if (total > 0) result.set(id, total);
+  }
+  return result;
+}

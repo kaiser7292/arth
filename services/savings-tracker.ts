@@ -7,7 +7,7 @@
 
 import { getDatabase } from "@/database";
 import { getYearlyPlanByFY, getBucketsByFY } from "@/services/yearly-plan";
-import { getMilestonesForFY, getMilestoneContributionsForFY } from "@/services/life-milestone";
+import { getMilestonesForFY, getCombinedMilestoneContributionsForFY } from "@/services/life-milestone";
 import { getFYRange, getFiscalMonth, getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import {
@@ -128,7 +128,7 @@ export async function getSavingsSnapshot(
   const [investmentContributions, milestoneContributions] = await Promise.all([
     getInvestmentContributionsInRange(bucketIds, startDate, endDate),
     milestones.length > 0
-      ? getMilestoneContributionsForFY(milestones.map((m) => m.id), startDate, endDate)
+      ? getCombinedMilestoneContributionsForFY(milestones.map((m) => m.id), startDate, endDate)
       : Promise.resolve(0),
   ]);
 

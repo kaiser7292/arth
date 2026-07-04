@@ -22,7 +22,7 @@ import {
   deleteLifeMilestone,
   resetLifeMilestone,
   getMilestoneContributionForFY,
-  getMilestoneContributionsByIdForFY,
+  getCombinedMilestoneActualsByIdForFY,
   getMilestoneTotalMonths,
 } from "@/services/life-milestone";
 import type { LifeMilestone } from "@/services/life-milestone";
@@ -75,7 +75,7 @@ export default function MilestonesScreen() {
       const activeIds = data.filter((m) => !m.is_completed).map((m) => m.id);
       if (activeIds.length > 0) {
         const { start, end } = getFYRange(currentFY, startMonth);
-        const actMap = await getMilestoneContributionsByIdForFY(
+        const actMap = await getCombinedMilestoneActualsByIdForFY(
           activeIds,
           formatLocalDate(start),
           formatLocalDate(end),

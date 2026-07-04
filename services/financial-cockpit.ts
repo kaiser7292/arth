@@ -23,7 +23,7 @@ import {
 
 import {
   getMilestoneContributionForFY,
-  getMilestoneContributionsForFY,
+  getCombinedMilestoneContributionsForFY,
   type LifeMilestone,
 } from "@/services/life-milestone";
 
@@ -414,7 +414,7 @@ export async function getRealityCheck(
 
   const expensesActualYTD = savings?.totalExpenses ?? 0;
   const investActualYTD = buckets.reduce((s, b) => s + b.current_contributed, 0);
-  const milestoneActualYTD = await getMilestoneContributionsForFY(
+  const milestoneActualYTD = await getCombinedMilestoneContributionsForFY(
     milestones.map((m) => m.id),
     fyStartStr,
     fyEndStr,

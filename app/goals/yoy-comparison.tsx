@@ -8,7 +8,7 @@ import { getExpenseTotal } from "@/services/expense";
 import { getSavingsSnapshot } from "@/services/savings-tracker";
 import {
   getLifeMilestones,
-  getMilestoneContributionsForFY,
+  getCombinedMilestoneContributionsForFY,
   getTotalPlannedMilestonesForFY,
 } from "@/services/life-milestone";
 import { listAllLoans, getSchedule, getPrepayments } from "@/services/loan-accounts";
@@ -85,12 +85,12 @@ export default function YoYComparisonScreen() {
       // still happened during that FY).
       const allMilestoneIds = allMilestones.map((m) => m.id);
       const [prevMilestoneActual, currMilestoneActual] = await Promise.all([
-        getMilestoneContributionsForFY(
+        getCombinedMilestoneContributionsForFY(
           allMilestoneIds,
           formatDate(prevRange.start),
           formatDate(prevRange.end),
         ),
-        getMilestoneContributionsForFY(
+        getCombinedMilestoneContributionsForFY(
           allMilestoneIds,
           formatDate(currRange.start),
           formatDate(currRange.end),
