@@ -389,34 +389,16 @@ export async function adjustSplitAfterRefund(
       return;
     }
 
-    // Calculate user's refund portion to update expense.amount (my share)
-    let userRefundPortion: number;
-    if (splitMode === 'exact') {
-      userRefundPortion = thisRefundAmount - (otherPersonRefundShare ?? 0);
-    } else {
-      // For percentage-based splits, user's portion = refund * (split_pct / 100)
-      const userPct = (expense.split_pct ?? 0) / 100;
-      userRefundPortion = Math.round(thisRefundAmount * userPct * 100) / 100;
-    }
-    const newUserShare = Math.max(0, Math.round((userShare - userRefundPortion) * 100) / 100);
-    logger.info("adjustSplitAfterRefund: updating expense amount", { userShare, userRefundPortion, newUserShare });
-
-    await db.withTransactionAsync(async () => {
-      await db.runAsync(
-        `UPDATE hisaab_entries SET amount = ?, updated_at = datetime('now') WHERE id = ?;`,
-        newAmount,
-        expense.split_hisaab_entry_id,
-      );
-      // Update split_original_amount to reflect the new total after refund
-      const newOriginalAmount = newUserShare + newAmount;
-      await db.runAsync(
-        `UPDATE expenses SET amount = ?, split_original_amount = ?, updated_at = datetime('now') WHERE id = ?;`,
-        newUserShare,
-        newOriginalAmount,
-        originalExpenseId,
-      );
-      logger.info("adjustSplitAfterRefund: hisaab entry and expense amount updated", { newUserShare, newOriginalAmount });
-    });
+    // Only update the hisaab entry (what the other person owes).
+    // The credit entry for the refund already handles the CC balance correction —
+    // modifying expense.amount / split_original_amount here would double-count the
+    // refund in the ledger balance (COALESCE(split_original_amount, amount)).
+    await db.runAsync(
+      `UPDATE hisaab_entries SET amount = ?, updated_at = datetime('now') WHERE id = ?;`,
+      newAmount,
+      expense.split_hisaab_entry_id,
+    );
+    logger.info("adjustSplitAfterRefund: hisaab entry updated", { newAmount });
   } else {
     // Multi-person split — caller supplies a map of hisaab_entry_id → refund share.
     const splits = await db.getAllAsync<{ amount: number; hisaab_entry_id: string | null }>(
@@ -424,18 +406,9 @@ export async function adjustSplitAfterRefund(
       originalExpenseId,
     );
 
-    // Calculate total refund amount that affects the user's share
-    // For multi-split, user's share is typically the convenience fee or remaining amount
-    // The refund reduces the total, so user's share should be reduced proportionally
-    const totalSplitsAmount = splits.reduce((sum, s) => sum + s.amount, 0);
-    const userRefundPortion = totalSplitsAmount > 0
-      ? Math.round((thisRefundAmount * (userShare / (originalTotal - totalSplitsAmount + userShare))) * 100) / 100
-      : thisRefundAmount;
-    const newUserShare = Math.max(0, Math.round((userShare - userRefundPortion) * 100) / 100);
-    logger.info("adjustSplitAfterRefund: multi-split updating expense amount", { userShare, userRefundPortion, newUserShare });
-
+    // Only update hisaab entries (what each person owes).
+    // The credit entry already handles the CC balance — don't touch expense amounts.
     await db.withTransactionAsync(async () => {
-      let totalSplitsAmount = 0;
       for (const split of splits) {
         if (!split.hisaab_entry_id) continue;
         const personRefund = otherPersonRefundShares?.[split.hisaab_entry_id] ?? 0;
@@ -449,19 +422,10 @@ export async function adjustSplitAfterRefund(
             newAmount,
             split.hisaab_entry_id,
           );
-          totalSplitsAmount += newAmount;
         }
       }
-      // Update expense.amount (my share) and split_original_amount
-      const newOriginalAmount = newUserShare + totalSplitsAmount;
-      await db.runAsync(
-        `UPDATE expenses SET amount = ?, split_original_amount = ?, updated_at = datetime('now') WHERE id = ?;`,
-        newUserShare,
-        newOriginalAmount,
-        originalExpenseId,
-      );
     });
-    logger.info("adjustSplitAfterRefund: multi-split hisaab entries and expense amount updated");
+    logger.info("adjustSplitAfterRefund: multi-split hisaab entries updated");
   }
 
   bumpDataVersion();

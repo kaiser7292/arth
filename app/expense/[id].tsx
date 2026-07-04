@@ -2898,7 +2898,7 @@ export default function ExpenseDetailScreen() {
               )}
 
               {/* Record a refund — hidden once the expense is fully refunded */}
-              {expense.nature === "realized" && refundedAmount < expense.amount && (
+              {expense.nature === "realized" && refundedAmount < (expense.split_original_amount ?? expense.amount) && (
                 <Pressable
                   onPress={() => setRefundTargetSheetVisible(true)}
                   className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt"

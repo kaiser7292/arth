@@ -90,7 +90,7 @@ export function AmountInput({
           onBlur={handleBlur}
           onSubmitEditing={evaluateAndCommit}
           placeholder={inFormula ? "expression…" : "0"}
-          keyboardType={inFormula ? "default" : "numeric"}
+          keyboardType="default"
           maxLength={inFormula ? 80 : 15}
           error={inFormula ? undefined : error}
           className={`text-3xl font-bold text-center border-0 bg-transparent px-0 py-0 ${

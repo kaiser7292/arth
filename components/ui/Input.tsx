@@ -55,7 +55,7 @@ export function Input({
         value={value}
         onChangeText={onChangeText}
         onBlur={handleBlur}
-        keyboardType={inFormula ? "default" : keyboardType}
+        keyboardType={formula ? "default" : keyboardType}
         accessibilityLabel={label || props.placeholder}
         className={`rounded-lg border px-3 py-3 text-base text-text-primary dark:text-text-dark-primary bg-white dark:bg-surface-dark-alt ${
           error

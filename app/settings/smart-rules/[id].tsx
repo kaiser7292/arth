@@ -450,7 +450,7 @@ export default function SmartRuleDetailScreen() {
                             className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
                             style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
                           >
-                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSelected ? accentColor : undefined }}>
+                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSelected ? accentColor : colors.text }}>
                               {f.label}
                             </Text>
                             {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
@@ -488,7 +488,7 @@ export default function SmartRuleDetailScreen() {
                             className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
                             style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
                           >
-                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSelected ? accentColor : undefined }}>
+                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSelected ? accentColor : colors.text }}>
                               {OPERATOR_LABELS[op]}
                             </Text>
                             {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
@@ -634,7 +634,7 @@ export default function SmartRuleDetailScreen() {
                             className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
                             style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
                           >
-                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSelected ? accentColor : undefined }}>
+                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSelected ? accentColor : colors.text }}>
                               {opt.label}
                             </Text>
                             {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
@@ -673,7 +673,7 @@ export default function SmartRuleDetailScreen() {
                                   className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : undefined }}>{c.name}</Text>
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : colors.text }}>{c.name}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
@@ -712,7 +712,7 @@ export default function SmartRuleDetailScreen() {
                                   className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : undefined }}>{m.name}</Text>
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : colors.text }}>{m.name}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
@@ -802,7 +802,7 @@ export default function SmartRuleDetailScreen() {
                                   className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : undefined }}>{opt.label}</Text>
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : colors.text }}>{opt.label}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
@@ -849,7 +849,7 @@ export default function SmartRuleDetailScreen() {
                                   className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : undefined }}>{p.name}</Text>
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : colors.text }}>{p.name}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
@@ -890,7 +890,7 @@ export default function SmartRuleDetailScreen() {
                                   className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : undefined }}>{b.name}</Text>
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : colors.text }}>{b.name}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
