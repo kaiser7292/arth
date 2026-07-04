@@ -1,0 +1,10 @@
+## What's new in v1.6.0
+
+### Fixed
+- **Formula input keyboard**: Tapping any amount field now opens the full keyboard so you can type `=` to start a formula. Previously the numeric-only keypad made formula mode inaccessible.
+- **Smart Rules dark mode**: Dropdown item text now correctly appears white in dark mode. The previous fix only set the container background; the text color still defaulted to black because `undefined` in a React Native style prop shadows NativeWind dark-mode variants.
+- **Split expense partial refund**: Recording a partial refund on a split expense no longer corrupts the credit card ledger. The original debit entry stays at its full purchase amount (e.g. ₹12,022) and the refund credit (e.g. ₹11,999) is shown separately — net balance is correct. Previously the debit was reduced to the remainder (₹23) causing a double-count.
+- **Record Refund button on split expenses**: The button now stays visible until the full original purchase amount has been refunded, instead of hiding prematurely when the refund exceeded the user's net share.
+
+### Improved
+- **Advisory drill-downs load instantly**: Tapping an advisory card on the Goals tab now opens the detail screen without any loading delay. The cockpit data computed by the Goals tab is passed through navigation params instead of being recomputed from the database on every tap.
