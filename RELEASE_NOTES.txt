@@ -1,9 +1,10 @@
-## What's new in v1.4.0
+## What's new in v1.5.0
+
+### New
+- **Formula input on all amount fields**: Type `=` in any amount field to enter an Excel-style expression. Supports full BODMAS precedence, parentheses, and `%` as a percentage shorthand (e.g. `=10000*18%` → 1800, `=(1+18%)*5000` → 5900). A live preview shows the result as you type; the field evaluates when you leave it. Works on expense amounts, loan principal/EMI/fees, milestone targets, investment contributions, and hisaab entries.
 
 ### Fixed
-- **Milestones**: Investment bucket contributions now correctly appear in the FY breakdown, monthly history, and projection on the milestone detail screen. Previously only direct contributions were counted; linked bucket contributions (manual entries and expense links) were missing from these views, showing ₹0 even when real contributions existed.
-- **YoY comparison**: Milestone actuals now include linked bucket contributions, giving accurate year-over-year numbers.
-- **Savings tracker & financial cockpit**: Milestone contribution totals now reflect all sources including linked buckets.
+- **Smart Rules dark mode**: Dropdown lists (field, operator, action type, value pickers) now have an explicit background in dark mode, making text readable in all themes.
 
 ### Improved
-- Replaced em dashes (—) with hyphens (-) across all screens, help articles, alerts, and labels. Affects ~98 files including onboarding, settings, loans, goals, reconciliation, insights, simulator, hisaab, and all 30 help center articles.
+- **Advisory drill-downs**: Each advisory card on the Goals tab is now tappable and opens a detail screen with a full breakdown - spending vs budget table, per-bucket progress bars, milestone slippage details, savings rate gap in rupees, and surplus allocation ideas. Each screen links to the relevant action screen.
