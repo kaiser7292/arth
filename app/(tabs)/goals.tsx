@@ -161,7 +161,7 @@ export default function GoalsScreen() {
                       onPress={() =>
                         router.push({
                           pathname: "/goals/advisory-detail",
-                          params: { advisoryJson: JSON.stringify(adv) },
+                          params: { advisoryJson: JSON.stringify(adv), cockpitJson: JSON.stringify(cockpit.data) },
                         })
                       }
                     />

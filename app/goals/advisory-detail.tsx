@@ -1,6 +1,5 @@
 import { ScreenContainer } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
-import { useCockpitData } from "@/hooks/use-cockpit-data";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
 import { formatCompact } from "@/utils/format";
@@ -9,6 +8,7 @@ import type {
   BucketStatus,
   MilestoneStatus,
 } from "@/utils/financial-cockpit";
+import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { ScrollView, Text, View, Pressable } from "react-native";
@@ -75,7 +75,7 @@ function SpendingDetail({
   cockpit,
   isDark,
 }: {
-  cockpit: NonNullable<ReturnType<typeof useCockpitData>["data"]>;
+  cockpit: FinancialCockpitData;
   isDark: boolean;
 }) {
   const { tension, buckets } = cockpit;
@@ -178,7 +178,7 @@ function InvestmentDetail({
   cockpit,
   isDark,
 }: {
-  cockpit: NonNullable<ReturnType<typeof useCockpitData>["data"]>;
+  cockpit: FinancialCockpitData;
   isDark: boolean;
 }) {
   const router = useRouter();
@@ -223,7 +223,7 @@ function MilestoneDetail({
   cockpit,
 }: {
   advisory: Advisory;
-  cockpit: NonNullable<ReturnType<typeof useCockpitData>["data"]>;
+  cockpit: FinancialCockpitData;
 }) {
   const router = useRouter();
   const { colors } = useColorScheme();
@@ -339,7 +339,7 @@ function MilestoneDetail({
 function SavingsDetail({
   cockpit,
 }: {
-  cockpit: NonNullable<ReturnType<typeof useCockpitData>["data"]>;
+  cockpit: FinancialCockpitData;
 }) {
   const router = useRouter();
   const { savings } = cockpit;
@@ -391,7 +391,7 @@ function SavingsDetail({
 function GeneralDetail({
   cockpit,
 }: {
-  cockpit: NonNullable<ReturnType<typeof useCockpitData>["data"]>;
+  cockpit: FinancialCockpitData;
 }) {
   const router = useRouter();
   const { tension, savings, buckets } = cockpit;
@@ -454,13 +454,16 @@ function GeneralDetail({
 // ── Main screen ──────────────────────────────────────────────────────────────
 
 export default function AdvisoryDetailScreen() {
-  const { advisoryJson } = useLocalSearchParams<{ advisoryJson: string }>();
+  const { advisoryJson, cockpitJson } = useLocalSearchParams<{ advisoryJson: string; cockpitJson: string }>();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const cockpit = useCockpitData();
 
   const advisory: Advisory | null = (() => {
     try { return JSON.parse(advisoryJson ?? "null"); } catch { return null; }
+  })();
+
+  const cockpitData: FinancialCockpitData | null = (() => {
+    try { return JSON.parse(cockpitJson ?? "null"); } catch { return null; }
   })();
 
   if (!advisory) {
@@ -522,31 +525,31 @@ export default function AdvisoryDetailScreen() {
           </View>
         </View>
 
-        {/* Detail body — loading state */}
-        {cockpit.loading && (
+        {/* Detail body */}
+        {!cockpitData && (
           <View className="items-center py-8">
             <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
-              Loading details...
+              Details not available.
             </Text>
           </View>
         )}
 
-        {!cockpit.loading && cockpit.data && (
+        {cockpitData && (
           <>
             {advisory.category === "spending" && (
-              <SpendingDetail cockpit={cockpit.data} isDark={isDark} />
+              <SpendingDetail cockpit={cockpitData} isDark={isDark} />
             )}
             {advisory.category === "investment" && (
-              <InvestmentDetail cockpit={cockpit.data} isDark={isDark} />
+              <InvestmentDetail cockpit={cockpitData} isDark={isDark} />
             )}
             {advisory.category === "milestone" && (
-              <MilestoneDetail advisory={advisory} cockpit={cockpit.data} />
+              <MilestoneDetail advisory={advisory} cockpit={cockpitData} />
             )}
             {advisory.category === "savings" && (
-              <SavingsDetail cockpit={cockpit.data} />
+              <SavingsDetail cockpit={cockpitData} />
             )}
             {advisory.category === "general" && (
-              <GeneralDetail cockpit={cockpit.data} />
+              <GeneralDetail cockpit={cockpitData} />
             )}
           </>
         )}
