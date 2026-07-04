@@ -329,6 +329,7 @@ export default function LedgerScreen() {
                   value={settleAmount}
                   onChangeText={setSettleAmount}
                   keyboardType="numeric"
+                  formula
                   placeholder={`e.g. ${Math.abs(balance)}`}
                   containerClassName="mb-3"
                 />
@@ -483,6 +484,7 @@ export default function LedgerScreen() {
                   value={formAmount}
                   onChangeText={setFormAmount}
                   keyboardType="numeric"
+                  formula
                   placeholder="e.g. 3000"
                   containerClassName="mb-3"
                 />

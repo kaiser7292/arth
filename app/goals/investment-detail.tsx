@@ -497,6 +497,7 @@ export default function InvestmentDetailScreen() {
                   value={contribAmount}
                   onChangeText={setContribAmount}
                   keyboardType="numeric"
+                  formula
                   placeholder="e.g. 10000"
                   containerClassName="mb-3"
                 />

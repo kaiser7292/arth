@@ -294,6 +294,7 @@ export default function MilestonesScreen() {
                   value={formTarget}
                   onChangeText={setFormTarget}
                   keyboardType="numeric"
+                  formula
                   placeholder="e.g. 700000"
                   containerClassName="mb-3"
                 />
@@ -310,6 +311,7 @@ export default function MilestonesScreen() {
                   value={formMonthlyPlan}
                   onChangeText={setFormMonthlyPlan}
                   keyboardType="numeric"
+                  formula
                   placeholder="e.g. 15000"
                   containerClassName="mb-3"
                 />

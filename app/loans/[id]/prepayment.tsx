@@ -217,6 +217,7 @@ export default function PrepaymentForm() {
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="numeric"
+                formula
                 placeholder="e.g. 50000"
               />
 

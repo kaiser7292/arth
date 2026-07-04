@@ -362,6 +362,7 @@ export default function AddLoanScreen() {
               value={principalSanctioned}
               onChangeText={setPrincipalSanctioned}
               keyboardType="numeric"
+              formula
               placeholder="e.g. 1015000"
               containerClassName="mb-3"
             />
@@ -370,6 +371,7 @@ export default function AddLoanScreen() {
               value={principalDisbursed}
               onChangeText={setPrincipalDisbursed}
               keyboardType="numeric"
+              formula
               placeholder="e.g. 1015000"
               containerClassName="mb-3"
             />
@@ -455,6 +457,7 @@ export default function AddLoanScreen() {
               value={emiAmount}
               onChangeText={setEmiAmount}
               keyboardType="numeric"
+              formula
               placeholder={suggestedEMI > 0 ? String(Math.round(suggestedEMI)) : "auto"}
             />
             {suggestedEMI > 0 && (
@@ -485,6 +488,7 @@ export default function AddLoanScreen() {
               value={processingFee}
               onChangeText={setProcessingFee}
               keyboardType="numeric"
+              formula
               placeholder="0"
               containerClassName="mb-3"
             />
@@ -493,6 +497,7 @@ export default function AddLoanScreen() {
               value={stampDuty}
               onChangeText={setStampDuty}
               keyboardType="numeric"
+              formula
               placeholder="0"
               containerClassName="mb-3"
             />
@@ -501,6 +506,7 @@ export default function AddLoanScreen() {
               value={insurancePremium}
               onChangeText={setInsurancePremium}
               keyboardType="numeric"
+              formula
               placeholder="0"
             />
           </Card>
@@ -547,6 +553,7 @@ export default function AddLoanScreen() {
               value={foreclosureWaiverMinAmount}
               onChangeText={setForeclosureWaiverMinAmount}
               keyboardType="numeric"
+              formula
               placeholder="e.g. 1000000 - big loans skip the fee"
               containerClassName="mb-3"
             />

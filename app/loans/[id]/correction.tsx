@@ -208,6 +208,7 @@ export default function CorrectionForm() {
                 value={outstanding}
                 onChangeText={setOutstanding}
                 keyboardType="numeric"
+                formula
                 placeholder="e.g. 500000"
               />
               <Text className="text-xs mb-3" style={{ color: colors.textSecondary }}>
@@ -219,6 +220,7 @@ export default function CorrectionForm() {
                 value={emi}
                 onChangeText={setEmi}
                 keyboardType="numeric"
+                formula
                 placeholder="e.g. 25000"
               />
               <Text className="text-xs mb-3" style={{ color: colors.textSecondary }}>
