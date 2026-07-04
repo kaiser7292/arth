@@ -57,7 +57,7 @@ export default function RecurringRulesScreen() {
     (reminder: ReminderWithSource) => {
       alert(
         "Stop reminder?",
-        "Future cycles won't be created. Already-materialized upcoming reminders stay — you can delete them individually if needed.",
+        "Future cycles won't be created. Already-materialized upcoming reminders stay - you can delete them individually if needed.",
         [
           { text: "Cancel", style: "cancel" },
           {

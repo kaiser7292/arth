@@ -134,7 +134,7 @@ export default function OnboardingRegion() {
           style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
         >
           <Text className="text-base font-bold mr-3 text-text-primary dark:text-text-dark-primary w-14">
-            {selectedCurrencyDef.symbol || "—"}
+            {selectedCurrencyDef.symbol || "-"}
           </Text>
           <View className="flex-1">
             <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
@@ -283,7 +283,7 @@ export default function OnboardingRegion() {
                   }}
                 >
                   <Text className="text-base font-bold w-14 text-text-primary dark:text-text-dark-primary">
-                    {item.symbol || "—"}
+                    {item.symbol || "-"}
                   </Text>
                   <View className="flex-1">
                     <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">

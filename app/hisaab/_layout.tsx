@@ -26,7 +26,7 @@ export default function HisaabLayout() {
     >
       <Stack.Screen
         name="persons"
-        options={{ title: "Hisaab — Family Ledger" }}
+        options={{ title: "Hisaab - Family Ledger" }}
       />
       <Stack.Screen
         name="ledger"

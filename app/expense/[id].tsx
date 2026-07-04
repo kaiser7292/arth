@@ -1206,7 +1206,7 @@ export default function ExpenseDetailScreen() {
     if (!recurringRule) return;
     alert(
       "Stop reminder?",
-      "Future cycles won't be created. Already-materialized upcoming reminders stay — you can delete them individually if needed.",
+      "Future cycles won't be created. Already-materialized upcoming reminders stay - you can delete them individually if needed.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -1692,7 +1692,7 @@ export default function ExpenseDetailScreen() {
                       onPress={() => {
                         alert(
                           "Remove from split purchase?",
-                          "This leg will become a standalone expense. The other legs of the purchase will remain grouped (unless this leaves only one — in which case the remaining leg becomes standalone too).",
+                          "This leg will become a standalone expense. The other legs of the purchase will remain grouped (unless this leaves only one - in which case the remaining leg becomes standalone too).",
                           [
                             { text: "Cancel", style: "cancel" },
                             {

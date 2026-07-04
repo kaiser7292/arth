@@ -85,7 +85,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
                     color={StatusColors[colorScheme].success}
                   />
                   <Text className="text-xs font-medium text-success ml-1">
-                    Better regime — saves you{" "}
+                    Better regime - saves you{" "}
                     {formatAmount(
                       Math.abs(
                         calculation.newRegimeTax.totalTax -

@@ -1,4 +1,4 @@
----
+﻿---
 title: Recording transfers between accounts
 slug: transfers
 summary: Move money between your accounts. Transfers don't count as spending and don't affect your budget.
@@ -15,15 +15,15 @@ phrasings:
   - Undo a transfer
 ---
 
-A transfer is money moving between your accounts — from savings to credit card, from wallet to bank, or any other movement. Transfers don't count as spending and don't affect your budget.
+A transfer is money moving between your accounts - from savings to credit card, from wallet to bank, or any other movement. Transfers don't count as spending and don't affect your budget.
 
 ## Why this matters
 
 Transfers are different from expenses:
-- **Not spending** — money you already own, just moving it around
-- **No budget impact** — doesn't reduce your budget caps
-- **Shows separately** — filtered out from spending insights
-- **Ledger math** — appears in both account ledgers, balances net out correctly
+- **Not spending** - money you already own, just moving it around
+- **No budget impact** - doesn't reduce your budget caps
+- **Shows separately** - filtered out from spending insights
+- **Ledger math** - appears in both account ledgers, balances net out correctly
 
 ## Record a transfer
 
@@ -72,10 +72,10 @@ The transfer is deleted and the original expense/credit is restored (no longer m
 
 ## Where transfers show up
 
-- **Transfers tab** — all transfers listed by date, separate from spending
-- **Account ledgers** — appears as debit in source account, credit in destination account
-- **Budget / Insights** — excluded from spending totals
-- **Transactions tab** — filtered when "Transfers" nature is selected
+- **Transfers tab** - all transfers listed by date, separate from spending
+- **Account ledgers** - appears as debit in source account, credit in destination account
+- **Budget / Insights** - excluded from spending totals
+- **Transactions tab** - filtered when "Transfers" nature is selected
 
 ## Common situations
 

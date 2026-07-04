@@ -386,7 +386,7 @@ export default function BackupRestoreScreen() {
                       {pickedFile.name}
                     </Text>
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                      {pickedFile.sizeLabel} — Valid Arth backup
+                      {pickedFile.sizeLabel} - Valid Arth backup
                     </Text>
                   </View>
                   <Pressable onPress={() => { setPickedFile(null); setPassword(""); }} hitSlop={8}>

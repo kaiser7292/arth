@@ -304,7 +304,7 @@ export default function TagSmsTemplateScreen() {
               numberOfLines={1}
               style={{ maxWidth: 160 }}
             >
-              {value ?? (isActive ? "tap a word…" : "—")}
+              {value ?? (isActive ? "tap a word…" : "-")}
             </Text>
           </Pressable>
           <Pressable
@@ -437,7 +437,7 @@ export default function TagSmsTemplateScreen() {
       return;
     }
     if (!bankName.trim()) {
-      alert("Bank / Wallet name required", "Give this template a short name — Arth will label matching expenses with it.");
+      alert("Bank / Wallet name required", "Give this template a short name - Arth will label matching expenses with it.");
       return;
     }
     if (spans.length === 0) {
@@ -445,7 +445,7 @@ export default function TagSmsTemplateScreen() {
       return;
     }
     if (!spans.some((s) => s.field === "amount")) {
-      alert("Amount is required", "Every template needs the amount tagged — otherwise Arth can't tell what the transaction is worth.");
+      alert("Amount is required", "Every template needs the amount tagged - otherwise Arth can't tell what the transaction is worth.");
       return;
     }
     // v15.13.0: validate manual regex if in manual mode — compile from spans
@@ -468,7 +468,7 @@ export default function TagSmsTemplateScreen() {
     if (duplicateFound) {
       alert(
         "You already have a template for this",
-        `"${duplicateFound.label}" already handles ${bankName.trim()} ${txType} SMS. If you save a second one, both will be tried — which may slow matching. Consider editing the existing template instead.`,
+        `"${duplicateFound.label}" already handles ${bankName.trim()} ${txType} SMS. If you save a second one, both will be tried - which may slow matching. Consider editing the existing template instead.`,
         [
           { text: "Save Anyway", onPress: () => void doSave() },
           {
@@ -771,9 +771,9 @@ export default function TagSmsTemplateScreen() {
                 {senderMatchMode === "code" &&
                   `Will match any sender with code "${effectiveSenderPattern}" (e.g. VM-${effectiveSenderPattern}-S, AD-${effectiveSenderPattern}-T).`}
                 {senderMatchMode === "exact" &&
-                  `Will match only the exact sender "${effectiveSenderPattern}". Stricter — breaks if the sender prefix changes.`}
+                  `Will match only the exact sender "${effectiveSenderPattern}". Stricter - breaks if the sender prefix changes.`}
                 {senderMatchMode === "contains" &&
-                  `Will match any sender containing "${effectiveSenderPattern}". Loosest — may over-match.`}
+                  `Will match any sender containing "${effectiveSenderPattern}". Loosest - may over-match.`}
               </Text>
             </View>
           )}

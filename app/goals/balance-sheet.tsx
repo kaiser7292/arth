@@ -385,7 +385,7 @@ export default function BalanceSheetScreen() {
                             fontStyle: cell?.isFallback ? "italic" : "normal",
                           }}
                         >
-                          {isMissing ? "—" : formatAmount(amount)}
+                          {isMissing ? "-" : formatAmount(amount)}
                         </Text>
                       </View>
                     );
@@ -458,7 +458,7 @@ export default function BalanceSheetScreen() {
                             fontStyle: cell?.isFallback ? "italic" : "normal",
                           }}
                         >
-                          {isMissing ? "—" : formatAmount(amount)}
+                          {isMissing ? "-" : formatAmount(amount)}
                         </Text>
                       </View>
                     );
@@ -519,7 +519,7 @@ export default function BalanceSheetScreen() {
             <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} style={{ marginTop: 2 }} />
             <View className="flex-1 ml-2">
               <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary leading-4">
-                A "—" means no data for that row in that period. For demat, it means no portfolio or fund snapshot was recorded within that fiscal year. Italic values fall back to the last SMS balance when the ledger opening isn't seeded — seed openings to make those authoritative.
+                A "-" means no data for that row in that period. For demat, it means no portfolio or fund snapshot was recorded within that fiscal year. Italic values fall back to the last SMS balance when the ledger opening isn't seeded - seed openings to make those authoritative.
               </Text>
             </View>
           </View>

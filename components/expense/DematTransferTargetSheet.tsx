@@ -324,7 +324,7 @@ export function DematTransferTargetSheet({
           className="text-[11px] text-center mt-2 px-5"
           style={{ color: colors.textSecondary }}
         >
-          Skip leaves the transfer uncategorized — you can edit it later.
+          Skip leaves the transfer uncategorized - you can edit it later.
         </Text>
       </Animated.View>
     </Modal>

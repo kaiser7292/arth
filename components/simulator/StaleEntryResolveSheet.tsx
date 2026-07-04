@@ -245,7 +245,7 @@ export function StaleEntryResolveSheet({
               <Ionicons name="checkmark-circle-outline" size={20} color={accent[500]} />
               <View className="flex-1 ml-3">
                 <Text className="text-sm font-semibold" style={{ color: colors.text }}>
-                  It happened — link to transactions
+                  It happened - link to transactions
                 </Text>
                 <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
                   Select one or more matching transactions from your ledger.

@@ -905,7 +905,7 @@ export default function SmartRuleDetailScreen() {
             })}
 
             {actions.length === 0 && (
-              <Text className="text-sm text-text-tertiary text-center py-2 mb-3">No actions yet — add one below</Text>
+              <Text className="text-sm text-text-tertiary text-center py-2 mb-3">No actions yet - add one below</Text>
             )}
 
             <Pressable

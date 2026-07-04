@@ -193,7 +193,7 @@ export function AccountPicker({
         >
           <Ionicons name="add-circle-outline" size={18} color={colors.textSecondary} />
           <Text className="flex-1 ml-3 text-sm text-text-tertiary">
-            No accounts yet — tap to add one
+            No accounts yet - tap to add one
           </Text>
           <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
         </Pressable>

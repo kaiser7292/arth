@@ -1,4 +1,4 @@
----
+﻿---
 title: Backup and restore
 slug: backup-restore
 summary: Export an encrypted .artha file; restore it on any Android device running Arth.
@@ -18,7 +18,7 @@ phrasings:
   - I forgot my backup password
 ---
 
-Arth is local-only — there is no cloud sync. Moving to a new phone, or protecting yourself from a phone loss, means making a backup file yourself. Backups are encrypted with a password you set.
+Arth is local-only - there is no cloud sync. Moving to a new phone, or protecting yourself from a phone loss, means making a backup file yourself. Backups are encrypted with a password you set.
 
 ## Where to find it
 
@@ -28,11 +28,11 @@ Arth is local-only — there is no cloud sync. Moving to a new phone, or protect
 
 1. Open **Settings tab → Backup & Storage → Backup & Restore**.
 2. Tap **Create Backup**.
-3. Enter a password. Pick something you'll remember — **there is no reset**. If you forget it, the file is unreadable.
+3. Enter a password. Pick something you'll remember - **there is no reset**. If you forget it, the file is unreadable.
 4. Confirm the password.
-5. Tap **Save**. Android opens the file picker — choose where to save (Google Drive, Files, email to yourself, etc.). The file is named `artha-backup-YYYY-MM-DD.artha`.
+5. Tap **Save**. Android opens the file picker - choose where to save (Google Drive, Files, email to yourself, etc.). The file is named `artha-backup-YYYY-MM-DD.artha`.
 
-The file contains every expense, account, category, budget, reminder, smart rule, hisaab entry, goal, investment bucket, yearly plan, and tag. What's **excluded**: biometric app-lock settings (security by design — you re-enable on the new device) and recycle-bin trash older than 30 days.
+The file contains every expense, account, category, budget, reminder, smart rule, hisaab entry, goal, investment bucket, yearly plan, and tag. What's **excluded**: biometric app-lock settings (security by design - you re-enable on the new device) and recycle-bin trash older than 30 days.
 
 ## Restore on a new phone
 
@@ -61,10 +61,10 @@ Replace. Always. Merging would be unsafe across different phones.
 Expected for long-time users. Backup files are not compressed; 5+ years of data can reach 20–50 MB.
 
 **"Can I send the backup to someone else and they restore it?"**
-Yes, with their consent and your password. They'll see all your financial data — treat it like a password.
+Yes, with their consent and your password. They'll see all your financial data - treat it like a password.
 
 **"Moving Android → iOS."**
-Not supported yet — the iOS variant of Arth is planned but not shipped. Android-to-Android works.
+Not supported yet - the iOS variant of Arth is planned but not shipped. Android-to-Android works.
 
 ## Related
 - Why Arth doesn't use the cloud: [Privacy and offline-first](privacy-offline)

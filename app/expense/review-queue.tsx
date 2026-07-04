@@ -417,7 +417,7 @@ export default function ReviewQueueScreen() {
   const handleKeepBothAllDuplicates = useCallback(() => {
     if (duplicateGroups.length === 0) return;
     alert(
-      "Keep Both — All Groups",
+      "Keep Both - All Groups",
       `Mark all ${duplicateGroups.length} duplicate group${duplicateGroups.length !== 1 ? "s" : ""} as not duplicates? They'll stay as-is and won't be flagged again.`,
       [
         { text: "Cancel", style: "cancel" },

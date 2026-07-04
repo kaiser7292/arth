@@ -1,4 +1,4 @@
----
+﻿---
 title: The review queue
 slug: review-queue
 summary: One place to approve, reject, or clean up auto-detected expenses, forecasts, duplicates, and uncategorized items.
@@ -18,7 +18,7 @@ phrasings:
   - Record a refund already captured
 ---
 
-The review queue is the single screen where you clean up anything Arth couldn't act on automatically — auto-detected expenses waiting for your OK, forecasts that look like they already happened, possible duplicates, and expenses with no category yet.
+The review queue is the single screen where you clean up anything Arth couldn't act on automatically - auto-detected expenses waiting for your OK, forecasts that look like they already happened, possible duplicates, and expenses with no category yet.
 
 ## Where to find it
 
@@ -35,11 +35,11 @@ You can also open it from:
 
 ## What the screen shows
 
-- **Summary banner** (blue) — total count of items to review.
-- **Filter chips** row — "All", "Auto-Detected", "Matches", "Overdue", "Upcoming", "Duplicates", "Uncategorized". Each chip shows the count for that section. Tap a chip to narrow the list to that section only.
-- **Refresh button** (top-right, ⟲) — scans SMS again and refreshes the list.
-- **"How reviews work" chip** — opens this article.
-- **List** — grouped by section when "All" is active; flat list when a single filter chip is active.
+- **Summary banner** (blue) - total count of items to review.
+- **Filter chips** row - "All", "Auto-Detected", "Matches", "Overdue", "Upcoming", "Duplicates", "Uncategorized". Each chip shows the count for that section. Tap a chip to narrow the list to that section only.
+- **Refresh button** (top-right, ⟲) - scans SMS again and refreshes the list.
+- **"How reviews work" chip** - opens this article.
+- **List** - grouped by section when "All" is active; flat list when a single filter chip is active.
 
 ## Each section, what it means, what to do
 
@@ -52,13 +52,13 @@ SMS entries Arth parsed into an expense or a credit. They are NOT in your ledger
 
 ### Matches
 Arth noticed an auto-detected expense that looks like an existing forecast (same merchant, similar amount, near the due date). Three options per match:
-- **Realize** — the forecast is replaced by the realized expense. Use when the forecast predicted this exact payment.
-- **Already captured** — you already logged this manually. Drops the auto-detected copy.
-- **Both different** — they are separate transactions. Keeps both.
+- **Realize** - the forecast is replaced by the realized expense. Use when the forecast predicted this exact payment.
+- **Already captured** - you already logged this manually. Drops the auto-detected copy.
+- **Both different** - they are separate transactions. Keeps both.
 
 ### Overdue
 Forecasts whose due date has passed and no matching expense was found.
-- **Dismiss N Overdue** button rejects all overdue forecasts in one tap — use this at month-end to clear stale predictions.
+- **Dismiss N Overdue** button rejects all overdue forecasts in one tap - use this at month-end to clear stale predictions.
 - Or tap each one individually and approve (to log it as a real expense) or reject (didn't happen).
 
 ### Upcoming
@@ -78,13 +78,13 @@ Realized, approved expenses that never got a category.
 ## Common situations
 
 **"I approved a wrong SMS by mistake."**
-Open **Settings tab → Backup & Storage → Recycle Bin → Rejected**, find it, tap **Approve** — it returns as a normal expense. If the expense was approved and you want to revert: open it from the Transactions tab and tap **Delete**; it moves to the recycle bin.
+Open **Settings tab → Backup & Storage → Recycle Bin → Rejected**, find it, tap **Approve** - it returns as a normal expense. If the expense was approved and you want to revert: open it from the Transactions tab and tap **Delete**; it moves to the recycle bin.
 
 **"I want auto-detection but not auto-approval."**
-That's the default. Auto-approval is not offered — every first touch is manual so you catch parser mistakes.
+That's the default. Auto-approval is not offered - every first touch is manual so you catch parser mistakes.
 
 **"The review queue keeps showing forecasts I already paid."**
-If the payment came via SMS, let the "Matches" section handle it (tap "Realize"). If you paid manually, approve the forecast anyway — the amount enters the ledger and the forecast clears.
+If the payment came via SMS, let the "Matches" section handle it (tap "Realize"). If you paid manually, approve the forecast anyway - the amount enters the ledger and the forecast clears.
 
 **"I have 200+ uncategorized from an excel import."**
 Use **Filter chip: Uncategorized** → **Select All** → pick the most common category. Repeat a few times with subsets. Arth does not bulk-categorize by merchant yet, but smart rules (Settings tab → Automation → Smart Rules) can auto-categorize future imports.

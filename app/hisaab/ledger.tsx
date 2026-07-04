@@ -361,7 +361,7 @@ export default function LedgerScreen() {
                     className="flex-1 text-sm ml-2"
                     style={{ color: settleAccountId ? colors.text : colors.textSecondary }}
                   >
-                    {settleAccountLabel || "No account — external payment"}
+                    {settleAccountLabel || "No account - external payment"}
                   </Text>
                   {settleAccountId && (
                     <Pressable

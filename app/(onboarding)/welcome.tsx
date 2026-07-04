@@ -23,7 +23,7 @@ const BULLETS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body
   {
     icon: "notifications-outline",
     title: "Reminders for recurring payments",
-    body: "Netflix on the 5th, rent on the 1st, EMIs in a loop — we surface each upcoming bill and link real payments to it.",
+    body: "Netflix on the 5th, rent on the 1st, EMIs in a loop - we surface each upcoming bill and link real payments to it.",
   },
 ];
 

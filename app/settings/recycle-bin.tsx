@@ -379,7 +379,7 @@ export default function RecycleBinScreen() {
   const renderCreditItem = useCallback(({ item }: { item: AccountCredit }) => (
     <SimpleRow
       icon="arrow-down-outline"
-      title={`${formatAmount(item.amount)} — ${item.description ?? "Credit"}`}
+      title={`${formatAmount(item.amount)} - ${item.description ?? "Credit"}`}
       subtitle={`${item.date} · ${item.source === "sms_auto" ? "Auto" : "Manual"}`}
       onRestore={() => confirm("Restore Credit", `Restore this ${formatAmount(item.amount)} credit?`, "Restore", false, async () => {
         await restoreCredit(item.id); setDeletedCredits((p) => p.filter((c) => c.id !== item.id));

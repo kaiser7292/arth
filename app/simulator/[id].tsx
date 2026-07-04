@@ -508,7 +508,7 @@ export default function ScenarioDetailScreen() {
           </View>
           <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>
             {entries.upcoming.length === 0
-              ? "No planned entries yet — same as starting balance."
+              ? "No planned entries yet - same as starting balance."
               : `Starts at ${formatAmount(adjustedNetStart)} today, after ${entries.upcoming.length} planned ${entries.upcoming.length === 1 ? "entry" : "entries"}.`}
           </Text>
 

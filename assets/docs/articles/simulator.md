@@ -1,5 +1,5 @@
----
-title: Cash-flow Simulator — plan your cash flow
+﻿---
+title: Cash-flow Simulator - plan your cash flow
 slug: simulator
 summary: Layer planned outgoings and incomings onto today's balances to see where you'll land on any future date. Multiple scenarios, auto-seeded from reminders, hisaab-aware, never touches your real data.
 tags: [simulator, what-if, cash-flow, plan, projection, forecast, scenarios, horizon, trajectory, planning, hisaab]
@@ -30,7 +30,7 @@ phrasings:
 
 The **Cash-flow Simulator** is the one Arth screen that looks forward. Everywhere else you see what already happened (or what's realized right now). Here you say what you *expect* to happen, and Arth rolls the math forward: a projected balance at horizon, per-account breakdowns, key moments, and warnings.
 
-> Nothing you type here is written to your real ledger. Simulator entries are 100% isolated. Delete a scenario any time — zero side-effects on your real data.
+> Nothing you type here is written to your real ledger. Simulator entries are 100% isolated. Delete a scenario any time - zero side-effects on your real data.
 
 ## Where to find it
 
@@ -40,12 +40,12 @@ Also searchable in the help center as "plan", "simulate", "what-if", "project", 
 
 ## Scenarios
 
-A **scenario** is a named what-if plan. You create them on demand — there is no forced default. Examples:
+A **scenario** is a named what-if plan. You create them on demand - there is no forced default. Examples:
 
-- **"This month"** — baseline + your active reminders + CC bills.
-- **"With Goa trip"** — baseline + a ₹40,000 Booking.com entry.
-- **"Tight month"** — no dining out, skip Netflix, simulate a missed bonus.
-- **"Laptop in June"** — add a ₹1,20,000 outgoing to plan the dip.
+- **"This month"** - baseline + your active reminders + CC bills.
+- **"With Goa trip"** - baseline + a ₹40,000 Booking.com entry.
+- **"Tight month"** - no dining out, skip Netflix, simulate a missed bonus.
+- **"Laptop in June"** - add a ₹1,20,000 outgoing to plan the dip.
 
 Each scenario has its own horizon date and its own list of planned entries. They don't affect each other.
 
@@ -60,24 +60,24 @@ The new scenario opens immediately, pre-seeded (on fresh creates) with active re
 
 ### Active vs archived vs deleted
 
-- **Active** — editable, contributes to the projection.
-- **Archived** — read-only past plans. Auto-archive 90 days after horizon; hard-deleted 180 days after archive.
-- **Delete** — permanent, from the three-dot menu on the detail screen or the card actions on the list. Entries + hisaab inclusions cascade away. No recycle bin for scenarios. Any real transactions are untouched.
+- **Active** - editable, contributes to the projection.
+- **Archived** - read-only past plans. Auto-archive 90 days after horizon; hard-deleted 180 days after archive.
+- **Delete** - permanent, from the three-dot menu on the detail screen or the card actions on the list. Entries + hisaab inclusions cascade away. No recycle bin for scenarios. Any real transactions are untouched.
 
 ## Planned entries
 
 Every planned entry has a **kind**. There are four:
 
-- **Outgoing** (money out) — a planned expense: rent, bill, subscription, one-off purchase.
-- **Incoming** (money in) — expected income: salary, bonus, a refund coming your way.
-- **Collect from hisaab** (money in) — someone who owes you via hisaab is paying you back. Tagged with the person.
-- **Pay back to hisaab** (money out) — you're settling money you owe a hisaab person. Tagged with the person.
+- **Outgoing** (money out) - a planned expense: rent, bill, subscription, one-off purchase.
+- **Incoming** (money in) - expected income: salary, bonus, a refund coming your way.
+- **Collect from hisaab** (money in) - someone who owes you via hisaab is paying you back. Tagged with the person.
+- **Pay back to hisaab** (money out) - you're settling money you owe a hisaab person. Tagged with the person.
 
 Fields:
 
-- **Amount** *(required)* — must be positive.
-- **Date** *(required)* — any date up to the horizon.
-- **Account** *(optional)* — if set, that account is the one affected. If absent, the entry is unattributed (counts toward net worth but not per-account impact).
+- **Amount** *(required)* - must be positive.
+- **Date** *(required)* - any date up to the horizon.
+- **Account** *(optional)* - if set, that account is the one affected. If absent, the entry is unattributed (counts toward net worth but not per-account impact).
 - **Category** *(outgoings only, not for hisaab)*.
 - **Merchant / description** *(optional)*.
 - **Hisaab person** *(required for collect / payback only)*.
@@ -96,8 +96,8 @@ Tap a row to edit. Trash icon on each row for one-tap delete. Long-press for Dup
 
 The planned list segregates by direction:
 
-- **Outgoing** (red arrow, total shown as −₹X) — with sub-groups Today / Tomorrow / This week / Later.
-- **Incoming** (green arrow, total shown as +₹X) — same sub-groups.
+- **Outgoing** (red arrow, total shown as −₹X) - with sub-groups Today / Tomorrow / This week / Later.
+- **Incoming** (green arrow, total shown as +₹X) - same sub-groups.
 
 Hisaab entries appear under their direction (Collect → Incoming; Pay back → Outgoing) with a sublabel like "Collect from Manoj".
 
@@ -114,33 +114,33 @@ Tap **Menu → Re-seed from reminders** any time to re-pull. Already-added entri
 
 Top of the scenario detail screen:
 
-- **Projected balance at horizon** — big number on top. Below it, delta pill showing net change.
-- **Starting balance drawer** (collapsed by default) — expands into two clearly-labelled sections:
-  - **Money available** — savings + wallets + any overpaid credit cards (bank owes you) + positive-balance hisaab inclusions (people who owe you).
-  - **Money owed** — credit-card utilized + negative-balance hisaab inclusions (people you owe).
-  - **Include hisaab balances** launcher — tap to pick which hisaab people to add in, with % or ₹ control per person.
+- **Projected balance at horizon** - big number on top. Below it, delta pill showing net change.
+- **Starting balance drawer** (collapsed by default) - expands into two clearly-labelled sections:
+  - **Money available** - savings + wallets + any overpaid credit cards (bank owes you) + positive-balance hisaab inclusions (people who owe you).
+  - **Money owed** - credit-card utilized + negative-balance hisaab inclusions (people you owe).
+  - **Include hisaab balances** launcher - tap to pick which hisaab people to add in, with % or ₹ control per person.
   - **Net starting balance** row at the bottom reconciles the two sides.
-- **By Account** (post-projection breakdown) — current → projected for every account the simulation actually touches, grouped the same way (Money available / Money owed).
-- **Warnings strip** — sibling card below the hero, only when issues exist. Sentence-form messages:
+- **By Account** (post-projection breakdown) - current → projected for every account the simulation actually touches, grouped the same way (Money available / Money owed).
+- **Warnings strip** - sibling card below the hero, only when issues exist. Sentence-form messages:
   - "Savings drops below minimum on 22 May"
   - "HDFC CC crosses credit limit on 18 May"
   - "Wallet goes overdrawn on 5 June"
-- **Key moments** — for each affected account, the most important date in the horizon: the day it hits its lowest (non-CC) or highest utilized (CC). Hidden when no material movement.
+- **Key moments** - for each affected account, the most important date in the horizon: the day it hits its lowest (non-CC) or highest utilized (CC). Hidden when no material movement.
 
 ## Hisaab in the simulator
 
-Hisaab balances don't automatically count toward your simulator starting balance — they're person-to-person owings, not accounts. But when you know someone is going to pay you back (or you're going to settle an owed amount) before horizon, you can opt them in:
+Hisaab balances don't automatically count toward your simulator starting balance - they're person-to-person owings, not accounts. But when you know someone is going to pay you back (or you're going to settle an owed amount) before horizon, you can opt them in:
 
 1. Expand **Starting balance · Today**.
 2. Tap **Include hisaab balances**.
 3. For each person:
    - Toggle the row on.
-   - Type a **percentage** (0–100 %) OR a **rupee amount**. The two inputs are linked — changing one updates the other. Capped at the person's current balance.
+   - Type a **percentage** (0–100 %) OR a **rupee amount**. The two inputs are linked - changing one updates the other. Capped at the person's current balance.
 4. Tap **Save**.
 
 Positive-balance people (they owe you) lift the Money available side. Negative-balance people (you owe them) lift the Money owed side.
 
-Each inclusion is **per-scenario** — including Manoj in "With Goa trip" doesn't affect "Tight month".
+Each inclusion is **per-scenario** - including Manoj in "With Goa trip" doesn't affect "Tight month".
 
 Inclusions are included in the backup and restore cleanly. If a hisaab person is deleted, their inclusion is automatically removed from the scenario.
 
@@ -148,12 +148,12 @@ Inclusions are included in the backup and restore cleanly. If a hisaab person is
 
 Separately from inclusions, you can **plan** specific cash-flow events tied to a hisaab person:
 
-- **Collect from hisaab** — "Manoj's paying me ₹15,000 on the 18th, landing in HDFC savings."
-- **Pay back to hisaab** — "I'm paying Raj ₹8,000 back on the 22nd, from ICICI savings."
+- **Collect from hisaab** - "Manoj's paying me ₹15,000 on the 18th, landing in HDFC savings."
+- **Pay back to hisaab** - "I'm paying Raj ₹8,000 back on the 22nd, from ICICI savings."
 
 These show up inside the Incoming / Outgoing lists with the sublabel "Collect from Manoj" / "Pay back to Raj". They affect the projected balance like any other entry.
 
-**Difference from inclusions:** an inclusion sits in the starting balance (money I already consider in play). A planned hisaab entry is a cash-flow event at a specific date. Use both together — include 50 % of Manoj's ₹30,000 in your starting balance (you'll count on ₹15,000 being realized eventually) AND add a "Collect from Manoj · ₹10,000 · 18 May" planned entry (a specific payment you're expecting that day).
+**Difference from inclusions:** an inclusion sits in the starting balance (money I already consider in play). A planned hisaab entry is a cash-flow event at a specific date. Use both together - include 50 % of Manoj's ₹30,000 in your starting balance (you'll count on ₹15,000 being realized eventually) AND add a "Collect from Manoj · ₹10,000 · 18 May" planned entry (a specific payment you're expecting that day).
 
 ## How the simulator stays alive
 
@@ -161,9 +161,9 @@ These show up inside the Incoming / Outgoing lists with the sublabel "Collect fr
 - **Entries self-reconcile.** When a planned entry's date has passed:
   - If a matching real transaction exists (same account, date within ±3 days, **exact amount to the paise**) → the entry auto-links and moves to "Already happened".
   - If nothing matches → the entry moves to **Stale** and appears in a dedicated card. You resolve via three actions:
-    - **It happened · Link** — pick the real transaction from the recent ledger; the entry marks as fulfilled.
-    - **Reschedule** — pick a new future date; the entry re-enters the simulation.
-    - **Remove** — discard.
+    - **It happened · Link** - pick the real transaction from the recent ledger; the entry marks as fulfilled.
+    - **Reschedule** - pick a new future date; the entry re-enters the simulation.
+    - **Remove** - discard.
 - **Retention.** Non-default scenarios auto-archive 90 days after horizon; delete 180 days after archive. Entries in fulfilled / dismissed state purge 30 days after horizon.
 
 ## Common situations
@@ -180,7 +180,7 @@ These show up inside the Incoming / Outgoing lists with the sublabel "Collect fr
 - **Simpler:** Expand Starting balance → Include hisaab balances → tick Manoj, keep 100 % / ₹30,000. Your money-available rises by ₹30,000.
 - **Date-specific:** Add a "Collect from hisaab · Manoj · ₹30,000 · 18 May" planned entry. The projection dips until 18 May then lifts.
 
-**I deleted a scenario by mistake.** Scenario deletion is permanent — no recycle bin. Any real transactions, hisaab balances, and reminder rules are untouched. Recreate and re-add.
+**I deleted a scenario by mistake.** Scenario deletion is permanent - no recycle bin. Any real transactions, hisaab balances, and reminder rules are untouched. Recreate and re-add.
 
 ## What's intentionally NOT in the simulator
 
@@ -189,7 +189,7 @@ These show up inside the Incoming / Outgoing lists with the sublabel "Collect fr
 - **Budget changes.** You can see the simulated spend vs budget, but you can't edit budgets from the simulator.
 - **Salary auto-detection.** The simulator doesn't scan your SMS history for recurring credits. Add them manually, or set them up as reminders so they auto-seed.
 - **Fuzzy amount matching.** The amount must match exactly to the paise. A different amount means a different transaction.
-- **Cross-device sync.** Like everything in Arth — local-first, no cloud.
+- **Cross-device sync.** Like everything in Arth - local-first, no cloud.
 
 ## Backups
 
@@ -197,6 +197,6 @@ Scenarios, entries, and hisaab inclusions are all included in the encrypted back
 
 ## Related
 
-- [Reminders for recurring payments](reminders) — reminders auto-seed the simulator.
-- [Hisaab — track money with people](hisaab) — the source of hisaab inclusions + Collect / Pay-back entries.
-- [Privacy and offline-first](privacy-offline) — why the simulator is fully local.
+- [Reminders for recurring payments](reminders) - reminders auto-seed the simulator.
+- [Hisaab - track money with people](hisaab) - the source of hisaab inclusions + Collect / Pay-back entries.
+- [Privacy and offline-first](privacy-offline) - why the simulator is fully local.

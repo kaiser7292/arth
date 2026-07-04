@@ -181,7 +181,7 @@ export default function SettingsScreen() {
         // Show explanation dialog before requesting permission
         alert(
           "Read Bank SMS",
-          "Arth can read your bank transaction SMS (ICICI, HDFC, Axis, SBI, UPI) to detect expenses.\n\nWhat happens:\n• Only bank/UPI SMS are read — personal messages are ignored\n• All processing happens on your device\n• Detected expenses go to a review queue — you approve each one\n• You can scan manually or turn on automatic scanning\n\nWe'll ask for SMS permission next.",
+          "Arth can read your bank transaction SMS (ICICI, HDFC, Axis, SBI, UPI) to detect expenses.\n\nWhat happens:\n• Only bank/UPI SMS are read - personal messages are ignored\n• All processing happens on your device\n• Detected expenses go to a review queue - you approve each one\n• You can scan manually or turn on automatic scanning\n\nWe'll ask for SMS permission next.",
           [
             { text: "Not Now", style: "cancel" },
             {
@@ -493,7 +493,7 @@ export default function SettingsScreen() {
                 </Pressable>
                 {cleanupCustomRange && (
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1.5 text-center">
-                    {formatDateLabel(cleanupCustomRange.startDate)} — {formatDateLabel(cleanupCustomRange.endDate)}
+                    {formatDateLabel(cleanupCustomRange.startDate)} - {formatDateLabel(cleanupCustomRange.endDate)}
                   </Text>
                 )}
               </View>
@@ -754,7 +754,7 @@ export default function SettingsScreen() {
             <Card title="Duplicate Detection" className="mb-4">
               <View className="flex-row items-center mb-2">
                 <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} />
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-1.5 flex-1">Scan your expenses for potential duplicates — same amount, account, merchant, and date.</Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-1.5 flex-1">Scan your expenses for potential duplicates - same amount, account, merchant, and date.</Text>
               </View>
               <Pressable onPress={() => handleDuplicateScan(false)} disabled={dupScanning} className="flex-row items-center justify-center py-3 rounded-lg" style={{ backgroundColor: accent[500] }}>
                 {dupScanning ? (
@@ -834,7 +834,7 @@ export default function SettingsScreen() {
               <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Version</Text>
               <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
                 {(() => {
-                  const v = require("expo-constants").default.expoConfig?.version ?? "—";
+                  const v = require("expo-constants").default.expoConfig?.version ?? "-";
                   const sha = require("@/constants/build-info").COMMIT_SHA;
                   return sha ? `${v} - ${sha}` : v;
                 })()}

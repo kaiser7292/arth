@@ -327,7 +327,7 @@ export function RecurringRuleSheet({
                 </Pressable>
                 {!startTouched && (
                   <Text className="text-xs mt-1.5" style={{ color: colors.textSecondary }}>
-                    Suggested based on {frequency} cadence — tap to change.
+                    Suggested based on {frequency} cadence - tap to change.
                   </Text>
                 )}
               </View>

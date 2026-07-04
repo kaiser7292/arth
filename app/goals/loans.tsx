@@ -80,7 +80,7 @@ export default function LoansListScreen() {
           : "";
       alert(
         "Merge duplicate loan accounts?",
-        `Two ${candidate.bankName} loan cards look like the same account:\n• Your loan (entered manually)\n• ${candidate.candidateLabel ?? `Account XX${candidate.candidateIdentifier.slice(-4)}`} — auto-detected from SMS${expensesLine}`,
+        `Two ${candidate.bankName} loan cards look like the same account:\n• Your loan (entered manually)\n• ${candidate.candidateLabel ?? `Account XX${candidate.candidateIdentifier.slice(-4)}`} - auto-detected from SMS${expensesLine}`,
         [
           {
             text: "Keep separate",

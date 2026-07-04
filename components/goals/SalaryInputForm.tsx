@@ -289,7 +289,7 @@ export function SalaryInputForm({
               </Text>
               <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center px-4">
                 Enter your monthly take-home salary. No tax calculation
-                needed — just the amount you receive.
+                needed - just the amount you receive.
               </Text>
             </View>
           </Card>

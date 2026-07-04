@@ -220,7 +220,7 @@ export default function PensionAccountsScreen() {
                 >
                   <Ionicons name="alert-circle" size={14} color={sc.warning} />
                   <Text className="text-[10px] font-medium ml-2" style={{ color: sc.warning }}>
-                    No opening balance set — showing from ₹0
+                    No opening balance set - showing from ₹0
                   </Text>
                 </View>
               )}

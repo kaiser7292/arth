@@ -125,7 +125,7 @@ export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }:
 
                 {!sourceAccount && sourceAccountId && (
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-3">
-                    The original account is no longer active — pick a destination.
+                    The original account is no longer active - pick a destination.
                   </Text>
                 )}
               </View>

@@ -588,7 +588,7 @@ export default function AuditLogScreen() {
             <View className="mx-4 mt-3 mb-1">
               <Text className="text-xs" style={{ color: colors.textSecondary }}>
                 Showing {entries.length} {entries.length === 1 ? "event" : "events"}
-                {entries.length >= 500 ? " (capped at 500 — narrow the date range for more)" : ""}
+                {entries.length >= 500 ? " (capped at 500 - narrow the date range for more)" : ""}
               </Text>
             </View>
           }

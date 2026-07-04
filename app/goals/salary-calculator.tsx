@@ -675,7 +675,7 @@ export default function SalaryCalculatorScreen() {
               <View className="flex-row items-center mb-3 px-3 py-2.5 rounded-lg bg-[#F59E0B14]">
                 <Ionicons name="document-outline" size={16} color="#F59E0B" />
                 <Text className="text-xs font-medium ml-2" style={{ color: StatusColors[colorScheme].warning }}>
-                  Draft — not yet saved to your plan
+                  Draft - not yet saved to your plan
                 </Text>
               </View>
             )}
@@ -871,7 +871,7 @@ export default function SalaryCalculatorScreen() {
                 />
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2">
                   Used for on-track checks. Until this date, the current month isn't counted as
-                  "elapsed" for investment/milestone warnings — avoids false alarms when you're
+                  "elapsed" for investment/milestone warnings - avoids false alarms when you're
                   paid later in the month.
                 </Text>
               </Card>

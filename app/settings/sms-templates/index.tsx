@@ -117,7 +117,7 @@ export default function SmartSmsTemplatesListScreen() {
         }
         if (scanned === 0) {
           lines.push("");
-          lines.push("No SMS from this bank in the last 30 days — Arth will match it once one arrives.");
+          lines.push("No SMS from this bank in the last 30 days - Arth will match it once one arrives.");
         }
         alert(`Diagnose: ${tpl.template_id ?? tpl.bank_name}`, lines.join("\n"));
       } catch (e) {

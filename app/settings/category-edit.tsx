@@ -357,7 +357,7 @@ export default function CategoryEditScreen() {
                 Unavoidable Expense
               </Text>
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                Rent, insurance, EMIs — expenses you can't skip
+                Rent, insurance, EMIs - expenses you can't skip
               </Text>
             </View>
             <Switch

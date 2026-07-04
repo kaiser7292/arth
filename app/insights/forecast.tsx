@@ -152,7 +152,7 @@ export default function ForecastDetailScreen() {
 
         {/* Fixed Expenses Done */}
         <View className="px-4 mt-4">
-          <SectionHeader title={`Fixed Expenses (Done) — ${formatAmount(fixedDone.total)}`} />
+          <SectionHeader title={`Fixed Expenses (Done) - ${formatAmount(fixedDone.total)}`} />
           <Card>
             {fixedDone.items.length === 0 ? (
               <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
@@ -184,7 +184,7 @@ export default function ForecastDetailScreen() {
 
         {/* Fixed Expenses Pending */}
         <View className="px-4 mt-4">
-          <SectionHeader title={`Fixed Expenses (Pending) — ${formatAmount(fixedPending.total)}`} />
+          <SectionHeader title={`Fixed Expenses (Pending) - ${formatAmount(fixedPending.total)}`} />
           <Card>
             {fixedPending.items.length === 0 ? (
               <View className="flex-row items-center gap-2">
@@ -218,7 +218,7 @@ export default function ForecastDetailScreen() {
 
         {/* Variable Spending */}
         <View className="px-4 mt-4">
-          <SectionHeader title={`Variable Spending — ${formatAmount(variable.projected)}`} />
+          <SectionHeader title={`Variable Spending - ${formatAmount(variable.projected)}`} />
           <Card>
             <View className="gap-1.5 mb-3">
               <MetricLine label="Daily pace" value={`${formatAmount(variable.dailyPace)}/day`} />

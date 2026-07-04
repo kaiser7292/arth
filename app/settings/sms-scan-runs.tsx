@@ -285,7 +285,7 @@ export default function SmsScanRunsScreen() {
                                 key={reason}
                                 className="text-xs text-text-tertiary dark:text-text-dark-secondary"
                               >
-                                • {cnt} — {formatFilterReason(reason)}
+                                • {cnt} - {formatFilterReason(reason)}
                               </Text>
                             ))}
                           </View>

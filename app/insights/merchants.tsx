@@ -234,7 +234,7 @@ export default function MerchantAnalyticsScreen() {
                     >
                       <Text className="text-xs text-text-tertiary w-20">{formatDateForDisplay(t.date)}</Text>
                       <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1" numberOfLines={1}>
-                        {t.description ?? "—"}
+                        {t.description ?? "-"}
                       </Text>
                       <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
                         {formatAmount(t.amount)}

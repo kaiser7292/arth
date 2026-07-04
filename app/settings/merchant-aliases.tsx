@@ -249,7 +249,7 @@ export default function MerchantAliasesScreen() {
                 <View key={a.id} className="flex-row items-center py-1.5">
                   <Ionicons name="information-circle-outline" size={10} color={colors.textSecondary} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-tertiary flex-1" numberOfLines={1}>
-                    No alias — tap name above to rename
+                    No alias - tap name above to rename
                   </Text>
                 </View>
               );
@@ -304,7 +304,7 @@ export default function MerchantAliasesScreen() {
       {/* Header info */}
       <View className="px-4 pt-3 pb-2">
         <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
-          All merchants from your expenses. Tap any name to rename — changes apply everywhere. Renaming a merchant that has no alias yet creates one on save.
+          All merchants from your expenses. Tap any name to rename - changes apply everywhere. Renaming a merchant that has no alias yet creates one on save.
         </Text>
         <LearnMoreChip contextKey="merchant-aliases-list" label="Why are names weird?" />
       </View>

@@ -366,7 +366,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                       : "#FFFFFF",
                   }}
                 >
-                  Next — Choose Format
+                  Next - Choose Format
                 </Text>
               </Pressable>
 

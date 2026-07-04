@@ -469,7 +469,7 @@ export async function markRepaymentAsPaid(
 
   // Surface the due date in the ledger description so the reader can
   // distinguish payment date from bill due date at a glance.
-  const merchantPart = forecast.merchant_name ? ` — ${forecast.merchant_name}` : "";
+  const merchantPart = forecast.merchant_name ? ` - ${forecast.merchant_name}` : "";
   const duePart = forecast.due_date ? ` (due ${forecast.due_date})` : "";
 
   // v15.12.1: for SMS-detected repayment forecasts, preserve the raw SMS body
@@ -538,7 +538,7 @@ export async function markForecastPaidExternally(
     // the description so payment date vs bill due date are both visible.
     const creditId = generateUUID();
     const paymentDate = new Date().toISOString().split("T")[0];
-    const merchantPart = forecast.merchant_name ? ` — ${forecast.merchant_name}` : "";
+    const merchantPart = forecast.merchant_name ? ` - ${forecast.merchant_name}` : "";
     const duePart = forecast.due_date ? ` (due ${forecast.due_date})` : "";
     const now = new Date().toISOString(); // Local time in ISO format
     await db.runAsync(

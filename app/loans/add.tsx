@@ -331,7 +331,7 @@ export default function AddLoanScreen() {
                 Currency
               </Text>
               <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mt-1">
-                {currency} — {CURRENCIES.find((c) => c.code === currency)?.displayName ?? "—"}
+                {currency} - {CURRENCIES.find((c) => c.code === currency)?.displayName ?? "-"}
               </Text>
             </Pressable>
             {showCurrencyPicker && (
@@ -508,7 +508,7 @@ export default function AddLoanScreen() {
           {/* Prepayment rules */}
           <Card title="Prepayment / Foreclosure Rules" className="mb-4">
             <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
-              Charges the bank takes when you pay extra ahead of schedule. From your loan's Key Fact Sheet. Nothing to do with missing an EMI — that's Penal Charges below. Leave 0 if not applicable.
+              Charges the bank takes when you pay extra ahead of schedule. From your loan's Key Fact Sheet. Nothing to do with missing an EMI - that's Penal Charges below. Leave 0 if not applicable.
             </Text>
             <Input
               label="Standard prepayment charge %"
@@ -523,7 +523,7 @@ export default function AddLoanScreen() {
               value={prepayEarlyPct}
               onChangeText={setPrepayEarlyPct}
               keyboardType="numeric"
-              placeholder="e.g. 0 — 0 means no reduction"
+              placeholder="e.g. 0 - 0 means no reduction"
               containerClassName="mb-3"
             />
             <Input
@@ -539,7 +539,7 @@ export default function AddLoanScreen() {
               value={foreclosureWaiverMonths}
               onChangeText={setForeclosureWaiverMonths}
               keyboardType="numeric"
-              placeholder="e.g. 12 — no foreclosure fee after this many months"
+              placeholder="e.g. 12 - no foreclosure fee after this many months"
               containerClassName="mb-3"
             />
             <Input
@@ -547,7 +547,7 @@ export default function AddLoanScreen() {
               value={foreclosureWaiverMinAmount}
               onChangeText={setForeclosureWaiverMinAmount}
               keyboardType="numeric"
-              placeholder="e.g. 1000000 — big loans skip the fee"
+              placeholder="e.g. 1000000 - big loans skip the fee"
               containerClassName="mb-3"
             />
             <Input
@@ -577,7 +577,7 @@ export default function AddLoanScreen() {
               value={penalRateCapPa}
               onChangeText={setPenalRateCapPa}
               keyboardType="numeric"
-              placeholder="e.g. 24 — caps the compounding"
+              placeholder="e.g. 24 - caps the compounding"
             />
           </Card>
 

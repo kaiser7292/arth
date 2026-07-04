@@ -194,7 +194,7 @@ export default function InsightDetailScreen() {
         {drillGroups.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader
-              title={isCreepDrill ? "Where the money went — vs last year" : "Breakdown"}
+              title={isCreepDrill ? "Where the money went - vs last year" : "Breakdown"}
             />
             <Card>
               {isCreepDrill && (
@@ -258,7 +258,7 @@ export default function InsightDetailScreen() {
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary leading-5">
                 Each row shows one category. The red/green bar is what you spent in the last 3 months. The grey bar is what you spent in the same 3 months last year. A big gap between the two is where lifestyle creep is happening.
                 {"\n\n"}
-                <Text className="font-semibold">"New this year"</Text> means Arth has no data for that category last year — either you weren't tracking yet, or the category name is new. That can inflate the headline YoY % even when your real spending is similar.
+                <Text className="font-semibold">"New this year"</Text> means Arth has no data for that category last year - either you weren't tracking yet, or the category name is new. That can inflate the headline YoY % even when your real spending is similar.
               </Text>
             </Card>
           </View>

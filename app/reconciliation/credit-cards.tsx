@@ -362,7 +362,7 @@ export default function CreditCardsScreen() {
                     ? sc.success
                     : diff > 0 ? sc.warning : sc.danger;
                 const diffLabel = !autoDetectedUsable
-                  ? group.autoDetectedStale ? "SMS stale — using ledger" : "No SMS data"
+                  ? group.autoDetectedStale ? "SMS stale - using ledger" : "No SMS data"
                   : Math.abs(diff) < 0.005
                     ? "Bank matches"
                     : diff > 0

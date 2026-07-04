@@ -147,7 +147,7 @@ export function ForeclosureQuoteSheet({
             <Row label="Interest accrued (from last EMI)" value={formatMoney(quote.interestAccruedToDate)} />
             <Row
               label="Prepayment charge"
-              value={quote.prepaymentCharge > 0 ? formatMoney(quote.prepaymentCharge) : "— waived"}
+              value={quote.prepaymentCharge > 0 ? formatMoney(quote.prepaymentCharge) : "- waived"}
               color={quote.prepaymentCharge === 0 ? "success" : undefined}
             />
             {quote.gst > 0 && <Row label="GST" value={formatMoney(quote.gst)} />}

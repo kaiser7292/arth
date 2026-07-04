@@ -1,4 +1,4 @@
----
+﻿---
 title: Setting and tracking a budget
 slug: budget
 summary: Monthly caps per category with a progress bar. Refunds subtract from the actual.
@@ -48,9 +48,9 @@ Do this for one category or all. The **overall** bar at the top is the sum.
 
 ## How the progress bar works
 
-- **Green** — within cap.
-- **Yellow** — 80%+ of cap used.
-- **Red** — over cap.
+- **Green** - within cap.
+- **Yellow** - 80%+ of cap used.
+- **Red** - over cap.
 
 Number shown is `actual / cap`. "Actual" is the sum of approved realized expenses in that category during the current month, **minus any refunds** linked to those expenses.
 
@@ -58,7 +58,7 @@ Number shown is `actual / cap`. "Actual" is the sum of approved realized expense
 
 Budgets reset on the 1st of every calendar month. If your last cap for a category was ₹8,000, next month starts with ₹8,000 and ₹0 spent.
 
-This is separate from your **fiscal year** (Settings tab → Fiscal Year) — FY drives yearly reports, salary calculations, and YoY comparisons, not monthly budgets.
+This is separate from your **fiscal year** (Settings tab → Fiscal Year) - FY drives yearly reports, salary calculations, and YoY comparisons, not monthly budgets.
 
 ## What counts against the budget
 
@@ -78,7 +78,7 @@ Likely in the Review Queue. Open **Home → Review Queue**, approve the expense,
 Arth doesn't auto-carry. Deliberately lower next month's cap by the overage amount if you want that behavior.
 
 **"Does the forecast for rent show up?"**
-Forecast rows have a "FORECAST" pill and are grey — they don't inflate actuals. When the real rent SMS arrives and you approve it (or tap "Realize" on the match), the forecast goes away and the real expense counts.
+Forecast rows have a "FORECAST" pill and are grey - they don't inflate actuals. When the real rent SMS arrives and you approve it (or tap "Realize" on the match), the forecast goes away and the real expense counts.
 
 **"I refunded a big-ticket purchase. Why is my category still over budget?"**
 If the refund hasn't been recorded yet, open the original expense → tap **Record a Refund** → pick the destination account → fill in the amount. The budget will update as soon as the refund is saved (approved). Refunds link to the original expense via the "Refund of" line in expense metadata.

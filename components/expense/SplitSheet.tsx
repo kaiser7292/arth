@@ -493,7 +493,7 @@ export function SplitSheet({
                       </View>
                       <Text className="text-sm text-text-primary dark:text-text-dark-primary">
                         {selectedPerson?.name ?? "Person"}
-                        {preview.hisaabType === "debit" ? " owes you" : " — you owe"}
+                        {preview.hisaabType === "debit" ? " owes you" : " - you owe"}
                       </Text>
                     </View>
                     <Text className="text-base font-bold text-orange-600 dark:text-orange-300">

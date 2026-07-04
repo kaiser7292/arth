@@ -1,4 +1,4 @@
----
+﻿---
 title: Fiscal year explained
 slug: fiscal-year
 summary: Your fiscal year sets the boundary for yearly reports, salary, and YoY comparisons. Default April–March.
@@ -20,8 +20,8 @@ phrasings:
 
 Arth keeps two time concepts separate and uses them for different things.
 
-- **Calendar month** — the 1st to the end of the month. Drives monthly budgets and everything on the Home tab's month-to-date spend.
-- **Fiscal year (FY)** — a 12-month window you configure. Drives yearly reports, yearly plan, salary calculator, and YoY comparisons.
+- **Calendar month** - the 1st to the end of the month. Drives monthly budgets and everything on the Home tab's month-to-date spend.
+- **Fiscal year (FY)** - a 12-month window you configure. Drives yearly reports, yearly plan, salary calculator, and YoY comparisons.
 
 ## The default
 
@@ -31,13 +31,13 @@ Arth keeps two time concepts separate and uses them for different things.
 
 1. Open the **Settings tab → Preferences → Region → Fiscal Year**.
 2. Pick when your FY starts:
-  - **January** — calendar year (US / Europe personal, Singapore)
-  - **April** — India, UK, Japan, Hong Kong
-  - **July** — Australia
-  - **October** — US federal / non-profit
+  - **January** - calendar year (US / Europe personal, Singapore)
+  - **April** - India, UK, Japan, Hong Kong
+  - **July** - Australia
+  - **October** - US federal / non-profit
 3. Tap **Save**.
 
-No past data is rewritten. Only the "lens" changes — past expenses stay where they are; the new FY boundary applies to all future reports. Custom FY start dates (e.g. July 15) are not supported — pick the closest standard.
+No past data is rewritten. Only the "lens" changes - past expenses stay where they are; the new FY boundary applies to all future reports. Custom FY start dates (e.g. July 15) are not supported - pick the closest standard.
 
 ## What the FY setting controls
 
@@ -51,10 +51,10 @@ Things that use your **fiscal year**:
 
 Things that use the **calendar month** instead (not affected by FY):
 
-- Budget tab — monthly caps reset on the 1st of every month
-- Home tab — month-to-date spend ring
-- Transactions tab — monthly filter
-- Insights screen — monthly trend, forecast, spending pulse
+- Budget tab - monthly caps reset on the 1st of every month
+- Home tab - month-to-date spend ring
+- Transactions tab - monthly filter
+- Insights screen - monthly trend, forecast, spending pulse
 - Account balances (monthly ledger)
 
 ## Common situations
@@ -63,7 +63,7 @@ Things that use the **calendar month** instead (not affected by FY):
 
 **"My yearly summary starts in January but I set April."** Pull-to-refresh, or restart the app. This is the one setting that needs a reload on some screens.
 
-**"Can the financial year be custom, like July 15 – July 14?"** No — only calendar-month boundaries. Pick the closest standard.
+**"Can the financial year be custom, like July 15 – July 14?"** No - only calendar-month boundaries. Pick the closest standard.
 
 ## Related
 

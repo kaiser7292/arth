@@ -1,5 +1,5 @@
----
-title: Month-end projection — how we forecast your spend
+﻿---
+title: Month-end projection - how we forecast your spend
 slug: projection-math
 summary: How Arth projects where you'll land at the end of the month on the Budget and Insights screens, and why the two screens show the same numbers.
 tags: [projection, forecast, month-end, budget, insights, analytics, daily-pace, fixed, variable, confidence, spending]
@@ -18,7 +18,7 @@ phrasings:
   - How accurate is the month-end projection?
   - Where does "days left" come from on the forecast card?
   - What is breathing room?
-  - Projected savings vs projected deficit — what do they mean?
+  - Projected savings vs projected deficit - what do they mean?
   - UI element month end projection
   - UI element projected spend
   - UI element daily pace
@@ -29,12 +29,12 @@ phrasings:
   - UI element days left
   - Budget tab projection widget
   - Insights forecast card
-  - Month So Far vs Projected — how do they relate?
+  - Month So Far vs Projected - how do they relate?
 ---
 
 Month-end projection answers one question: **"If I keep spending the way I've been spending, where will I land by the end of the month?"**
 
-You see this number in two places — they use the same math and always show the same value.
+You see this number in two places - they use the same math and always show the same value.
 
 ## Where to find it
 
@@ -49,18 +49,18 @@ Your projected total for the month is built from three pieces:
 
 Where:
 
-- **Fixed done** — predictable monthly costs you've already paid this month (rent, EMI, utility bills).
-- **Fixed pending** — the same kind of costs, still due before month-end. Pulled from your **Reminders**.
-- **Variable projected** — everything else, estimated by extrapolating your current pace to the end of the month.
+- **Fixed done** - predictable monthly costs you've already paid this month (rent, EMI, utility bills).
+- **Fixed pending** - the same kind of costs, still due before month-end. Pulled from your **Reminders**.
+- **Variable projected** - everything else, estimated by extrapolating your current pace to the end of the month.
 
 Each piece is explained below, with a worked example.
 
-## Fixed spend — two buckets
+## Fixed spend - two buckets
 
 Fixed spend is anything predictable that repeats every month. Arth splits it into two buckets:
 
-- **Fixed done** — the sum of fixed-category expenses **already paid** this month (in your expense list).
-- **Fixed pending** — the sum of **active reminders** with a `next_due_date` falling in the current month that haven't been paid yet. Every active reminder counts exactly once.
+- **Fixed done** - the sum of fixed-category expenses **already paid** this month (in your expense list).
+- **Fixed pending** - the sum of **active reminders** with a `next_due_date` falling in the current month that haven't been paid yet. Every active reminder counts exactly once.
 
 **Example.** Today is 15 April. You've already paid rent (₹25,000) and your electricity bill (₹2,400). Your HDFC credit card bill is due on 28 April, set up as a reminder for ₹18,000.
 
@@ -68,9 +68,9 @@ Fixed spend is anything predictable that repeats every month. Arth splits it int
 - Fixed pending = **₹18,000**
 - Fixed total = **₹45,400**
 
-## Variable spend — daily pace
+## Variable spend - daily pace
 
-Everything that isn't "fixed" is variable. Arth doesn't predict specific future variable transactions — it simply averages your current pace.
+Everything that isn't "fixed" is variable. Arth doesn't predict specific future variable transactions - it simply averages your current pace.
 
 The math, step by step:
 
@@ -79,7 +79,7 @@ The math, step by step:
 - **Variable for rest of month** = daily pace × days left.
 - **Variable projected** = variable so far + variable for rest of month.
 
-**Example (continuing from above).** Today is 15 April — 15 days elapsed, 15 days left in April. Your variable spend so far is ₹30,000.
+**Example (continuing from above).** Today is 15 April - 15 days elapsed, 15 days left in April. Your variable spend so far is ₹30,000.
 
 - Daily pace = 30,000 ÷ 15 = **₹2,000 / day**
 - Variable for rest of month = 2,000 × 15 = **₹30,000**
@@ -95,29 +95,29 @@ Continuing the example:
 
 If your monthly budget is ₹1,10,000, your **breathing room** is +₹4,600 (projected savings). If it's ₹95,000, your breathing room is −₹10,400 (projected deficit).
 
-## Confidence — how much to trust the projection
+## Confidence - how much to trust the projection
 
 Arth labels every projection as **Low**, **Medium**, or **High** confidence:
 
-- **Low** — first 7 days of the month, OR fewer than 5 variable transactions so far. Daily pace doesn't have enough signal yet.
-- **Medium** — 8–15 days elapsed, OR under 15 transactions. Pace is reasonable but can still shift.
-- **High** — 16+ days elapsed AND 15+ transactions. Pace is stable enough that the projection usually lands within ±10%.
+- **Low** - first 7 days of the month, OR fewer than 5 variable transactions so far. Daily pace doesn't have enough signal yet.
+- **Medium** - 8–15 days elapsed, OR under 15 transactions. Pace is reasonable but can still shift.
+- **High** - 16+ days elapsed AND 15+ transactions. Pace is stable enough that the projection usually lands within ±10%.
 
-The projection is shown even at low confidence — but that's your cue to not over-react to the number.
+The projection is shown even at low confidence - but that's your cue to not over-react to the number.
 
 ## Why the two screens always match
 
-Both the Budget tab's projection widget and the Insights forecast card call the same engine (`getAnalyticsForecast`). Same inputs → same output. If you ever see them diverge, it's a bug — please report it.
+Both the Budget tab's projection widget and the Insights forecast card call the same engine (`getAnalyticsForecast`). Same inputs → same output. If you ever see them diverge, it's a bug - please report it.
 
 ## Common situations
 
-**My projected spend shot up today.** You either paid a big fixed cost (rent, EMI, CC bill) or had a high-variable day that raised the daily pace. Refresh tomorrow — one spike rarely persists.
+**My projected spend shot up today.** You either paid a big fixed cost (rent, EMI, CC bill) or had a high-variable day that raised the daily pace. Refresh tomorrow - one spike rarely persists.
 
 **Projection on day 1 of the month looks weird.** It is. On day 1, daily pace either doesn't exist (no variable spend yet) or is based on a single data point. Confidence will say **Low**. Give it a week.
 
-**My reminders don't have the right amounts — does the projection use them?** Yes — fixed pending reads each reminder's amount. Keep reminders accurate so the projection isn't thrown off.
+**My reminders don't have the right amounts - does the projection use them?** Yes - fixed pending reads each reminder's amount. Keep reminders accurate so the projection isn't thrown off.
 
-**I marked a reminder as paid. Is it still in fixed pending?** No — once a reminder is fulfilled (linked to a real expense), it moves into fixed done automatically.
+**I marked a reminder as paid. Is it still in fixed pending?** No - once a reminder is fulfilled (linked to a real expense), it moves into fixed done automatically.
 
 **The projection says I'll save ₹5,000 but my gut says I'll overspend.** Your gut might be counting a one-off (a trip, a gift) that Arth can't know about. Projections assume the rest of the month looks like the days elapsed so far.
 

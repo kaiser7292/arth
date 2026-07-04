@@ -136,7 +136,7 @@ export default function GoalsScreen() {
             <>
               {/* FY label */}
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
-                {cockpit.data.fyLabel} — Month {cockpit.data.fiscalMonth} of 12
+                {cockpit.data.fyLabel} - Month {cockpit.data.fiscalMonth} of 12
               </Text>
 
               {/* Savings Pulse */}

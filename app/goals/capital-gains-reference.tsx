@@ -127,11 +127,11 @@ export default function CapitalGainsReferenceScreen() {
           <Card title="Key Terms" className="mb-3">
             <TermRow
               term="LTCG"
-              definition="Long-Term Capital Gains — profit from selling an asset held beyond the specified period"
+              definition="Long-Term Capital Gains - profit from selling an asset held beyond the specified period"
             />
             <TermRow
               term="STCG"
-              definition="Short-Term Capital Gains — profit from selling an asset before the specified holding period"
+              definition="Short-Term Capital Gains - profit from selling an asset before the specified holding period"
             />
             <TermRow
               term="Slab rate"
@@ -139,11 +139,11 @@ export default function CapitalGainsReferenceScreen() {
             />
             <TermRow
               term="Indexation"
-              definition="Adjusting purchase price for inflation — removed for most assets post Budget 2024"
+              definition="Adjusting purchase price for inflation - removed for most assets post Budget 2024"
             />
             <TermRow
               term="STT"
-              definition="Securities Transaction Tax — paid on stock exchange transactions; required for equity LTCG benefit"
+              definition="Securities Transaction Tax - paid on stock exchange transactions; required for equity LTCG benefit"
             />
           </Card>
         </View>

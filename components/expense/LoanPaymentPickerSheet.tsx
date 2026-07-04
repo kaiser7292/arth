@@ -415,7 +415,7 @@ export function LoanPaymentPickerSheet({
                 ? "Mark as Loan Payment"
                 : step === "emi_installment"
                   ? selectedLoan
-                    ? `${selectedLoan.agreement_id ?? "Loan"} — pick installment`
+                    ? `${selectedLoan.agreement_id ?? "Loan"} - pick installment`
                     : "Pick installment"
                   : step === "prepayment_strategy"
                     ? "Prepayment strategy"
@@ -704,7 +704,7 @@ export function LoanPaymentPickerSheet({
                   />
                   <PreviewRow
                     label="Charge"
-                    value={impact.charge > 0 ? `− ${formatAmount(impact.charge)}` : "— waived"}
+                    value={impact.charge > 0 ? `− ${formatAmount(impact.charge)}` : "- waived"}
                     color={
                       impact.charge > 0
                         ? StatusColors[colorScheme].danger
@@ -714,7 +714,7 @@ export function LoanPaymentPickerSheet({
                   />
                   <PreviewRow
                     label="GST (on charge)"
-                    value={impact.gst > 0 ? `− ${formatAmount(impact.gst)}` : "—"}
+                    value={impact.gst > 0 ? `− ${formatAmount(impact.gst)}` : "-"}
                     colors={colors}
                   />
                   <View className="border-t border-border-light dark:border-border-dark my-2" />

@@ -1,5 +1,5 @@
----
-title: Hisaab — shared accounts with people
+﻿---
+title: Hisaab - shared accounts with people
 slug: hisaab
 summary: Track who owes whom for splits, loans, and shared expenses. Separate from your bank accounts.
 tags: [hisaab, split, shared, family, friends, loan, settle, settlement]
@@ -22,11 +22,11 @@ phrasings:
   - Vinay paid me back
 ---
 
-Hisaab (हिसाब) tracks money between you and specific people — family, roommates, friends. Each person is a separate running balance.
+Hisaab (हिसाब) tracks money between you and specific people - family, roommates, friends. Each person is a separate running balance.
 
 ## Where to find it
 
-- **Home tab → People & Money → Hisaab — Family Ledger** card.
+- **Home tab → People & Money → Hisaab - Family Ledger** card.
 - Tap it to open the people list. Each person shows their current balance (+ owes you / − you owe).
 - Tap a person → their ledger (entries + settlements + running balance).
 
@@ -48,11 +48,11 @@ For every person you have a hisaab with:
 
 The available **split modes** are:
 
-- **Equal 50-50** — the amount is split evenly.
-- **They owe full** — you paid, they owe all of it.
-- **I owe full** — they paid, you owe all of it.
-- **Exact amount** — custom, e.g. "they owe ₹400 of ₹1,000".
-- **Percentage** — custom, e.g. "they owe 30%".
+- **Equal 50-50** - the amount is split evenly.
+- **They owe full** - you paid, they owe all of it.
+- **I owe full** - they paid, you owe all of it.
+- **Exact amount** - custom, e.g. "they owe ₹400 of ₹1,000".
+- **Percentage** - custom, e.g. "they owe 30%".
 
 To create the split:
 
@@ -65,12 +65,12 @@ To create the split:
 Arth then does the book-keeping automatically:
 
 - Your share goes into your budget.
-- Their share becomes a hisaab entry — "they owe ₹X".
+- Their share becomes a hisaab entry - "they owe ₹X".
 - If they paid (I owe), the entire expense amount becomes a hisaab entry the other way.
 
 ## Settle up (two ways)
 
-### Option A — record settlement from the person's ledger
+### Option A - record settlement from the person's ledger
 
 When money moves and you want to log it manually:
 
@@ -81,7 +81,7 @@ When money moves and you want to log it manually:
 
 The settlement shows up in the ledger and nets the balance down. If you picked an account, Arth also records a credit on that account to keep your balances honest.
 
-### Option B — mark an existing credit as a settlement
+### Option B - mark an existing credit as a settlement
 
 When you see an incoming credit (a UPI payment SMS, a bank transfer notification) that was actually a friend paying you back:
 
@@ -91,7 +91,7 @@ When you see an incoming credit (a UPI payment SMS, a bank transfer notification
 
 The credit stays as-is on your account ledger, and a settlement entry appears in the person's hisaab ledger with the same amount and date. The expense detail now shows **Settlement from [person]** with a "View ledger" button.
 
-**Unlink** — tap Unlink on that badge to remove the hisaab link. The credit stays (it's a real bank transaction); only the settlement entry is removed.
+**Unlink** - tap Unlink on that badge to remove the hisaab link. The credit stays (it's a real bank transaction); only the settlement entry is removed.
 
 This is available for any realized credit on a savings, wallet, or loan account. Credit-card credits are always bill-payment or refund, so the action is hidden there.
 
@@ -112,8 +112,8 @@ Create one hisaab person for "Household" (you + spouse) and another for "Monika"
 **"Delete a person."**
 Home tab → Hisaab card → tap the person → **Delete**. Any hisaab entries (and their linked expenses) are removed or unlinked per the confirm prompt.
 
-**"My spouse and I share money — do we need hisaab?"**
-Only if you want to see who-paid-what. If you pool everything, you don't need hisaab — you can instead add both your salaries and log all expenses normally.
+**"My spouse and I share money - do we need hisaab?"**
+Only if you want to see who-paid-what. If you pool everything, you don't need hisaab - you can instead add both your salaries and log all expenses normally.
 
 **"I marked a credit as settlement but actually it was a refund from a merchant."**
 Open the credit → **Unlink** on the settlement badge. The hisaab entry goes away; the credit stays. Then tap "Mark as CC Bill Payment" or whatever the correct classification is.

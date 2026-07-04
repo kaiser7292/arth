@@ -187,7 +187,7 @@ export function DuplicateGroupCard({
             className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl"
             style={{ backgroundColor: success + "14" }}
             accessibilityRole="button"
-            accessibilityLabel="Keep both — not duplicates"
+            accessibilityLabel="Keep both - not duplicates"
           >
             <Ionicons name="checkmark-circle-outline" size={16} color={success} />
             <Text className="text-xs font-semibold ml-1.5" style={{ color: success }}>

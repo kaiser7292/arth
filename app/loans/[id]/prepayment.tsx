@@ -257,7 +257,7 @@ export default function PrepaymentForm() {
                 style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
               >
                 <Text className="text-xs" style={{ color: colors.textSecondary }}>
-                  Small prepayment ({formatMoney(amountNum)} &lt; EMI of {formatMoney(Math.round(currentEmi))}). Applied straight to principal — tenure and EMI stay the same, the last installment gets smaller.
+                  Small prepayment ({formatMoney(amountNum)} &lt; EMI of {formatMoney(Math.round(currentEmi))}). Applied straight to principal - tenure and EMI stay the same, the last installment gets smaller.
                 </Text>
               </View>
             )}
@@ -273,12 +273,12 @@ export default function PrepaymentForm() {
                 <ImpactRow label="Prepayment" value={formatMoney(amountNum)} />
                 <ImpactRow
                   label="Charge"
-                  value={impact.charge > 0 ? `− ${formatMoney(impact.charge)}` : "— waived"}
+                  value={impact.charge > 0 ? `− ${formatMoney(impact.charge)}` : "- waived"}
                   color={impact.charge > 0 ? "danger" : "success"}
                 />
                 <ImpactRow
                   label="GST (on charge)"
-                  value={impact.gst > 0 ? `− ${formatMoney(impact.gst)}` : "—"}
+                  value={impact.gst > 0 ? `− ${formatMoney(impact.gst)}` : "-"}
                 />
                 <View className="border-t border-border-light dark:border-border-dark my-2" />
                 <ImpactRow

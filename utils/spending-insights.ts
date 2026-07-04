@@ -416,7 +416,7 @@ export function generateInsights(
   for (const t of falling.slice(0, 1)) {
     const name = categoryNames.get(t.categoryId) ?? "Unknown";
     insights.push({
-      text: `${name} spending dropped ${Math.abs(t.changePct)}% vs last month — nice!`,
+      text: `${name} spending dropped ${Math.abs(t.changePct)}% vs last month - nice!`,
       priority: 70,
     });
   }
@@ -426,7 +426,7 @@ export function generateInsights(
     const top = anomalies[0];
     const catName = categoryNames.get(top.categoryId) ?? "Unknown";
     insights.push({
-      text: `Unusual spend: ₹${formatNum(top.amount)} on ${top.description ?? catName} — ${top.deviationMultiple}x your average for ${catName}`,
+      text: `Unusual spend: ₹${formatNum(top.amount)} on ${top.description ?? catName} - ${top.deviationMultiple}x your average for ${catName}`,
       priority: 85,
     });
   }
@@ -435,7 +435,7 @@ export function generateInsights(
   if (merchants.length > 0) {
     const top = merchants[0];
     insights.push({
-      text: `Top merchant: ${top.merchant} — ₹${formatNum(top.totalSpent)} across ${top.transactionCount} transactions`,
+      text: `Top merchant: ${top.merchant} - ₹${formatNum(top.totalSpent)} across ${top.transactionCount} transactions`,
       priority: 60,
     });
   }
@@ -445,7 +445,7 @@ export function generateInsights(
     const ratio = dayPattern.weekendAvgPerDay / Math.max(dayPattern.weekdayAvgPerDay, 1);
     if (ratio > 1.3) {
       insights.push({
-        text: `Weekend spending is ${round2(ratio)}x your weekday average — ₹${formatNum(dayPattern.weekendAvgPerDay)}/day vs ₹${formatNum(dayPattern.weekdayAvgPerDay)}/day`,
+        text: `Weekend spending is ${round2(ratio)}x your weekday average - ₹${formatNum(dayPattern.weekendAvgPerDay)}/day vs ₹${formatNum(dayPattern.weekdayAvgPerDay)}/day`,
         priority: 50,
       });
     }

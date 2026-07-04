@@ -477,7 +477,7 @@ export default function ImportExcelScreen() {
               >
                 <View className="flex-1">
                   <Text className="text-sm text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
-                    {row.description ?? row.merchantName ?? "—"}{" "}
+                    {row.description ?? row.merchantName ?? "-"}{" "}
                     {row.categoryName ? `(${row.categoryName})` : ""}
                   </Text>
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">

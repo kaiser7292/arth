@@ -137,7 +137,7 @@ export function YoYComparisonRow({
             />
           </View>
           <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-20 text-right">
-            {isNew ? "—" : formatAmount(previousAmount)}
+            {isNew ? "-" : formatAmount(previousAmount)}
           </Text>
         </View>
       </View>

@@ -51,7 +51,7 @@ export const EXPENSE_FIELDS = [
   { key: "category", label: "Category", required: false },
   { key: "payment_mode", label: "Payment Mode", required: false },
   { key: "is_right_spend", label: "Right Spend", required: false },
-  { key: "skip", label: "— Skip —", required: false },
+  { key: "skip", label: "- Skip -", required: false },
 ] as const;
 
 export type ExpenseField = (typeof EXPENSE_FIELDS)[number]["key"];

@@ -187,7 +187,7 @@ export default function SecuritySettingsScreen() {
 
           <Text className="text-xs text-text-tertiary px-2">
             App lock preferences are stored on this device only. Uninstalling Arth or restoring from
-            a backup on another device will start with the lock off — you can turn it on again from
+            a backup on another device will start with the lock off - you can turn it on again from
             this screen.
           </Text>
         </View>

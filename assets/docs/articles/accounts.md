@@ -1,4 +1,4 @@
----
+﻿---
 title: Accounts and balances
 slug: accounts
 summary: How to add, edit, and read balances for savings, credit cards, loans, wallets, and demat accounts.
@@ -36,12 +36,12 @@ phrasings:
   - Total on demat account card
 ---
 
-Accounts represent where your money actually lives — savings, credit cards, wallets, loans, demat. Arth keeps a running balance for each by applying every expense, credit, and transfer in date order.
+Accounts represent where your money actually lives - savings, credit cards, wallets, loans, demat. Arth keeps a running balance for each by applying every expense, credit, and transfer in date order.
 
 ## Where to find them
 
-- **Settings tab → Master Data → Accounts** — the master list of all accounts.
-- **Home tab → Your Accounts** — account summary cards show live balances for each type: Credit Cards, Bank Accounts, Wallets, Demat, and Loans. Tap any card to drill into account-specific details.
+- **Settings tab → Master Data → Accounts** - the master list of all accounts.
+- **Home tab → Your Accounts** - account summary cards show live balances for each type: Credit Cards, Bank Accounts, Wallets, Demat, and Loans. Tap any card to drill into account-specific details.
 - **Settings tab → Master Data → Accounts** → separate screens per type (Bank Accounts, Credit Cards, Wallets, Demat).
 
 ## Adding an account
@@ -69,18 +69,18 @@ Opening balance (start of month)
  = closing balance
 ```
 
-- **Savings/Wallet** — higher = more money.
-- **Credit card** — shows **utilized** (how much you owe). Lower = better. A payment from savings to credit card lowers both. The card also tracks available credit = limit − utilized.
-- **Loan** — shows **principal remaining**. Lower = better. EMI payments reduce it.
-- **Demat** — shows **fund** (idle cash with broker) + **portfolio** (invested value). Each account card displays the combined total when both fund and portfolio exist, with a breakdown subtitle. The portfolio trend chart is interactive — tap any data point to see exact values and dates. Move money in/out via transfers.
+- **Savings/Wallet** - higher = more money.
+- **Credit card** - shows **utilized** (how much you owe). Lower = better. A payment from savings to credit card lowers both. The card also tracks available credit = limit − utilized.
+- **Loan** - shows **principal remaining**. Lower = better. EMI payments reduce it.
+- **Demat** - shows **fund** (idle cash with broker) + **portfolio** (invested value). Each account card displays the combined total when both fund and portfolio exist, with a breakdown subtitle. The portfolio trend chart is interactive - tap any data point to see exact values and dates. Move money in/out via transfers.
 
 ## Demat portfolio screen
 
 Tap the **Demat Accounts** card on Home to open the portfolio screen. It shows:
 
-- **Portfolio Summary** — total portfolio value, idle cash/fund, and combined total across all demat accounts.
-- **Trend chart** — last 12 weeks of portfolio + fund, plotted per-account with a combined "Total" line when you have multiple accounts. **Tap any point** on the chart to see the exact value and date in a tooltip. A dashed vertical line highlights the selected week.
-- **Per-account breakdown** — each account shows its combined total (portfolio + fund) as the primary number, with a subtitle breaking down the two components.
+- **Portfolio Summary** - total portfolio value, idle cash/fund, and combined total across all demat accounts.
+- **Trend chart** - last 12 weeks of portfolio + fund, plotted per-account with a combined "Total" line when you have multiple accounts. **Tap any point** on the chart to see the exact value and date in a tooltip. A dashed vertical line highlights the selected week.
+- **Per-account breakdown** - each account shows its combined total (portfolio + fund) as the primary number, with a subtitle breaking down the two components.
 
 ## Common situations
 
@@ -96,7 +96,7 @@ Open the account's ledger and scroll to the first date where the running balance
 If you added the card manually AND an SMS came in that didn't match the last-4, Arth may have auto-created a second. Delete the extra from Settings tab → Master Data → Accounts.
 
 **"Delete an account."**
-Settings tab → Master Data → Accounts → tap the account → **Delete** at the bottom. If it has expenses linked, those expenses will lose their account (they won't be deleted). Prefer **Deactivate** instead — it hides the account from new entry but keeps history intact.
+Settings tab → Master Data → Accounts → tap the account → **Delete** at the bottom. If it has expenses linked, those expenses will lose their account (they won't be deleted). Prefer **Deactivate** instead - it hides the account from new entry but keeps history intact.
 
 **"Change last-known balance without adding a fake expense."**
 On the account detail screen, tap **Adjust Balance**. This creates a ledger-adjustment row (visible in the ledger as "[Balance Adjustment]") without affecting budget.

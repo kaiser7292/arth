@@ -68,7 +68,7 @@ export default function HelpCenterScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Ask anything — e.g. how do I back up"
+            placeholder="Ask anything - e.g. how do I back up"
             placeholderTextColor={colorScheme === "dark" ? "#A0A0A0" : "#9CA3AF"}
             className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
             autoCorrect={false}

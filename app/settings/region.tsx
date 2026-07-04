@@ -123,7 +123,7 @@ export default function RegionSettingsScreen() {
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         <Text className="text-sm text-text-secondary dark:text-text-dark-secondary px-4 pt-4 pb-2">
           These are display-only preferences. They don&apos;t convert any amounts or
-          dates — they just change how numbers and dates look.
+          dates - they just change how numbers and dates look.
         </Text>
 
         {/* Currency */}
@@ -321,7 +321,7 @@ export default function RegionSettingsScreen() {
                   }}
                 >
                   <Text className="text-base font-bold w-14 text-text-primary dark:text-text-dark-primary">
-                    {item.symbol || "—"}
+                    {item.symbol || "-"}
                   </Text>
                   <View className="flex-1">
                     <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">

@@ -1,4 +1,4 @@
----
+﻿---
 title: How SMS detection works
 slug: sms-detection
 summary: On-device parsing of bank SMS into expenses. Nothing leaves your phone. Android-only.
@@ -27,17 +27,17 @@ When you turn on SMS detection, Arth reads bank / UPI SMS on your phone and turn
 
 The screen has:
 
-- A **master toggle** — on / off.
+- A **master toggle** - on / off.
 - **Date range** for scanning (default: last 180 days).
-- **Scan Now** — rescans existing SMS.
-- **Test a Sample** — paste any SMS to see how it would parse.
+- **Scan Now** - rescans existing SMS.
+- **Test a Sample** - paste any SMS to see how it would parse.
 
 ## What Arth reads
 
 Only SMS from **registered bank / UPI senders** (DLT transactional codes). Personal messages, OTPs, and promotional SMS are ignored by the sender-allowlist. The built-in allowlist covers:
 
-- 25+ Indian banks — all PSU banks (SBI, PNB, Canara, BoB, Union, Indian Bank, etc.), major private banks (HDFC, ICICI, Axis, Kotak, Yes), small finance banks, and credit-card issuers.
-- UPI apps — PhonePe, GPay, Paytm, Amazon Pay, BHIM, Cred.
+- 25+ Indian banks - all PSU banks (SBI, PNB, Canara, BoB, Union, Indian Bank, etc.), major private banks (HDFC, ICICI, Axis, Kotak, Yes), small finance banks, and credit-card issuers.
+- UPI apps - PhonePe, GPay, Paytm, Amazon Pay, BHIM, Cred.
 - Wallet providers.
 
 ## What happens when an SMS is parsed
@@ -45,7 +45,7 @@ Only SMS from **registered bank / UPI senders** (DLT transactional codes). Perso
 Step by step, what Arth does the moment a bank SMS arrives (or during a Scan Now run):
 
 1. **Check the sender.** Arth matches the sender code against the allowlist. If it's not a known bank or wallet, the SMS is ignored.
-2. **Parse the message.** For a recognised bank, Arth applies that bank's parsing rules to extract fields from the body — amount, merchant, card last-4, date, direction (debit / credit), and balance (when present).
+2. **Parse the message.** For a recognised bank, Arth applies that bank's parsing rules to extract fields from the body - amount, merchant, card last-4, date, direction (debit / credit), and balance (when present).
 3. **Save the raw SMS body.** The original text is saved locally so you can later inspect "Source SMS" from the expense detail.
 4. **Classify the transaction.** Based on what was parsed:
    - **Debit** → a pending expense lands in the Review Queue (Auto-Detected filter).
@@ -59,7 +59,7 @@ Step by step, what Arth does the moment a bank SMS arrives (or during a Scan Now
 
 - **Reading** happens via the Android OS on your device. No network call.
 - **Parsing** runs entirely within the app on your phone.
-- **Storage** — the raw SMS body is kept locally on your device; it is not transmitted.
+- **Storage** - the raw SMS body is kept locally on your device; it is not transmitted.
 - Arth has **zero** network permissions for normal use.
 
 ## Improving detection over time
@@ -67,7 +67,7 @@ Step by step, what Arth does the moment a bank SMS arrives (or during a Scan Now
 - **3 category corrections for the same merchant** → Arth learns and auto-applies that category to future SMS from that merchant.
 - **1 merchant rename** → the alias applies to future (and optionally past) SMS from that source.
 - **Ships with ~200 merchant aliases + ~1500 bank patterns** out of the box, so the very first scan already handles most common transactions.
-- **Smart rules** (Settings tab → Automation → Smart Rules) are the explicit override — define your own IF / THEN conditions that run before auto-detection.
+- **Smart rules** (Settings tab → Automation → Smart Rules) are the explicit override - define your own IF / THEN conditions that run before auto-detection.
 
 ## Common situations
 
@@ -87,7 +87,7 @@ Step by step, what Arth does the moment a bank SMS arrives (or during a Scan Now
 
 ## My bank isn't being detected
 
-Arth ships parsers for ~30 Indian banks. If yours isn't on the list — or the format is unusual — you can teach Arth how to read it in a minute. See [Teach Arth to read any bank's SMS](smart-sms-templates).
+Arth ships parsers for ~30 Indian banks. If yours isn't on the list - or the format is unusual - you can teach Arth how to read it in a minute. See [Teach Arth to read any bank's SMS](smart-sms-templates).
 
 ## Related
 

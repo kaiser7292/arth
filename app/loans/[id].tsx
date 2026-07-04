@@ -372,7 +372,7 @@ export default function LoanDetailScreen() {
 
         {/* Summary */}
         <Card title="Summary" className="mb-4">
-          <MetricRow label="Agreement" value={loan.agreement_id ?? "—"} />
+          <MetricRow label="Agreement" value={loan.agreement_id ?? "-"} />
           <MetricRow
             label="Sanctioned"
             value={formatMoney(loan.principal_sanctioned)}

@@ -141,11 +141,11 @@ export async function undoEdit(editId: string): Promise<UndoResult> {
   );
 
   if (!expense) return { success: false, message: "Expense no longer exists." };
-  if (expense.deleted_at) return { success: false, message: "Cannot undo — expense is deleted. Restore it first." };
+  if (expense.deleted_at) return { success: false, message: "Cannot undo - expense is deleted. Restore it first." };
 
   // Check for linked reminder conflict on date undo
   if (edit.field_name === "date" && expense.fulfills_rule_id) {
-    return { success: false, message: "Cannot undo date change — this expense is linked to a reminder. Unlink it first." };
+    return { success: false, message: "Cannot undo date change - this expense is linked to a reminder. Unlink it first." };
   }
 
   // Verify current value matches new_value (no intervening edit)
@@ -157,7 +157,7 @@ export async function undoEdit(editId: string): Promise<UndoResult> {
   const expectedValue = edit.new_value ?? "";
 
   if (currentValue !== expectedValue) {
-    return { success: false, message: `Cannot undo — ${getFieldLabel(edit.field_name)} was changed again after this edit.` };
+    return { success: false, message: `Cannot undo - ${getFieldLabel(edit.field_name)} was changed again after this edit.` };
   }
 
   // Perform the undo

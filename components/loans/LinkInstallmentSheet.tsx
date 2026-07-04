@@ -238,7 +238,7 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
               </Text>
             </Pressable>
             <Text className="text-xs mt-2" style={{ color: colors.textSecondary }}>
-              Unlinking will mark this installment as scheduled. Any auto-created prepayment from over-payment will remain — delete it manually if needed.
+              Unlinking will mark this installment as scheduled. Any auto-created prepayment from over-payment will remain - delete it manually if needed.
             </Text>
           </View>
         ) : (

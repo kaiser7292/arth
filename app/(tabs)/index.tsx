@@ -658,7 +658,7 @@ export default function HomeScreen() {
                     className="pt-2 items-center"
                   >
                     <Text className="text-xs font-medium" style={{ color: accent[500] }}>
-                      +{upcomingDues.length - 4} more — view all
+                      +{upcomingDues.length - 4} more - view all
                     </Text>
                   </Pressable>
                 )}
@@ -688,7 +688,7 @@ export default function HomeScreen() {
                 </View>
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
-                    Hisaab — Family Ledger
+                    Hisaab - Family Ledger
                   </Text>
                   {hisaabSummary.netBalance !== 0 ? (
                     <View className="flex-row items-center mt-0.5">

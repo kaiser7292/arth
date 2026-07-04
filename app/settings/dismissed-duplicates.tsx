@@ -163,7 +163,7 @@ export default function DismissedDuplicatesScreen() {
         <View className="px-4 mt-2">
           <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary">
             Tip: restoring a group makes it appear in the duplicate review again. To permanently
-            dismiss, use "Keep Both" during review — dismissed groups re-surface only if you restore
+            dismiss, use "Keep Both" during review - dismissed groups re-surface only if you restore
             them or if a new duplicate joins the cluster.
           </Text>
         </View>

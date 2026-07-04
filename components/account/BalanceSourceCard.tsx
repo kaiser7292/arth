@@ -178,9 +178,9 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
             </Text>
             <Text className="text-xs mt-1 leading-4" style={{ color: StatusColors[colorScheme].warning }}>
               {formatSmsTimestamp(autoApply.candidateSms.sms_date)}
-              {autoApply.reason === "no_balance_in_sms" ? " — no balance in it." :
-               autoApply.reason === "parse_failed" ? " — couldn't parse." :
-               autoApply.errorMessage ? ` — ${autoApply.errorMessage}` : "."}
+              {autoApply.reason === "no_balance_in_sms" ? " - no balance in it." :
+               autoApply.reason === "parse_failed" ? " - couldn't parse." :
+               autoApply.errorMessage ? ` - ${autoApply.errorMessage}` : "."}
             </Text>
           </View>
           <Pressable
@@ -274,7 +274,7 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
               </Text>
               <Text className="text-sm text-text-primary dark:text-text-dark-primary mb-4 leading-5">
                 Derived from your starting balance plus this month's transactions.
-                Authoritative — correct even when the bank doesn't send SMS.
+                Authoritative - correct even when the bank doesn't send SMS.
               </Text>
 
               <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-2">

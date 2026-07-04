@@ -504,7 +504,7 @@ export default function AccountDetailScreen() {
                   <Ionicons name="information-circle" size={16} color={sc.warning} style={{ marginTop: 1 }} />
                   <View className="flex-1 ml-2">
                     <Text className="text-xs font-medium" style={{ color: sc.warning }}>
-                      Shared limit — changes sync to all {siblingCards.length + 1} {account.bank_name} cards
+                      Shared limit - changes sync to all {siblingCards.length + 1} {account.bank_name} cards
                     </Text>
                     {siblingCards.map((s) => (
                       <Text key={s.id} className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">

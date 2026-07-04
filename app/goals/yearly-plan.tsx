@@ -640,7 +640,7 @@ export default function YearlyPlanScreen() {
                   >
                     {isPositive
                       ? "Plan is achievable"
-                      : "Plan has a deficit — review your targets"}
+                      : "Plan has a deficit - review your targets"}
                   </Text>
                 </View>
               );
