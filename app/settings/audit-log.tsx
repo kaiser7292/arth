@@ -229,7 +229,21 @@ export default function AuditLogScreen() {
 
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
-  const sections = groupEntriesByDate(entries);
+  const allSections = groupEntriesByDate(entries);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
+  const toggleSection = useCallback((title: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  }, []);
+
+  const sections = allSections.map((s) =>
+    collapsedSections.has(s.title) ? { ...s, data: [] } : s,
+  );
 
   const load = useCallback(async () => {
     try {
@@ -542,18 +556,34 @@ export default function AuditLogScreen() {
           sections={sections}
           renderItem={renderItem}
           keyExtractor={(item, idx) => `${item.objectType}:${item.id}:${item.actionType}:${idx}`}
-          renderSectionHeader={({ section }) => (
-            <View className="mx-4 mt-3 mb-1 flex-row items-center">
-              <Text
-                className="text-[10px] font-semibold uppercase"
-                style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
-                numberOfLines={1}
+          renderSectionHeader={({ section }) => {
+            const isCollapsed = collapsedSections.has(section.title);
+            const count = (allSections.find((s) => s.title === section.title)?.data.length) ?? 0;
+            return (
+              <Pressable
+                onPress={() => toggleSection(section.title)}
+                className="mx-4 mt-3 mb-1 flex-row items-center py-1.5"
               >
-                {section.title}
-              </Text>
-              <View className="flex-1 h-px ml-2" style={{ backgroundColor: colors.border }} />
-            </View>
-          )}
+                <Ionicons
+                  name={isCollapsed ? "chevron-forward" : "chevron-down"}
+                  size={14}
+                  color={colors.textSecondary}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  className="text-[10px] font-semibold uppercase"
+                  style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
+                  numberOfLines={1}
+                >
+                  {section.title}
+                </Text>
+                <Text className="text-[10px] ml-1.5" style={{ color: colors.textSecondary }}>
+                  ({count})
+                </Text>
+                <View className="flex-1 h-px ml-2" style={{ backgroundColor: colors.border }} />
+              </Pressable>
+            );
+          }}
           ListHeaderComponent={
             <View className="mx-4 mt-3 mb-1">
               <Text className="text-xs" style={{ color: colors.textSecondary }}>
