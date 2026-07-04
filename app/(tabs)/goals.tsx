@@ -155,7 +155,16 @@ export default function GoalsScreen() {
                     Advisories
                   </Text>
                   {cockpit.data.advisories.slice(0, 3).map((adv) => (
-                    <AdvisoryCard key={adv.id} advisory={adv} />
+                    <AdvisoryCard
+                      key={adv.id}
+                      advisory={adv}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/goals/advisory-detail",
+                          params: { advisoryJson: JSON.stringify(adv) },
+                        })
+                      }
+                    />
                   ))}
                 </View>
               )}

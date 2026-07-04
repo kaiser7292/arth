@@ -1,10 +1,11 @@
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Advisory, AdvisorySeverity } from "@/utils/financial-cockpit";
 
 interface AdvisoryCardProps {
   advisory: Advisory;
+  onPress?: () => void;
 }
 
 interface SeverityStyle {
@@ -51,10 +52,75 @@ const SEVERITY_STYLES: Record<AdvisorySeverity, SeverityStyle> = {
   },
 };
 
-export function AdvisoryCard({ advisory }: AdvisoryCardProps) {
+export function AdvisoryCard({ advisory, onPress }: AdvisoryCardProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const style = SEVERITY_STYLES[advisory.severity];
+
+  const inner = (
+    <View className="px-3 py-2.5">
+      {/* Title row */}
+      <View className="flex-row items-center mb-1">
+        <Ionicons
+          name={style.icon}
+          size={16}
+          color={style.border}
+          style={{ marginRight: 6 }}
+        />
+        <Text
+          className="text-sm font-semibold flex-1"
+          style={{ color: isDark ? style.textDark : style.text }}
+        >
+          {advisory.title}
+        </Text>
+        {onPress && (
+          <Ionicons name="chevron-forward" size={14} color={style.border} style={{ opacity: 0.6 }} />
+        )}
+      </View>
+
+      {/* Message */}
+      <Text
+        className="text-xs"
+        style={{ color: isDark ? style.textDark : style.text, marginLeft: 22, opacity: 0.85 }}
+      >
+        {advisory.message}
+      </Text>
+
+      {/* Action hint */}
+      {advisory.action && (
+        <View
+          className="mt-1.5 py-1 px-2 rounded self-start"
+          style={{
+            backgroundColor: style.border + "14",
+            marginLeft: 22,
+          }}
+        >
+          <Text
+            className="text-xs font-medium"
+            style={{ color: style.border }}
+          >
+            {onPress ? "Tap for details" : `→ ${advisory.action}`}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        className="mb-2 rounded-xl overflow-hidden"
+        style={{
+          backgroundColor: isDark ? style.bgDark : style.bg,
+          borderLeftWidth: 3,
+          borderLeftColor: style.border,
+        }}
+      >
+        {inner}
+      </Pressable>
+    );
+  }
 
   return (
     <View
@@ -65,49 +131,7 @@ export function AdvisoryCard({ advisory }: AdvisoryCardProps) {
         borderLeftColor: style.border,
       }}
     >
-      <View className="px-3 py-2.5">
-        {/* Title row */}
-        <View className="flex-row items-center mb-1">
-          <Ionicons
-            name={style.icon}
-            size={16}
-            color={style.border}
-            style={{ marginRight: 6 }}
-          />
-          <Text
-            className="text-sm font-semibold flex-1"
-            style={{ color: isDark ? style.textDark : style.text }}
-          >
-            {advisory.title}
-          </Text>
-        </View>
-
-        {/* Message */}
-        <Text
-          className="text-xs ml-5.5"
-          style={{ color: isDark ? style.textDark : style.text, marginLeft: 22, opacity: 0.85 }}
-        >
-          {advisory.message}
-        </Text>
-
-        {/* Action */}
-        {advisory.action && (
-          <View
-            className="mt-1.5 ml-5.5 py-1 px-2 rounded self-start"
-            style={{
-              backgroundColor: style.border + "14",
-              marginLeft: 22,
-            }}
-          >
-            <Text
-              className="text-xs font-medium"
-              style={{ color: style.border }}
-            >
-              → {advisory.action}
-            </Text>
-          </View>
-        )}
-      </View>
+      {inner}
     </View>
   );
 }
