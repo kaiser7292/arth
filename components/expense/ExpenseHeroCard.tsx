@@ -19,6 +19,9 @@ interface ExpenseHeroCardProps {
   status?: "approved" | "pending_review" | "rejected";
   /** Sum of approved linked refund credits. 0 = not refunded. */
   refundedAmount?: number;
+  /** For hisaab-split expenses: the full original charge before splitting.
+   *  Used so refund classification compares against the full purchase, not just the user's share. */
+  splitOriginalAmount?: number | null;
   /** Whether this expense is marked as a transfer */
   isTransfer?: boolean;
 }
@@ -63,17 +66,22 @@ export default function ExpenseHeroCard({
   nature,
   status,
   refundedAmount = 0,
+  splitOriginalAmount,
   isTransfer = false,
 }: ExpenseHeroCardProps) {
   const { accent, colorScheme } = useColorScheme();
   const title = description || merchantName || "Expense";
   const subtitle = description && merchantName ? merchantName : null;
 
-  // Refund state: full refund zero-nets the expense; partial refund reduces
-  // the effective cost but keeps part of it countable.
-  const isFullRefund = refundedAmount > 0 && refundedAmount + 0.01 >= amount;
+  // For split expenses, compare the refund against the full original charge, not just the user's share.
+  // e.g. 128 total, 50-50 split → user's share = 64. Refund of 120 is partial (not full) because 120 < 128.
+  const originalForRefund = splitOriginalAmount ?? amount;
+  const isFullRefund = refundedAmount > 0 && refundedAmount + 0.01 >= originalForRefund;
   const isPartialRefund = refundedAmount > 0 && !isFullRefund;
-  const effectiveAmount = Math.max(0, amount - refundedAmount);
+  // Effective amount for split: remaining total × user's proportion.
+  // For non-split: remaining = amount − refundedAmount.
+  const myProportion = splitOriginalAmount != null && splitOriginalAmount > 0 ? amount / splitOriginalAmount : 1;
+  const effectiveAmount = Math.max(0, Math.round((originalForRefund - refundedAmount) * myProportion * 100) / 100);
 
   return (
     <View className="px-4 pt-5 pb-4 items-center">

@@ -36,9 +36,16 @@ function ExpenseListItemInner({
 }: ExpenseListItemProps) {
   const { colorScheme, accent, colors } = useColorScheme();
   const isPending = expense.status === "pending_review";
-  const refundState = classifyRefund(expense.amount, refundedAmount);
+  // For split expenses, the refund is against the full original charge, not just the user's share.
+  const originalForRefund = expense.split_original_amount ?? expense.amount;
+  const refundState = classifyRefund(originalForRefund, refundedAmount);
   const isFullRefund = refundState === "full";
   const isPartialRefund = refundState === "partial";
+  // Effective display amount for partial refund: remaining total × user's proportion.
+  const myProportion = expense.split_original_amount != null && expense.split_original_amount > 0
+    ? expense.amount / expense.split_original_amount
+    : 1;
+  const effectiveDisplayAmount = Math.max(0, Math.round((originalForRefund - refundedAmount) * myProportion * 100) / 100);
 
   const subtitleParts: string[] = [];
   if (expense.merchant_name && expense.description && expense.description !== expense.merchant_name) {
@@ -161,7 +168,7 @@ function ExpenseListItemInner({
         ) : isPartialRefund ? (
           <>
             <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
-              {formatAmount(Math.max(0, expense.amount - refundedAmount))}
+              {formatAmount(effectiveDisplayAmount)}
             </Text>
             <Text className="text-[10px] text-text-tertiary dark:text-text-dark-tertiary line-through">
               {formatAmount(expense.amount)}

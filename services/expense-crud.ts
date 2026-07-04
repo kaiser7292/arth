@@ -950,20 +950,61 @@ export async function rejectExpenses(ids: string[]): Promise<void> {
 /**
  * Undo a previously recorded refund — soft-deletes the credit row so the
  * parent expense returns to its un-refunded (or partially-refunded) state.
- * Validates that the row is a refund credit before deleting.
+ * Also reverses the hisaab entry adjustment that was made when the refund
+ * was originally approved (for split expenses).
  */
 export async function undoRefund(refundCreditId: string): Promise<void> {
   const db = getDatabase();
-  const row = await db.getFirstAsync<{ id: string }>(
-    `SELECT id FROM expenses
+  const refundRow = await db.getFirstAsync<{ id: string; amount: number; refund_of_expense_id: string }>(
+    `SELECT id, amount, refund_of_expense_id FROM expenses
      WHERE id = ? AND nature = 'credit' AND refund_of_expense_id IS NOT NULL AND deleted_at IS NULL;`,
     refundCreditId,
   );
-  if (!row) throw new Error("Refund not found or already removed");
+  if (!refundRow) throw new Error("Refund not found or already removed");
+
   await db.runAsync(
     `UPDATE expenses SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?;`,
     refundCreditId,
   );
+
+  // For split expenses: reverse the hisaab entry reduction that adjustSplitAfterRefund applied.
+  const originalExpense = await db.getFirstAsync<{
+    split_hisaab_entry_id: string | null;
+    split_pct: number | null;
+    split_original_amount: number | null;
+  }>(
+    `SELECT split_hisaab_entry_id, split_pct, split_original_amount FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
+    refundRow.refund_of_expense_id,
+  );
+
+  if (originalExpense?.split_hisaab_entry_id && originalExpense.split_pct != null) {
+    const otherPct = 1 - originalExpense.split_pct / 100;
+    const otherShareToRestore = Math.round(refundRow.amount * otherPct * 100) / 100;
+
+    if (otherShareToRestore > 0) {
+      const currentEntry = await db.getFirstAsync<{ amount: number }>(
+        `SELECT amount FROM hisaab_entries WHERE id = ?;`,
+        originalExpense.split_hisaab_entry_id,
+      );
+
+      if (currentEntry) {
+        // Cap at the original other-person share so multiple undo operations don't overshoot.
+        const originalOtherShare = originalExpense.split_original_amount != null
+          ? Math.round(originalExpense.split_original_amount * otherPct * 100) / 100
+          : currentEntry.amount + otherShareToRestore;
+        const newAmount = Math.min(
+          Math.round((currentEntry.amount + otherShareToRestore) * 100) / 100,
+          originalOtherShare,
+        );
+        await db.runAsync(
+          `UPDATE hisaab_entries SET amount = ?, updated_at = datetime('now') WHERE id = ?;`,
+          newAmount,
+          originalExpense.split_hisaab_entry_id,
+        );
+      }
+    }
+  }
+
   bumpDataVersion();
 }
 

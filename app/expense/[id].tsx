@@ -1779,6 +1779,7 @@ export default function ExpenseDetailScreen() {
                 nature={expense.nature}
                 status={expense.status}
                 refundedAmount={refundedAmount}
+                splitOriginalAmount={expense.split_original_amount}
               />
 
               {/* 1b. Split-tender siblings (if this expense is one leg of a split purchase) */}
@@ -2178,7 +2179,14 @@ export default function ExpenseDetailScreen() {
                             {splitPersonName ?? "Unknown"}
                           </Text>
                           <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary">
-                            Your share: {expense.split_pct}% ({formatAmount(expense.amount)})
+                            {(() => {
+                              const orig = expense.split_original_amount ?? expense.amount;
+                              const pct = expense.split_pct ?? 100;
+                              const myShare = refundedAmount > 0
+                                ? Math.max(0, Math.round((orig - refundedAmount) * pct / 100 * 100) / 100)
+                                : expense.amount;
+                              return `Your share: ${pct}% (${formatAmount(myShare)})`;
+                            })()}
                           </Text>
                         </View>
                         <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary ml-2">
