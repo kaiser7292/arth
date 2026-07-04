@@ -65,6 +65,13 @@ for /f "tokens=1,2,3 delims=." %%a in ("%VERSION%") do ( set MAJOR=%%a & set MIN
 set /a VERSION_CODE=MAJOR*10000+MINOR*100+PATCH
 echo Version: %VERSION%  ^(code: %VERSION_CODE%^)
 
+REM -- Stop any running Gradle daemon so prebuild --clean can delete android/
+REM    (daemon holds file locks on build artifacts from the previous build)
+if exist "android\gradlew.bat" (
+    echo Stopping Gradle daemon...
+    cmd /c "android\gradlew.bat --project-dir android --stop" >nul 2>&1
+)
+
 REM -- expo prebuild (regenerates android/ for this machine)
 echo Running expo prebuild...
 npx expo prebuild --platform android --clean
@@ -81,7 +88,7 @@ echo sdk.dir=%ANDROID_HOME_FWD% > android\local.properties
 
 REM -- Gradle build (full path + --project-dir avoids PowerShell dot-parsing issues)
 echo Building APK...
-cmd /c "C:\Users\soura\artha\android\gradlew.bat --project-dir C:\Users\soura\artha\android assembleRelease --build-cache -PappVersionName=%VERSION% -PappVersionCode=%VERSION_CODE% %ABI_FLAG%"
+cmd /c "C:\Users\soura\artha\android\gradlew.bat --project-dir C:\Users\soura\artha\android assembleRelease --no-daemon --build-cache -PappVersionName=%VERSION% -PappVersionCode=%VERSION_CODE% %ABI_FLAG%"
 set BUILD_ERROR=%ERRORLEVEL%
 
 REM -- Restore app.json if we patched it
