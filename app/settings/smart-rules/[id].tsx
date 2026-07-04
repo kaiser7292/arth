@@ -394,7 +394,7 @@ export default function SmartRuleDetailScreen() {
               return (
                 <View
                   key={index}
-                  className="mb-3 p-3 rounded-xl border border-border-light dark:border-border-dark"
+                  className="mb-3 p-3 rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark"
                 >
                   <View className="flex-row items-center justify-between mb-2">
                     <Text className="text-xs font-semibold tracking-wider uppercase text-text-tertiary">
@@ -430,7 +430,7 @@ export default function SmartRuleDetailScreen() {
                   </Pressable>
 
                   {fieldExpanded && (
-                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
                       <View className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark">
                         <Ionicons name="search" size={14} color={colors.textSecondary} />
                         <TextInput
@@ -478,7 +478,7 @@ export default function SmartRuleDetailScreen() {
                   </Pressable>
 
                   {operatorExpanded && (
-                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
                       {availableOperators.map((op) => {
                         const isSelected = condition.operator === op;
                         return (
@@ -590,7 +590,7 @@ export default function SmartRuleDetailScreen() {
               return (
                 <View
                   key={index}
-                  className="mb-3 p-3 rounded-xl border border-border-light dark:border-border-dark"
+                  className="mb-3 p-3 rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark"
                 >
                   {/* Header */}
                   <View className="flex-row items-center justify-between mb-2">
@@ -624,7 +624,7 @@ export default function SmartRuleDetailScreen() {
                   </Pressable>
 
                   {typeExpanded && (
-                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
                       {ACTION_TYPE_OPTIONS.map((opt) => {
                         const isSelected = action.type === opt.type;
                         return (
@@ -663,7 +663,7 @@ export default function SmartRuleDetailScreen() {
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
                         {valueExpanded && (
-                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
                             {categories.map((c) => {
                               const isSel = a.category_id === c.id;
                               return (
@@ -702,7 +702,7 @@ export default function SmartRuleDetailScreen() {
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
                         {valueExpanded && (
-                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
                             {paymentModes.map((m) => {
                               const isSel = a.payment_mode === m.id;
                               return (
@@ -792,7 +792,7 @@ export default function SmartRuleDetailScreen() {
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
                         {valueExpanded && (
-                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
                             {opts.map((opt) => {
                               const isSel = a.is_right_spend === opt.value;
                               return (
@@ -837,7 +837,7 @@ export default function SmartRuleDetailScreen() {
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
                         {valueExpanded && (
-                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
                             {persons.length === 0 ? (
                               <Text className="text-sm text-text-tertiary px-3 py-2.5">No people in Hisaab yet</Text>
                             ) : persons.map((p) => {
@@ -878,7 +878,7 @@ export default function SmartRuleDetailScreen() {
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
                         {valueExpanded && (
-                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden">
+                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
                             {buckets.length === 0 ? (
                               <Text className="text-sm text-text-tertiary px-3 py-2.5">No investment buckets created yet</Text>
                             ) : buckets.map((b) => {
