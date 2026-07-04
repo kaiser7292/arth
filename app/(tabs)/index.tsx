@@ -240,7 +240,7 @@ export default function HomeScreen() {
   const remaining = totalBudget - totalSpent;
   const overallStatus = getBudgetStatus(totalSpent, totalBudget);
   const statusColor = getBudgetStatusColor(overallStatus);
-  const budgetPct = totalBudget > 0 ? Math.min(totalSpent / totalBudget, 1) : 0;
+  const budgetPct = totalBudget > 0 ? totalSpent / totalBudget : 0;
 
   // v15.5: Savings min-balance alerts. Filter down to unacknowledged-for-
   // this-month. Flag-gated — OFF means nothing renders. Recomputes when

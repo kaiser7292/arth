@@ -334,7 +334,7 @@ function CategoryRow({
   budget: number;
   color: string;
 }) {
-  const pct = budget > 0 ? Math.min(spent / budget, 1) : 0;
+  const pct = budget > 0 ? spent / budget : 0;
 
   return (
     <View className="mb-3 last:mb-0">

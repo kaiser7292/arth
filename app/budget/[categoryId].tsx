@@ -88,7 +88,7 @@ export default function CategoryDetailScreen() {
   const remaining = budgetAmount - totalSpent;
   const status = getBudgetStatus(totalSpent, budgetAmount);
   const color = getBudgetStatusColor(status);
-  const pct = budgetAmount > 0 ? Math.min(totalSpent / budgetAmount, 1) : 0;
+  const pct = budgetAmount > 0 ? totalSpent / budgetAmount : 0;
 
   const monthLabel = (() => {
     const [year, m] = (selectedMonth ?? "").split("-").map(Number);
@@ -166,7 +166,7 @@ export default function CategoryDetailScreen() {
             <Text className="text-xs text-text-tertiary">
               {remaining >= 0
                 ? `${formatAmount(remaining)} remaining (${Math.round(pct * 100)}% used)`
-                : `${formatAmount(Math.abs(remaining))} over budget`}
+                : `${formatAmount(Math.abs(remaining))} over budget (${Math.round(pct * 100)}% used)`}
             </Text>
           </>
         )}

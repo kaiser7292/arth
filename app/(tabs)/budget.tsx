@@ -225,7 +225,7 @@ export default function BudgetScreen() {
 
   const overallStatus = getBudgetStatus(totalSpent, totalBudget);
   const overallColor = getBudgetStatusColor(overallStatus);
-  const overallPct = totalBudget > 0 ? Math.min(totalSpent / totalBudget, 1) : 0;
+  const overallPct = totalBudget > 0 ? totalSpent / totalBudget : 0;
   const perDayRemaining = getPerDayRemaining(totalBudget, totalSpent, daysRemaining);
 
   return (
@@ -710,7 +710,7 @@ export default function BudgetScreen() {
           rows.map((item) => {
             const status = getBudgetStatus(item.spent, item.budget);
             const color = getBudgetStatusColor(status);
-            const pct = item.budget > 0 ? Math.min(item.spent / item.budget, 1) : 0;
+            const pct = item.budget > 0 ? item.spent / item.budget : 0;
             const remaining = item.budget - item.spent;
 
             return (
