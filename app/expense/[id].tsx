@@ -1307,6 +1307,22 @@ export default function ExpenseDetailScreen() {
     });
   }, [router]);
 
+  const navigateToTransferAccountLedger = useCallback((accountId: string) => {
+    if (!transfer) {
+      router.push({ pathname: "/reconciliation/account-ledger", params: { accountId } });
+      return;
+    }
+    router.push({
+      pathname: "/reconciliation/account-ledger",
+      params: {
+        accountId,
+        month: transfer.date.slice(0, 7),
+        transferId: transfer.id,
+        filterMode: "transfers",
+      },
+    });
+  }, [router, transfer]);
+
   // Pending review actions (approve/reject from detail page)
   const handleApprove = useCallback(async () => {
     try {
@@ -2319,7 +2335,7 @@ export default function ExpenseDetailScreen() {
                     </View>
                     <View className="ml-13 mb-3">
                       <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">From:</Text>
-                      <Pressable onPress={() => navigateToAccountLedger(transfer.from_account_id)}>
+                      <Pressable onPress={() => navigateToTransferAccountLedger(transfer.from_account_id)}>
                         <Text className="text-sm font-semibold" style={{ color: accent[500] }}>
                           {accounts.find(a => a.id === transfer.from_account_id)?.bank_name || "Unknown"} ****{accounts.find(a => a.id === transfer.from_account_id)?.account_identifier || ""}
                         </Text>
@@ -2327,7 +2343,7 @@ export default function ExpenseDetailScreen() {
                     </View>
                     <View className="ml-13 mb-3">
                       <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">To:</Text>
-                      <Pressable onPress={() => navigateToAccountLedger(transfer.to_account_id)}>
+                      <Pressable onPress={() => navigateToTransferAccountLedger(transfer.to_account_id)}>
                         <Text className="text-sm font-semibold" style={{ color: accent[500] }}>
                           {accounts.find(a => a.id === transfer.to_account_id)?.bank_name || "Unknown"} ****{accounts.find(a => a.id === transfer.to_account_id)?.account_identifier || ""}
                         </Text>

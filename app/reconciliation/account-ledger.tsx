@@ -88,11 +88,12 @@ interface LedgerEntry {
 export default function AccountLedgerScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { accountId, month: monthParam, autoOpenAdjust, transferId: focusTransferId } = useLocalSearchParams<{
+  const { accountId, month: monthParam, autoOpenAdjust, transferId: focusTransferId, filterMode } = useLocalSearchParams<{
     accountId: string;
     month?: string;
     autoOpenAdjust?: string;
     transferId?: string;
+    filterMode?: string;
   }>();
   const { accent, colors, colorScheme } = useColorScheme();
   // Theme-aware status colors (migrated from flat STATUS_COLORS in v14.8.0).
@@ -171,6 +172,10 @@ export default function AccountLedgerScreen() {
   // Account lookup for transfer display
   const [accountMap, setAccountMap] = useState<Map<string, string>>(new Map());
 
+  // When opened with focusTransferId, scroll to that row after it renders
+  const focusedRowY = useRef<number | null>(null);
+  const didScrollToFocus = useRef(false);
+
   // Month bounds for navigation
   const [minMonth, setMinMonth] = useState<string | undefined>(undefined);
   const maxMonth = useMemo(() => {
@@ -182,9 +187,15 @@ export default function AccountLedgerScreen() {
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
   const filteredEntries = useMemo(() => {
-    if (cardFilter === "all" || poolSiblings.length <= 1) return entries;
-    return entries.filter((e) => e.sourceAccountId === cardFilter);
-  }, [entries, cardFilter, poolSiblings]);
+    let result = entries;
+    if (filterMode === "transfers") {
+      result = result.filter((e) => e.type === "transfer_in" || e.type === "transfer_out");
+    }
+    if (cardFilter !== "all" && poolSiblings.length > 1) {
+      result = result.filter((e) => e.sourceAccountId === cardFilter);
+    }
+    return result;
+  }, [entries, cardFilter, poolSiblings, filterMode]);
 
 useDataRefresh(
     useCallback(async () => {
@@ -947,6 +958,16 @@ useDataRefresh(
             </Card>
           )}
 
+          {/* Filter banner — shown when opened with filterMode=transfers */}
+          {filterMode === "transfers" && (
+            <View className="mx-4 mt-3 mb-1 flex-row items-center px-3 py-2 rounded-lg" style={{ backgroundColor: TRANSFER_COLOR + "18" }}>
+              <Ionicons name="swap-horizontal-outline" size={14} color={TRANSFER_COLOR} />
+              <Text className="ml-2 text-xs font-medium" style={{ color: TRANSFER_COLOR }}>
+                Showing transfers only
+              </Text>
+            </View>
+          )}
+
           {/* Transactions header */}
           <View className="flex-row items-center justify-between mx-4 mt-3 mb-2">
             <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
@@ -998,6 +1019,17 @@ useDataRefresh(
                       }
                     : undefined
                 }
+                onLayout={isFocused ? (e) => {
+                  if (didScrollToFocus.current) return;
+                  focusedRowY.current = e.nativeEvent.layout.y;
+                  // Small delay so the ScrollView has settled its own layout
+                  setTimeout(() => {
+                    if (focusedRowY.current !== null) {
+                      scrollRef.current?.scrollTo({ y: Math.max(0, focusedRowY.current - 80), animated: true });
+                      didScrollToFocus.current = true;
+                    }
+                  }, 150);
+                } : undefined}
                 onPress={
                   entry.type === "debit" && !entry.isRefund
                     ? () => router.push(`/expense/${entry.id}`)
