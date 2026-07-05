@@ -71,8 +71,9 @@ function getBackupDir(): Directory {
 }
 
 function buildFileName(ts: Date): string {
-  const s = ts.toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  return `backup_${s}.json`;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const local = `${ts.getFullYear()}-${pad(ts.getMonth() + 1)}-${pad(ts.getDate())}T${pad(ts.getHours())}-${pad(ts.getMinutes())}-${pad(ts.getSeconds())}`;
+  return `backup_${local}.json`;
 }
 
 function parseFileName(name: string): Date | null {
