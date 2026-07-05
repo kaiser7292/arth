@@ -311,6 +311,7 @@ export async function getAccountExpensesTotal(
     `SELECT SUM(COALESCE(split_original_amount, amount)) as total FROM expenses
      WHERE account_id = ? AND deleted_at IS NULL
        AND nature = 'realized' AND status = 'approved'
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?;`,
     accountId,
     monthStart,
@@ -609,6 +610,7 @@ export async function getComputedBalances(
     `SELECT account_id, SUM(COALESCE(split_original_amount, amount)) as total FROM expenses
      WHERE account_id IN (${placeholders}) AND deleted_at IS NULL
        AND nature = 'realized' AND status = 'approved'
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
      GROUP BY account_id;`,
     ...accountIds,
@@ -622,6 +624,7 @@ export async function getComputedBalances(
     `SELECT account_id, SUM(amount) as total FROM expenses
      WHERE account_id IN (${placeholders}) AND deleted_at IS NULL
        AND nature = 'credit' AND status = 'approved'
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
      GROUP BY account_id;`,
     ...accountIds,
@@ -805,6 +808,7 @@ export async function getComputedBalanceComponents(
     `SELECT account_id, SUM(COALESCE(split_original_amount, amount)) as total FROM expenses
      WHERE account_id IN (${placeholders}) AND deleted_at IS NULL
        AND nature = 'realized' AND status = 'approved'
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
      GROUP BY account_id;`,
     ...accountIds,
@@ -1171,6 +1175,7 @@ export async function getLedgerExpenses(
      FROM expenses
      WHERE account_id = ? AND deleted_at IS NULL
        AND nature IN ('realized', 'ledger_adjustment') AND status = 'approved'
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
      ORDER BY date DESC, created_at DESC;`,
     accountId,

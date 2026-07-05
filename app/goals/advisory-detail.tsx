@@ -36,8 +36,8 @@ function StatRow({ label, value, highlight }: { label: string; value: string; hi
     <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
       <Text className="text-sm text-text-secondary dark:text-text-dark-secondary flex-1">{label}</Text>
       <Text
-        className="text-sm font-semibold ml-4"
-        style={{ color: highlight ? "#EF4444" : undefined }}
+        className="text-sm font-semibold ml-4 text-text-primary dark:text-text-dark-primary"
+        style={highlight ? { color: "#EF4444" } : undefined}
       >
         {value}
       </Text>

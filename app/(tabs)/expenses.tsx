@@ -484,9 +484,10 @@ export default function ExpensesScreen() {
           onPress={() => {
             if (item.linked_expense_id) {
               router.push(`/expense/${item.linked_expense_id}`);
-            } else {
+            } else if (item.source === "sms_auto") {
               router.push(`/transfer/${item.id}`);
             }
+            // manual transfers with no linked expense: all info is in the row, no drilldown
           }}
           className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark"
         >

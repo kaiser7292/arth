@@ -7,10 +7,10 @@ import {
   Switch,
   TextInput,
   Platform,
+  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "expo-router";
-import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, Button } from "@/components/ui";
@@ -68,6 +68,9 @@ export default function BackupRestoreScreen() {
   const [schedSettings, setSchedSettings] = useState<BackupScheduleSettings>(() => getBackupScheduleSettings());
   const [schedBackups, setSchedBackups] = useState<ScheduledBackupInfo[]>([]);
   const [restoringScheduled, setRestoringScheduled] = useState<string | null>(null);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [pickerHour, setPickerHour] = useState(schedSettings.hour);
+  const [pickerMinute, setPickerMinute] = useState(schedSettings.minute);
 
   const reloadSchedBackups = useCallback(() => {
     setSchedBackups(listScheduledBackups());
@@ -170,18 +173,17 @@ export default function BackupRestoreScreen() {
   }, [schedSettings]);
 
   const handlePickTime = useCallback(() => {
-    DateTimePickerAndroid.open({
-      mode: "time",
-      value: new Date(2000, 0, 1, schedSettings.hour, schedSettings.minute),
-      is24Hour: false,
-      onChange: (_, date) => {
-        if (!date) return;
-        const updated = { ...schedSettings, hour: date.getHours(), minute: date.getMinutes() };
-        setSchedSettings(updated);
-        setBackupScheduleSettings(updated);
-        void syncScheduledBackupNotification(updated);
-      },
-    });
+    setPickerHour(schedSettings.hour);
+    setPickerMinute(schedSettings.minute);
+    setShowTimePicker(true);
+  }, [schedSettings]);
+
+  const handleConfirmTime = useCallback((h: number, m: number) => {
+    setShowTimePicker(false);
+    const updated = { ...schedSettings, hour: h, minute: m };
+    setSchedSettings(updated);
+    setBackupScheduleSettings(updated);
+    void syncScheduledBackupNotification(updated);
   }, [schedSettings]);
 
   const handlePickFrequency = useCallback((days: number) => {
@@ -245,7 +247,85 @@ export default function BackupRestoreScreen() {
     setFileError(null);
   }, []);
 
+  const displayPickerHour = pickerHour % 12 === 0 ? 12 : pickerHour % 12;
+  const pickerIsAm = pickerHour < 12;
+
   return (
+    <>
+    {/* Custom time picker modal */}
+    <Modal visible={showTimePicker} transparent animationType="slide" onRequestClose={() => setShowTimePicker(false)}>
+      <Pressable
+        style={{ flex: 1, backgroundColor: "#00000066" }}
+        onPress={() => setShowTimePicker(false)}
+      >
+        <Pressable
+          onPress={(e) => e.stopPropagation()}
+          className="absolute bottom-0 left-0 right-0 rounded-t-2xl px-6 pt-6 pb-10"
+          style={{ backgroundColor: colors.background }}
+        >
+          <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary text-center mb-6">
+            Backup Time
+          </Text>
+
+          <View className="flex-row items-center justify-center" style={{ gap: 12 }}>
+            {/* Hour column */}
+            <View className="items-center">
+              <Pressable onPress={() => setPickerHour((h) => (h + 1) % 24)} hitSlop={16} className="py-2">
+                <Ionicons name="chevron-up" size={22} color={ac(accent, colorScheme, 500, 300)} />
+              </Pressable>
+              <View className="w-16 h-14 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: accent[500] + "18" }}>
+                <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
+                  {String(displayPickerHour).padStart(2, "0")}
+                </Text>
+              </View>
+              <Pressable onPress={() => setPickerHour((h) => (h - 1 + 24) % 24)} hitSlop={16} className="py-2">
+                <Ionicons name="chevron-down" size={22} color={ac(accent, colorScheme, 500, 300)} />
+              </Pressable>
+            </View>
+
+            <Text className="text-3xl font-bold text-text-primary dark:text-text-dark-primary mb-1">:</Text>
+
+            {/* Minute column (5-min steps) */}
+            <View className="items-center">
+              <Pressable onPress={() => setPickerMinute((m) => (m + 5) % 60)} hitSlop={16} className="py-2">
+                <Ionicons name="chevron-up" size={22} color={ac(accent, colorScheme, 500, 300)} />
+              </Pressable>
+              <View className="w-16 h-14 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: accent[500] + "18" }}>
+                <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
+                  {String(pickerMinute).padStart(2, "0")}
+                </Text>
+              </View>
+              <Pressable onPress={() => setPickerMinute((m) => (m - 5 + 60) % 60)} hitSlop={16} className="py-2">
+                <Ionicons name="chevron-down" size={22} color={ac(accent, colorScheme, 500, 300)} />
+              </Pressable>
+            </View>
+
+            {/* AM/PM toggle */}
+            <Pressable
+              onPress={() => setPickerHour((h) => (h + 12) % 24)}
+              className="w-16 h-14 items-center justify-center rounded-xl"
+              style={{ backgroundColor: accent[500] + "18" }}
+            >
+              <Text className="text-base font-bold" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                {pickerIsAm ? "AM" : "PM"}
+              </Text>
+            </Pressable>
+          </View>
+
+          <View className="flex-row mt-6" style={{ gap: 12 }}>
+            <View className="flex-1">
+              <Button title="Cancel" onPress={() => setShowTimePicker(false)} variant="ghost" />
+            </View>
+            <View className="flex-1">
+              <Button title="Done" onPress={() => handleConfirmTime(pickerHour, pickerMinute)} />
+            </View>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+
     <ScreenContainer padTop={false} keyboardAware>
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Menu */}
@@ -687,5 +767,6 @@ export default function BackupRestoreScreen() {
         )}
       </ScrollView>
     </ScreenContainer>
+    </>
   );
 }

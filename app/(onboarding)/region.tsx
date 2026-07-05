@@ -8,7 +8,6 @@ import { ac } from "@/utils/accent";
 import {
   setFYStartMonth,
   getFYStartMonth,
-  getAccentTheme,
   setOnboardingCompletedVersion,
 } from "@/services/settings";
 import {
@@ -27,7 +26,6 @@ import {
 } from "@/constants/currencies";
 import { formatAmountPreview } from "@/utils/format";
 import { formatDateWith, todayIso } from "@/utils/date";
-import { ACCENT_THEME_LIST, type AccentThemeId } from "@/constants/accent-palettes";
 import { getCurrentAppVersion } from "@/services/onboarding";
 
 const FY_OPTIONS: Array<{ month: number; label: string; region: string }> = [
@@ -39,10 +37,9 @@ const FY_OPTIONS: Array<{ month: number; label: string; region: string }> = [
 
 export default function OnboardingRegion() {
   const router = useRouter();
-  const { accent, colorScheme, colors, setAccentTheme } = useColorScheme();
+  const { accent, colorScheme, colors } = useColorScheme();
 
   const [fyMonth, setFyMonth] = useState<number>(getFYStartMonth());
-  const [accentId, setAccentId] = useState<AccentThemeId>(getAccentTheme());
   const [currencyId, setCurrencyId] = useState<CurrencyCode>(getCurrency());
   const [dateFormatId, setDateFormatId] = useState<DateFormat>(getDateFormat());
 
@@ -64,7 +61,6 @@ export default function OnboardingRegion() {
 
   const handleContinue = () => {
     setFYStartMonth(fyMonth);
-    setAccentTheme(accentId);
     // setCurrency() also sets the grouping to that currency's default.
     setCurrency(currencyId);
     setDateFormat(dateFormatId);
@@ -86,7 +82,7 @@ export default function OnboardingRegion() {
           Set your basics
         </Text>
         <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-6 leading-5">
-          We use these for yearly reports and to pick a look you like. You can change both later in Settings.
+          We use these for yearly reports and currency formatting. You can change them later in Settings.
         </Text>
 
         <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-tertiary uppercase tracking-wider mb-3">
@@ -183,37 +179,6 @@ export default function OnboardingRegion() {
           })}
         </Card>
 
-        <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-tertiary uppercase tracking-wider mb-3">
-          Accent color
-        </Text>
-        <View className="flex-row flex-wrap gap-3 mb-2">
-          {ACCENT_THEME_LIST.map((palette) => {
-            const selected = accentId === palette.id;
-            return (
-              <Pressable
-                key={palette.id}
-                onPress={() => setAccentId(palette.id)}
-                className="items-center"
-              >
-                <View
-                  className="w-14 h-14 rounded-full items-center justify-center"
-                  style={{
-                    backgroundColor: palette[500],
-                    borderWidth: selected ? 3 : 0,
-                    borderColor: colorScheme === "dark" ? "#fff" : "#000",
-                  }}
-                >
-                  {selected && (
-                    <Ionicons name="checkmark" size={24} color="#fff" />
-                  )}
-                </View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
-                  {palette.name}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
       </ScrollView>
 
       <View className="px-6 pb-6 pt-2">

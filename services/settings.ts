@@ -109,17 +109,14 @@ export function subscribeDataVersion(callback: () => void): { remove: () => void
 }
 
 /**
- * Get the accent color theme. Default: "ocean" (blue).
+ * Accent is locked to ocean (blue). Picker was removed in v1.11.
  */
 export function getAccentTheme(): AccentThemeId {
-  return (storage.getString(KEYS.ACCENT_THEME) as AccentThemeId) ?? DEFAULT_ACCENT_THEME;
+  return DEFAULT_ACCENT_THEME;
 }
 
-/**
- * Set the accent color theme.
- */
-export function setAccentTheme(theme: AccentThemeId): void {
-  storage.set(KEYS.ACCENT_THEME, theme);
+export function setAccentTheme(_theme: AccentThemeId): void {
+  // no-op — accent is fixed to ocean
 }
 
 // Backup staleness tracking ----------------------------------------------------
