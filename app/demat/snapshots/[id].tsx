@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, Modal } from "react-native";
+import { View, Text, ScrollView, Pressable, Modal, KeyboardAvoidingView, Platform } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -403,11 +403,12 @@ export default function DematSnapshotsScreen() {
         animationType="slide"
         onRequestClose={() => setShowAddModal(false)}
       >
-        <Pressable
-          className="flex-1"
-          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-          onPress={() => setShowAddModal(false)}
-        />
+        <View style={{ flex: 1 }}>
+          <Pressable
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)" }}
+            onPress={() => setShowAddModal(false)}
+          />
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View
           className="rounded-t-2xl px-4 pt-5 pb-8"
           style={{ backgroundColor: colors.background }}
@@ -460,6 +461,8 @@ export default function DematSnapshotsScreen() {
               {saving ? "Saving…" : "Save Snapshot"}
             </Text>
           </Pressable>
+        </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </ScreenContainer>

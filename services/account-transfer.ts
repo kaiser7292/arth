@@ -349,6 +349,14 @@ export async function autoDetectTransfer(
   return null;
 }
 
+export async function getTransferById(id: string): Promise<AccountTransfer | null> {
+  const db = getDatabase();
+  return db.getFirstAsync<AccountTransfer>(
+    `SELECT * FROM account_transfers WHERE id = ? AND deleted_at IS NULL;`,
+    id,
+  );
+}
+
 /**
  * Get transfer by linked expense ID.
  * Used to show transfer details in expense view.

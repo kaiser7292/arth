@@ -234,8 +234,8 @@ export default function DematPortfolioScreen() {
               <Pressable
                 onPress={() =>
                   router.push({
-                    pathname: "/settings/account-detail",
-                    params: { accountId: account.id },
+                    pathname: "/demat/snapshots/[id]",
+                    params: { id: account.id },
                   })
                 }
               >

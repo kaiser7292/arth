@@ -484,6 +484,8 @@ export default function ExpensesScreen() {
           onPress={() => {
             if (item.linked_expense_id) {
               router.push(`/expense/${item.linked_expense_id}`);
+            } else {
+              router.push(`/transfer/${item.id}`);
             }
           }}
           className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark"
