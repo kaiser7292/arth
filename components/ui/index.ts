@@ -6,6 +6,8 @@ export { CollapsibleSection } from "./CollapsibleSection";
 export { DateInput } from "./DateInput";
 export { EmptyState } from "./EmptyState";
 export { FAB } from "./FAB";
+export { FABMenu } from "./FABMenu";
+export type { FABMenuItem } from "./FABMenu";
 export { FilterChip } from "./FilterChip";
 export { Input } from "./Input";
 export { LearnMoreChip, LearnMoreRow } from "./LearnMoreChip";

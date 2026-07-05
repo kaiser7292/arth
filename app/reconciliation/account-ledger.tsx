@@ -1,6 +1,7 @@
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
-import { Button, Card, DateInput, FAB, FilterChip, Input, PeriodNavigator, ScreenContainer } from "@/components/ui";
+import { Button, Card, DateInput, FABMenu, FilterChip, Input, PeriodNavigator, ScreenContainer } from "@/components/ui";
+import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { StatusColors } from "@/constants/theme";
@@ -153,8 +154,6 @@ export default function AccountLedgerScreen() {
   const [adjustActual, setAdjustActual] = useState("");
   const [adjustDescription, setAdjustDescription] = useState("");
 
-  // FAB action sheet
-  const [showFabMenu, setShowFabMenu] = useState(false);
 
   // Convert credit to transfer
   const [showConvertPicker, setShowConvertPicker] = useState(false);
@@ -1247,78 +1246,53 @@ useDataRefresh(
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* FAB — opens action menu */}
-      {!showAddCredit && !showAddTransfer && !showAdjust && !showFabMenu && (
-        <FAB icon="add" onPress={() => setShowFabMenu(true)} accessibilityLabel="Add transaction" />
-      )}
-
-      {/* FAB action menu */}
-      {showFabMenu && (
-        <Pressable
-          className="absolute inset-0"
-          onPress={() => setShowFabMenu(false)}
-        >
-          <View className="absolute bottom-24 right-6">
-            <Pressable
-              onPress={() => {
-                setShowFabMenu(false);
-                setCreditDate(new Date().toISOString().split("T")[0]);
-                setShowAddCredit(true);
-                setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
-              }}
-              className="flex-row items-center mb-2 px-4 py-3 rounded-xl shadow-sm"
-              style={{ backgroundColor: colors.surface }}
-            >
-              <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: sc.success + "14" }}>
-                <Ionicons name="arrow-down-outline" size={16} color={sc.success} />
-              </View>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">Add Credit</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setShowFabMenu(false);
-                setTransferDate(new Date().toISOString().split("T")[0]);
-                setShowAddTransfer(true);
-                setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
-              }}
-              className="flex-row items-center mb-2 px-4 py-3 rounded-xl shadow-sm"
-              style={{ backgroundColor: colors.surface }}
-            >
-              <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: TRANSFER_COLOR + "14" }}>
-                <Ionicons name="swap-horizontal" size={16} color={TRANSFER_COLOR} />
-              </View>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">Add Transfer</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setShowFabMenu(false);
-                setShowAdjust(true);
-                setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
-              }}
-              className="flex-row items-center px-4 py-3 rounded-xl shadow-sm"
-              style={{ backgroundColor: colors.surface }}
-            >
-              <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: sc.warning + "14" }}>
-                <Ionicons name="swap-vertical-outline" size={16} color={sc.warning} />
-              </View>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">Adjust Balance</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      )}
+      {/* Animated FAB menu — hidden while any inline form is open so it doesn't overlap */}
+      <FABMenu
+        hidden={showAddCredit || showAddTransfer || showAdjust}
+        accessibilityLabel="Add transaction"
+        items={[
+          {
+            icon: "arrow-down-outline",
+            label: "Add Credit",
+            color: sc.success,
+            onPress: () => {
+              setCreditDate(new Date().toISOString().split("T")[0]);
+              setShowAddCredit(true);
+              setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
+            },
+          },
+          {
+            icon: "swap-horizontal",
+            label: "Add Transfer",
+            color: TRANSFER_COLOR,
+            onPress: () => {
+              setTransferDate(new Date().toISOString().split("T")[0]);
+              setShowAddTransfer(true);
+              setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
+            },
+          },
+          {
+            icon: "swap-vertical-outline",
+            label: "Adjust Balance",
+            color: sc.warning,
+            onPress: () => {
+              setShowAdjust(true);
+              setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
+            },
+          },
+        ] satisfies FABMenuItem[]}
+      />
 
       {/* Account picker for transfers.
-          When direction is "out" the user is moving money FROM this account
-          TO another — demat is a valid destination (idle-cash or direct
-          portfolio bump). When direction is "in", we keep it to savings/wallet
-          sources; money coming OUT of demat is a redemption/withdrawal flow
-          that is out of scope for this release. */}
+          Direction "out" = money FROM this account TO another (demat is valid destination).
+          Direction "in" = money INTO this account FROM another — demat is also allowed
+          as a source to support demat redemption/withdrawal flows. */}
       <AccountPickerSheet
         visible={showTransferAccountPicker}
         onSelect={handleTransferAccountSelected}
         onClose={() => setShowTransferAccountPicker(false)}
         title={transferDirection === "in" ? "Transfer From" : "Transfer To"}
-        filterTypes={transferDirection === "out" ? ["savings", "wallet", "demat"] : ["savings", "wallet"]}
+        filterTypes={transferDirection === "out" ? ["savings", "wallet", "demat"] : ["savings", "wallet", "demat"]}
         excludeAccountId={accountId}
       />
 

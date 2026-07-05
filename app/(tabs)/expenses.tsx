@@ -1,13 +1,19 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { View, Text, FlatList, Pressable, TextInput, ScrollView } from "react-native";
+import { View, Text, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { ScreenContainer, FAB, DateInput, EmptyState } from "@/components/ui";
+import { ScreenContainer, FABMenu, DateInput, EmptyState, Input, Card } from "@/components/ui";
+import type { FABMenuItem } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { ac } from "@/utils/accent";
+import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
+import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
+import { addCredit } from "@/services/account-credit";
+import { handleDematTransferSideEffects } from "@/services/demat-transfer";
+import type { DematTarget } from "@/services/demat-transfer";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
@@ -20,6 +26,7 @@ import {
 } from "@/services/expense";
 import {
   getTransfersForUser,
+  createTransfer,
   deleteTransfer,
 } from "@/services/account-transfer";
 import type { AccountTransfer } from "@/services/account-transfer";
@@ -56,6 +63,8 @@ import {
   type FilterViewState,
   type DatePreset,
 } from "@/services/saved-filter-views";
+import { TRANSFER_COLOR } from "@/constants/semantic-colors";
+import { StatusColors } from "@/constants/theme";
 
 const PAGE_SIZE = 50;
 
@@ -65,6 +74,7 @@ export default function ExpensesScreen() {
   const alert = useAlert();
   const router = useRouter();
   const { colors, accent, colorScheme } = useColorScheme();
+  const sc = StatusColors[colorScheme];
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
@@ -115,6 +125,34 @@ export default function ExpensesScreen() {
   const [showViewsPicker, setShowViewsPicker] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<Set<string>>(new Set());
+
+  // Inline credit form
+  const [showAddCredit, setShowAddCredit] = useState(false);
+  const [creditAccountId, setCreditAccountId] = useState<string | null>(null);
+  const [creditAccountLabel, setCreditAccountLabel] = useState("");
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditDescription, setCreditDescription] = useState("");
+  const [creditDate, setCreditDate] = useState("");
+  const [showCreditAccountPicker, setShowCreditAccountPicker] = useState(false);
+
+  // Inline transfer form
+  const [showAddTransfer, setShowAddTransfer] = useState(false);
+  const [transferFromAccountId, setTransferFromAccountId] = useState<string | null>(null);
+  const [transferFromLabel, setTransferFromLabel] = useState("");
+  const [transferToAccountId, setTransferToAccountId] = useState<string | null>(null);
+  const [transferToLabel, setTransferToLabel] = useState("");
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferDescription, setTransferDescription] = useState("");
+  const [transferDate, setTransferDate] = useState("");
+  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showToPicker, setShowToPicker] = useState(false);
+  const [pendingDematTransfer, setPendingDematTransfer] = useState<{
+    transferId: string;
+    dematAccountId: string;
+    dematAccountLabel: string;
+    amount: number;
+    date: string;
+  } | null>(null);
 
   // Preset: navigate to a specific tab after save (refund → credits, etc.)
   const params = useLocalSearchParams<{ preset?: string; filterMonth?: string; filterAvoidability?: string }>();
@@ -472,6 +510,124 @@ export default function ExpensesScreen() {
     setBulkPickerType(null);
     loadExpenses(true);
   }, [selectedExpenseIds, exitBulkMode, loadExpenses]);
+
+  // ── Credit handlers ──
+
+  const handleSaveCredit = useCallback(async () => {
+    if (!creditAccountId) {
+      alert("No Account", "Please select an account to credit.");
+      return;
+    }
+    const amount = parseFloat(creditAmount.replace(/,/g, ""));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Invalid Amount", "Please enter a valid positive amount.");
+      return;
+    }
+    const date = creditDate.trim() || new Date().toISOString().split("T")[0];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      alert("Invalid Date", "Please pick a valid date.");
+      return;
+    }
+    await addCredit({
+      accountId: creditAccountId,
+      userId: DEFAULT_USER_ID,
+      amount,
+      description: creditDescription.trim() || "Manual credit",
+      date,
+      source: "manual",
+    });
+    setShowAddCredit(false);
+    setCreditAccountId(null);
+    setCreditAccountLabel("");
+    setCreditAmount("");
+    setCreditDescription("");
+    setCreditDate("");
+    loadExpenses(true);
+  }, [creditAccountId, creditAmount, creditDescription, creditDate, alert, loadExpenses]);
+
+  const handleCancelCredit = useCallback(() => {
+    setShowAddCredit(false);
+    setCreditAccountId(null);
+    setCreditAccountLabel("");
+    setCreditAmount("");
+    setCreditDescription("");
+    setCreditDate("");
+  }, []);
+
+  // ── Transfer handlers ──
+
+  const handleSaveTransfer = useCallback(async () => {
+    if (!transferFromAccountId || !transferToAccountId) {
+      alert("Incomplete", "Please select both From and To accounts.");
+      return;
+    }
+    if (transferFromAccountId === transferToAccountId) {
+      alert("Same Account", "From and To accounts must be different.");
+      return;
+    }
+    const amount = parseFloat(transferAmount.replace(/,/g, ""));
+    if (!Number.isFinite(amount) || amount <= 0 || amount >= 1e12) {
+      alert("Invalid Amount", "Please enter a valid positive amount.");
+      return;
+    }
+    const date = transferDate.trim() || new Date().toISOString().split("T")[0];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      alert("Invalid Date", "Please pick a valid date.");
+      return;
+    }
+    const transferId = await createTransfer({
+      userId: DEFAULT_USER_ID,
+      fromAccountId: transferFromAccountId,
+      toAccountId: transferToAccountId,
+      amount,
+      description: transferDescription.trim() || undefined,
+      date,
+      source: "manual",
+    });
+    // If money landed in a demat account, open the follow-up sheet
+    const toAccount = accounts.find((a) => a.id === transferToAccountId);
+    if (toAccount?.account_type === "demat") {
+      const label = toAccount.account_label || `${toAccount.bank_name} ****${toAccount.account_identifier}`;
+      setPendingDematTransfer({ transferId, dematAccountId: toAccount.id, dematAccountLabel: label, amount, date });
+    }
+    setShowAddTransfer(false);
+    setTransferFromAccountId(null);
+    setTransferFromLabel("");
+    setTransferToAccountId(null);
+    setTransferToLabel("");
+    setTransferAmount("");
+    setTransferDescription("");
+    setTransferDate("");
+    loadExpenses(true);
+  }, [transferFromAccountId, transferToAccountId, transferAmount, transferDescription, transferDate, accounts, alert, loadExpenses]);
+
+  const handleCancelTransfer = useCallback(() => {
+    setShowAddTransfer(false);
+    setTransferFromAccountId(null);
+    setTransferFromLabel("");
+    setTransferToAccountId(null);
+    setTransferToLabel("");
+    setTransferAmount("");
+    setTransferDescription("");
+    setTransferDate("");
+  }, []);
+
+  const handleConfirmDematTarget = useCallback(async (target: DematTarget, bucketId: string | null) => {
+    if (!pendingDematTransfer) return;
+    try {
+      await handleDematTransferSideEffects(
+        pendingDematTransfer.transferId,
+        pendingDematTransfer.dematAccountId,
+        pendingDematTransfer.amount,
+        pendingDematTransfer.date,
+        { target, bucketId },
+      );
+    } catch (e) {
+      alert("Error", e instanceof Error ? e.message : String(e));
+    } finally {
+      setPendingDematTransfer(null);
+    }
+  }, [pendingDematTransfer, alert]);
 
   const renderTransferItem = useCallback(
     ({ item }: { item: AccountTransfer }) => {
@@ -1011,15 +1167,34 @@ export default function ExpensesScreen() {
       />
       )}
 
-      <FAB
-        icon="add"
-        onPress={() =>
-          alert("Add…", "What would you like to add?", [
-            { text: "Cancel", style: "cancel" },
-            { text: "Expense", onPress: () => router.push("/expense/add") },
-            { text: "Refund", onPress: () => router.push("/expense/add?type=refund") },
-          ])
-        }
+      <FABMenu
+        hidden={bulkMode}
+        items={[
+          {
+            icon: "receipt-outline",
+            label: "Add Expense",
+            color: sc.danger,
+            onPress: () => router.push("/expense/add"),
+          },
+          {
+            icon: "arrow-down-outline",
+            label: "Add Credit",
+            color: sc.success,
+            onPress: () => {
+              setCreditDate(new Date().toISOString().split("T")[0]);
+              setShowAddCredit(true);
+            },
+          },
+          {
+            icon: "swap-horizontal",
+            label: "Add Transfer",
+            color: TRANSFER_COLOR,
+            onPress: () => {
+              setTransferDate(new Date().toISOString().split("T")[0]);
+              setShowAddTransfer(true);
+            },
+          },
+        ] satisfies FABMenuItem[]}
       />
       {/* Bulk action bar */}
       {bulkMode && (
@@ -1098,6 +1273,197 @@ export default function ExpensesScreen() {
             </Pressable>
           </View>
         </View>
+      )}
+      {/* Add Credit bottom sheet */}
+      {showAddCredit && (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: 0, zIndex: 50, justifyContent: "flex-end" }}
+        >
+          <Pressable style={{ flex: 1 }} onPress={handleCancelCredit} />
+          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", marginRight: 10, backgroundColor: sc.success + "20" }}>
+                <Ionicons name="arrow-down-outline" size={16} color={sc.success} />
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>Add Credit</Text>
+            </View>
+            <Text style={{ fontSize: 11, fontWeight: "600", color: colors.textSecondary, marginBottom: 4 }}>Account</Text>
+            <Pressable
+              onPress={() => setShowCreditAccountPicker(true)}
+              style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}
+            >
+              <Ionicons name="wallet-outline" size={16} color={creditAccountId ? sc.success : colors.textSecondary} />
+              <Text style={{ flex: 1, fontSize: 14, marginLeft: 8, color: creditAccountId ? colors.text : colors.textSecondary }}>
+                {creditAccountLabel || "Select account"}
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+            </Pressable>
+            <Input
+              placeholder="Amount"
+              formula
+              value={creditAmount}
+              onChangeText={setCreditAmount}
+              containerClassName="mb-3"
+            />
+            <TextInput
+              style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12, fontSize: 14, color: colors.text }}
+              placeholder="Description (e.g. Salary, UPI received)"
+              placeholderTextColor={colors.textSecondary}
+              maxLength={200}
+              value={creditDescription}
+              onChangeText={setCreditDescription}
+            />
+            <DateInput
+              label="Date"
+              value={creditDate || new Date().toISOString().split("T")[0]}
+              onChange={setCreditDate}
+              containerClassName="mb-4"
+            />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Pressable
+                onPress={handleCancelCredit}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textSecondary }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSaveCredit}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: sc.success }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#fff" }}>Add Credit</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      )}
+
+      {/* Add Transfer bottom sheet */}
+      {showAddTransfer && (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: 0, zIndex: 50, justifyContent: "flex-end" }}
+        >
+          <Pressable style={{ flex: 1 }} onPress={handleCancelTransfer} />
+          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", marginRight: 10, backgroundColor: TRANSFER_COLOR + "20" }}>
+                <Ionicons name="swap-horizontal" size={16} color={TRANSFER_COLOR} />
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>Add Transfer</Text>
+            </View>
+            <Text style={{ fontSize: 11, fontWeight: "600", color: colors.textSecondary, marginBottom: 4 }}>From Account</Text>
+            <Pressable
+              onPress={() => setShowFromPicker(true)}
+              style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}
+            >
+              <Ionicons name="wallet-outline" size={16} color={transferFromAccountId ? TRANSFER_COLOR : colors.textSecondary} />
+              <Text style={{ flex: 1, fontSize: 14, marginLeft: 8, color: transferFromAccountId ? colors.text : colors.textSecondary }}>
+                {transferFromLabel || "Select account"}
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+            </Pressable>
+            <Text style={{ fontSize: 11, fontWeight: "600", color: colors.textSecondary, marginBottom: 4 }}>To Account</Text>
+            <Pressable
+              onPress={() => setShowToPicker(true)}
+              style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}
+            >
+              <Ionicons name="wallet-outline" size={16} color={transferToAccountId ? TRANSFER_COLOR : colors.textSecondary} />
+              <Text style={{ flex: 1, fontSize: 14, marginLeft: 8, color: transferToAccountId ? colors.text : colors.textSecondary }}>
+                {transferToLabel || "Select account"}
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+            </Pressable>
+            <Input
+              placeholder="Amount"
+              formula
+              value={transferAmount}
+              onChangeText={setTransferAmount}
+              containerClassName="mb-3"
+            />
+            <TextInput
+              style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12, fontSize: 14, color: colors.text }}
+              placeholder="Description (optional)"
+              placeholderTextColor={colors.textSecondary}
+              maxLength={200}
+              value={transferDescription}
+              onChangeText={setTransferDescription}
+            />
+            <DateInput
+              label="Date"
+              value={transferDate || new Date().toISOString().split("T")[0]}
+              onChange={setTransferDate}
+              containerClassName="mb-4"
+            />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Pressable
+                onPress={handleCancelTransfer}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textSecondary }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSaveTransfer}
+                disabled={!transferFromAccountId || !transferToAccountId}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: (transferFromAccountId && transferToAccountId) ? TRANSFER_COLOR : colors.textSecondary + "40" }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#fff" }}>Add Transfer</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      )}
+
+      {/* Account pickers */}
+      <AccountPickerSheet
+        visible={showCreditAccountPicker}
+        onSelect={(id) => {
+          setCreditAccountId(id);
+          const acct = accounts.find((a) => a.id === id);
+          setCreditAccountLabel(acct ? (acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`) : "Selected");
+          setShowCreditAccountPicker(false);
+        }}
+        onClose={() => setShowCreditAccountPicker(false)}
+        title="Credit Account"
+        filterTypes={["savings", "wallet", "credit_card"]}
+      />
+      <AccountPickerSheet
+        visible={showFromPicker}
+        onSelect={(id) => {
+          setTransferFromAccountId(id);
+          const acct = accounts.find((a) => a.id === id);
+          setTransferFromLabel(acct ? (acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`) : "Selected");
+          setShowFromPicker(false);
+        }}
+        onClose={() => setShowFromPicker(false)}
+        title="Transfer From"
+        filterTypes={["savings", "wallet", "demat"]}
+        excludeAccountId={transferToAccountId ?? undefined}
+      />
+      <AccountPickerSheet
+        visible={showToPicker}
+        onSelect={(id) => {
+          setTransferToAccountId(id);
+          const acct = accounts.find((a) => a.id === id);
+          setTransferToLabel(acct ? (acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`) : "Selected");
+          setShowToPicker(false);
+        }}
+        onClose={() => setShowToPicker(false)}
+        title="Transfer To"
+        filterTypes={["savings", "wallet", "credit_card", "demat"]}
+        excludeAccountId={transferFromAccountId ?? undefined}
+      />
+
+      {/* Demat follow-up sheet */}
+      {pendingDematTransfer && (
+        <DematTransferTargetSheet
+          visible={true}
+          dematAccountLabel={pendingDematTransfer.dematAccountLabel}
+          amount={pendingDematTransfer.amount}
+          date={pendingDematTransfer.date}
+          onConfirm={handleConfirmDematTarget}
+          onClose={() => setPendingDematTransfer(null)}
+        />
       )}
     </ScreenContainer>
     </GestureHandlerRootView>
