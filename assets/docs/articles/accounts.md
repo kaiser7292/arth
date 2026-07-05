@@ -72,13 +72,14 @@ Opening balance (start of month)
 - **Savings/Wallet** - higher = more money.
 - **Credit card** - shows **utilized** (how much you owe). Lower = better. A payment from savings to credit card lowers both. The card also tracks available credit = limit − utilized.
 - **Loan** - shows **principal remaining**. Lower = better. EMI payments reduce it.
-- **Demat** - shows **fund** (idle cash with broker) + **portfolio** (invested value). Each account card displays the combined total when both fund and portfolio exist, with a breakdown subtitle. The portfolio trend chart is interactive - tap any data point to see exact values and dates. Move money in/out via transfers.
+- **Demat** - shows **fund** (idle cash with broker) + **portfolio** (invested value). Each account card displays the combined total when both fund and portfolio exist, with a breakdown subtitle. The portfolio trend chart is interactive - tap any data point to see exact values and dates. Move money in/out via transfers. When you transfer money **out** of a demat account (demat as the "From Account"), the idle fund is automatically reduced.
 
-## Demat portfolio screen
+## Demat Account Details
 
-Tap the **Demat Accounts** card on Home to open the portfolio screen. It shows:
+Tap the **Demat Accounts** card on Home, then tap an account to open the **Demat Account Details** screen. It shows:
 
 - **Portfolio Summary** - total portfolio value, idle cash/fund, and combined total across all demat accounts.
+- **Deposited / Withdrawn / Net Invested** - running totals computed from all transfers into and out of the demat account. Deposited = transfers in (fund + portfolio). Withdrawn = transfers out. Net Invested = Deposited − Withdrawn.
 - **Trend chart** - last 12 weeks of portfolio + fund, plotted per-account with a combined "Total" line when you have multiple accounts. **Tap any point** on the chart to see the exact value and date in a tooltip. A dashed vertical line highlights the selected week.
 - **Per-account breakdown** - each account shows its combined total (portfolio + fund) as the primary number, with a subtitle breaking down the two components.
 

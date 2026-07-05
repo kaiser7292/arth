@@ -37,7 +37,7 @@ Arth is a private finance tracker that runs entirely on your phone. No account, 
 
 ## The five tabs
 
-Arth has **five bottom tabs**, in this order from left to right:
+Arth has **five bottom tabs**, in this order from left to right. **Swipe left or right** anywhere on screen to move between tabs — or tap them directly.
 
 - **Home** - today's picture. Month-to-date spend ring, Review Queue, Upcoming Dues, Reminders, recent expenses, and the **Your Accounts** section (Credit Cards, Bank Accounts, Wallets, Demat, Loans - each with live balances and tap-to-drill). Also the entry point to the **Insights screen** (tap the Insights card on Home).
 - **Transactions** - the full ledger. Both expenses and credits. Search, filter by date / category / account / tag, toggle between Expenses and Credits. Save your favourite filter combinations as named views (tap "Save view" in the filter panel) and set one as default. Active filter pills show at a glance what's applied.
@@ -57,6 +57,8 @@ Arth has **five bottom tabs**, in this order from left to right:
 6. **Create your first backup.** Settings tab → Backup & Storage → Backup & Restore → **Create Backup**. Save the `.artha` file somewhere safe (Drive, email to yourself, etc.).
 
 ## Common situations
+
+**Pull down to refresh.** On the Home tab and most account screens (Bank Accounts, Credit Cards, Wallets, Pension, Account Ledger, Account Detail, Demat Account Details), pull down to reload all data.
 
 **Review Queue shows 20+ items from old SMS.** Arth scans the last 180 days by default. Go to Review Queue → filter to **Auto-Detected** → tap **Reject All** for anything you don't want, or approve in bulk.
 

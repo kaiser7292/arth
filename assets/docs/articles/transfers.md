@@ -85,6 +85,8 @@ The transfer is deleted and the original expense/credit is restored (no longer m
 
 **I need to move money between my wallets.** Record a transfer: source = wallet 1, destination = wallet 2.
 
+**I withdrew money from my demat account.** Record a transfer with the demat account as the source ("From Account"). Arth automatically subtracts the amount from the demat account's idle fund snapshot. If you delete this transfer later, the fund snapshot is restored.
+
 **I want to see all my money movements.** Use the Transfers tab or filter Transactions by "Transfers" nature.
 
 ## Related
