@@ -148,6 +148,7 @@ export async function runScheduledBackupIfDue(): Promise<void> {
         title: "Backup saved",
         body: "Your scheduled Arth backup has been saved to your phone.",
         sound: false,
+        data: { screen: "settings/backup-restore" },
       },
       trigger: null,
     });
@@ -244,6 +245,7 @@ export async function syncScheduledBackupNotification(s: BackupScheduleSettings)
         title: "Arth backup reminder",
         body: "Open Arth to save your scheduled backup.",
         sound: false,
+        data: { screen: "settings/backup-restore" },
       },
       trigger: {
         type: SchedulableTriggerInputTypes.DAILY,

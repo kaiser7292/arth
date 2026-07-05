@@ -28,6 +28,7 @@ export const ALLOWED_DEEP_LINK_SCREENS = new Set([
   "settings/dismissed-duplicates",
   "settings/recurring-rules",
   "settings/audit-log",
+  "settings/backup-restore",
   "settings/budget-config",
   "settings/home-cards",
   "insights",

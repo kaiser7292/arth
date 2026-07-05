@@ -4,7 +4,7 @@ import { initDatabase } from "@/database";
 import { AlertProvider } from "@/hooks/use-alert";
 import { AccentProvider } from "@/hooks/use-color-scheme";
 import { useFonts } from "expo-font";
-import * as InterFont from "expo-google-fonts/inter";
+import * as InterFont from "@expo-google-fonts/inter";
 import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
 import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
