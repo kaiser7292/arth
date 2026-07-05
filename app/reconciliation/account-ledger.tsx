@@ -42,7 +42,7 @@ import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 
 interface LedgerEntry {
   id: string;
@@ -106,6 +106,7 @@ export default function AccountLedgerScreen() {
   // handles field visibility without this listener.
 
   const [month, setMonth] = useState(monthParam ?? getCurrentMonth());
+  const [refreshing, setRefreshing] = useState(false);
   const [opening, setOpening] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalCredits, setTotalCredits] = useState(0);
@@ -195,8 +196,7 @@ export default function AccountLedgerScreen() {
     return result;
   }, [entries, cardFilter, poolSiblings, filterMode]);
 
-useDataRefresh(
-    useCallback(async () => {
+const loadData = useCallback(async () => {
       if (!accountId) return;
 
       // For shared-limit CCs, sibling cards may have older activity.
@@ -439,8 +439,9 @@ useDataRefresh(
       // Sort by date descending
       ledger.sort((a, b) => b.date.localeCompare(a.date));
       setEntries(ledger);
-    }, [accountId, month, startDate, endDate]),
-  );
+  }, [accountId, month, startDate, endDate]);
+
+  useDataRefresh(loadData);
 
   const handleStartEditCredit = useCallback((entry: LedgerEntry) => {
     setEditingCreditId(entry.id);
@@ -722,7 +723,15 @@ useDataRefresh(
         behavior="padding"
         keyboardVerticalOffset={100}
       >
-        <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          ref={scrollRef}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
+          }
+        >
           {/* Balance summary card */}
           <Card className="mx-4 mt-3 mb-2">
             {!seeded && (

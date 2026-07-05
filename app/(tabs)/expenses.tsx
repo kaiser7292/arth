@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { View, Text, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ScreenContainer, FABMenu, DateInput, EmptyState, Input, Card } from "@/components/ui";
 import type { FABMenuItem } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -736,7 +735,6 @@ export default function ExpensesScreen() {
   );
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
     <ScreenContainer padTop={false}>
       {/* Search bar */}
       <View className="px-4 pt-3 pb-2">
@@ -1475,6 +1473,5 @@ export default function ExpensesScreen() {
         />
       )}
     </ScreenContainer>
-    </GestureHandlerRootView>
   );
 }

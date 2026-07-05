@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, Card, PeriodNavigator } from "@/components/ui";
@@ -78,6 +78,7 @@ export default function CreditCardsScreen() {
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
   const [minMonth, setMinMonth] = useState<string | undefined>(preloaded?.minMonth);
+  const [refreshing, setRefreshing] = useState(false);
   const maxMonth = useMemo(() => {
     const now = new Date();
     const future = new Date(now.getFullYear(), now.getMonth() + 3, 1);
@@ -88,8 +89,7 @@ export default function CreditCardsScreen() {
 
   // monthLabel and handleMonthShift replaced by PeriodNavigator
 
-  useDataRefresh(
-    useCallback(async () => {
+  const loadData = useCallback(async () => {
       const [allAccounts, totals, adjStats] = await Promise.all([
         getActiveAccounts(DEFAULT_USER_ID),
         getCcExpenseTotals(DEFAULT_USER_ID, startDate, endDate),
@@ -132,8 +132,9 @@ export default function CreditCardsScreen() {
       } else {
         setMinMonth(undefined);
       }
-    }, [startDate, endDate]),
-  );
+  }, [startDate, endDate]);
+
+  useDataRefresh(loadData);
 
   // Build bank groups for shared-limit reconciliation
   const bankGroups = useMemo((): BankGroup[] => {
@@ -218,7 +219,13 @@ export default function CreditCardsScreen() {
       {/* Month navigator */}
       <PeriodNavigator mode="month" value={month} onChange={setMonth} minMonth={minMonth} maxMonth={maxMonth} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
+        }
+      >
         {/* Overall summary card */}
         <Card className="mx-4 mt-3 mb-2">
           <View className="flex-row items-center justify-between mb-2">

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, Card, PeriodNavigator } from "@/components/ui";
@@ -40,11 +40,11 @@ export default function BankAccountsScreen() {
   const [summaries, setSummaries] = useState<AccountSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
+  const [refreshing, setRefreshing] = useState(false);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
-  useDataRefresh(
-    useCallback(async () => {
+  const loadData = useCallback(async () => {
       const [allAccounts, staleDates, adjStats] = await Promise.all([
         getActiveAccounts(DEFAULT_USER_ID),
         getAccountLatestStaleCheckDates(DEFAULT_USER_ID, startDate, endDate),
@@ -87,8 +87,9 @@ export default function BankAccountsScreen() {
       );
 
       setSummaries(results);
-    }, [month, startDate, endDate]),
-  );
+  }, [month, startDate, endDate]);
+
+  useDataRefresh(loadData);
 
   // Overall totals
   const totalBalance = summaries.reduce((sum, s) => sum + s.current, 0);
@@ -100,7 +101,13 @@ export default function BankAccountsScreen() {
       {/* Month navigator */}
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
+        }
+      >
         {/* Overall summary card */}
         <Card className="mx-4 mt-3 mb-2">
           <View className="flex-row items-center justify-between mb-2">

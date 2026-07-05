@@ -18,7 +18,7 @@ import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 
 const preloaded = consumeWalletsPreload();
 
@@ -39,11 +39,11 @@ export default function WalletsScreen() {
   const [summaries, setSummaries] = useState<WalletSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
+  const [refreshing, setRefreshing] = useState(false);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
-  useDataRefresh(
-    useCallback(async () => {
+  const loadData = useCallback(async () => {
       const [allAccounts, staleDates, adjStats] = await Promise.all([
         getActiveAccounts(DEFAULT_USER_ID),
         getAccountLatestStaleCheckDates(DEFAULT_USER_ID, startDate, endDate),
@@ -86,8 +86,9 @@ export default function WalletsScreen() {
       );
 
       setSummaries(results);
-    }, [month, startDate, endDate]),
-  );
+  }, [month, startDate, endDate]);
+
+  useDataRefresh(loadData);
 
   const totalBalance = summaries.reduce((sum, s) => sum + s.current, 0);
   const totalExpenses = summaries.reduce((sum, s) => sum + s.expenses, 0);
@@ -97,7 +98,13 @@ export default function WalletsScreen() {
     <ScreenContainer padTop={false}>
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
+        }
+      >
         {/* Overall summary card */}
         <Card className="mx-4 mt-3 mb-2">
           <View className="flex-row items-center justify-between mb-2">

@@ -21,7 +21,7 @@ import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 
 const preloaded = consumePensionAccountsPreload();
 
@@ -45,11 +45,11 @@ export default function PensionAccountsScreen() {
   const [month, setMonth] = useState(getCurrentMonth());
   const [ytdCredits, setYtdCredits] = useState(0);
   const [ytdPerAccount, setYtdPerAccount] = useState<Record<string, number>>({});
+  const [refreshing, setRefreshing] = useState(false);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
-  useDataRefresh(
-    useCallback(async () => {
+  const loadData = useCallback(async () => {
       const [allAccounts, staleDates, adjStats] = await Promise.all([
         getActiveAccounts(DEFAULT_USER_ID),
         getAccountLatestStaleCheckDates(DEFAULT_USER_ID, startDate, endDate),
@@ -111,8 +111,9 @@ export default function PensionAccountsScreen() {
       }
       setYtdCredits(ytdTotal);
       setYtdPerAccount(ytdMap);
-    }, [month, startDate, endDate]),
-  );
+  }, [month, startDate, endDate]);
+
+  useDataRefresh(loadData);
 
   // Overall totals
   const totalBalance = summaries.reduce((sum, s) => sum + s.current, 0);
@@ -129,7 +130,13 @@ export default function PensionAccountsScreen() {
       {/* Month navigator */}
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
+        }
+      >
         {/* Overall summary card */}
         <Card className="mx-4 mt-3 mb-2">
           <View className="flex-row items-center justify-between mb-2">

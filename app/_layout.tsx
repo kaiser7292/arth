@@ -24,6 +24,7 @@ import { StatusBar } from "expo-status-bar";
 import * as TaskManager from "expo-task-manager";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Appearance, AppState, BackHandler, Easing, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Circle, G, Rect, Svg } from "react-native-svg";
 import "../global.css";
 
@@ -463,6 +464,7 @@ export default function RootLayout(): React.JSX.Element {
     <ErrorBoundary>
     <AccentProvider>
     <AlertProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <>
       <StatusBar style="auto" />
       <Stack>
@@ -521,6 +523,7 @@ export default function RootLayout(): React.JSX.Element {
         />
       </Stack>
     </>
+    </GestureHandlerRootView>
     </AlertProvider>
     </AccentProvider>
     </ErrorBoundary>

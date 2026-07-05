@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { logger } from "@/utils/logger";
-import { View, Text, ScrollView, Pressable, Keyboard } from "react-native";
+import { View, Text, ScrollView, Pressable, Keyboard, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -88,6 +88,7 @@ export default function AccountDetailScreen() {
   const [balanceValue, setBalanceValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Seed state (for first-time balance setup)
   const [seedBalance, setSeedBalance] = useState("");
@@ -385,6 +386,9 @@ export default function AccountDetailScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}
           keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
+          }
         >
           <View className="px-4 py-4">
           {/* Account identity */}

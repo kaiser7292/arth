@@ -6,14 +6,20 @@ import { getPendingExpenseCount } from "@/services/expense";
 import { subscribeDataVersion } from "@/services/settings";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { Tabs } from "expo-router";
+import { Tabs, usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const TAB_PATHS = ['/', '/expenses', '/budget', '/goals', '/settings'] as const;
 
 export default function TabLayout() {
   const { colors } = useColorScheme();
   const insets = useSafeAreaInsets();
   const [pendingCount, setPendingCount] = useState(0);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const refreshPending = useCallback(async () => {
     const count = await getPendingExpenseCount(DEFAULT_USER_ID);
@@ -34,7 +40,25 @@ export default function TabLayout() {
     };
   }, [refreshPending]);
 
+  const swipeGesture = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-25, 25])
+    .failOffsetY([-15, 15])
+    .onEnd((event) => {
+      const idx = TAB_PATHS.indexOf(pathname as typeof TAB_PATHS[number]);
+      if (idx === -1) return;
+      if (event.velocityX < -400 && idx < TAB_PATHS.length - 1) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.navigate(TAB_PATHS[idx + 1] as never);
+      } else if (event.velocityX > 400 && idx > 0) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.navigate(TAB_PATHS[idx - 1] as never);
+      }
+    });
+
   return (
+    <GestureDetector gesture={swipeGesture}>
+    <View style={{ flex: 1 }}>
     <Tabs
       screenListeners={{
         tabPress: () => {
@@ -121,5 +145,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </View>
+    </GestureDetector>
   );
 }
