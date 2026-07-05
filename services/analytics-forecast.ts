@@ -15,6 +15,8 @@ import { getBudgetsForMonth } from "@/services/budget";
 import type { Expense } from "@/services/expense-types";
 import { effectiveAmountSql } from "@/services/expense-effective-amount";
 
+const NOT_RECLASSIFIED = "(reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)";
+
 // ═══════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════
@@ -114,7 +116,7 @@ export async function getAnalyticsForecast(
   }>(
     `SELECT id, amount, ${effectiveAmountSql("expenses")} as effective_amount, merchant_name, date, category_id FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-       AND date >= ? AND date <= ?
+       AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      ORDER BY date ASC;`,
@@ -246,6 +248,7 @@ async function tryV2Forecast(userId: string, month: string): Promise<AnalyticsFo
     `SELECT *, ${effectiveAmountSql("expenses")} as amount FROM expenses
      WHERE user_id = ? AND date >= ? AND date <= ?
        AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+       AND ${NOT_RECLASSIFIED}
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      ORDER BY date ASC;`,
@@ -350,7 +353,7 @@ async function getHistoricalVariableAvg(
     `SELECT SUM(${effectiveAmountSql("expenses")}) as total, COUNT(DISTINCT strftime('%Y-%m', date)) as months
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-       AND date >= ? AND date <= ?
+       AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
     userId,
@@ -406,6 +409,7 @@ async function getDataMonthCount(userId: string): Promise<number> {
     `SELECT COUNT(DISTINCT strftime('%Y-%m', date)) as months
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+       AND ${NOT_RECLASSIFIED}
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
     userId,

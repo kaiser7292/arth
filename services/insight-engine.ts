@@ -39,6 +39,9 @@ const NOT_LINKED_BARE = `
   )
 `;
 
+const NOT_RECLASSIFIED_E = "(e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)";
+const NOT_RECLASSIFIED_BARE = "(reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)";
+
 // ═══════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════
@@ -142,7 +145,7 @@ async function detectBudgetBreaches(userId: string, yearMonth: string): Promise<
      JOIN categories c ON c.id = e.category_id
      JOIN budgets b ON b.category_id = e.category_id AND b.month = ?
      WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
-       AND e.deleted_at IS NULL AND e.date >= ? AND e.date <= ?
+       AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        AND e.category_id IS NOT NULL
        ${NOT_LINKED_E}
      GROUP BY e.category_id
@@ -186,14 +189,14 @@ async function detectLifestyleCreep(userId: string, yearMonth: string): Promise<
     db.getFirstAsync<{ avg: number | null }>(
       `SELECT SUM(${effectiveAmountSql("expenses")}) / 3.0 as avg FROM expenses
        WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-         AND date >= ? AND date <= ?
+         AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ?
          ${NOT_LINKED_BARE};`,
       userId, currentStart, currentEnd,
     ),
     db.getFirstAsync<{ avg: number | null }>(
       `SELECT SUM(${effectiveAmountSql("expenses")}) / 3.0 as avg FROM expenses
        WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-         AND date >= ? AND date <= ?
+         AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ?
          ${NOT_LINKED_BARE};`,
       userId, lastYearStart, lastYearEnd,
     ),
@@ -234,7 +237,7 @@ async function detectSavingsWins(userId: string, yearMonth: string): Promise<Ins
      FROM expenses e
      JOIN categories c ON c.id = e.category_id
      WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
-       AND e.deleted_at IS NULL AND e.date >= ? AND e.date <= ?
+       AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        AND e.category_id IS NOT NULL
        ${NOT_LINKED_E}
      GROUP BY e.category_id;`,
@@ -247,7 +250,7 @@ async function detectSavingsWins(userId: string, yearMonth: string): Promise<Ins
   }>(
     `SELECT category_id, SUM(${effectiveAmountSql("expenses")}) as prev_total FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-       AND date >= ? AND date <= ? AND category_id IS NOT NULL
+       AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ? AND category_id IS NOT NULL
        ${NOT_LINKED_BARE}
      GROUP BY category_id;`,
     userId, prevRange.startDate, prevRange.endDate,
@@ -290,7 +293,7 @@ async function detectMicroLeaks(userId: string, yearMonth: string): Promise<Insi
   const row = await db.getFirstAsync<{ total: number | null; count: number }>(
     `SELECT SUM(${effectiveAmountSql("expenses")}) as total, COUNT(*) as count FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-       AND date >= ? AND date <= ? AND amount < 500 AND amount > 0
+       AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ? AND amount < 500 AND amount > 0
        ${NOT_LINKED_BARE};`,
     userId, startDate, endDate,
   );
@@ -374,7 +377,7 @@ async function getLifestyleCreepDrill(
        FROM expenses e
        LEFT JOIN categories c ON c.id = e.category_id
        WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
-         AND e.deleted_at IS NULL AND e.date >= ? AND e.date <= ?
+         AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        GROUP BY e.category_id
        ORDER BY total DESC;`,
       userId, currentStart, currentEnd,
@@ -386,7 +389,7 @@ async function getLifestyleCreepDrill(
       `SELECT e.category_id, SUM(${effectiveAmountSql("e")}) as total
        FROM expenses e
        WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
-         AND e.deleted_at IS NULL AND e.date >= ? AND e.date <= ?
+         AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        GROUP BY e.category_id;`,
       userId, lastYearStart, lastYearEnd,
     ),
@@ -469,7 +472,7 @@ async function getBudgetBreachDrill(
             GROUP_CONCAT(id) as expense_ids
      FROM expenses
      WHERE user_id = ? AND category_id = ? AND status = 'approved' AND nature = 'realized'
-       AND deleted_at IS NULL AND date >= ? AND date <= ?
+       AND deleted_at IS NULL AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ?
      GROUP BY merchant_name
      ORDER BY total DESC;`,
     userId, categoryId, startDate, endDate,
@@ -534,7 +537,7 @@ async function getSavingsWinDrill(
             GROUP_CONCAT(id) as expense_ids
      FROM expenses
      WHERE user_id = ? AND category_id = ? AND status = 'approved' AND nature = 'realized'
-       AND deleted_at IS NULL AND date >= ? AND date <= ?
+       AND deleted_at IS NULL AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ?
      GROUP BY merchant_name
      ORDER BY total DESC;`,
     userId, categoryId, startDate, endDate,
@@ -588,7 +591,7 @@ async function getMicroLeaksDrill(
      FROM expenses e
      LEFT JOIN categories c ON c.id = e.category_id
      WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
-       AND e.deleted_at IS NULL AND e.date >= ? AND e.date <= ?
+       AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        AND e.amount < 500 AND e.amount > 0
      GROUP BY e.category_id
      ORDER BY total DESC;`,

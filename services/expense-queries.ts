@@ -23,6 +23,8 @@ const NOT_INVESTMENT_LINKED = `
   )
 `;
 
+const NOT_RECLASSIFIED = "(reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)";
+
 /**
  * Get expenses for a user within a date range, ordered by date descending.
  */
@@ -36,7 +38,7 @@ export async function getExpenses(
   if (startDate && endDate) {
     return db.getAllAsync<Expense>(
       `SELECT * FROM expenses
-       WHERE user_id = ? AND status != 'rejected' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ?
+       WHERE user_id = ? AND status != 'rejected' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
        ORDER BY date DESC, created_at DESC;`,
       userId,
       startDate,
@@ -46,7 +48,7 @@ export async function getExpenses(
 
   return db.getAllAsync<Expense>(
     `SELECT * FROM expenses
-     WHERE user_id = ? AND status != 'rejected' AND nature = 'realized' AND deleted_at IS NULL
+     WHERE user_id = ? AND status != 'rejected' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED}
      ORDER BY date DESC, created_at DESC;`,
     userId,
   );
@@ -101,6 +103,7 @@ export async function getExpensesPaginated(
     conditions.push("nature = ?");
     params.push(nature);
   }
+  conditions.push(NOT_RECLASSIFIED);
 
   if (filters.status) {
     conditions.push("status = ?");
@@ -219,6 +222,7 @@ export async function getFilteredExpenseSummary(
     conditions.push("nature = ?");
     params.push(nature);
   }
+  conditions.push(NOT_RECLASSIFIED);
 
   if (filters.status) {
     conditions.push("status = ?");
@@ -358,7 +362,7 @@ export async function getExpenseTotal(
   const db = getDatabase();
   const row = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ?
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
      ${NOT_INVESTMENT_LINKED};`,
     userId,
     startDate,
@@ -383,7 +387,7 @@ export async function getMonthlyExpenseTotals(
     `SELECT SUBSTR(date, 1, 7) as month, SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-       AND date >= ? AND date <= ?
+       AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
        ${NOT_INVESTMENT_LINKED}
      GROUP BY SUBSTR(date, 1, 7);`,
     userId,
@@ -406,7 +410,7 @@ export async function getExpenseTotalsByCategory(
   const db = getDatabase();
   return db.getAllAsync<CategoryActual>(
     `SELECT category_id, SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ? AND category_id IS NOT NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ? AND category_id IS NOT NULL
      ${NOT_INVESTMENT_LINKED}
      GROUP BY category_id;`,
     userId,
@@ -448,7 +452,7 @@ export async function getExpenseTotalsByCategoryAndClassification(
             SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
-       AND deleted_at IS NULL AND date >= ? AND date <= ?
+       AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
        AND category_id IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
@@ -485,7 +489,7 @@ export async function getCategoryMonthlyTrend(
     `SELECT strftime('%Y-%m', date) as month, SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
-       AND deleted_at IS NULL AND category_id = ? AND date >= ? AND date <= ?
+       AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND category_id = ? AND date >= ? AND date <= ?
      GROUP BY strftime('%Y-%m', date)
      ORDER BY month;`,
     userId,
@@ -517,7 +521,7 @@ export async function getRightSpendTotal(
   const db = getDatabase();
   const row = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND is_right_spend = 1 AND date >= ? AND date <= ?;`,
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND is_right_spend = 1 AND date >= ? AND date <= ?;`,
     userId,
     startDate,
     endDate,
@@ -537,7 +541,7 @@ export async function getTopCategoriesBySpending(
   const db = getDatabase();
   return db.getAllAsync<CategoryActual>(
     `SELECT category_id, SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ? AND category_id IS NOT NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ? AND category_id IS NOT NULL
      GROUP BY category_id
      ORDER BY total DESC
      LIMIT ?;`,
@@ -559,7 +563,7 @@ export async function getExpenseCount(
   const db = getDatabase();
   const row = await db.getFirstAsync<{ count: number }>(
     `SELECT COUNT(*) as count FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ?;`,
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?;`,
     userId,
     startDate,
     endDate,
@@ -578,7 +582,7 @@ export async function getUncategorizedTotal(
   const db = getDatabase();
   const row = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ? AND category_id IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ? AND category_id IS NULL
      ${NOT_INVESTMENT_LINKED};`,
     userId,
     startDate,
@@ -596,7 +600,7 @@ export async function getUncategorizedCount(
   const db = getDatabase();
   const row = await db.getFirstAsync<{ count: number }>(
     `SELECT COUNT(*) as count FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND category_id IS NULL;`,
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND category_id IS NULL;`,
     userId,
   );
   return row?.count ?? 0;
@@ -611,7 +615,7 @@ export async function getUncategorizedExpenses(
   const db = getDatabase();
   return db.getAllAsync<Expense>(
     `SELECT * FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND category_id IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND category_id IS NULL
      ORDER BY date DESC;`,
     userId,
   );

@@ -16,6 +16,8 @@ import {
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { effectiveAmountSql } from "./expense-effective-amount";
 
+const NOT_RECLASSIFIED = "(reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)";
+
 /**
  * Get month-end spending forecast for each category.
  *
@@ -65,7 +67,7 @@ export async function getMonthEndForecast(
   }>(
     `SELECT category_id, SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-       AND category_id IS NOT NULL
+       AND ${NOT_RECLASSIFIED} AND category_id IS NOT NULL
        AND date >= ? AND date <= ?
      GROUP BY category_id;`,
     userId,
@@ -89,7 +91,7 @@ export async function getMonthEndForecast(
   }>(
     `SELECT category_id, SUM(${effectiveAmountSql("expenses")}) / 3.0 as avg_monthly FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-       AND category_id IS NOT NULL
+       AND ${NOT_RECLASSIFIED} AND category_id IS NOT NULL
        AND date >= ? AND date <= ?
      GROUP BY category_id;`,
     userId,
@@ -166,7 +168,7 @@ export async function getYearEndProjection(
   const spentRow = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-       AND date >= ? AND date <= ?;`,
+       AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?;`,
     userId,
     fyStart,
     today,
@@ -181,7 +183,7 @@ export async function getYearEndProjection(
     `SELECT strftime('%Y-%m', date) as month, SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-       AND date >= ? AND date <= ?
+       AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
      GROUP BY strftime('%Y-%m', date)
      ORDER BY month ASC;`,
     userId,
