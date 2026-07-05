@@ -12,7 +12,7 @@ import { ac } from "@/utils/accent";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
 import { addCredit } from "@/services/account-credit";
-import { handleDematTransferSideEffects } from "@/services/demat-transfer";
+import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
 import type { DematTarget } from "@/services/demat-transfer";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -584,7 +584,16 @@ export default function ExpensesScreen() {
       date,
       source: "manual",
     });
-    // If money landed in a demat account, open the follow-up sheet
+    // If money came FROM a demat account, subtract from the idle fund snapshot automatically.
+    const fromAccount = accounts.find((a) => a.id === transferFromAccountId);
+    if (fromAccount?.account_type === "demat") {
+      try {
+        await handleDematWithdrawalSideEffects(transferId, fromAccount.id, amount, date);
+      } catch (e) {
+        alert("Warning", `Transfer saved but fund snapshot could not be updated: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+    // If money landed IN a demat account, open the follow-up sheet
     const toAccount = accounts.find((a) => a.id === transferToAccountId);
     if (toAccount?.account_type === "demat") {
       const label = toAccount.account_label || `${toAccount.bank_name} ****${toAccount.account_identifier}`;

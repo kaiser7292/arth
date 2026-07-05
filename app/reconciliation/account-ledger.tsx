@@ -32,7 +32,7 @@ import {
 } from "@/services/account-transfer";
 import { getCurrentMonth } from "@/services/budget";
 import type { DematTarget } from "@/services/demat-transfer";
-import { handleDematTransferSideEffects } from "@/services/demat-transfer";
+import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getAllAccounts } from "@/services/financial-account";
 import { getPersonsByIds, getSettlementsForCredits } from "@/services/hisaab";
@@ -550,6 +550,18 @@ useDataRefresh(
       date,
       source: "manual",
     });
+
+    // If money came FROM a demat account (redemption/withdrawal), subtract from
+    // the idle fund snapshot automatically — no picker needed.
+    const fromAccountId = transferDirection === "out" ? accountId : transferAccountId;
+    const fromAccount = allAccountsState.find((a) => a.id === fromAccountId);
+    if (fromAccount?.account_type === "demat") {
+      try {
+        await handleDematWithdrawalSideEffects(transferId, fromAccount.id, amount, date);
+      } catch (e) {
+        alert("Warning", `Transfer saved but fund snapshot could not be updated: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
 
     // If the money landed in a demat account, open the follow-up sheet so the
     // user can declare fund/portfolio + optional bucket. The sheet is

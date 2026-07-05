@@ -29,7 +29,7 @@ import {
   deleteInvestmentContribution,
 } from "@/services/yearly-plan";
 
-export type DematTarget = "fund" | "portfolio";
+export type DematTarget = "fund" | "portfolio" | "withdrawal";
 
 export interface DematTargetInput {
   target: DematTarget;
@@ -141,6 +141,67 @@ export async function handleDematTransferSideEffects(
 }
 
 /**
+ * Apply the demat side-effect of a transfer that came FROM a demat account
+ * (redemption/withdrawal). Subtracts the transfer amount from the idle fund
+ * snapshot on `date` and stamps demat_target = 'withdrawal' so deletion knows
+ * to reverse it. Always subtracts from the fund (idle cash), never portfolio.
+ */
+export async function handleDematWithdrawalSideEffects(
+  transferId: string,
+  dematAccountId: string,
+  amount: number,
+  date: string,
+): Promise<void> {
+  if (!(amount > 0)) {
+    throw new Error("Transfer amount must be positive.");
+  }
+  const db = getDatabase();
+
+  await db.withTransactionAsync(async () => {
+    const existing = await db.getFirstAsync<{ id: string; fund_value: number }>(
+      `SELECT id, fund_value FROM demat_fund_snapshots
+       WHERE account_id = ? AND snapshot_date = ?;`,
+      dematAccountId,
+      date,
+    );
+
+    if (existing) {
+      await db.runAsync(
+        `UPDATE demat_fund_snapshots SET fund_value = ?, updated_at = datetime('now') WHERE id = ?;`,
+        existing.fund_value - amount,
+        existing.id,
+      );
+    } else {
+      const baselineRow = await db.getFirstAsync<{ fund_value: number }>(
+        `SELECT fund_value FROM demat_fund_snapshots
+         WHERE account_id = ? AND snapshot_date <= ?
+         ORDER BY snapshot_date DESC LIMIT 1;`,
+        dematAccountId,
+        date,
+      );
+      const baseline = baselineRow?.fund_value ?? 0;
+      await db.runAsync(
+        `INSERT INTO demat_fund_snapshots (id, account_id, snapshot_date, fund_value)
+         VALUES (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-' ||
+                 lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' ||
+                 lower(hex(randomblob(6))), ?, ?, ?);`,
+        dematAccountId,
+        date,
+        baseline - amount,
+      );
+    }
+
+    await db.runAsync(
+      `UPDATE account_transfers
+       SET demat_target = 'withdrawal', updated_at = datetime('now')
+       WHERE id = ?;`,
+      transferId,
+    );
+  });
+  bumpDataVersion();
+}
+
+/**
  * Reverse every demat-specific side-effect of a transfer — called before the
  * transfer is soft-deleted so the snapshot + bucket + milestone numbers come
  * back to their pre-transfer state.
@@ -156,16 +217,39 @@ async function reverseDematTransferSideEffectsInTxn(transferId: string): Promise
   const row = await db.getFirstAsync<{
     amount: number;
     date: string;
+    from_account_id: string;
     to_account_id: string;
     demat_target: DematTarget | null;
     investment_bucket_id: string | null;
     linked_contribution_id: string | null;
   }>(
-    `SELECT amount, date, to_account_id, demat_target, investment_bucket_id, linked_contribution_id
+    `SELECT amount, date, from_account_id, to_account_id, demat_target, investment_bucket_id, linked_contribution_id
      FROM account_transfers WHERE id = ?;`,
     transferId,
   );
   if (!row || !row.demat_target) return;
+
+  // Withdrawal: reverse by adding back the amount to the fund snapshot on from_account_id.
+  if (row.demat_target === "withdrawal") {
+    await db.runAsync(
+      `UPDATE account_transfers SET demat_target = NULL, updated_at = datetime('now') WHERE id = ?;`,
+      transferId,
+    );
+    const snap = await db.getFirstAsync<{ id: string; fund_value: number }>(
+      `SELECT id, fund_value FROM demat_fund_snapshots
+       WHERE account_id = ? AND snapshot_date = ?;`,
+      row.from_account_id,
+      row.date,
+    );
+    if (snap) {
+      await db.runAsync(
+        `UPDATE demat_fund_snapshots SET fund_value = ?, updated_at = datetime('now') WHERE id = ?;`,
+        snap.fund_value + row.amount,
+        snap.id,
+      );
+    }
+    return;
+  }
 
   const { table, column } = resolveTable(row.demat_target);
   {
