@@ -8,6 +8,7 @@ import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
 import { preloadHomeData } from "@/services/home-preload";
 import { runDailyNotificationCheck, syncNotifBackgroundTask } from "@/services/notification-scheduler";
+import { runScheduledBackupIfDue } from "@/services/backup-schedule";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
 import { migrateExistingUser } from "@/services/onboarding";
 import { seedDefaultPaymentModes } from "@/services/payment-mode";
@@ -335,10 +336,14 @@ export default function RootLayout(): React.JSX.Element {
     if (!appOpenScanRan.current) {
       appOpenScanRan.current = true;
       runScanIfDue();
+      void runScheduledBackupIfDue();
     }
 
     const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active") runScanIfDue();
+      if (state === "active") {
+        runScanIfDue();
+        void runScheduledBackupIfDue();
+      }
     });
     return () => sub.remove();
   }, [dbReady]);

@@ -4,11 +4,13 @@ import {
   Text,
   Pressable,
   ScrollView,
+  Switch,
   TextInput,
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "expo-router";
+import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, Button } from "@/components/ui";
@@ -25,15 +27,27 @@ import {
 } from "@/services/backup";
 import type { BackupResult, RestoreResult, PickedBackupFile } from "@/services/backup";
 import {
-  listAutoBackups,
-  restoreAutoBackup,
-  deleteAutoBackup,
-  formatCheckpointTime,
-  REASON_LABELS,
-} from "@/services/auto-backup";
-import type { AutoBackupInfo } from "@/services/auto-backup";
+  getBackupScheduleSettings,
+  setBackupScheduleSettings,
+  getLastScheduledBackupAt,
+  listScheduledBackups,
+  restoreScheduledBackup,
+  deleteScheduledBackup,
+  syncScheduledBackupNotification,
+  formatScheduleTime,
+  formatLastBackupTime,
+  formatFileSize,
+} from "@/services/backup-schedule";
+import type { BackupScheduleSettings, ScheduledBackupInfo } from "@/services/backup-schedule";
 
 type Mode = "menu" | "backup" | "restore";
+
+const FREQ_OPTIONS = [
+  { label: "Daily", days: 1 },
+  { label: "Every 2 days", days: 2 },
+  { label: "Every 3 days", days: 3 },
+  { label: "Weekly", days: 7 },
+] as const;
 
 export default function BackupRestoreScreen() {
   const router = useRouter();
@@ -46,31 +60,34 @@ export default function BackupRestoreScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [backupResult, setBackupResult] = useState<BackupResult | null>(null);
-  const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(
-    null,
-  );
+  const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null);
   const [pickedFile, setPickedFile] = useState<PickedBackupFile | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
-  const [checkpoints, setCheckpoints] = useState<AutoBackupInfo[]>([]);
-  const [restoringCheckpoint, setRestoringCheckpoint] = useState<string | null>(null);
 
-  // Reload checkpoints whenever the menu is visible
+  // Scheduled backup state
+  const [schedSettings, setSchedSettings] = useState<BackupScheduleSettings>(() => getBackupScheduleSettings());
+  const [schedBackups, setSchedBackups] = useState<ScheduledBackupInfo[]>([]);
+  const [restoringScheduled, setRestoringScheduled] = useState<string | null>(null);
+
+  const reloadSchedBackups = useCallback(() => {
+    setSchedBackups(listScheduledBackups());
+  }, []);
+
   useFocusEffect(useCallback(() => {
-    if (mode === "menu") setCheckpoints(listAutoBackups());
-  }, [mode]));
+    if (mode === "menu") reloadSchedBackups();
+  }, [mode, reloadSchedBackups]));
 
   useEffect(() => {
-    if (mode === "menu") setCheckpoints(listAutoBackups());
-  }, [mode]);
+    if (mode === "menu") reloadSchedBackups();
+  }, [mode, reloadSchedBackups]);
 
   // Android-only: Save to Phone via Storage Access Framework (SAF).
-  // Pre-seeds the picker in Downloads; user can still navigate anywhere.
   const doSaveToPhone = useCallback(async (filePath: string) => {
     const r = await saveBackupToStorage(filePath);
     if (r.ok) {
       alert("Saved", "Backup saved to your chosen folder.");
     } else if (r.cancelled) {
-      // User cancelled the picker; fall back silently — they can re-trigger.
+      // user cancelled picker — fall back silently
     } else if (r.unsupported) {
       alert("Not Supported", "Save to Phone is Android-only. Use Share instead.");
     } else {
@@ -98,15 +115,9 @@ export default function BackupRestoreScreen() {
       const buttons = [
         { text: "Later", style: "cancel" as const },
         ...(Platform.OS === "android"
-          ? [{
-              text: "Save to phone",
-              onPress: () => doSaveToPhone(result.filePath!),
-            }]
+          ? [{ text: "Save to phone", onPress: () => doSaveToPhone(result.filePath!) }]
           : []),
-        {
-          text: "Share",
-          onPress: () => shareBackup(result.filePath!),
-        },
+        { text: "Share", onPress: () => shareBackup(result.filePath!) },
       ];
       alert("Backup Created", "Where would you like to save it?", buttons);
     }
@@ -148,24 +159,53 @@ export default function BackupRestoreScreen() {
         },
       ],
     );
-  }, [pickedFile, password]);
+  }, [pickedFile, password, alert]);
 
-  const handleRestoreCheckpoint = useCallback((cp: AutoBackupInfo) => {
+  // --- Scheduled backup handlers ---
+  const handleToggleScheduled = useCallback((val: boolean) => {
+    const updated = { ...schedSettings, enabled: val };
+    setSchedSettings(updated);
+    setBackupScheduleSettings(updated);
+    void syncScheduledBackupNotification(updated);
+  }, [schedSettings]);
+
+  const handlePickTime = useCallback(() => {
+    DateTimePickerAndroid.open({
+      mode: "time",
+      value: new Date(2000, 0, 1, schedSettings.hour, schedSettings.minute),
+      is24Hour: false,
+      onChange: (_, date) => {
+        if (!date) return;
+        const updated = { ...schedSettings, hour: date.getHours(), minute: date.getMinutes() };
+        setSchedSettings(updated);
+        setBackupScheduleSettings(updated);
+        void syncScheduledBackupNotification(updated);
+      },
+    });
+  }, [schedSettings]);
+
+  const handlePickFrequency = useCallback((days: number) => {
+    const updated = { ...schedSettings, frequencyDays: days };
+    setSchedSettings(updated);
+    setBackupScheduleSettings(updated);
+  }, [schedSettings]);
+
+  const handleRestoreScheduled = useCallback((info: ScheduledBackupInfo) => {
     alert(
-      "Restore Checkpoint",
-      `Restore to the checkpoint from ${formatCheckpointTime(cp.timestamp)}?\n\nThis will REPLACE all current data. Cannot be undone.`,
+      "Restore Backup",
+      `Restore to the backup from ${info.timestamp.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}?\n\nThis will REPLACE all current data. Cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Restore",
           style: "destructive",
           onPress: async () => {
-            setRestoringCheckpoint(cp.filePath);
-            const result = await restoreAutoBackup(cp.filePath);
-            setRestoringCheckpoint(null);
+            setRestoringScheduled(info.filePath);
+            const result = await restoreScheduledBackup(info.filePath);
+            setRestoringScheduled(null);
             if (result.success) {
-              alert("Restored", `Checkpoint restored — ${result.totalRows} records loaded.`);
-              setCheckpoints(listAutoBackups());
+              alert("Restored", `Backup restored — ${result.totalRows} records loaded.`);
+              reloadSchedBackups();
             } else {
               alert("Restore Failed", result.error ?? "Unknown error");
             }
@@ -173,20 +213,20 @@ export default function BackupRestoreScreen() {
         },
       ],
     );
-  }, [alert]);
+  }, [alert, reloadSchedBackups]);
 
-  const handleDeleteCheckpoint = useCallback((cp: AutoBackupInfo) => {
+  const handleDeleteScheduled = useCallback((info: ScheduledBackupInfo) => {
     alert(
-      "Delete Checkpoint",
-      "Remove this checkpoint? This cannot be undone.",
+      "Delete Backup",
+      "Remove this backup? This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            deleteAutoBackup(cp.filePath);
-            setCheckpoints((prev) => prev.filter((c) => c.filePath !== cp.filePath));
+            deleteScheduledBackup(info.filePath);
+            setSchedBackups((prev) => prev.filter((b) => b.filePath !== info.filePath));
           },
         },
       ],
@@ -261,53 +301,127 @@ export default function BackupRestoreScreen() {
               </Text>
             </View>
 
-            {/* Checkpoints */}
+            {/* Scheduled Backup */}
             <View className="mt-6">
               <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-3">
-                Safety Checkpoints
+                Scheduled Backup
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
-                Arth saves a checkpoint automatically before deletions so you can roll back.
-              </Text>
-              {checkpoints.length === 0 ? (
-                <View className="p-4 rounded-lg border border-border-light dark:border-border-dark items-center">
-                  <Ionicons name="shield-outline" size={28} color={colors.textSecondary} />
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-2 text-center">
-                    No checkpoints yet.{"\n"}Checkpoints are created before you delete data.
+
+              {/* Toggle */}
+              <View className="flex-row items-center p-4 mb-3 rounded-lg border border-border-light dark:border-border-dark">
+                <View className="flex-1 mr-4">
+                  <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                    Auto backup
+                  </Text>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    Saves a local backup when you open the app at or after the scheduled time
                   </Text>
                 </View>
-              ) : (
-                checkpoints.map((cp) => (
-                  <View
-                    key={cp.filePath}
-                    className="flex-row items-center p-3 mb-2 rounded-lg border border-border-light dark:border-border-dark"
+                <Switch
+                  value={schedSettings.enabled}
+                  onValueChange={handleToggleScheduled}
+                  trackColor={{ false: colors.border, true: accent[500] }}
+                  thumbColor={schedSettings.enabled ? "#FFFFFF" : "#FFFFFF"}
+                />
+              </View>
+
+              {schedSettings.enabled && (
+                <>
+                  {/* Time picker row */}
+                  <Pressable
+                    onPress={handlePickTime}
+                    className="flex-row items-center justify-between p-4 mb-3 rounded-lg border border-border-light dark:border-border-dark"
                   >
-                    <View className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-3 shrink-0">
-                      <Ionicons name="shield-checkmark-outline" size={18} color={StatusColors[colorScheme].success} />
-                    </View>
-                    <View className="flex-1 mr-2">
-                      <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
-                        {REASON_LABELS[cp.reason] ?? cp.reason}
-                      </Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                        {formatCheckpointTime(cp.timestamp)}
+                    <View className="flex-row items-center">
+                      <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
+                      <Text className="ml-3 text-base text-text-primary dark:text-text-dark-primary">
+                        Backup time
                       </Text>
                     </View>
-                    <Pressable
-                      onPress={() => handleRestoreCheckpoint(cp)}
-                      disabled={restoringCheckpoint === cp.filePath}
-                      className="py-1.5 px-3 rounded-lg mr-2"
-                      style={{ backgroundColor: ac(accent, colorScheme, 500, 400) + "22" }}
-                    >
-                      <Text className="text-xs font-semibold" style={{ color: ac(accent, colorScheme, 600, 300) }}>
-                        {restoringCheckpoint === cp.filePath ? "…" : "Restore"}
-                      </Text>
-                    </Pressable>
-                    <Pressable onPress={() => handleDeleteCheckpoint(cp)} hitSlop={8}>
-                      <Ionicons name="trash-outline" size={18} color={StatusColors[colorScheme].danger} />
-                    </Pressable>
+                    <Text className="text-base font-semibold" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                      {formatScheduleTime(schedSettings.hour, schedSettings.minute)}
+                    </Text>
+                  </Pressable>
+
+                  {/* Frequency chips */}
+                  <View className="p-4 mb-3 rounded-lg border border-border-light dark:border-border-dark">
+                    <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-3">
+                      Frequency
+                    </Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {FREQ_OPTIONS.map((o) => {
+                        const active = schedSettings.frequencyDays === o.days;
+                        return (
+                          <Pressable
+                            key={o.days}
+                            onPress={() => handlePickFrequency(o.days)}
+                            className="py-1.5 px-3 rounded-full border"
+                            style={{
+                              backgroundColor: active ? ac(accent, colorScheme, 500, 400) + "22" : "transparent",
+                              borderColor: active ? ac(accent, colorScheme, 500, 400) : colors.border,
+                            }}
+                          >
+                            <Text
+                              className="text-sm font-medium"
+                              style={{ color: active ? ac(accent, colorScheme, 600, 300) : colors.textSecondary }}
+                            >
+                              {o.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                   </View>
-                ))
+
+                  {/* Last backup status */}
+                  <View className="flex-row items-center px-1 mb-3">
+                    <Ionicons name="checkmark-circle-outline" size={15} color={colors.textSecondary} />
+                    <Text className="ml-1.5 text-xs text-text-secondary dark:text-text-dark-secondary">
+                      Last backup: {formatLastBackupTime(getLastScheduledBackupAt())}
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {/* Stored backups list */}
+              {schedBackups.length > 0 && (
+                <>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
+                    {schedBackups.length} stored backup{schedBackups.length !== 1 ? "s" : ""} · newest first
+                  </Text>
+                  {schedBackups.map((b) => (
+                    <View
+                      key={b.filePath}
+                      className="flex-row items-center p-3 mb-2 rounded-lg border border-border-light dark:border-border-dark"
+                    >
+                      <View className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-3 shrink-0">
+                        <Ionicons name="shield-checkmark-outline" size={18} color={StatusColors[colorScheme].success} />
+                      </View>
+                      <View className="flex-1 mr-2">
+                        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                          {b.timestamp.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </Text>
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                          {b.timestamp.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                          {b.fileSizeBytes > 0 ? ` · ${formatFileSize(b.fileSizeBytes)}` : ""}
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={() => handleRestoreScheduled(b)}
+                        disabled={restoringScheduled === b.filePath}
+                        className="py-1.5 px-3 rounded-lg mr-2"
+                        style={{ backgroundColor: ac(accent, colorScheme, 500, 400) + "22" }}
+                      >
+                        <Text className="text-xs font-semibold" style={{ color: ac(accent, colorScheme, 600, 300) }}>
+                          {restoringScheduled === b.filePath ? "…" : "Restore"}
+                        </Text>
+                      </Pressable>
+                      <Pressable onPress={() => handleDeleteScheduled(b)} hitSlop={8}>
+                        <Ionicons name="trash-outline" size={18} color={StatusColors[colorScheme].danger} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </>
               )}
             </View>
           </View>
@@ -407,10 +521,7 @@ export default function BackupRestoreScreen() {
                 <View className="flex-row justify-between mb-2">
                   <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Total records</Text>
                   <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
-                    {Object.values(backupResult.metadata.rowCounts).reduce(
-                      (a, b) => a + b,
-                      0,
-                    )}
+                    {Object.values(backupResult.metadata.rowCounts).reduce((a, b) => a + b, 0)}
                   </Text>
                 </View>
                 <View className="flex-row justify-between">
@@ -423,24 +534,12 @@ export default function BackupRestoreScreen() {
             )}
 
             {backupResult.error && (
-              <Text className="text-sm text-danger mt-4">
-                {backupResult.error}
-              </Text>
+              <Text className="text-sm text-danger mt-4">{backupResult.error}</Text>
             )}
 
-            {/* v16.0.8 — stack the action buttons vertically. Previously
-                three buttons with varying label lengths ("Save to Phone",
-                "Share...", "Done") were laid out side-by-side and would
-                wrap unpredictably, making them look mismatched and
-                truncate on narrow devices. Vertical stacking gives each
-                button the full width, consistent height, and no
-                truncation risk. */}
             <View className="mt-6 gap-2">
               {backupResult.success && backupResult.filePath && Platform.OS === "android" && (
-                <Button
-                  title="Save to phone"
-                  onPress={() => doSaveToPhone(backupResult.filePath!)}
-                />
+                <Button title="Save to phone" onPress={() => doSaveToPhone(backupResult.filePath!)} />
               )}
               {backupResult.success && backupResult.filePath && (
                 <Button
@@ -449,11 +548,7 @@ export default function BackupRestoreScreen() {
                   variant={Platform.OS === "android" ? "outline" : undefined}
                 />
               )}
-              <Button
-                title="Done"
-                onPress={resetState}
-                variant="ghost"
-              />
+              <Button title="Done" onPress={resetState} variant="ghost" />
             </View>
           </View>
         )}
@@ -475,14 +570,9 @@ export default function BackupRestoreScreen() {
               Select your .arth backup file, then enter the password to decrypt.
             </Text>
 
-            {/* Step 1: Pick file */}
             {!pickedFile ? (
               <View>
-                <Button
-                  title="Select Backup File"
-                  onPress={handlePickFile}
-                  variant="outline"
-                />
+                <Button title="Select Backup File" onPress={handlePickFile} variant="outline" />
                 {fileError && (
                   <View className="mt-3 p-3 rounded-lg bg-[#EF444414]">
                     <Text className="text-sm text-danger font-medium">{fileError}</Text>
@@ -491,7 +581,6 @@ export default function BackupRestoreScreen() {
               </View>
             ) : (
               <View>
-                {/* File info card */}
                 <View className="flex-row items-center p-3 mb-4 rounded-lg border border-border-light dark:border-border-dark" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
                   <Ionicons name="document-attach-outline" size={24} color={StatusColors[colorScheme].success} />
                   <View className="flex-1 ml-3">
@@ -507,7 +596,6 @@ export default function BackupRestoreScreen() {
                   </Pressable>
                 </View>
 
-                {/* Step 2: Password */}
                 <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary mb-1">
                   Backup Password
                 </Text>
@@ -584,9 +672,7 @@ export default function BackupRestoreScreen() {
             )}
 
             {restoreResult.error && (
-              <Text className="text-sm text-danger mt-4 text-center">
-                {restoreResult.error}
-              </Text>
+              <Text className="text-sm text-danger mt-4 text-center">{restoreResult.error}</Text>
             )}
 
             <Button

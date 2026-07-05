@@ -36,7 +36,6 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getAllAccounts } from "@/services/financial-account";
 import { getPersonsByIds, getSettlementsForCredits } from "@/services/hisaab";
 import { getMonthDateRange } from "@/utils/budget-helpers";
-import { createAutoBackup } from "@/services/auto-backup";
 import { formatAdjustmentDescription, formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
@@ -607,7 +606,6 @@ useDataRefresh(
             // demat reverse chain silently aborts the Promise and the row
             // stays visible, making it look like "delete doesn't work".
             try {
-              void createAutoBackup("delete-transfer");
               await deleteTransfer(id);
             } catch (e) {
               alert("Delete failed", e instanceof Error ? e.message : String(e));
@@ -1048,7 +1046,9 @@ useDataRefresh(
                         ? () => router.push(`/expense/${entry.linkedExpenseId}` as never)
                         : entry.type === "credit" && entry.linkedHisaabPersonId
                           ? () => router.push(`/hisaab/ledger?personId=${entry.linkedHisaabPersonId}` as never)
-                          : entry.type === "credit" && entry.canDelete
+                          : entry.type === "credit" && entry.source === "sms_auto"
+                            ? () => router.push(`/expense/${entry.id}` as never)
+                            : entry.type === "credit" && entry.canDelete
                             ? () => handleStartEditCredit(entry)
                             : isTransfer && entry.rawSourceText
                               ? () =>
