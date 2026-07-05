@@ -586,7 +586,7 @@ export default function AccountDetailScreen() {
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
-                  Portfolio Snapshots
+                  Demat Account Details
                 </Text>
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
                   {dematSnapshotCount > 0 ? `${dematSnapshotCount} snapshots recorded` : "No snapshots yet"}

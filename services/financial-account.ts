@@ -1727,6 +1727,40 @@ export async function getDematAccountsWithSummary(
 // ---------------------------------------------------------------------------
 
 /** Generate array of last N month keys (YYYY-MM), oldest first. */
+/**
+ * Returns cumulative totals for all approved transfers into and out of a
+ * demat account. Deposited = transfers stamped fund/portfolio; Withdrawn =
+ * transfers stamped withdrawal. Both exclude soft-deleted transfers.
+ */
+export async function getDematTransferTotals(accountId: string): Promise<{
+  totalDeposited: number;
+  totalWithdrawn: number;
+}> {
+  const db = getDatabase();
+  const [depositedRow, withdrawnRow] = await Promise.all([
+    db.getFirstAsync<{ total: number }>(
+      `SELECT COALESCE(SUM(amount), 0) AS total
+       FROM account_transfers
+       WHERE to_account_id = ?
+         AND demat_target IN ('fund', 'portfolio')
+         AND deleted_at IS NULL;`,
+      accountId,
+    ),
+    db.getFirstAsync<{ total: number }>(
+      `SELECT COALESCE(SUM(amount), 0) AS total
+       FROM account_transfers
+       WHERE from_account_id = ?
+         AND demat_target = 'withdrawal'
+         AND deleted_at IS NULL;`,
+      accountId,
+    ),
+  ]);
+  return {
+    totalDeposited: depositedRow?.total ?? 0,
+    totalWithdrawn: withdrawnRow?.total ?? 0,
+  };
+}
+
 function getLastNMonths(count: number, offsetMonths = 0): string[] {
   const months: string[] = [];
   const now = new Date();

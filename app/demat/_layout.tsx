@@ -22,7 +22,7 @@ export default function DematStackLayout() {
         headerLeft: () => <HeaderBackHome />,
       }}
     >
-      <Stack.Screen name="snapshots/[id]" options={{ title: "Portfolio Snapshots" }} />
+      <Stack.Screen name="snapshots/[id]" options={{ title: "Demat Account Details" }} />
     </Stack>
   );
 }

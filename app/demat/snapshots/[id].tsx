@@ -19,6 +19,7 @@ import {
   addOrUpdateFundSnapshot,
   deleteSnapshot,
   deleteFundSnapshot,
+  getDematTransferTotals,
 } from "@/services/financial-account";
 import type { FinancialAccount, PortfolioSnapshot, FundSnapshot } from "@/services/financial-account";
 
@@ -60,6 +61,8 @@ export default function DematSnapshotsScreen() {
   const [latestPortfolio, setLatestPortfolio] = useState<number | null>(null);
   const [latestFund, setLatestFund] = useState<number | null>(null);
   const [latestDate, setLatestDate] = useState<string | null>(null);
+  const [totalDeposited, setTotalDeposited] = useState<number>(0);
+  const [totalWithdrawn, setTotalWithdrawn] = useState<number>(0);
 
   // Inline edit state
   const [editingPortfolioId, setEditingPortfolioId] = useState<string | null>(null);
@@ -77,12 +80,13 @@ export default function DematSnapshotsScreen() {
   const loadData = useCallback(async () => {
     if (!id) return;
     try {
-      const [acct, latest, latestF, snaps, funds] = await Promise.all([
+      const [acct, latest, latestF, snaps, funds, totals] = await Promise.all([
         getAccountById(id),
         getLatestSnapshot(id),
         getLatestFundSnapshot(id),
         getPortfolioSnapshotsForMonth(id, selectedMonth),
         getFundSnapshotsForMonth(id, selectedMonth),
+        getDematTransferTotals(id),
       ]);
       setAccount(acct);
       setLatestPortfolio(latest?.portfolio_value ?? null);
@@ -90,6 +94,8 @@ export default function DematSnapshotsScreen() {
       setLatestFund(latestF?.fund_value ?? null);
       setSnapshots(snaps);
       setFundSnapshots(funds);
+      setTotalDeposited(totals.totalDeposited);
+      setTotalWithdrawn(totals.totalWithdrawn);
     } catch {
       // db not ready
     }
@@ -191,10 +197,11 @@ export default function DematSnapshotsScreen() {
     : "Demat Account";
 
   const totalLatest = (latestPortfolio ?? 0) + (latestFund ?? 0);
+  const netInvested = totalDeposited - totalWithdrawn;
 
   return (
     <ScreenContainer padTop={false}>
-      <Stack.Screen options={{ title: "Portfolio Snapshots" }} />
+      <Stack.Screen options={{ title: "Demat Account Details" }} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -235,9 +242,37 @@ export default function DematSnapshotsScreen() {
               </View>
             </View>
             {latestDate && (
-              <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary mt-1">
+              <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary mt-1 mb-3">
                 As of {formatSnapshotDate(latestDate)}
               </Text>
+            )}
+
+            {/* Transfer totals row */}
+            {(totalDeposited > 0 || totalWithdrawn > 0) && (
+              <>
+                <View className="border-t border-border-light dark:border-border-dark pt-3">
+                  <View className="flex-row justify-between">
+                    <View className="flex-1">
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Deposited</Text>
+                      <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                        {formatAmount(totalDeposited)}
+                      </Text>
+                    </View>
+                    <View className="flex-1 items-center">
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Withdrawn</Text>
+                      <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                        {totalWithdrawn > 0 ? formatAmount(totalWithdrawn) : "—"}
+                      </Text>
+                    </View>
+                    <View className="flex-1 items-end">
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Net Invested</Text>
+                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        {formatAmount(netInvested)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </>
             )}
           </Card>
 
