@@ -8,9 +8,6 @@ module.exports = {
   darkMode: "class",
   theme: {
     extend: {
-      fontFamily: {
-        sans: ["Inter_400Regular", "system-ui", "sans-serif"],
-      },
       borderRadius: {
         card: "16px",
         button: "14px",

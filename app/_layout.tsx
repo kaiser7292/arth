@@ -3,7 +3,6 @@ import { ALLOWED_DEEP_LINK_SCREENS } from "@/constants/routes";
 import { initDatabase } from "@/database";
 import { AlertProvider } from "@/hooks/use-alert";
 import { AccentProvider } from "@/hooks/use-color-scheme";
-import { useFonts, Inter_300Light, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from "expo-google-fonts/inter";
 import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
 import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
@@ -205,15 +204,6 @@ async function cleanupLegacyScheduledScan(): Promise<void> {
 }
 
 export default function RootLayout(): React.JSX.Element {
-  const [fontsLoaded] = useFonts({
-    Inter_300Light,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    Inter_800ExtraBold,
-  });
-
   const [dbReady, setDbReady] = useState(false);
   const [minSplashDone, setMinSplashDone] = useState(false);
   const [lockEvaluated, setLockEvaluated] = useState(false);
@@ -225,10 +215,6 @@ export default function RootLayout(): React.JSX.Element {
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
-
-  if (!fontsLoaded) {
-    return <SplashScreen step="Loading..." />;
-  }
 
   // Detect fresh install once at component mount
   const isFreshInstall = !getOnboardingCompletedVersion();
