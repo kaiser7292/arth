@@ -8,7 +8,7 @@ import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
 import { preloadHomeData } from "@/services/home-preload";
 import { runDailyNotificationCheck, syncNotifBackgroundTask } from "@/services/notification-scheduler";
-import { runScheduledBackupIfDue } from "@/services/backup-schedule";
+import { runScheduledBackupIfDue, syncBackupBackgroundTask } from "@/services/backup-schedule";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
 import { migrateExistingUser } from "@/services/onboarding";
 import { seedDefaultPaymentModes } from "@/services/payment-mode";
@@ -292,6 +292,7 @@ export default function RootLayout(): React.JSX.Element {
         // Fire-and-forget: run immediate check + ensure background task is registered
         runDailyNotificationCheck(DEFAULT_USER_ID).catch((e) => logger.warn("Daily notification check failed:", e));
         syncNotifBackgroundTask().catch((e) => logger.warn("Notif background task sync failed:", e));
+        syncBackupBackgroundTask().catch((e) => logger.warn("Backup background task sync failed:", e));
         
         // Only set dbReady to true after successful initialization
         setDbReady(true);

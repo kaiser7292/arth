@@ -1,11 +1,15 @@
+import * as BackgroundFetch from "expo-background-fetch";
 import * as Notifications from "expo-notifications";
 import { Directory, File, Paths } from "expo-file-system";
 import { SchedulableTriggerInputTypes } from "expo-notifications";
+import * as TaskManager from "expo-task-manager";
 import { settingsStorage as storage } from "@/services/storage";
 import { BACKUP_TABLES, restoreFromData } from "@/services/backup";
 import type { RestoreResult } from "@/services/backup";
 import { getDatabase } from "@/database";
 import { logger } from "@/utils/logger";
+
+const BACKUP_TASK = "ARTHA_SCHEDULED_BACKUP";
 
 // ---------------------------------------------------------------------------
 // MMKV keys
@@ -129,14 +133,17 @@ export function shouldRunScheduledBackup(): boolean {
   const s = getBackupScheduleSettings();
   if (!s.enabled) return false;
 
-  const now = new Date();
-  if (now.getHours() < s.hour || (now.getHours() === s.hour && now.getMinutes() < s.minute)) return false;
-
   const lastRunStr = getLastScheduledBackupAt();
   if (!lastRunStr) return true;
 
-  const diffDays = (now.getTime() - new Date(lastRunStr).getTime()) / (1000 * 60 * 60 * 24);
-  return diffDays >= s.frequencyDays;
+  const lastRun = new Date(lastRunStr);
+  const now = new Date();
+
+  // Compare calendar dates (ignoring time) to avoid fractional-day drift
+  // where a backup at 8 PM today makes tomorrow's 6 PM check fail (22h < 24h).
+  const lastDay = Math.floor(lastRun.getTime() / 86_400_000);
+  const today = Math.floor(now.getTime() / 86_400_000);
+  return (today - lastDay) >= s.frequencyDays;
 }
 
 export async function runScheduledBackupIfDue(): Promise<void> {
@@ -296,4 +303,37 @@ export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ---------------------------------------------------------------------------
+// Background task — best-effort automatic backup even when app is closed
+// ---------------------------------------------------------------------------
+
+TaskManager.defineTask(BACKUP_TASK, async () => {
+  try {
+    if (!shouldRunScheduledBackup()) return BackgroundFetch.BackgroundFetchResult.NoData;
+    await createScheduledBackup();
+    return BackgroundFetch.BackgroundFetchResult.NewData;
+  } catch (e) {
+    logger.warn("Background backup task failed:", e);
+    return BackgroundFetch.BackgroundFetchResult.Failed;
+  }
+});
+
+export async function syncBackupBackgroundTask(): Promise<void> {
+  const s = getBackupScheduleSettings();
+  const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKUP_TASK);
+
+  if (!s.enabled) {
+    if (isRegistered) await BackgroundFetch.unregisterTaskAsync(BACKUP_TASK);
+    return;
+  }
+
+  if (isRegistered) return;
+
+  await BackgroundFetch.registerTaskAsync(BACKUP_TASK, {
+    minimumInterval: s.frequencyDays * 12 * 60 * 60,
+    stopOnTerminate: false,
+    startOnBoot: true,
+  });
 }

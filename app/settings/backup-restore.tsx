@@ -34,6 +34,7 @@ import {
   restoreScheduledBackup,
   deleteScheduledBackup,
   syncScheduledBackupNotification,
+  syncBackupBackgroundTask,
   formatScheduleTime,
   formatLastBackupTime,
   formatFileSize,
@@ -170,6 +171,7 @@ export default function BackupRestoreScreen() {
     setSchedSettings(updated);
     setBackupScheduleSettings(updated);
     void syncScheduledBackupNotification(updated);
+    void syncBackupBackgroundTask();
   }, [schedSettings]);
 
   const handlePickTime = useCallback(() => {

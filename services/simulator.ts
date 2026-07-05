@@ -1250,6 +1250,7 @@ async function getComputedBalancesAsOfToday(
     `SELECT account_id, SUM(COALESCE(split_original_amount, amount)) as total FROM expenses
      WHERE account_id IN (${placeholders}) AND deleted_at IS NULL
        AND nature = 'realized' AND status = 'approved'
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
      GROUP BY account_id;`,
     ...accountIds,
@@ -1262,6 +1263,7 @@ async function getComputedBalancesAsOfToday(
     `SELECT account_id, SUM(amount) as total FROM expenses
      WHERE account_id IN (${placeholders}) AND deleted_at IS NULL
        AND nature = 'credit' AND status = 'approved'
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
      GROUP BY account_id;`,
     ...accountIds,
