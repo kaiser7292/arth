@@ -54,3 +54,5 @@ build-*.apk
 build-output/
 builds/
 *.apk
+
+build-*.log
