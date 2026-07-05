@@ -32,6 +32,7 @@ import type { AccountCredit } from "@/services/account-credit";
 import { getDismissedRecurring, restoreRecurring, hardDeleteRecurring, restoreAllRecurring, purgeAllDismissedRecurring } from "@/services/recurring-detector";
 import type { RecurringTransaction } from "@/services/recurring-detector";
 import { getAllSmsRecords, deleteSmsRecord, deleteAllSmsRecords, getSmsLinkedExpenseInfo } from "@/services/sms";
+import { createAutoBackup } from "@/services/auto-backup";
 
 type SectionFilter = "deleted" | "rejected" | "categories" | "payment_modes" | "accounts" | "hisaab" | "credits" | "recurring" | "sms";
 
@@ -280,6 +281,7 @@ export default function RecycleBinScreen() {
             <Ionicons name="refresh-outline" size={18} color={StatusColors[colorScheme].success} />
           </Pressable>
           <Pressable onPress={() => confirm("Delete Forever", `Permanently delete "${item.description || "Expense"}"? Cannot be undone.`, "Delete", true, async () => {
+            void createAutoBackup("delete-expense");
             await permanentlyDeleteExpense(item.id); setDeletedExpenses((p) => p.filter((e) => e.id !== item.id));
           })} className="w-9 h-9 rounded-full bg-danger/8 items-center justify-center">
             <Ionicons name="close-outline" size={18} color={StatusColors[colorScheme].danger} />
@@ -357,6 +359,7 @@ export default function RecycleBinScreen() {
         await restoreAccount(item.id); setInactiveAccounts((p) => p.filter((a) => a.id !== item.id));
       })}
       onDelete={() => confirm("Delete Forever", `Permanently delete this account and all its balances/credits?`, "Delete", true, async () => {
+        void createAutoBackup("delete-account");
         await hardDeleteAccount(item.id); setInactiveAccounts((p) => p.filter((a) => a.id !== item.id));
       })}
     />
@@ -517,7 +520,7 @@ export default function RecycleBinScreen() {
       {/* Bulk action bar per section */}
       {activeFilter === "deleted" && <BulkBar count={deletedExpenses.length} label={`deleted expense${deletedExpenses.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${deletedExpenses.length} expenses?`, "Restore All", false, async () => { await restoreAllDeletedExpenses(DEFAULT_USER_ID); setDeletedExpenses([]); })}
-        onPurgeAll={() => confirm("Empty All", `Permanently delete all ${deletedExpenses.length} expenses? Cannot be undone.`, "Delete All", true, async () => { await purgeOldDeletedExpenses(DEFAULT_USER_ID, 0); setDeletedExpenses([]); })}
+        onPurgeAll={() => confirm("Empty All", `Permanently delete all ${deletedExpenses.length} expenses? Cannot be undone.`, "Delete All", true, async () => { void createAutoBackup("purge-expenses"); await purgeOldDeletedExpenses(DEFAULT_USER_ID, 0); setDeletedExpenses([]); })}
         purgeLabel="Empty All" />}
 
       {activeFilter === "rejected" && <BulkBar count={rejectedExpenses.length} label={`rejected expense${rejectedExpenses.length !== 1 ? "s" : ""}`}
@@ -535,7 +538,7 @@ export default function RecycleBinScreen() {
 
       {activeFilter === "accounts" && <BulkBar count={inactiveAccounts.length} label={`deleted account${inactiveAccounts.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${inactiveAccounts.length} accounts?`, "Restore All", false, async () => { await restoreAllAccounts(DEFAULT_USER_ID); setInactiveAccounts([]); })}
-        onPurgeAll={() => confirm("Purge All", `Permanently delete all inactive accounts and their data?`, "Delete All", true, async () => { await purgeAllInactiveAccounts(DEFAULT_USER_ID); setInactiveAccounts([]); })} />}
+        onPurgeAll={() => confirm("Purge All", `Permanently delete all inactive accounts and their data?`, "Delete All", true, async () => { void createAutoBackup("purge-accounts"); await purgeAllInactiveAccounts(DEFAULT_USER_ID); setInactiveAccounts([]); })} />}
 
       {activeFilter === "hisaab" && <BulkBar count={inactivePersons.length} label={`deleted person${inactivePersons.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${inactivePersons.length} persons?`, "Restore All", false, async () => { await restoreAllPersons(DEFAULT_USER_ID); setInactivePersons([]); })}

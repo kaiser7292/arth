@@ -9,6 +9,7 @@ import { useAlert } from "@/hooks/use-alert";
 import { StatusColors } from "@/constants/theme";
 import { formatAmount } from "@/utils/format";
 import { getTransferById, deleteTransfer } from "@/services/account-transfer";
+import { createAutoBackup } from "@/services/auto-backup";
 import { getActiveAccounts, getAllAccounts } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import type { AccountTransfer } from "@/services/account-transfer";
@@ -68,6 +69,7 @@ export default function TransferDetailScreen() {
           style: "destructive",
           onPress: async () => {
             try {
+              void createAutoBackup("delete-transfer");
               await deleteTransfer(transfer.id);
               router.back();
             } catch (e) {

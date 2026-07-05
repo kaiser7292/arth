@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, Button } from "@/components/ui";
@@ -23,6 +24,14 @@ import {
   MIN_PASSWORD_LENGTH,
 } from "@/services/backup";
 import type { BackupResult, RestoreResult, PickedBackupFile } from "@/services/backup";
+import {
+  listAutoBackups,
+  restoreAutoBackup,
+  deleteAutoBackup,
+  formatCheckpointTime,
+  REASON_LABELS,
+} from "@/services/auto-backup";
+import type { AutoBackupInfo } from "@/services/auto-backup";
 
 type Mode = "menu" | "backup" | "restore";
 
@@ -42,6 +51,17 @@ export default function BackupRestoreScreen() {
   );
   const [pickedFile, setPickedFile] = useState<PickedBackupFile | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [checkpoints, setCheckpoints] = useState<AutoBackupInfo[]>([]);
+  const [restoringCheckpoint, setRestoringCheckpoint] = useState<string | null>(null);
+
+  // Reload checkpoints whenever the menu is visible
+  useFocusEffect(useCallback(() => {
+    if (mode === "menu") setCheckpoints(listAutoBackups());
+  }, [mode]));
+
+  useEffect(() => {
+    if (mode === "menu") setCheckpoints(listAutoBackups());
+  }, [mode]);
 
   // Android-only: Save to Phone via Storage Access Framework (SAF).
   // Pre-seeds the picker in Downloads; user can still navigate anywhere.
@@ -130,6 +150,49 @@ export default function BackupRestoreScreen() {
     );
   }, [pickedFile, password]);
 
+  const handleRestoreCheckpoint = useCallback((cp: AutoBackupInfo) => {
+    alert(
+      "Restore Checkpoint",
+      `Restore to the checkpoint from ${formatCheckpointTime(cp.timestamp)}?\n\nThis will REPLACE all current data. Cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Restore",
+          style: "destructive",
+          onPress: async () => {
+            setRestoringCheckpoint(cp.filePath);
+            const result = await restoreAutoBackup(cp.filePath);
+            setRestoringCheckpoint(null);
+            if (result.success) {
+              alert("Restored", `Checkpoint restored — ${result.totalRows} records loaded.`);
+              setCheckpoints(listAutoBackups());
+            } else {
+              alert("Restore Failed", result.error ?? "Unknown error");
+            }
+          },
+        },
+      ],
+    );
+  }, [alert]);
+
+  const handleDeleteCheckpoint = useCallback((cp: AutoBackupInfo) => {
+    alert(
+      "Delete Checkpoint",
+      "Remove this checkpoint? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            deleteAutoBackup(cp.filePath);
+            setCheckpoints((prev) => prev.filter((c) => c.filePath !== cp.filePath));
+          },
+        },
+      ],
+    );
+  }, [alert]);
+
   const resetState = useCallback(() => {
     setMode("menu");
     setPassword("");
@@ -196,6 +259,56 @@ export default function BackupRestoreScreen() {
                 Without your backup password, the backup cannot be restored.
                 There is no recovery mechanism.
               </Text>
+            </View>
+
+            {/* Checkpoints */}
+            <View className="mt-6">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-3">
+                Safety Checkpoints
+              </Text>
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+                Arth saves a checkpoint automatically before deletions so you can roll back.
+              </Text>
+              {checkpoints.length === 0 ? (
+                <View className="p-4 rounded-lg border border-border-light dark:border-border-dark items-center">
+                  <Ionicons name="shield-outline" size={28} color={colors.textSecondary} />
+                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-2 text-center">
+                    No checkpoints yet.{"\n"}Checkpoints are created before you delete data.
+                  </Text>
+                </View>
+              ) : (
+                checkpoints.map((cp) => (
+                  <View
+                    key={cp.filePath}
+                    className="flex-row items-center p-3 mb-2 rounded-lg border border-border-light dark:border-border-dark"
+                  >
+                    <View className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-3 shrink-0">
+                      <Ionicons name="shield-checkmark-outline" size={18} color={StatusColors[colorScheme].success} />
+                    </View>
+                    <View className="flex-1 mr-2">
+                      <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                        {REASON_LABELS[cp.reason] ?? cp.reason}
+                      </Text>
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                        {formatCheckpointTime(cp.timestamp)}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => handleRestoreCheckpoint(cp)}
+                      disabled={restoringCheckpoint === cp.filePath}
+                      className="py-1.5 px-3 rounded-lg mr-2"
+                      style={{ backgroundColor: ac(accent, colorScheme, 500, 400) + "22" }}
+                    >
+                      <Text className="text-xs font-semibold" style={{ color: ac(accent, colorScheme, 600, 300) }}>
+                        {restoringCheckpoint === cp.filePath ? "…" : "Restore"}
+                      </Text>
+                    </Pressable>
+                    <Pressable onPress={() => handleDeleteCheckpoint(cp)} hitSlop={8}>
+                      <Ionicons name="trash-outline" size={18} color={StatusColors[colorScheme].danger} />
+                    </Pressable>
+                  </View>
+                ))
+              )}
             </View>
           </View>
         )}

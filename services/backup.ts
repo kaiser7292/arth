@@ -57,7 +57,7 @@ function sanitizeFilename(name: string): string {
 }
 
 // Tables to include in backup (order matters for restore — parents before children)
-const BACKUP_TABLES = [
+export const BACKUP_TABLES = [
   // Independent tables (no FK dependencies)
   "users",
   "merchant_mappings",
@@ -479,6 +479,129 @@ export async function pickAndValidateBackupFile(): Promise<PickedBackupFile | nu
 }
 
 /**
+ * Restore tables from a parsed data dictionary (the inner JSON from any backup).
+ * Shared by both the encrypted backup restore and auto-backup restore paths.
+ */
+export async function restoreFromData(
+  data: Record<string, unknown[]>,
+): Promise<RestoreResult> {
+  const db = getDatabase();
+  const tablesRestored: string[] = [];
+  let totalRows = 0;
+
+  await db.execAsync("PRAGMA foreign_keys = OFF;");
+  try {
+    await db.withTransactionAsync(async () => {
+      for (const table of [...BACKUP_TABLES].reverse()) {
+        try { await db.runAsync(`DELETE FROM ${table};`); } catch { /* table may not exist */ }
+      }
+
+      const BATCH_SIZE = 50;
+      for (const table of BACKUP_TABLES) {
+        const rows = data[table];
+        if (!rows || rows.length === 0) continue;
+
+        const allowedColumns = TABLE_SCHEMAS[table];
+        if (!allowedColumns) continue;
+        const allowedSet = new Set(allowedColumns);
+        const firstRecord = rows[0] as Record<string, unknown>;
+        const columns = Object.keys(firstRecord).filter((col) => allowedSet.has(col));
+        if (columns.length === 0) continue;
+
+        for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+          const batch = rows.slice(i, i + BATCH_SIZE);
+          const valueSets: string[] = [];
+          const allValues: (string | number | null)[] = [];
+
+          for (const row of batch) {
+            const record = row as Record<string, unknown>;
+            valueSets.push(`(${columns.map(() => "?").join(", ")})`);
+            for (const col of columns) {
+              const val = record[col];
+              if (val === null || val === undefined) allValues.push(null);
+              else if (typeof val === "string" || typeof val === "number") allValues.push(val);
+              else allValues.push(String(val));
+            }
+          }
+
+          try {
+            await db.runAsync(
+              `INSERT OR REPLACE INTO ${table} (${columns.join(", ")}) VALUES ${valueSets.join(", ")};`,
+              ...allValues,
+            );
+          } catch {
+            for (const row of batch) {
+              const record = row as Record<string, unknown>;
+              const vals = columns.map((col) => {
+                const val = record[col];
+                if (val === null || val === undefined) return null;
+                if (typeof val === "string" || typeof val === "number") return val;
+                return String(val);
+              });
+              try {
+                await db.runAsync(
+                  `INSERT OR REPLACE INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")});`,
+                  ...vals,
+                );
+              } catch { /* skip rows that fail */ }
+            }
+          }
+        }
+        tablesRestored.push(table);
+        totalRows += rows.length;
+      }
+
+      // Post-restore: migration-005 semantics for legacy account_credits
+      try {
+        await db.execAsync(`
+          INSERT OR IGNORE INTO expenses (
+            id, user_id, amount, currency, description,
+            date, source, status, nature,
+            account_id, deleted_at, created_at, updated_at,
+            transaction_time
+          )
+          SELECT
+            id, user_id, amount, 'INR', description,
+            date,
+            CASE WHEN source = 'sms_auto' THEN 'sms_auto' ELSE 'manual' END,
+            'approved', 'credit',
+            account_id, deleted_at, created_at, updated_at,
+            '00:00:00'
+          FROM account_credits;
+        `);
+        await db.execAsync(`
+          UPDATE expenses SET nature = 'credit', updated_at = datetime('now')
+          WHERE refund_of_expense_id IS NOT NULL AND nature = 'realized';
+        `);
+        await db.execAsync(`
+          UPDATE hisaab_entries
+          SET linked_expense_id = linked_account_credit_id, updated_at = datetime('now')
+          WHERE linked_account_credit_id IS NOT NULL AND linked_expense_id IS NULL;
+        `);
+      } catch { /* account_credits may not exist */ }
+
+      // Post-restore: repair hisaab↔expense links via expense_splits bridge
+      try {
+        await db.execAsync(`
+          UPDATE hisaab_entries
+          SET linked_expense_id = (
+            SELECT es.expense_id FROM expense_splits es
+            WHERE es.hisaab_entry_id = hisaab_entries.id LIMIT 1
+          ), updated_at = datetime('now')
+          WHERE linked_expense_id IS NULL
+            AND id IN (SELECT hisaab_entry_id FROM expense_splits WHERE hisaab_entry_id IS NOT NULL);
+        `);
+      } catch { /* expense_splits may not exist */ }
+    });
+  } finally {
+    await db.execAsync("PRAGMA foreign_keys = ON;");
+  }
+
+  await bumpDataVersion();
+  return { success: true, tablesRestored, totalRows, error: null };
+}
+
+/**
  * Restore from an encrypted backup file.
  */
 export async function restoreBackup(
@@ -565,185 +688,10 @@ export async function restoreBackup(
       };
     }
 
-    // 7. Restore tables (clear existing data, insert backup data)
-    const tablesRestored: string[] = [];
-    let totalRows = 0;
-
-    // v15.9.3 fix: disable FK enforcement for the restore transaction.
-    // Some rows have cross-table references that aren't resolvable until
-    // ALL tables are reloaded — e.g. account_transfers.linked_contribution_id
-    // points at investment_contributions, which BACKUP_TABLES inserts AFTER
-    // account_transfers. Pre-v15.9.3, FK checks silently rejected these
-    // rows; the row-level catch in the batch/fallback loop dropped them.
-    // Net effect: demat-linked transfers (any transfer created post-v14.5.0
-    // with an investment_contribution link) were missing from every restore.
-    //
-    // SQLite FK enforcement is a connection-level PRAGMA, and the setting
-    // only takes effect outside an active transaction. Toggle it before the
-    // transaction opens, and restore it after.
-    await db.execAsync("PRAGMA foreign_keys = OFF;");
-    try {
-    await db.withTransactionAsync(async () => {
-      // Delete in reverse order (children first)
-      for (const table of [...BACKUP_TABLES].reverse()) {
-        try {
-          await db.runAsync(`DELETE FROM ${table};`);
-        } catch {
-          // Table might not exist
-        }
-      }
-
-      // Insert in order (parents first), batched for performance
-      const BATCH_SIZE = 50;
-
-      for (const table of BACKUP_TABLES) {
-        const rows = parsed.data[table];
-        if (!rows || rows.length === 0) continue;
-
-        // Get allowed columns for this table (whitelist)
-        const allowedColumns = TABLE_SCHEMAS[table];
-        if (!allowedColumns) continue;
-        const allowedSet = new Set(allowedColumns);
-
-        // Determine columns from the first row (all rows in a table share the same shape)
-        const firstRecord = rows[0] as Record<string, unknown>;
-        const columns = Object.keys(firstRecord).filter((col) => allowedSet.has(col));
-        if (columns.length === 0) continue;
-
-        // Process in batches of BATCH_SIZE
-        for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-          const batch = rows.slice(i, i + BATCH_SIZE);
-          const valueSets: string[] = [];
-          const allValues: (string | number | null)[] = [];
-
-          for (const row of batch) {
-            const record = row as Record<string, unknown>;
-            const placeholders = columns.map(() => "?").join(", ");
-            valueSets.push(`(${placeholders})`);
-
-            for (const col of columns) {
-              const val = record[col];
-              if (val === null || val === undefined) {
-                allValues.push(null);
-              } else if (typeof val === "string" || typeof val === "number") {
-                allValues.push(val);
-              } else {
-                allValues.push(String(val));
-              }
-            }
-          }
-
-          try {
-            await db.runAsync(
-              `INSERT OR REPLACE INTO ${table} (${columns.join(", ")}) VALUES ${valueSets.join(", ")};`,
-              ...allValues,
-            );
-          } catch {
-            // If batch fails, fall back to row-by-row for this batch
-            for (const row of batch) {
-              const record = row as Record<string, unknown>;
-              const placeholders = columns.map(() => "?").join(", ");
-              const values = columns.map((col) => {
-                const val = record[col];
-                if (val === null || val === undefined) return null;
-                if (typeof val === "string" || typeof val === "number") return val;
-                return String(val);
-              });
-              try {
-                await db.runAsync(
-                  `INSERT OR REPLACE INTO ${table} (${columns.join(", ")}) VALUES (${placeholders});`,
-                  ...values,
-                );
-              } catch {
-                // Skip individual rows that fail (e.g., FK constraint)
-              }
-            }
-          }
-        }
-
-        tablesRestored.push(table);
-        totalRows += rows.length;
-      }
-
-      // Post-restore: re-apply migration 005 semantics on the restored data.
-      // Migrations run on an empty DB before restore, so the original migration
-      // had nothing to move. Legacy backups (pre-005) contain account_credits rows
-      // that must be promoted into expenses to remain visible.
-      // Safe to run unconditionally — uses INSERT OR IGNORE and idempotent UPDATEs.
-      try {
-        await db.execAsync(`
-          INSERT OR IGNORE INTO expenses (
-            id, user_id, amount, currency, description,
-            date, source, status, nature,
-            account_id, deleted_at, created_at, updated_at,
-            transaction_time
-          )
-          SELECT
-            id, user_id, amount, 'INR', description,
-            date,
-            CASE WHEN source = 'sms_auto' THEN 'sms_auto' ELSE 'manual' END,
-            'approved',
-            'credit',
-            account_id, deleted_at, created_at, updated_at,
-            '00:00:00'
-          FROM account_credits;
-        `);
-        await db.execAsync(`
-          UPDATE expenses
-          SET nature = 'credit', updated_at = datetime('now')
-          WHERE refund_of_expense_id IS NOT NULL AND nature = 'realized';
-        `);
-        await db.execAsync(`
-          UPDATE hisaab_entries
-          SET linked_expense_id = linked_account_credit_id,
-              updated_at = datetime('now')
-          WHERE linked_account_credit_id IS NOT NULL
-            AND linked_expense_id IS NULL;
-        `);
-      } catch {
-        // account_credits table may not exist in some schema states; ignore.
-      }
-
-      // Post-restore: repair hisaab↔expense links using expense_splits as bridge.
-      // If a hisaab_entry has linked_expense_id = NULL but expense_splits has a
-      // row pointing at it (hisaab_entry_id = entry.id), recover the link.
-      try {
-        await db.execAsync(`
-          UPDATE hisaab_entries
-          SET linked_expense_id = (
-            SELECT es.expense_id FROM expense_splits es
-            WHERE es.hisaab_entry_id = hisaab_entries.id
-            LIMIT 1
-          ),
-          updated_at = datetime('now')
-          WHERE linked_expense_id IS NULL
-            AND id IN (SELECT hisaab_entry_id FROM expense_splits WHERE hisaab_entry_id IS NOT NULL);
-        `);
-      } catch {
-        // expense_splits may not exist; ignore.
-      }
-    });
-    } finally {
-      // Always re-enable FKs — restore transaction is done, normal write
-      // operations from this point forward should be FK-enforced.
-      await db.execAsync("PRAGMA foreign_keys = ON;");
-    }
-
-    await bumpDataVersion();
-    return {
-      success: true,
-      tablesRestored,
-      totalRows,
-      error: null,
-    };
+    // 7. Restore tables via shared restoreFromData helper
+    return await restoreFromData(parsed.data);
   } catch (e) {
-    // Safety: make sure FKs are back on even if decryption/parse failed
-    // after we disabled them. getDatabase() is idempotent.
-    try {
-      await getDatabase().execAsync("PRAGMA foreign_keys = ON;");
-    } catch {
-      // ignore — DB might not be ready
-    }
+    try { await getDatabase().execAsync("PRAGMA foreign_keys = ON;"); } catch { /* ignore */ }
     return {
       success: false,
       tablesRestored: [],
