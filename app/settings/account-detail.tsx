@@ -23,17 +23,11 @@ import {
   updateAccountFinancials,
   updateAccountType,
   getActiveAccounts,
-  updateFundBalance,
-  getCurrentFundBalance,
-  addOrUpdateSnapshot,
-  deleteSnapshot,
-  getSnapshots,
   getLatestSnapshot,
-  addOrUpdateFundSnapshot,
-  deleteFundSnapshot,
-  getFundSnapshots,
+  getLatestFundSnapshot,
+  getSnapshotCountForAccount,
 } from "@/services/financial-account";
-import type { FinancialAccount, PortfolioSnapshot, FundSnapshot, AccountType } from "@/services/financial-account";
+import type { FinancialAccount, AccountType } from "@/services/financial-account";
 import {
   getMonthBalanceSummary,
   seedOpeningBalance,
@@ -106,18 +100,10 @@ export default function AccountDetailScreen() {
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>({ total: 0, count: 0 });
 
   // Demat-specific state
-  const [fundBalanceValue, setFundBalanceValue] = useState("");
-  const [dematSnapshots, setDematSnapshots] = useState<PortfolioSnapshot[]>([]);
-  const [dematFundSnapshots, setDematFundSnapshots] = useState<FundSnapshot[]>([]);
   const [dematLatestValue, setDematLatestValue] = useState<number | null>(null);
-  const [newSnapshotDate, setNewSnapshotDate] = useState(new Date().toISOString().split("T")[0]);
-  const [newSnapshotValue, setNewSnapshotValue] = useState("");
-  const [newFundSnapshotValue, setNewFundSnapshotValue] = useState("");
-  const [addingSnapshot, setAddingSnapshot] = useState(false);
-  const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null);
-  const [editingSnapshotValue, setEditingSnapshotValue] = useState("");
-  const [editingFundSnapshotId, setEditingFundSnapshotId] = useState<string | null>(null);
-  const [editingFundSnapshotValue, setEditingFundSnapshotValue] = useState("");
+  const [dematLatestFund, setDematLatestFund] = useState<number | null>(null);
+  const [dematLatestDate, setDematLatestDate] = useState<string | null>(null);
+  const [dematSnapshotCount, setDematSnapshotCount] = useState(0);
 
   const loadData = useCallback(async () => {
     if (!accountId) return;
@@ -159,15 +145,6 @@ export default function AccountDetailScreen() {
       setMinBalanceValue(
         acct.min_balance != null && acct.min_balance > 0 ? String(acct.min_balance) : "",
       );
-      // Load current fund from the snapshots table (single source of truth).
-      // The legacy acct.fund_balance scalar is deprecated; seed the input with
-      // the latest snapshot value instead.
-      if (acct.account_type === "demat") {
-        const currentFund = await getCurrentFundBalance(acct.id);
-        setFundBalanceValue(String(currentFund));
-      } else {
-        setFundBalanceValue("0");
-      }
       setDirty(false);
 
       // Load balance ledger (for non-demat types)
@@ -187,14 +164,15 @@ export default function AccountDetailScreen() {
 
       // Load demat-specific data
       if (acct.account_type === "demat") {
-        const [latest, snaps, fundSnaps] = await Promise.all([
+        const [latest, latestFund, count] = await Promise.all([
           getLatestSnapshot(accountId),
-          getSnapshots(accountId),
-          getFundSnapshots(accountId),
+          getLatestFundSnapshot(accountId),
+          getSnapshotCountForAccount(accountId),
         ]);
         setDematLatestValue(latest?.portfolio_value ?? null);
-        setDematSnapshots(snaps);
-        setDematFundSnapshots(fundSnaps);
+        setDematLatestFund(latestFund?.fund_value ?? null);
+        setDematLatestDate(latest?.snapshot_date ?? null);
+        setDematSnapshotCount(count);
       }
     } catch (e) {
       logger.warn("account-detail load failed", e);
@@ -237,11 +215,6 @@ export default function AccountDetailScreen() {
         await updateAccountFinancials(account.id, {
           credit_limit: cl != null && !isNaN(cl) && cl >= 0 ? cl : undefined,
         });
-      } else if (accountType === "demat") {
-        const fund = parseFloat(fundBalanceValue.replace(/,/g, ""));
-        if (!isNaN(fund)) {
-          await updateFundBalance(account.id, fund);
-        }
       }
 
       // v15.5: min-balance is savings-only. 0 or empty = feature off.
@@ -258,7 +231,7 @@ export default function AccountDetailScreen() {
     } finally {
       setSaving(false);
     }
-  }, [account, accountType, labelValue, creditLimitValue, fundBalanceValue, minBalanceValue, loadData]);
+  }, [account, accountType, labelValue, creditLimitValue, minBalanceValue, loadData]);
 
   const handleSeedBalance = useCallback(async () => {
     if (!accountId) return;
@@ -568,265 +541,59 @@ export default function AccountDetailScreen() {
             </Card>
           )}
 
-          {/* Demat: Fund Balance */}
+          {/* Demat: Current value summary */}
           {accountType === "demat" && (
             <Card className="mb-3">
               <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
-                Idle Cash / Fund Balance
+                Current Value
               </Text>
-              <Input
-                value={fundBalanceValue}
-                onChangeText={(v) => { setFundBalanceValue(v); setDirty(true); }}
-                keyboardType="numeric"
-                formula
-                placeholder="0"
-                onFocus={() => {
-                  const sub = Keyboard.addListener("keyboardDidShow", () => {
-                    scrollRef.current?.scrollToEnd({ animated: true });
-                    sub.remove();
-                  });
-                  setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 400);
-                }}
-              />
+              <View className="flex-row justify-between mb-2">
+                <View className="flex-1">
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Portfolio</Text>
+                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                    {dematLatestValue != null ? formatAmount(dematLatestValue) : "—"}
+                  </Text>
+                </View>
+                <View className="flex-1 items-center">
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Idle Cash</Text>
+                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                    {dematLatestFund != null ? formatAmount(dematLatestFund) : "—"}
+                  </Text>
+                </View>
+                <View className="flex-1 items-end">
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Total</Text>
+                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                    {dematLatestValue != null ? formatAmount((dematLatestValue ?? 0) + (dematLatestFund ?? 0)) : "—"}
+                  </Text>
+                </View>
+              </View>
+              {dematLatestDate && (
+                <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary">
+                  As of {formatSnapshotDate(dematLatestDate)}
+                </Text>
+              )}
             </Card>
           )}
 
-          {/* Demat: Portfolio Snapshots */}
+          {/* Demat: View Snapshots link */}
           {accountType === "demat" && (
-            <Card className="mb-3">
-              <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
-                Portfolio Snapshots
-              </Text>
-
-              {/* Add new snapshot row — date on top, portfolio + fund side-by-side, save */}
-              <View className="mb-3 pb-3 border-b border-border-light dark:border-border-dark">
-                <View className="mb-2">
-                  <DateInput label="Date" value={newSnapshotDate} onChange={setNewSnapshotDate} />
-                </View>
-                <View className="flex-row items-end">
-                  <View className="flex-1 mr-2">
-                    <Input
-                      label="Portfolio value"
-                      value={newSnapshotValue}
-                      onChangeText={setNewSnapshotValue}
-                      keyboardType="numeric"
-                      formula
-                      placeholder="e.g. 1,25,000"
-                      onFocus={() => {
-                        const sub = Keyboard.addListener("keyboardDidShow", () => {
-                          scrollRef.current?.scrollToEnd({ animated: true });
-                          sub.remove();
-                        });
-                        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 400);
-                      }}
-                    />
-                  </View>
-                  <View className="flex-1 mr-2">
-                    <Input
-                      label="Fund (optional)"
-                      value={newFundSnapshotValue}
-                      onChangeText={setNewFundSnapshotValue}
-                      keyboardType="numeric"
-                      formula
-                      placeholder="Leave blank to carry forward"
-                      onFocus={() => {
-                        const sub = Keyboard.addListener("keyboardDidShow", () => {
-                          scrollRef.current?.scrollToEnd({ animated: true });
-                          sub.remove();
-                        });
-                        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 400);
-                      }}
-                    />
-                  </View>
-                  <Pressable
-                    onPress={async () => {
-                      const val = parseFloat(newSnapshotValue.replace(/,/g, ""));
-                      if (isNaN(val) || val < 0 || !newSnapshotDate) return;
-                      setAddingSnapshot(true);
-                      await addOrUpdateSnapshot(account.id, newSnapshotDate, val);
-                      // Fund snapshot is optional: if user typed a value, record it
-                      // on the same date; if blank, the prior fund snapshot carries
-                      // forward automatically via getFundAsOf in the trend math.
-                      const fundRaw = newFundSnapshotValue.trim();
-                      if (fundRaw.length > 0) {
-                        const fundVal = parseFloat(fundRaw.replace(/,/g, ""));
-                        if (!isNaN(fundVal) && fundVal >= 0) {
-                          await addOrUpdateFundSnapshot(account.id, newSnapshotDate, fundVal);
-                        }
-                      }
-                      setNewSnapshotValue("");
-                      setNewFundSnapshotValue("");
-                      setNewSnapshotDate(new Date().toISOString().split("T")[0]);
-                      setAddingSnapshot(false);
-                      loadData();
-                    }}
-                    disabled={addingSnapshot}
-                    className="pb-1"
-                  >
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={28}
-                      color={addingSnapshot ? colors.textSecondary : sc.success}
-                    />
-                  </Pressable>
-                </View>
+            <Pressable
+              onPress={() => router.push({ pathname: "/demat/snapshots/[id]", params: { id: accountId } } as never)}
+              className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt"
+            >
+              <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: colors.border }}>
+                <Ionicons name="stats-chart-outline" size={16} color={colors.textSecondary} />
               </View>
-
-              {/* Snapshot list */}
-              {dematSnapshots.length === 0 ? (
-                <View className="items-center py-4">
-                  <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">
-                    No snapshots yet. Add your first portfolio value above.
-                  </Text>
-                </View>
-              ) : (
-                dematSnapshots.map((snap) => {
-                  const isEditing = editingSnapshotId === snap.id;
-                  return (
-                    <View key={snap.id} className="flex-row items-center py-2.5 border-b border-border-light dark:border-border-dark">
-                      <View className="flex-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                          {formatSnapshotDate(snap.snapshot_date)}
-                        </Text>
-                        {isEditing ? (
-                          <View className="flex-row items-center mt-1">
-                            <Input
-                              value={editingSnapshotValue}
-                              onChangeText={setEditingSnapshotValue}
-                              keyboardType="numeric"
-                              formula
-                              className="text-xs py-1"
-                              containerClassName="flex-1"
-                            />
-                            <Pressable
-                              onPress={async () => {
-                                const val = parseFloat(editingSnapshotValue.replace(/,/g, ""));
-                                if (isNaN(val) || val < 0) return;
-                                await addOrUpdateSnapshot(account.id, snap.snapshot_date, val);
-                                setEditingSnapshotId(null);
-                                loadData();
-                              }}
-                              className="ml-2"
-                            >
-                              <Ionicons name="checkmark-circle" size={22} color={sc.success} />
-                            </Pressable>
-                            <Pressable onPress={() => setEditingSnapshotId(null)} className="ml-1">
-                              <Ionicons name="close-circle" size={22} color={sc.muted} />
-                            </Pressable>
-                          </View>
-                        ) : (
-                          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mt-0.5">
-                            {formatAmount(snap.portfolio_value)}
-                          </Text>
-                        )}
-                      </View>
-                      {!isEditing && (
-                        <View className="flex-row items-center">
-                          <Pressable
-                            onPress={() => {
-                              setEditingSnapshotId(snap.id);
-                              setEditingSnapshotValue(String(snap.portfolio_value));
-                            }}
-                            hitSlop={8}
-                            className="mr-3"
-                          >
-                            <Ionicons name="create-outline" size={16} color={colors.blue} />
-                          </Pressable>
-                          <Pressable
-                            onPress={() => {
-                              alert("Delete Snapshot", `Delete portfolio value for ${formatSnapshotDate(snap.snapshot_date)}?`, [
-                                { text: "Cancel", style: "cancel" },
-                                { text: "Delete", style: "destructive", onPress: async () => { await deleteSnapshot(snap.id); loadData(); } },
-                              ]);
-                            }}
-                            hitSlop={8}
-                          >
-                            <Ionicons name="trash-outline" size={16} color={sc.danger} />
-                          </Pressable>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })
-              )}
-
-              {/* Fund snapshot history */}
-              {dematFundSnapshots.length > 0 && (
-                <>
-                  <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mt-4 mb-2">
-                    Fund Snapshots
-                  </Text>
-                  {dematFundSnapshots.map((snap) => {
-                    const isEditing = editingFundSnapshotId === snap.id;
-                    return (
-                      <View key={snap.id} className="flex-row items-center py-2.5 border-b border-border-light dark:border-border-dark">
-                        <View className="flex-1">
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                            {formatSnapshotDate(snap.snapshot_date)}
-                          </Text>
-                          {isEditing ? (
-                            <View className="flex-row items-center mt-1">
-                              <Input
-                                value={editingFundSnapshotValue}
-                                onChangeText={setEditingFundSnapshotValue}
-                                keyboardType="numeric"
-                                formula
-                                className="text-xs py-1"
-                                containerClassName="flex-1"
-                              />
-                              <Pressable
-                                onPress={async () => {
-                                  const val = parseFloat(editingFundSnapshotValue.replace(/,/g, ""));
-                                  if (isNaN(val) || val < 0) return;
-                                  await addOrUpdateFundSnapshot(account.id, snap.snapshot_date, val);
-                                  setEditingFundSnapshotId(null);
-                                  loadData();
-                                }}
-                                className="ml-2"
-                              >
-                                <Ionicons name="checkmark-circle" size={22} color={sc.success} />
-                              </Pressable>
-                              <Pressable onPress={() => setEditingFundSnapshotId(null)} className="ml-1">
-                                <Ionicons name="close-circle" size={22} color={sc.muted} />
-                              </Pressable>
-                            </View>
-                          ) : (
-                            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mt-0.5">
-                              {formatAmount(snap.fund_value)}
-                            </Text>
-                          )}
-                        </View>
-                        {!isEditing && (
-                          <View className="flex-row items-center">
-                            <Pressable
-                              onPress={() => {
-                                setEditingFundSnapshotId(snap.id);
-                                setEditingFundSnapshotValue(String(snap.fund_value));
-                              }}
-                              hitSlop={8}
-                              className="mr-3"
-                            >
-                              <Ionicons name="create-outline" size={16} color={colors.blue} />
-                            </Pressable>
-                            <Pressable
-                              onPress={() => {
-                                alert("Delete Fund Snapshot", `Delete fund value for ${formatSnapshotDate(snap.snapshot_date)}?`, [
-                                  { text: "Cancel", style: "cancel" },
-                                  { text: "Delete", style: "destructive", onPress: async () => { await deleteFundSnapshot(snap.id); loadData(); } },
-                                ]);
-                              }}
-                              hitSlop={8}
-                            >
-                              <Ionicons name="trash-outline" size={16} color={sc.danger} />
-                            </Pressable>
-                          </View>
-                        )}
-                      </View>
-                    );
-                  })}
-                </>
-              )}
-            </Card>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  Portfolio Snapshots
+                </Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                  {dematSnapshotCount > 0 ? `${dematSnapshotCount} snapshots recorded` : "No snapshots yet"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </Pressable>
           )}
 
           {/* Loan accounts — surface a direct link to the loan detail

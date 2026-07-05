@@ -21,7 +21,6 @@ import {
 import {
   getTransfersForUser,
   deleteTransfer,
-  getReclassifiedExpenses,
 } from "@/services/account-transfer";
 import type { AccountTransfer } from "@/services/account-transfer";
 import type { FilteredSummary } from "@/services/expense";
@@ -69,7 +68,6 @@ export default function ExpensesScreen() {
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
-  const [reclassifiedExpenses, setReclassifiedExpenses] = useState<Expense[]>([]);
   const [refundedMap, setRefundedMap] = useState<Map<string, number>>(new Map());
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
@@ -162,24 +160,19 @@ export default function ExpensesScreen() {
       try {
         // Handle transfers separately
         if (filterNature === "transfers") {
-          const [transferData, reclassifiedExpenses] = await Promise.all([
-            getTransfersForUser(
-              DEFAULT_USER_ID,
-              filterStartDate || "",
-              filterEndDate || "",
-            ),
-            getReclassifiedExpenses(DEFAULT_USER_ID, filterStartDate || "", filterEndDate || ""),
-          ]);
+          const transferData = await getTransfersForUser(
+            DEFAULT_USER_ID,
+            filterStartDate || "",
+            filterEndDate || "",
+          );
           if (reset) {
             setTransfers(transferData);
-            setReclassifiedExpenses(reclassifiedExpenses);
             setSummary(null);
             setPreviousTotal(null);
           } else {
             setTransfers((prev) => [...prev, ...transferData]);
-            setReclassifiedExpenses((prev) => [...prev, ...reclassifiedExpenses]);
           }
-          setHasMore(false); // Transfers are not paginated
+          setHasMore(false);
           setExpenses([]);
           setLoading(false);
           return;
@@ -487,7 +480,14 @@ export default function ExpensesScreen() {
       const accountName = fromAccount ? `${fromAccount.bank_name} ****${fromAccount.account_identifier}` : "Unknown";
       const toAccountName = toAccount ? `${toAccount.bank_name} ****${toAccount.account_identifier}` : "Unknown";
       return (
-        <View className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark">
+        <Pressable
+          onPress={() => {
+            if (item.linked_expense_id) {
+              router.push(`/expense/${item.linked_expense_id}`);
+            }
+          }}
+          className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark"
+        >
           <View className="flex-1">
             <Text className="text-sm font-medium" style={{ color: colors.text }}>
               {item.description || "Transfer"}
@@ -520,14 +520,15 @@ export default function ExpensesScreen() {
                 ]);
               }}
               className="mt-1"
+              hitSlop={8}
             >
               <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
             </Pressable>
           </View>
-        </View>
+        </Pressable>
       );
     },
-    [accountMap, colors, accent, alert, loadExpenses],
+    [accountMap, colors, accent, alert, loadExpenses, router],
   );
 
   const renderExpenseItem = useCallback(
@@ -919,18 +920,11 @@ export default function ExpensesScreen() {
       {/* Expense list */}
       {filterNature === "transfers" ? (
         <FlatList
-          data={[...transfers, ...reclassifiedExpenses]}
+          data={transfers}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
-            // Check if item is a transfer (has from_account_id) or reclassified expense
-            if ("from_account_id" in item) {
-              return renderTransferItem({ item: item as AccountTransfer });
-            } else {
-              return renderExpenseItem({ item: item as Expense });
-            }
-          }}
+          renderItem={renderTransferItem}
           contentContainerStyle={{ paddingBottom: 80 }}
-          refreshing={loading && transfers.length === 0 && reclassifiedExpenses.length === 0}
+          refreshing={loading && transfers.length === 0}
           onRefresh={() => loadExpenses(true)}
           ListEmptyComponent={
             !loading ? (

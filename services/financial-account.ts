@@ -1268,6 +1268,60 @@ export async function deleteFundSnapshot(snapshotId: string): Promise<void> {
   await bumpDataVersion();
 }
 
+export async function getLatestFundSnapshot(accountId: string): Promise<FundSnapshot | null> {
+  const db = getDatabase();
+  return db.getFirstAsync<FundSnapshot>(
+    `SELECT * FROM demat_fund_snapshots
+     WHERE account_id = ?
+     ORDER BY snapshot_date DESC
+     LIMIT 1;`,
+    accountId,
+  );
+}
+
+export async function getPortfolioSnapshotsForMonth(
+  accountId: string,
+  yearMonth: string,
+): Promise<PortfolioSnapshot[]> {
+  const db = getDatabase();
+  const [y, m] = yearMonth.split("-").map(Number);
+  const monthStart = `${yearMonth}-01`;
+  const lastDay = new Date(y, m, 0).getDate();
+  const monthEnd = `${yearMonth}-${String(lastDay).padStart(2, "0")}`;
+  return db.getAllAsync<PortfolioSnapshot>(
+    `SELECT * FROM demat_portfolio_snapshots
+     WHERE account_id = ? AND snapshot_date >= ? AND snapshot_date <= ?
+     ORDER BY snapshot_date DESC;`,
+    accountId, monthStart, monthEnd,
+  );
+}
+
+export async function getFundSnapshotsForMonth(
+  accountId: string,
+  yearMonth: string,
+): Promise<FundSnapshot[]> {
+  const db = getDatabase();
+  const [y, m] = yearMonth.split("-").map(Number);
+  const monthStart = `${yearMonth}-01`;
+  const lastDay = new Date(y, m, 0).getDate();
+  const monthEnd = `${yearMonth}-${String(lastDay).padStart(2, "0")}`;
+  return db.getAllAsync<FundSnapshot>(
+    `SELECT * FROM demat_fund_snapshots
+     WHERE account_id = ? AND snapshot_date >= ? AND snapshot_date <= ?
+     ORDER BY snapshot_date DESC;`,
+    accountId, monthStart, monthEnd,
+  );
+}
+
+export async function getSnapshotCountForAccount(accountId: string): Promise<number> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) as count FROM demat_portfolio_snapshots WHERE account_id = ?;`,
+    accountId,
+  );
+  return row?.count ?? 0;
+}
+
 export async function getFundSnapshots(
   accountId: string,
   limit = 100,
