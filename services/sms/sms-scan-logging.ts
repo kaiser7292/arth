@@ -136,7 +136,7 @@ export async function saveScanRun(input: ScanRunInput): Promise<string> {
         for (let i = 0; i < input.details.length; i += CHUNK_SIZE) {
           const chunk = input.details.slice(i, i + CHUNK_SIZE);
           const placeholders = chunk.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ");
-          const values: unknown[] = [];
+          const values: (string | number | null)[] = [];
           for (const d of chunk) {
             values.push(
               generateUUID(),

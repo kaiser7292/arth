@@ -268,6 +268,11 @@ describe("Expense Interface — V4 Fields", () => {
       purchase_group_id: null,
       recurring_rule_id: null,
       fulfills_rule_id: null,
+      split_mode: null,
+      split_exact_amount: null,
+      applied_rule_id: null,
+      reclassified_as_transfer: null,
+      linked_transfer_id: null,
       created_at: "2026-04-13T00:00:00",
       updated_at: "2026-04-13T00:00:00",
     };
@@ -311,6 +316,11 @@ describe("Expense Interface — V4 Fields", () => {
       purchase_group_id: null,
       recurring_rule_id: null,
       fulfills_rule_id: null,
+      split_mode: null,
+      split_exact_amount: null,
+      applied_rule_id: null,
+      reclassified_as_transfer: null,
+      linked_transfer_id: null,
       created_at: "2026-04-13T00:00:00",
       updated_at: "2026-04-13T00:00:00",
     };

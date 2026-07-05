@@ -9,8 +9,8 @@ const mockWithTransaction = jest.fn(async (fn: () => Promise<void>) => {
   await fn();
 });
 
-const mockGetAllAsync = jest.fn(async () => []);
-const mockGetFirstAsync = jest.fn(async () => null);
+const mockGetAllAsync = jest.fn(async (): Promise<unknown[]> => []);
+const mockGetFirstAsync = jest.fn(async (): Promise<unknown> => null);
 
 const mockDb = {
   getAllAsync: mockGetAllAsync,
@@ -65,6 +65,21 @@ const makeForecast = (overrides: Partial<Expense> = {}): Expense => ({
   split_pct: null,
   split_hisaab_entry_id: null,
   matched_forecast_id: null,
+  deleted_at: null,
+  forecast_type: "expense",
+  paid_from_account_id: null,
+  raw_merchant_name: null,
+  transaction_time: "00:00:00",
+  split_mode: null,
+  split_exact_amount: null,
+  convenience_fee: 0,
+  fee_absorbed: 0,
+  purchase_group_id: null,
+  recurring_rule_id: null,
+  fulfills_rule_id: null,
+  applied_rule_id: null,
+  reclassified_as_transfer: null,
+  linked_transfer_id: null,
   created_at: "2026-04-01T10:00:00Z",
   updated_at: "2026-04-01T10:00:00Z",
   ...overrides,

@@ -6,8 +6,8 @@
 
 let executedRuns: { sql: string; params: unknown[] }[] = [];
 
-const mockGetAllAsync = jest.fn(async () => []);
-const mockGetFirstAsync = jest.fn(async () => null);
+const mockGetAllAsync = jest.fn(async (): Promise<unknown[]> => []);
+const mockGetFirstAsync = jest.fn(async (): Promise<unknown> => null);
 
 const mockDb = {
   getAllAsync: mockGetAllAsync,

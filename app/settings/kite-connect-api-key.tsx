@@ -7,6 +7,7 @@ import {
   storeKiteApiKey,
   clearKiteCredentials,
 } from '@/services/kite-connect';
+import { useAlert } from '@/hooks/use-alert';
 import { logger } from '@/utils/logger';
 
 export default function KiteConnectApiKeyScreen() {

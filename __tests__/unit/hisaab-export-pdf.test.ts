@@ -8,20 +8,25 @@
 import {
   _personStatementHtml,
 } from "../../services/hisaab-export-pdf";
+import type { HisaabEntry } from "../../services/hisaab";
 
 // ─── Person Statement HTML (Bank Statement Format) ───
 
 describe("personStatementHtml", () => {
-  const entries = [
+  const entries: HisaabEntry[] = [
     {
       id: "e1",
       hisaab_person_id: "p1",
       amount: 3000,
       description: "Dinner bill",
       date: "2026-04-10",
-      type: "debit" as const,
-      status: "confirmed" as const,
+      type: "debit",
+      status: "confirmed",
       linked_expense_id: null,
+      category_id: null,
+      merchant_name: null,
+      linked_account_credit_id: null,
+      settlement_source: "created",
       created_at: "2026-04-10",
       updated_at: "2026-04-10",
     },
@@ -31,9 +36,13 @@ describe("personStatementHtml", () => {
       amount: 1000,
       description: "GPay transfer",
       date: "2026-04-11",
-      type: "credit" as const,
-      status: "confirmed" as const,
+      type: "credit",
+      status: "confirmed",
       linked_expense_id: null,
+      category_id: null,
+      merchant_name: null,
+      linked_account_credit_id: null,
+      settlement_source: "created",
       created_at: "2026-04-11",
       updated_at: "2026-04-11",
     },
@@ -43,9 +52,13 @@ describe("personStatementHtml", () => {
       amount: 500,
       description: "Settled up",
       date: "2026-04-12",
-      type: "settlement" as const,
-      status: "confirmed" as const,
+      type: "settlement",
+      status: "confirmed",
       linked_expense_id: null,
+      category_id: null,
+      merchant_name: null,
+      linked_account_credit_id: null,
+      settlement_source: "created",
       created_at: "2026-04-12",
       updated_at: "2026-04-12",
     },
@@ -59,7 +72,7 @@ describe("personStatementHtml", () => {
       startDate?: string;
       endDate?: string;
       openingBalance?: number;
-      testEntries?: typeof entries;
+      testEntries?: HisaabEntry[];
       totalDebits?: number;
       totalCredits?: number;
       closingBalance?: number;
@@ -77,6 +90,7 @@ describe("personStatementHtml", () => {
       overrides.closingBalance ?? 2500,
       new Map(),
       new Map(),
+      "",
     );
   }
 
