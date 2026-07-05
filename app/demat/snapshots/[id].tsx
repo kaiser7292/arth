@@ -194,12 +194,7 @@ export default function DematSnapshotsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <Stack.Screen
-        options={{
-          title: "Portfolio Snapshots",
-          headerBackTitle: "Back",
-        }}
-      />
+      <Stack.Screen options={{ title: "Portfolio Snapshots" }} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

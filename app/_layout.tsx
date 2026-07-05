@@ -495,6 +495,10 @@ export default function RootLayout(): React.JSX.Element {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="demat"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="simulator"
           options={{ headerShown: false }}
         />
