@@ -135,9 +135,7 @@ export default function RecurringRulesScreen() {
               </View>
               <Pressable
                 className="flex-1"
-                onPress={() => {
-                  if (item.source) router.push(`/expense/${item.source.id}`);
-                }}
+                onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${item.rule.id}` as never)}
                 accessibilityRole="button"
                 accessibilityLabel={`View ${description}`}
               >

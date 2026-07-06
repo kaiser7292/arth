@@ -592,6 +592,88 @@ export async function onSourceExpenseDeleted(expenseId: string): Promise<void> {
   );
 }
 
+export interface ReminderHistoryEntry {
+  fulfillmentId: string;
+  cycleDueDate: string;
+  fulfilledAt: string;
+  expense: {
+    id: string;
+    date: string;
+    amount: number;
+    merchant_name: string | null;
+    description: string | null;
+  };
+}
+
+export interface ReminderDetail {
+  rule: RecurringRule;
+  source: Expense | null;
+  history: ReminderHistoryEntry[];
+}
+
+/**
+ * Full detail for a single reminder rule: rule row + source expense + all
+ * fulfillment history (most-recent-cycle first). Returns null if the rule
+ * doesn't exist.
+ */
+export async function getReminderDetail(ruleId: string): Promise<ReminderDetail | null> {
+  const db = getDatabase();
+  const rule = await db.getFirstAsync<RecurringRule>(
+    "SELECT * FROM recurring_expense_rules WHERE id = ?;",
+    ruleId,
+  );
+  if (!rule) return null;
+
+  const source = rule.source_expense_id
+    ? await db.getFirstAsync<Expense>(
+        "SELECT * FROM expenses WHERE id = ? AND deleted_at IS NULL;",
+        rule.source_expense_id,
+      ) ?? null
+    : null;
+
+  const rows = await db.getAllAsync<{
+    fulfillmentId: string;
+    cycleDueDate: string;
+    fulfilledAt: string;
+    expenseId: string;
+    expenseDate: string;
+    expenseAmount: number;
+    merchantName: string | null;
+    description: string | null;
+  }>(
+    `SELECT f.id AS fulfillmentId,
+            f.cycle_due_date AS cycleDueDate,
+            f.fulfilled_at AS fulfilledAt,
+            e.id AS expenseId,
+            e.date AS expenseDate,
+            e.amount AS expenseAmount,
+            e.merchant_name AS merchantName,
+            e.description
+     FROM reminder_fulfillments f
+     JOIN expenses e ON e.id = f.expense_id
+     WHERE f.rule_id = ?
+     ORDER BY f.cycle_due_date DESC;`,
+    ruleId,
+  );
+
+  return {
+    rule,
+    source,
+    history: rows.map((r) => ({
+      fulfillmentId: r.fulfillmentId,
+      cycleDueDate: r.cycleDueDate,
+      fulfilledAt: r.fulfilledAt,
+      expense: {
+        id: r.expenseId,
+        date: r.expenseDate,
+        amount: r.expenseAmount,
+        merchant_name: r.merchantName,
+        description: r.description,
+      },
+    })),
+  };
+}
+
 /**
  * When an expense that fulfills a reminder is deleted, also unfulfill it.
  * Called from expense-crud.deleteExpense.

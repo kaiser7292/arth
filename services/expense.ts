@@ -107,6 +107,7 @@ export {
   suggestReminderForExpense,
   onSourceExpenseDeleted as onRecurringSourceDeleted,
   onFulfillingExpenseDeleted,
+  getReminderDetail,
 } from "./recurring-rules";
 
 export type {
@@ -115,6 +116,8 @@ export type {
   RecurringFrequency,
   ReminderWithSource,
   ReminderFulfillment,
+  ReminderDetail,
+  ReminderHistoryEntry,
 } from "./recurring-rules";
 
 export type {

@@ -48,6 +48,8 @@ import {
 import { bumpDataVersion, dismissBackupWarning, getFYStartMonth, shouldShowBackupWarning } from "@/services/settings";
 import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
 import { getLastAutoScanRun, getSmsScanAccountIds, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
+import { findAutoMatches, dismissReminderMatch, clearDismissalsForRule, pruneExpiredDismissals } from "@/services/reminder-matching";
+import type { ReminderAutoMatch } from "@/services/reminder-matching";
 import { ac, acAlpha } from "@/utils/accent";
 import {
     getBudgetStatus,
@@ -84,7 +86,9 @@ export default function HomeScreen() {
   const [linkSheetFor, setLinkSheetFor] = useState<{
     ruleId: string;
     description: string;
+    preloadedCandidates?: Expense[];
   } | null>(null);
+  const [autoMatches, setAutoMatches] = useState<ReminderAutoMatch[]>([]);
   const [hisaabSummary, setHisaabSummary] = useState(preloaded?.hisaabSummary ?? {
     totalOwedToYou: 0,
     totalYouOwe: 0,
@@ -128,7 +132,8 @@ export default function HomeScreen() {
     skipNextHomeLoad = false;
     try {
       const today = new Date().toISOString().split("T")[0];
-      const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dematSum, reminders] = await Promise.all([
+      pruneExpiredDismissals();
+      const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dematSum, reminders, matches] = await Promise.all([
         getBudgetsForMonth(DEFAULT_USER_ID, month),
         getExpenseTotal(DEFAULT_USER_ID, startDate, endDate),
         getPendingExpenseCount(DEFAULT_USER_ID),
@@ -141,6 +146,7 @@ export default function HomeScreen() {
         getUncategorizedCount(DEFAULT_USER_ID),
         getDematSummary(DEFAULT_USER_ID),
         getDueRecurringReminders(DEFAULT_USER_ID),
+        findAutoMatches(DEFAULT_USER_ID).catch(() => [] as ReminderAutoMatch[]),
       ]);
 
       // Await the second-phase query BEFORE any setState so that React 18
@@ -176,6 +182,7 @@ export default function HomeScreen() {
 
       // All setStates below run synchronously in one batch.
       setDueReminders(reminders);
+      setAutoMatches(matches);
       setTotalSpent(total);
       setTotalBudget(budgets.reduce((sum, b) => sum + b.amount, 0));
       setPendingCount(pending);
@@ -496,8 +503,7 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        {/* Recurring reminders (v14.7.0) — pending/overdue reminders that
-            need the user to link a realized expense or log a new one. */}
+        {/* Recurring reminders — pending/overdue with auto-match suggestions. */}
         {isHomeCardVisible("reminders") && dueReminders.length > 0 && (
           <Card className="mx-4 mt-3">
             <View className="flex-row items-center mb-2">
@@ -510,17 +516,30 @@ export default function HomeScreen() {
                   {dueReminders.length}
                 </Text>
               </View>
+              {autoMatches.length > 0 && (
+                <View className="ml-1.5 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: StatusColors[colorScheme].success + "22" }}>
+                  <Text className="text-xs font-bold" style={{ color: StatusColors[colorScheme].success }}>
+                    {autoMatches.length} matched
+                  </Text>
+                </View>
+              )}
             </View>
             {dueReminders.map((r, i) => {
               const description =
                 r.source?.description ?? r.source?.merchant_name ?? "Recurring";
               const isOverdue = r.state === "overdue";
               const last = r.lastFulfillment;
+              const match = autoMatches.find((m) => m.ruleId === r.rule.id);
+              const hasSingleMatch = match?.matches.length === 1;
+              const hasMultipleMatches = (match?.matches.length ?? 0) > 1;
+              const matchedExpense = hasSingleMatch ? match!.matches[0] : null;
+
               return (
                 <View
                   key={r.rule.id}
                   className={`py-2 ${i < dueReminders.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""}`}
                 >
+                  {/* Row header: name + due date + action button */}
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1 mr-2">
                       <Text
@@ -543,21 +562,97 @@ export default function HomeScreen() {
                         {last ? ` · Last paid ${last.cycle_due_date}` : ""}
                       </Text>
                     </View>
-                    <Pressable
-                      onPress={() =>
-                        setLinkSheetFor({
+
+                    {/* State C — multiple matches → "Review" opens sheet */}
+                    {hasMultipleMatches && (
+                      <Pressable
+                        onPress={() => setLinkSheetFor({
                           ruleId: r.rule.id,
                           description,
-                        })
-                      }
-                      accessibilityRole="button"
-                      accessibilityLabel="Link expense to this reminder"
-                      className="px-3 py-1.5 rounded-lg"
-                      style={{ backgroundColor: accent[500] }}
-                    >
-                      <Text className="text-xs font-semibold text-white">Link</Text>
-                    </Pressable>
+                          preloadedCandidates: match!.matches,
+                        })}
+                        accessibilityRole="button"
+                        className="px-3 py-1.5 rounded-lg flex-row items-center"
+                        style={{ backgroundColor: StatusColors[colorScheme].success + "22" }}
+                      >
+                        <Text className="text-xs font-semibold mr-1" style={{ color: StatusColors[colorScheme].success }}>
+                          {match!.matches.length} matches
+                        </Text>
+                        <Ionicons name="chevron-forward" size={12} color={StatusColors[colorScheme].success} />
+                      </Pressable>
+                    )}
+
+                    {/* State B — no match → original Link button */}
+                    {!match && (
+                      <Pressable
+                        onPress={() => setLinkSheetFor({ ruleId: r.rule.id, description })}
+                        accessibilityRole="button"
+                        accessibilityLabel="Link expense to this reminder"
+                        className="px-3 py-1.5 rounded-lg"
+                        style={{ backgroundColor: accent[500] }}
+                      >
+                        <Text className="text-xs font-semibold text-white">Link</Text>
+                      </Pressable>
+                    )}
                   </View>
+
+                  {/* State A — single match → inline approve/dismiss row */}
+                  {hasSingleMatch && matchedExpense && (
+                    <View
+                      className="flex-row items-center mt-2 px-2 py-1.5 rounded-lg"
+                      style={{ backgroundColor: StatusColors[colorScheme].success + "12" }}
+                    >
+                      <Ionicons name="checkmark-circle" size={14} color={StatusColors[colorScheme].success} />
+                      <View className="flex-1 mx-2">
+                        <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                          {matchedExpense.merchant_name ?? matchedExpense.description ?? "Expense"} · {matchedExpense.date}
+                        </Text>
+                        <Text className="text-[11px]" style={{ color: StatusColors[colorScheme].success }}>
+                          {formatAmount(matchedExpense.amount)}
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={async () => {
+                          const ruleId = r.rule.id;
+                          const expenseId = matchedExpense.id;
+                          setAutoMatches((prev) => prev.filter((m) => m.ruleId !== ruleId));
+                          try {
+                            await fulfillReminder(ruleId, expenseId);
+                            clearDismissalsForRule(ruleId);
+                            await loadData();
+                          } catch (e) {
+                            logger.warn("Auto-match approve failed", e);
+                            await loadData();
+                          }
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Approve match"
+                        className="px-2.5 py-1 rounded-md mr-1.5"
+                        style={{ backgroundColor: StatusColors[colorScheme].success }}
+                      >
+                        <Text className="text-xs font-semibold text-white">Approve</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          dismissReminderMatch(r.rule.id, matchedExpense.id);
+                          setAutoMatches((prev) =>
+                            prev
+                              .map((m) =>
+                                m.ruleId === r.rule.id
+                                  ? { ...m, matches: m.matches.filter((e) => e.id !== matchedExpense.id) }
+                                  : m,
+                              )
+                              .filter((m) => m.matches.length > 0),
+                          );
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Dismiss match"
+                        hitSlop={8}
+                      >
+                        <Ionicons name="close" size={16} color={colors.textSecondary} />
+                      </Pressable>
+                    </View>
+                  )}
                 </View>
               );
             })}
@@ -850,11 +945,13 @@ export default function HomeScreen() {
           visible={true}
           ruleId={linkSheetFor.ruleId}
           ruleDescription={linkSheetFor.description}
+          preloadedCandidates={linkSheetFor.preloadedCandidates}
           onPickExisting={async (expenseId) => {
             const ruleId = linkSheetFor.ruleId;
             setLinkSheetFor(null);
             try {
               await fulfillReminder(ruleId, expenseId);
+              clearDismissalsForRule(ruleId);
               await loadData();
             } catch (e) {
               // Alerts for failures handled elsewhere; log-and-continue here.

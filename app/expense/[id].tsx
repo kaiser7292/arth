@@ -2796,11 +2796,14 @@ export default function ExpenseDetailScreen() {
                 </Pressable>
               )}
 
-              {/* v14.7.0: Fulfilled-reminder badge + Undo. */}
+              {/* v14.7.0: Fulfilled-reminder badge + tap to detail + Undo. */}
               {expense.nature === "realized" && fulfilledRule && (
-                <View
+                <Pressable
+                  onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${fulfilledRule.id}` as never)}
                   className="mx-4 mt-3 p-3 rounded-xl flex-row items-center"
                   style={{ backgroundColor: StatusColors[colorScheme].success + "14" }}
+                  accessibilityRole="button"
+                  accessibilityLabel="View reminder details"
                 >
                   <Ionicons
                     name="checkmark-circle"
@@ -2812,30 +2815,35 @@ export default function ExpenseDetailScreen() {
                       className="text-sm font-semibold"
                       style={{ color: StatusColors[colorScheme].success }}
                     >
-                      Fulfilled a recurring reminder
+                      {fulfilledRule.notes
+                        ? fulfilledRule.notes
+                        : "Fulfilled a recurring reminder"}
                     </Text>
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                      This expense cleared the {fulfilledRule.frequency} reminder.
+                      {fulfilledRule.frequency} reminder · Tap to view
                     </Text>
                   </View>
-                  <Pressable
-                    onPress={async () => {
-                      try {
-                        await unfulfillReminder(expense.id);
-                        setFulfilledRule(null);
-                      } catch (e) {
-                        alert("Couldn't unlink", formatError("Unlink reminder", e));
-                      }
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Unlink this reminder"
-                    hitSlop={8}
-                  >
-                    <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
-                      Undo
-                    </Text>
-                  </Pressable>
-                </View>
+                  <View className="flex-row items-center ml-1">
+                    <Pressable
+                      onPress={async () => {
+                        try {
+                          await unfulfillReminder(expense.id);
+                          setFulfilledRule(null);
+                        } catch (err) {
+                          alert("Couldn't unlink", formatError("Unlink reminder", err));
+                        }
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Unlink this reminder"
+                      hitSlop={8}
+                    >
+                      <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
+                        Undo
+                      </Text>
+                    </Pressable>
+                    <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 8 }} />
+                  </View>
+                </Pressable>
               )}
 
               {/* Duplicate — create a new expense pre-filled from this one. */}

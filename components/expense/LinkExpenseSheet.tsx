@@ -34,6 +34,8 @@ interface LinkExpenseSheetProps {
   visible: boolean;
   ruleId: string;
   ruleDescription: string;
+  /** When provided, skips the fetch and uses these candidates directly. */
+  preloadedCandidates?: Expense[];
   onPickExisting: (expenseId: string) => void;
   onLogNew: () => void;
   onClose: () => void;
@@ -43,6 +45,7 @@ export function LinkExpenseSheet({
   visible,
   ruleId,
   ruleDescription,
+  preloadedCandidates,
   onPickExisting,
   onLogNew,
   onClose,
@@ -56,12 +59,17 @@ export function LinkExpenseSheet({
   useEffect(() => {
     if (!visible) return;
     slideAnim.value = withTiming(0, { duration: 250 });
+    if (preloadedCandidates) {
+      setCandidates(preloadedCandidates);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     findReminderCandidateExpenses(ruleId)
       .then(setCandidates)
       .catch(() => setCandidates([]))
       .finally(() => setLoading(false));
-  }, [visible, ruleId, slideAnim]);
+  }, [visible, ruleId, preloadedCandidates, slideAnim]);
 
   const close = useCallback(() => {
     slideAnim.value = withTiming(400, { duration: 200 }, () => {
