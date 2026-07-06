@@ -55,7 +55,16 @@ export default function MilestoneDetailScreen() {
   >([]);
   const [linkedBuckets, setLinkedBuckets] = useState<InvestmentBucket[]>([]);
   const [linkedBucketTotal, setLinkedBucketTotal] = useState(0);
-  interface FYBreakdownRow { fy: number; label: string; planned: number; actual: number; isCurrent: boolean }
+  interface FYBreakdownRow {
+    fy: number;
+    label: string;
+    originalPlanned: number;
+    planned: number;        // adjusted for current/future FYs
+    actual: number;
+    isCurrent: boolean;
+    isPast: boolean;
+    surplusCarriedIn: number; // how much surplus from past FYs reduced this target
+  }
   const [fyBreakdown, setFyBreakdown] = useState<FYBreakdownRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -86,24 +95,51 @@ export default function MilestoneDetailScreen() {
         const sfy = m.start_financial_year ? parseInt(m.start_financial_year, 10) : currentFY;
         const totalMo = getMilestoneTotalMonths(m);
         const numFYs = Math.ceil(totalMo / 12) || 1;
+
+        // First pass: fetch actuals and original planned for all FYs
         const rows: FYBreakdownRow[] = [];
+        let cumulativePastActual = 0;
+        let cumulativePastOriginalPlan = 0;
+
         for (let i = 0; i < numFYs; i++) {
           const fy = sfy + i;
-          const planned = getMilestoneContributionForFY(m, String(fy));
+          const originalPlanned = getMilestoneContributionForFY(m, String(fy));
           const { start, end } = getFYRange(fy, startMonth);
           const actual = await getCombinedMilestoneActualForFY(
             m.id,
             formatLocalDate(start),
             formatLocalDate(end),
           );
+          const isPast = fy < currentFY;
+          if (isPast) {
+            cumulativePastActual += actual;
+            cumulativePastOriginalPlan += originalPlanned;
+          }
           rows.push({
             fy,
             label: getFYLabel(fy, startMonth),
-            planned,
+            originalPlanned,
+            planned: originalPlanned,
             actual,
             isCurrent: fy === currentFY,
+            isPast,
+            surplusCarriedIn: 0,
           });
         }
+
+        // Second pass: adjust planned for current + future FYs based on what's left
+        const surplusFromPast = Math.max(0, cumulativePastActual - cumulativePastOriginalPlan);
+        const totalRemainingNeed = Math.max(0, m.target_amount - cumulativePastActual);
+        const remainingFYCount = rows.filter((r) => !r.isPast).length;
+        const adjustedPerFY = remainingFYCount > 0 ? Math.round(totalRemainingNeed / remainingFYCount) : 0;
+
+        for (const row of rows) {
+          if (!row.isPast) {
+            row.planned = adjustedPerFY;
+            row.surplusCarriedIn = surplusFromPast;
+          }
+        }
+
         setFyBreakdown(rows);
       }
     } catch {
@@ -495,46 +531,118 @@ export default function MilestoneDetailScreen() {
             {fyBreakdown.length > 1 && (
               <Card title="Year-by-Year Breakdown" className="mb-4">
                 {fyBreakdown.map((row, i) => {
-                  const pctFY = row.planned > 0 ? Math.min(row.actual / row.planned, 1) : 0;
+                  const isOverachieved = row.isPast && row.actual > row.originalPlanned;
+                  const surplus = isOverachieved ? row.actual - row.originalPlanned : 0;
+                  const isFullyCovered = !row.isPast && row.planned === 0;
+                  const pctFY = row.planned > 0
+                    ? Math.min(row.actual / row.planned, 1)
+                    : (isFullyCovered ? 1 : 0);
+                  const isAdjusted = !row.isPast && row.surplusCarriedIn > 0;
+
                   return (
                     <View
                       key={row.fy}
-                      className={`py-2.5 ${
-                        i < fyBreakdown.length - 1
-                          ? "border-b border-border-light dark:border-border-dark"
-                          : ""
-                      }`}
+                      className={`py-2.5 ${i < fyBreakdown.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""}`}
                     >
-                      <View className="flex-row items-center justify-between mb-1">
-                        <View className="flex-row items-center">
+                      {/* Row header */}
+                      <View className="flex-row items-center justify-between mb-1.5">
+                        <View className="flex-row items-center gap-x-2">
                           <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
                             {row.label}
                           </Text>
                           {row.isCurrent && (
-                            <View className="ml-2 px-1.5 py-0.5 rounded" style={{ backgroundColor: acAlpha(accent, 500, 0.1) }}>
+                            <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: acAlpha(accent, 500, 0.1) }}>
                               <Text className="text-[10px] font-semibold" style={{ color: accent[500] }}>NOW</Text>
+                            </View>
+                          )}
+                          {isOverachieved && (
+                            <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
+                              <Text className="text-[10px] font-semibold" style={{ color: StatusColors[colorScheme].success }}>Overachieved</Text>
+                            </View>
+                          )}
+                          {isFullyCovered && (
+                            <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
+                              <Text className="text-[10px] font-semibold" style={{ color: StatusColors[colorScheme].success }}>Covered</Text>
                             </View>
                           )}
                         </View>
                         <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                          {formatAmount(row.actual)} / {formatAmount(row.planned)}
+                          <Text className="font-medium text-text-primary dark:text-text-dark-primary">
+                            {formatAmount(row.actual)}
+                          </Text>
+                          {" / "}
+                          {isAdjusted || isFullyCovered ? (
+                            <Text style={{ color: accent[500] }}>
+                              {formatAmount(row.planned)}
+                            </Text>
+                          ) : formatAmount(row.originalPlanned)}
                         </Text>
                       </View>
+
+                      {/* Progress bar */}
                       <View className="h-2 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
                         <View
                           className="h-2 rounded-full"
                           style={{
                             width: `${pctFY * 100}%`,
-                            backgroundColor: row.isCurrent ? accent[500] : colors.textSecondary,
+                            backgroundColor: isOverachieved || isFullyCovered
+                              ? StatusColors[colorScheme].success
+                              : row.isCurrent
+                              ? accent[500]
+                              : colors.textSecondary,
                           }}
                         />
                       </View>
-                      <Text className="text-[10px] text-text-tertiary mt-0.5 text-right">
-                        {(pctFY * 100).toFixed(0)}%
-                      </Text>
+
+                      {/* Bar footer */}
+                      <View className="flex-row items-center justify-between mt-1">
+                        {isOverachieved ? (
+                          <Text className="text-[10px]" style={{ color: StatusColors[colorScheme].success }}>
+                            +{formatAmount(surplus)} ahead of original plan
+                          </Text>
+                        ) : isFullyCovered ? (
+                          <Text className="text-[10px]" style={{ color: StatusColors[colorScheme].success }}>
+                            Fully covered by surplus from earlier FYs
+                          </Text>
+                        ) : (
+                          <Text className="text-[10px] text-text-tertiary">
+                            {row.planned > row.actual ? `${formatAmount(row.planned - row.actual)} left` : ""}
+                          </Text>
+                        )}
+                        <Text className="text-[10px] text-text-tertiary">
+                          {(pctFY * 100).toFixed(0)}%
+                        </Text>
+                      </View>
+
+                      {/* Adjustment explanation for current/future FYs */}
+                      {isAdjusted && !isFullyCovered && (
+                        <View
+                          className="mt-2 px-3 py-2 flex-row items-start"
+                          style={{
+                            backgroundColor: acAlpha(accent, 500, 0.06),
+                            borderLeftWidth: 2,
+                            borderLeftColor: accent[500],
+                          }}
+                        >
+                          <Ionicons name="information-circle-outline" size={13} color={accent[500]} style={{ marginTop: 1, marginRight: 6 }} />
+                          <Text className="text-[11px] flex-1" style={{ color: accent[500], lineHeight: 16 }}>
+                            Target adjusted to {formatAmount(row.planned)} — originally {formatAmount(row.originalPlanned)}, reduced by the {formatAmount(row.surplusCarriedIn)} surplus saved ahead of plan in earlier FYs.
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   );
                 })}
+
+                {/* Footer rule */}
+                {fyBreakdown.some((r) => !r.isPast && r.surplusCarriedIn > 0) && (
+                  <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark flex-row items-start">
+                    <Ionicons name="lock-closed-outline" size={11} color={colors.textSecondary} style={{ marginTop: 2, marginRight: 5 }} />
+                    <Text className="text-[10px] text-text-tertiary flex-1" style={{ lineHeight: 15 }}>
+                      Past FY targets are fixed at the original plan. The current FY target reflects what's actually remaining.
+                    </Text>
+                  </View>
+                )}
               </Card>
             )}
 

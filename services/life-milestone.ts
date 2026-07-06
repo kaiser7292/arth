@@ -110,7 +110,12 @@ export function getPlannedMilestoneContributionForFY(
   financialYear: string,
 ): number {
   const totalMonths = getMilestoneTotalMonths(milestone);
-  const annualContribution = (milestone.target_amount / totalMonths) * 12;
+  // If the milestone fits within one FY, the full target is owed in that FY —
+  // annualising (target/months)*12 would double-count for sub-12-month goals.
+  const annualContribution =
+    totalMonths <= 12
+      ? milestone.target_amount
+      : (milestone.target_amount / totalMonths) * 12;
 
   if (!milestone.start_financial_year) {
     return Math.round(annualContribution * 100) / 100;

@@ -503,7 +503,7 @@ export default function YearlyPlanScreen() {
                 Expenses (Annualized)
               </Text>
               <Pressable
-                onPress={() => router.push("/(tabs)/budget")}
+                onPress={() => router.push("/settings/budget-config" as never)}
                 className="flex-row items-center"
               >
                 <Ionicons name="create-outline" size={14} color={colors.blue} />

@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   View,
   Text,
   FlatList,
   TextInput,
+  Pressable,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
@@ -22,6 +23,7 @@ import {
 import type { Category } from "@/services/category";
 import type { Budget } from "@/services/budget";
 import { formatAmount } from "@/utils/expense-validation";
+import { StatusColors } from "@/constants/theme";
 
 interface BudgetRow {
   category: Category;
@@ -31,11 +33,12 @@ interface BudgetRow {
 
 export default function BudgetConfigScreen() {
   const alert = useAlert();
-  const { colors } = useColorScheme();
+  const { colors, accent, colorScheme } = useColorScheme();
   const [month, setMonth] = useState(getCurrentMonth());
   const [rows, setRows] = useState<BudgetRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [hasNoBudget, setHasNoBudget] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -55,6 +58,7 @@ export default function BudgetConfigScreen() {
       });
       setRows(merged);
       setHasChanges(false);
+      setHasNoBudget(budgets.length === 0 || budgets.every((b) => b.amount === 0));
     } catch {
       // Database not ready
     }
@@ -103,14 +107,72 @@ export default function BudgetConfigScreen() {
     return `FY ${fyStartYear}-${String(fyStartYear + 1).slice(2)}`;
   }, [month]);
 
-  const monthLabel = (() => {
-    const [, m] = month.split("-").map(Number);
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    return `${months[m - 1]}`;
-  })();
+  const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const monthLabel = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    return `${MONTH_NAMES[m - 1]} ${y}`;
+  }, [month]);
+
+  const previousMonth = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, [month]);
+
+  const previousMonthLabel = useMemo(() => {
+    const [y, m] = previousMonth.split("-").map(Number);
+    return `${MONTH_NAMES[m - 1]} ${y}`;
+  }, [previousMonth]);
+
+  // Silently persist current edits (no alert). Used before switching months.
+  const saveSilent = useCallback(async (): Promise<void> => {
+    for (const row of rows) {
+      const amount = parseFloat(row.editAmount) || 0;
+      if (amount > 0 || row.budget) {
+        await upsertBudget({ user_id: DEFAULT_USER_ID, category_id: row.category.id, month, amount });
+      }
+    }
+  }, [rows, month]);
+
+  // Intercept period navigation — prompt to save if there are unsaved edits.
+  const handleMonthChange = useCallback((newMonth: string) => {
+    if (!hasChanges) { setMonth(newMonth); return; }
+    alert("Unsaved Changes", `Save changes for ${monthLabel} before switching?`, [
+      {
+        text: "Save & Switch",
+        onPress: async () => {
+          setSaving(true);
+          try { await saveSilent(); } catch (e) { logger.error("Save before switch failed:", e); } finally { setSaving(false); }
+          setMonth(newMonth);
+        },
+      },
+      { text: "Discard", style: "destructive" as const, onPress: () => setMonth(newMonth) },
+      { text: "Cancel", style: "cancel" as const },
+    ]);
+  }, [hasChanges, monthLabel, saveSilent, alert]);
+
+  // Copy budgets from the previous month into the current editing state.
+  const copyFromPreviousMonth = useCallback(async () => {
+    try {
+      const prevBudgets = await getBudgetsForMonth(DEFAULT_USER_ID, previousMonth);
+      if (prevBudgets.length === 0 || prevBudgets.every((b) => b.amount === 0)) {
+        alert("No Data", `No budget configured for ${previousMonthLabel} either.`);
+        return;
+      }
+      const prevMap = new Map(prevBudgets.map((b) => [b.category_id, b.amount]));
+      setRows((prev) =>
+        prev.map((r) => ({
+          ...r,
+          editAmount: String(prevMap.get(r.category.id) ?? 0),
+        })),
+      );
+      setHasChanges(true);
+      setHasNoBudget(false);
+    } catch (e) {
+      logger.error("Copy from previous month failed:", e);
+    }
+  }, [previousMonth, previousMonthLabel, alert]);
 
   // Save budgets to specified months
   const saveBudgetsToMonths = useCallback(
@@ -133,8 +195,10 @@ export default function BudgetConfigScreen() {
         await loadData();
         if (months.length === 1) {
           alert("Saved", `Budget updated for ${monthLabel}.`);
+          setHasNoBudget(false);
         } else {
           alert("Saved", `Budget applied to ${months.length} months.`);
+          setHasNoBudget(false);
         }
       } catch (e) {
         logger.error("Save budgets failed:", e);
@@ -215,7 +279,25 @@ export default function BudgetConfigScreen() {
   return (
     <ScreenContainer padTop={false} keyboardAware>
       {/* Month selector */}
-      <PeriodNavigator mode="month" value={month} onChange={setMonth} />
+      <PeriodNavigator mode="month" value={month} onChange={handleMonthChange} />
+
+      {/* No-budget banner — offer to copy from previous month */}
+      {hasNoBudget && (
+        <View
+          className="mx-4 mt-2 mb-1 px-3 py-2.5 rounded-lg flex-row items-center"
+          style={{ backgroundColor: StatusColors[colorScheme].warningBg }}
+        >
+          <Ionicons name="information-circle-outline" size={16} color={StatusColors[colorScheme].warning} />
+          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1 ml-2">
+            No budget set for {monthLabel}.
+          </Text>
+          <Pressable onPress={copyFromPreviousMonth} className="ml-2">
+            <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
+              Copy from {previousMonthLabel}
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Total */}
       <View className="px-4 py-3 bg-surface-light-alt dark:bg-surface-dark-alt">
