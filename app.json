@@ -48,6 +48,7 @@
       "expo-router",
       "./plugins/withDisableBackup",
       "./plugins/withNotificationListener",
+      "./plugins/withArmOnly",
       [
         "expo-splash-screen",
         {
