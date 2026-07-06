@@ -70,6 +70,7 @@ export default function EditSmsTemplateScreen() {
           senderMatchMode: t.sender_match_mode ?? "code",
           useManualRegex: isManualRegex,
           manualRegex: manualRegexValue,
+          defaultPaymentModeId: t.default_payment_mode_id ?? null,
         });
         router.replace("/settings/sms-templates/tag" as never);
       } catch (e) {

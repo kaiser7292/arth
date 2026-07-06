@@ -50,6 +50,8 @@ export interface UserSmsTemplate {
   /** v15.11.0 */
   sender_match_mode: SenderMatchMode | null;
   sender_pattern: string | null;
+  /** migration 055 */
+  default_payment_mode_id: string | null;
 }
 
 export interface CreateUserTemplateInput {
@@ -68,6 +70,8 @@ export interface CreateUserTemplateInput {
   senderMatchMode: SenderMatchMode;
   /** v15.13.0 — optional pre-compiled regex to override auto-generated one. */
   patternRegex?: string;
+  /** migration 055 — payment mode ID to apply when SMS parse doesn't detect one. */
+  defaultPaymentModeId?: string | null;
 }
 
 export interface UpdateUserTemplateInput {
@@ -81,6 +85,8 @@ export interface UpdateUserTemplateInput {
   senderMatchMode?: SenderMatchMode;
   /** v15.13.0 — optional pre-compiled regex to override auto-generated one. */
   patternRegex?: string;
+  /** migration 055 — payment mode ID to apply when SMS parse doesn't detect one. */
+  defaultPaymentModeId?: string | null;
 }
 
 export class UserTemplateCompileError extends Error {
@@ -100,7 +106,7 @@ export async function listUserTemplates(): Promise<UserSmsTemplate[]> {
   return db.getAllAsync<UserSmsTemplate>(
     `SELECT id, user_id, bank_name, template_id, pattern_regex, tx_type,
             priority, source, sample_sms, created_from_sms_id, source_version,
-            sender_match_mode, sender_pattern, deleted_at
+            sender_match_mode, sender_pattern, deleted_at, default_payment_mode_id
      FROM sms_template_patterns
      WHERE source = 'user' AND deleted_at IS NULL
      ORDER BY bank_name ASC, priority ASC;`,
@@ -112,7 +118,7 @@ export async function getDeletedUserTemplates(): Promise<UserSmsTemplate[]> {
   return db.getAllAsync<UserSmsTemplate>(
     `SELECT id, user_id, bank_name, template_id, pattern_regex, tx_type,
             priority, source, sample_sms, created_from_sms_id, source_version,
-            sender_match_mode, sender_pattern, deleted_at
+            sender_match_mode, sender_pattern, deleted_at, default_payment_mode_id
      FROM sms_template_patterns
      WHERE source = 'user' AND user_id = ? AND deleted_at IS NOT NULL
      ORDER BY deleted_at DESC;`,
@@ -125,7 +131,7 @@ export async function getUserTemplate(id: string): Promise<UserSmsTemplate | nul
   const row = await db.getFirstAsync<UserSmsTemplate>(
     `SELECT id, user_id, bank_name, template_id, pattern_regex, tx_type,
             priority, source, sample_sms, created_from_sms_id, source_version,
-            sender_match_mode, sender_pattern, deleted_at
+            sender_match_mode, sender_pattern, deleted_at, default_payment_mode_id
      FROM sms_template_patterns
      WHERE id = ? AND source = 'user' AND deleted_at IS NULL;`,
     id,
@@ -175,8 +181,8 @@ export async function createUserTemplate(
     `INSERT INTO sms_template_patterns
        (id, bank_name, template_id, pattern_regex, tx_type, priority,
         source_version, source, user_id, sample_sms, created_from_sms_id,
-        sender_match_mode, sender_pattern)
-     VALUES (?, ?, ?, ?, ?, ?, 'user-authored', 'user', ?, ?, ?, ?, ?);`,
+        sender_match_mode, sender_pattern, default_payment_mode_id)
+     VALUES (?, ?, ?, ?, ?, ?, 'user-authored', 'user', ?, ?, ?, ?, ?, ?);`,
     id,
     input.bankName.trim(),
     label,
@@ -188,6 +194,7 @@ export async function createUserTemplate(
     input.createdFromSmsId ?? null,
     input.senderMatchMode,
     input.senderPattern.trim().toUpperCase(),
+    input.defaultPaymentModeId ?? null,
   );
 
   // v15.7.0: when the template was spawned from an Unrecognised SMS row,
@@ -291,7 +298,8 @@ export async function updateUserTemplate(
          priority = ?,
          sample_sms = ?,
          sender_match_mode = ?,
-         sender_pattern = ?
+         sender_pattern = ?,
+         default_payment_mode_id = ?
      WHERE id = ? AND source = 'user';`,
     (input.bankName ?? existing.bank_name).trim(),
     label,
@@ -301,6 +309,9 @@ export async function updateUserTemplate(
     sampleSms,
     input.senderMatchMode ?? existing.sender_match_mode,
     (input.senderPattern ?? existing.sender_pattern ?? "").trim().toUpperCase() || null,
+    "defaultPaymentModeId" in input
+      ? (input.defaultPaymentModeId ?? null)
+      : existing.default_payment_mode_id,
     id,
   );
   await bumpDataVersion();
@@ -367,7 +378,7 @@ export async function findDuplicateUserTemplate(
   const rows = await db.getAllAsync<UserSmsTemplate>(
     `SELECT id, user_id, bank_name, template_id, pattern_regex, tx_type,
             priority, source, sample_sms, created_from_sms_id, source_version,
-            sender_match_mode, sender_pattern
+            sender_match_mode, sender_pattern, default_payment_mode_id
      FROM sms_template_patterns
      WHERE source = 'user' AND deleted_at IS NULL
        AND bank_name = ? COLLATE NOCASE

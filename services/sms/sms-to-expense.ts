@@ -295,6 +295,24 @@ export async function createExpenseFromSms(
         }
       }
     }
+    // Fall back to the template's default payment mode when the parsed
+    // SMS carried no payment mode info (e.g. wallet SMSes don't say "UPI").
+    if (!paymentModeId && parsed._matchedTemplateId) {
+      try {
+        const row = await db.getFirstAsync<{ default_payment_mode_id: string | null }>(
+          `SELECT default_payment_mode_id FROM sms_template_patterns WHERE id = ?;`,
+          parsed._matchedTemplateId,
+        );
+        if (row?.default_payment_mode_id) {
+          paymentModeId = row.default_payment_mode_id;
+          if (accountId) {
+            await autoPopulateAccountMode(accountId, paymentModeId);
+          }
+        }
+      } catch {
+        // Non-fatal — payment mode is optional
+      }
+    }
 
     // V4: Transaction time from SMS (defaults to 00:00:00 for formats without time)
     const transactionTime = parsed.transactionTime ?? "00:00:00";

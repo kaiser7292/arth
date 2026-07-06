@@ -36,6 +36,8 @@ export interface TemplateDraft {
   /** v15.13.0 — manual regex preserved across edit sessions */
   manualRegex?: string | null;
   useManualRegex?: boolean;
+  /** migration 055 — default payment mode ID for expenses from this template */
+  defaultPaymentModeId?: string | null;
 }
 
 let current: TemplateDraft | null = null;
@@ -55,6 +57,7 @@ export function startDraft(init: Partial<TemplateDraft> = {}): TemplateDraft {
     createdFromSmsId: init.createdFromSmsId ?? null,
     senderPattern: init.senderPattern ?? "",
     senderMatchMode: init.senderMatchMode ?? "code",
+    defaultPaymentModeId: init.defaultPaymentModeId ?? null,
   };
   return current;
 }

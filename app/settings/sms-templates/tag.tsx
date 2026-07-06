@@ -44,6 +44,8 @@ import {
   type UserTxType,
   type SenderMatchMode,
 } from "@/services/sms/user-sms-templates";
+import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
+import { DEFAULT_USER_ID } from "@/constants/app";
 
 /**
  * v15.6.0 — SMS template tagger screen.
@@ -149,6 +151,9 @@ export default function TagSmsTemplateScreen() {
   // v15.11.0: sender-based routing state.
   const [senderPattern, setSenderPattern] = useState<string>(draft?.senderPattern ?? "");
   const [senderMatchMode, setSenderMatchMode] = useState<SenderMatchMode>(draft?.senderMatchMode ?? "code");
+  const [defaultPaymentModeId, setDefaultPaymentModeId] = useState<string | null>(draft?.defaultPaymentModeId ?? null);
+  const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
+  const [showPaymentModePicker, setShowPaymentModePicker] = useState(false);
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [testSample, setTestSample] = useState("");
   const [testResult, setTestResult] = useState<
@@ -184,8 +189,8 @@ export default function TagSmsTemplateScreen() {
 
   // Persist changes to draft store so Back re-entry doesn't lose them.
   useEffect(() => {
-    updateDraft({ spans, bankName, txType, label, senderPattern, senderMatchMode, useManualRegex, manualRegex });
-  }, [spans, bankName, txType, label, senderPattern, senderMatchMode, useManualRegex, manualRegex]);
+    updateDraft({ spans, bankName, txType, label, senderPattern, senderMatchMode, useManualRegex, manualRegex, defaultPaymentModeId });
+  }, [spans, bankName, txType, label, senderPattern, senderMatchMode, useManualRegex, manualRegex, defaultPaymentModeId]);
 
   // v15.11.0: the "effective" sender string we'll actually save, after
   // auto-extraction when mode = code. Displayed below the input so the user
@@ -259,6 +264,11 @@ export default function TagSmsTemplateScreen() {
       cancelled = true;
     };
   }, [bankName, txType, draft?.editingId]);
+
+  // Load all active payment modes once on mount.
+  useEffect(() => {
+    getPaymentModes(DEFAULT_USER_ID).then(setPaymentModes).catch(() => {});
+  }, []);
 
   // Field row with per-field Clear button + per-field format helper.
   const renderFieldRow = (field: TaggedField) => {
@@ -500,6 +510,7 @@ export default function TagSmsTemplateScreen() {
             senderPattern: effectiveSenderPattern,
             senderMatchMode,
             patternRegex: regexToSave,
+            defaultPaymentModeId,
           });
         } else {
           await createUserTemplate({
@@ -512,6 +523,7 @@ export default function TagSmsTemplateScreen() {
             senderPattern: effectiveSenderPattern,
             senderMatchMode,
             patternRegex: regexToSave,
+            defaultPaymentModeId,
           });
         }
         // v15.11.2: navigate FIRST, clear draft SECOND.
@@ -538,7 +550,7 @@ export default function TagSmsTemplateScreen() {
         setSaving(false);
       }
     }
-  }, [saving, bankName, spans, compiled, smsBody, txType, label, draft, router, alert, duplicateFound, effectiveSenderPattern, senderMatchMode, useManualRegex, manualRegex]);
+  }, [saving, bankName, spans, compiled, smsBody, txType, label, draft, router, alert, duplicateFound, effectiveSenderPattern, senderMatchMode, useManualRegex, manualRegex, defaultPaymentModeId]);
 
   if (!smsBody) {
     return (
@@ -842,6 +854,62 @@ export default function TagSmsTemplateScreen() {
             onChangeText={setLabel}
             placeholder="e.g. Kotak UPI Debit"
           />
+
+          <Text className="text-xs text-text-tertiary mt-3 mb-1.5">Default payment mode (optional)</Text>
+          <Text className="text-[11px] text-text-tertiary mb-2">
+            Applied when the SMS doesn't carry payment mode info. Smart Rules override this.
+          </Text>
+          {/* Payment mode dropdown */}
+          <Pressable
+            onPress={() => setShowPaymentModePicker(!showPaymentModePicker)}
+            className="flex-row items-center justify-between py-2.5 px-3 rounded-lg"
+            style={{ borderWidth: 1, borderColor: showPaymentModePicker ? accentColor : colors.border }}
+          >
+            <Text
+              className="text-sm"
+              style={{ color: defaultPaymentModeId ? colors.text : colors.textSecondary }}
+            >
+              {defaultPaymentModeId
+                ? (paymentModes.find((m) => m.id === defaultPaymentModeId)?.name ?? "Unknown")
+                : "None"}
+            </Text>
+            <Ionicons
+              name={showPaymentModePicker ? "chevron-up" : "chevron-down"}
+              size={16}
+              color={colors.textSecondary}
+            />
+          </Pressable>
+          {showPaymentModePicker && (
+            <View
+              className="mt-1 rounded-lg"
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+            >
+              {/* None option */}
+              <Pressable
+                onPress={() => { setDefaultPaymentModeId(null); setShowPaymentModePicker(false); }}
+                className="flex-row items-center justify-between py-2.5 px-3"
+                style={{ borderBottomWidth: paymentModes.length > 0 ? 1 : 0, borderColor: colors.border }}
+              >
+                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">None</Text>
+                {defaultPaymentModeId === null && (
+                  <Ionicons name="checkmark" size={16} color={accentColor} />
+                )}
+              </Pressable>
+              {paymentModes.map((mode, i) => (
+                <Pressable
+                  key={mode.id}
+                  onPress={() => { setDefaultPaymentModeId(mode.id); setShowPaymentModePicker(false); }}
+                  className="flex-row items-center justify-between py-2.5 px-3"
+                  style={{ borderTopWidth: i === 0 ? 0 : 1, borderColor: colors.border }}
+                >
+                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">{mode.name}</Text>
+                  {defaultPaymentModeId === mode.id && (
+                    <Ionicons name="checkmark" size={16} color={accentColor} />
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
         </Card>
 
         {/* Card 4: Regex preview (collapsible) */}

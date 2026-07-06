@@ -591,6 +591,8 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "sender_pattern",
     // migration 052
     "deleted_at",
+    // migration 055
+    "default_payment_mode_id",
   ] as const,
 
   // v16.0.0 — cash-flow simulator (migration 025)
