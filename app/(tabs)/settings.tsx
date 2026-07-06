@@ -410,6 +410,7 @@ export default function SettingsScreen() {
             <SettingsRow icon="pricetags-outline" label="Tags" subtitle="Label and organize expenses" onPress={() => router.push("/settings/tags")} />
             <SettingsRow icon="calculator-outline" label="Budget Configuration" subtitle="Set monthly budgets per category" onPress={() => router.push("/settings/budget-config")} />
             <SettingsRow icon="download-outline" label="Import from Excel" subtitle="Import transactions or hisaab entries from an .xlsx file" onPress={() => router.push("/settings/import-excel")} />
+            <SettingsRow icon="checkmark-done-outline" label="Reconcile Accounts" subtitle="Match bank statements against your Arth ledger" onPress={() => router.push("/settings/reconciliation")} />
           </Card>
 
           <Card title="Automation" className="mb-4">

@@ -139,6 +139,9 @@ export const BACKUP_TABLES = [
   "sms_scan_details",
   // v18.x — password vault. Independent table, no FK dependencies.
   "vault_entries",
+  // v18.x — reconciliation. Sessions before items (FK: items.session_id → sessions.id).
+  "reconciliation_sessions",
+  "reconciliation_items",
 ];
 
 // ---------------------------------------------------------------------------

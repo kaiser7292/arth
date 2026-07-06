@@ -789,6 +789,20 @@ const loadData = useCallback(async () => {
                 {formatAmount(closing)}
               </Text>
             </View>
+
+            {/* Reconcile shortcut */}
+            <Pressable
+              onPress={() => router.push({
+                pathname: "/settings/reconciliation/new",
+                params: { prefill_account_id: accountId },
+              })}
+              className="flex-row items-center justify-center mt-3 pt-3 border-t border-border-light dark:border-border-dark"
+            >
+              <Ionicons name="checkmark-done-outline" size={14} color={colors.textSecondary} />
+              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary ml-1.5">
+                Reconcile
+              </Text>
+            </Pressable>
           </Card>
 
           {/* Inline forms render above the transactions list so edit/add

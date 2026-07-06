@@ -831,6 +831,41 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "updated_at",
     "deleted_at",
   ] as const,
+
+  // v18.x — bank statement reconciliation (migrations 058, 059)
+  reconciliation_sessions: [
+    "id",
+    "account_id",
+    "stmt_start_date",
+    "stmt_end_date",
+    "stmt_closing_bal",
+    "arth_closing_bal",
+    "total_stmt_count",
+    "matched_count",
+    "status",
+    "import_format",
+    "import_filename",
+    "created_at",
+    "completed_at",
+    "deleted_at",
+  ] as const,
+
+  reconciliation_items: [
+    "id",
+    "session_id",
+    "stmt_date",
+    "stmt_amount",
+    "stmt_direction",
+    "stmt_narration",
+    "matched_expense_id",
+    "matched_transfer_id",
+    "match_confidence",
+    "status",
+    "exclude_reason",
+    "sort_order",
+    "created_at",
+    "deleted_at",
+  ] as const,
 } as const;
 
 // Type helper to get column names for a specific table
