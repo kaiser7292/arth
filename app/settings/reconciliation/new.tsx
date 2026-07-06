@@ -2,8 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { Card, ScreenContainer } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -16,6 +16,7 @@ import {
   updateSession,
 } from "@/services/reconciliation/reconciliation-crud";
 import { parseXlsFile, type ParsedStatement, ParseError } from "@/services/reconciliation/xls-parser";
+import { parsePdfStatement, PdfPasswordError } from "@/services/reconciliation/pdf-parser";
 import { buildArthPool, matchStatementRows } from "@/services/reconciliation/statement-matcher";
 import { settingsStorage } from "@/services/storage";
 
@@ -57,9 +58,38 @@ export default function NewReconciliationScreen() {
   const [progress, setProgress] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
 
+  // PDF password prompt state
+  const [pdfPasswordVisible, setPdfPasswordVisible] = useState(false);
+  const [pdfPassword, setPdfPassword] = useState("");
+  const [pdfPasswordError, setPdfPasswordError] = useState("");
+  const pendingPdfRef = useRef<{ bytes: Uint8Array; name: string } | null>(null);
+
   useEffect(() => {
     getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch(() => {});
   }, []);
+
+  const applyParsed = useCallback((p: ParsedStatement, name: string) => {
+    setParsed(p);
+    setFilename(name);
+
+    if (p.detectedAccountSuffix && selectedAccountId) {
+      const account = accounts.find((a) => a.id === selectedAccountId);
+      const ident = account?.account_identifier ?? "";
+      if (!ident.includes(p.detectedAccountSuffix) && !p.detectedAccountSuffix.includes(ident)) {
+        setMismatchWarning(
+          `This statement appears to be for account ****${p.detectedAccountSuffix}` +
+          (account
+            ? `, but you selected "${account.account_label || account.bank_name}" (identifier: ${ident || "not set"}).`
+            : ".") +
+          " Please confirm this is the right account.",
+        );
+      } else {
+        setMismatchWarning(null);
+      }
+    }
+
+    setStep("file");
+  }, [selectedAccountId, accounts]);
 
   const handlePickFile = useCallback(async () => {
     try {
@@ -67,6 +97,7 @@ export default function NewReconciliationScreen() {
         type: [
           "application/vnd.ms-excel",
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "application/pdf",
           "application/octet-stream",
           "*/*",
         ],
@@ -76,58 +107,78 @@ export default function NewReconciliationScreen() {
       if (result.canceled || !result.assets?.length) return;
       const asset = result.assets[0];
       const name = asset.name ?? "statement";
+      const nameLower = name.toLowerCase();
 
-      if (
-        !name.toLowerCase().endsWith(".xls") &&
-        !name.toLowerCase().endsWith(".xlsx")
-      ) {
-        alert(
-          "Unsupported format",
-          "Please upload an XLS or XLSX file. PDF import is coming soon.",
-        );
-        return;
-      }
-
-      setFilename(name);
-
-      // Read file bytes via the new expo-file-system File API
       const fileObj = new File(asset.uri);
       const bytes = await fileObj.bytes();
-      const buffer = bytes.buffer as ArrayBuffer;
 
-      let p: ParsedStatement;
-      try {
-        p = parseXlsFile(buffer, name);
-      } catch (e) {
-        alert(
-          "Couldn't read file",
-          e instanceof ParseError ? e.message : "An unexpected error occurred while reading the file.",
-        );
+      if (nameLower.endsWith(".xls") || nameLower.endsWith(".xlsx")) {
+        const buffer = bytes.buffer as ArrayBuffer;
+        try {
+          const p = parseXlsFile(buffer, name);
+          applyParsed(p, name);
+        } catch (e) {
+          alert(
+            "Couldn't read file",
+            e instanceof ParseError ? e.message : "An unexpected error occurred while reading the file.",
+          );
+        }
         return;
       }
 
-      setParsed(p);
-
-      // Account mismatch check
-      if (p.detectedAccountSuffix && selectedAccountId) {
-        const account = accounts.find((a) => a.id === selectedAccountId);
-        const ident = account?.account_identifier ?? "";
-        if (!ident.includes(p.detectedAccountSuffix) && !p.detectedAccountSuffix.includes(ident)) {
-          setMismatchWarning(
-            `This statement appears to be for account ****${p.detectedAccountSuffix}` +
-            (account ? `, but you selected "${account.account_label || account.bank_name}" (identifier: ${ident || "not set"}).` : ".") +
-            " Please confirm this is the right account.",
-          );
-        } else {
-          setMismatchWarning(null);
+      if (nameLower.endsWith(".pdf")) {
+        try {
+          const p = await parsePdfStatement(bytes, name);
+          applyParsed(p, name);
+        } catch (e) {
+          if (e instanceof PdfPasswordError) {
+            // Store bytes and prompt for password
+            pendingPdfRef.current = { bytes, name };
+            setPdfPassword("");
+            setPdfPasswordError("");
+            setPdfPasswordVisible(true);
+          } else if (e instanceof ParseError) {
+            alert("Couldn't read PDF", e.message);
+          } else {
+            alert("Couldn't read PDF", "An unexpected error occurred. Please try exporting the statement again.");
+          }
         }
+        return;
       }
 
-      setStep("file");
+      alert(
+        "Unsupported format",
+        "Please upload an XLS, XLSX, or PDF bank statement.",
+      );
     } catch (e) {
       alert("Error", "Could not open the file picker.");
     }
-  }, [selectedAccountId, accounts, alert]);
+  }, [selectedAccountId, accounts, alert, applyParsed]);
+
+  const handlePdfPasswordSubmit = useCallback(async () => {
+    const pending = pendingPdfRef.current;
+    if (!pending) return;
+    setPdfPasswordError("");
+
+    try {
+      const p = await parsePdfStatement(pending.bytes, pending.name, pdfPassword);
+      setPdfPasswordVisible(false);
+      pendingPdfRef.current = null;
+      applyParsed(p, pending.name);
+    } catch (e) {
+      if (e instanceof PdfPasswordError) {
+        setPdfPasswordError(e.message);
+      } else if (e instanceof ParseError) {
+        setPdfPasswordVisible(false);
+        pendingPdfRef.current = null;
+        alert("Couldn't read PDF", e.message);
+      } else {
+        setPdfPasswordVisible(false);
+        pendingPdfRef.current = null;
+        alert("Error", "An unexpected error occurred.");
+      }
+    }
+  }, [pdfPassword, applyParsed, alert]);
 
   const handleStartMatching = useCallback(async () => {
     if (!selectedAccountId || !parsed) return;
@@ -246,6 +297,56 @@ export default function NewReconciliationScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {/* PDF Password Modal */}
+      <Modal
+        visible={pdfPasswordVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { setPdfPasswordVisible(false); pendingPdfRef.current = null; }}
+      >
+        <View className="flex-1 justify-center items-center px-8" style={{ backgroundColor: "#00000066" }}>
+          <View className="w-full rounded-2xl p-6" style={{ backgroundColor: colors.surface }}>
+            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mb-1">
+              Password-protected PDF
+            </Text>
+            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-4">
+              Enter the password to unlock this statement.
+            </Text>
+            <TextInput
+              value={pdfPassword}
+              onChangeText={setPdfPassword}
+              secureTextEntry
+              placeholder="Statement password"
+              placeholderTextColor={colors.textSecondary}
+              returnKeyType="done"
+              onSubmitEditing={handlePdfPasswordSubmit}
+              className="border rounded-xl px-4 py-3 text-base text-text-primary dark:text-text-dark-primary mb-2"
+              style={{ borderColor: pdfPasswordError ? "#EF4444" : colors.border }}
+              autoFocus
+            />
+            {pdfPasswordError ? (
+              <Text className="text-xs text-red-500 mb-2">{pdfPasswordError}</Text>
+            ) : null}
+            <View className="flex-row gap-3 mt-2">
+              <Pressable
+                onPress={() => { setPdfPasswordVisible(false); pendingPdfRef.current = null; }}
+                className="flex-1 py-3 rounded-xl items-center"
+                style={{ backgroundColor: colors.border + "55" }}
+              >
+                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handlePdfPasswordSubmit}
+                className="flex-1 py-3 rounded-xl items-center"
+                style={{ backgroundColor: accent[500] }}
+              >
+                <Text className="text-sm font-semibold text-white">Unlock</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
 
         {/* Step 1 — Account */}
@@ -300,10 +401,10 @@ export default function NewReconciliationScreen() {
         >
           <Ionicons name="cloud-upload-outline" size={32} color={selectedAccountId ? accent[500] : colors.textSecondary} />
           <Text className="text-sm font-semibold mt-2" style={{ color: selectedAccountId ? accent[500] : colors.textSecondary }}>
-            {filename ?? "Upload XLS or XLSX"}
+            {filename ?? "Upload XLS, XLSX, or PDF"}
           </Text>
           <Text className="text-xs text-text-tertiary mt-1">
-            PDF support coming soon
+            Digital statements only — scanned images not supported
           </Text>
         </Pressable>
 
