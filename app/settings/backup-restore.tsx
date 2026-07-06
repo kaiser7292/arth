@@ -7,7 +7,7 @@ import {
   Switch,
   TextInput,
   Platform,
-  Modal,
+
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "expo-router";
@@ -33,10 +33,11 @@ import {
   listScheduledBackups,
   restoreScheduledBackup,
   deleteScheduledBackup,
+  shareScheduledBackup,
   syncScheduledBackupNotification,
   syncBackupBackgroundTask,
-  formatScheduleTime,
   formatLastBackupTime,
+  formatNextBackup,
   formatFileSize,
 } from "@/services/backup-schedule";
 import type { BackupScheduleSettings, ScheduledBackupInfo } from "@/services/backup-schedule";
@@ -44,10 +45,12 @@ import type { BackupScheduleSettings, ScheduledBackupInfo } from "@/services/bac
 type Mode = "menu" | "backup" | "restore";
 
 const FREQ_OPTIONS = [
-  { label: "Daily", days: 1 },
-  { label: "Every 2 days", days: 2 },
-  { label: "Every 3 days", days: 3 },
-  { label: "Weekly", days: 7 },
+  { label: "4h", hours: 4 },
+  { label: "6h", hours: 6 },
+  { label: "8h", hours: 8 },
+  { label: "12h", hours: 12 },
+  { label: "24h", hours: 24 },
+  { label: "48h", hours: 48 },
 ] as const;
 
 export default function BackupRestoreScreen() {
@@ -69,9 +72,6 @@ export default function BackupRestoreScreen() {
   const [schedSettings, setSchedSettings] = useState<BackupScheduleSettings>(() => getBackupScheduleSettings());
   const [schedBackups, setSchedBackups] = useState<ScheduledBackupInfo[]>([]);
   const [restoringScheduled, setRestoringScheduled] = useState<string | null>(null);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [pickerHour, setPickerHour] = useState(schedSettings.hour);
-  const [pickerMinute, setPickerMinute] = useState(schedSettings.minute);
 
   const reloadSchedBackups = useCallback(() => {
     setSchedBackups(listScheduledBackups());
@@ -174,24 +174,12 @@ export default function BackupRestoreScreen() {
     void syncBackupBackgroundTask();
   }, [schedSettings]);
 
-  const handlePickTime = useCallback(() => {
-    setPickerHour(schedSettings.hour);
-    setPickerMinute(schedSettings.minute);
-    setShowTimePicker(true);
-  }, [schedSettings]);
-
-  const handleConfirmTime = useCallback((h: number, m: number) => {
-    setShowTimePicker(false);
-    const updated = { ...schedSettings, hour: h, minute: m };
+  const handlePickFrequency = useCallback((hours: number) => {
+    const updated = { ...schedSettings, frequencyHours: hours };
     setSchedSettings(updated);
     setBackupScheduleSettings(updated);
     void syncScheduledBackupNotification(updated);
-  }, [schedSettings]);
-
-  const handlePickFrequency = useCallback((days: number) => {
-    const updated = { ...schedSettings, frequencyDays: days };
-    setSchedSettings(updated);
-    setBackupScheduleSettings(updated);
+    void syncBackupBackgroundTask();
   }, [schedSettings]);
 
   const handleRestoreScheduled = useCallback((info: ScheduledBackupInfo) => {
@@ -237,6 +225,10 @@ export default function BackupRestoreScreen() {
     );
   }, [alert]);
 
+  const handleShareScheduled = useCallback(async (info: ScheduledBackupInfo) => {
+    await shareScheduledBackup(info.filePath);
+  }, []);
+
   const resetState = useCallback(() => {
     setMode("menu");
     setPassword("");
@@ -249,85 +241,8 @@ export default function BackupRestoreScreen() {
     setFileError(null);
   }, []);
 
-  const displayPickerHour = pickerHour % 12 === 0 ? 12 : pickerHour % 12;
-  const pickerIsAm = pickerHour < 12;
-
   return (
     <>
-    {/* Custom time picker modal */}
-    <Modal visible={showTimePicker} transparent animationType="slide" onRequestClose={() => setShowTimePicker(false)}>
-      <Pressable
-        style={{ flex: 1, backgroundColor: "#00000066" }}
-        onPress={() => setShowTimePicker(false)}
-      >
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
-          className="absolute bottom-0 left-0 right-0 rounded-t-2xl px-6 pt-6 pb-10"
-          style={{ backgroundColor: colors.background }}
-        >
-          <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary text-center mb-6">
-            Backup Time
-          </Text>
-
-          <View className="flex-row items-center justify-center" style={{ gap: 12 }}>
-            {/* Hour column */}
-            <View className="items-center">
-              <Pressable onPress={() => setPickerHour((h) => (h + 1) % 24)} hitSlop={16} className="py-2">
-                <Ionicons name="chevron-up" size={22} color={ac(accent, colorScheme, 500, 300)} />
-              </Pressable>
-              <View className="w-16 h-14 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: accent[500] + "18" }}>
-                <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
-                  {String(displayPickerHour).padStart(2, "0")}
-                </Text>
-              </View>
-              <Pressable onPress={() => setPickerHour((h) => (h - 1 + 24) % 24)} hitSlop={16} className="py-2">
-                <Ionicons name="chevron-down" size={22} color={ac(accent, colorScheme, 500, 300)} />
-              </Pressable>
-            </View>
-
-            <Text className="text-3xl font-bold text-text-primary dark:text-text-dark-primary mb-1">:</Text>
-
-            {/* Minute column (5-min steps) */}
-            <View className="items-center">
-              <Pressable onPress={() => setPickerMinute((m) => (m + 5) % 60)} hitSlop={16} className="py-2">
-                <Ionicons name="chevron-up" size={22} color={ac(accent, colorScheme, 500, 300)} />
-              </Pressable>
-              <View className="w-16 h-14 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: accent[500] + "18" }}>
-                <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
-                  {String(pickerMinute).padStart(2, "0")}
-                </Text>
-              </View>
-              <Pressable onPress={() => setPickerMinute((m) => (m - 5 + 60) % 60)} hitSlop={16} className="py-2">
-                <Ionicons name="chevron-down" size={22} color={ac(accent, colorScheme, 500, 300)} />
-              </Pressable>
-            </View>
-
-            {/* AM/PM toggle */}
-            <Pressable
-              onPress={() => setPickerHour((h) => (h + 12) % 24)}
-              className="w-16 h-14 items-center justify-center rounded-xl"
-              style={{ backgroundColor: accent[500] + "18" }}
-            >
-              <Text className="text-base font-bold" style={{ color: ac(accent, colorScheme, 500, 300) }}>
-                {pickerIsAm ? "AM" : "PM"}
-              </Text>
-            </Pressable>
-          </View>
-
-          <View className="flex-row mt-6" style={{ gap: 12 }}>
-            <View className="flex-1">
-              <Button title="Cancel" onPress={() => setShowTimePicker(false)} variant="ghost" />
-            </View>
-            <View className="flex-1">
-              <Button title="Done" onPress={() => handleConfirmTime(pickerHour, pickerMinute)} />
-            </View>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
-
     <ScreenContainer padTop={false} keyboardAware>
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Menu */}
@@ -396,7 +311,7 @@ export default function BackupRestoreScreen() {
                     Auto backup
                   </Text>
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                    Saves a local backup when you open the app at or after the scheduled time
+                    Saves a backup automatically at the chosen interval, even when the app is closed
                   </Text>
                 </View>
                 <Switch
@@ -409,34 +324,18 @@ export default function BackupRestoreScreen() {
 
               {schedSettings.enabled && (
                 <>
-                  {/* Time picker row */}
-                  <Pressable
-                    onPress={handlePickTime}
-                    className="flex-row items-center justify-between p-4 mb-3 rounded-lg border border-border-light dark:border-border-dark"
-                  >
-                    <View className="flex-row items-center">
-                      <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
-                      <Text className="ml-3 text-base text-text-primary dark:text-text-dark-primary">
-                        Backup time
-                      </Text>
-                    </View>
-                    <Text className="text-base font-semibold" style={{ color: ac(accent, colorScheme, 500, 300) }}>
-                      {formatScheduleTime(schedSettings.hour, schedSettings.minute)}
-                    </Text>
-                  </Pressable>
-
                   {/* Frequency chips */}
                   <View className="p-4 mb-3 rounded-lg border border-border-light dark:border-border-dark">
                     <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-3">
-                      Frequency
+                      Back up every
                     </Text>
                     <View className="flex-row flex-wrap gap-2">
                       {FREQ_OPTIONS.map((o) => {
-                        const active = schedSettings.frequencyDays === o.days;
+                        const active = schedSettings.frequencyHours === o.hours;
                         return (
                           <Pressable
-                            key={o.days}
-                            onPress={() => handlePickFrequency(o.days)}
+                            key={o.hours}
+                            onPress={() => handlePickFrequency(o.hours)}
                             className="py-1.5 px-3 rounded-full border"
                             style={{
                               backgroundColor: active ? ac(accent, colorScheme, 500, 400) + "22" : "transparent",
@@ -455,11 +354,16 @@ export default function BackupRestoreScreen() {
                     </View>
                   </View>
 
-                  {/* Last backup status */}
-                  <View className="flex-row items-center px-1 mb-3">
-                    <Ionicons name="checkmark-circle-outline" size={15} color={colors.textSecondary} />
-                    <Text className="ml-1.5 text-xs text-text-secondary dark:text-text-dark-secondary">
-                      Last backup: {formatLastBackupTime(getLastScheduledBackupAt())}
+                  {/* Last / next backup status */}
+                  <View className="flex-row items-center justify-between px-1 mb-3">
+                    <View className="flex-row items-center">
+                      <Ionicons name="checkmark-circle-outline" size={15} color={colors.textSecondary} />
+                      <Text className="ml-1.5 text-xs text-text-secondary dark:text-text-dark-secondary">
+                        Last: {formatLastBackupTime(getLastScheduledBackupAt())}
+                      </Text>
+                    </View>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      Next: {formatNextBackup(schedSettings.frequencyHours)}
                     </Text>
                   </View>
                 </>
@@ -497,6 +401,9 @@ export default function BackupRestoreScreen() {
                         <Text className="text-xs font-semibold" style={{ color: ac(accent, colorScheme, 600, 300) }}>
                           {restoringScheduled === b.filePath ? "…" : "Restore"}
                         </Text>
+                      </Pressable>
+                      <Pressable onPress={() => handleShareScheduled(b)} hitSlop={8} className="mr-2">
+                        <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
                       </Pressable>
                       <Pressable onPress={() => handleDeleteScheduled(b)} hitSlop={8}>
                         <Ionicons name="trash-outline" size={18} color={StatusColors[colorScheme].danger} />
