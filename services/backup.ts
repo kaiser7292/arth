@@ -137,6 +137,8 @@ export const BACKUP_TABLES = [
   // v17.6.x — SMS scan run logging. sms_scan_details depends on sms_scan_runs.
   "sms_scan_runs",
   "sms_scan_details",
+  // v18.x — password vault. Independent table, no FK dependencies.
+  "vault_entries",
 ];
 
 // ---------------------------------------------------------------------------

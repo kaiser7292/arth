@@ -14,6 +14,7 @@ import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
 import { PensionSummaryCard } from "@/components/home/PensionSummaryCard";
 import { WalletSummary } from "@/components/home/WalletSummary";
 import { Card, ProgressBar, ScreenContainer, StatusPill } from "@/components/ui";
+import { VaultIcon } from "@/components/ui/VaultIcon";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -341,29 +342,40 @@ export default function HomeScreen() {
               {monthLabel}
             </Text>
           </View>
-          {smsEnabled && (
-            <View className="items-end mt-0.5">
-              {lastScanLabel && (
-                <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary mb-1">
-                  {lastScanLabel}
-                </Text>
-              )}
+          <View className="items-end mt-0.5">
+            {smsEnabled && lastScanLabel && (
+              <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary mb-1">
+                {lastScanLabel}
+              </Text>
+            )}
+            <View className="flex-row items-center gap-2">
               <Pressable
-                onPress={handleSmsScan}
-                disabled={smsScanning}
+                onPress={() => router.push("/vault")}
                 hitSlop={8}
-                accessibilityLabel="Scan SMS"
+                accessibilityLabel="Open Vault"
                 className="w-8 h-8 rounded-full items-center justify-center"
                 style={{ backgroundColor: colors.border + "66" }}
               >
-                {smsScanning ? (
-                  <Ionicons name="sync-outline" size={16} color={colors.textSecondary} />
-                ) : (
-                  <Ionicons name="scan-outline" size={16} color={colors.textSecondary} />
-                )}
+                <VaultIcon size={16} color={colors.textSecondary} />
               </Pressable>
+              {smsEnabled && (
+                <Pressable
+                  onPress={handleSmsScan}
+                  disabled={smsScanning}
+                  hitSlop={8}
+                  accessibilityLabel="Scan SMS"
+                  className="w-8 h-8 rounded-full items-center justify-center"
+                  style={{ backgroundColor: colors.border + "66" }}
+                >
+                  {smsScanning ? (
+                    <Ionicons name="sync-outline" size={16} color={colors.textSecondary} />
+                  ) : (
+                    <Ionicons name="scan-outline" size={16} color={colors.textSecondary} />
+                  )}
+                </Pressable>
+              )}
             </View>
-          )}
+          </View>
         </View>
 
         {/* Stale backup warning */}

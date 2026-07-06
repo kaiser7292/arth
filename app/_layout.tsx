@@ -523,6 +523,10 @@ export default function RootLayout(): React.JSX.Element {
           name="(lock)"
           options={{ headerShown: false, gestureEnabled: false }}
         />
+        <Stack.Screen
+          name="vault"
+          options={{ headerShown: false }}
+        />
       </Stack>
     </>
     </GestureHandlerRootView>

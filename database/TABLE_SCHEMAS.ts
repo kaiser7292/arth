@@ -811,6 +811,26 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "parsed_type",
     "created_at",
   ] as const,
+
+  vault_entries: [
+    "id",
+    "title",
+    "category",
+    "login_method",
+    "username",
+    "email",
+    "phone",
+    "password_enc",
+    "pin_enc",
+    "url",
+    "notes",
+    "custom_fields",
+    "renewal_date",
+    "linked_account_id",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+  ] as const,
 } as const;
 
 // Type helper to get column names for a specific table
