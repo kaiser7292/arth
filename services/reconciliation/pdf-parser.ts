@@ -1,11 +1,7 @@
-import { getDocument, GlobalWorkerOptions, PasswordException } from "pdfjs-dist";
-import type { PDFDocumentProxy, TextItem } from "pdfjs-dist/types/src/display/api";
+import { extractText } from "expo-pdf-text-extract";
 import type { ImportFormat } from "./reconciliation-crud";
 import type { StatementRow } from "./statement-matcher";
 import { type ParsedStatement, ParseError } from "./xls-parser";
-
-// Disable web worker — React Native has no Worker API
-GlobalWorkerOptions.workerSrc = "";
 
 // ─── Password error ────────────────────────────────────────────────────────────
 
@@ -19,75 +15,31 @@ export class PdfPasswordError extends Error {
 // ─── Text extraction ───────────────────────────────────────────────────────────
 
 export async function extractPdfText(
-  data: Uint8Array,
+  fileUri: string,
   password?: string,
 ): Promise<string> {
-  let doc: PDFDocumentProxy;
   try {
-    doc = await getDocument({
-      data,
-      password: password ?? "",
-      useSystemFonts: true,
-      disableFontFace: true,
-      verbosity: 0,
-    }).promise;
+    return await extractText(fileUri, password);
   } catch (err: any) {
-    if (
-      err instanceof PasswordException ||
-      err?.name === "PasswordException" ||
-      err?.code === 1 ||
-      err?.code === 2
-    ) {
-      throw new PdfPasswordError(
-        err?.code === 2
-          ? "Wrong password — please try again."
-          : "This PDF is password-protected.",
+    const code: string | undefined = err?.code;
+    if (code === "PASSWORD_REQUIRED") {
+      throw new PdfPasswordError("This PDF is password-protected.");
+    }
+    if (code === "INCORRECT_PASSWORD") {
+      throw new PdfPasswordError("Wrong password — please try again.");
+    }
+    if (code === "FILE_NOT_FOUND") {
+      throw new ParseError("Could not find the PDF file. Please try picking it again.");
+    }
+    if (code === "CORRUPT_PDF") {
+      throw new ParseError(
+        "This PDF appears to be corrupted or in an unsupported format.",
       );
     }
     throw new ParseError(
       "Could not open the PDF file. It may be corrupted or in an unsupported format.",
     );
   }
-
-  const pageTexts: string[] = [];
-
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-
-    // Group text items by Y-coordinate to reconstruct lines
-    const itemsWithPos = (content.items as TextItem[])
-      .filter((it) => typeof it.str === "string" && it.str.length > 0)
-      .map((it) => ({
-        x: Math.round(it.transform[4]),
-        y: Math.round(it.transform[5]),
-        str: it.str,
-      }));
-
-    const lineMap = new Map<number, { x: number; str: string }[]>();
-    for (const item of itemsWithPos) {
-      let found = false;
-      for (const [y] of lineMap) {
-        if (Math.abs(y - item.y) <= 3) {
-          lineMap.get(y)!.push({ x: item.x, str: item.str });
-          found = true;
-          break;
-        }
-      }
-      if (!found) lineMap.set(item.y, [{ x: item.x, str: item.str }]);
-    }
-
-    // Sort: descending Y = top of page first in PDF coordinate space
-    const sortedYs = Array.from(lineMap.keys()).sort((a, b) => b - a);
-    const lines = sortedYs.map((y) => {
-      const rowItems = lineMap.get(y)!.sort((a, b) => a.x - b.x);
-      return rowItems.map((it) => it.str).join("  ");
-    });
-
-    pageTexts.push(lines.join("\n"));
-  }
-
-  return pageTexts.join("\n--- PAGE ---\n");
 }
 
 // ─── Shared helpers ────────────────────────────────────────────────────────────
@@ -459,11 +411,11 @@ function dateRangeFromRows(rows: StatementRow[]): { startDate: string | null; en
 // ─── Main entry point ──────────────────────────────────────────────────────────
 
 export async function parsePdfStatement(
-  data: Uint8Array,
+  fileUri: string,
   filename: string,
   password?: string,
 ): Promise<ParsedStatement> {
-  const fullText = await extractPdfText(data, password);
+  const fullText = await extractPdfText(fileUri, password);
 
   if (fullText.replace(/\s/g, "").length < 50) {
     throw new ParseError(

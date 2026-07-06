@@ -69,7 +69,7 @@ export default function NewReconciliationScreen() {
   const [pdfPasswordVisible, setPdfPasswordVisible] = useState(false);
   const [pdfPassword, setPdfPassword] = useState("");
   const [pdfPasswordError, setPdfPasswordError] = useState("");
-  const pendingPdfRef = useRef<{ bytes: Uint8Array; name: string } | null>(null);
+  const pendingPdfRef = useRef<{ uri: string; name: string } | null>(null);
 
   useEffect(() => {
     getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch(() => {});
@@ -116,10 +116,9 @@ export default function NewReconciliationScreen() {
       const name = asset.name ?? "statement";
       const nameLower = name.toLowerCase();
 
-      const fileObj = new File(asset.uri);
-      const bytes = await fileObj.bytes();
-
       if (nameLower.endsWith(".xls") || nameLower.endsWith(".xlsx")) {
+        const fileObj = new File(asset.uri);
+        const bytes = await fileObj.bytes();
         const buffer = bytes.buffer as ArrayBuffer;
         try {
           const p = parseXlsFile(buffer, name);
@@ -135,11 +134,11 @@ export default function NewReconciliationScreen() {
 
       if (nameLower.endsWith(".pdf")) {
         try {
-          const p = await parsePdfStatement(bytes, name);
+          const p = await parsePdfStatement(asset.uri, name);
           applyParsed(p, name);
         } catch (e) {
           if (e instanceof PdfPasswordError) {
-            pendingPdfRef.current = { bytes, name };
+            pendingPdfRef.current = { uri: asset.uri, name };
 
             // Check vault for a saved statement password linked to this account
             if (selectedAccountId) {
@@ -152,7 +151,7 @@ export default function NewReconciliationScreen() {
                       text: "Use saved password",
                       onPress: async () => {
                         try {
-                          const p2 = await parsePdfStatement(bytes, name, savedPwd);
+                          const p2 = await parsePdfStatement(asset.uri, name, savedPwd);
                           pendingPdfRef.current = null;
                           applyParsed(p2, name);
                         } catch (err) {
@@ -243,7 +242,7 @@ export default function NewReconciliationScreen() {
     setPdfPasswordError("");
 
     try {
-      const p = await parsePdfStatement(pending.bytes, pending.name, pdfPassword);
+      const p = await parsePdfStatement(pending.uri, pending.name, pdfPassword);
       setPdfPasswordVisible(false);
       pendingPdfRef.current = null;
       applyParsed(p, pending.name);
