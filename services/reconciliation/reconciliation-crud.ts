@@ -6,7 +6,7 @@ export type ReconStatus = "in_progress" | "completed" | "abandoned";
 export type ReconItemStatus = "matched" | "unmatched" | "excluded" | "added";
 export type MatchConfidence = "auto" | "suggested" | "manual";
 export type StmtDirection = "debit" | "credit";
-export type ExcludeReason = "cashback" | "bank_charge" | "reward_fee" | "refund" | "other";
+export type ExcludeReason = "cashback" | "bank_charge" | "reward_fee" | "refund" | "pre_arth" | "other";
 export type ImportFormat = "pdf" | "xls" | "xlsx";
 
 export interface ReconciliationSession {
@@ -234,6 +234,40 @@ export async function getMatchedCount(sessionId: string): Promise<number> {
     [sessionId],
   );
   return row?.c ?? 0;
+}
+
+// Mark all unmatched items with stmt_date < cutoffDate as pre_arth excluded
+export async function bulkMarkPreArth(sessionId: string, cutoffDate: string): Promise<number> {
+  const db = getDatabase();
+  const result = await db.runAsync(
+    `UPDATE reconciliation_items
+     SET status = 'excluded', exclude_reason = 'pre_arth'
+     WHERE session_id = ? AND status = 'unmatched' AND stmt_date < ? AND deleted_at IS NULL`,
+    [sessionId, cutoffDate],
+  );
+  return result.changes;
+}
+
+// Revert all pre_arth-excluded items back to unmatched for a session
+export async function undoPreArthItems(sessionId: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE reconciliation_items
+     SET status = 'unmatched', exclude_reason = NULL
+     WHERE session_id = ? AND exclude_reason = 'pre_arth' AND deleted_at IS NULL`,
+    [sessionId],
+  );
+}
+
+// Get the effective pre-Arth cutoff for a session (derived from existing pre_arth items)
+export async function getPreArthCutoff(sessionId: string): Promise<string | null> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{ max_date: string | null }>(
+    `SELECT MAX(stmt_date) as max_date FROM reconciliation_items
+     WHERE session_id = ? AND exclude_reason = 'pre_arth' AND deleted_at IS NULL`,
+    [sessionId],
+  );
+  return row?.max_date ?? null;
 }
 
 // Check if a session already exists for this account + period (duplicate detection)

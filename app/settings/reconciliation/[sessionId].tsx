@@ -2,10 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  ActivityIndicator, FlatList, Pressable, SectionList,
+  ActivityIndicator, Modal, Pressable,
   Text, View, ScrollView,
 } from "react-native";
-import { Card, ScreenContainer } from "@/components/ui";
+import { Card, DateInput, ScreenContainer } from "@/components/ui";
 import { useAlert, type AlertButton } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
@@ -14,6 +14,9 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getSession,
   getItems,
+  getPreArthCutoff,
+  bulkMarkPreArth,
+  undoPreArthItems,
   updateItem,
   updateSession,
   type ReconciliationSession,
@@ -53,16 +56,23 @@ export default function ReconciliationSessionScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("matched");
   const [markingDone, setMarkingDone] = useState(false);
 
+  // Pre-Arth baseline
+  const [preArthCutoff, setPreArthCutoff] = useState<string | null>(null);
+  const [showPreArthModal, setShowPreArthModal] = useState(false);
+  const [preArthPickerDate, setPreArthPickerDate] = useState("");
+
   const load = useCallback(async () => {
     if (!sessionId) return;
     try {
-      const [sess, allItems, accs] = await Promise.all([
+      const [sess, allItems, accs, cutoff] = await Promise.all([
         getSession(sessionId),
         getItems(sessionId),
         getActiveAccounts(DEFAULT_USER_ID),
+        getPreArthCutoff(sessionId),
       ]);
       setSession(sess);
       setItems(allItems);
+      setPreArthCutoff(cutoff);
       const map: Record<string, FinancialAccount> = {};
       for (const a of accs) map[a.id] = a;
       setAccounts(map);
@@ -93,8 +103,38 @@ export default function ReconciliationSessionScreen() {
   const matched = items.filter((i) => i.status === "matched");
   const missing = items.filter((i) => i.status === "unmatched");
   const added = items.filter((i) => i.status === "added");
-  const excluded = items.filter((i) => i.status === "excluded");
-  // Extra = items that exist in Arth but not matched (tracked separately — for now shown via unmatched with no stmt data)
+  const preArthItems = items.filter((i) => i.status === "excluded" && i.exclude_reason === "pre_arth");
+  const excluded = items.filter((i) => i.status === "excluded" && i.exclude_reason !== "pre_arth");
+
+  const handleApplyPreArth = useCallback(async () => {
+    if (!preArthPickerDate || !sessionId) return;
+    // cutoff is exclusive: mark items with stmt_date < (cutoff + 1 day)
+    const cutoffExclusive = new Date(preArthPickerDate);
+    cutoffExclusive.setDate(cutoffExclusive.getDate() + 1);
+    const cutoffStr = cutoffExclusive.toISOString().slice(0, 10);
+    await undoPreArthItems(sessionId); // clear old pre_arth first
+    await bulkMarkPreArth(sessionId, cutoffStr);
+    setShowPreArthModal(false);
+    load();
+  }, [preArthPickerDate, sessionId, load]);
+
+  const handleClearPreArth = useCallback(() => {
+    alert(
+      "Clear pre-Arth baseline",
+      "Move all pre-Arth excluded items back to Missing?",
+      [
+        {
+          text: "Clear",
+          onPress: async () => {
+            await undoPreArthItems(sessionId!);
+            setPreArthCutoff(null);
+            load();
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ],
+    );
+  }, [alert, sessionId, load]);
 
   const handleUnlink = useCallback((item: ReconciliationItem) => {
     alert("Unlink match", "Move this back to the Missing tab to re-review?", [
@@ -158,7 +198,7 @@ export default function ReconciliationSessionScreen() {
 
   const handleMarkReconciled = useCallback(async () => {
     if (!session) return;
-    const unresolvedCount = missing.length;
+    const unresolvedCount = missing.length; // pre-Arth items are excluded, not missing
     if (unresolvedCount > 0) {
       alert(
         "Unresolved items",
@@ -321,11 +361,53 @@ export default function ReconciliationSessionScreen() {
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "matched", label: "Matched", count: matched.length },
     { key: "missing", label: "Missing", count: missing.length },
-    { key: "excluded", label: "Excluded", count: excluded.length },
+    { key: "excluded", label: "Excluded", count: excluded.length + preArthItems.length },
   ];
 
   return (
     <ScreenContainer padTop={false}>
+      {/* Pre-Arth date picker modal */}
+      <Modal
+        visible={showPreArthModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPreArthModal(false)}
+      >
+        <View className="flex-1 justify-center items-center px-8" style={{ backgroundColor: "#00000066" }}>
+          <View className="w-full rounded-2xl p-6" style={{ backgroundColor: colors.surface }}>
+            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mb-1">
+              Set pre-Arth date
+            </Text>
+            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-4">
+              Transactions on or before this date will be moved to Excluded. Pick the last date before you started logging in Arth.
+            </Text>
+            <DateInput
+              value={preArthPickerDate}
+              onChange={setPreArthPickerDate}
+              placeholder="Pick date"
+              maximumDate={new Date()}
+            />
+            <View className="flex-row gap-3 mt-4">
+              <Pressable
+                onPress={() => setShowPreArthModal(false)}
+                className="flex-1 py-3 rounded-xl items-center"
+                style={{ backgroundColor: colors.border + "55" }}
+              >
+                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleApplyPreArth}
+                disabled={!preArthPickerDate}
+                className="flex-1 py-3 rounded-xl items-center"
+                style={{ backgroundColor: preArthPickerDate ? accent[500] : colors.border }}
+              >
+                <Text className="text-sm font-semibold text-white">Apply</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Summary card */}
         <View className="px-4 pt-4">
@@ -386,6 +468,46 @@ export default function ReconciliationSessionScreen() {
                 )}
               </View>
             )}
+
+            {/* Pre-Arth baseline row */}
+            {session.status === "in_progress" && (
+              <View className="mt-3 pt-3 border-t border-border-light dark:border-border-dark flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
+                    Pre-Arth baseline
+                  </Text>
+                  {preArthCutoff ? (
+                    <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary mt-0.5">
+                      Up to {new Date(preArthCutoff).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} · {preArthItems.length} items excluded
+                    </Text>
+                  ) : (
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                      Not set
+                    </Text>
+                  )}
+                </View>
+                {preArthCutoff ? (
+                  <View className="flex-row gap-3 ml-3">
+                    <Pressable onPress={() => { setPreArthPickerDate(preArthCutoff); setShowPreArthModal(true); }}>
+                      <Text className="text-xs font-semibold" style={{ color: accent[500] }}>Change</Text>
+                    </Pressable>
+                    <Pressable onPress={handleClearPreArth}>
+                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">Clear</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      setPreArthPickerDate(session.stmt_start_date);
+                      setShowPreArthModal(true);
+                    }}
+                    className="ml-3"
+                  >
+                    <Text className="text-xs font-semibold" style={{ color: accent[500] }}>Set date</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
           </Card>
 
           {/* Tabs */}
@@ -430,9 +552,45 @@ export default function ReconciliationSessionScreen() {
               : missing.map((item) => renderMissing({ item }))
           )}
           {activeTab === "excluded" && (
-            excluded.length === 0
+            excluded.length === 0 && preArthItems.length === 0
               ? <EmptyTab label="Nothing excluded." />
-              : excluded.map((item) => renderExcluded({ item }))
+              : <>
+                  {preArthItems.length > 0 && (
+                    <>
+                      <View className="flex-row items-center mb-2 mt-1">
+                        <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">
+                          Pre-Arth period ({preArthItems.length})
+                        </Text>
+                        <View className="flex-1 h-px ml-2" style={{ backgroundColor: colors.border }} />
+                      </View>
+                      {preArthItems.map((item) => (
+                        <View key={item.id} className="py-2.5 border-b border-border-light dark:border-border-dark flex-row items-center opacity-50">
+                          <View className="flex-1">
+                            <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                              {item.stmt_narration || "(no narration)"}
+                            </Text>
+                            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                              {formatDate(item.stmt_date)} · {item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.stmt_amount)}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </>
+                  )}
+                  {excluded.length > 0 && (
+                    <>
+                      {preArthItems.length > 0 && (
+                        <View className="flex-row items-center mb-2 mt-3">
+                          <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">
+                            Manually excluded ({excluded.length})
+                          </Text>
+                          <View className="flex-1 h-px ml-2" style={{ backgroundColor: colors.border }} />
+                        </View>
+                      )}
+                      {excluded.map((item) => renderExcluded({ item }))}
+                    </>
+                  )}
+                </>
           )}
         </View>
       </ScrollView>
