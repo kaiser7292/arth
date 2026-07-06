@@ -35,6 +35,7 @@ import type { DematTarget } from "@/services/demat-transfer";
 import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getAllAccounts } from "@/services/financial-account";
+import { getVaultEntriesForAccount } from "@/services/vault";
 import { getPersonsByIds, getSettlementsForCredits } from "@/services/hisaab";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatAdjustmentDescription, formatAmount } from "@/utils/format";
@@ -790,19 +791,45 @@ const loadData = useCallback(async () => {
               </Text>
             </View>
 
-            {/* Reconcile shortcut */}
-            <Pressable
-              onPress={() => router.push({
-                pathname: "/settings/reconciliation/new",
-                params: { prefill_account_id: accountId },
-              })}
-              className="flex-row items-center justify-center mt-3 pt-3 border-t border-border-light dark:border-border-dark"
-            >
-              <Ionicons name="checkmark-done-outline" size={14} color={colors.textSecondary} />
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary ml-1.5">
-                Reconcile
-              </Text>
-            </Pressable>
+            {/* Reconcile + Vault shortcuts */}
+            <View className="flex-row mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+              <Pressable
+                onPress={() => router.push({
+                  pathname: "/settings/reconciliation/new",
+                  params: { prefill_account_id: accountId },
+                })}
+                className="flex-1 flex-row items-center justify-center"
+              >
+                <Ionicons name="checkmark-done-outline" size={14} color={colors.textSecondary} />
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary ml-1.5">
+                  Reconcile
+                </Text>
+              </Pressable>
+              <View className="w-px" style={{ backgroundColor: colors.border }} />
+              <Pressable
+                onPress={async () => {
+                  try {
+                    const entries = await getVaultEntriesForAccount(accountId);
+                    if (entries.length > 0) {
+                      router.push(`/vault/${entries[0].id}`);
+                    } else {
+                      const acct = allAccountsState.find((a) => a.id === accountId);
+                      const prefillTitle = encodeURIComponent(acct?.account_label || acct?.bank_name || "");
+                      const prefillCat = acct?.account_type === "credit_card" ? "card" : "banking";
+                      router.push(`/vault/add?linked_account_id=${accountId}&prefill_category=${prefillCat}&prefill_title=${prefillTitle}`);
+                    }
+                  } catch {
+                    router.push("/vault");
+                  }
+                }}
+                className="flex-1 flex-row items-center justify-center"
+              >
+                <Ionicons name="lock-closed-outline" size={14} color={colors.textSecondary} />
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary ml-1.5">
+                  Credentials
+                </Text>
+              </Pressable>
+            </View>
           </Card>
 
           {/* Inline forms render above the transactions list so edit/add

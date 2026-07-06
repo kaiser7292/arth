@@ -11,6 +11,7 @@ export type VaultCategory =
   | "demat"
   | "investment"
   | "insurance"
+  | "statement_pwd"
   | "email"
   | "gaming"
   | "subscription"
@@ -62,35 +63,37 @@ export interface VaultEntryInput {
 }
 
 export const VAULT_CATEGORY_LABELS: Record<VaultCategory, string> = {
-  banking:      "Net Banking",
-  card:         "Credit / Debit Card",
-  upi:          "UPI",
-  demat:        "Demat / Trading",
-  investment:   "Investment",
-  insurance:    "Insurance",
-  email:        "Email",
-  gaming:       "Gaming",
-  subscription: "Subscription",
-  social:       "Social",
-  other:        "Other",
+  banking:       "Net Banking",
+  card:          "Credit / Debit Card",
+  upi:           "UPI",
+  demat:         "Demat / Trading",
+  investment:    "Investment",
+  insurance:     "Insurance",
+  statement_pwd: "Statement Password",
+  email:         "Email",
+  gaming:        "Gaming",
+  subscription:  "Subscription",
+  social:        "Social",
+  other:         "Other",
 };
 
 export const VAULT_CATEGORY_ICONS: Record<VaultCategory, string> = {
-  banking:      "business-outline",
-  card:         "card-outline",
-  upi:          "phone-portrait-outline",
-  demat:        "trending-up-outline",
-  investment:   "bar-chart-outline",
-  insurance:    "shield-checkmark-outline",
-  email:        "mail-outline",
-  gaming:       "game-controller-outline",
-  subscription: "play-circle-outline",
-  social:       "people-outline",
-  other:        "ellipsis-horizontal-circle-outline",
+  banking:       "business-outline",
+  card:          "card-outline",
+  upi:           "phone-portrait-outline",
+  demat:         "trending-up-outline",
+  investment:    "bar-chart-outline",
+  insurance:     "shield-checkmark-outline",
+  statement_pwd: "document-lock-outline",
+  email:         "mail-outline",
+  gaming:        "game-controller-outline",
+  subscription:  "play-circle-outline",
+  social:        "people-outline",
+  other:         "ellipsis-horizontal-circle-outline",
 };
 
 export const VAULT_CATEGORY_GROUPS: { label: string; categories: VaultCategory[] }[] = [
-  { label: "Finance", categories: ["banking", "card", "upi", "demat", "investment", "insurance"] },
+  { label: "Finance", categories: ["banking", "card", "upi", "demat", "investment", "insurance", "statement_pwd"] },
   { label: "Personal", categories: ["email", "gaming", "subscription", "social", "other"] },
 ];
 
@@ -259,5 +262,21 @@ export async function searchVaultEntries(query: string): Promise<VaultEntry[]> {
        AND (LOWER(title) LIKE ? OR LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR LOWER(url) LIKE ?)
      ORDER BY title ASC`,
     [q, q, q, q],
+  );
+}
+
+export async function getVaultEntriesForAccount(accountId: string): Promise<VaultEntry[]> {
+  const db = getDatabase();
+  return db.getAllAsync<VaultEntry>(
+    `SELECT * FROM vault_entries WHERE linked_account_id = ? AND deleted_at IS NULL ORDER BY title ASC`,
+    [accountId],
+  );
+}
+
+export async function getStatementPwdEntry(accountId: string): Promise<VaultEntry | null> {
+  const db = getDatabase();
+  return db.getFirstAsync<VaultEntry>(
+    `SELECT * FROM vault_entries WHERE linked_account_id = ? AND category = 'statement_pwd' AND deleted_at IS NULL LIMIT 1`,
+    [accountId],
   );
 }

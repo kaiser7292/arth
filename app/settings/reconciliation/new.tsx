@@ -19,6 +19,13 @@ import { parseXlsFile, type ParsedStatement, ParseError } from "@/services/recon
 import { parsePdfStatement, PdfPasswordError } from "@/services/reconciliation/pdf-parser";
 import { buildArthPool, matchStatementRows } from "@/services/reconciliation/statement-matcher";
 import { settingsStorage } from "@/services/storage";
+import {
+  createVaultEntry,
+  decryptField,
+  getStatementPwdEntry,
+  type VaultEntry,
+} from "@/services/vault";
+import type { AlertButton } from "@/hooks/use-alert";
 
 const ACCOUNT_SUFFIX_MAP_KEY = "recon_account_suffix_map";
 
@@ -132,13 +139,60 @@ export default function NewReconciliationScreen() {
           applyParsed(p, name);
         } catch (e) {
           if (e instanceof PdfPasswordError) {
-            // Store bytes and prompt for password
             pendingPdfRef.current = { bytes, name };
+
+            // Check vault for a saved statement password linked to this account
+            if (selectedAccountId) {
+              const vaultEntry = await getStatementPwdEntry(selectedAccountId).catch(() => null);
+              if (vaultEntry?.password_enc) {
+                const savedPwd = await decryptField(vaultEntry.password_enc).catch(() => "");
+                if (savedPwd) {
+                  const buttons: AlertButton[] = [
+                    {
+                      text: "Use saved password",
+                      onPress: async () => {
+                        try {
+                          const p2 = await parsePdfStatement(bytes, name, savedPwd);
+                          pendingPdfRef.current = null;
+                          applyParsed(p2, name);
+                        } catch (err) {
+                          if (err instanceof PdfPasswordError) {
+                            // Saved password is wrong — fall back to manual
+                            setPdfPassword("");
+                            setPdfPasswordError("Saved password didn't work. Enter it manually.");
+                            setPdfPasswordVisible(true);
+                          } else if (err instanceof ParseError) {
+                            alert("Couldn't read PDF", (err as Error).message);
+                          }
+                        }
+                      },
+                    },
+                    {
+                      text: "Enter manually",
+                      style: "cancel" as const,
+                      onPress: () => {
+                        setPdfPassword("");
+                        setPdfPasswordError("");
+                        setPdfPasswordVisible(true);
+                      },
+                    },
+                  ];
+                  alert(
+                    "Use saved password?",
+                    `A statement password for this account is saved in your vault. Use it?`,
+                    buttons,
+                  );
+                  return;
+                }
+              }
+            }
+
+            // No saved password — show manual prompt
             setPdfPassword("");
             setPdfPasswordError("");
             setPdfPasswordVisible(true);
           } else if (e instanceof ParseError) {
-            alert("Couldn't read PDF", e.message);
+            alert("Couldn't read PDF", (e as Error).message);
           } else {
             alert("Couldn't read PDF", "An unexpected error occurred. Please try exporting the statement again.");
           }
@@ -155,6 +209,34 @@ export default function NewReconciliationScreen() {
     }
   }, [selectedAccountId, accounts, alert, applyParsed]);
 
+  const offerSavePasswordToVault = useCallback((pwd: string, name: string) => {
+    if (!selectedAccountId) return;
+    const buttons: AlertButton[] = [
+      {
+        text: "Save to vault",
+        onPress: async () => {
+          try {
+            await createVaultEntry({
+              title: `${name} Statement Password`,
+              category: "statement_pwd",
+              login_method: "password",
+              password: pwd,
+              linked_account_id: selectedAccountId,
+            });
+          } catch {
+            // Best-effort — silent failure is fine
+          }
+        },
+      },
+      { text: "Not now", style: "cancel" as const },
+    ];
+    alert(
+      "Save password to vault?",
+      "Store this statement password in your vault so Arth can auto-fill it next time.",
+      buttons,
+    );
+  }, [selectedAccountId, alert]);
+
   const handlePdfPasswordSubmit = useCallback(async () => {
     const pending = pendingPdfRef.current;
     if (!pending) return;
@@ -165,20 +247,22 @@ export default function NewReconciliationScreen() {
       setPdfPasswordVisible(false);
       pendingPdfRef.current = null;
       applyParsed(p, pending.name);
+      // Offer to save the successful password to vault (for future auto-fill)
+      offerSavePasswordToVault(pdfPassword, p.detectedBank ?? pending.name);
     } catch (e) {
       if (e instanceof PdfPasswordError) {
         setPdfPasswordError(e.message);
       } else if (e instanceof ParseError) {
         setPdfPasswordVisible(false);
         pendingPdfRef.current = null;
-        alert("Couldn't read PDF", e.message);
+        alert("Couldn't read PDF", (e as Error).message);
       } else {
         setPdfPasswordVisible(false);
         pendingPdfRef.current = null;
         alert("Error", "An unexpected error occurred.");
       }
     }
-  }, [pdfPassword, applyParsed, alert]);
+  }, [pdfPassword, applyParsed, alert, offerSavePasswordToVault]);
 
   const handleStartMatching = useCallback(async () => {
     if (!selectedAccountId || !parsed) return;

@@ -10,6 +10,7 @@ import { logger } from "@/utils/logger";
 import { createManualAccount, addOrUpdateSnapshot } from "@/services/financial-account";
 import type { AccountType } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import type { AlertButton } from "@/hooks/use-alert";
 
 const TYPE_OPTIONS: AccountType[] = [
   "savings",
@@ -106,13 +107,35 @@ export default function AccountAddScreen() {
           accountLabel: label.trim() || undefined,
         });
       } else {
-        await createManualAccount({
+        const newId = await createManualAccount({
           userId: DEFAULT_USER_ID,
           bankName: bankName.trim(),
           accountType,
           accountIdentifier: identifier.trim(),
           accountLabel: label.trim() || undefined,
         });
+
+        // Offer to add credentials for banking accounts
+        if (accountType === "savings" || accountType === "credit_card" || accountType === "loan") {
+          const buttons: AlertButton[] = [
+            {
+              text: "Add credentials",
+              onPress: () => {
+                const prefillCategory = accountType === "savings" ? "banking" : "card";
+                router.replace(
+                  `/vault/add?linked_account_id=${newId}&prefill_category=${prefillCategory}&prefill_title=${encodeURIComponent(label.trim() || bankName.trim())}`,
+                );
+              },
+            },
+            { text: "Not now", style: "cancel" as const, onPress: () => router.back() },
+          ];
+          alert(
+            "Add credentials?",
+            `Save login details for ${label.trim() || bankName.trim()} to your vault?`,
+            buttons,
+          );
+          return;
+        }
       }
       router.back();
     } catch (e) {

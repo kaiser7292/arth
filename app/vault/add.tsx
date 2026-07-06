@@ -27,30 +27,42 @@ import { getErrorMessage } from "@/utils/error-message";
 
 // Which login methods are sensible for each category
 const CATEGORY_LOGIN_METHODS: Record<VaultCategory, LoginMethod[]> = {
-  banking:      ["password", "email_password", "google", "phone_otp"],
-  card:         ["pin", "none"],
-  upi:          ["pin", "phone_otp", "password"],
-  demat:        ["password", "email_password"],
-  investment:   ["password", "email_password"],
-  insurance:    ["password", "email_password"],
-  email:        ["email_password", "google", "apple"],
-  gaming:       ["password", "email_password", "google", "apple", "phone_otp"],
-  subscription: ["password", "email_password", "google", "apple", "phone_otp"],
-  social:       ["password", "email_password", "google", "apple", "phone_otp"],
-  other:        ["password", "email_password", "google", "apple", "phone_otp", "pin", "none"],
+  banking:       ["password", "email_password", "google", "phone_otp"],
+  card:          ["pin", "none"],
+  upi:           ["pin", "phone_otp", "password"],
+  demat:         ["password", "email_password"],
+  investment:    ["password", "email_password"],
+  insurance:     ["password", "email_password"],
+  statement_pwd: ["password"],
+  email:         ["email_password", "google", "apple"],
+  gaming:        ["password", "email_password", "google", "apple", "phone_otp"],
+  subscription:  ["password", "email_password", "google", "apple", "phone_otp"],
+  social:        ["password", "email_password", "google", "apple", "phone_otp"],
+  other:         ["password", "email_password", "google", "apple", "phone_otp", "pin", "none"],
 };
 
 export default function VaultAddScreen() {
   const router = useRouter();
   const alert = useAlert();
   const { colors, accent } = useColorScheme();
-  const params = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{
+    id?: string;
+    linked_account_id?: string;
+    prefill_category?: string;
+    prefill_title?: string;
+  }>();
   const editId = params.id;
+  const prefillLinkedAccountId = params.linked_account_id;
 
   // Form state
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState<VaultCategory>("banking");
+  const [title, setTitle] = useState(
+    params.prefill_title ? decodeURIComponent(params.prefill_title) : "",
+  );
+  const [category, setCategory] = useState<VaultCategory>(
+    (params.prefill_category as VaultCategory) ?? "banking",
+  );
   const [loginMethod, setLoginMethod] = useState<LoginMethod>("password");
+  const [linkedAccountId, setLinkedAccountId] = useState<string | undefined>(prefillLinkedAccountId);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -74,6 +86,7 @@ export default function VaultAddScreen() {
         setTitle(entry.title);
         setCategory(entry.category as VaultCategory);
         setLoginMethod(entry.login_method as LoginMethod);
+        setLinkedAccountId(entry.linked_account_id ?? undefined);
         setUsername(entry.username ?? "");
         setEmail(entry.email ?? "");
         setPhone(entry.phone ?? "");
@@ -114,6 +127,7 @@ export default function VaultAddScreen() {
         url: url || undefined,
         notes: notes || undefined,
         renewal_date: renewalDate || undefined,
+        linked_account_id: linkedAccountId,
       };
       if (editId) {
         await updateVaultEntry(editId, input);
@@ -126,7 +140,7 @@ export default function VaultAddScreen() {
     } finally {
       setSaving(false);
     }
-  }, [title, category, loginMethod, username, email, phone, password, pin, url, notes, renewalDate, editId]);
+  }, [title, category, loginMethod, username, email, phone, password, pin, url, notes, renewalDate, editId, linkedAccountId]);
 
   if (loading) {
     return (
