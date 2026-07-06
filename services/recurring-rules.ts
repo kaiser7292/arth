@@ -486,19 +486,16 @@ export async function fulfillReminder(
     );
 
     // Stamp the fulfillment link and copy category + description from the
-    // source expense. COALESCE(?, col) keeps the existing value when the
-    // source field is NULL (preserves SMS-auto description/category).
+    // source expense — only when the source has a non-null value.
+    const sets: string[] = ["fulfills_rule_id = ?"];
+    const vals: (string | number | null)[] = [ruleId];
+    if (src?.category_id != null) { sets.push("category_id = ?"); vals.push(src.category_id); }
+    if (src?.description != null) { sets.push("description = ?"); vals.push(src.description); }
+    sets.push("updated_at = datetime('now')");
+    vals.push(expenseId);
     await db.runAsync(
-      `UPDATE expenses
-       SET fulfills_rule_id = ?,
-           category_id = COALESCE(?, category_id),
-           description = COALESCE(?, description),
-           updated_at = datetime('now')
-       WHERE id = ?;`,
-      ruleId,
-      src?.category_id ?? null,
-      src?.description ?? null,
-      expenseId,
+      `UPDATE expenses SET ${sets.join(", ")} WHERE id = ?;`,
+      ...vals,
     );
 
     const nextCycle = addCycle(cycleDue, rule.frequency);
