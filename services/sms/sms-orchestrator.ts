@@ -242,7 +242,7 @@ export async function runSmsScan(
 
     // Only auto-scan sends a notification — manual scans surface results in-UI.
     if (!manual && notify && processResult.created > 0) {
-      const canNotify = isNotificationEnabled("sms_scan") && (await hasNotificationPermission());
+      const canNotify = await hasNotificationPermission();
       if (canNotify) {
         const notifItems = passed
           .filter((item) => item.parsed.merchant && item.parsed.amount > 0)

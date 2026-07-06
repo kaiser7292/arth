@@ -13,20 +13,20 @@ import { settingsStorage as storage } from "./storage";
 
 // ─── Notification Categories ───
 
-export type NotificationCategory = "sms_scan" | "overdue_forecast" | "upcoming_due" | "monthly_summary";
+export type NotificationCategory = "overdue_forecast" | "upcoming_due" | "monthly_summary" | "scheduled_backup";
 
 const KEYS = {
-  NOTIF_SMS_SCAN: "notif_sms_scan",
   NOTIF_OVERDUE: "notif_overdue",
   NOTIF_UPCOMING: "notif_upcoming",
   NOTIF_MONTHLY_SUMMARY: "notif_monthly_summary",
+  NOTIF_SCHEDULED_BACKUP: "notif_scheduled_backup",
 } as const;
 
 const CATEGORY_KEY_MAP: Record<NotificationCategory, string> = {
-  sms_scan: KEYS.NOTIF_SMS_SCAN,
   overdue_forecast: KEYS.NOTIF_OVERDUE,
   upcoming_due: KEYS.NOTIF_UPCOMING,
   monthly_summary: KEYS.NOTIF_MONTHLY_SUMMARY,
+  scheduled_backup: KEYS.NOTIF_SCHEDULED_BACKUP,
 };
 
 // ─── Configuration ───
@@ -119,10 +119,10 @@ export function setNotificationEnabled(category: NotificationCategory, enabled: 
  */
 export function getNotificationPreferences(): Record<NotificationCategory, boolean> {
   return {
-    sms_scan: isNotificationEnabled("sms_scan"),
     overdue_forecast: isNotificationEnabled("overdue_forecast"),
     upcoming_due: isNotificationEnabled("upcoming_due"),
     monthly_summary: isNotificationEnabled("monthly_summary"),
+    scheduled_backup: isNotificationEnabled("scheduled_backup"),
   };
 }
 

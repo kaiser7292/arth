@@ -5,6 +5,7 @@ import { SchedulableTriggerInputTypes } from "expo-notifications";
 import * as Sharing from "expo-sharing";
 import * as TaskManager from "expo-task-manager";
 import { settingsStorage as storage } from "@/services/storage";
+import { isNotificationEnabled } from "@/services/notifications";
 import { BACKUP_TABLES, restoreFromData } from "@/services/backup";
 import type { RestoreResult } from "@/services/backup";
 import { getDatabase } from "@/database";
@@ -138,15 +139,17 @@ export async function runScheduledBackupIfDue(): Promise<void> {
   if (!shouldRunScheduledBackup()) return;
   try {
     await createScheduledBackup();
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Backup saved",
-        body: "Your scheduled Arth backup has been saved to your phone.",
-        sound: false,
-        data: { screen: "settings/backup-restore" },
-      },
-      trigger: null,
-    });
+    if (isNotificationEnabled("scheduled_backup")) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Backup saved",
+          body: "Your scheduled Arth backup has been saved to your phone.",
+          sound: false,
+          data: { screen: "settings/backup-restore" },
+        },
+        trigger: null,
+      });
+    }
   } catch (e) {
     logger.warn("runScheduledBackupIfDue failed", e);
   }
@@ -265,15 +268,17 @@ TaskManager.defineTask(BACKUP_NOTIF_TASK, async ({ data }: TaskManager.TaskManag
     if (notification?.request?.identifier !== NOTIF_ID) return;
     if (!shouldRunScheduledBackup()) return;
     await createScheduledBackup();
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Backup saved",
-        body: "Your scheduled Arth backup has been saved.",
-        sound: false,
-        data: { screen: "settings/backup-restore" },
-      },
-      trigger: null,
-    });
+    if (isNotificationEnabled("scheduled_backup")) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Backup saved",
+          body: "Your scheduled Arth backup has been saved.",
+          sound: false,
+          data: { screen: "settings/backup-restore" },
+        },
+        trigger: null,
+      });
+    }
   } catch (e) {
     logger.warn("Backup notification task failed:", e);
   }

@@ -12,6 +12,7 @@ import { useAlert } from "@/hooks/use-alert";
 import { ScreenContainer, Card } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
+import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   isNotificationEnabled,
   setNotificationEnabled,
@@ -19,7 +20,11 @@ import {
   hasNotificationPermission,
   type NotificationCategory,
 } from "@/services/notifications";
-import { syncNotifBackgroundTask, syncMonthlySummarySchedule } from "@/services/notification-scheduler";
+import {
+  scheduleSmartDailyDigest,
+  syncMonthlySummarySchedule,
+  syncNotifBackgroundTask,
+} from "@/services/notification-scheduler";
 
 interface NotifToggleProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -32,7 +37,7 @@ interface NotifToggleProps {
 }
 
 function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onToggle }: NotifToggleProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
   return (
     <View className="flex-row items-center justify-between py-3 border-b border-border-light dark:border-border-dark">
       <View className="flex-row items-center flex-1 mr-3">
@@ -63,11 +68,11 @@ function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onTo
 
 export default function NotificationPreferencesScreen() {
   const alert = useAlert();
-  const { colors, colorScheme } = useColorScheme();
-  const [smsScan, setSmsScan] = useState(() => isNotificationEnabled("sms_scan"));
+  const { colorScheme } = useColorScheme();
   const [overdue, setOverdue] = useState(() => isNotificationEnabled("overdue_forecast"));
   const [upcoming, setUpcoming] = useState(() => isNotificationEnabled("upcoming_due"));
   const [monthlySummary, setMonthlySummary] = useState(() => isNotificationEnabled("monthly_summary"));
+  const [scheduledBackup, setScheduledBackup] = useState(() => isNotificationEnabled("scheduled_backup"));
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
 
   // Check permission on mount
@@ -90,27 +95,25 @@ export default function NotificationPreferencesScreen() {
 
     setNotificationEnabled(category, value);
     switch (category) {
-      case "sms_scan":
-        setSmsScan(value);
-        break;
       case "overdue_forecast":
         setOverdue(value);
+        scheduleSmartDailyDigest(DEFAULT_USER_ID).catch(() => {});
+        syncNotifBackgroundTask().catch(() => {});
         break;
       case "upcoming_due":
         setUpcoming(value);
+        scheduleSmartDailyDigest(DEFAULT_USER_ID).catch(() => {});
+        syncNotifBackgroundTask().catch(() => {});
         break;
       case "monthly_summary":
         setMonthlySummary(value);
+        syncMonthlySummarySchedule().catch(() => {});
+        break;
+      case "scheduled_backup":
+        setScheduledBackup(value);
         break;
     }
-
-    if (category === "overdue_forecast" || category === "upcoming_due") {
-      syncNotifBackgroundTask().catch(() => {});
-    }
-    if (category === "monthly_summary") {
-      syncMonthlySummarySchedule().catch(() => {});
-    }
-  }, [permissionGranted]);
+  }, [permissionGranted, alert]);
 
   return (
     <ScreenContainer padTop={false}>
@@ -142,22 +145,12 @@ export default function NotificationPreferencesScreen() {
           </View>
         )}
 
-        <Card className="mx-4 mb-4">
-          <NotifToggle
-            icon="scan-outline"
-            iconColor={colors.blue}
-            title="SMS Scan Results"
-            subtitle="When background scan finds new transactions"
-            category="sms_scan"
-            enabled={smsScan}
-            onToggle={handleToggle}
-          />
-
+        <Card className="mx-4 mb-3">
           <NotifToggle
             icon="alert-circle-outline"
             iconColor={StatusColors[colorScheme].danger}
             title="Overdue Payments"
-            subtitle="When forecasted payments pass their due date"
+            subtitle="Daily 9:10 AM digest when payments are overdue"
             category="overdue_forecast"
             enabled={overdue}
             onToggle={handleToggle}
@@ -167,7 +160,7 @@ export default function NotificationPreferencesScreen() {
             icon="time-outline"
             iconColor="#F59E0B"
             title="Upcoming Dues"
-            subtitle="Reminders for payments due within 2 days"
+            subtitle="Daily 9:10 AM digest for payments due within 2 days"
             category="upcoming_due"
             enabled={upcoming}
             onToggle={handleToggle}
@@ -182,7 +175,23 @@ export default function NotificationPreferencesScreen() {
             enabled={monthlySummary}
             onToggle={handleToggle}
           />
+
+          <NotifToggle
+            icon="cloud-upload-outline"
+            iconColor="#0D9488"
+            title="Auto Backup"
+            subtitle="Notify when a scheduled backup completes"
+            category="scheduled_backup"
+            enabled={scheduledBackup}
+            onToggle={handleToggle}
+          />
         </Card>
+
+        <View className="mx-4 px-3 py-2.5 rounded-xl" style={{ backgroundColor: StatusColors[colorScheme].warningBg }}>
+          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            The daily digest fires at 9:10 AM via a system alarm — it works even when the app is closed. Content reflects your data as of the last time Arth was open. No notification is sent if nothing needs your attention.
+          </Text>
+        </View>
       </ScrollView>
     </ScreenContainer>
   );

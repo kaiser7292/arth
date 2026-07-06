@@ -421,16 +421,19 @@ const MAX_BACKUP_FILE_SIZE = 50 * 1024 * 1024;
 
 /**
  * Pick a backup file from the device.
- * Validates file extension (.arth) and size (max 50 MB).
+ * Validates file extension (.arth / .artha / .json) and size (max 50 MB).
  */
 export interface PickedBackupFile {
   uri: string;
   name: string;
   sizeLabel: string;
+  /** True when the file is a plain-JSON scheduled backup (no encryption, no password needed). */
+  isAutoBackup?: boolean;
 }
 
 /**
- * Pick a backup file, validate extension + magic header.
+ * Pick a backup file, validate extension + content.
+ * Accepts .arth/.artha (encrypted manual backup) and .json (plain auto-backup).
  * Returns file info or null if cancelled. Throws on validation failure.
  */
 export async function pickAndValidateBackupFile(): Promise<PickedBackupFile | null> {
@@ -445,8 +448,8 @@ export async function pickAndValidateBackupFile(): Promise<PickedBackupFile | nu
 
   // Validate extension
   const ext = asset.name.toLowerCase().match(/\.[^.]+$/)?.[0] ?? "";
-  if (ext !== ".arth" && ext !== ".artha") {
-    throw new Error(`Unsupported file type "${ext}". Only .arth backup files are accepted.`);
+  if (ext !== ".arth" && ext !== ".artha" && ext !== ".json") {
+    throw new Error(`Unsupported file type "${ext}". Select a .arth or .json Arth backup file.`);
   }
 
   // Validate file size
@@ -455,25 +458,38 @@ export async function pickAndValidateBackupFile(): Promise<PickedBackupFile | nu
     throw new Error(`File is too large (${sizeMB} MB). Maximum allowed size is 50 MB.`);
   }
 
-  // Validate magic header (confirms this is an Artha backup, not a renamed file)
+  const sizeKB = asset.size ? (asset.size / 1024).toFixed(0) : "?";
+  const sizeLabel = asset.size && asset.size >= 1024 * 1024
+    ? `${(asset.size / (1024 * 1024)).toFixed(1)} MB`
+    : `${sizeKB} KB`;
+
+  // .json — plain auto-backup format: validate it has the expected structure.
+  if (ext === ".json") {
+    try {
+      const file = new File(asset.uri);
+      const raw = await file.text();
+      const parsed = JSON.parse(raw) as { data?: Record<string, unknown[]> };
+      if (!parsed?.data) throw new Error("missing data field");
+    } catch {
+      throw new Error("This JSON file is not a valid Arth auto-backup.");
+    }
+    return { uri: asset.uri, name: asset.name, sizeLabel, isAutoBackup: true };
+  }
+
+  // .arth / .artha — encrypted backup: validate magic header.
   const file = new File(asset.uri);
   const base64Content = await file.text();
   const fileData = base64ToArray(base64Content);
 
   if (fileData.length < MAGIC_HEADER.length + SALT_LENGTH + IV_LENGTH + 1) {
-    throw new Error("File is too small to be a valid Artha backup.");
+    throw new Error("File is too small to be a valid Arth backup.");
   }
 
   const headerBytes = fileData.slice(0, MAGIC_HEADER.length);
   const header = new TextDecoder().decode(headerBytes);
   if (header !== MAGIC_HEADER) {
-    throw new Error("This file is not a valid Artha backup. It may be corrupted or not created by Artha.");
+    throw new Error("This file is not a valid Arth backup. It may be corrupted or not created by Arth.");
   }
-
-  const sizeKB = asset.size ? (asset.size / 1024).toFixed(0) : "?";
-  const sizeLabel = asset.size && asset.size >= 1024 * 1024
-    ? `${(asset.size / (1024 * 1024)).toFixed(1)} MB`
-    : `${sizeKB} KB`;
 
   return { uri: asset.uri, name: asset.name, sizeLabel };
 }

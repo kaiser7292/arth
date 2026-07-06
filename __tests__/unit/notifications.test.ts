@@ -65,25 +65,25 @@ beforeEach(() => {
 
 describe("Notification Preferences", () => {
   it("returns true by default for all categories", () => {
-    expect(isNotificationEnabled("sms_scan")).toBe(true);
     expect(isNotificationEnabled("overdue_forecast")).toBe(true);
     expect(isNotificationEnabled("upcoming_due")).toBe(true);
+    expect(isNotificationEnabled("scheduled_backup")).toBe(true);
   });
 
   it("persists preference changes", () => {
-    setNotificationEnabled("sms_scan", false);
-    expect(isNotificationEnabled("sms_scan")).toBe(false);
-    expect(isNotificationEnabled("overdue_forecast")).toBe(true);
+    setNotificationEnabled("overdue_forecast", false);
+    expect(isNotificationEnabled("overdue_forecast")).toBe(false);
+    expect(isNotificationEnabled("upcoming_due")).toBe(true);
   });
 
   it("getNotificationPreferences returns all categories", () => {
     setNotificationEnabled("upcoming_due", false);
     const prefs = getNotificationPreferences();
     expect(prefs).toEqual({
-      sms_scan: true,
       overdue_forecast: true,
       upcoming_due: false,
       monthly_summary: true,
+      scheduled_backup: true,
     });
   });
 });

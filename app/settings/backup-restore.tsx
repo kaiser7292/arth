@@ -141,7 +141,8 @@ export default function BackupRestoreScreen() {
 
   const handleRestore = useCallback(async () => {
     if (!pickedFile) return;
-    if (password.length < MIN_PASSWORD_LENGTH) {
+
+    if (!pickedFile.isAutoBackup && password.length < MIN_PASSWORD_LENGTH) {
       alert("Enter Password", `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
@@ -156,7 +157,9 @@ export default function BackupRestoreScreen() {
           style: "destructive",
           onPress: async () => {
             setLoading(true);
-            const result = await restoreBackup(pickedFile.uri, password);
+            const result = pickedFile.isAutoBackup
+              ? await restoreScheduledBackup(pickedFile.uri)
+              : await restoreBackup(pickedFile.uri, password);
             setRestoreResult(result);
             setLoading(false);
           },
@@ -556,7 +559,7 @@ export default function BackupRestoreScreen() {
               Restore from Backup
             </Text>
             <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-6">
-              Select your .arth backup file, then enter the password to decrypt.
+              Select your .arth backup file (or a .json auto-backup), then enter the password to decrypt.
             </Text>
 
             {!pickedFile ? (
@@ -577,7 +580,7 @@ export default function BackupRestoreScreen() {
                       {pickedFile.name}
                     </Text>
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                      {pickedFile.sizeLabel} - Valid Arth backup
+                      {pickedFile.sizeLabel} · {pickedFile.isAutoBackup ? "Auto-backup (no password needed)" : "Encrypted backup"}
                     </Text>
                   </View>
                   <Pressable onPress={() => { setPickedFile(null); setPassword(""); }} hitSlop={8}>
@@ -585,24 +588,28 @@ export default function BackupRestoreScreen() {
                   </Pressable>
                 </View>
 
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary mb-1">
-                  Backup Password
-                </Text>
-                <View className="flex-row items-center border border-border-light dark:border-border-dark rounded-lg mb-4">
-                  <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    placeholder="Enter backup password"
-                    placeholderTextColor={colors.textSecondary}
-                    accessibilityLabel="Restore password"
-                    maxLength={128}
-                    className="flex-1 px-4 py-3 text-base text-text-primary dark:text-text-dark-primary"
-                  />
-                  <Pressable onPress={() => setShowPassword((v) => !v)} className="px-3" hitSlop={8}>
-                    <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.textSecondary} />
-                  </Pressable>
-                </View>
+                {!pickedFile.isAutoBackup && (
+                  <>
+                    <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary mb-1">
+                      Backup Password
+                    </Text>
+                    <View className="flex-row items-center border border-border-light dark:border-border-dark rounded-lg mb-4">
+                      <TextInput
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry={!showPassword}
+                        placeholder="Enter backup password"
+                        placeholderTextColor={colors.textSecondary}
+                        accessibilityLabel="Restore password"
+                        maxLength={128}
+                        className="flex-1 px-4 py-3 text-base text-text-primary dark:text-text-dark-primary"
+                      />
+                      <Pressable onPress={() => setShowPassword((v) => !v)} className="px-3" hitSlop={8}>
+                        <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.textSecondary} />
+                      </Pressable>
+                    </View>
+                  </>
+                )}
 
                 <View className="p-3 rounded-lg bg-[#EF444414] mb-4">
                   <Text className="text-sm text-danger font-medium">
@@ -616,7 +623,7 @@ export default function BackupRestoreScreen() {
                 <Button
                   title="Restore"
                   onPress={handleRestore}
-                  disabled={loading || password.length < MIN_PASSWORD_LENGTH}
+                  disabled={loading || (!pickedFile.isAutoBackup && password.length < MIN_PASSWORD_LENGTH)}
                   loading={loading}
                 />
               </View>
