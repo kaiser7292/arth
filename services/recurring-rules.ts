@@ -30,7 +30,9 @@ import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
 import { bumpDataVersion } from "@/services/settings";
 import { todayIso } from "@/utils/date";
-import type { Expense } from "./expense-types";
+import { splitExistingExpense } from "./expense-splits";
+import { applyMultiSplit } from "./expense-multi-split";
+import type { Expense, SplitConfig, SplitMode } from "./expense-types";
 import type { RecurringFrequency } from "./recurring-detector";
 
 export type { RecurringFrequency };
@@ -50,6 +52,8 @@ export interface RecurringRule {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  /** migration 056 — snapshotted from source expense at rule creation. */
+  amount: number | null;
 }
 
 export interface CreateRuleInput {
@@ -130,6 +134,31 @@ export async function createRule(
     input.source_expense_id,
   );
 
+  // Snapshot the pre-split total so matching works against full SMS amounts
+  // even when the source expense has a split applied (migration 056).
+  // split_original_amount is the full amount before split; amount is the
+  // user's reduced share. We always want to match on the full SMS amount.
+  const sourceExpense = await db.getFirstAsync<{
+    amount: number;
+    split_original_amount: number | null;
+    category_id: string | null;
+    description: string | null;
+    split_person_id: string | null;
+    split_pct: number | null;
+    split_hisaab_entry_id: string | null;
+    split_mode: string | null;
+    split_exact_amount: number | null;
+  }>(
+    `SELECT amount, split_original_amount, category_id, description,
+            split_person_id, split_pct, split_hisaab_entry_id,
+            split_mode, split_exact_amount
+     FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
+    input.source_expense_id,
+  );
+  const snapshotAmount = sourceExpense
+    ? (sourceExpense.split_original_amount ?? sourceExpense.amount)
+    : null;
+
   const nextDue = firstNextDue(input.start_date, input.frequency);
 
   if (existing) {
@@ -144,6 +173,7 @@ export async function createRule(
            end_date = ?,
            notes = ?,
            next_due_date = ?,
+           amount = ?,
            is_active = 1,
            updated_at = datetime('now')
        WHERE id = ?;`,
@@ -152,6 +182,7 @@ export async function createRule(
       input.end_date ?? null,
       input.notes ?? null,
       nextDue,
+      snapshotAmount,
       existing.id,
     );
     bumpDataVersion();
@@ -161,8 +192,8 @@ export async function createRule(
   const ruleId = generateUUID();
   await db.runAsync(
     `INSERT INTO recurring_expense_rules
-       (id, user_id, source_expense_id, frequency, start_date, end_date, notes, next_due_date)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+       (id, user_id, source_expense_id, frequency, start_date, end_date, notes, next_due_date, amount)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     ruleId,
     userId,
     input.source_expense_id,
@@ -171,6 +202,7 @@ export async function createRule(
     input.end_date ?? null,
     input.notes ?? null,
     nextDue,
+    snapshotAmount,
   );
 
   bumpDataVersion();
@@ -427,6 +459,22 @@ export async function fulfillReminder(
   const cycleDue = rule.next_due_date;
   const fulfillmentId = generateUUID();
 
+  // Load source expense fields to copy over to the matched expense.
+  const src = await db.getFirstAsync<{
+    category_id: string | null;
+    description: string | null;
+    split_person_id: string | null;
+    split_pct: number | null;
+    split_hisaab_entry_id: string | null;
+    split_mode: string | null;
+    split_exact_amount: number | null;
+  }>(
+    `SELECT category_id, description, split_person_id, split_pct,
+            split_hisaab_entry_id, split_mode, split_exact_amount
+     FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
+    rule.source_expense_id,
+  );
+
   await db.withTransactionAsync(async () => {
     await db.runAsync(
       `INSERT INTO reminder_fulfillments (id, rule_id, expense_id, cycle_due_date)
@@ -436,9 +484,20 @@ export async function fulfillReminder(
       expenseId,
       cycleDue,
     );
+
+    // Stamp the fulfillment link and copy category + description from the
+    // source expense. COALESCE(?, col) keeps the existing value when the
+    // source field is NULL (preserves SMS-auto description/category).
     await db.runAsync(
-      `UPDATE expenses SET fulfills_rule_id = ?, updated_at = datetime('now') WHERE id = ?;`,
+      `UPDATE expenses
+       SET fulfills_rule_id = ?,
+           category_id = COALESCE(?, category_id),
+           description = COALESCE(?, description),
+           updated_at = datetime('now')
+       WHERE id = ?;`,
       ruleId,
+      src?.category_id ?? null,
+      src?.description ?? null,
       expenseId,
     );
 
@@ -459,6 +518,58 @@ export async function fulfillReminder(
       );
     }
   });
+
+  // Apply the source's split to the matched expense (outside the transaction
+  // since splitExistingExpense / applyMultiSplit manage their own transactions).
+  if (src?.split_person_id && src.split_pct != null) {
+    try {
+      // Determine paidBy from the source hisaab entry type.
+      let paidBy: "me" | string = "me";
+      if (src.split_hisaab_entry_id) {
+        const entry = await db.getFirstAsync<{ type: string }>(
+          `SELECT type FROM hisaab_entries WHERE id = ?;`,
+          src.split_hisaab_entry_id,
+        );
+        if (entry?.type === "credit") paidBy = "they";
+      }
+      const splitMode = (src.split_mode as SplitMode | null) ?? "percentage";
+      const config: SplitConfig = {
+        personId: src.split_person_id,
+        paidBy,
+        splitMode,
+        exactAmount: src.split_exact_amount ?? undefined,
+        percentage: splitMode === "percentage" ? 100 - src.split_pct : undefined,
+      };
+      await splitExistingExpense(expenseId, config);
+    } catch (e) {
+      // Non-fatal — split apply failure shouldn't undo the fulfillment.
+    }
+  } else if (src) {
+    // Check for multi-person split.
+    try {
+      const multiSplits = await db.getAllAsync<{
+        hisaab_person_id: string;
+        description: string | null;
+        amount: number;
+      }>(
+        `SELECT hisaab_person_id, description, amount FROM expense_splits WHERE expense_id = ?;`,
+        rule.source_expense_id,
+      );
+      if (multiSplits.length > 0) {
+        await applyMultiSplit(expenseId, {
+          splits: multiSplits.map((s) => ({
+            personId: s.hisaab_person_id,
+            description: s.description ?? "",
+            amount: s.amount,
+          })),
+          feeAbsorbed: false,
+        });
+      }
+    } catch (e) {
+      // Non-fatal.
+    }
+  }
+
   bumpDataVersion();
 }
 

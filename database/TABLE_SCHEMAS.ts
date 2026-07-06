@@ -462,6 +462,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "created_at",
     "updated_at",
     "next_due_date", // 014
+    "amount", // 056
   ] as const,
 
   reminder_fulfillments: [

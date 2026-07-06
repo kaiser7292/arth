@@ -84,13 +84,15 @@ export async function findAutoMatches(userId: string): Promise<ReminderAutoMatch
   const today = todayIso();
 
   // Load active reminders that are due_soon or overdue.
+  // amount: snapshotted from source expense at rule creation (migration 056).
   const rules = await db.getAllAsync<{
     id: string;
     source_expense_id: string;
     next_due_date: string;
     frequency: string;
+    amount: number | null;
   }>(
-    `SELECT r.id, r.source_expense_id, r.next_due_date, r.frequency
+    `SELECT r.id, r.source_expense_id, r.next_due_date, r.frequency, r.amount
      FROM recurring_expense_rules r
      WHERE r.user_id = ? AND r.is_active = 1
        AND r.next_due_date IS NOT NULL
@@ -108,16 +110,17 @@ export async function findAutoMatches(userId: string): Promise<ReminderAutoMatch
   const results: ReminderAutoMatch[] = [];
 
   for (const rule of rules) {
-    // Source expense carries the canonical amount (and merchant/account for tie-breaking).
-    const source = await db.getFirstAsync<{
-      amount: number;
-      merchant_name: string | null;
-      account_id: string | null;
-    }>(
-      `SELECT amount, merchant_name, account_id FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
-      rule.source_expense_id,
-    );
-    if (!source) continue;
+    // Use snapshotted amount (migration 056). Fall back to live source expense
+    // for rules created before the migration ran (amount IS NULL).
+    let matchAmount = rule.amount;
+    if (matchAmount == null) {
+      const source = await db.getFirstAsync<{ amount: number }>(
+        `SELECT amount FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
+        rule.source_expense_id,
+      );
+      if (!source) continue;
+      matchAmount = source.amount;
+    }
 
     // Window: 5 days before due date up to today.
     const windowStart = (() => {
@@ -141,7 +144,7 @@ export async function findAutoMatches(userId: string): Promise<ReminderAutoMatch
        ORDER BY date DESC
        LIMIT 10;`,
       userId,
-      source.amount,
+      matchAmount,
       windowStart,
       today,
     );
