@@ -575,6 +575,12 @@ export async function restoreAllRules(): Promise<void> {
   await bumpDataVersion();
 }
 
+export async function hardDeleteRule(id: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(`DELETE FROM smart_rules WHERE id = ?;`, id);
+  await bumpDataVersion();
+}
+
 export async function purgeDeletedRules(): Promise<void> {
   const db = getDatabase();
   await db.runAsync(`DELETE FROM smart_rules WHERE deleted_at IS NOT NULL;`);

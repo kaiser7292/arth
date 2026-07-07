@@ -32,8 +32,14 @@ import type { AccountCredit } from "@/services/account-credit";
 import { getDismissedRecurring, restoreRecurring, hardDeleteRecurring, restoreAllRecurring, purgeAllDismissedRecurring } from "@/services/recurring-detector";
 import type { RecurringTransaction } from "@/services/recurring-detector";
 import { getAllSmsRecords, deleteSmsRecord, deleteAllSmsRecords, getSmsLinkedExpenseInfo } from "@/services/sms";
+import { getDeletedVaultEntries, restoreVaultEntry, restoreAllVaultEntries, hardDeleteVaultEntry, purgeAllDeletedVaultEntries } from "@/services/vault";
+import type { VaultEntry } from "@/services/vault";
+import { listDeletedRules, restoreRule, restoreAllRules, hardDeleteRule, purgeDeletedRules } from "@/services/smart-rules";
+import type { SmartRule } from "@/services/smart-rules";
+import { getDeletedUserTemplates, restoreUserTemplate, restoreAllUserTemplates, hardDeleteUserTemplate, purgeDeletedUserTemplates } from "@/services/sms/user-sms-templates";
+import type { UserSmsTemplate } from "@/services/sms/user-sms-templates";
 
-type SectionFilter = "deleted" | "rejected" | "categories" | "payment_modes" | "accounts" | "hisaab" | "credits" | "recurring" | "sms";
+type SectionFilter = "deleted" | "rejected" | "categories" | "payment_modes" | "accounts" | "hisaab" | "credits" | "recurring" | "sms" | "vault" | "smart_rules" | "sms_templates";
 
 interface SmsRecord {
   id: string; sms_id: string; address: string; body: string;
@@ -50,6 +56,9 @@ const FILTER_OPTIONS: { key: SectionFilter; label: string; icon: keyof typeof Io
   { key: "credits", label: "Credits", icon: "arrow-down-outline" },
   { key: "recurring", label: "Patterns", icon: "repeat-outline" },
   { key: "sms", label: "SMS", icon: "chatbox-outline" },
+  { key: "vault", label: "Vault", icon: "lock-closed-outline" },
+  { key: "smart_rules", label: "Rules", icon: "flash-outline" },
+  { key: "sms_templates", label: "Templates", icon: "code-slash-outline" },
 ];
 
 function daysAgo(dateStr: string): string {
@@ -103,6 +112,9 @@ export default function RecycleBinScreen() {
   const [deletedCredits, setDeletedCredits] = useState<AccountCredit[]>([]);
   const [dismissedRecurring, setDismissedRecurring] = useState<RecurringTransaction[]>([]);
   const [smsRecords, setSmsRecords] = useState<SmsRecord[]>([]);
+  const [deletedVaultEntries, setDeletedVaultEntries] = useState<VaultEntry[]>([]);
+  const [deletedSmartRules, setDeletedSmartRules] = useState<SmartRule[]>([]);
+  const [deletedSmsTemplates, setDeletedSmsTemplates] = useState<UserSmsTemplate[]>([]);
 
   // Reference data for expense list items
   const [categories, setCategories] = useState<Category[]>([]);
@@ -130,7 +142,7 @@ export default function RecycleBinScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [deleted, rejected, cats, pms, accts, persons, credits, recurring, sms] = await Promise.all([
+      const [deleted, rejected, cats, pms, accts, persons, credits, recurring, sms, vault, rules, templates] = await Promise.all([
         getDeletedExpenses(DEFAULT_USER_ID),
         getRejectedExpenses(DEFAULT_USER_ID),
         getInactiveCategories(DEFAULT_USER_ID),
@@ -140,6 +152,9 @@ export default function RecycleBinScreen() {
         getDeletedCredits(DEFAULT_USER_ID),
         getDismissedRecurring(DEFAULT_USER_ID),
         getAllSmsRecords(DEFAULT_USER_ID),
+        getDeletedVaultEntries(),
+        listDeletedRules(),
+        getDeletedUserTemplates(),
       ]);
       setDeletedExpenses(deleted);
       setRejectedExpenses(rejected);
@@ -150,6 +165,9 @@ export default function RecycleBinScreen() {
       setDeletedCredits(credits);
       setDismissedRecurring(recurring);
       setSmsRecords(sms);
+      setDeletedVaultEntries(vault);
+      setDeletedSmartRules(rules);
+      setDeletedSmsTemplates(templates);
     } catch (e) {
       logger.error("Load recycle bin data failed:", e);
     }
@@ -164,6 +182,8 @@ export default function RecycleBinScreen() {
     accounts: inactiveAccounts.length, hisaab: inactivePersons.length,
     credits: deletedCredits.length, recurring: dismissedRecurring.length,
     sms: smsRecords.length,
+    vault: deletedVaultEntries.length, smart_rules: deletedSmartRules.length,
+    sms_templates: deletedSmsTemplates.length,
   };
 
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -390,6 +410,57 @@ export default function RecycleBinScreen() {
     />
   ), [SimpleRow, confirm]);
 
+  const VAULT_CATEGORY_LABELS: Record<string, string> = {
+    banking: "Banking / Card", demat: "Demat / Trading",
+    subscription: "Subscription", social: "Social / App", statement_pwd: "Statement Password",
+  };
+
+  const TX_TYPE_LABELS: Record<string, string> = {
+    debit: "Debit", credit: "Credit", balance: "Balance",
+  };
+
+  const renderVaultItem = useCallback(({ item }: { item: VaultEntry }) => (
+    <SimpleRow
+      icon="lock-closed-outline"
+      title={item.title}
+      subtitle={VAULT_CATEGORY_LABELS[item.category] ?? item.category}
+      onRestore={() => confirm("Restore Vault Entry", `Restore "${item.title}"?`, "Restore", false, async () => {
+        await restoreVaultEntry(item.id); setDeletedVaultEntries((p) => p.filter((v) => v.id !== item.id));
+      })}
+      onDelete={() => confirm("Delete Forever", `Permanently delete "${item.title}"? All saved credentials will be erased.`, "Delete", true, async () => {
+        await hardDeleteVaultEntry(item.id); setDeletedVaultEntries((p) => p.filter((v) => v.id !== item.id));
+      })}
+    />
+  ), [SimpleRow, confirm]);
+
+  const renderSmartRuleItem = useCallback(({ item }: { item: SmartRule }) => (
+    <SimpleRow
+      icon="flash-outline"
+      title={item.name}
+      subtitle={`${item.apply_count}x applied · ${item.conditions.length} condition${item.conditions.length !== 1 ? "s" : ""}`}
+      onRestore={() => confirm("Restore Rule", `Restore "${item.name}"? It will become active again.`, "Restore", false, async () => {
+        await restoreRule(item.id); setDeletedSmartRules((p) => p.filter((r) => r.id !== item.id));
+      })}
+      onDelete={() => confirm("Delete Forever", `Permanently delete rule "${item.name}"?`, "Delete", true, async () => {
+        await hardDeleteRule(item.id); setDeletedSmartRules((p) => p.filter((r) => r.id !== item.id));
+      })}
+    />
+  ), [SimpleRow, confirm]);
+
+  const renderSmsTemplateItem = useCallback(({ item }: { item: UserSmsTemplate }) => (
+    <SimpleRow
+      icon="code-slash-outline"
+      title={item.bank_name}
+      subtitle={TX_TYPE_LABELS[item.tx_type] ?? item.tx_type}
+      onRestore={() => confirm("Restore Template", `Restore SMS template for "${item.bank_name}"?`, "Restore", false, async () => {
+        await restoreUserTemplate(item.id); setDeletedSmsTemplates((p) => p.filter((t) => t.id !== item.id));
+      })}
+      onDelete={() => confirm("Delete Forever", `Permanently delete this SMS template for "${item.bank_name}"?`, "Delete", true, async () => {
+        await hardDeleteUserTemplate(item.id); setDeletedSmsTemplates((p) => p.filter((t) => t.id !== item.id));
+      })}
+    />
+  ), [SimpleRow, confirm]);
+
   const renderRecurringItem = useCallback(({ item }: { item: RecurringTransaction }) => (
     <SimpleRow
       icon="repeat-outline"
@@ -462,7 +533,10 @@ export default function RecycleBinScreen() {
     credits: { data: deletedCredits, renderItem: renderCreditItem, emptyTitle: "No Deleted Credits", emptySubtitle: "Deleted credit entries will appear here.", emptyIcon: "arrow-down-outline" },
     recurring: { data: dismissedRecurring, renderItem: renderRecurringItem, emptyTitle: "No Dismissed Patterns", emptySubtitle: "Dismissed recurring transaction patterns will appear here.", emptyIcon: "repeat-outline" },
     sms: { data: smsRecords, renderItem: renderSmsItem, emptyTitle: "No SMS Records", emptySubtitle: "SMS records from scans will appear here.", emptyIcon: "chatbox-outline" },
-  }), [deletedExpenses, rejectedExpenses, inactiveCategories, inactivePaymentModes, inactiveAccounts, inactivePersons, deletedCredits, dismissedRecurring, smsRecords, renderDeletedItem, renderRejectedItem, renderCategoryItem, renderPaymentModeItem, renderAccountItem, renderPersonItem, renderCreditItem, renderRecurringItem, renderSmsItem]);
+    vault: { data: deletedVaultEntries, renderItem: renderVaultItem, emptyTitle: "No Deleted Vault Entries", emptySubtitle: "Deleted vault entries appear here. Restore to recover saved credentials.", emptyIcon: "lock-closed-outline" },
+    smart_rules: { data: deletedSmartRules, renderItem: renderSmartRuleItem, emptyTitle: "No Deleted Rules", emptySubtitle: "Deleted smart auto-categorization rules will appear here.", emptyIcon: "flash-outline" },
+    sms_templates: { data: deletedSmsTemplates, renderItem: renderSmsTemplateItem, emptyTitle: "No Deleted Templates", emptySubtitle: "Deleted SMS parsing templates will appear here.", emptyIcon: "code-slash-outline" },
+  }), [deletedExpenses, rejectedExpenses, inactiveCategories, inactivePaymentModes, inactiveAccounts, inactivePersons, deletedCredits, dismissedRecurring, smsRecords, deletedVaultEntries, deletedSmartRules, deletedSmsTemplates, renderDeletedItem, renderRejectedItem, renderCategoryItem, renderPaymentModeItem, renderAccountItem, renderPersonItem, renderCreditItem, renderRecurringItem, renderSmsItem, renderVaultItem, renderSmartRuleItem, renderSmsTemplateItem]);
 
   if (loading) {
     return <ScreenContainer padTop={false} centered><ActivityIndicator size="large" color={colors.blue} /></ScreenContainer>;
@@ -548,6 +622,18 @@ export default function RecycleBinScreen() {
       {activeFilter === "recurring" && <BulkBar count={dismissedRecurring.length} label={`dismissed pattern${dismissedRecurring.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${dismissedRecurring.length} patterns?`, "Restore All", false, async () => { await restoreAllRecurring(DEFAULT_USER_ID); setDismissedRecurring([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all dismissed patterns?`, "Delete All", true, async () => { await purgeAllDismissedRecurring(DEFAULT_USER_ID); setDismissedRecurring([]); })} />}
+
+      {activeFilter === "vault" && <BulkBar count={deletedVaultEntries.length} label={`deleted vault entr${deletedVaultEntries.length !== 1 ? "ies" : "y"}`}
+        onRestoreAll={() => confirm("Restore All", `Restore all ${deletedVaultEntries.length} vault entries?`, "Restore All", false, async () => { await restoreAllVaultEntries(); setDeletedVaultEntries([]); })}
+        onPurgeAll={() => confirm("Purge All", `Permanently delete all vault entries? All saved credentials will be erased.`, "Delete All", true, async () => { await purgeAllDeletedVaultEntries(); setDeletedVaultEntries([]); })} />}
+
+      {activeFilter === "smart_rules" && <BulkBar count={deletedSmartRules.length} label={`deleted rule${deletedSmartRules.length !== 1 ? "s" : ""}`}
+        onRestoreAll={() => confirm("Restore All", `Restore all ${deletedSmartRules.length} rules?`, "Restore All", false, async () => { await restoreAllRules(); setDeletedSmartRules([]); })}
+        onPurgeAll={() => confirm("Purge All", `Permanently delete all deleted rules?`, "Delete All", true, async () => { await purgeDeletedRules(); setDeletedSmartRules([]); })} />}
+
+      {activeFilter === "sms_templates" && <BulkBar count={deletedSmsTemplates.length} label={`deleted template${deletedSmsTemplates.length !== 1 ? "s" : ""}`}
+        onRestoreAll={() => confirm("Restore All", `Restore all ${deletedSmsTemplates.length} SMS templates?`, "Restore All", false, async () => { await restoreAllUserTemplates(); setDeletedSmsTemplates([]); })}
+        onPurgeAll={() => confirm("Purge All", `Permanently delete all deleted SMS templates?`, "Delete All", true, async () => { await purgeDeletedUserTemplates(); setDeletedSmsTemplates([]); })} />}
 
       {activeFilter === "sms" && smsRecords.length > 0 && (
         <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border-light dark:border-border-dark">

@@ -353,6 +353,15 @@ export async function restoreAllUserTemplates(): Promise<void> {
   await bumpDataVersion();
 }
 
+export async function hardDeleteUserTemplate(id: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `DELETE FROM sms_template_patterns WHERE id = ? AND source = 'user';`,
+    id,
+  );
+  await bumpDataVersion();
+}
+
 export async function purgeDeletedUserTemplates(): Promise<void> {
   const db = getDatabase();
   await db.runAsync(

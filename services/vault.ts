@@ -272,6 +272,36 @@ export async function deleteVaultEntry(id: string): Promise<void> {
   );
 }
 
+export async function getDeletedVaultEntries(): Promise<VaultEntry[]> {
+  const db = getDatabase();
+  return db.getAllAsync<VaultEntry>(
+    `SELECT * FROM vault_entries WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC`,
+  );
+}
+
+export async function restoreVaultEntry(id: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE vault_entries SET deleted_at = NULL WHERE id = ?`,
+    [id],
+  );
+}
+
+export async function restoreAllVaultEntries(): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(`UPDATE vault_entries SET deleted_at = NULL WHERE deleted_at IS NOT NULL`);
+}
+
+export async function hardDeleteVaultEntry(id: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(`DELETE FROM vault_entries WHERE id = ?`, [id]);
+}
+
+export async function purgeAllDeletedVaultEntries(): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(`DELETE FROM vault_entries WHERE deleted_at IS NOT NULL`);
+}
+
 export async function searchVaultEntries(query: string): Promise<VaultEntry[]> {
   const db = getDatabase();
   const q = `%${query.toLowerCase()}%`;
