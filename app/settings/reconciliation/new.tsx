@@ -15,7 +15,7 @@ import {
   bulkInsertItems,
   updateSession,
 } from "@/services/reconciliation/reconciliation-crud";
-import { parseXlsFile, type ParsedStatement, ParseError } from "@/services/reconciliation/xls-parser";
+import { parseXlsFile, type ParsedStatement, ParseError, XlsPasswordError } from "@/services/reconciliation/xls-parser";
 import { parsePdfStatement, PdfPasswordError } from "@/services/reconciliation/pdf-parser";
 import { buildArthPool, matchStatementRows } from "@/services/reconciliation/statement-matcher";
 import { settingsStorage } from "@/services/storage";
@@ -71,6 +71,12 @@ export default function NewReconciliationScreen() {
   const [pdfPasswordError, setPdfPasswordError] = useState("");
   const pendingPdfRef = useRef<{ uri: string; name: string } | null>(null);
 
+  // XLS/XLSX password prompt state
+  const [xlsPasswordVisible, setXlsPasswordVisible] = useState(false);
+  const [xlsPassword, setXlsPassword] = useState("");
+  const [xlsPasswordError, setXlsPasswordError] = useState("");
+  const pendingXlsRef = useRef<{ buffer: ArrayBuffer; name: string } | null>(null);
+
   useEffect(() => {
     getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch(() => {});
   }, []);
@@ -124,10 +130,17 @@ export default function NewReconciliationScreen() {
           const p = parseXlsFile(buffer, name);
           applyParsed(p, name);
         } catch (e) {
-          alert(
-            "Couldn't read file",
-            e instanceof ParseError ? e.message : "An unexpected error occurred while reading the file.",
-          );
+          if (e instanceof XlsPasswordError) {
+            pendingXlsRef.current = { buffer, name };
+            setXlsPassword("");
+            setXlsPasswordError("");
+            setXlsPasswordVisible(true);
+          } else {
+            alert(
+              "Couldn't read file",
+              e instanceof ParseError ? e.message : "An unexpected error occurred while reading the file.",
+            );
+          }
         }
         return;
       }
@@ -262,6 +275,30 @@ export default function NewReconciliationScreen() {
       }
     }
   }, [pdfPassword, applyParsed, alert, offerSavePasswordToVault]);
+
+  const handleXlsPasswordSubmit = useCallback(() => {
+    const pending = pendingXlsRef.current;
+    if (!pending) return;
+    setXlsPasswordError("");
+    try {
+      const p = parseXlsFile(pending.buffer, pending.name, xlsPassword);
+      setXlsPasswordVisible(false);
+      pendingXlsRef.current = null;
+      applyParsed(p, pending.name);
+    } catch (e) {
+      if (e instanceof XlsPasswordError) {
+        setXlsPasswordError(e.message);
+      } else if (e instanceof ParseError) {
+        setXlsPasswordVisible(false);
+        pendingXlsRef.current = null;
+        alert("Couldn't read file", (e as Error).message);
+      } else {
+        setXlsPasswordVisible(false);
+        pendingXlsRef.current = null;
+        alert("Error", "An unexpected error occurred.");
+      }
+    }
+  }, [xlsPassword, applyParsed, alert]);
 
   const handleStartMatching = useCallback(async () => {
     if (!selectedAccountId || !parsed) return;
@@ -420,6 +457,56 @@ export default function NewReconciliationScreen() {
               </Pressable>
               <Pressable
                 onPress={handlePdfPasswordSubmit}
+                className="flex-1 py-3 rounded-xl items-center"
+                style={{ backgroundColor: accent[500] }}
+              >
+                <Text className="text-sm font-semibold text-white">Unlock</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* XLS/XLSX Password Modal */}
+      <Modal
+        visible={xlsPasswordVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { setXlsPasswordVisible(false); pendingXlsRef.current = null; }}
+      >
+        <View className="flex-1 justify-center items-center px-8" style={{ backgroundColor: "#00000066" }}>
+          <View className="w-full rounded-2xl p-6" style={{ backgroundColor: colors.surface }}>
+            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mb-1">
+              Password-protected file
+            </Text>
+            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-4">
+              Enter the password to unlock this Excel statement.
+            </Text>
+            <TextInput
+              value={xlsPassword}
+              onChangeText={setXlsPassword}
+              secureTextEntry
+              placeholder="File password"
+              placeholderTextColor={colors.textSecondary}
+              returnKeyType="done"
+              onSubmitEditing={handleXlsPasswordSubmit}
+              className="border rounded-xl px-4 py-3 text-base text-text-primary dark:text-text-dark-primary mb-2"
+              style={{ borderColor: xlsPasswordError ? "#EF4444" : colors.border }}
+              autoFocus
+            />
+            {xlsPasswordError ? (
+              <Text className="text-xs text-red-500 mb-2">{xlsPasswordError}</Text>
+            ) : null}
+            <View className="flex-row gap-3 mt-2">
+              <Pressable
+                onPress={() => { setXlsPasswordVisible(false); pendingXlsRef.current = null; }}
+                className="flex-1 py-3 rounded-xl items-center"
+                style={{ backgroundColor: colors.border + "55" }}
+              >
+                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleXlsPasswordSubmit}
                 className="flex-1 py-3 rounded-xl items-center"
                 style={{ backgroundColor: accent[500] }}
               >

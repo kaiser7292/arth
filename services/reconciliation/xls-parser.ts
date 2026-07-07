@@ -21,6 +21,13 @@ export class ParseError extends Error {
   }
 }
 
+export class XlsPasswordError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "XlsPasswordError";
+  }
+}
+
 // ─── Date normalisation ────────────────────────────────────────────────────────
 
 function parseDate(raw: unknown): string | null {
@@ -41,6 +48,10 @@ function parseDate(raw: unknown): string | null {
   // dd-mm-yyyy or dd/mm/yyyy
   const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+
+  // dd.mm.yyyy (ICICI savings format)
+  const dDot = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (dDot) return `${dDot[3]}-${dDot[2].padStart(2, "0")}-${dDot[1].padStart(2, "0")}`;
 
   // dd-Mon-yy (01-Apr-26)
   const dmonYY = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2})$/);
@@ -163,8 +174,8 @@ function parseICICI(rows: unknown[][], headers: string[]): StatementRow[] {
 function parseAxis(rows: unknown[][], headers: string[]): StatementRow[] {
   const dateCol = findCol(headers, ["tran date", "transaction date", "date", "value date"]);
   const narrationCol = findCol(headers, ["particulars", "narration", "description", "transaction remarks"]);
-  const debitCol = findCol(headers, ["debit", "withdrawal"]);
-  const creditCol = findCol(headers, ["credit", "deposit"]);
+  const debitCol = findCol(headers, ["debit", "withdrawal", "dr"]);
+  const creditCol = findCol(headers, ["credit", "deposit", "cr"]);
 
   if (dateCol === -1) throw new ParseError("Axis: Date column not found");
 
@@ -184,7 +195,7 @@ function parseAxis(rows: unknown[][], headers: string[]): StatementRow[] {
 // Generic two-column debit/credit parser as fallback
 function parseGeneric(rows: unknown[][], headers: string[]): StatementRow[] {
   const dateCol = findCol(headers, ["date", "transaction date", "tran date", "value date"]);
-  const narrationCol = findCol(headers, ["narration", "description", "particulars", "transaction remarks"]);
+  const narrationCol = findCol(headers, ["narration", "description", "particulars", "transaction remarks", "remarks"]);
   const debitCol = findCol(headers, ["debit", "dr", "withdrawal", "withdrawal amt."]);
   const creditCol = findCol(headers, ["credit", "cr", "deposit", "deposit amt."]);
 
@@ -226,9 +237,9 @@ function findHeaderRow(sheet: XLSX.WorkSheet): { headers: string[]; dataStart: n
   const range = XLSX.utils.decode_range(ref);
 
   const commonHeaders = ["date", "narration", "withdrawal", "deposit", "debit", "credit",
-    "transaction", "particulars", "amount", "balance"];
+    "transaction", "particulars", "amount", "balance", "description", "remarks", "dr", "cr"];
 
-  for (let r = range.s.r; r <= Math.min(range.s.r + 15, range.e.r); r++) {
+  for (let r = range.s.r; r <= Math.min(range.s.r + 30, range.e.r); r++) {
     const rowVals: string[] = [];
     for (let c = range.s.c; c <= range.e.c; c++) {
       const cell = sheet[XLSX.utils.encode_cell({ r, c })];
@@ -249,13 +260,25 @@ function findHeaderRow(sheet: XLSX.WorkSheet): { headers: string[]; dataStart: n
 export function parseXlsFile(
   fileData: ArrayBuffer,
   filename: string,
+  password?: string,
 ): ParsedStatement {
   const format: ImportFormat = filename.toLowerCase().endsWith(".xlsx") ? "xlsx" : "xls";
 
   let workbook: XLSX.WorkBook;
   try {
-    workbook = XLSX.read(fileData, { type: "array", cellDates: false });
-  } catch {
+    const opts: XLSX.ParsingOptions = { type: "array", cellDates: false };
+    if (password) opts.password = password;
+    workbook = XLSX.read(fileData, opts);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message.toLowerCase() : "";
+    if (msg.includes("password") || msg.includes("protected")) {
+      if (password) {
+        throw new XlsPasswordError(
+          "Could not unlock the file. The password may be incorrect, or this file uses strong encryption that cannot be read. Please try exporting the statement as a PDF instead.",
+        );
+      }
+      throw new XlsPasswordError("This file is password-protected.");
+    }
     throw new ParseError("Could not open the file. It may be corrupted or in an unsupported format.");
   }
 

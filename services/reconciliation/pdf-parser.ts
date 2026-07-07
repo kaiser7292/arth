@@ -53,6 +53,9 @@ function parsePdfDate(raw: string): string | null {
   const s = raw.trim();
   const dmy4 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (dmy4) return `${dmy4[3]}-${dmy4[2].padStart(2,"0")}-${dmy4[1].padStart(2,"0")}`;
+  // dd.mm.yyyy (ICICI savings PDF)
+  const dDot = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (dDot) return `${dDot[3]}-${dDot[2].padStart(2,"0")}-${dDot[1].padStart(2,"0")}`;
   const dmy2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
   if (dmy2) return `${2000 + parseInt(dmy2[3])}-${dmy2[2].padStart(2,"0")}-${dmy2[1].padStart(2,"0")}`;
   const dMonY = s.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
@@ -199,7 +202,8 @@ function parseIciciSavings(lines: string[]): { rows: StatementRow[]; closing: nu
   const rows: StatementRow[] = [];
   let prevBalance: number | null = null;
   let closing: number | null = null;
-  const dateRe = /^(\d{2}\/\d{2}\/\d{4})\s+(.+)$/;
+  // Handles dd/mm/yyyy AND dd.mm.yyyy, with optional leading serial number
+  const dateRe = /^(?:\d+\s+)?(\d{2}[\/\.]\d{2}[\/\.]\d{4})\s+(.+)$/;
 
   for (const line of lines) {
     const dm = line.match(dateRe);
