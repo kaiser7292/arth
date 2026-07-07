@@ -135,6 +135,8 @@ const SUGGEST_DAY_TOLERANCE = 7;
 export function matchStatementRows(
   stmtRows: StatementRow[],
   pool: ArthPoolEntry[],
+  strictStartDate?: string,
+  strictEndDate?: string,
 ): {
   results: MatchResult[];
   extraInArth: ArthPoolEntry[];
@@ -186,7 +188,16 @@ export function matchStatementRows(
     }
   }
 
-  const extraInArth = pool.filter((a) => !usedPoolIds.has(a.id));
+  // "Extra in Arth" = unmatched pool entries strictly within the statement
+  // date range. The pool is fetched with a ±7-day buffer for swipe/posting-date
+  // tolerance during matching, but we must not flag pre- or post-period Arth
+  // entries as extra — they legitimately belong to adjacent statement periods.
+  const extraInArth = pool.filter((a) => {
+    if (usedPoolIds.has(a.id)) return false;
+    if (strictStartDate && a.date < strictStartDate) return false;
+    if (strictEndDate && a.date > strictEndDate) return false;
+    return true;
+  });
 
   return { results, extraInArth };
 }

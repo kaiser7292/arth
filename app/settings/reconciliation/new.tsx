@@ -347,7 +347,12 @@ export default function NewReconciliationScreen() {
       );
 
       setProgress("Matching against your Arth ledger…");
-      const { results, extraInArth } = matchStatementRows(parsed.rows, pool);
+      const { results, extraInArth } = matchStatementRows(
+        parsed.rows,
+        pool,
+        parsed.startDate ?? undefined,
+        parsed.endDate ?? undefined,
+      );
 
       const matched = results.filter((r) => r.matched !== null);
       setProgress(`Matched ${matched.length} of ${results.length}. Saving…`);
