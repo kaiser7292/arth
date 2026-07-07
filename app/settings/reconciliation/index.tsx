@@ -4,9 +4,10 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 import { Card, FAB, ScreenContainer } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAlert } from "@/hooks/use-alert";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { getSessions, type ReconciliationSession } from "@/services/reconciliation/reconciliation-crud";
+import { getSessions, deleteSession, type ReconciliationSession } from "@/services/reconciliation/reconciliation-crud";
 
 function statusLabel(status: string): string {
   if (status === "completed") return "Completed";
@@ -33,6 +34,7 @@ function formatDate(iso: string): string {
 
 export default function ReconciliationHubScreen() {
   const router = useRouter();
+  const alert = useAlert();
   const { colors, accent } = useColorScheme();
 
   const [sessions, setSessions] = useState<ReconciliationSession[]>([]);
@@ -56,6 +58,26 @@ export default function ReconciliationHubScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  const handleDelete = useCallback((item: ReconciliationSession) => {
+    const account = accounts[item.account_id];
+    const label = account ? (account.account_label || account.bank_name) : "this session";
+    alert(
+      "Delete reconciliation",
+      `Delete the ${formatDate(item.stmt_start_date)} – ${formatDate(item.stmt_end_date)} session for ${label}? This cannot be undone.`,
+      [
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            await deleteSession(item.id);
+            load();
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ],
+    );
+  }, [accounts, alert, load]);
+
   const renderItem = ({ item }: { item: ReconciliationSession }) => {
     const account = accounts[item.account_id];
     const pct = matchPct(item);
@@ -64,6 +86,8 @@ export default function ReconciliationHubScreen() {
     return (
       <Pressable
         onPress={() => router.push(`/settings/reconciliation/${item.id}`)}
+        onLongPress={() => handleDelete(item)}
+        delayLongPress={400}
         className="flex-row items-center py-3.5 border-b border-border-light dark:border-border-dark"
       >
         <View
@@ -97,7 +121,9 @@ export default function ReconciliationHubScreen() {
             </Text>
           )}
         </View>
-        <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} className="ml-2" />
+        <Pressable onPress={() => handleDelete(item)} hitSlop={8} className="ml-3">
+          <Ionicons name="trash-outline" size={16} color="#EF444466" />
+        </Pressable>
       </Pressable>
     );
   };
