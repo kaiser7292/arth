@@ -35,6 +35,7 @@ export default function VaultEntryScreen() {
   const [showCvv, setShowCvv] = useState(false);
   const [showSecondaryPassword, setShowSecondaryPassword] = useState(false);
   const [showMpin, setShowMpin] = useState(false);
+  const [showTpin, setShowTpin] = useState(false);
   const [showStatementPwd, setShowStatementPwd] = useState(false);
   const [customFields, setCustomFields] = useState<Record<string, string>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -377,6 +378,7 @@ export default function VaultEntryScreen() {
           />
         )}
 
+        {/* Legacy: demat entries saved with login_method=pin before TPIN moved to extras */}
         {showPinField && pin && (
           <SecretRow
             label={entry.category === "demat" ? "Trading PIN / TPIN" : "PIN"}
@@ -390,7 +392,22 @@ export default function VaultEntryScreen() {
           />
         )}
 
-        {entry.category === "banking" && customFields.statement_password && (
+        {/* Demat extras */}
+        {entry.category === "demat" && customFields.tpin && (
+          <SecretRow
+            label="Trading PIN / TPIN"
+            value={customFields.tpin}
+            show={showTpin}
+            onToggle={() => setShowTpin((p) => !p)}
+            onCopy={() => handleCopy("Trading PIN / TPIN", customFields.tpin)}
+            copied={copiedField === "Trading PIN / TPIN"}
+            accent={accent}
+            colors={colors}
+          />
+        )}
+
+        {/* Statement PDF Password — banking and demat */}
+        {(entry.category === "banking" || entry.category === "demat") && customFields.statement_password && (
           <SecretRow
             label="Statement PDF Password"
             value={customFields.statement_password}

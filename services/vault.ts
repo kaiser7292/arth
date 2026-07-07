@@ -89,8 +89,8 @@ export const VAULT_CATEGORY_ICONS: Record<VaultCategory, string> = {
 
 export const VAULT_CATEGORY_GROUPS: { label: string; categories: VaultCategory[] }[] = [
   {
-    label: "Category",
-    categories: ["banking", "card", "upi", "demat", "statement_pwd", "email", "gaming", "subscription", "social", "other"],
+    label: "Account Type",
+    categories: ["banking", "card", "upi", "demat", "email", "gaming", "subscription", "social", "other"],
   },
 ];
 
@@ -99,7 +99,7 @@ export const LOGIN_METHOD_LABELS: Record<LoginMethod, string> = {
   email_password: "Email + Password",
   google:         "Sign in with Google",
   apple:          "Sign in with Apple",
-  phone_otp:      "Phone OTP (no password)",
+  phone_otp:      "Phone / OTP",
   pin:            "PIN only",
   none:           "No credentials",
 };
