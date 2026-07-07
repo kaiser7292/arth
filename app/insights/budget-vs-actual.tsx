@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 import { ScreenContainer, Card, LoadingState, EmptyState } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -15,6 +16,7 @@ import {
   type BudgetVsActualRow,
   type BudgetVsActualResult,
 } from "@/services/budget";
+import { getExpenseIdsByCategory } from "@/services/expense";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -104,6 +106,7 @@ function shortMonth(yyyyMM: string): string {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function BudgetVsActualScreen() {
+  const router = useRouter();
   const { colors, accent, colorScheme } = useColorScheme();
   const sc = StatusColors[colorScheme];
 
@@ -141,6 +144,27 @@ export default function BudgetVsActualScreen() {
   }, [period]);
 
   useDataRefresh(loadData);
+
+  const drillDown = useCallback(async (row: BudgetVsActualRow) => {
+    try {
+      const ids = await getExpenseIdsByCategory(
+        DEFAULT_USER_ID,
+        row.categoryId,
+        range.startDate,
+        range.endDate,
+      );
+      if (ids.length === 0) return;
+      router.push({
+        pathname: "/insights/filtered",
+        params: {
+          expenseIds: ids.join(","),
+          title: `${row.categoryName} · ${PERIOD_LABELS[period]}`,
+        },
+      } as never);
+    } catch {
+      // silently ignore — DB not ready
+    }
+  }, [range, period, router]);
 
   // Sorted category rows
   const sortedRows = useMemo(() => {
@@ -390,6 +414,7 @@ export default function BudgetVsActualScreen() {
                     accent={accent}
                     colors={colors}
                     sc={sc}
+                    onPress={() => drillDown(row)}
                   />
                 ))}
               </View>
@@ -404,26 +429,29 @@ export default function BudgetVsActualScreen() {
                 {result.unbudgetedRows
                   .sort((a, b) => b.totalActual - a.totalActual)
                   .map((row) => (
-                    <Card key={row.categoryId} className="mb-2 py-2.5">
-                      <View className="flex-row items-center">
-                        <View
-                          className="w-8 h-8 rounded-full items-center justify-center mr-3"
-                          style={{ backgroundColor: row.categoryColor + "18" }}
-                        >
-                          <Ionicons
-                            name={row.categoryIcon as any}
-                            size={16}
-                            color={row.categoryColor}
-                          />
+                    <Pressable key={row.categoryId} onPress={() => drillDown(row)}>
+                      <Card className="mb-2 py-2.5">
+                        <View className="flex-row items-center">
+                          <View
+                            className="w-8 h-8 rounded-full items-center justify-center mr-3"
+                            style={{ backgroundColor: row.categoryColor + "18" }}
+                          >
+                            <Ionicons
+                              name={row.categoryIcon as any}
+                              size={16}
+                              color={row.categoryColor}
+                            />
+                          </View>
+                          <Text className="flex-1 text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                            {row.categoryName}
+                          </Text>
+                          <Text className="text-sm font-semibold mr-2" style={{ color: sc.danger }}>
+                            {formatAmount(row.totalActual)}
+                          </Text>
+                          <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
                         </View>
-                        <Text className="flex-1 text-sm font-medium text-text-primary dark:text-text-dark-primary">
-                          {row.categoryName}
-                        </Text>
-                        <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
-                          {formatAmount(row.totalActual)}
-                        </Text>
-                      </View>
-                    </Card>
+                      </Card>
+                    </Pressable>
                   ))}
               </View>
             )}
@@ -442,12 +470,14 @@ function CategoryRow({
   accent,
   colors,
   sc,
+  onPress,
 }: {
   row: BudgetVsActualRow;
   isCurrentMonth: boolean;
   accent: any;
   colors: any;
   sc: any;
+  onPress: () => void;
 }) {
   const prorated = isCurrentMonth ? proratedBudget(row.totalBudget) : row.totalBudget;
   const reference = prorated > 0 ? prorated : row.totalBudget;
@@ -458,7 +488,8 @@ function CategoryRow({
   const barColor = isOver ? sc.danger : ratio >= 0.8 ? sc.warning : accent[500];
 
   return (
-    <Card className="mb-2 py-3">
+    <Pressable onPress={onPress} className="mb-2">
+    <Card className="py-3">
       {/* Header row */}
       <View className="flex-row items-center mb-2">
         <View
@@ -480,6 +511,7 @@ function CategoryRow({
             ? `-${formatAmount(Math.abs(variance))} left`
             : "on track"}
         </Text>
+        <Ionicons name="chevron-forward" size={13} color={colors.textSecondary} className="ml-1" />
       </View>
 
       {/* Progress bar */}
@@ -505,5 +537,6 @@ function CategoryRow({
         </Text>
       </View>
     </Card>
+    </Pressable>
   );
 }

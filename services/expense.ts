@@ -48,6 +48,7 @@ export {
   getExpenseTotal,
   getMonthlyExpenseTotals,
   getExpenseTotalsByCategory,
+  getExpenseIdsByCategory,
   getExpenseTotalsByCategoryAndClassification,
   getCategoryMonthlyTrend,
   getRightSpendTotal,

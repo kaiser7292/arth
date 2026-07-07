@@ -420,6 +420,29 @@ export async function getExpenseTotalsByCategory(
 }
 
 /**
+ * Get IDs of approved realized expenses for a single category in a date range.
+ * Used by budget-vs-actual drill-down to feed the filtered transactions screen.
+ */
+export async function getExpenseIdsByCategory(
+  userId: string,
+  categoryId: string,
+  startDate: string,
+  endDate: string,
+): Promise<string[]> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{ id: string }>(
+    `SELECT id FROM expenses
+     WHERE user_id = ? AND category_id = ? AND status = 'approved'
+       AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED}
+       AND date >= ? AND date <= ?
+     ${NOT_INVESTMENT_LINKED}
+     ORDER BY date DESC;`,
+    userId, categoryId, startDate, endDate,
+  );
+  return rows.map((r) => r.id);
+}
+
+/**
  * Get expense totals grouped by (category_id, is_right_spend).
  * This allows the same category to appear in both unavoidable and discretionary buckets.
  */
