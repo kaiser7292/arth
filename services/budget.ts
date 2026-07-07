@@ -296,15 +296,23 @@ export async function getBudgetVsActual(
     userId, startMonth, endMonth,
   );
 
-  // 2. Actual totals per category — match the budget screen's raw count:
-  //    status != 'rejected' (include pending_review), raw amount, no investment/loan exclusion.
+  // 2. Actual totals per category — mirrors getExpenseTotalsByCategory:
+  //    effectiveAmountSql (refund-adjusted), status='approved', NOT_INVESTMENT_LINKED.
   const actualRows = await db.getAllAsync<{ category_id: string; total: number }>(
-    `SELECT category_id, SUM(amount) as total FROM expenses
-     WHERE user_id = ? AND status != 'rejected' AND nature = 'realized'
+    `SELECT category_id,
+            SUM(MAX(expenses.amount - COALESCE((
+              SELECT SUM(r.amount) FROM expenses r
+              WHERE r.refund_of_expense_id = expenses.id
+                AND r.nature = 'credit' AND r.status = 'approved' AND r.deleted_at IS NULL
+            ), 0), 0)) as total
+     FROM expenses
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
        AND deleted_at IS NULL
        AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
        AND category_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
+       AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      GROUP BY category_id`,
     userId, startDate, endDate,
   );
@@ -365,11 +373,18 @@ export async function getBudgetVsActual(
       userId, startMonth, endMonth,
     );
     const monthActuals = await db.getAllAsync<{ month: string; total: number }>(
-      `SELECT strftime('%Y-%m', date) as month, SUM(amount) as total
+      `SELECT strftime('%Y-%m', date) as month,
+              SUM(MAX(expenses.amount - COALESCE((
+                SELECT SUM(r.amount) FROM expenses r
+                WHERE r.refund_of_expense_id = expenses.id
+                  AND r.nature = 'credit' AND r.status = 'approved' AND r.deleted_at IS NULL
+              ), 0), 0)) as total
        FROM expenses
-       WHERE user_id = ? AND status != 'rejected' AND nature = 'realized'
+       WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
          AND deleted_at IS NULL AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
          AND date >= ? AND date <= ?
+         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
+         AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
        GROUP BY strftime('%Y-%m', date) ORDER BY month`,
       userId, startDate, endDate,
     );

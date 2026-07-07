@@ -143,12 +143,7 @@ export default function BudgetVsActualScreen() {
   const getPeriodLabel = useCallback((p: Period): string => {
     if (p === "this_fy") return fyLabels.this_fy;
     if (p === "last_fy") return fyLabels.last_fy;
-    if (p === "custom") {
-      const sm = customStartMonth;
-      const em = customEndMonth;
-      if (sm === em) return `${MONTH_SHORT[parseInt(sm.split("-")[1], 10) - 1]} '${sm.split("-")[0].slice(-2)}`;
-      return `${MONTH_SHORT[parseInt(sm.split("-")[1], 10) - 1]} '${sm.split("-")[0].slice(-2)} – ${MONTH_SHORT[parseInt(em.split("-")[1], 10) - 1]} '${em.split("-")[0].slice(-2)}`;
-    }
+    if (p === "custom") return "Custom";
     const labels: Record<Period, string> = {
       this_month: "This Month", last_3m: "Last 3M", last_6m: "Last 6M",
       this_fy: "", last_fy: "", custom: "",
