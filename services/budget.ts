@@ -2,6 +2,7 @@ import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
 import { bumpDataVersion } from "@/services/settings";
 import { logger } from "@/utils/logger";
+import { getExpenseTotalsByCategory } from "@/services/expense";
 
 export interface Budget {
   id: string;
@@ -233,4 +234,154 @@ export function getCurrentMonth(): string {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   return `${year}-${month}`;
+}
+
+// ─── Budget vs Actual ─────────────────────────────────────────────────────────
+
+export interface BudgetVsActualRow {
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  categoryIcon: string;
+  isUnavoidable: number;
+  totalBudget: number;
+  totalActual: number;
+}
+
+export interface MonthlyBudgetActual {
+  month: string;
+  budget: number;
+  actual: number;
+}
+
+export interface BudgetVsActualResult {
+  rows: BudgetVsActualRow[];           // categories that have a budget set
+  unbudgetedRows: BudgetVsActualRow[]; // spend with no budget configured
+  totalBudget: number;
+  totalActual: number;
+  monthly: MonthlyBudgetActual[];      // per-month totals (empty for single-month)
+}
+
+/**
+ * Returns budget vs actual spend for a date range.
+ *
+ * startMonth / endMonth  — YYYY-MM range for budget rows (full months).
+ * startDate  / endDate   — YYYY-MM-DD range for expense actuals (can be
+ *   capped at today so mid-month queries only count spend to date).
+ */
+export async function getBudgetVsActual(
+  userId: string,
+  startMonth: string,
+  endMonth: string,
+  startDate: string,
+  endDate: string,
+): Promise<BudgetVsActualResult> {
+  const db = getDatabase();
+
+  // 1. Budget totals per category with category metadata
+  const budgetRows = await db.getAllAsync<{
+    category_id: string;
+    name: string;
+    color: string;
+    icon: string;
+    is_unavoidable: number;
+    total: number;
+  }>(
+    `SELECT b.category_id, c.name, c.color, c.icon, c.is_unavoidable,
+            SUM(b.amount) as total
+     FROM budgets b
+     JOIN categories c ON c.id = b.category_id AND c.is_active = 1
+     WHERE b.user_id = ? AND b.month >= ? AND b.month <= ?
+     GROUP BY b.category_id
+     ORDER BY c.name ASC`,
+    userId, startMonth, endMonth,
+  );
+
+  // 2. Actual totals per category (uses effective amount / split-aware query)
+  const actualRows = await getExpenseTotalsByCategory(userId, startDate, endDate);
+  const actualMap = new Map(actualRows.map((r) => [r.category_id, r.total]));
+  const budgetCatIds = new Set(budgetRows.map((r) => r.category_id));
+
+  // 3. Build main rows
+  const rows: BudgetVsActualRow[] = budgetRows.map((r) => ({
+    categoryId: r.category_id,
+    categoryName: r.name,
+    categoryColor: r.color,
+    categoryIcon: r.icon,
+    isUnavoidable: r.is_unavoidable,
+    totalBudget: r.total,
+    totalActual: actualMap.get(r.category_id) ?? 0,
+  }));
+
+  // 4. Categories with spend but no budget configured
+  const unbudgetedActuals = actualRows.filter((r) => !budgetCatIds.has(r.category_id));
+  let unbudgetedRows: BudgetVsActualRow[] = [];
+  if (unbudgetedActuals.length > 0) {
+    const placeholders = unbudgetedActuals.map(() => "?").join(",");
+    const catRows = await db.getAllAsync<{
+      id: string; name: string; color: string; icon: string; is_unavoidable: number;
+    }>(
+      `SELECT id, name, color, icon, is_unavoidable FROM categories
+       WHERE id IN (${placeholders}) AND is_active = 1`,
+      unbudgetedActuals.map((r) => r.category_id),
+    );
+    const catMap = new Map(catRows.map((c) => [c.id, c]));
+    unbudgetedRows = unbudgetedActuals
+      .map((r) => {
+        const cat = catMap.get(r.category_id);
+        if (!cat) return null;
+        return {
+          categoryId: r.category_id,
+          categoryName: cat.name,
+          categoryColor: cat.color,
+          categoryIcon: cat.icon,
+          isUnavoidable: cat.is_unavoidable,
+          totalBudget: 0,
+          totalActual: r.total,
+        };
+      })
+      .filter((r): r is BudgetVsActualRow => r !== null);
+  }
+
+  const totalBudget = rows.reduce((s, r) => s + r.totalBudget, 0);
+  const totalActual = [...rows, ...unbudgetedRows].reduce((s, r) => s + r.totalActual, 0);
+
+  // 5. Monthly breakdown (only needed for multi-month ranges)
+  let monthly: MonthlyBudgetActual[] = [];
+  if (startMonth !== endMonth) {
+    const monthBudgets = await db.getAllAsync<{ month: string; total: number }>(
+      `SELECT month, SUM(amount) as total FROM budgets
+       WHERE user_id = ? AND month >= ? AND month <= ?
+       GROUP BY month ORDER BY month`,
+      userId, startMonth, endMonth,
+    );
+    const monthActuals = await db.getAllAsync<{ month: string; total: number }>(
+      `SELECT strftime('%Y-%m', date) as month, SUM(amount) as total
+       FROM expenses
+       WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
+         AND deleted_at IS NULL AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer != 1)
+         AND date >= ? AND date <= ? AND category_id IS NOT NULL
+       GROUP BY strftime('%Y-%m', date) ORDER BY month`,
+      userId, startDate, endDate,
+    );
+
+    // Generate all months in range (budget months with no actuals still appear)
+    const allMonths: string[] = [];
+    let cur = startMonth;
+    while (cur <= endMonth) {
+      allMonths.push(cur);
+      const [y, m] = cur.split("-").map(Number);
+      const next = new Date(y, m, 1);
+      cur = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
+    }
+    const budgetMonthMap = new Map(monthBudgets.map((r) => [r.month, r.total]));
+    const actualMonthMap = new Map(monthActuals.map((r) => [r.month, r.total]));
+    monthly = allMonths.map((mo) => ({
+      month: mo,
+      budget: budgetMonthMap.get(mo) ?? 0,
+      actual: actualMonthMap.get(mo) ?? 0,
+    }));
+  }
+
+  return { rows, unbudgetedRows, totalBudget, totalActual, monthly };
 }

@@ -31,6 +31,7 @@ export default function InsightsStackLayout() {
       <Stack.Screen name="merchants" options={{ title: "Merchant Analytics" }} />
       <Stack.Screen name="compare" options={{ title: "Compare Periods" }} />
       <Stack.Screen name="filtered" options={{ title: "Transactions" }} />
+      <Stack.Screen name="budget-vs-actual" options={{ title: "Budget vs Actual" }} />
     </Stack>
   );
 }
