@@ -5,6 +5,7 @@ import {
   ActivityIndicator, Modal, Pressable,
   Text, View, ScrollView,
 } from "react-native";
+import * as Sharing from "expo-sharing";
 import { Card, DateInput, ScreenContainer } from "@/components/ui";
 import { useAlert, type AlertButton } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -23,6 +24,7 @@ import {
   type ReconciliationItem,
   type ExcludeReason,
 } from "@/services/reconciliation/reconciliation-crud";
+import { generateReconciliationPdf } from "@/services/reconciliation/reconciliation-export-pdf";
 
 type Tab = "matched" | "missing" | "extra" | "excluded";
 
@@ -55,6 +57,7 @@ export default function ReconciliationSessionScreen() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("matched");
   const [markingDone, setMarkingDone] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Pre-Arth baseline
   const [preArthCutoff, setPreArthCutoff] = useState<string | null>(null);
@@ -229,6 +232,29 @@ export default function ReconciliationSessionScreen() {
       router.back();
     }
   }, [session, missing.length, matched.length, alert, router]);
+
+  const handleExport = useCallback(async () => {
+    if (!session) return;
+    setExporting(true);
+    try {
+      const uri = await generateReconciliationPdf(
+        session,
+        items,
+        accounts[session.account_id] ?? null,
+        arthBalance,
+      );
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: "application/pdf",
+          dialogTitle: "Reconciliation Report",
+        });
+      }
+    } catch {
+      // Non-fatal — share sheet cancelled or generation failed
+    } finally {
+      setExporting(false);
+    }
+  }, [session, items, accounts, arthBalance]);
 
   // ─── Tab content renderers ─────────────────────────────────────────────────
 
@@ -412,9 +438,17 @@ export default function ReconciliationSessionScreen() {
         {/* Summary card */}
         <View className="px-4 pt-4">
           <Card className="mb-4">
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
-              {account ? (account.account_label || account.bank_name) : "Account"}
-            </Text>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary flex-1 mr-2">
+                {account ? (account.account_label || account.bank_name) : "Account"}
+              </Text>
+              <Pressable onPress={handleExport} disabled={exporting} hitSlop={8}>
+                {exporting
+                  ? <ActivityIndicator size="small" color={colors.textSecondary} />
+                  : <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
+                }
+              </Pressable>
+            </View>
             <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
               {session.stmt_start_date} – {session.stmt_end_date}
               {session.import_filename ? ` · ${session.import_filename}` : ""}
