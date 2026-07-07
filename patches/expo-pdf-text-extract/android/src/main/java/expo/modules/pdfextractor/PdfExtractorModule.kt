@@ -196,18 +196,39 @@ class PdfExtractorModule : Module() {
  * PDFTextStripper subclass that captures every character's (x, y) coordinates
  * and reconstructs table structure by grouping into rows (Y-tolerance 4pt) and
  * splitting columns where the horizontal gap between adjacent characters > 15pt.
+ *
+ * Multi-page fix: PDFBox's yDirAdj is page-relative (resets to 0 at the top of
+ * each page). Without compensation, page 2's Y=150 collides with page 1's Y=150
+ * in the TreeMap and rows from both pages get merged or dropped. We add a
+ * cumulative pageYOffset (sum of all previous pages' heights) to each character's
+ * Y so that every page occupies a unique Y band in rowData.
  */
 private class StructuredTextStripper : PDFTextStripper() {
 
-  // Keyed by Y-position bucket; each bucket is a list of characters on that row
+  // Keyed by document-level Y-position bucket; each bucket is one visual row
   val rowData = TreeMap<Float, MutableList<TextPosition>>()
 
   private val ROW_TOLERANCE = 4.0f
 
+  // Accumulated height of all pages processed before the current one
+  private var pageYOffset = 0f
+  // Height of the page currently being processed (set in startPage)
+  private var currentPageHeight = 0f
+
+  @Throws(IOException::class)
+  override fun startPage(page: com.tom_roush.pdfbox.pdmodel.PDPage) {
+    super.startPage(page)
+    // Add the previous page's height to the offset before processing this page
+    pageYOffset += currentPageHeight
+    currentPageHeight = page.mediaBox.height
+  }
+
   @Throws(IOException::class)
   override fun writeString(text: String, textPositions: List<TextPosition>) {
     for (pos in textPositions) {
-      val y = pos.yDirAdj
+      // Shift by the accumulated height of all preceding pages so that each
+      // page occupies a unique Y range in the TreeMap
+      val y = pos.yDirAdj + pageYOffset
       // Find an existing row bucket within tolerance, or create a new one
       val rowKey = rowData.keys.find { kotlin.math.abs(it - y) < ROW_TOLERANCE } ?: y
       rowData.getOrPut(rowKey) { mutableListOf() }.add(pos)
