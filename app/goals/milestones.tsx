@@ -32,6 +32,7 @@ import { formatCompact } from "@/utils/format";
 import { formatAmount } from "@/utils/expense-validation";
 import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { MilestoneStatus } from "@/utils/financial-cockpit";
+import { consumeGoalsPreload } from "@/services/home-preload";
 
 type ViewMode = "list" | "add_milestone";
 type DurationUnit = "years" | "months";
@@ -65,9 +66,12 @@ export default function MilestonesScreen() {
 
   const loadData = useCallback(async () => {
     try {
+      const preload = consumeGoalsPreload();
+      const usePreload = preload && preload.fy === String(currentFY);
+
       const [data, cd] = await Promise.all([
-        getLifeMilestones(DEFAULT_USER_ID),
-        getFinancialCockpit(DEFAULT_USER_ID, String(currentFY)),
+        usePreload ? Promise.resolve(preload.milestones) : getLifeMilestones(DEFAULT_USER_ID),
+        usePreload ? Promise.resolve(preload.cockpit) : getFinancialCockpit(DEFAULT_USER_ID, String(currentFY)),
       ]);
       setMilestones(data);
       setMilestoneStatuses(cd?.milestones ?? []);

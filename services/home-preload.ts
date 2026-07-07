@@ -36,8 +36,19 @@ import { getBalanceSheetColumn } from "@/services/balance-sheet";
 import type { BalanceSheetColumn } from "@/services/balance-sheet";
 import { getBalanceSourceInfo } from "@/services/balance-source";
 import { getMonthDateRange } from "@/utils/budget-helpers";
-import { formatLocalDate } from "@/utils/fiscal-year";
+import { getCurrentFY, formatLocalDate } from "@/utils/fiscal-year";
 import { logger } from "@/utils/logger";
+import { getFinancialCockpit } from "@/services/financial-cockpit";
+import type { FinancialCockpitData } from "@/services/financial-cockpit";
+import { getLifeMilestones } from "@/services/life-milestone";
+import type { LifeMilestone } from "@/services/life-milestone";
+import { deriveYearlyPlan } from "@/services/yearly-plan";
+import type { DerivedPlanSummary } from "@/services/yearly-plan";
+import { getSalaryProfileByFY } from "@/services/salary-profile";
+import type { SalaryProfile } from "@/services/salary-profile";
+import { getFYStartMonth } from "@/services/settings";
+import { getVaultEntries } from "@/services/vault";
+import type { VaultEntry } from "@/services/vault";
 
 // ---------------------------------------------------------------------------
 // Home tab
@@ -118,6 +129,36 @@ export interface PensionAccountsPreloadData {
 }
 
 // ---------------------------------------------------------------------------
+// Goals screens (Investments + Milestones)
+// ---------------------------------------------------------------------------
+
+export interface GoalsPreloadData {
+  cockpit: FinancialCockpitData | null;
+  milestones: LifeMilestone[];
+  /** Which FY the cockpit was computed for (YYYY string). */
+  fy: string;
+}
+
+// ---------------------------------------------------------------------------
+// Yearly Plan screen
+// ---------------------------------------------------------------------------
+
+export interface YearlyPlanPreloadData {
+  /** Which FY this was preloaded for — screen must verify before consuming. */
+  fy: string;
+  derived: DerivedPlanSummary | null;
+  profile: SalaryProfile | null;
+}
+
+// ---------------------------------------------------------------------------
+// Vault
+// ---------------------------------------------------------------------------
+
+export interface VaultPreloadData {
+  entries: VaultEntry[];
+}
+
+// ---------------------------------------------------------------------------
 // Cache — single-use per screen. `consume*` clears after read so stale data
 // doesn't haunt the next focus.
 // ---------------------------------------------------------------------------
@@ -130,6 +171,9 @@ interface Cache {
   bankAccounts: BankAccountsPreloadData | null;
   wallets: WalletsPreloadData | null;
   pensionAccounts: PensionAccountsPreloadData | null;
+  goals: GoalsPreloadData | null;
+  yearlyPlan: YearlyPlanPreloadData | null;
+  vault: VaultPreloadData | null;
 }
 const cache: Cache = {
   home: null,
@@ -139,6 +183,9 @@ const cache: Cache = {
   bankAccounts: null,
   wallets: null,
   pensionAccounts: null,
+  goals: null,
+  yearlyPlan: null,
+  vault: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -338,6 +385,46 @@ async function loadAccountGroupSection(
   }
 }
 
+async function loadGoalsSection(): Promise<GoalsPreloadData | null> {
+  try {
+    const startMonth = getFYStartMonth();
+    const fy = String(getCurrentFY(startMonth));
+    const [cockpit, milestones] = await Promise.all([
+      getFinancialCockpit(DEFAULT_USER_ID, fy),
+      getLifeMilestones(DEFAULT_USER_ID),
+    ]);
+    return { cockpit, milestones, fy };
+  } catch (e) {
+    logger.warn("Goals preload section failed:", e);
+    return null;
+  }
+}
+
+async function loadYearlyPlanSection(): Promise<YearlyPlanPreloadData | null> {
+  try {
+    const startMonth = getFYStartMonth();
+    const fy = String(getCurrentFY(startMonth));
+    const [derived, profile] = await Promise.all([
+      deriveYearlyPlan(DEFAULT_USER_ID, fy),
+      getSalaryProfileByFY(DEFAULT_USER_ID, fy),
+    ]);
+    return { fy, derived, profile };
+  } catch (e) {
+    logger.warn("Yearly plan preload section failed:", e);
+    return null;
+  }
+}
+
+async function loadVaultSection(): Promise<VaultPreloadData | null> {
+  try {
+    const entries = await getVaultEntries();
+    return { entries };
+  } catch (e) {
+    logger.warn("Vault preload section failed:", e);
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -351,7 +438,11 @@ async function loadAccountGroupSection(
  * back to their own fetch path gracefully.
  */
 export async function preloadHomeData(): Promise<void> {
-  const [home, accounts, balanceSheet, creditCards, bankAccounts, wallets, pensionAccounts] = await Promise.all([
+  const [
+    home, accounts, balanceSheet, creditCards,
+    bankAccounts, wallets, pensionAccounts,
+    goals, yearlyPlan, vault,
+  ] = await Promise.all([
     loadHomeSection(),
     loadAccountsSection(),
     loadBalanceSheetSection(),
@@ -359,6 +450,9 @@ export async function preloadHomeData(): Promise<void> {
     loadAccountGroupSection("savings"),
     loadAccountGroupSection("wallet"),
     loadAccountGroupSection("pension"),
+    loadGoalsSection(),
+    loadYearlyPlanSection(),
+    loadVaultSection(),
   ]);
   cache.home = home;
   cache.accounts = accounts;
@@ -367,6 +461,9 @@ export async function preloadHomeData(): Promise<void> {
   cache.bankAccounts = bankAccounts;
   cache.wallets = wallets;
   cache.pensionAccounts = pensionAccounts;
+  cache.goals = goals;
+  cache.yearlyPlan = yearlyPlan;
+  cache.vault = vault;
 }
 
 export function consumeHomePreload(): HomePreloadData | null {
@@ -408,5 +505,23 @@ export function consumeWalletsPreload(): WalletsPreloadData | null {
 export function consumePensionAccountsPreload(): PensionAccountsPreloadData | null {
   const data = cache.pensionAccounts;
   cache.pensionAccounts = null;
+  return data;
+}
+
+export function consumeGoalsPreload(): GoalsPreloadData | null {
+  const data = cache.goals;
+  cache.goals = null;
+  return data;
+}
+
+export function consumeYearlyPlanPreload(): YearlyPlanPreloadData | null {
+  const data = cache.yearlyPlan;
+  cache.yearlyPlan = null;
+  return data;
+}
+
+export function consumeVaultPreload(): VaultPreloadData | null {
+  const data = cache.vault;
+  cache.vault = null;
   return data;
 }

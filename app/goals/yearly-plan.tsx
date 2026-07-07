@@ -26,6 +26,7 @@ import { formatAmount } from "@/utils/expense-validation";
 import { formatCompact } from "@/utils/format";
 import { StatusColors } from "@/constants/theme";
 import { getRealityCheck, type RealityCheckData } from "@/services/financial-cockpit";
+import { consumeYearlyPlanPreload } from "@/services/home-preload";
 import {
   listActiveLoans,
   getSchedulesByLoanIds,
@@ -70,19 +71,23 @@ export default function YearlyPlanScreen() {
       let cancelled = false;
       (async () => {
         try {
+          // Use preloaded data on first open (current FY only).
+          const preload = consumeYearlyPlanPreload();
+          const usePreload = preload && preload.fy === targetFY;
+
           const [derivedResult, profileResult] = await Promise.all([
-            deriveYearlyPlan(DEFAULT_USER_ID, targetFY),
-            getSalaryProfileByFY(DEFAULT_USER_ID, targetFY),
+            usePreload ? Promise.resolve(preload.derived) : deriveYearlyPlan(DEFAULT_USER_ID, targetFY),
+            usePreload ? Promise.resolve(preload.profile) : getSalaryProfileByFY(DEFAULT_USER_ID, targetFY),
           ]);
           if (cancelled) return;
           setDerived(derivedResult);
           setProfile(profileResult);
-          setBuckets(derivedResult._buckets);
-          setMilestones(derivedResult._milestones);
+          setBuckets(derivedResult?._buckets ?? []);
+          setMilestones(derivedResult?._milestones ?? []);
           setLoaded(true);
 
           const [rc, snap, loans] = await Promise.all([
-            getRealityCheck(DEFAULT_USER_ID, targetFY, derivedResult),
+            getRealityCheck(DEFAULT_USER_ID, targetFY, derivedResult ?? undefined),
             getSavingsSnapshot(DEFAULT_USER_ID, targetFYNum),
             listActiveLoans(DEFAULT_USER_ID),
           ]);

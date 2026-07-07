@@ -35,6 +35,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { acAlpha } from "@/utils/accent";
 import { StatusColors } from "@/constants/theme";
 import { getFinancialCockpit, type FinancialCockpitData } from "@/services/financial-cockpit";
+import { consumeGoalsPreload } from "@/services/home-preload";
 
 type ViewMode = "buckets" | "add_bucket";
 
@@ -75,11 +76,14 @@ export default function InvestmentBucketsScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      // Parallel fetch: plan, milestones, and cockpit (cockpit includes buckets)
+      // Use preloaded data on first open (current FY only), then fall back to live fetch.
+      const preload = consumeGoalsPreload();
+      const usePreload = preload && preload.fy === fyStr;
+
       const [p, ms, cd] = await Promise.all([
         getYearlyPlanByFY(DEFAULT_USER_ID, fyStr),
-        getLifeMilestones(DEFAULT_USER_ID),
-        getFinancialCockpit(DEFAULT_USER_ID, fyStr),
+        usePreload ? Promise.resolve(preload.milestones) : getLifeMilestones(DEFAULT_USER_ID),
+        usePreload ? Promise.resolve(preload.cockpit) : getFinancialCockpit(DEFAULT_USER_ID, fyStr),
       ]);
       setPlan(p);
       setMilestones(ms.filter((m) => !m.is_completed && m.current_saved < m.target_amount));

@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, SectionList, Text, TextInput, View } from "react-native";
-import { Card, FAB, ScreenContainer } from "@/components/ui";
+import { FAB, LoadingState, ScreenContainer } from "@/components/ui";
 import { VaultIcon } from "@/components/ui/VaultIcon";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -13,6 +13,7 @@ import {
   getVaultEntries,
   searchVaultEntries,
 } from "@/services/vault";
+import { consumeVaultPreload } from "@/services/home-preload";
 
 export default function VaultIndexScreen() {
   const router = useRouter();
@@ -20,14 +21,17 @@ export default function VaultIndexScreen() {
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const data = await getVaultEntries();
+      const preload = consumeVaultPreload();
+      const data = preload ? preload.entries : await getVaultEntries();
       setEntries(data);
     } catch {
       // db not ready
     }
+    setLoaded(true);
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -49,15 +53,17 @@ export default function VaultIndexScreen() {
   }, [load]);
 
   // Group entries by category
-  const sections = VAULT_CATEGORY_GROUPS.flatMap((group) =>
-    group.categories
-      .map((cat) => ({
-        title: VAULT_CATEGORY_LABELS[cat],
-        icon: VAULT_CATEGORY_ICONS[cat],
-        data: entries.filter((e) => e.category === cat),
-      }))
-      .filter((s) => s.data.length > 0),
-  );
+  const sections = useMemo(() =>
+    VAULT_CATEGORY_GROUPS.flatMap((group) =>
+      group.categories
+        .map((cat) => ({
+          title: VAULT_CATEGORY_LABELS[cat],
+          icon: VAULT_CATEGORY_ICONS[cat],
+          data: entries.filter((e) => e.category === cat),
+        }))
+        .filter((s) => s.data.length > 0),
+    ),
+  [entries]);
 
   const renderEntry = ({ item }: { item: VaultEntry }) => (
     <Pressable
@@ -79,6 +85,14 @@ export default function VaultIndexScreen() {
   );
 
   const empty = entries.length === 0;
+
+  if (!loaded) {
+    return (
+      <ScreenContainer padTop={false}>
+        <LoadingState message="Loading vault..." icon="lock-closed-outline" />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer padTop={false}>
