@@ -1,4 +1,4 @@
-import { extractText } from "expo-pdf-text-extract";
+import { extractText, extractRows } from "expo-pdf-text-extract";
 import type { ImportFormat } from "./reconciliation-crud";
 import type { StatementRow } from "./statement-matcher";
 import { type ParsedStatement, ParseError } from "./xls-parser";
@@ -12,7 +12,7 @@ export class PdfPasswordError extends Error {
   }
 }
 
-// ─── Text extraction ───────────────────────────────────────────────────────────
+// ─── Text / row extraction ────────────────────────────────────────────────────
 
 export async function extractPdfText(
   fileUri: string,
@@ -21,28 +21,31 @@ export async function extractPdfText(
   try {
     return await extractText(fileUri, password);
   } catch (err: any) {
-    const code: string | undefined = err?.code;
-    if (code === "PASSWORD_REQUIRED") {
-      throw new PdfPasswordError("This PDF is password-protected.");
-    }
-    if (code === "INCORRECT_PASSWORD") {
-      throw new PdfPasswordError("Wrong password — please try again.");
-    }
-    if (code === "FILE_NOT_FOUND") {
-      throw new ParseError("Could not find the PDF file. Please try picking it again.");
-    }
-    if (code === "CORRUPT_PDF") {
-      throw new ParseError(
-        "This PDF appears to be corrupted or in an unsupported format.",
-      );
-    }
-    throw new ParseError(
-      "Could not open the PDF file. It may be corrupted or in an unsupported format.",
-    );
+    throw mapNativeError(err, password);
   }
 }
 
-// ─── Shared helpers ────────────────────────────────────────────────────────────
+async function extractPdfRows(
+  fileUri: string,
+  password?: string,
+): Promise<string[][]> {
+  try {
+    return await extractRows(fileUri, password);
+  } catch (err: any) {
+    throw mapNativeError(err, password);
+  }
+}
+
+function mapNativeError(err: any, password?: string): Error {
+  const code: string | undefined = err?.code;
+  if (code === "PASSWORD_REQUIRED") return new PdfPasswordError("This PDF is password-protected.");
+  if (code === "INCORRECT_PASSWORD") return new PdfPasswordError("Wrong password — please try again.");
+  if (code === "FILE_NOT_FOUND") return new ParseError("Could not find the PDF file. Please try picking it again.");
+  if (code === "CORRUPT_PDF") return new ParseError("This PDF appears to be corrupted or in an unsupported format.");
+  return new ParseError("Could not open the PDF file. It may be corrupted or in an unsupported format.");
+}
+
+// ─── Date parsing ─────────────────────────────────────────────────────────────
 
 const MONTH_MAP: Record<string, string> = {
   jan:"01", feb:"02", mar:"03", apr:"04", may:"05", jun:"06",
@@ -51,52 +54,233 @@ const MONTH_MAP: Record<string, string> = {
 
 function parsePdfDate(raw: string): string | null {
   const s = raw.trim();
+  // dd/mm/yyyy or dd-mm-yyyy
   const dmy4 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (dmy4) return `${dmy4[3]}-${dmy4[2].padStart(2,"0")}-${dmy4[1].padStart(2,"0")}`;
-  // dd.mm.yyyy (ICICI savings PDF)
+  // dd.mm.yyyy (ICICI savings)
   const dDot = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   if (dDot) return `${dDot[3]}-${dDot[2].padStart(2,"0")}-${dDot[1].padStart(2,"0")}`;
+  // dd/mm/yy or dd-mm-yy
   const dmy2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
   if (dmy2) return `${2000 + parseInt(dmy2[3])}-${dmy2[2].padStart(2,"0")}-${dmy2[1].padStart(2,"0")}`;
+  // dd Mon yyyy  e.g. "02 Apr 2026"
   const dMonY = s.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
   if (dMonY) {
     const m = MONTH_MAP[dMonY[2].toLowerCase()];
     if (m) return `${dMonY[3]}-${m}-${dMonY[1].padStart(2,"0")}`;
   }
+  // dd Mon yy  e.g. "02 May 26"
+  const dMonYY = s.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2})$/);
+  if (dMonYY) {
+    const m = MONTH_MAP[dMonYY[2].toLowerCase()];
+    if (m) return `${2000 + parseInt(dMonYY[3])}-${m}-${dMonYY[1].padStart(2,"0")}`;
+  }
+  // dd-Mon-yy or dd-Mon-yyyy  e.g. "25-Apr-2026"
   const dMonDash = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/);
   if (dMonDash) {
     const m = MONTH_MAP[dMonDash[2].toLowerCase()];
     const yr = dMonDash[3].length === 2 ? 2000 + parseInt(dMonDash[3]) : parseInt(dMonDash[3]);
     if (m) return `${yr}-${m}-${dMonDash[1].padStart(2,"0")}`;
   }
+  // ISO already
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   return null;
 }
 
+// ─── Amount parsing ───────────────────────────────────────────────────────────
+
 function parsePdfAmount(s: string): number | null {
-  const cleaned = s.replace(/[₹,\s]/g, "").replace(/\(([^)]+)\)/, "-$1");
-  const n = parseFloat(cleaned);
-  return isNaN(n) ? null : Math.abs(n);
+  // Extract the first decimal number from the string (handles "C 937.05", "9,144.68 CR", etc.)
+  const match = s.replace(/[₹\s]/g, "").match(/([\d,]+\.\d{2})/);
+  if (!match) return null;
+  const n = parseFloat(match[1].replace(/,/g, ""));
+  return isNaN(n) || n < 0 ? null : n;
 }
 
-function extractAmounts(text: string): number[] {
-  const matches = text.match(/[\d,]+\.\d{2}/g) ?? [];
-  return matches.map((m) => parsePdfAmount(m)).filter((n): n is number => n !== null);
+// ─── Direction helpers ────────────────────────────────────────────────────────
+
+function balanceDelta(prev: number | null, next: number): "debit" | "credit" | null {
+  if (prev === null) return null;
+  return next > prev ? "credit" : "debit";
 }
 
-function detectSuffix(text: string): string | null {
-  const patterns = [
-    /\*{4}(\d{4})/,
-    /[Xx]{4}[\s\-]?(\d{4})/,
-    /card\s+(?:no|number)[.\s:]+[\dX\s\-]+?(\d{4})\b/i,
-    /account\s+(?:no|number)[.\s:]+[\dX\s\-]+?(\d{4})\b/i,
-  ];
-  for (const re of patterns) {
-    const m = text.match(re);
-    if (m) return m[1];
-  }
+function directionFromText(text: string): "debit" | "credit" | null {
+  const n = text.toLowerCase();
+  const creditKw = ["payment received", "refund", "reversal", "cashback", "credit interest",
+    "salary", "neft credit", "imps credit", "rtgs credit", "by transfer", "by clearing",
+    "bbps payment received"];
+  const debitKw = ["purchase", "pos ", "atm ", "withdrawal", "neft debit", "imps debit",
+    "rtgs debit", "to transfer", "emi ", "payment to"];
+  if (creditKw.some((k) => n.includes(k))) return "credit";
+  if (debitKw.some((k) => n.includes(k))) return "debit";
   return null;
 }
+
+// ─── Universal structured-row parser ─────────────────────────────────────────
+//
+// Works on the coordinate-extracted rows from extractRows().
+// Each row is an array of column strings, split by 15pt X-gaps in the PDF.
+//
+// Algorithm per row:
+//  1. Find the leftmost column that parses as a date (up to col 4)
+//  2. Scan from right for decimal amounts (ignoring DR/CR/+ markers)
+//     – 1 decimal amount  → that's the transaction amount (CC, no balance)
+//     – 2 decimal amounts → first = tx amount, second = running balance
+//     – 3+ decimals       → treat last as balance, find non-zero of the two before it
+//  3. Direction: CR/DR markers → +/- sign column → balance delta → narration keywords
+//  4. Narration: columns between date and first amount, excluding time, markers, serials
+
+function parseStructuredRows(
+  allRows: string[][]
+): { rows: StatementRow[]; closing: number | null } {
+  const results: StatementRow[] = [];
+  let prevBalance: number | null = null;
+  let closing: number | null = null;
+
+  const isTime = (s: string) => /^\d{2}:\d{2}$/.test(s.trim());
+  const isSign = (s: string) => /^[+\-]$/.test(s.trim());
+  const isDirMark = (s: string) => /^(DR|CR)$/i.test(s.trim());
+  const isTinyGlyph = (s: string) => s.trim().length <= 1;
+  const isLongSerial = (s: string) => /^\d{7,}$/.test(s.trim()); // 7+ digit serial/ref numbers
+
+  for (const cols of allRows) {
+    // ── 1. Date ──
+    let dateIdx = -1;
+    let parsedDate: string | null = null;
+    for (let i = 0; i < Math.min(cols.length, 4); i++) {
+      // HDFC CC puts "02/04/2026|" with a pipe — strip everything from | onward
+      const raw = cols[i].split("|")[0].trim();
+      const d = parsePdfDate(raw);
+      if (d) { dateIdx = i; parsedDate = d; break; }
+    }
+    if (dateIdx === -1 || !parsedDate) continue;
+
+    // ── 2. Amounts ──
+    const decimalAmts: Array<{ idx: number; val: number }> = [];
+    for (let i = dateIdx + 1; i < cols.length; i++) {
+      const c = cols[i].trim();
+      if (isDirMark(c) || isSign(c) || isTinyGlyph(c)) continue;
+      const n = parsePdfAmount(c);
+      if (n !== null && n > 0) decimalAmts.push({ idx: i, val: n });
+    }
+    if (!decimalAmts.length) continue;
+
+    let txAmount: number;
+    let balance: number | null = null;
+
+    if (decimalAmts.length === 1) {
+      txAmount = decimalAmts[0].val;
+    } else if (decimalAmts.length === 2) {
+      txAmount = decimalAmts[0].val;
+      balance = decimalAmts[1].val;
+    } else {
+      // 3+: savings style — last = balance, find non-zero of the prior two
+      balance = decimalAmts[decimalAmts.length - 1].val;
+      const d = decimalAmts[decimalAmts.length - 3].val;
+      const c2 = decimalAmts[decimalAmts.length - 2].val;
+      txAmount = d > 0 ? d : c2;
+    }
+
+    // ── 3. Direction ──
+    const rowText = cols.join(" ");
+    const hasCR = /\bCR\b/i.test(rowText);
+    const hasDR = /\bDR\b/i.test(rowText);
+    const hasPlus = cols.some((c) => isSign(c) && c.trim() === "+");
+
+    let direction: "debit" | "credit";
+    if (hasCR && !hasDR) {
+      direction = "credit";
+    } else if (hasDR) {
+      direction = "debit";
+    } else if (hasPlus) {
+      direction = "credit";
+    } else if (balance !== null) {
+      direction = balanceDelta(prevBalance, balance) ?? directionFromText(rowText) ?? "debit";
+    } else {
+      direction = directionFromText(rowText) ?? "debit";
+    }
+
+    // ── 4. Narration ──
+    const amtSet = new Set(decimalAmts.map((a) => a.idx));
+    const narration = cols
+      .slice(dateIdx + 1)
+      .filter((c, ri) => {
+        const absIdx = dateIdx + 1 + ri;
+        if (amtSet.has(absIdx)) return false;
+        const v = c.trim();
+        if (isTime(v)) return false;
+        if (isSign(v)) return false;
+        if (isDirMark(v)) return false;
+        if (isTinyGlyph(v)) return false;
+        if (isLongSerial(v)) return false;
+        return true;
+      })
+      .join(" ")
+      .trim()
+      .replace(/\s{2,}/g, " ");
+
+    if (txAmount > 0) {
+      results.push({ date: parsedDate, amount: txAmount, direction, narration });
+    }
+    if (balance !== null) { prevBalance = balance; closing = balance; }
+  }
+
+  return { rows: results, closing };
+}
+
+// ─── Fallback: raw-text regex parser (used if extractRows fails) ───────────────
+//
+// Kept as a safety net for PDFs where coordinate extraction is unreliable
+// (scanned-to-text, oddly ordered glyphs, etc.).
+
+function parseRawTextFallback(
+  rawText: string
+): { rows: StatementRow[]; closing: number | null } {
+  const rows: StatementRow[] = [];
+  let prevBalance: number | null = null;
+  let closing: number | null = null;
+
+  const lines = rawText.split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 3 && !l.startsWith("--- PAGE ---"));
+
+  // Generic: finds lines starting with a date in any common format
+  const dateRe = /^(?:\d+\s+)?(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}\s+\d{2,4})\|?(?:\s+\d{2}:\d{2})?\s+(.+)$/;
+
+  for (const line of lines) {
+    const dm = line.match(dateRe);
+    if (!dm) continue;
+    const date = parsePdfDate(dm[1]);
+    if (!date) continue;
+    const rest = dm[2];
+    const amounts = (rest.match(/([\d,]+\.\d{2})/g) ?? [])
+      .map((m) => parseFloat(m.replace(/,/g, "")))
+      .filter((n) => !isNaN(n) && n > 0);
+    if (!amounts.length) continue;
+
+    const balance = amounts.length >= 2 ? amounts[amounts.length - 1] : null;
+    const txAmt = amounts.length >= 2 ? amounts[amounts.length - 2] : amounts[0];
+    const narration = rest.replace(/([\d,]+\.\d{2})/g, "").replace(/\b(DR|CR)\b/gi, "").trim().replace(/\s{2,}/g, " ");
+
+    const hasCR = /\bCR\b/i.test(rest);
+    const hasDR = /\bDR\b/i.test(rest);
+    const hasPlus = /\+\s*(?:[^\d]|$)/.test(rest);
+
+    let direction: "debit" | "credit";
+    if (hasCR && !hasDR) direction = "credit";
+    else if (hasDR) direction = "debit";
+    else if (hasPlus) direction = "credit";
+    else if (balance !== null) direction = balanceDelta(prevBalance, balance) ?? directionFromText(narration) ?? "debit";
+    else direction = directionFromText(narration) ?? "debit";
+
+    if (txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
+    if (balance !== null) { prevBalance = balance; closing = balance; }
+  }
+
+  return { rows, closing };
+}
+
+// ─── Bank / account detection ─────────────────────────────────────────────────
 
 function detectBank(text: string): string | null {
   const t = text.toLowerCase();
@@ -114,297 +298,19 @@ function detectBank(text: string): string | null {
   return null;
 }
 
-function isCreditCard(text: string): boolean {
-  const t = text.toLowerCase();
-  return t.includes("credit card") || t.includes("card statement") || t.includes("card account");
-}
-
-function directionFromNarration(narration: string): "debit" | "credit" | null {
-  const n = narration.toLowerCase();
-  const creditKw = ["payment received", "refund", "reversal", "cashback", "credit interest", "salary", "neft credit", "imps credit", "rtgs credit", "by transfer", "by clearing"];
-  const debitKw = ["purchase", "pos ", "atm ", "withdrawal", "neft debit", "imps debit", "rtgs debit", "to transfer", "emi ", "payment to"];
-  if (creditKw.some((k) => n.includes(k))) return "credit";
-  if (debitKw.some((k) => n.includes(k))) return "debit";
+function detectSuffix(text: string): string | null {
+  const patterns = [
+    /\*{4}(\d{4})/,
+    /[Xx]{4}[\s\-]?(\d{4})/,
+    /card\s+(?:no|number)[.\s:]+[\dX\s\-]+?(\d{4})\b/i,
+    /account\s+(?:no|number)[.\s:]+[\dX\s\-]+?(\d{4})\b/i,
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m) return m[1];
+  }
   return null;
 }
-
-// ─── Balance-delta direction helper ───────────────────────────────────────────
-
-function balanceDeltaDirection(
-  prevBalance: number | null,
-  newBalance: number,
-): "debit" | "credit" | null {
-  if (prevBalance === null) return null;
-  return newBalance > prevBalance ? "credit" : "debit";
-}
-
-// ─── HDFC Savings ─────────────────────────────────────────────────────────────
-
-function parseHdfcSavings(lines: string[]): { rows: StatementRow[]; closing: number | null } {
-  const rows: StatementRow[] = [];
-  let prevBalance: number | null = null;
-  let closing: number | null = null;
-  const dateRe = /^(\d{2}\/\d{2}\/\d{2,4})\s+(.+)$/;
-
-  for (const line of lines) {
-    const dm = line.match(dateRe);
-    if (!dm) continue;
-    const date = parsePdfDate(dm[1]);
-    if (!date) continue;
-    const rest = dm[2];
-    const amounts = extractAmounts(rest);
-    if (amounts.length < 1) continue;
-    const balance = amounts[amounts.length - 1];
-    const txAmt = amounts.length >= 2 ? amounts[amounts.length - 2] : null;
-    const narration = rest.replace(/[\d,]+\.\d{2}/g, "").trim().replace(/\s{2,}/g, " ");
-    const direction = balanceDeltaDirection(prevBalance, balance) ?? directionFromNarration(narration) ?? "debit";
-    if (txAmt !== null && txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
-    prevBalance = balance;
-    closing = balance;
-  }
-  return { rows, closing };
-}
-
-// ─── HDFC Credit Card ─────────────────────────────────────────────────────────
-
-function parseHdfcCC(lines: string[]): { rows: StatementRow[]; closing: number | null } {
-  const rows: StatementRow[] = [];
-  let closing: number | null = null;
-  const dateRe1 = /^(\d{2}\s+[A-Za-z]{3}\s+\d{4})\s+(.+)$/;
-  const dateRe2 = /^(\d{2}\/\d{2}\/\d{4})\s+(.+)$/;
-
-  for (const line of lines) {
-    if (/closing\s+balance|total\s+amount\s+due/i.test(line)) {
-      const amounts = extractAmounts(line);
-      if (amounts.length) closing = amounts[amounts.length - 1];
-      continue;
-    }
-    const dm = line.match(dateRe1) ?? line.match(dateRe2);
-    if (!dm) continue;
-    const date = parsePdfDate(dm[1]);
-    if (!date) continue;
-    const rest = dm[2];
-    const amounts = extractAmounts(rest);
-    if (!amounts.length) continue;
-    const txAmt = amounts[0];
-    const narration = rest.replace(/[\d,]+\.\d{2}/g, "").replace(/\bCr\b|\bDr\b/g, "").trim().replace(/\s{2,}/g, " ");
-    const isCr = /\bCr\b/.test(rest);
-    const isPayment = /payment|credit\s+received|refund|reversal|cashback/i.test(narration);
-    const direction: "debit" | "credit" = isCr || isPayment ? "credit" : "debit";
-    if (txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
-  }
-  return { rows, closing };
-}
-
-// ─── ICICI Savings ────────────────────────────────────────────────────────────
-
-function parseIciciSavings(lines: string[]): { rows: StatementRow[]; closing: number | null } {
-  const rows: StatementRow[] = [];
-  let prevBalance: number | null = null;
-  let closing: number | null = null;
-  // Handles dd/mm/yyyy AND dd.mm.yyyy, with optional leading serial number
-  const dateRe = /^(?:\d+\s+)?(\d{2}[\/\.]\d{2}[\/\.]\d{4})\s+(.+)$/;
-
-  for (const line of lines) {
-    const dm = line.match(dateRe);
-    if (!dm) continue;
-    const date = parsePdfDate(dm[1]);
-    if (!date) continue;
-    const rest = dm[2];
-    const amounts = extractAmounts(rest);
-    if (!amounts.length) continue;
-    const balance = amounts[amounts.length - 1];
-    const txAmt = amounts.length >= 2 ? amounts[amounts.length - 2] : null;
-    const narration = rest.replace(/[\d,]+\.\d{2}/g, "").trim().replace(/\s{2,}/g, " ");
-    const direction = balanceDeltaDirection(prevBalance, balance) ?? directionFromNarration(narration) ?? "debit";
-    if (txAmt !== null && txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
-    prevBalance = balance;
-    closing = balance;
-  }
-  return { rows, closing };
-}
-
-// ─── ICICI Credit Card ────────────────────────────────────────────────────────
-
-function parseIciciCC(lines: string[]): { rows: StatementRow[]; closing: number | null } {
-  const rows: StatementRow[] = [];
-  let closing: number | null = null;
-  const dateRe = /^(\d{2}\/\d{2}\/\d{4}|\d{2}-\d{2}-\d{4})\s+(.+)$/;
-
-  for (const line of lines) {
-    if (/total\s+amount\s+due|minimum\s+amount\s+due|closing\s+balance/i.test(line)) {
-      const amounts = extractAmounts(line);
-      if (amounts.length) closing = amounts[amounts.length - 1];
-      continue;
-    }
-    const dm = line.match(dateRe);
-    if (!dm) continue;
-    const date = parsePdfDate(dm[1]);
-    if (!date) continue;
-    const rest = dm[2];
-    const amounts = extractAmounts(rest);
-    if (!amounts.length) continue;
-    const txAmt = amounts[0];
-    const isCr = /\bCr\b/.test(rest);
-    const narration = rest.replace(/[\d,]+\.\d{2}\s*(?:Cr)?/g, "").trim().replace(/\s{2,}/g, " ");
-    const isPayment = /payment|refund|reversal|cashback/i.test(narration);
-    const direction: "debit" | "credit" = isCr || isPayment ? "credit" : "debit";
-    if (txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
-  }
-  return { rows, closing };
-}
-
-// ─── Axis Savings ─────────────────────────────────────────────────────────────
-
-function parseAxisSavings(lines: string[]): { rows: StatementRow[]; closing: number | null } {
-  const rows: StatementRow[] = [];
-  let prevBalance: number | null = null;
-  let closing: number | null = null;
-  const dateRe = /^(\d{2}-\d{2}-\d{4})\s+(.+)$/;
-
-  for (const line of lines) {
-    const dm = line.match(dateRe);
-    if (!dm) continue;
-    const date = parsePdfDate(dm[1]);
-    if (!date) continue;
-    const rest = dm[2];
-    const amounts = extractAmounts(rest);
-    if (!amounts.length) continue;
-    const balance = amounts[amounts.length - 1];
-    const txAmt = amounts.length >= 2 ? amounts[amounts.length - 2] : null;
-    const narration = rest.replace(/[\d,]+\.\d{2}/g, "").trim().replace(/\s{2,}/g, " ");
-    const direction = balanceDeltaDirection(prevBalance, balance) ?? directionFromNarration(narration) ?? "debit";
-    if (txAmt !== null && txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
-    prevBalance = balance;
-    closing = balance;
-  }
-  return { rows, closing };
-}
-
-// ─── Axis Credit Card ─────────────────────────────────────────────────────────
-
-function parseAxisCC(lines: string[]): { rows: StatementRow[]; closing: number | null } {
-  const rows: StatementRow[] = [];
-  let closing: number | null = null;
-  const dateRe = /^(\d{2}-\d{2}-\d{4}|\d{2}\/\d{2}\/\d{4})\s+(.+)$/;
-
-  for (const line of lines) {
-    if (/closing\s+balance|total\s+amount\s+due/i.test(line)) {
-      const amounts = extractAmounts(line);
-      if (amounts.length) closing = amounts[amounts.length - 1];
-      continue;
-    }
-    const dm = line.match(dateRe);
-    if (!dm) continue;
-    const date = parsePdfDate(dm[1]);
-    if (!date) continue;
-    const rest = dm[2];
-    const amounts = extractAmounts(rest);
-    if (!amounts.length) continue;
-    const txAmt = amounts[0];
-    const isCr = /\bCr\b|\bcredit\b/i.test(rest);
-    const narration = rest.replace(/[\d,]+\.\d{2}/g, "").replace(/\b(Dr|Cr)\b/gi, "").trim().replace(/\s{2,}/g, " ");
-    const isPayment = /payment|refund|reversal|cashback/i.test(narration);
-    const direction: "debit" | "credit" = isCr || isPayment ? "credit" : "debit";
-    if (txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
-  }
-  return { rows, closing };
-}
-
-// ─── SBI Savings ──────────────────────────────────────────────────────────────
-
-function parseSbiSavings(lines: string[]): { rows: StatementRow[]; closing: number | null } {
-  const rows: StatementRow[] = [];
-  let prevBalance: number | null = null;
-  let closing: number | null = null;
-  const dateRe = /^(\d{2}\/\d{2}\/\d{4})\s+(.+)$/;
-
-  for (const line of lines) {
-    const dm = line.match(dateRe);
-    if (!dm) continue;
-    const date = parsePdfDate(dm[1]);
-    if (!date) continue;
-    const rest = dm[2].replace(/^\d{2}\/\d{2}\/\d{4}\s+/, ""); // strip value date
-    const amounts = extractAmounts(rest);
-    if (!amounts.length) continue;
-    const balance = amounts[amounts.length - 1];
-    const txAmt = amounts.length >= 2 ? amounts[amounts.length - 2] : null;
-    const narration = rest.replace(/[\d,]+\.\d{2}/g, "").replace(/\d{6,}/g, "").trim().replace(/\s{2,}/g, " ");
-    const direction = balanceDeltaDirection(prevBalance, balance) ?? directionFromNarration(narration) ?? "debit";
-    if (txAmt !== null && txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
-    prevBalance = balance;
-    closing = balance;
-  }
-  return { rows, closing };
-}
-
-// ─── IDFC FIRST Credit Card ───────────────────────────────────────────────────
-
-function parseIdfcFirstCC(lines: string[]): { rows: StatementRow[]; closing: number | null } {
-  const rows: StatementRow[] = [];
-  let closing: number | null = null;
-  const dateRe = /^(\d{2}[\/\-]\d{2}[\/\-]\d{4})\s+(.+)$/;
-
-  for (const line of lines) {
-    if (/convert\s+to\s+emi|emi\s+conversion|emi\s+breakup/i.test(line)) continue;
-    if (/card\s+number\s*:/i.test(line)) continue;
-    if (/closing\s+balance|total\s+amount\s+due|statement\s+balance/i.test(line)) {
-      const amounts = extractAmounts(line);
-      if (amounts.length) closing = amounts[amounts.length - 1];
-      continue;
-    }
-    const dm = line.match(dateRe);
-    if (!dm) continue;
-    const date = parsePdfDate(dm[1]);
-    if (!date) continue;
-    const rest = dm[2];
-    const amounts = extractAmounts(rest);
-    if (!amounts.length) continue;
-    const txAmt = amounts[0];
-    const isCr = /\bCr\b/.test(rest);
-    const narration = rest.replace(/[\d,]+\.\d{2}\s*(?:Cr)?/g, "").trim().replace(/\s{2,}/g, " ");
-    const isPayment = /payment|refund|reversal|cashback/i.test(narration);
-    const direction: "debit" | "credit" = isCr || isPayment ? "credit" : "debit";
-    if (txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
-  }
-  return { rows, closing };
-}
-
-// ─── Generic fallback ─────────────────────────────────────────────────────────
-
-function parseGeneric(lines: string[]): { rows: StatementRow[]; closing: number | null } {
-  const rows: StatementRow[] = [];
-  let prevBalance: number | null = null;
-  let closing: number | null = null;
-  const dateRe = /^(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{2}\s+[A-Za-z]{3}\s+\d{4}|\d{2}-[A-Za-z]{3}-\d{2,4})\s+(.+)$/;
-
-  for (const line of lines) {
-    const dm = line.match(dateRe);
-    if (!dm) continue;
-    const date = parsePdfDate(dm[1]);
-    if (!date) continue;
-    const rest = dm[2];
-    const amounts = extractAmounts(rest);
-    if (!amounts.length) continue;
-    const balance = amounts.length >= 2 ? amounts[amounts.length - 1] : null;
-    const txAmt = amounts.length >= 2 ? amounts[amounts.length - 2] : amounts[0];
-    const narration = rest.replace(/[\d,]+\.\d{2}/g, "").replace(/\b(Dr|Cr)\b/gi, "").trim().replace(/\s{2,}/g, " ");
-    const isCr = /\bCr\b/.test(rest);
-    let direction: "debit" | "credit" = "debit";
-    if (isCr) {
-      direction = "credit";
-    } else if (balance !== null) {
-      direction = balanceDeltaDirection(prevBalance, balance) ?? directionFromNarration(narration) ?? "debit";
-    } else {
-      direction = directionFromNarration(narration) ?? "debit";
-    }
-    if (txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
-    if (balance !== null) { prevBalance = balance; closing = balance; }
-  }
-  return { rows, closing };
-}
-
-// ─── Date range ────────────────────────────────────────────────────────────────
 
 function dateRangeFromRows(rows: StatementRow[]): { startDate: string | null; endDate: string | null } {
   if (!rows.length) return { startDate: null, endDate: null };
@@ -419,44 +325,48 @@ export async function parsePdfStatement(
   filename: string,
   password?: string,
 ): Promise<ParsedStatement> {
-  const fullText = await extractPdfText(fileUri, password);
 
-  if (fullText.replace(/\s/g, "").length < 50) {
-    throw new ParseError(
-      "This PDF appears to be a scanned image with no extractable text. " +
-      "Please export a digital statement from your bank's internet banking portal.",
-    );
+  // Primary path: coordinate-based structured extraction
+  let result: { rows: StatementRow[]; closing: number | null } | null = null;
+  let fullText = "";
+
+  try {
+    const rows = await extractPdfRows(fileUri, password);
+
+    // Flatten to text for bank/suffix detection
+    fullText = rows.map((r) => r.join(" ")).join("\n");
+
+    if (fullText.replace(/\s/g, "").length < 50) {
+      throw new ParseError(
+        "This PDF appears to be a scanned image with no extractable text. " +
+        "Please export a digital statement from your bank's internet banking portal.",
+      );
+    }
+
+    result = parseStructuredRows(rows);
+  } catch (e) {
+    // Re-throw password and parse errors immediately — no fallback possible
+    if (e instanceof PdfPasswordError || e instanceof ParseError) throw e;
+    // Unexpected native failure — fall through to raw-text fallback
   }
 
-  const bank = detectBank(fullText);
-  const suffix = detectSuffix(fullText);
-  const isCC = isCreditCard(fullText);
+  // Fallback: raw text + generic regex (handles weird PDF coordinate layouts)
+  if (!result || result.rows.length === 0) {
+    try {
+      fullText = fullText || await extractPdfText(fileUri, password);
 
-  const lines = fullText
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.length > 3 && !l.startsWith("--- PAGE ---"));
+      if (fullText.replace(/\s/g, "").length < 50) {
+        throw new ParseError(
+          "This PDF appears to be a scanned image with no extractable text. " +
+          "Please export a digital statement from your bank's internet banking portal.",
+        );
+      }
 
-  let result: { rows: StatementRow[]; closing: number | null };
-
-  if (bank === "HDFC" && isCC) {
-    result = parseHdfcCC(lines);
-  } else if (bank === "HDFC") {
-    result = parseHdfcSavings(lines);
-  } else if (bank === "ICICI" && isCC) {
-    result = parseIciciCC(lines);
-  } else if (bank === "ICICI") {
-    result = parseIciciSavings(lines);
-  } else if (bank === "Axis" && isCC) {
-    result = parseAxisCC(lines);
-  } else if (bank === "Axis") {
-    result = parseAxisSavings(lines);
-  } else if (bank === "SBI") {
-    result = parseSbiSavings(lines);
-  } else if (bank === "IDFC FIRST") {
-    result = parseIdfcFirstCC(lines);
-  } else {
-    result = parseGeneric(lines);
+      result = parseRawTextFallback(fullText);
+    } catch (e) {
+      if (e instanceof PdfPasswordError || e instanceof ParseError) throw e;
+      throw new ParseError("Could not open the PDF file. It may be corrupted or in an unsupported format.");
+    }
   }
 
   if (!result.rows.length) {
@@ -466,6 +376,8 @@ export async function parsePdfStatement(
     );
   }
 
+  const bank = detectBank(fullText);
+  const suffix = detectSuffix(fullText);
   const { startDate, endDate } = dateRangeFromRows(result.rows);
 
   return {
