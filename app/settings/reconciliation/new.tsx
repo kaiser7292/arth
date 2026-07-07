@@ -21,8 +21,7 @@ import { buildArthPool, matchStatementRows } from "@/services/reconciliation/sta
 import { settingsStorage } from "@/services/storage";
 import {
   createVaultEntry,
-  decryptField,
-  getStatementPwdEntry,
+  getStatementPasswordForAccount,
   type VaultEntry,
 } from "@/services/vault";
 import type { AlertButton } from "@/hooks/use-alert";
@@ -155,11 +154,9 @@ export default function NewReconciliationScreen() {
 
             // Check vault for a saved statement password linked to this account
             if (selectedAccountId) {
-              const vaultEntry = await getStatementPwdEntry(selectedAccountId).catch(() => null);
-              if (vaultEntry?.password_enc) {
-                const savedPwd = await decryptField(vaultEntry.password_enc).catch(() => "");
-                if (savedPwd) {
-                  const buttons: AlertButton[] = [
+              const savedPwd = await getStatementPasswordForAccount(selectedAccountId).catch(() => null);
+              if (savedPwd) {
+                const buttons: AlertButton[] = [
                     {
                       text: "Use saved password",
                       onPress: async () => {
@@ -195,7 +192,6 @@ export default function NewReconciliationScreen() {
                     buttons,
                   );
                   return;
-                }
               }
             }
 

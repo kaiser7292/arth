@@ -299,3 +299,23 @@ export async function getStatementPwdEntry(accountId: string): Promise<VaultEntr
     [accountId],
   );
 }
+
+/**
+ * Returns the decrypted statement PDF password for an account, checking:
+ * 1. custom_fields.statement_password on linked banking/card entries (new location)
+ * 2. Standalone statement_pwd category entries (legacy / manual)
+ */
+export async function getStatementPasswordForAccount(accountId: string): Promise<string | null> {
+  const linked = await getVaultEntriesForAccount(accountId);
+  for (const entry of linked) {
+    if ((entry.category === "banking" || entry.category === "card") && entry.custom_fields) {
+      const fields = await decryptCustomFields(entry.custom_fields);
+      if (fields.statement_password) return fields.statement_password;
+    }
+  }
+  const stmtEntry = await getStatementPwdEntry(accountId);
+  if (stmtEntry?.password_enc) {
+    return decryptField(stmtEntry.password_enc);
+  }
+  return null;
+}

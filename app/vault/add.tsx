@@ -33,7 +33,7 @@ const CATEGORY_LOGIN_METHODS: Record<VaultCategory, LoginMethod[]> = {
   banking:       ["password", "email_password", "google", "phone_otp"],
   card:          ["pin", "none"],
   upi:           ["pin"],
-  demat:         ["password", "email_password"],
+  demat:         ["password", "email_password", "phone_otp", "pin"],
   statement_pwd: ["password"],
   email:         ["email_password", "google", "apple"],
   gaming:        ["password", "email_password", "google", "apple", "phone_otp"],
@@ -85,6 +85,14 @@ export default function VaultAddScreen() {
   const [showCardNumber, setShowCardNumber] = useState(false);
   const [showCvv, setShowCvv] = useState(false);
 
+  // Banking extras + statement password (banking + card)
+  const [secondaryPassword, setSecondaryPassword] = useState("");
+  const [mpin, setMpin] = useState("");
+  const [statementPwd, setStatementPwd] = useState("");
+  const [showSecondaryPassword, setShowSecondaryPassword] = useState(false);
+  const [showMpin, setShowMpin] = useState(false);
+  const [showStatementPwd, setShowStatementPwd] = useState(false);
+
   // Load existing entry for edit
   useEffect(() => {
     if (!editId) return;
@@ -107,6 +115,9 @@ export default function VaultAddScreen() {
           setCardHolder(fields.card_holder ?? "");
           setCardExpiry(fields.expiry ?? "");
           setCardCvv(fields.cvv ?? "");
+          setSecondaryPassword(fields.secondary_password ?? "");
+          setMpin(fields.mpin ?? "");
+          setStatementPwd(fields.statement_password ?? "");
         }
         // passwords stay blank on edit — user must re-enter to change
       } finally {
@@ -114,6 +125,11 @@ export default function VaultAddScreen() {
       }
     })();
   }, [editId]);
+
+  const handleExpiryChange = useCallback((text: string) => {
+    const digits = text.replace(/\D/g, "").slice(0, 4);
+    setCardExpiry(digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits);
+  }, []);
 
   // Reset login method when category changes (if current method not available)
   useEffect(() => {
@@ -140,10 +156,17 @@ export default function VaultAddScreen() {
         if (cardHolder.trim()) cf.card_holder = cardHolder.trim();
         if (cardExpiry.trim()) cf.expiry = cardExpiry.trim();
         if (cardCvv.trim()) cf.cvv = cardCvv.trim();
+        if (statementPwd.trim()) cf.statement_password = statementPwd.trim();
         customFieldsData = cf;
       } else if (category === "upi") {
         resolvedMethod = "pin";
         customFieldsData = {};
+      } else if (category === "banking") {
+        const cf: Record<string, string> = {};
+        if (secondaryPassword.trim()) cf.secondary_password = secondaryPassword.trim();
+        if (mpin.trim()) cf.mpin = mpin.trim();
+        if (statementPwd.trim()) cf.statement_password = statementPwd.trim();
+        customFieldsData = cf;
       }
 
       const input = {
@@ -172,7 +195,8 @@ export default function VaultAddScreen() {
       setSaving(false);
     }
   }, [title, category, loginMethod, username, email, phone, password, pin, url, notes,
-      cardNumber, cardHolder, cardExpiry, cardCvv, editId, linkedAccountId]);
+      cardNumber, cardHolder, cardExpiry, cardCvv, editId, linkedAccountId,
+      secondaryPassword, mpin, statementPwd]);
 
   if (loading) {
     return (
@@ -315,7 +339,7 @@ export default function VaultAddScreen() {
             <Field label="Expiry (MM/YY)" colors={colors}>
               <TextInput
                 value={cardExpiry}
-                onChangeText={setCardExpiry}
+                onChangeText={handleExpiryChange}
                 placeholder="MM/YY"
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="number-pad"
@@ -358,6 +382,26 @@ export default function VaultAddScreen() {
               <Pressable onPress={() => setShowPin((p) => !p)} hitSlop={8}>
                 <Ionicons
                   name={showPin ? "eye-off-outline" : "eye-outline"}
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            </Field>
+
+            <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
+              <TextInput
+                value={statementPwd}
+                onChangeText={setStatementPwd}
+                placeholder="Password to open bank PDF statements"
+                placeholderTextColor={colors.textSecondary}
+                secureTextEntry={!showStatementPwd}
+                autoCapitalize="none"
+                autoCorrect={false}
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+              <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
+                <Ionicons
+                  name={showStatementPwd ? "eye-off-outline" : "eye-outline"}
                   size={18}
                   color={colors.textSecondary}
                 />
@@ -511,8 +555,69 @@ export default function VaultAddScreen() {
           </Field>
         )}
 
+        {/* Banking: secondary/transaction password + MPIN + statement PDF password */}
+        {category === "banking" && ["password", "email_password"].includes(loginMethod) && (
+          <>
+            <Field label={editId ? "Transaction / Profile Password (leave blank to keep current)" : "Transaction / Profile Password (optional)"} colors={colors}>
+              <TextInput
+                value={secondaryPassword}
+                onChangeText={setSecondaryPassword}
+                placeholder="Secondary password, if any"
+                placeholderTextColor={colors.textSecondary}
+                secureTextEntry={!showSecondaryPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+              <Pressable onPress={() => setShowSecondaryPassword((p) => !p)} hitSlop={8}>
+                <Ionicons name={showSecondaryPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+              </Pressable>
+            </Field>
+
+            <Field label={editId ? "MPIN (leave blank to keep current)" : "MPIN (optional)"} colors={colors}>
+              <TextInput
+                value={mpin}
+                onChangeText={setMpin}
+                placeholder="4–6 digit MPIN for mobile banking app"
+                placeholderTextColor={colors.textSecondary}
+                secureTextEntry={!showMpin}
+                keyboardType="number-pad"
+                maxLength={6}
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+              <Pressable onPress={() => setShowMpin((p) => !p)} hitSlop={8}>
+                <Ionicons name={showMpin ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+              </Pressable>
+            </Field>
+          </>
+        )}
+
+        {category === "banking" && (
+          <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
+            <TextInput
+              value={statementPwd}
+              onChangeText={setStatementPwd}
+              placeholder="Password to open bank PDF statements"
+              placeholderTextColor={colors.textSecondary}
+              secureTextEntry={!showStatementPwd}
+              autoCapitalize="none"
+              autoCorrect={false}
+              className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+            />
+            <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
+              <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+            </Pressable>
+          </Field>
+        )}
+
         {showGenericPin && (
-          <Field label={editId ? "New PIN (leave blank to keep current)" : "PIN"} colors={colors}>
+          <Field
+            label={
+              category === "demat"
+                ? editId ? "Trading PIN / TPIN (leave blank to keep current)" : "Trading PIN / TPIN"
+                : editId ? "New PIN (leave blank to keep current)" : "PIN"
+            }
+            colors={colors}>
             <TextInput
               value={pin}
               onChangeText={setPin}

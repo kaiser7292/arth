@@ -33,6 +33,9 @@ export default function VaultEntryScreen() {
   const [showPin, setShowPin] = useState(false);
   const [showCardNumber, setShowCardNumber] = useState(false);
   const [showCvv, setShowCvv] = useState(false);
+  const [showSecondaryPassword, setShowSecondaryPassword] = useState(false);
+  const [showMpin, setShowMpin] = useState(false);
+  const [showStatementPwd, setShowStatementPwd] = useState(false);
   const [customFields, setCustomFields] = useState<Record<string, string>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [clipboardSecsLeft, setClipboardSecsLeft] = useState(0);
@@ -259,6 +262,18 @@ export default function VaultEntryScreen() {
             colors={colors}
           />
         )}
+        {isCard && customFields.statement_password && (
+          <SecretRow
+            label="Statement PDF Password"
+            value={customFields.statement_password}
+            show={showStatementPwd}
+            onToggle={() => setShowStatementPwd((p) => !p)}
+            onCopy={() => handleCopy("Statement PDF Password", customFields.statement_password)}
+            copied={copiedField === "Statement PDF Password"}
+            accent={accent}
+            colors={colors}
+          />
+        )}
 
         {/* UPI-specific fields */}
         {isUpi && entry.username && (
@@ -336,14 +351,53 @@ export default function VaultEntryScreen() {
           />
         )}
 
+        {entry.category === "banking" && customFields.secondary_password && (
+          <SecretRow
+            label="Transaction / Profile Password"
+            value={customFields.secondary_password}
+            show={showSecondaryPassword}
+            onToggle={() => setShowSecondaryPassword((p) => !p)}
+            onCopy={() => handleCopy("Transaction / Profile Password", customFields.secondary_password)}
+            copied={copiedField === "Transaction / Profile Password"}
+            accent={accent}
+            colors={colors}
+          />
+        )}
+
+        {entry.category === "banking" && customFields.mpin && (
+          <SecretRow
+            label="MPIN"
+            value={customFields.mpin}
+            show={showMpin}
+            onToggle={() => setShowMpin((p) => !p)}
+            onCopy={() => handleCopy("MPIN", customFields.mpin)}
+            copied={copiedField === "MPIN"}
+            accent={accent}
+            colors={colors}
+          />
+        )}
+
         {showPinField && pin && (
           <SecretRow
-            label="PIN"
+            label={entry.category === "demat" ? "Trading PIN / TPIN" : "PIN"}
             value={pin}
             show={showPin}
             onToggle={() => setShowPin((p) => !p)}
             onCopy={() => handleCopy("PIN", pin)}
             copied={copiedField === "PIN"}
+            accent={accent}
+            colors={colors}
+          />
+        )}
+
+        {entry.category === "banking" && customFields.statement_password && (
+          <SecretRow
+            label="Statement PDF Password"
+            value={customFields.statement_password}
+            show={showStatementPwd}
+            onToggle={() => setShowStatementPwd((p) => !p)}
+            onCopy={() => handleCopy("Statement PDF Password", customFields.statement_password)}
+            copied={copiedField === "Statement PDF Password"}
             accent={accent}
             colors={colors}
           />
