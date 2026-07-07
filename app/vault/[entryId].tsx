@@ -11,6 +11,7 @@ import {
   VAULT_CATEGORY_ICONS,
   VAULT_CATEGORY_LABELS,
   VaultEntry,
+  decryptCustomFields,
   decryptField,
   deleteVaultEntry,
   getVaultEntry,
@@ -30,6 +31,9 @@ export default function VaultEntryScreen() {
   const [pin, setPinVal] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
+  const [showCardNumber, setShowCardNumber] = useState(false);
+  const [showCvv, setShowCvv] = useState(false);
+  const [customFields, setCustomFields] = useState<Record<string, string>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [clipboardSecsLeft, setClipboardSecsLeft] = useState(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -46,6 +50,10 @@ export default function VaultEntryScreen() {
       if (e?.pin_enc) {
         const p = await decryptField(e.pin_enc);
         setPinVal(p);
+      }
+      if (e?.custom_fields) {
+        const cf = await decryptCustomFields(e.custom_fields);
+        setCustomFields(cf);
       }
     } finally {
       setLoading(false);
@@ -118,11 +126,13 @@ export default function VaultEntryScreen() {
     );
   }
 
-  const showUsername = entry.login_method === "password";
-  const showEmail = ["email_password", "google", "apple"].includes(entry.login_method);
-  const showPhone = entry.login_method === "phone_otp";
-  const showPasswordField = ["password", "email_password"].includes(entry.login_method);
-  const showPinField = entry.login_method === "pin";
+  const isCard = entry.category === "card";
+  const isUpi = entry.category === "upi";
+  const showUsername = !isCard && !isUpi && entry.login_method === "password";
+  const showEmail = !isCard && !isUpi && ["email_password", "google", "apple"].includes(entry.login_method);
+  const showPhone = !isCard && !isUpi && entry.login_method === "phone_otp";
+  const showPasswordField = !isCard && !isUpi && ["password", "email_password"].includes(entry.login_method);
+  const showPinField = !isCard && !isUpi && entry.login_method === "pin";
 
   return (
     <ScreenContainer padTop={false}>
@@ -194,7 +204,95 @@ export default function VaultEntryScreen() {
           </View>
         </Card>
 
-        {/* Credential fields */}
+        {/* Card-specific fields */}
+        {isCard && customFields.card_holder && (
+          <FieldRow
+            label="Cardholder Name"
+            value={customFields.card_holder}
+            onCopy={() => handleCopy("Cardholder Name", customFields.card_holder)}
+            copied={copiedField === "Cardholder Name"}
+            accent={accent}
+          />
+        )}
+        {isCard && customFields.card_number && (
+          <SecretRow
+            label="Card Number"
+            value={customFields.card_number}
+            show={showCardNumber}
+            onToggle={() => setShowCardNumber((p) => !p)}
+            onCopy={() => handleCopy("Card Number", customFields.card_number)}
+            copied={copiedField === "Card Number"}
+            accent={accent}
+            colors={colors}
+          />
+        )}
+        {isCard && customFields.expiry && (
+          <FieldRow
+            label="Expiry"
+            value={customFields.expiry}
+            onCopy={() => handleCopy("Expiry", customFields.expiry)}
+            copied={copiedField === "Expiry"}
+            accent={accent}
+          />
+        )}
+        {isCard && customFields.cvv && (
+          <SecretRow
+            label="CVV"
+            value={customFields.cvv}
+            show={showCvv}
+            onToggle={() => setShowCvv((p) => !p)}
+            onCopy={() => handleCopy("CVV", customFields.cvv)}
+            copied={copiedField === "CVV"}
+            accent={accent}
+            colors={colors}
+          />
+        )}
+        {isCard && pin && (
+          <SecretRow
+            label="ATM / Card PIN"
+            value={pin}
+            show={showPin}
+            onToggle={() => setShowPin((p) => !p)}
+            onCopy={() => handleCopy("PIN", pin)}
+            copied={copiedField === "PIN"}
+            accent={accent}
+            colors={colors}
+          />
+        )}
+
+        {/* UPI-specific fields */}
+        {isUpi && entry.username && (
+          <FieldRow
+            label="UPI ID"
+            value={entry.username}
+            onCopy={() => handleCopy("UPI ID", entry.username!)}
+            copied={copiedField === "UPI ID"}
+            accent={accent}
+          />
+        )}
+        {isUpi && entry.phone && (
+          <FieldRow
+            label="Registered Phone"
+            value={entry.phone}
+            onCopy={() => handleCopy("Phone", entry.phone!)}
+            copied={copiedField === "Phone"}
+            accent={accent}
+          />
+        )}
+        {isUpi && pin && (
+          <SecretRow
+            label="UPI PIN"
+            value={pin}
+            show={showPin}
+            onToggle={() => setShowPin((p) => !p)}
+            onCopy={() => handleCopy("UPI PIN", pin)}
+            copied={copiedField === "UPI PIN"}
+            accent={accent}
+            colors={colors}
+          />
+        )}
+
+        {/* Standard credential fields */}
         {showUsername && entry.username && (
           <FieldRow
             label="Username"
@@ -257,14 +355,6 @@ export default function VaultEntryScreen() {
             value={entry.url}
             onCopy={() => handleCopy("URL", entry.url!)}
             copied={copiedField === "URL"}
-            accent={accent}
-          />
-        )}
-
-        {entry.renewal_date && (
-          <FieldRow
-            label="Renewal Date"
-            value={entry.renewal_date}
             accent={accent}
           />
         )}

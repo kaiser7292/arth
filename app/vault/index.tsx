@@ -73,11 +73,6 @@ export default function VaultIndexScreen() {
             {item.email || item.username || item.phone}
           </Text>
         )}
-        {item.renewal_date && (
-          <Text className="text-xs text-text-tertiary mt-0.5">
-            Renews {item.renewal_date}
-          </Text>
-        )}
       </View>
       <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
     </Pressable>

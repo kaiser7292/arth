@@ -9,8 +9,6 @@ export type VaultCategory =
   | "card"
   | "upi"
   | "demat"
-  | "investment"
-  | "insurance"
   | "statement_pwd"
   | "email"
   | "gaming"
@@ -60,6 +58,7 @@ export interface VaultEntryInput {
   notes?: string;
   renewal_date?: string;
   linked_account_id?: string;
+  custom_fields_data?: Record<string, string>;
 }
 
 export const VAULT_CATEGORY_LABELS: Record<VaultCategory, string> = {
@@ -67,8 +66,6 @@ export const VAULT_CATEGORY_LABELS: Record<VaultCategory, string> = {
   card:          "Credit / Debit Card",
   upi:           "UPI",
   demat:         "Demat / Trading",
-  investment:    "Investment",
-  insurance:     "Insurance",
   statement_pwd: "Statement Password",
   email:         "Email",
   gaming:        "Gaming",
@@ -82,8 +79,6 @@ export const VAULT_CATEGORY_ICONS: Record<VaultCategory, string> = {
   card:          "card-outline",
   upi:           "phone-portrait-outline",
   demat:         "trending-up-outline",
-  investment:    "bar-chart-outline",
-  insurance:     "shield-checkmark-outline",
   statement_pwd: "document-lock-outline",
   email:         "mail-outline",
   gaming:        "game-controller-outline",
@@ -93,8 +88,10 @@ export const VAULT_CATEGORY_ICONS: Record<VaultCategory, string> = {
 };
 
 export const VAULT_CATEGORY_GROUPS: { label: string; categories: VaultCategory[] }[] = [
-  { label: "Finance", categories: ["banking", "card", "upi", "demat", "investment", "insurance", "statement_pwd"] },
-  { label: "Personal", categories: ["email", "gaming", "subscription", "social", "other"] },
+  {
+    label: "Category",
+    categories: ["banking", "card", "upi", "demat", "statement_pwd", "email", "gaming", "subscription", "social", "other"],
+  },
 ];
 
 export const LOGIN_METHOD_LABELS: Record<LoginMethod, string> = {
@@ -139,6 +136,16 @@ export async function decryptField(encrypted: string): Promise<string> {
   }
 }
 
+export async function decryptCustomFields(encrypted: string | null): Promise<Record<string, string>> {
+  if (!encrypted) return {};
+  try {
+    const json = await decryptField(encrypted);
+    return json ? (JSON.parse(json) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
 function generateId(): string {
@@ -152,12 +159,16 @@ export async function createVaultEntry(input: VaultEntryInput): Promise<string> 
 
   const password_enc = input.password ? await encryptField(input.password) : null;
   const pin_enc = input.pin ? await encryptField(input.pin) : null;
+  const custom_fields_enc =
+    input.custom_fields_data && Object.keys(input.custom_fields_data).length > 0
+      ? await encryptField(JSON.stringify(input.custom_fields_data))
+      : null;
 
   await db.runAsync(
     `INSERT INTO vault_entries
      (id, title, category, login_method, username, email, phone,
-      password_enc, pin_enc, url, notes, renewal_date, linked_account_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      password_enc, pin_enc, url, notes, renewal_date, linked_account_id, custom_fields, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.title.trim(),
@@ -172,6 +183,7 @@ export async function createVaultEntry(input: VaultEntryInput): Promise<string> 
       input.notes?.trim() || null,
       input.renewal_date || null,
       input.linked_account_id || null,
+      custom_fields_enc,
       now,
     ],
   );
@@ -212,6 +224,12 @@ export async function updateVaultEntry(
         ? await encryptField(input.pin)
         : null
       : undefined;
+  const custom_fields_enc =
+    input.custom_fields_data !== undefined
+      ? Object.keys(input.custom_fields_data).length > 0
+        ? await encryptField(JSON.stringify(input.custom_fields_data))
+        : null
+      : undefined;
 
   const sets: string[] = ["updated_at = ?"];
   const vals: (string | null)[] = [now];
@@ -229,6 +247,7 @@ export async function updateVaultEntry(
     ["notes", input.notes?.trim() ?? null],
     ["renewal_date", input.renewal_date ?? null],
     ["linked_account_id", input.linked_account_id ?? null],
+    ["custom_fields", custom_fields_enc],
   ];
 
   for (const [col, val] of fields) {

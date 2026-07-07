@@ -20,19 +20,20 @@ import {
   VAULT_CATEGORY_LABELS,
   VaultCategory,
   createVaultEntry,
+  decryptCustomFields,
   getVaultEntry,
   updateVaultEntry,
 } from "@/services/vault";
 import { getErrorMessage } from "@/utils/error-message";
 
-// Which login methods are sensible for each category
+const ALL_CATEGORIES = VAULT_CATEGORY_GROUPS.flatMap((g) => g.categories);
+
+// Which login methods are sensible for each category (card + upi skip this picker)
 const CATEGORY_LOGIN_METHODS: Record<VaultCategory, LoginMethod[]> = {
   banking:       ["password", "email_password", "google", "phone_otp"],
   card:          ["pin", "none"],
-  upi:           ["pin", "phone_otp", "password"],
+  upi:           ["pin"],
   demat:         ["password", "email_password"],
-  investment:    ["password", "email_password"],
-  insurance:     ["password", "email_password"],
   statement_pwd: ["password"],
   email:         ["email_password", "google", "apple"],
   gaming:        ["password", "email_password", "google", "apple", "phone_otp"],
@@ -61,6 +62,7 @@ export default function VaultAddScreen() {
   const [category, setCategory] = useState<VaultCategory>(
     (params.prefill_category as VaultCategory) ?? "banking",
   );
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const [loginMethod, setLoginMethod] = useState<LoginMethod>("password");
   const [linkedAccountId, setLinkedAccountId] = useState<string | undefined>(prefillLinkedAccountId);
   const [username, setUsername] = useState("");
@@ -70,11 +72,18 @@ export default function VaultAddScreen() {
   const [pin, setPin] = useState("");
   const [url, setUrl] = useState("");
   const [notes, setNotes] = useState("");
-  const [renewalDate, setRenewalDate] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!!editId);
   const [showPassword, setShowPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
+
+  // Card-specific custom fields
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [showCardNumber, setShowCardNumber] = useState(false);
+  const [showCvv, setShowCvv] = useState(false);
 
   // Load existing entry for edit
   useEffect(() => {
@@ -92,7 +101,13 @@ export default function VaultAddScreen() {
         setPhone(entry.phone ?? "");
         setUrl(entry.url ?? "");
         setNotes(entry.notes ?? "");
-        setRenewalDate(entry.renewal_date ?? "");
+        if (entry.custom_fields) {
+          const fields = await decryptCustomFields(entry.custom_fields);
+          setCardNumber(fields.card_number ?? "");
+          setCardHolder(fields.card_holder ?? "");
+          setCardExpiry(fields.expiry ?? "");
+          setCardCvv(fields.cvv ?? "");
+        }
         // passwords stay blank on edit — user must re-enter to change
       } finally {
         setLoading(false);
@@ -115,10 +130,26 @@ export default function VaultAddScreen() {
     }
     setSaving(true);
     try {
+      let resolvedMethod: LoginMethod = loginMethod;
+      let customFieldsData: Record<string, string> | undefined;
+
+      if (category === "card") {
+        resolvedMethod = pin ? "pin" : "none";
+        const cf: Record<string, string> = {};
+        if (cardNumber.trim()) cf.card_number = cardNumber.trim();
+        if (cardHolder.trim()) cf.card_holder = cardHolder.trim();
+        if (cardExpiry.trim()) cf.expiry = cardExpiry.trim();
+        if (cardCvv.trim()) cf.cvv = cardCvv.trim();
+        customFieldsData = cf;
+      } else if (category === "upi") {
+        resolvedMethod = "pin";
+        customFieldsData = {};
+      }
+
       const input = {
         title,
         category,
-        login_method: loginMethod,
+        login_method: resolvedMethod,
         username: username || undefined,
         email: email || undefined,
         phone: phone || undefined,
@@ -126,8 +157,8 @@ export default function VaultAddScreen() {
         pin: pin || undefined,
         url: url || undefined,
         notes: notes || undefined,
-        renewal_date: renewalDate || undefined,
         linked_account_id: linkedAccountId,
+        custom_fields_data: customFieldsData,
       };
       if (editId) {
         await updateVaultEntry(editId, input);
@@ -140,7 +171,8 @@ export default function VaultAddScreen() {
     } finally {
       setSaving(false);
     }
-  }, [title, category, loginMethod, username, email, phone, password, pin, url, notes, renewalDate, editId, linkedAccountId]);
+  }, [title, category, loginMethod, username, email, phone, password, pin, url, notes,
+      cardNumber, cardHolder, cardExpiry, cardCvv, editId, linkedAccountId]);
 
   if (loading) {
     return (
@@ -152,13 +184,16 @@ export default function VaultAddScreen() {
     );
   }
 
+  const isCard = category === "card";
+  const isUpi = category === "upi";
+  const showLoginMethodPicker = !isCard && !isUpi;
+
   const availableMethods = CATEGORY_LOGIN_METHODS[category];
-  const showUsername = loginMethod === "password";
-  const showEmail = ["email_password", "google", "apple"].includes(loginMethod);
-  const showPhone = loginMethod === "phone_otp";
-  const showPassword_ = ["password", "email_password"].includes(loginMethod);
-  const showPin_ = loginMethod === "pin";
-  const showRenewal = category === "subscription";
+  const showUsername = !isCard && !isUpi && loginMethod === "password";
+  const showEmail = !isCard && !isUpi && ["email_password", "google", "apple"].includes(loginMethod);
+  const showPhone = !isCard && !isUpi && loginMethod === "phone_otp";
+  const showPassword_ = !isCard && !isUpi && ["password", "email_password"].includes(loginMethod);
+  const showGenericPin = !isCard && !isUpi && loginMethod === "pin";
 
   return (
     <ScreenContainer padTop={false} keyboardAware>
@@ -180,79 +215,240 @@ export default function VaultAddScreen() {
           className="text-base text-text-primary dark:text-text-dark-primary bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl px-4 py-3 mb-5"
         />
 
-        {/* Category */}
+        {/* Category — dropdown */}
         <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
           Category
         </Text>
-        {VAULT_CATEGORY_GROUPS.map((group) => (
-          <View key={group.label} className="mb-3">
-            <Text className="text-[10px] uppercase tracking-wider text-text-tertiary mb-1.5 ml-1">
-              {group.label}
+        <Pressable
+          onPress={() => setCategoryOpen((o) => !o)}
+          className="flex-row items-center border border-border-light dark:border-border-dark rounded-xl px-4 py-3 mb-1"
+          style={{ backgroundColor: colors.surface }}
+        >
+          <Ionicons
+            name={VAULT_CATEGORY_ICONS[category] as any}
+            size={16}
+            color={accent[500]}
+          />
+          <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary ml-2">
+            {VAULT_CATEGORY_LABELS[category]}
+          </Text>
+          <Ionicons
+            name={categoryOpen ? "chevron-up" : "chevron-down"}
+            size={16}
+            color={colors.textSecondary}
+          />
+        </Pressable>
+
+        {categoryOpen && (
+          <Card className="mb-4 p-0 overflow-hidden">
+            {ALL_CATEGORIES.map((cat, idx) => {
+              const selected = category === cat;
+              return (
+                <Pressable
+                  key={cat}
+                  onPress={() => { setCategory(cat); setCategoryOpen(false); }}
+                  className="flex-row items-center px-4 py-3"
+                  style={{
+                    backgroundColor: selected ? accent[500] + "18" : "transparent",
+                    borderTopWidth: idx > 0 ? 1 : 0,
+                    borderTopColor: colors.border,
+                  }}
+                >
+                  <Ionicons
+                    name={VAULT_CATEGORY_ICONS[cat] as any}
+                    size={14}
+                    color={selected ? accent[500] : colors.textSecondary}
+                  />
+                  <Text
+                    className="flex-1 text-sm ml-2.5"
+                    style={{ color: selected ? accent[600] : colors.text }}
+                  >
+                    {VAULT_CATEGORY_LABELS[cat]}
+                  </Text>
+                  {selected && (
+                    <Ionicons name="checkmark" size={14} color={accent[500]} />
+                  )}
+                </Pressable>
+              );
+            })}
+          </Card>
+        )}
+
+        <View className="h-px bg-border-light dark:bg-border-dark my-4" />
+
+        {/* Card-specific fields */}
+        {isCard && (
+          <>
+            <Field label="Cardholder Name (optional)" colors={colors}>
+              <TextInput
+                value={cardHolder}
+                onChangeText={setCardHolder}
+                placeholder="Name on card"
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="words"
+                autoCorrect={false}
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+            </Field>
+
+            <Field label={editId ? "Card Number (leave blank to keep current)" : "Card Number"} colors={colors}>
+              <TextInput
+                value={cardNumber}
+                onChangeText={setCardNumber}
+                placeholder="XXXX XXXX XXXX XXXX"
+                placeholderTextColor={colors.textSecondary}
+                secureTextEntry={!showCardNumber}
+                keyboardType="number-pad"
+                maxLength={19}
+                autoCorrect={false}
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+              <Pressable onPress={() => setShowCardNumber((p) => !p)} hitSlop={8}>
+                <Ionicons
+                  name={showCardNumber ? "eye-off-outline" : "eye-outline"}
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            </Field>
+
+            <Field label="Expiry (MM/YY)" colors={colors}>
+              <TextInput
+                value={cardExpiry}
+                onChangeText={setCardExpiry}
+                placeholder="MM/YY"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="number-pad"
+                maxLength={5}
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+            </Field>
+
+            <Field label={editId ? "CVV (leave blank to keep current)" : "CVV"} colors={colors}>
+              <TextInput
+                value={cardCvv}
+                onChangeText={setCardCvv}
+                placeholder="CVV"
+                placeholderTextColor={colors.textSecondary}
+                secureTextEntry={!showCvv}
+                keyboardType="number-pad"
+                maxLength={4}
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+              <Pressable onPress={() => setShowCvv((p) => !p)} hitSlop={8}>
+                <Ionicons
+                  name={showCvv ? "eye-off-outline" : "eye-outline"}
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            </Field>
+
+            <Field label={editId ? "ATM / Card PIN (leave blank to keep current)" : "ATM / Card PIN (optional)"} colors={colors}>
+              <TextInput
+                value={pin}
+                onChangeText={setPin}
+                placeholder="PIN"
+                placeholderTextColor={colors.textSecondary}
+                secureTextEntry={!showPin}
+                keyboardType="number-pad"
+                maxLength={8}
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+              <Pressable onPress={() => setShowPin((p) => !p)} hitSlop={8}>
+                <Ionicons
+                  name={showPin ? "eye-off-outline" : "eye-outline"}
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            </Field>
+          </>
+        )}
+
+        {/* UPI-specific fields */}
+        {isUpi && (
+          <>
+            <Field label="UPI ID (optional)" colors={colors}>
+              <TextInput
+                value={username}
+                onChangeText={setUsername}
+                placeholder="e.g. name@okicici"
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+            </Field>
+
+            <Field label="Registered Phone (optional)" colors={colors}>
+              <TextInput
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="+91 99999 99999"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="phone-pad"
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+            </Field>
+
+            <Field label={editId ? "UPI PIN (leave blank to keep current)" : "UPI PIN"} colors={colors}>
+              <TextInput
+                value={pin}
+                onChangeText={setPin}
+                placeholder="4 or 6 digit PIN"
+                placeholderTextColor={colors.textSecondary}
+                secureTextEntry={!showPin}
+                keyboardType="number-pad"
+                maxLength={6}
+                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+              <Pressable onPress={() => setShowPin((p) => !p)} hitSlop={8}>
+                <Ionicons
+                  name={showPin ? "eye-off-outline" : "eye-outline"}
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            </Field>
+          </>
+        )}
+
+        {/* Login method (hidden for card + upi) */}
+        {showLoginMethodPicker && (
+          <>
+            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+              How you log in
             </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {group.categories.map((cat) => {
-                const selected = category === cat;
+            <View className="flex-row flex-wrap gap-2 mb-5">
+              {availableMethods.map((method) => {
+                const selected = loginMethod === method;
                 return (
                   <Pressable
-                    key={cat}
-                    onPress={() => setCategory(cat)}
-                    className="flex-row items-center px-3 py-1.5 rounded-full border"
+                    key={method}
+                    onPress={() => setLoginMethod(method)}
+                    className="px-3 py-1.5 rounded-full border"
                     style={{
-                      backgroundColor: selected ? accent[500] : "transparent",
+                      backgroundColor: selected ? accent[100] : "transparent",
                       borderColor: selected ? accent[500] : colors.border,
                     }}
                   >
-                    <Ionicons
-                      name={VAULT_CATEGORY_ICONS[cat] as any}
-                      size={12}
-                      color={selected ? "#fff" : colors.textSecondary}
-                    />
                     <Text
-                      className="text-xs font-medium ml-1"
-                      style={{ color: selected ? "#fff" : colors.textSecondary }}
+                      className="text-xs font-medium"
+                      style={{ color: selected ? accent[700] : colors.textSecondary }}
                     >
-                      {VAULT_CATEGORY_LABELS[cat]}
+                      {LOGIN_METHOD_LABELS[method]}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
-          </View>
-        ))}
+          </>
+        )}
 
-        <View className="h-px bg-border-light dark:bg-border-dark my-4" />
-
-        {/* Login method */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
-          How you log in
-        </Text>
-        <View className="flex-row flex-wrap gap-2 mb-5">
-          {availableMethods.map((method) => {
-            const selected = loginMethod === method;
-            return (
-              <Pressable
-                key={method}
-                onPress={() => setLoginMethod(method)}
-                className="px-3 py-1.5 rounded-full border"
-                style={{
-                  backgroundColor: selected ? accent[100] : "transparent",
-                  borderColor: selected ? accent[500] : colors.border,
-                }}
-              >
-                <Text
-                  className="text-xs font-medium"
-                  style={{ color: selected ? accent[700] : colors.textSecondary }}
-                >
-                  {LOGIN_METHOD_LABELS[method]}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* Credential fields */}
+        {/* Standard credential fields (non-card, non-upi) */}
         {showUsername && (
-          <Field label="Username / Login ID">
+          <Field label="Username / Login ID" colors={colors}>
             <TextInput
               value={username}
               onChangeText={setUsername}
@@ -266,7 +462,7 @@ export default function VaultAddScreen() {
         )}
 
         {showEmail && (
-          <Field label={loginMethod === "google" ? "Google Account" : loginMethod === "apple" ? "Apple ID" : "Email"}>
+          <Field label={loginMethod === "google" ? "Google Account" : loginMethod === "apple" ? "Apple ID" : "Email"} colors={colors}>
             <TextInput
               value={email}
               onChangeText={setEmail}
@@ -281,7 +477,7 @@ export default function VaultAddScreen() {
         )}
 
         {showPhone && (
-          <Field label="Phone Number">
+          <Field label="Phone Number" colors={colors}>
             <TextInput
               value={phone}
               onChangeText={setPhone}
@@ -294,7 +490,7 @@ export default function VaultAddScreen() {
         )}
 
         {showPassword_ && (
-          <Field label={editId ? "New Password (leave blank to keep current)" : "Password"}>
+          <Field label={editId ? "New Password (leave blank to keep current)" : "Password"} colors={colors}>
             <TextInput
               value={password}
               onChangeText={setPassword}
@@ -315,8 +511,8 @@ export default function VaultAddScreen() {
           </Field>
         )}
 
-        {showPin_ && (
-          <Field label={editId ? "New PIN (leave blank to keep current)" : "PIN"}>
+        {showGenericPin && (
+          <Field label={editId ? "New PIN (leave blank to keep current)" : "PIN"} colors={colors}>
             <TextInput
               value={pin}
               onChangeText={setPin}
@@ -339,9 +535,9 @@ export default function VaultAddScreen() {
 
         <View className="h-px bg-border-light dark:bg-border-dark my-2" />
 
-        {/* URL (optional, most categories) */}
-        {category !== "card" && category !== "upi" && (
-          <Field label="Website / URL (optional)">
+        {/* URL (optional, non-card, non-upi) */}
+        {!isCard && !isUpi && (
+          <Field label="Website / URL (optional)" colors={colors}>
             <TextInput
               value={url}
               onChangeText={setUrl}
@@ -350,19 +546,6 @@ export default function VaultAddScreen() {
               autoCapitalize="none"
               keyboardType="url"
               autoCorrect={false}
-              className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
-            />
-          </Field>
-        )}
-
-        {/* Renewal date for subscriptions */}
-        {showRenewal && (
-          <Field label="Renewal Date (optional)">
-            <TextInput
-              value={renewalDate}
-              onChangeText={setRenewalDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.textSecondary}
               className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
             />
           </Field>
@@ -404,8 +587,15 @@ export default function VaultAddScreen() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  const { colors } = useColorScheme();
+function Field({
+  label,
+  colors,
+  children,
+}: {
+  label: string;
+  colors: any;
+  children: React.ReactNode;
+}) {
   return (
     <View className="mb-3">
       <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-1.5">
