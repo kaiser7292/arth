@@ -14,7 +14,7 @@ import { getMonthBalanceSummary, computeUnseededBalance, isAccountSeeded } from 
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getSession,
-  getItems,
+  getItemsEnriched,
   getPreArthCutoff,
   bulkMarkPreArth,
   undoPreArthItems,
@@ -22,6 +22,7 @@ import {
   updateSession,
   type ReconciliationSession,
   type ReconciliationItem,
+  type ReconciliationItemEnriched,
   type ExcludeReason,
 } from "@/services/reconciliation/reconciliation-crud";
 import { generateReconciliationPdf } from "@/services/reconciliation/reconciliation-export-pdf";
@@ -51,7 +52,7 @@ export default function ReconciliationSessionScreen() {
   const { colors, accent } = useColorScheme();
 
   const [session, setSession] = useState<ReconciliationSession | null>(null);
-  const [items, setItems] = useState<ReconciliationItem[]>([]);
+  const [items, setItems] = useState<ReconciliationItemEnriched[]>([]);
   const [accounts, setAccounts] = useState<Record<string, FinancialAccount>>({});
   const [arthBalance, setArthBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +70,7 @@ export default function ReconciliationSessionScreen() {
     try {
       const [sess, allItems, accs, cutoff] = await Promise.all([
         getSession(sessionId),
-        getItems(sessionId),
+        getItemsEnriched(sessionId),
         getActiveAccounts(DEFAULT_USER_ID),
         getPreArthCutoff(sessionId),
       ]);
@@ -258,43 +259,74 @@ export default function ReconciliationSessionScreen() {
 
   // ─── Tab content renderers ─────────────────────────────────────────────────
 
-  const renderMatched = ({ item }: { item: ReconciliationItem }) => (
-    <View className="py-3 border-b border-border-light dark:border-border-dark">
-      <View className="flex-row items-start justify-between">
-        <View className="flex-1">
-          <View className="flex-row items-center">
-            <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary flex-1" numberOfLines={1}>
-              {item.stmt_narration || "(no narration)"}
-            </Text>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2">
-              {item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.stmt_amount)}
-            </Text>
-          </View>
-          <View className="flex-row items-center mt-0.5">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-              {formatDate(item.stmt_date)}
-            </Text>
-            <View
-              className="ml-2 px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: accent[500] + "22" }}
-            >
-              <Text className="text-[10px] font-semibold uppercase" style={{ color: accent[600] }}>
-                {item.match_confidence ?? "manual"}
+  const renderMatched = ({ item }: { item: ReconciliationItemEnriched }) => {
+    const arthMeta: string[] = [];
+    if (item.arth_date) arthMeta.push(formatDate(item.arth_date));
+    if (item.arth_account) arthMeta.push(item.arth_account);
+    if (item.arth_category) arthMeta.push(item.arth_category);
+    const hasArthDetail = !!(item.arth_description || item.arth_amount != null || arthMeta.length);
+    return (
+      <View className="py-3 border-b border-border-light dark:border-border-dark">
+        {/* Statement side */}
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1">
+            <View className="flex-row items-center">
+              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary flex-1" numberOfLines={1}>
+                {item.stmt_narration || "(no narration)"}
+              </Text>
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2">
+                {item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.stmt_amount)}
               </Text>
             </View>
-            {item.matched_transfer_id && (
-              <View className="ml-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#8B5CF622" }}>
-                <Text className="text-[10px] font-semibold uppercase" style={{ color: "#8B5CF6" }}>Transfer</Text>
+            <View className="flex-row items-center mt-0.5">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                {formatDate(item.stmt_date)}
+              </Text>
+              <View
+                className="ml-2 px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: accent[500] + "22" }}
+              >
+                <Text className="text-[10px] font-semibold uppercase" style={{ color: accent[600] }}>
+                  {item.match_confidence ?? "manual"}
+                </Text>
               </View>
+              {item.matched_transfer_id && (
+                <View className="ml-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#8B5CF622" }}>
+                  <Text className="text-[10px] font-semibold uppercase" style={{ color: "#8B5CF6" }}>Transfer</Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <Pressable onPress={() => handleUnlink(item)} hitSlop={8} className="ml-3 mt-0.5">
+            <Ionicons name="close-circle-outline" size={18} color={colors.textSecondary} />
+          </Pressable>
+        </View>
+        {/* Arth side */}
+        {hasArthDetail && (
+          <View
+            className="mt-2 pl-3"
+            style={{ borderLeftWidth: 2, borderLeftColor: accent[500] + "55" }}
+          >
+            <View className="flex-row items-center">
+              <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary flex-1" numberOfLines={1}>
+                {item.arth_description || "(no description)"}
+              </Text>
+              {item.arth_amount != null && (
+                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary ml-2">
+                  {amountStr(item.arth_amount)}
+                </Text>
+              )}
+            </View>
+            {arthMeta.length > 0 && (
+              <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary mt-0.5" numberOfLines={1}>
+                {arthMeta.join(" · ")}
+              </Text>
             )}
           </View>
-        </View>
-        <Pressable onPress={() => handleUnlink(item)} hitSlop={8} className="ml-3 mt-0.5">
-          <Ionicons name="close-circle-outline" size={18} color={colors.textSecondary} />
-        </Pressable>
+        )}
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderMissing = ({ item }: { item: ReconciliationItem }) => (
     <View className="py-3 border-b border-border-light dark:border-border-dark">

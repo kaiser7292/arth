@@ -14,7 +14,7 @@
 
 import * as Print from "expo-print";
 import { File, Paths } from "expo-file-system";
-import type { ReconciliationSession, ReconciliationItem } from "./reconciliation-crud";
+import type { ReconciliationSession, ReconciliationItemEnriched } from "./reconciliation-crud";
 import type { FinancialAccount } from "@/services/financial-account";
 import { formatNumber } from "@/utils/format";
 import { getCurrency } from "@/services/locale-preferences";
@@ -147,14 +147,21 @@ function styles(): string {
 
     /* Transaction tables */
     .txn-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
-    .txn-table col.col-date  { width: 10%; }
-    .txn-table col.col-narr  { width: 42%; }
-    .txn-table col.col-dir   { width: 10%; }
-    .txn-table col.col-amt   { width: 14%; }
-    .txn-table col.col-note  { width: 24%; }
-    .txn-table thead th { background: #F1F5F9; border-top: 2px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; padding: 7px 5px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; font-weight: 700; }
+    .txn-table col.col-date  { width: 8%; }
+    .txn-table col.col-narr  { width: 24%; }
+    .txn-table col.col-dir   { width: 7%; }
+    .txn-table col.col-amt   { width: 10%; }
+    .txn-table col.col-arth  { width: 22%; }
+    .txn-table col.col-adt   { width: 8%; }
+    .txn-table col.col-aamt  { width: 10%; }
+    .txn-table col.col-note  { width: 11%; }
+    /* Non-matched tables keep original widths */
+    .txn-table.simple col.col-narr { width: 42%; }
+    .txn-table.simple col.col-amt  { width: 14%; }
+    .txn-table.simple col.col-note { width: 24%; }
+    .txn-table thead th { background: #F1F5F9; border-top: 2px solid #CBD5E1; border-bottom: 2px solid #CBD5E1; padding: 7px 5px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; font-weight: 700; }
     .txn-table thead th.right { text-align: right; }
-    .txn-table tbody td { padding: 6px 5px; border-bottom: 1px solid #F1F5F9; font-size: 11px; vertical-align: top; }
+    .txn-table tbody td { padding: 6px 5px; border-bottom: 1px solid #F1F5F9; font-size: 10px; vertical-align: top; }
     .txn-table tbody td.right { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
     .txn-table tbody td.date { white-space: nowrap; color: #64748B; }
     .txn-table tbody td.narr { word-break: break-word; }
@@ -165,6 +172,10 @@ function styles(): string {
     .badge-suggested{ background: #FEF9C3; color: #92400E; }
     .badge-manual   { background: #EDE9FE; color: #5B21B6; }
     .badge-transfer { background: #EDE9FE; color: #5B21B6; }
+
+    /* Arth match sub-line */
+    .arth-match { font-size: 9.5px; color: #64748B; margin-top: 3px; }
+    .arth-match-name { font-weight: 600; color: #475569; }
 
     /* Empty state */
     .empty { text-align: center; padding: 20px; color: #94A3B8; font-size: 11px; }
@@ -178,7 +189,7 @@ function styles(): string {
 
 function buildHtml(
   session: ReconciliationSession,
-  items: ReconciliationItem[],
+  items: ReconciliationItemEnriched[],
   account: FinancialAccount | null,
   arthBalance: number | null,
   logoBase64: string,
@@ -216,12 +227,26 @@ function buildHtml(
           ? `<span class="badge badge-transfer">Transfer</span>`
           : "";
         const isDebit = item.stmt_direction === "debit";
+        const arthMatchParts: string[] = [];
+        if (item.arth_description) arthMatchParts.push(item.arth_description);
+        if (item.arth_account) arthMatchParts.push(item.arth_account);
+        if (item.arth_category) arthMatchParts.push(item.arth_category);
+        const arthMatchCell = arthMatchParts.length > 0
+          ? `<span class="arth-match-name">${htmlEscape(arthMatchParts[0])}</span>${arthMatchParts.slice(1).length > 0 ? `<div class="arth-match">${htmlEscape(arthMatchParts.slice(1).join(" · "))}</div>` : ""}`
+          : "—";
+        const arthDateCell = item.arth_date ? fmtDateShort(item.arth_date) : "—";
+        const arthAmtCell = item.arth_amount != null
+          ? `${currency}${fmt(item.arth_amount)}`
+          : "—";
         return `
           <tr>
             <td class="date">${fmtDateShort(item.stmt_date)}</td>
             <td class="narr">${htmlEscape(item.stmt_narration || "—")}</td>
             <td>${isDebit ? "Debit" : "Credit"}</td>
             <td class="right ${isDebit ? "debit" : "credit"}">${currency}${fmt(item.stmt_amount)}</td>
+            <td class="narr">${arthMatchCell}</td>
+            <td class="date">${arthDateCell}</td>
+            <td class="right">${arthAmtCell}</td>
             <td>${confBadge}${transferBadge}</td>
           </tr>`;
       }).join("");
@@ -343,11 +368,13 @@ function buildHtml(
   <div class="section-heading">Matched (${matched.length})</div>
   <table class="txn-table">
     <colgroup>
-      <col class="col-date" /><col class="col-narr" /><col class="col-dir" /><col class="col-amt" /><col class="col-note" />
+      <col class="col-date" /><col class="col-narr" /><col class="col-dir" /><col class="col-amt" />
+      <col class="col-arth" /><col class="col-adt" /><col class="col-aamt" /><col class="col-note" />
     </colgroup>
     <thead>
       <tr>
-        <th>Date</th><th>Narration</th><th>Direction</th><th class="right">Amount</th><th>Match</th>
+        <th>Date</th><th>Statement Narration</th><th>Dir</th><th class="right">Stmt Amt</th>
+        <th>Arth Match</th><th>Arth Date</th><th class="right">Arth Amt</th><th>Match</th>
       </tr>
     </thead>
     <tbody>${matchedRows}</tbody>
@@ -355,7 +382,7 @@ function buildHtml(
 
   <!-- Missing -->
   <div class="section-heading">Missing from Arth (${missing.length + added.length})</div>
-  <table class="txn-table">
+  <table class="txn-table simple">
     <colgroup>
       <col class="col-date" /><col class="col-narr" /><col class="col-dir" /><col class="col-amt" />
     </colgroup>
@@ -369,7 +396,7 @@ function buildHtml(
 
   <!-- Excluded -->
   <div class="section-heading">Excluded (${allExcluded.length})</div>
-  <table class="txn-table">
+  <table class="txn-table simple">
     <colgroup>
       <col class="col-date" /><col class="col-narr" /><col class="col-dir" /><col class="col-amt" /><col class="col-note" />
     </colgroup>
@@ -398,7 +425,7 @@ function buildHtml(
  */
 export async function generateReconciliationPdf(
   session: ReconciliationSession,
-  items: ReconciliationItem[],
+  items: ReconciliationItemEnriched[],
   account: FinancialAccount | null,
   arthBalance: number | null,
 ): Promise<string> {

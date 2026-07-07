@@ -190,6 +190,76 @@ export async function getItems(sessionId: string): Promise<ReconciliationItem[]>
   );
 }
 
+export interface ReconciliationItemEnriched extends ReconciliationItem {
+  arth_description: string | null;
+  arth_account: string | null;
+  arth_category: string | null;
+  arth_date: string | null;
+  arth_amount: number | null;
+}
+
+export async function getItemsEnriched(sessionId: string): Promise<ReconciliationItemEnriched[]> {
+  const db = getDatabase();
+  type Row = ReconciliationItem & {
+    exp_desc: string | null;
+    exp_acct_label: string | null; exp_bank: string | null; exp_acct_id: string | null;
+    exp_cat: string | null; exp_date: string | null; exp_amount: number | null;
+    tr_desc: string | null;
+    tr_from_label: string | null; tr_from_bank: string | null; tr_from_id: string | null;
+    tr_to_label: string | null; tr_to_bank: string | null; tr_to_id: string | null;
+    tr_date: string | null; tr_amount: number | null;
+  };
+  const rows = await db.getAllAsync<Row>(
+    `SELECT ri.*,
+       COALESCE(e.merchant_name, e.description) AS exp_desc,
+       fa.account_label AS exp_acct_label, fa.bank_name AS exp_bank, fa.account_identifier AS exp_acct_id,
+       c.name AS exp_cat, e.date AS exp_date,
+       COALESCE(e.split_original_amount, e.amount) AS exp_amount,
+       t.description AS tr_desc,
+       ff.account_label AS tr_from_label, ff.bank_name AS tr_from_bank, ff.account_identifier AS tr_from_id,
+       ft.account_label AS tr_to_label, ft.bank_name AS tr_to_bank, ft.account_identifier AS tr_to_id,
+       t.date AS tr_date, t.amount AS tr_amount
+     FROM reconciliation_items ri
+     LEFT JOIN expenses e ON e.id = ri.matched_expense_id AND e.deleted_at IS NULL
+     LEFT JOIN financial_accounts fa ON fa.id = e.account_id
+     LEFT JOIN categories c ON c.id = e.category_id
+     LEFT JOIN account_transfers t ON t.id = ri.matched_transfer_id AND t.deleted_at IS NULL
+     LEFT JOIN financial_accounts ff ON ff.id = t.from_account_id
+     LEFT JOIN financial_accounts ft ON ft.id = t.to_account_id
+     WHERE ri.session_id = ? AND ri.deleted_at IS NULL
+     ORDER BY ri.sort_order ASC, ri.stmt_date ASC`,
+    [sessionId],
+  );
+  return rows.map((row) => {
+    const {
+      exp_desc, exp_acct_label, exp_bank, exp_acct_id, exp_cat, exp_date, exp_amount,
+      tr_desc, tr_from_label, tr_from_bank, tr_from_id,
+      tr_to_label, tr_to_bank, tr_to_id, tr_date, tr_amount,
+      ...base
+    } = row;
+    let arth_description: string | null = null;
+    let arth_account: string | null = null;
+    let arth_category: string | null = null;
+    let arth_date: string | null = null;
+    let arth_amount: number | null = null;
+    if (base.matched_transfer_id) {
+      arth_description = tr_desc ?? null;
+      const from = tr_from_label || (tr_from_bank && tr_from_id ? `${tr_from_bank} ···${tr_from_id.slice(-4)}` : tr_from_bank) || null;
+      const to = tr_to_label || (tr_to_bank && tr_to_id ? `${tr_to_bank} ···${tr_to_id.slice(-4)}` : tr_to_bank) || null;
+      arth_account = from && to ? `${from} → ${to}` : from ?? to ?? null;
+      arth_date = tr_date ?? null;
+      arth_amount = tr_amount ?? null;
+    } else if (base.matched_expense_id) {
+      arth_description = exp_desc ?? null;
+      arth_account = exp_acct_label || (exp_bank && exp_acct_id ? `${exp_bank} ···${exp_acct_id.slice(-4)}` : exp_bank) || null;
+      arth_category = exp_cat ?? null;
+      arth_date = exp_date ?? null;
+      arth_amount = exp_amount ?? null;
+    }
+    return { ...base, arth_description, arth_account, arth_category, arth_date, arth_amount };
+  });
+}
+
 export async function updateItem(
   id: string,
   patch: Partial<{

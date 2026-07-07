@@ -106,11 +106,26 @@ function balanceDelta(prev: number | null, next: number): "debit" | "credit" | n
 
 function directionFromText(text: string): "debit" | "credit" | null {
   const n = text.toLowerCase();
-  const creditKw = ["payment received", "refund", "reversal", "cashback", "credit interest",
+  const creditKw = [
+    "payment received", "refund", "reversal", "cashback", "credit interest",
     "salary", "neft credit", "imps credit", "rtgs credit", "by transfer", "by clearing",
-    "bbps payment received"];
-  const debitKw = ["purchase", "pos ", "atm ", "withdrawal", "neft debit", "imps debit",
-    "rtgs debit", "to transfer", "emi ", "payment to"];
+    "bbps payment received",
+    // ACH/NACH credits (GAIL, NALCO dividends, pension, salary via NACH)
+    "ach/", "nach credit", "achcr",
+    // Inward NEFT/IMPS/UPI
+    "neft transfer from", "transfer from", "upi/cr/", "upi/p2p/", "upi/p2a/",
+    "incoming", "credited by", "interest paid",
+  ];
+  const debitKw = [
+    "purchase", "pos ", "atm ", "withdrawal", "neft debit", "imps debit",
+    "rtgs debit", "to transfer", "emi ", "payment to",
+    // CC payment from savings is a debit
+    "creditcard payment", "credit card payment",
+    // Loan, NACH debit
+    "nach debit", "loan a/c payment", "mb/part loan",
+    // UPI outward
+    "upi/dr/", "upi/p2m/",
+  ];
   if (creditKw.some((k) => n.includes(k))) return "credit";
   if (debitKw.some((k) => n.includes(k))) return "debit";
   return null;
@@ -144,6 +159,28 @@ function parseStructuredRows(
   const isLongSerial = (s: string) => /^\d{7,}$/.test(s.trim()); // 7+ digit serial/ref numbers
 
   for (const cols of allRows) {
+    const rowFlat = cols.join(" ");
+
+    // ── Opening/closing balance marker rows (no transaction to extract) ──
+    // B/F (Balance Forward) — ICICI Savings: date | "B/F" | opening_balance
+    // Opening Balance — Axis Bank: "Opening Balance" | amount
+    // Your Opening Balance — SBI: "Your Opening Balance on DD-MM-YY: amount"
+    if (/\bB[\/\.]F\b/i.test(rowFlat) || /(?:your\s+)?opening\s+balance/i.test(rowFlat)) {
+      for (const c of cols) {
+        const n = parsePdfAmount(c);
+        if (n !== null) { prevBalance = n; break; }
+      }
+      continue;
+    }
+    // Closing balance rows — skip but capture balance (last real txn already captured it)
+    if (/(?:your\s+)?closing\s+balance/i.test(rowFlat)) {
+      for (let i = cols.length - 1; i >= 0; i--) {
+        const n = parsePdfAmount(cols[i]);
+        if (n !== null && n >= 0) { closing = n; break; }
+      }
+      continue;
+    }
+
     // ── 1. Date ──
     let dateIdx = -1;
     let parsedDate: string | null = null;
@@ -240,6 +277,9 @@ function parseRawTextFallback(
   let prevBalance: number | null = null;
   let closing: number | null = null;
 
+  // Strip (cid:N) PDF encoding artifacts (Axis Bank statements)
+  rawText = rawText.replace(/\(cid:\d+\)/g, " ").replace(/\s{2,}/g, " ");
+
   const lines = rawText.split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 3 && !l.startsWith("--- PAGE ---"));
@@ -248,6 +288,18 @@ function parseRawTextFallback(
   const dateRe = /^(?:\d+\s+)?(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}\s+\d{2,4})\|?(?:\s+\d{2}:\d{2})?\s+(.+)$/;
 
   for (const line of lines) {
+    // Opening/closing balance header lines — seed prevBalance, don't emit a row
+    if (/(?:your\s+)?opening\s+balance|\bB\/F\b/i.test(line)) {
+      const nums = (line.match(/([\d,]+\.\d{2})/g) ?? []).map((s) => parseFloat(s.replace(/,/g, ""))).filter((n) => !isNaN(n));
+      if (nums.length) prevBalance = nums[0];
+      continue;
+    }
+    if (/(?:your\s+)?closing\s+balance/i.test(line)) {
+      const nums = (line.match(/([\d,]+\.\d{2})/g) ?? []).map((s) => parseFloat(s.replace(/,/g, ""))).filter((n) => !isNaN(n));
+      if (nums.length) closing = nums[nums.length - 1];
+      continue;
+    }
+
     const dm = line.match(dateRe);
     if (!dm) continue;
     const date = parsePdfDate(dm[1]);
@@ -299,16 +351,18 @@ function detectBank(text: string): string | null {
 }
 
 function detectSuffix(text: string): string | null {
-  const patterns = [
-    /\*{4}(\d{4})/,
-    /[Xx]{4}[\s\-]?(\d{4})/,
-    /card\s+(?:no|number)[.\s:]+[\dX\s\-]+?(\d{4})\b/i,
-    /account\s+(?:no|number)[.\s:]+[\dX\s\-]+?(\d{4})\b/i,
-  ];
-  for (const re of patterns) {
-    const m = text.match(re);
-    if (m) return m[1];
-  }
+  // Standard fully-masked: XXXXXXXX7322, XXXXXXX0006 (4+ X's then 4–6 digits)
+  let m = text.match(/[Xx]{4,}(\d{4,6})\b/);
+  if (m) return m[1].slice(-4);
+  // Axis-style mixed: 92201XXXXX22836 (digits, then 3+ X's, then digits)
+  m = text.match(/\b\d{3,}[Xx]{3,}(\d{4,6})\b/);
+  if (m) return m[1].slice(-4);
+  // Star-masked: ****7322
+  m = text.match(/\*{4}(\d{4})/);
+  if (m) return m[1];
+  // "card no. ...7322" / "account no. ...7322"
+  m = text.match(/(?:card|account)\s+(?:no|number)[.\s:]+[\dX\s\-*]+?(\d{4})\b/i);
+  if (m) return m[1];
   return null;
 }
 
