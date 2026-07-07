@@ -22,6 +22,8 @@ interface ExpenseListItemProps {
   onLongPress?: () => void;
   /** Optional element rendered after the amount/date column (e.g. action buttons) */
   rightElement?: React.ReactNode;
+  /** Short annotation explaining a split or hisaab adjustment (drill-down screens only). */
+  splitNote?: string | null;
 }
 
 function ExpenseListItemInner({
@@ -33,6 +35,7 @@ function ExpenseListItemInner({
   onPress,
   onLongPress,
   rightElement,
+  splitNote,
 }: ExpenseListItemProps) {
   const { colorScheme, accent, colors } = useColorScheme();
   const isPending = expense.status === "pending_review";
@@ -148,6 +151,15 @@ function ExpenseListItemInner({
             {subtitleParts.join(" · ")}
           </Text>
         )}
+        {splitNote ? (
+          <Text
+            className="text-[11px] mt-0.5"
+            numberOfLines={1}
+            style={{ color: StatusColors[colorScheme].warning }}
+          >
+            {splitNote}
+          </Text>
+        ) : null}
       </View>
 
       {/* Right: Amount + date. Fully-refunded expenses strike through the

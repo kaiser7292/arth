@@ -15,6 +15,8 @@ interface ExpenseListRowProps {
   onPress: (id: string) => void;
   onLongPress: (expense: Expense) => void;
   rightElement?: React.ReactNode;
+  /** Per-expense annotation for split/hisaab adjustments (drill-down screens). */
+  splitNote?: string | null;
 }
 
 function ExpenseListRowInner({
@@ -26,6 +28,7 @@ function ExpenseListRowInner({
   onPress,
   onLongPress,
   rightElement,
+  splitNote,
 }: ExpenseListRowProps) {
   const category = item.category_id ? categoryMap.get(item.category_id) ?? null : null;
   const paymentMode = item.payment_mode_id ? paymentModeMap.get(item.payment_mode_id) ?? null : null;
@@ -45,6 +48,7 @@ function ExpenseListRowInner({
       onPress={handlePress}
       onLongPress={handleLongPress}
       rightElement={rightElement}
+      splitNote={splitNote}
     />
   );
 }
