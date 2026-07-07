@@ -243,6 +243,15 @@ export async function linkExpenseToBucket(
   await recomputeBucketContributed(bucketId);
   await _syncLinkedMilestone(bucketId);
   bumpDataVersion();
+
+  const statusRow = await db.getFirstAsync<{ status: string }>(
+    `SELECT status FROM expenses WHERE id = ?;`, expenseId,
+  );
+  if (statusRow?.status === "pending_review") {
+    const { approveExpense } = await import("@/services/expense-crud");
+    await approveExpense(expenseId);
+  }
+
   return id;
 }
 

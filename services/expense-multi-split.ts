@@ -128,6 +128,14 @@ export async function applyMultiSplit(
   });
 
   bumpDataVersion();
+
+  const statusRow = await db.getFirstAsync<{ status: string }>(
+    `SELECT status FROM expenses WHERE id = ?;`, expenseId,
+  );
+  if (statusRow?.status === "pending_review") {
+    const { approveExpense } = await import("@/services/expense-crud");
+    await approveExpense(expenseId);
+  }
 }
 
 export async function removeMultiSplit(expenseId: string): Promise<void> {

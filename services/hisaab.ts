@@ -793,6 +793,15 @@ export async function linkCreditAsSettlement(
   );
 
   bumpDataVersion();
+
+  const statusRow = await db.getFirstAsync<{ status: string }>(
+    `SELECT status FROM expenses WHERE id = ?;`, creditId,
+  );
+  if (statusRow?.status === "pending_review") {
+    const { approveExpense } = await import("@/services/expense-crud");
+    await approveExpense(creditId);
+  }
+
   return id;
 }
 
