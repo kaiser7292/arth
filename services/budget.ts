@@ -2,7 +2,6 @@ import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
 import { bumpDataVersion } from "@/services/settings";
 import { logger } from "@/utils/logger";
-import { getExpenseTotalsByCategory } from "@/services/expense";
 
 export interface Budget {
   id: string;
@@ -297,8 +296,18 @@ export async function getBudgetVsActual(
     userId, startMonth, endMonth,
   );
 
-  // 2. Actual totals per category (uses effective amount / split-aware query)
-  const actualRows = await getExpenseTotalsByCategory(userId, startDate, endDate);
+  // 2. Actual totals per category — match the budget screen's raw count:
+  //    status != 'rejected' (include pending_review), raw amount, no investment/loan exclusion.
+  const actualRows = await db.getAllAsync<{ category_id: string; total: number }>(
+    `SELECT category_id, SUM(amount) as total FROM expenses
+     WHERE user_id = ? AND status != 'rejected' AND nature = 'realized'
+       AND deleted_at IS NULL
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
+       AND date >= ? AND date <= ?
+       AND category_id IS NOT NULL
+     GROUP BY category_id`,
+    userId, startDate, endDate,
+  );
   const actualMap = new Map(actualRows.map((r) => [r.category_id, r.total]));
   const budgetCatIds = new Set(budgetRows.map((r) => r.category_id));
 
@@ -358,9 +367,9 @@ export async function getBudgetVsActual(
     const monthActuals = await db.getAllAsync<{ month: string; total: number }>(
       `SELECT strftime('%Y-%m', date) as month, SUM(amount) as total
        FROM expenses
-       WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
-         AND deleted_at IS NULL AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer != 1)
-         AND date >= ? AND date <= ? AND category_id IS NOT NULL
+       WHERE user_id = ? AND status != 'rejected' AND nature = 'realized'
+         AND deleted_at IS NULL AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
+         AND date >= ? AND date <= ?
        GROUP BY strftime('%Y-%m', date) ORDER BY month`,
       userId, startDate, endDate,
     );
