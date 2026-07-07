@@ -411,10 +411,11 @@ export default function NewReconciliationScreen() {
     );
   }
 
-  if (step === "done" && sessionId) {
-    router.replace(`/settings/reconciliation/${sessionId}`);
-    return null;
-  }
+  useEffect(() => {
+    if (step === "done" && sessionId) {
+      router.replace(`/settings/reconciliation/${sessionId}`);
+    }
+  }, [step, sessionId, router]);
 
   return (
     <ScreenContainer padTop={false}>

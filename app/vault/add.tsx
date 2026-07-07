@@ -24,6 +24,8 @@ import {
   getVaultEntry,
   updateVaultEntry,
 } from "@/services/vault";
+import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
+import { DEFAULT_USER_ID } from "@/constants/app";
 import { getErrorMessage } from "@/utils/error-message";
 
 const ALL_CATEGORIES = VAULT_CATEGORY_GROUPS.flatMap((g) => g.categories);
@@ -76,6 +78,8 @@ export default function VaultAddScreen() {
   const [loading, setLoading] = useState(!!editId);
   const [showPassword, setShowPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
+  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [accountPickerOpen, setAccountPickerOpen] = useState(false);
 
   // Card-specific custom fields
   const [cardNumber, setCardNumber] = useState("");
@@ -96,6 +100,10 @@ export default function VaultAddScreen() {
   // Statement PDF password (banking + card + demat)
   const [statementPwd, setStatementPwd] = useState("");
   const [showStatementPwd, setShowStatementPwd] = useState(false);
+
+  useEffect(() => {
+    getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch(() => {});
+  }, []);
 
   // Load existing entry for edit
   useEffect(() => {
@@ -306,6 +314,95 @@ export default function VaultAddScreen() {
               );
             })}
           </Card>
+        )}
+
+        {/* Linked Arth account — shown for banking/card/demat/statement_pwd */}
+        {(category === "banking" || category === "card" || category === "demat" || category === "statement_pwd") && accounts.length > 0 && (
+          <>
+            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mt-2 mb-1.5">
+              Linked Arth Account (optional)
+            </Text>
+            <Pressable
+              onPress={() => setAccountPickerOpen((o) => !o)}
+              className="flex-row items-center border border-border-light dark:border-border-dark rounded-xl px-4 py-3 mb-1"
+              style={{ backgroundColor: colors.surface }}
+            >
+              <Ionicons
+                name="wallet-outline"
+                size={16}
+                color={linkedAccountId ? accent[500] : colors.textSecondary}
+              />
+              <Text
+                className="flex-1 text-sm ml-2"
+                style={{ color: linkedAccountId ? colors.text : colors.textSecondary }}
+              >
+                {linkedAccountId
+                  ? (accounts.find((a) => a.id === linkedAccountId)?.account_label ||
+                     accounts.find((a) => a.id === linkedAccountId)?.bank_name ||
+                     "Unknown account")
+                  : "None — tap to link"}
+              </Text>
+              <Ionicons
+                name={accountPickerOpen ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={colors.textSecondary}
+              />
+            </Pressable>
+            {accountPickerOpen && (
+              <View className="border border-border-light dark:border-border-dark rounded-xl mb-4 overflow-hidden">
+                <Pressable
+                  onPress={() => { setLinkedAccountId(undefined); setAccountPickerOpen(false); }}
+                  className="flex-row items-center px-4 py-3"
+                  style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
+                >
+                  <Ionicons name="close-circle-outline" size={14} color={colors.textSecondary} />
+                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary ml-2">
+                    None
+                  </Text>
+                </Pressable>
+                {accounts.map((acc, idx) => {
+                  const selected = linkedAccountId === acc.id;
+                  return (
+                    <Pressable
+                      key={acc.id}
+                      onPress={() => { setLinkedAccountId(acc.id); setAccountPickerOpen(false); }}
+                      className="flex-row items-center px-4 py-3"
+                      style={{
+                        backgroundColor: selected ? accent[500] + "18" : "transparent",
+                        borderTopWidth: idx > 0 ? 1 : 0,
+                        borderTopColor: colors.border,
+                      }}
+                    >
+                      <Ionicons
+                        name="wallet-outline"
+                        size={14}
+                        color={selected ? accent[500] : colors.textSecondary}
+                      />
+                      <View className="flex-1 ml-2.5">
+                        <Text
+                          className="text-sm"
+                          style={{ color: selected ? accent[600] : colors.text }}
+                        >
+                          {acc.account_label || acc.bank_name}
+                        </Text>
+                        {acc.account_identifier ? (
+                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                            ****{acc.account_identifier}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {selected && (
+                        <Ionicons name="checkmark" size={14} color={accent[500]} />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3 -mt-1">
+              Link to an account so Arth can auto-fill this password when reconciling statements.
+            </Text>
+          </>
         )}
 
         <View className="h-px bg-border-light dark:bg-border-dark my-4" />

@@ -114,8 +114,8 @@ export async function updateSession(id: string, patch: Partial<{
     ["arth_closing_bal", patch.arth_closing_bal],
     ["total_stmt_count", patch.total_stmt_count],
     ["matched_count", patch.matched_count],
-    ["status", patch.status ?? null],
-    ["completed_at", patch.completed_at ?? null],
+    ["status", patch.status],
+    ["completed_at", patch.completed_at],
   ];
 
   for (const [col, val] of map) {

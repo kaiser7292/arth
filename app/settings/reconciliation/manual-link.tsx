@@ -14,6 +14,9 @@ interface ArthEntry {
   amount: number;
   description: string;
   direction: "debit" | "credit";
+  account: string | null;
+  category: string | null;
+  merchant: string | null;
 }
 
 function amountStr(n: number): string {
@@ -54,44 +57,73 @@ export default function ManualLinkScreen() {
       id: string; date: string; amount: number;
       split_original_amount: number | null;
       merchant_name: string | null; description: string | null;
+      account_label: string | null; bank_name: string | null; account_identifier: string | null;
+      category_name: string | null;
     }>(
-      `SELECT id, date, amount, split_original_amount, merchant_name, description
-       FROM expenses
-       WHERE nature IN (${nature})
-         AND date BETWEEN ? AND ?
-         AND deleted_at IS NULL AND status != 'rejected'
-       ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC LIMIT 100`,
+      `SELECT e.id, e.date, e.amount, e.split_original_amount, e.merchant_name, e.description,
+              fa.account_label, fa.bank_name, fa.account_identifier,
+              c.name AS category_name
+       FROM expenses e
+       LEFT JOIN financial_accounts fa ON fa.id = e.account_id
+       LEFT JOIN categories c ON c.id = e.category_id
+       WHERE e.nature IN (${nature})
+         AND e.date BETWEEN ? AND ?
+         AND e.deleted_at IS NULL AND e.status != 'rejected'
+       ORDER BY ABS(JULIANDAY(e.date) - JULIANDAY(?)) ASC LIMIT 100`,
       [windowStart, windowEnd, stmtDate],
     );
 
-    const expEntries: ArthEntry[] = expenses.map((e) => ({
-      id: e.id,
-      kind: "expense",
-      date: e.date,
-      amount: e.split_original_amount && e.split_original_amount > 0
-        ? e.split_original_amount : e.amount,
-      description: e.merchant_name || e.description || "(no description)",
-      direction: dir,
-    }));
+    const expEntries: ArthEntry[] = expenses.map((e) => {
+      const accountDisplay = e.account_label
+        || (e.bank_name && e.account_identifier ? `${e.bank_name} ···${e.account_identifier.slice(-4)}` : null)
+        || e.bank_name
+        || null;
+      return {
+        id: e.id,
+        kind: "expense",
+        date: e.date,
+        amount: e.split_original_amount && e.split_original_amount > 0
+          ? e.split_original_amount : e.amount,
+        description: e.merchant_name || e.description || "(no description)",
+        direction: dir,
+        account: accountDisplay,
+        category: e.category_name,
+        merchant: e.merchant_name,
+      };
+    });
 
-    const tCol = dir === "debit" ? "from_account_id" : "to_account_id";
     const transfers = await db.getAllAsync<{
       id: string; date: string; amount: number; description: string | null;
+      from_label: string | null; from_bank: string | null; from_id: string | null;
+      to_label: string | null; to_bank: string | null; to_id: string | null;
     }>(
-      `SELECT id, date, amount, description FROM account_transfers
-       WHERE date BETWEEN ? AND ? AND deleted_at IS NULL
-       ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC LIMIT 50`,
+      `SELECT t.id, t.date, t.amount, t.description,
+              fa.account_label AS from_label, fa.bank_name AS from_bank, fa.account_identifier AS from_id,
+              ta.account_label AS to_label, ta.bank_name AS to_bank, ta.account_identifier AS to_id
+       FROM account_transfers t
+       LEFT JOIN financial_accounts fa ON fa.id = t.from_account_id
+       LEFT JOIN financial_accounts ta ON ta.id = t.to_account_id
+       WHERE t.date BETWEEN ? AND ? AND t.deleted_at IS NULL
+       ORDER BY ABS(JULIANDAY(t.date) - JULIANDAY(?)) ASC LIMIT 50`,
       [windowStart, windowEnd, stmtDate],
     );
 
-    const trEntries: ArthEntry[] = transfers.map((t) => ({
-      id: t.id,
-      kind: "transfer",
-      date: t.date,
-      amount: t.amount,
-      description: t.description || "(transfer)",
-      direction: dir,
-    }));
+    const trEntries: ArthEntry[] = transfers.map((t) => {
+      const fromAcc = t.from_label || (t.from_bank && t.from_id ? `${t.from_bank} ···${t.from_id.slice(-4)}` : t.from_bank) || null;
+      const toAcc = t.to_label || (t.to_bank && t.to_id ? `${t.to_bank} ···${t.to_id.slice(-4)}` : t.to_bank) || null;
+      const accountDisplay = fromAcc && toAcc ? `${fromAcc} → ${toAcc}` : fromAcc || toAcc || null;
+      return {
+        id: t.id,
+        kind: "transfer",
+        date: t.date,
+        amount: t.amount,
+        description: t.description || "(transfer)",
+        direction: dir,
+        account: accountDisplay,
+        category: null,
+        merchant: null,
+      };
+    });
 
     setEntries([...expEntries, ...trEntries]);
     setLoading(false);
@@ -99,10 +131,14 @@ export default function ManualLinkScreen() {
 
   useEffect(() => { loadEntries(); }, [loadEntries]);
 
-  const filtered = query.trim()
+  const q = query.trim().toLowerCase();
+  const filtered = q
     ? entries.filter((e) =>
-        e.description.toLowerCase().includes(query.toLowerCase()) ||
-        String(e.amount).includes(query),
+        e.description.toLowerCase().includes(q) ||
+        (e.merchant?.toLowerCase().includes(q) ?? false) ||
+        (e.account?.toLowerCase().includes(q) ?? false) ||
+        (e.category?.toLowerCase().includes(q) ?? false) ||
+        String(e.amount).includes(q),
       )
     : entries;
 
@@ -125,6 +161,10 @@ export default function ManualLinkScreen() {
   const renderItem = ({ item }: { item: ArthEntry }) => {
     const stmtAmt = parseFloat(amount ?? "0");
     const diff = Math.abs(item.amount - stmtAmt);
+    const meta: string[] = [];
+    if (item.account) meta.push(item.account);
+    if (item.category) meta.push(item.category);
+    if (item.kind === "transfer") meta.push("Transfer");
     return (
       <Pressable
         onPress={() => handleLink(item)}
@@ -137,8 +177,12 @@ export default function ManualLinkScreen() {
           <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
             {formatDate(item.date)} · {amountStr(item.amount)}
             {diff > 0 && diff <= 10 && ` · ₹${diff.toFixed(2)} diff`}
-            {item.kind === "transfer" && " · Transfer"}
           </Text>
+          {meta.length > 0 && (
+            <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-0.5" numberOfLines={1}>
+              {meta.join(" · ")}
+            </Text>
+          )}
         </View>
         {linking ? (
           <ActivityIndicator size="small" />
