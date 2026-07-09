@@ -22,6 +22,9 @@ interface Candidate {
   description: string | null;
   merchant: string | null;
   nature: string;
+  account_label: string | null;
+  bank_name: string | null;
+  account_identifier: string | null;
 }
 
 interface Props {
@@ -49,6 +52,16 @@ function natureBadge(nature: string): { label: string; color: string } {
     case "ledger_adjustment": return { label: "Adjustment", color: "#F59E0B" };
     default: return { label: "Expense", color: "#6B7280" };
   }
+}
+
+function candidateAccountStr(c: Candidate): string {
+  if (c.bank_name && c.account_identifier) {
+    const last4 = c.account_identifier.replace(/\s/g, "").slice(-4);
+    return `${c.bank_name} ···${last4}`;
+  }
+  if (c.account_label) return c.account_label;
+  if (c.bank_name) return c.bank_name;
+  return "";
 }
 
 export function StaleEntryResolveSheet({
@@ -92,8 +105,10 @@ export function StaleEntryResolveSheet({
       const windowEnd = todayIso();
       const db = getDatabase();
       const rows = await db.getAllAsync<Candidate>(
-        `SELECT e.id, e.date, e.amount, e.description, e.merchant_name as merchant, e.nature
+        `SELECT e.id, e.date, e.amount, e.description, e.merchant_name as merchant, e.nature,
+                fa.account_label, fa.bank_name, fa.account_identifier
          FROM expenses e
+         LEFT JOIN financial_accounts fa ON fa.id = e.account_id
          WHERE e.user_id = ?
            AND e.nature IN ('realized', 'credit', 'ledger_adjustment')
            AND e.status = 'approved'
@@ -159,6 +174,10 @@ export function StaleEntryResolveSheet({
   const renderCandidate = ({ item: c }: { item: Candidate }) => {
     const isSelected = selectedIds.has(c.id);
     const badge = natureBadge(c.nature);
+    const acctStr = candidateAccountStr(c);
+    const showDescription = !!(c.description && c.merchant && c.description !== c.merchant);
+    const metaParts: string[] = [prettyDate(c.date)];
+    if (acctStr) metaParts.push(acctStr);
     return (
       <Pressable
         onPress={() => toggleSelect(c.id)}
@@ -185,8 +204,13 @@ export function StaleEntryResolveSheet({
               </Text>
             </View>
           </View>
+          {showDescription && (
+            <Text className="text-xs mt-0.5" numberOfLines={1} style={{ color: colors.textSecondary }}>
+              {c.description}
+            </Text>
+          )}
           <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-            {prettyDate(c.date)}
+            {metaParts.join(" · ")}
           </Text>
         </View>
         <Text className="text-sm font-bold ml-2" style={{ color: colors.text }}>
