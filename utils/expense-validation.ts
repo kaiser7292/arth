@@ -18,7 +18,7 @@ export interface ExpenseFormData {
 
 /**
  * Parse and validate the amount string.
- * Returns the numeric value (rounded to 2 decimals) or null if invalid.
+ * Returns the amount in integer paise (user input is in rupees, ×100).
  * Rejects zero and negative amounts (transaction guard: positive amounts only).
  */
 export function parseAmount(value: string): number | null {
@@ -28,7 +28,7 @@ export function parseAmount(value: string): number | null {
   if (isNaN(num) || !isFinite(num)) return null;
   if (num === 0) return null;
   if (num < 0) return null; // Transaction guard: reject negative amounts
-  return Math.round(num * 100) / 100;
+  return Math.round(num * 100); // store as integer paise
 }
 
 /**

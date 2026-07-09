@@ -92,11 +92,17 @@ export interface LoanTerms {
 
 // ─── Helpers ───────────────────────────────────────────────
 
-const round2 = (n: number) => Math.round(n * 100) / 100;
+/** Round to nearest integer paise. */
+const round2 = (n: number) => Math.round(n);
 
-/** Rounder that honors the loan's rounding mode. 'rupee' → nearest ₹1 (Indian bank convention); 'paise' → ₹0.01 (two-decimal). */
+/**
+ * Rounder that honors the loan's rounding mode.
+ * All values are in paise after migration 060.
+ * 'rupee' → nearest 100 paise (= ₹1, Indian bank convention).
+ * 'paise' → nearest 1 paise (any integer).
+ */
 function roundBy(n: number, mode: RoundMode | undefined): number {
-  return mode === "paise" ? round2(n) : Math.round(n);
+  return mode === "paise" ? Math.round(n) : Math.round(n / 100) * 100;
 }
 
 /** EMI formula: P × r × (1+r)^n / ((1+r)^n − 1). Returns 0 for degenerate inputs. */
