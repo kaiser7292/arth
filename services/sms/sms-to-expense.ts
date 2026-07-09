@@ -50,6 +50,19 @@ export async function createExpenseFromSms(
   rawBody: string,
   smsDate?: number,
 ): Promise<SmsExpenseResult> {
+  // Convert SMS-parsed rupee amounts to integer paise for DB storage.
+  // The SMS parser returns amounts in rupees (e.g. 1234.56); all DB columns
+  // are paise after migration 060. All comparisons later in this function
+  // reference DB values (also paise), so converting once here is correct.
+  parsed = {
+    ...parsed,
+    amount: Math.round(parsed.amount * 100),
+    minDue: parsed.minDue != null ? Math.round(parsed.minDue * 100) : parsed.minDue,
+    availableBalance: parsed.availableBalance != null ? Math.round(parsed.availableBalance * 100) : parsed.availableBalance,
+    creditLimit: parsed.creditLimit != null ? Math.round(parsed.creditLimit * 100) : parsed.creditLimit,
+    availableCreditLimit: parsed.availableCreditLimit != null ? Math.round(parsed.availableCreditLimit * 100) : parsed.availableCreditLimit,
+  };
+
   // Don't create expenses for skipped SMS or balance inquiries.
   // For balance_inquiry, still update the account's last_known_balance /
   // credit_limit so the app reflects the most recent bank-reported balance
@@ -144,7 +157,7 @@ export async function createExpenseFromSms(
 
     // Step 2: look for a recent savings debit with the same amount (±0.5%)
     // that could be the other side of this payment.
-    const tolerance = Math.max(parsed.amount * 0.005, 0.01);
+    const tolerance = Math.max(Math.round(parsed.amount * 0.005), 1);
     const minAmount = parsed.amount - tolerance;
     const maxAmount = parsed.amount + tolerance;
     const savingsMatch = await db.getFirstAsync<{ id: string; account_id: string }>(
