@@ -22,7 +22,6 @@ import {
 } from "@/services/notifications";
 import {
   scheduleSmartDailyDigest,
-  syncMonthlySummarySchedule,
   syncNotifBackgroundTask,
 } from "@/services/notification-scheduler";
 
@@ -71,7 +70,6 @@ export default function NotificationPreferencesScreen() {
   const { colorScheme } = useColorScheme();
   const [overdue, setOverdue] = useState(() => isNotificationEnabled("overdue_forecast"));
   const [upcoming, setUpcoming] = useState(() => isNotificationEnabled("upcoming_due"));
-  const [monthlySummary, setMonthlySummary] = useState(() => isNotificationEnabled("monthly_summary"));
   const [scheduledBackup, setScheduledBackup] = useState(() => isNotificationEnabled("scheduled_backup"));
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
 
@@ -104,10 +102,6 @@ export default function NotificationPreferencesScreen() {
         setUpcoming(value);
         scheduleSmartDailyDigest(DEFAULT_USER_ID).catch(() => {});
         syncNotifBackgroundTask().catch(() => {});
-        break;
-      case "monthly_summary":
-        setMonthlySummary(value);
-        syncMonthlySummarySchedule().catch(() => {});
         break;
       case "scheduled_backup":
         setScheduledBackup(value);
@@ -163,16 +157,6 @@ export default function NotificationPreferencesScreen() {
             subtitle="Daily 9:10 AM digest for payments due within 2 days"
             category="upcoming_due"
             enabled={upcoming}
-            onToggle={handleToggle}
-          />
-
-          <NotifToggle
-            icon="calendar-outline"
-            iconColor="#8B5CF6"
-            title="Monthly Summary"
-            subtitle="Spending recap on the 1st of each month at 9 AM"
-            category="monthly_summary"
-            enabled={monthlySummary}
             onToggle={handleToggle}
           />
 

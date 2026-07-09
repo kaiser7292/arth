@@ -24,7 +24,6 @@ const LAST_SCHEDULE_SYNC_KEY = "notif_last_schedule_sync_ts";
 
 const NOTIF_CHECK_TASK = "ARTHA_NOTIF_CHECK";
 const DAILY_DIGEST_ID = "artha_daily_digest";
-const MONTHLY_SUMMARY_NOTIF_ID = "artha_monthly_summary";
 
 // ─── Background task — re-syncs the digest schedule without an app open ───
 
@@ -116,7 +115,7 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     identifier: DAILY_DIGEST_ID,
     content: {
-      title: "Financial reminder",
+      title: "",
       body: parts.join(" · "),
       data: { screen: "/(tabs)" },
       sound: true,
@@ -129,44 +128,6 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
   });
 }
 
-// ─── Monthly summary ───
-
-export async function scheduleMonthlySummaryNotification(): Promise<void> {
-  if (!isNotificationEnabled("monthly_summary")) return;
-  if (!(await hasNotificationPermission())) return;
-
-  await cancelMonthlySummaryNotification();
-
-  await Notifications.scheduleNotificationAsync({
-    identifier: MONTHLY_SUMMARY_NOTIF_ID,
-    content: {
-      title: "Your monthly spending summary is ready",
-      body: "Open Arth to see how last month went — total spent, top categories, and budget performance.",
-      data: { screen: "/insights/compare" },
-      sound: true,
-      ...(Platform.OS === "android" ? { channelId: "artha-default" } : {}),
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.MONTHLY,
-      day: 1,
-      hour: 9,
-      minute: 0,
-    },
-  });
-}
-
-export async function cancelMonthlySummaryNotification(): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync(MONTHLY_SUMMARY_NOTIF_ID).catch(() => {});
-}
-
-export async function syncMonthlySummarySchedule(): Promise<void> {
-  if (isNotificationEnabled("monthly_summary")) {
-    await scheduleMonthlySummaryNotification();
-  } else {
-    await cancelMonthlySummaryNotification();
-  }
-}
-
 // ─── Master sync ───
 
 export async function syncAllScheduledNotifications(userId: string): Promise<void> {
@@ -176,10 +137,7 @@ export async function syncAllScheduledNotifications(userId: string): Promise<voi
 
   if (!(await hasNotificationPermission())) return;
 
-  await Promise.all([
-    scheduleSmartDailyDigest(userId),
-    syncMonthlySummarySchedule(),
-  ]);
+  await scheduleSmartDailyDigest(userId);
 }
 
 export async function forceSyncScheduledNotifications(userId: string): Promise<void> {

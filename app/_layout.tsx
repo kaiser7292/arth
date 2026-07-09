@@ -8,7 +8,7 @@ import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
 import { preloadHomeData } from "@/services/home-preload";
 import { runDailyNotificationCheck, syncNotifBackgroundTask } from "@/services/notification-scheduler";
-import { runScheduledBackupIfDue, syncBackupBackgroundTask, registerBackupNotificationTask } from "@/services/backup-schedule";
+import { runScheduledBackupIfDue, syncBackupBackgroundTask } from "@/services/backup-schedule";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
 import { migrateExistingUser } from "@/services/onboarding";
 import { seedDefaultPaymentModes } from "@/services/payment-mode";
@@ -293,7 +293,6 @@ export default function RootLayout(): React.JSX.Element {
         runDailyNotificationCheck(DEFAULT_USER_ID).catch((e) => logger.warn("Daily notification check failed:", e));
         syncNotifBackgroundTask().catch((e) => logger.warn("Notif background task sync failed:", e));
         syncBackupBackgroundTask().catch((e) => logger.warn("Backup background task sync failed:", e));
-        registerBackupNotificationTask().catch((e) => logger.warn("Backup notification task register failed:", e));
         
         // Only set dbReady to true after successful initialization
         setDbReady(true);
@@ -329,8 +328,7 @@ export default function RootLayout(): React.JSX.Element {
       // already in the app and will see new items on the Home action card
       // or Review Queue; a push notification would be redundant noise (and
       // fires every single time the app is opened after new SMS arrived).
-      // Background-task scans (future) should pass notify=true.
-      const outcome = await runSmsScan({ manual: false, notify: false });
+      const outcome = await runSmsScan({ manual: false });
       if (outcome.reason === "error") {
         logger.warn("App-open SMS scan failed:", outcome.error);
       }

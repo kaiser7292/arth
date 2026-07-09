@@ -54,7 +54,6 @@ import {
   cancelNotification,
   cancelAllNotifications,
   getPendingNotificationCount,
-  formatSmsScanBody,
 } from "../../services/notifications";
 
 beforeEach(() => {
@@ -70,6 +69,8 @@ describe("Notification Preferences", () => {
     expect(isNotificationEnabled("scheduled_backup")).toBe(true);
   });
 
+  // monthly_summary category removed
+
   it("persists preference changes", () => {
     setNotificationEnabled("overdue_forecast", false);
     expect(isNotificationEnabled("overdue_forecast")).toBe(false);
@@ -82,7 +83,6 @@ describe("Notification Preferences", () => {
     expect(prefs).toEqual({
       overdue_forecast: true,
       upcoming_due: false,
-      monthly_summary: true,
       scheduled_backup: true,
     });
   });
@@ -165,37 +165,3 @@ describe("Send/Schedule Notifications", () => {
   });
 });
 
-describe("formatSmsScanBody", () => {
-  it("handles empty items", () => {
-    expect(formatSmsScanBody([])).toBe("No new transactions found.");
-  });
-
-  it("formats single item", () => {
-    const body = formatSmsScanBody([{ merchant: "Swiggy", amount: 450 }]);
-    expect(body).toContain("Swiggy");
-    expect(body).toContain("450");
-  });
-
-  it("formats two items", () => {
-    const body = formatSmsScanBody([
-      { merchant: "Swiggy", amount: 450 },
-      { merchant: "Amazon", amount: 1200 },
-    ]);
-    expect(body).toContain("Swiggy");
-    expect(body).toContain("Amazon");
-    expect(body).not.toContain("+");
-  });
-
-  it("formats more than two items with +N more", () => {
-    const body = formatSmsScanBody([
-      { merchant: "Swiggy", amount: 450 },
-      { merchant: "Amazon", amount: 1200 },
-      { merchant: "Uber", amount: 300 },
-      { merchant: "Zomato", amount: 250 },
-    ]);
-    expect(body).toContain("Swiggy");
-    expect(body).toContain("Amazon");
-    expect(body).toContain("+2 more");
-    expect(body).not.toContain("Uber");
-  });
-});

@@ -1,8 +1,8 @@
 /**
  * Notification Service — V3-0.4
  *
- * Local push notifications for SMS scan results, overdue forecasts,
- * and upcoming dues. Uses expo-notifications (local only, no server).
+ * Local push notifications for overdue forecasts, upcoming dues,
+ * and scheduled backup. Uses expo-notifications (local only, no server).
  *
  * Notification preferences stored in MMKV for instant access.
  */
@@ -13,19 +13,17 @@ import { settingsStorage as storage } from "./storage";
 
 // ─── Notification Categories ───
 
-export type NotificationCategory = "overdue_forecast" | "upcoming_due" | "monthly_summary" | "scheduled_backup";
+export type NotificationCategory = "overdue_forecast" | "upcoming_due" | "scheduled_backup";
 
 const KEYS = {
   NOTIF_OVERDUE: "notif_overdue",
   NOTIF_UPCOMING: "notif_upcoming",
-  NOTIF_MONTHLY_SUMMARY: "notif_monthly_summary",
   NOTIF_SCHEDULED_BACKUP: "notif_scheduled_backup",
 } as const;
 
 const CATEGORY_KEY_MAP: Record<NotificationCategory, string> = {
   overdue_forecast: KEYS.NOTIF_OVERDUE,
   upcoming_due: KEYS.NOTIF_UPCOMING,
-  monthly_summary: KEYS.NOTIF_MONTHLY_SUMMARY,
   scheduled_backup: KEYS.NOTIF_SCHEDULED_BACKUP,
 };
 
@@ -121,7 +119,6 @@ export function getNotificationPreferences(): Record<NotificationCategory, boole
   return {
     overdue_forecast: isNotificationEnabled("overdue_forecast"),
     upcoming_due: isNotificationEnabled("upcoming_due"),
-    monthly_summary: isNotificationEnabled("monthly_summary"),
     scheduled_backup: isNotificationEnabled("scheduled_backup"),
   };
 }
@@ -195,32 +192,4 @@ export async function cancelAllNotifications(): Promise<void> {
 export async function getPendingNotificationCount(): Promise<number> {
   const pending = await Notifications.getAllScheduledNotificationsAsync();
   return pending.length;
-}
-
-// ─── Notification Content Helpers ───
-
-/**
- * Format a notification body for SMS scan results.
- * Shows first 2 items + "and X more" if > 2.
- */
-export function formatSmsScanBody(
-  items: { merchant: string; amount: number }[],
-): string {
-  if (items.length === 0) return "No new transactions found.";
-
-  const formatAmt = (n: number) =>
-    `\u20B9${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
-
-  if (items.length === 1) {
-    return `${items[0].merchant} ${formatAmt(items[0].amount)}`;
-  }
-
-  const first2 = items
-    .slice(0, 2)
-    .map((i) => `${i.merchant} ${formatAmt(i.amount)}`)
-    .join(", ");
-
-  if (items.length === 2) return first2;
-
-  return `${first2}, +${items.length - 2} more`;
 }

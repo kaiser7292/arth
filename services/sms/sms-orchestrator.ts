@@ -22,12 +22,6 @@ import {
   getSmsStartDate,
   getSmsEndDate,
 } from "@/services/sms";
-import {
-  isNotificationEnabled,
-  sendLocalNotification,
-  formatSmsScanBody,
-  hasNotificationPermission,
-} from "@/services/notifications";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { parseBankSMS } from "./bank-patterns";
@@ -59,17 +53,13 @@ export const SCAN_COOLDOWN_MS = 30 * 60 * 1000;
  * @param options.manual - true when invoked by a user button. Bypasses the
  *   30-min cooldown, reads SMS from the user-configured start date (via
  *   manualScan), and skips the auto-scan notification.
- * @param options.notify - default true. When true and new transactions are
- *   found, sends a local notification (subject to user notification prefs).
- *   Ignored when manual=true (the UI surfaces results directly).
  * @param options.accountIds - optional list of account IDs to filter SMS scan by.
  *   If provided, only parsed SMS matching these accounts will be processed.
  */
 export async function runSmsScan(
-  options: { manual?: boolean; notify?: boolean; accountIds?: string[] } = {},
+  options: { manual?: boolean; accountIds?: string[] } = {},
 ): Promise<ScanOutcome> {
   const manual = options.manual ?? false;
-  const notify = options.notify ?? true;
   const accountIds = options.accountIds;
   const startTime = Date.now();
 
@@ -239,22 +229,6 @@ export async function runSmsScan(
       durationMs,
       details,
     });
-
-    // Only auto-scan sends a notification — manual scans surface results in-UI.
-    if (!manual && notify && processResult.created > 0) {
-      const canNotify = await hasNotificationPermission();
-      if (canNotify) {
-        const notifItems = passed
-          .filter((item) => item.parsed.merchant && item.parsed.amount > 0)
-          .map((item) => ({ merchant: item.parsed.merchant!, amount: item.parsed.amount }));
-        const body = formatSmsScanBody(notifItems);
-        await sendLocalNotification(
-          `${processResult.created} new transaction${processResult.created > 1 ? "s" : ""} found`,
-          body,
-          { screen: "/expense/review-queue" },
-        );
-      }
-    }
 
     setLastAutoScanRun(Date.now());
     return {

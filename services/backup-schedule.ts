@@ -1,7 +1,6 @@
 import * as BackgroundFetch from "expo-background-fetch";
 import * as Notifications from "expo-notifications";
 import { Directory, File, Paths } from "expo-file-system";
-import { SchedulableTriggerInputTypes } from "expo-notifications";
 import * as Sharing from "expo-sharing";
 import * as TaskManager from "expo-task-manager";
 import { settingsStorage as storage } from "@/services/storage";
@@ -12,7 +11,6 @@ import { getDatabase } from "@/database";
 import { logger } from "@/utils/logger";
 
 const BACKUP_TASK = "ARTHA_SCHEDULED_BACKUP";
-const BACKUP_NOTIF_TASK = "ARTHA_BACKUP_NOTIFICATION";
 
 // ---------------------------------------------------------------------------
 // MMKV keys
@@ -230,73 +228,16 @@ export async function shareScheduledBackup(filePath: string): Promise<void> {
 // Notification scheduling — interval-based, fires every N hours
 // ---------------------------------------------------------------------------
 
-export async function syncScheduledBackupNotification(s: BackupScheduleSettings): Promise<void> {
+export async function syncScheduledBackupNotification(_s: BackupScheduleSettings): Promise<void> {
+  // Trigger notification removed — backup runs via BackgroundFetch + on-open check only.
+  // Cancel any lingering notification from a previous version.
   try {
     await Notifications.cancelScheduledNotificationAsync(NOTIF_ID);
-  } catch { /* ignore — may not exist yet */ }
-
-  if (!s.enabled) return;
-
-  try {
-    await Notifications.scheduleNotificationAsync({
-      identifier: NOTIF_ID,
-      content: {
-        title: "Arth backup",
-        body: "Running your scheduled backup…",
-        sound: false,
-        data: { type: "scheduled_backup", screen: "settings/backup-restore" },
-      },
-      trigger: {
-        type: SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: s.frequencyHours * 60 * 60,
-        repeats: true,
-      },
-    });
-  } catch (e) {
-    logger.warn("syncScheduledBackupNotification failed", e);
-  }
+  } catch { /* ignore */ }
 }
 
 // ---------------------------------------------------------------------------
-// Notification background task — runs backup when the notification fires,
-// even when the app is closed. Registered via registerBackupNotificationTask.
-// ---------------------------------------------------------------------------
-
-TaskManager.defineTask(BACKUP_NOTIF_TASK, async ({ data }: TaskManager.TaskManagerTaskBody) => {
-  try {
-    const notification = (data as { notification?: Notifications.Notification })?.notification;
-    if (notification?.request?.identifier !== NOTIF_ID) return;
-    if (!shouldRunScheduledBackup()) return;
-    await createScheduledBackup();
-    if (isNotificationEnabled("scheduled_backup")) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Backup saved",
-          body: "Your scheduled Arth backup has been saved.",
-          sound: false,
-          data: { screen: "settings/backup-restore" },
-        },
-        trigger: null,
-      });
-    }
-  } catch (e) {
-    logger.warn("Backup notification task failed:", e);
-  }
-});
-
-export async function registerBackupNotificationTask(): Promise<void> {
-  try {
-    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKUP_NOTIF_TASK);
-    if (!isRegistered) {
-      await Notifications.registerTaskAsync(BACKUP_NOTIF_TASK);
-    }
-  } catch (e) {
-    logger.warn("Failed to register backup notification task:", e);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// BackgroundFetch task — best-effort fallback when notification task can't run
+// BackgroundFetch task — runs backup on schedule even when app is closed
 // ---------------------------------------------------------------------------
 
 TaskManager.defineTask(BACKUP_TASK, async () => {
