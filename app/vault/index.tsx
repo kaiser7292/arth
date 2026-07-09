@@ -17,7 +17,7 @@ import { consumeVaultPreload } from "@/services/home-preload";
 
 export default function VaultIndexScreen() {
   const router = useRouter();
-  const { colors, colorScheme } = useColorScheme();
+  const { colors, accent, colorScheme } = useColorScheme();
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -65,24 +65,35 @@ export default function VaultIndexScreen() {
     ),
   [entries]);
 
-  const renderEntry = ({ item }: { item: VaultEntry }) => (
-    <Pressable
-      onPress={() => router.push(`/vault/${item.id}`)}
-      className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
-    >
-      <View className="flex-1">
-        <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
-          {item.title}
-        </Text>
-        {(item.email || item.username || item.phone) && (
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5" numberOfLines={1}>
-            {item.email || item.username || item.phone}
+  const LINK_CATEGORIES = ["banking", "card", "demat", "statement_pwd"];
+
+  const renderEntry = ({ item }: { item: VaultEntry }) => {
+    const needsLink = LINK_CATEGORIES.includes(item.category) && !item.linked_account_id;
+    return (
+      <Pressable
+        onPress={() => router.push(`/vault/${item.id}`)}
+        className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+      >
+        <View className="flex-1 min-w-0">
+          <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+            {item.title}
           </Text>
+          {(item.email || item.username || item.phone) && (
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5" numberOfLines={1}>
+              {item.email || item.username || item.phone}
+            </Text>
+          )}
+        </View>
+        {needsLink && (
+          <View
+            className="w-2 h-2 rounded-full mr-2 shrink-0"
+            style={{ backgroundColor: "#F59E0B" }}
+          />
         )}
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-    </Pressable>
-  );
+        <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+      </Pressable>
+    );
+  };
 
   const empty = entries.length === 0;
 
@@ -149,12 +160,20 @@ export default function VaultIndexScreen() {
           renderItem={renderEntry}
           renderSectionHeader={({ section }) => (
             <View className="flex-row items-center px-4 pt-5 pb-1">
-              <Ionicons
-                name={section.icon as any}
-                size={14}
-                color={colors.textSecondary}
-              />
-              <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary ml-1.5">
+              <View
+                className="w-5 h-5 rounded-md items-center justify-center mr-2"
+                style={{ backgroundColor: accent[500] + "22" }}
+              >
+                <Ionicons
+                  name={section.icon as any}
+                  size={11}
+                  color={accent[500]}
+                />
+              </View>
+              <Text
+                className="text-xs font-semibold uppercase tracking-wider"
+                style={{ color: accent[600] }}
+              >
                 {section.title}
               </Text>
             </View>

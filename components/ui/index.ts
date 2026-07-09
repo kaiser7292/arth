@@ -1,4 +1,5 @@
 export { AlertBanner } from "./AlertBanner";
+export { ConfirmSheet } from "./ConfirmSheet";
 export { Button } from "./Button";
 export { CalendarModal } from "./CalendarModal";
 export { Card } from "./Card";

@@ -80,6 +80,7 @@ export default function VaultAddScreen() {
   const [showPin, setShowPin] = useState(false);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   // Card-specific custom fields
   const [cardNumber, setCardNumber] = useState("");
@@ -121,6 +122,7 @@ export default function VaultAddScreen() {
         setPhone(entry.phone ?? "");
         setUrl(entry.url ?? "");
         setNotes(entry.notes ?? "");
+        let expandMore = !!(entry.url || entry.notes);
         if (entry.custom_fields) {
           const fields = await decryptCustomFields(entry.custom_fields);
           setCardNumber(fields.card_number ?? "");
@@ -131,7 +133,11 @@ export default function VaultAddScreen() {
           setMpin(fields.mpin ?? "");
           setTpin(fields.tpin ?? "");
           setStatementPwd(fields.statement_password ?? "");
+          if (fields.secondary_password || fields.mpin || fields.tpin || fields.statement_password) {
+            expandMore = true;
+          }
         }
+        if (expandMore) setShowMore(true);
         // passwords stay blank on edit — user must re-enter to change
       } finally {
         setLoading(false);
@@ -494,26 +500,6 @@ export default function VaultAddScreen() {
                 />
               </Pressable>
             </Field>
-
-            <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
-              <TextInput
-                value={statementPwd}
-                onChangeText={setStatementPwd}
-                placeholder="Password to open bank PDF statements"
-                placeholderTextColor={colors.textSecondary}
-                secureTextEntry={!showStatementPwd}
-                autoCapitalize="none"
-                autoCorrect={false}
-                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
-              />
-              <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
-                <Ionicons
-                  name={showStatementPwd ? "eye-off-outline" : "eye-outline"}
-                  size={18}
-                  color={colors.textSecondary}
-                />
-              </Pressable>
-            </Field>
           </>
         )}
 
@@ -662,96 +648,6 @@ export default function VaultAddScreen() {
           </Field>
         )}
 
-        {/* Banking extras — always shown regardless of login method */}
-        {category === "banking" && (
-          <>
-            <Field label={editId ? "Transaction / Profile Password (leave blank to keep current)" : "Transaction / Profile Password (optional)"} colors={colors}>
-              <TextInput
-                value={secondaryPassword}
-                onChangeText={setSecondaryPassword}
-                placeholder="Secondary password for transfers / profile changes"
-                placeholderTextColor={colors.textSecondary}
-                secureTextEntry={!showSecondaryPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
-              />
-              <Pressable onPress={() => setShowSecondaryPassword((p) => !p)} hitSlop={8}>
-                <Ionicons name={showSecondaryPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
-              </Pressable>
-            </Field>
-
-            <Field label={editId ? "MPIN (leave blank to keep current)" : "MPIN (optional)"} colors={colors}>
-              <TextInput
-                value={mpin}
-                onChangeText={setMpin}
-                placeholder="4–6 digit MPIN for mobile banking app"
-                placeholderTextColor={colors.textSecondary}
-                secureTextEntry={!showMpin}
-                keyboardType="number-pad"
-                maxLength={6}
-                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
-              />
-              <Pressable onPress={() => setShowMpin((p) => !p)} hitSlop={8}>
-                <Ionicons name={showMpin ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
-              </Pressable>
-            </Field>
-
-            <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
-              <TextInput
-                value={statementPwd}
-                onChangeText={setStatementPwd}
-                placeholder="Password to open bank PDF statements"
-                placeholderTextColor={colors.textSecondary}
-                secureTextEntry={!showStatementPwd}
-                autoCapitalize="none"
-                autoCorrect={false}
-                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
-              />
-              <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
-                <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
-              </Pressable>
-            </Field>
-          </>
-        )}
-
-        {/* Demat extras — always shown regardless of login method */}
-        {category === "demat" && (
-          <>
-            <Field label={editId ? "Trading PIN / TPIN (leave blank to keep current)" : "Trading PIN / TPIN (optional)"} colors={colors}>
-              <TextInput
-                value={tpin}
-                onChangeText={setTpin}
-                placeholder="PIN for authorising trades / debit"
-                placeholderTextColor={colors.textSecondary}
-                secureTextEntry={!showTpin}
-                keyboardType="number-pad"
-                maxLength={8}
-                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
-              />
-              <Pressable onPress={() => setShowTpin((p) => !p)} hitSlop={8}>
-                <Ionicons name={showTpin ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
-              </Pressable>
-            </Field>
-
-            <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
-              <TextInput
-                value={statementPwd}
-                onChangeText={setStatementPwd}
-                placeholder="Password to open contract notes / P&L PDFs"
-                placeholderTextColor={colors.textSecondary}
-                secureTextEntry={!showStatementPwd}
-                autoCapitalize="none"
-                autoCorrect={false}
-                className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
-              />
-              <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
-                <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
-              </Pressable>
-            </Field>
-          </>
-        )}
-
         {showGenericPin && (
           <Field
             label={editId ? "New PIN (leave blank to keep current)" : "PIN"}
@@ -776,45 +672,174 @@ export default function VaultAddScreen() {
           </Field>
         )}
 
-        <View className="h-px bg-border-light dark:bg-border-dark my-2" />
+        {/* ── More fields toggle ── */}
+        <Pressable
+          onPress={() => setShowMore((o) => !o)}
+          className="flex-row items-center justify-center py-3 my-1"
+        >
+          <Ionicons
+            name={showMore ? "remove-circle-outline" : "add-circle-outline"}
+            size={16}
+            color={accent[500]}
+          />
+          <Text className="text-sm font-medium ml-1.5" style={{ color: accent[600] }}>
+            {showMore ? "Hide extra fields" : "More fields"}
+          </Text>
+        </Pressable>
 
-        {/* URL (optional, non-card, non-upi) */}
-        {!isCard && !isUpi && (
-          <Field label="Website / URL (optional)" colors={colors}>
+        {/* ── Collapsed section ── */}
+        {showMore && (
+          <>
+            {/* Banking extras */}
+            {category === "banking" && (
+              <>
+                <Field label={editId ? "Transaction / Profile Password (leave blank to keep current)" : "Transaction / Profile Password (optional)"} colors={colors}>
+                  <TextInput
+                    value={secondaryPassword}
+                    onChangeText={setSecondaryPassword}
+                    placeholder="Secondary password for transfers / profile changes"
+                    placeholderTextColor={colors.textSecondary}
+                    secureTextEntry={!showSecondaryPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+                  />
+                  <Pressable onPress={() => setShowSecondaryPassword((p) => !p)} hitSlop={8}>
+                    <Ionicons name={showSecondaryPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                  </Pressable>
+                </Field>
+
+                <Field label={editId ? "MPIN (leave blank to keep current)" : "MPIN (optional)"} colors={colors}>
+                  <TextInput
+                    value={mpin}
+                    onChangeText={setMpin}
+                    placeholder="4–6 digit MPIN for mobile banking app"
+                    placeholderTextColor={colors.textSecondary}
+                    secureTextEntry={!showMpin}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+                  />
+                  <Pressable onPress={() => setShowMpin((p) => !p)} hitSlop={8}>
+                    <Ionicons name={showMpin ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                  </Pressable>
+                </Field>
+
+                <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
+                  <TextInput
+                    value={statementPwd}
+                    onChangeText={setStatementPwd}
+                    placeholder="Password to open bank PDF statements"
+                    placeholderTextColor={colors.textSecondary}
+                    secureTextEntry={!showStatementPwd}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+                  />
+                  <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
+                    <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                  </Pressable>
+                </Field>
+              </>
+            )}
+
+            {/* Card statement PDF password */}
+            {isCard && (
+              <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
+                <TextInput
+                  value={statementPwd}
+                  onChangeText={setStatementPwd}
+                  placeholder="Password to open bank PDF statements"
+                  placeholderTextColor={colors.textSecondary}
+                  secureTextEntry={!showStatementPwd}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+                />
+                <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
+                  <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                </Pressable>
+              </Field>
+            )}
+
+            {/* Demat extras */}
+            {category === "demat" && (
+              <>
+                <Field label={editId ? "Trading PIN / TPIN (leave blank to keep current)" : "Trading PIN / TPIN (optional)"} colors={colors}>
+                  <TextInput
+                    value={tpin}
+                    onChangeText={setTpin}
+                    placeholder="PIN for authorising trades / debit"
+                    placeholderTextColor={colors.textSecondary}
+                    secureTextEntry={!showTpin}
+                    keyboardType="number-pad"
+                    maxLength={8}
+                    className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+                  />
+                  <Pressable onPress={() => setShowTpin((p) => !p)} hitSlop={8}>
+                    <Ionicons name={showTpin ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                  </Pressable>
+                </Field>
+
+                <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
+                  <TextInput
+                    value={statementPwd}
+                    onChangeText={setStatementPwd}
+                    placeholder="Password to open contract notes / P&L PDFs"
+                    placeholderTextColor={colors.textSecondary}
+                    secureTextEntry={!showStatementPwd}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+                  />
+                  <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
+                    <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                  </Pressable>
+                </Field>
+              </>
+            )}
+
+            <View className="h-px bg-border-light dark:bg-border-dark my-2" />
+
+            {/* URL */}
+            {!isCard && !isUpi && (
+              <Field label="Website / URL (optional)" colors={colors}>
+                <TextInput
+                  value={url}
+                  onChangeText={setUrl}
+                  placeholder="https://"
+                  placeholderTextColor={colors.textSecondary}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                  autoCorrect={false}
+                  className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+                />
+              </Field>
+            )}
+
+            {/* Notes */}
+            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mt-4 mb-1.5">
+              Notes (optional)
+            </Text>
             <TextInput
-              value={url}
-              onChangeText={setUrl}
-              placeholder="https://"
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Any extra info — IVR steps, secret questions, etc."
               placeholderTextColor={colors.textSecondary}
-              autoCapitalize="none"
-              keyboardType="url"
-              autoCorrect={false}
-              className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              className="text-sm text-text-primary dark:text-text-dark-primary bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl px-4 py-3 mb-2"
+              style={{ minHeight: 80 }}
             />
-          </Field>
+          </>
         )}
-
-        {/* Notes */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mt-4 mb-1.5">
-          Notes (optional)
-        </Text>
-        <TextInput
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Any extra info — IVR steps, secret questions, etc."
-          placeholderTextColor={colors.textSecondary}
-          multiline
-          numberOfLines={3}
-          textAlignVertical="top"
-          className="text-sm text-text-primary dark:text-text-dark-primary bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl px-4 py-3 mb-6"
-          style={{ minHeight: 80 }}
-        />
 
         {/* Save button */}
         <Pressable
           onPress={handleSave}
           disabled={saving}
-          className="py-4 rounded-2xl items-center"
+          className="py-4 rounded-2xl items-center mt-4"
           style={{ backgroundColor: accent[500] }}
         >
           {saving ? (

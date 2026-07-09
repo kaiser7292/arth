@@ -2,9 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
-import { Card, FAB, ScreenContainer } from "@/components/ui";
+import { ConfirmSheet, FAB, ProgressBar, ScreenContainer } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useAlert } from "@/hooks/use-alert";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getSessions, deleteSession, type ReconciliationSession } from "@/services/reconciliation/reconciliation-crud";
@@ -21,11 +20,6 @@ function statusColor(status: string, accent: any, colors: any): string {
   return colors.textSecondary;
 }
 
-function matchPct(session: ReconciliationSession): string | null {
-  if (!session.total_stmt_count || !session.matched_count) return null;
-  return `${Math.round((session.matched_count / session.total_stmt_count) * 100)}% matched`;
-}
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-IN", {
     day: "numeric", month: "short", year: "numeric",
@@ -34,12 +28,12 @@ function formatDate(iso: string): string {
 
 export default function ReconciliationHubScreen() {
   const router = useRouter();
-  const alert = useAlert();
   const { colors, accent } = useColorScheme();
 
   const [sessions, setSessions] = useState<ReconciliationSession[]>([]);
   const [accounts, setAccounts] = useState<Record<string, FinancialAccount>>({});
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<ReconciliationSession | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -58,75 +52,82 @@ export default function ReconciliationHubScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const handleDelete = useCallback((item: ReconciliationSession) => {
-    const account = accounts[item.account_id];
-    const label = account ? (account.account_label || account.bank_name) : "this session";
-    alert(
-      "Delete reconciliation",
-      `Delete the ${formatDate(item.stmt_start_date)} – ${formatDate(item.stmt_end_date)} session for ${label}? This cannot be undone.`,
-      [
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await deleteSession(item.id);
-            load();
-          },
-        },
-        { text: "Cancel", style: "cancel" },
-      ],
-    );
-  }, [accounts, alert, load]);
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    await deleteSession(deleteTarget.id);
+    load();
+  }, [deleteTarget, load]);
 
   const renderItem = ({ item }: { item: ReconciliationSession }) => {
     const account = accounts[item.account_id];
-    const pct = matchPct(item);
     const color = statusColor(item.status, accent, colors);
+    const matchRatio = item.total_stmt_count
+      ? (item.matched_count ?? 0) / item.total_stmt_count
+      : null;
+    const matchLabel = item.total_stmt_count
+      ? `${item.matched_count ?? 0} / ${item.total_stmt_count} matched`
+      : null;
 
     return (
       <Pressable
         onPress={() => router.push(`/settings/reconciliation/${item.id}`)}
-        onLongPress={() => handleDelete(item)}
+        onLongPress={() => setDeleteTarget(item)}
         delayLongPress={400}
-        className="flex-row items-center py-3.5 border-b border-border-light dark:border-border-dark"
+        className="py-3.5 border-b border-border-light dark:border-border-dark"
       >
-        <View
-          className="w-9 h-9 rounded-full items-center justify-center mr-3"
-          style={{ backgroundColor: color + "22" }}
-        >
-          <Ionicons
-            name={item.status === "completed" ? "checkmark-circle-outline" : "ellipse-outline"}
-            size={18}
-            color={color}
-          />
-        </View>
-        <View className="flex-1">
-          <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
-            {account ? (account.account_label || account.bank_name) : "Unknown account"}
-          </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-            {item.stmt_start_date && item.stmt_end_date
-              ? `${formatDate(item.stmt_start_date)} – ${formatDate(item.stmt_end_date)}`
-              : formatDate(item.created_at)}
-            {pct ? ` · ${pct}` : ""}
-          </Text>
-        </View>
-        <View className="items-end ml-2">
-          <Text className="text-xs font-semibold" style={{ color }}>
-            {statusLabel(item.status)}
-          </Text>
-          {item.import_format && (
-            <Text className="text-[10px] text-text-tertiary uppercase mt-0.5">
-              {item.import_format}
+        <View className="flex-row items-center">
+          <View
+            className="w-9 h-9 rounded-full items-center justify-center mr-3"
+            style={{ backgroundColor: color + "22" }}
+          >
+            <Ionicons
+              name={item.status === "completed" ? "checkmark-circle-outline" : "ellipse-outline"}
+              size={18}
+              color={color}
+            />
+          </View>
+          <View className="flex-1 min-w-0">
+            <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+              {account ? (account.account_label || account.bank_name) : "Unknown account"}
             </Text>
-          )}
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+              {item.stmt_start_date && item.stmt_end_date
+                ? `${formatDate(item.stmt_start_date)} – ${formatDate(item.stmt_end_date)}`
+                : formatDate(item.created_at)}
+            </Text>
+          </View>
+          <View className="items-end ml-3 shrink-0">
+            <Text className="text-xs font-semibold" style={{ color }}>
+              {statusLabel(item.status)}
+            </Text>
+            {item.import_format && (
+              <Text className="text-[10px] text-text-tertiary uppercase mt-0.5">
+                {item.import_format}
+              </Text>
+            )}
+          </View>
+          <Pressable onPress={() => setDeleteTarget(item)} hitSlop={8} className="ml-3">
+            <Ionicons name="trash-outline" size={16} color="#EF444466" />
+          </Pressable>
         </View>
-        <Pressable onPress={() => handleDelete(item)} hitSlop={8} className="ml-3">
-          <Ionicons name="trash-outline" size={16} color="#EF444466" />
-        </Pressable>
+
+        {/* Inline match progress */}
+        {matchRatio !== null && (
+          <View className="mt-2 ml-12 mr-10">
+            <ProgressBar value={matchRatio} height={3} animated={false} />
+            <Text className="text-[10px] text-text-tertiary dark:text-text-dark-tertiary mt-1">
+              {matchLabel}
+            </Text>
+          </View>
+        )}
       </Pressable>
     );
   };
+
+  const deleteAccount = deleteTarget ? accounts[deleteTarget.account_id] : null;
+  const deleteLabel = deleteAccount
+    ? (deleteAccount.account_label || deleteAccount.bank_name)
+    : undefined;
 
   return (
     <ScreenContainer padTop={false}>
@@ -158,6 +159,21 @@ export default function ReconciliationHubScreen() {
         />
       )}
       <FAB icon="add" onPress={() => router.push("/settings/reconciliation/new")} />
+
+      <ConfirmSheet
+        visible={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete reconciliation?"
+        context={deleteLabel}
+        message={
+          deleteTarget?.stmt_start_date && deleteTarget?.stmt_end_date
+            ? `${formatDate(deleteTarget.stmt_start_date)} – ${formatDate(deleteTarget.stmt_end_date)}`
+            : undefined
+        }
+        confirmLabel="Delete"
+        destructive
+        onConfirm={handleConfirmDelete}
+      />
     </ScreenContainer>
   );
 }

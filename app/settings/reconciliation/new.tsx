@@ -52,7 +52,7 @@ export default function NewReconciliationScreen() {
 
   const params = useLocalSearchParams<{ prefill_account_id?: string }>();
 
-  const [step, setStep] = useState<Step>("account");
+  const [step, setStep] = useState<Step>(params.prefill_account_id ? "file" : "account");
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     params.prefill_account_id ?? null,
@@ -417,9 +417,10 @@ export default function NewReconciliationScreen() {
     }
   }, [step, sessionId, router]);
 
-  return (
-    <ScreenContainer padTop={false}>
-      {/* PDF Password Modal */}
+  // ─── Password modals (shared between steps) ────────────────────────────────
+
+  const passwordModals = (
+    <>
       <Modal
         visible={pdfPasswordVisible}
         transparent
@@ -469,7 +470,6 @@ export default function NewReconciliationScreen() {
         </View>
       </Modal>
 
-      {/* XLS/XLSX Password Modal */}
       <Modal
         visible={xlsPasswordVisible}
         transparent
@@ -518,61 +518,110 @@ export default function NewReconciliationScreen() {
           </View>
         </View>
       </Modal>
+    </>
+  );
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+  // ─── Step: account ────────────────────────────────────────────────────────
 
-        {/* Step 1 — Account */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
-          1. Select Account
-        </Text>
-        <Card className="mb-5">
-          {accounts.map((acc, i) => {
-            const selected = acc.id === selectedAccountId;
-            return (
+  if (step === "account") {
+    return (
+      <ScreenContainer padTop={false}>
+        <View className="px-4 pt-5 pb-3">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-1">
+            Step 1 of 2
+          </Text>
+          <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
+            Which account?
+          </Text>
+          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1">
+            Select the account this statement belongs to.
+          </Text>
+        </View>
+
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+          <Card className="mb-4">
+            {accounts.map((acc, i) => (
               <Pressable
                 key={acc.id}
                 onPress={() => {
                   setSelectedAccountId(acc.id);
                   setMismatchWarning(null);
+                  setParsed(null);
+                  setFilename(null);
+                  setStep("file");
                 }}
-                className={`flex-row items-center py-3 ${i < accounts.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""}`}
+                className={`flex-row items-center py-3.5 ${i < accounts.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""}`}
               >
-                <View
-                  className="w-7 h-7 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: selected ? accent[500] : colors.border + "55" }}
-                >
-                  {selected && <Ionicons name="checkmark" size={14} color="#fff" />}
-                </View>
                 <View className="flex-1">
                   <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
                     {acc.account_label || acc.bank_name}
                   </Text>
                   {acc.account_identifier && (
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
                       ****{acc.account_identifier}
                     </Text>
                   )}
                 </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
               </Pressable>
-            );
-          })}
-        </Card>
+            ))}
+          </Card>
+        </ScrollView>
+      </ScreenContainer>
+    );
+  }
 
-        {/* Step 2 — File */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
-          2. Import Statement
-        </Text>
+  // ─── Step: file ───────────────────────────────────────────────────────────
+
+  const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
+
+  return (
+    <ScreenContainer padTop={false}>
+      {passwordModals}
+
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}>
+
+        {/* Step header + selected account */}
+        <View className="pt-5 pb-4">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-1">
+            Step 2 of 2
+          </Text>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
+              Import statement
+            </Text>
+            <Pressable
+              onPress={() => setStep("account")}
+              className="flex-row items-center"
+            >
+              <Ionicons name="swap-horizontal-outline" size={14} color={accent[500]} />
+              <Text className="text-xs font-semibold ml-1" style={{ color: accent[500] }}>
+                Change account
+              </Text>
+            </Pressable>
+          </View>
+          {selectedAccount && (
+            <View
+              className="mt-2 flex-row items-center px-3 py-2 rounded-xl self-start"
+              style={{ backgroundColor: accent[500] + "18" }}
+            >
+              <Ionicons name="wallet-outline" size={13} color={accent[600]} />
+              <Text className="text-xs font-semibold ml-1.5" style={{ color: accent[700] }}>
+                {selectedAccount.account_label || selectedAccount.bank_name}
+                {selectedAccount.account_identifier ? ` ····${selectedAccount.account_identifier}` : ""}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* File upload zone */}
         <Pressable
           onPress={handlePickFile}
-          disabled={!selectedAccountId}
-          className="border-2 border-dashed rounded-2xl py-8 items-center mb-3"
-          style={{
-            borderColor: selectedAccountId ? accent[500] : colors.border,
-            opacity: selectedAccountId ? 1 : 0.4,
-          }}
+          className="border-2 border-dashed rounded-2xl py-10 items-center mb-3"
+          style={{ borderColor: accent[500] }}
         >
-          <Ionicons name="cloud-upload-outline" size={32} color={selectedAccountId ? accent[500] : colors.textSecondary} />
-          <Text className="text-sm font-semibold mt-2" style={{ color: selectedAccountId ? accent[500] : colors.textSecondary }}>
+          <Ionicons name="cloud-upload-outline" size={36} color={accent[500]} />
+          <Text className="text-sm font-semibold mt-2" style={{ color: accent[500] }}>
             {filename ?? "Upload XLS, XLSX, or PDF"}
           </Text>
           <Text className="text-xs text-text-tertiary mt-1">
@@ -583,7 +632,7 @@ export default function NewReconciliationScreen() {
         {/* Mismatch warning */}
         {mismatchWarning && (
           <View className="mb-3 px-4 py-3 rounded-xl flex-row items-start" style={{ backgroundColor: "#F59E0B22" }}>
-            <Ionicons name="warning-outline" size={18} color="#F59E0B" className="mt-0.5" />
+            <Ionicons name="warning-outline" size={18} color="#F59E0B" />
             <Text className="text-xs text-text-primary dark:text-text-dark-primary ml-2 flex-1">
               {mismatchWarning}
             </Text>
@@ -591,11 +640,11 @@ export default function NewReconciliationScreen() {
         )}
 
         {/* Parsed summary */}
-        {parsed && step === "file" && (
-          <Card className="mb-5">
+        {parsed && (
+          <Card className="mb-4">
             <View className="flex-row items-center mb-2">
               <Ionicons name="document-text-outline" size={18} color={accent[500]} />
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2">
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2 flex-1" numberOfLines={1}>
                 {filename}
               </Text>
             </View>
@@ -618,20 +667,24 @@ export default function NewReconciliationScreen() {
             )}
           </Card>
         )}
-
-        {/* Start matching button */}
-        {parsed && step === "file" && selectedAccountId && (
-          <Pressable
-            onPress={handleStartMatching}
-            className="py-4 rounded-2xl items-center"
-            style={{ backgroundColor: accent[500] }}
-          >
-            <Text className="text-base font-semibold text-white">
-              Start Matching
-            </Text>
-          </Pressable>
-        )}
       </ScrollView>
+
+      {/* Pinned bottom button */}
+      <View
+        className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3"
+        style={{ backgroundColor: colors.background }}
+      >
+        <Pressable
+          onPress={handleStartMatching}
+          disabled={!parsed}
+          className="py-4 rounded-2xl items-center"
+          style={{ backgroundColor: parsed ? accent[500] : colors.border, opacity: parsed ? 1 : 0.5 }}
+        >
+          <Text className="text-base font-semibold text-white">
+            Start Matching
+          </Text>
+        </Pressable>
+      </View>
     </ScreenContainer>
   );
 }
