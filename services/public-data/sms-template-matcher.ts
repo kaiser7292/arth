@@ -28,6 +28,7 @@ import { getDatabase } from "@/database";
 import { resolveBankFromSender } from "./lookup";
 import { identifyBank } from "@/services/sms/bank-senders";
 import type { ParsedSMS, TransactionType } from "@/services/sms/bank-patterns";
+import { parseDateAny } from "@/services/sms/bank-patterns";
 import { normalizeSms } from "@/services/sms/sms-normalize";
 import { logger } from "@/utils/logger";
 
@@ -185,6 +186,8 @@ export async function tryTemplateMatch(
     const cardLast4 = isAllDigits ? accountRaw.slice(-4) : null;
     const accountNickname = !isAllDigits && accountRaw ? accountRaw.trim() : null;
 
+    const parsedDate = groups["date"] ? parseDateAny(groups["date"]) : null;
+
     // reminder_hint matches are staged by reminder-hints.ts; we still return
     // a ParsedSMS so the parser records the SMS in pending_sms, but mark it
     // skip so it doesn't flow into the expense path.
@@ -194,7 +197,7 @@ export async function tryTemplateMatch(
         merchant: normaliseMerchant(groups["merchant"]),
         cardLast4,
         accountNickname,
-        date: null,
+        date: parsedDate,
         // v15.11.0: sender-scoped templates may be for brands the app
         // doesn't recognise (wallets, new fintechs). Prefer the template's
         // own bank_name when sender routing matched, falling back to the
@@ -227,7 +230,7 @@ export async function tryTemplateMatch(
       merchant: normaliseMerchant(groups["merchant"]),
       cardLast4,
       accountNickname,
-      date: null,
+      date: parsedDate,
       bank: bank ?? "Unknown",
       type: txType,
       skip: false,

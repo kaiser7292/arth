@@ -91,10 +91,15 @@ const FIELD_REGEX: Record<TaggedField, string> = {
   // can't swallow the rest of the SMS.
   account: "(?:\\d{3,6}|[A-Za-z][A-Za-z0-9 &.'\\-]{1,49})",
   merchant: "[A-Za-z0-9 &.,'*\\-\\/]+?",
-  // Date matches D-M-Y in multiple formats OR month-year formats (JAN 2026, JAN-26, SEP-25).
-  // For month-year formats, the parser converts to end-of-month date.
-  // The matcher infers the year from context for 2-digit years.
-  date: "(?:\\d{1,2}[-/][A-Za-z0-9]{2,4}[-/]\\d{2,4}(?:\\s+\\d{2}:\\d{2}(?::\\d{2})?)?|[A-Za-z]{3}(?:[-/\\s]\\d{2,4}))",
+  // Date: alternatives in specificity order so the engine commits to the
+  // longest match first. Formats handled:
+  //   YYYY-MM-DD (ISO, with optional T/space + HH:MM[:SS])
+  //   DD[-/.]MMM[-/.]YYYY or DD[-/.]MM[-/.]YYYY (with optional time)
+  //   DDMmmYY / DDMmmYYYY (compact, no separator, e.g. 14Jun25)
+  //   DDth/st/nd/rd MMM YYYY (ordinal suffix, e.g. 10th Apr 2026)
+  //   DD MMM YYYY (space-separated, e.g. 25 Apr 2026)
+  //   MMM[-/ ]YYYY or MMM-YY (month-year only, e.g. JAN 2026)
+  date: "(?:\\d{4}-\\d{2}-\\d{2}(?:[T: ]\\d{2}:\\d{2}(?::\\d{2})?)?|\\d{1,2}[-/.](?:[A-Za-z]{3}|\\d{2})[-/.]\\d{2,4}(?:\\s+\\d{2}:\\d{2}(?::\\d{2})?)?|\\d{1,2}[A-Za-z]{3}\\d{2,4}|\\d{1,2}(?:st|nd|rd|th)\\s+[A-Za-z]{3}\\s+\\d{4}|\\d{1,2}\\s+[A-Za-z]{3}\\s+\\d{4}|[A-Za-z]{3}(?:[-/\\s]\\d{2,4}))",
   balance: "[\\d,]+(?:\\.\\d{1,2})?",
   // ref is the free-text "remarks / description" field — may be a UPI/NEFT
   // id, a multi-word remark, or a slash-separated payload. Non-greedy so
@@ -412,10 +417,12 @@ export function autoTag(smsBody: string): TaggedSpan[] {
     1,
   );
 
-  // DATE: "10-04-26" / "10/04/2026" / "10-APR-2026" / "JAN 2026" / "JAN-26" / "SEP-25"
+  // DATE: all formats handled by parseDateAny — ISO, DD-MMM-YY, DD/MM/YYYY,
+  // dot-sep, compact DDMmmYY, ordinal "10th Apr 2026", spaced "25 Apr 2026",
+  // month-year "JAN 2026". Most-specific alternatives first.
   pushFirst(
     "date",
-    /\b(?:\d{1,2}[-\/][A-Za-z0-9]{2,4}[-\/]\d{2,4}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|[A-Za-z]{3}(?:[-/\s]\d{2,4})?)\b/,
+    /\b(?:\d{4}-\d{2}-\d{2}(?:[T: ]\d{2}:\d{2}(?::\d{2})?)?|\d{1,2}[-\/.][A-Za-z0-9]{2,4}[-\/.]\d{2,4}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|\d{1,2}[A-Za-z]{3}\d{2,4}|\d{1,2}(?:st|nd|rd|th)\s+[A-Za-z]{3}\s+\d{4}|\d{1,2}\s+[A-Za-z]{3}\s+\d{4}|[A-Za-z]{3}(?:[-\/\s]\d{2,4})?)\b/i,
     0,
   );
 

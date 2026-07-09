@@ -224,9 +224,32 @@ function parseMonthYear(raw: string): string | null {
   return `${year}-${month}-${lastDay.toString().padStart(2, "0")}`;
 }
 
-/** Try multiple date formats: DD-MMM-YY, DDMmmYY, DD-MM-YY, DD-MM-YYYY, D-M-YYYY, DD/MM/YYYY, DD MMM YYYY, Month-Year */
-function parseDateAny(raw: string): string | null {
-  return parseDDMMMYY(raw) ?? parseDDMMMYYCompact(raw) ?? parseDDMMYY(raw) ?? parseDMYYYY(raw) ?? parseDDMMYYYY(raw) ?? parseDDMMMYYYYSpaced(raw) ?? parseMonthYear(raw) ?? null;
+/**
+ * Try all known date formats in order of specificity.
+ * Exported so the template matcher can parse captured date groups.
+ *
+ * Order matters — more-specific patterns first:
+ *   YYYY-MM-DD (ISO, exact) before DD-MM-YY (could misread year as day),
+ *   DD/MMM/YYYY before DD/MM/YYYY (slash-with-letters vs slash-with-digits),
+ *   ordinal ("10th Apr") before plain spaced ("10 Apr") to strip suffix first.
+ */
+export function parseDateAny(raw: string): string | null {
+  return (
+    parseYYYYMMDD(raw) ??         // 2026-04-07 (exact ISO, no time)
+    parseYYYYMMDDTime(raw) ??     // 2026-04-07:19:25 (ISO with time suffix)
+    parseDDMMMYY(raw) ??          // 11-Apr-26
+    parseDDMMMYYCompact(raw) ??   // 14Jun25
+    parseDDMMMYYYY(raw) ??        // 21/APR/2026
+    parseDDOrdMMMYYYY(raw) ??     // 10th Apr 2026
+    parseDDMMMYYYYSpaced(raw) ??  // 25 Apr 2026
+    parseDMYYYY(raw) ??           // 2-4-2026
+    parseDDMMYYYY(raw) ??         // 11/04/2026
+    parseDDMMYYYYDot(raw) ??      // 10.04.2026 or 10.04.26
+    parseDDMMYY(raw) ??           // 11-04-26
+    parseDDMMYYTime(raw) ??       // 09-09-25 02:31:10
+    parseMonthYear(raw) ??        // JAN 2026 / JAN-26
+    null
+  );
 }
 
 /** Parse "21/APR/2026" (DD/MMM/YYYY) → "2026-04-21" */
@@ -237,6 +260,31 @@ function parseDDMMMYYYY(raw: string): string | null {
   const month = MONTH_MAP[m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase()];
   if (!month) return null;
   return `${m[3]}-${month}-${day}`;
+}
+
+/** Parse "10.04.2026" or "10.04.26" (DD.MM.YYYY or DD.MM.YY, dot-separated) → "2026-04-10" */
+function parseDDMMYYYYDot(raw: string): string | null {
+  const m = raw.match(/(\d{1,2})\.(\d{2})\.(\d{2,4})/);
+  if (!m) return null;
+  const year = parseInt(m[3], 10);
+  const fullYear = year < 100 ? (year < 50 ? 2000 + year : 1900 + year) : year;
+  return `${fullYear}-${m[2]}-${m[1].padStart(2, "0")}`;
+}
+
+/** Parse "2026-04-07" (YYYY-MM-DD, ISO, no time suffix) → "2026-04-07" */
+function parseYYYYMMDD(raw: string): string | null {
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return `${m[1]}-${m[2]}-${m[3]}`;
+}
+
+/**
+ * Strip ordinal suffix from day ("10th" → "10", "1st" → "1") then delegate
+ * to parseDDMMMYYYYSpaced. Handles "10th Apr 2026", "1st Jan 2025", etc.
+ */
+function parseDDOrdMMMYYYY(raw: string): string | null {
+  const stripped = raw.replace(/\b(\d{1,2})(?:st|nd|rd|th)\b/i, "$1");
+  return parseDDMMMYYYYSpaced(stripped);
 }
 
 // ─── Helper: extract time from date strings (V4) ───
