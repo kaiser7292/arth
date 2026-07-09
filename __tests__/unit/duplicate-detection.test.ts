@@ -243,9 +243,8 @@ describe("duplicate-detection refund exclusion", () => {
     expect(result.groups).toHaveLength(0);
   });
 
-  it("STILL clusters two real realized duplicates in the same month (refund filter doesn't over-reach)", async () => {
-    // Sanity check: the refund filter only excludes refunds, not legitimate
-    // same-merchant same-amount duplicates on different days.
+  it("does NOT flag same-merchant same-amount expenses more than 3 days apart", async () => {
+    // 13 days apart — legitimate recurring purchase, not a duplicate.
     mockExpenses = [
       makeExpense({
         id: "a",
@@ -265,8 +264,54 @@ describe("duplicate-detection refund exclusion", () => {
       }),
     ];
     const result = await scanForDuplicates("user-1");
+    expect(result.groups).toHaveLength(0);
+  });
+
+  it("flags same-merchant same-amount expenses within 3 days (near-day duplicate)", async () => {
+    mockExpenses = [
+      makeExpense({
+        id: "a",
+        amount: 500,
+        date: "2026-04-05",
+        account_id: "acct-hdfc",
+        merchant_name: "Amazon",
+        nature: "realized",
+      }),
+      makeExpense({
+        id: "b",
+        amount: 500,
+        date: "2026-04-07",
+        account_id: "acct-hdfc",
+        merchant_name: "Amazon",
+        nature: "realized",
+      }),
+    ];
+    const result = await scanForDuplicates("user-1");
     expect(result.groups).toHaveLength(1);
     const ids = result.groups[0].expenses.map((e) => e.id).sort();
     expect(ids).toEqual(["a", "b"]);
+  });
+
+  it("does NOT flag same-merchant same-amount expenses exactly 4 days apart", async () => {
+    mockExpenses = [
+      makeExpense({
+        id: "a",
+        amount: 500,
+        date: "2026-04-05",
+        account_id: "acct-hdfc",
+        merchant_name: "Amazon",
+        nature: "realized",
+      }),
+      makeExpense({
+        id: "b",
+        amount: 500,
+        date: "2026-04-09",
+        account_id: "acct-hdfc",
+        merchant_name: "Amazon",
+        nature: "realized",
+      }),
+    ];
+    const result = await scanForDuplicates("user-1");
+    expect(result.groups).toHaveLength(0);
   });
 });

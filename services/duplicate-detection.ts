@@ -279,92 +279,101 @@ function findDuplicateGroups(
 }
 
 /**
- * Monthly-period duplicate detection.
- * Groups by (effectiveAmount, YYYY-MM, merchant, account) and flags clusters
- * where the same merchant+account+amount appears 2+ times within the same month
- * on different dates. Excludes expenses already caught by same-day detection.
+ * Near-day duplicate detection (±3 day tolerance).
+ * Flags clusters where the same merchant+account+amount+nature appears on
+ * different dates within a 3-day window. Catches delayed SMS re-imports and
+ * accidental double-entries without the false-positive noise of same-month
+ * detection (which flags any identical-price recurring purchase).
  */
-function findMonthlyDuplicateGroups(
+function findNearbyDuplicateGroups(
   expenses: Expense[],
   sameDayGroups: DuplicateGroup[],
   labelPrefix: string,
 ): DuplicateGroup[] {
-  // Build a set of expense IDs already flagged by same-day detection
   const alreadyFlagged = new Set<string>();
   for (const group of sameDayGroups) {
-    for (const exp of group.expenses) {
-      alreadyFlagged.add(exp.id);
-    }
+    for (const exp of group.expenses) alreadyFlagged.add(exp.id);
   }
 
-  // Only consider expenses with a merchant (can't detect merchant-based
-  // duplicates without one). Also exclude refunds defensively — they're
-  // filtered at the SQL layer but we guard here too.
-  const withMerchant = expenses.filter(
-    (e) => e.merchant_name && e.refund_of_expense_id == null,
+  // Must have a merchant; refunds and same-day-flagged entries are excluded.
+  const candidates = expenses.filter(
+    (e) =>
+      e.merchant_name &&
+      e.refund_of_expense_id == null &&
+      !alreadyFlagged.has(e.id),
   );
 
-  // Group by (nature, amount, YYYY-MM) composite key. Including nature
-  // mirrors the same-day detector (line 219) so a realized ₹500 and a
-  // credited ₹500 in the same month never cluster together.
-  const monthMap = new Map<string, Expense[]>();
-  for (const exp of withMerchant) {
-    const month = exp.date.substring(0, 7); // YYYY-MM
-    const key = `${exp.nature}|${effectiveAmount(exp)}|${month}`;
-    const group = monthMap.get(key);
-    if (group) {
-      group.push(exp);
-    } else {
-      monthMap.set(key, [exp]);
-    }
+  // Group by (nature, effectiveAmount) — no date bucket; window handled below.
+  const amountMap = new Map<string, Expense[]>();
+  for (const exp of candidates) {
+    const key = `${exp.nature}|${effectiveAmount(exp)}`;
+    const existing = amountMap.get(key);
+    if (existing) existing.push(exp);
+    else amountMap.set(key, [exp]);
   }
 
   const duplicateGroups: DuplicateGroup[] = [];
+  const usedIds = new Set<string>();
 
-  for (const [, group] of monthMap) {
+  for (const [, group] of amountMap) {
     if (group.length < 2) continue;
 
-    // Cluster by merchant similarity + account compatibility
+    // Cluster by merchant similarity + account compatibility (same as same-day).
     const clusters: Expense[][] = [];
-
     for (const exp of group) {
-      let foundCluster = false;
+      let placed = false;
       for (const cluster of clusters) {
-        const representative = cluster[0];
+        const rep = cluster[0];
         if (
-          merchantsMatch(exp.merchant_name, representative.merchant_name) &&
-          accountsCompatible(exp.account_id, representative.account_id) &&
-          sameSign(effectiveAmount(exp), effectiveAmount(representative)) &&
-          !sameSplitTenderGroup(exp, representative)
+          merchantsMatch(exp.merchant_name, rep.merchant_name) &&
+          accountsCompatible(exp.account_id, rep.account_id) &&
+          sameSign(effectiveAmount(exp), effectiveAmount(rep)) &&
+          !sameSplitTenderGroup(exp, rep)
         ) {
           cluster.push(exp);
-          foundCluster = true;
+          placed = true;
           break;
         }
       }
-      if (!foundCluster) {
-        clusters.push([exp]);
-      }
+      if (!placed) clusters.push([exp]);
     }
 
     for (const cluster of clusters) {
       if (cluster.length < 2) continue;
 
-      // Exclude expenses already caught by same-day detection
-      const newOnly = cluster.filter((e) => !alreadyFlagged.has(e.id));
-      if (newOnly.length < 2) continue;
+      // Sort by date for the sliding window scan.
+      const sorted = [...cluster]
+        .filter((e) => !usedIds.has(e.id))
+        .sort((a, b) => a.date.localeCompare(b.date));
 
-      // Must span different dates (same-day is already handled above)
-      const uniqueDates = new Set(newOnly.map((e) => e.date));
-      if (uniqueDates.size < 2) continue;
+      let i = 0;
+      while (i < sorted.length) {
+        const anchor = sorted[i];
+        if (usedIds.has(anchor.id)) { i++; continue; }
 
-      const merchant = newOnly[0].merchant_name ?? "Unknown";
-      const amount = effectiveAmount(newOnly[0]);
-      const month = newOnly[0].date.substring(0, 7);
-      duplicateGroups.push({
-        expenses: newOnly,
-        reason: `${labelPrefix}${newOnly.length}× ₹${amount} to ${merchant} in ${month} (same account, different dates)`,
-      });
+        const anchorMs = new Date(anchor.date).getTime();
+        const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+
+        // Collect entries within 3 days of the anchor (different date only).
+        const window: Expense[] = [anchor];
+        for (let j = i + 1; j < sorted.length; j++) {
+          const exp = sorted[j];
+          if (usedIds.has(exp.id)) continue;
+          const diffMs = new Date(exp.date).getTime() - anchorMs;
+          if (diffMs > 0 && diffMs <= threeDaysMs) window.push(exp);
+        }
+
+        if (window.length >= 2) {
+          const merchant = anchor.merchant_name ?? "Unknown";
+          const amount = effectiveAmount(anchor);
+          duplicateGroups.push({
+            expenses: window,
+            reason: `${labelPrefix}${window.length} transactions of ₹${amount} at ${merchant} within 3 days`,
+          });
+          for (const e of window) usedIds.add(e.id);
+        }
+        i++;
+      }
     }
   }
 
@@ -408,7 +417,7 @@ export async function scanForDuplicates(
   );
 
   const sameDayGroups = findDuplicateGroups(expenses, "");
-  const monthlyGroups = findMonthlyDuplicateGroups(expenses, sameDayGroups, "");
+  const monthlyGroups = findNearbyDuplicateGroups(expenses, sameDayGroups, "");
   const groups = [...sameDayGroups, ...monthlyGroups];
 
   return {
@@ -439,7 +448,7 @@ export async function scanForDuplicateForecasts(
   // For forecasts, use due_date as the comparison date
   const mapped = forecasts.map((f) => ({ ...f, date: f.due_date ?? f.date }));
   const sameDayGroups = findDuplicateGroups(mapped, "Upcoming: ");
-  const monthlyGroups = findMonthlyDuplicateGroups(mapped, sameDayGroups, "Upcoming: ");
+  const monthlyGroups = findNearbyDuplicateGroups(mapped, sameDayGroups, "Upcoming: ");
   const groups = [...sameDayGroups, ...monthlyGroups];
 
   return {
