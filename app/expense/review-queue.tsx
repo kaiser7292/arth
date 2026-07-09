@@ -367,14 +367,14 @@ export default function ReviewQueueScreen() {
 
   const handleAutoResolveGroup = useCallback((group: DuplicateGroup) => {
     const sorted = [...group.expenses].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
     const toReject = sorted.slice(1);
     if (toReject.length === 0) return;
 
     alert(
-      "Keep Oldest, Reject Others",
-      `Keep "${sorted[0].merchant_name ?? "Unknown"}" (created first) and reject ${toReject.length} duplicate${toReject.length > 1 ? "s" : ""}?`,
+      "Keep Latest, Reject Others",
+      `Keep "${sorted[0].merchant_name ?? "Unknown"}" (most recent) and reject ${toReject.length} duplicate${toReject.length > 1 ? "s" : ""}?`,
       [
         { text: "Cancel", style: "cancel" },
         {

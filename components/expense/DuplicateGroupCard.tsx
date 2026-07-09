@@ -33,10 +33,10 @@ export function DuplicateGroupCard({
 }: DuplicateGroupCardProps) {
   const { colors, colorScheme } = useColorScheme();
 
-  // Sort: oldest first (the one to keep on auto-resolve)
+  // Sort: latest first (the one to keep on auto-resolve)
   const sorted = [...group.expenses].sort(
     (a, b) =>
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
   const warn = StatusColors[colorScheme].warning;
@@ -139,15 +139,15 @@ export function DuplicateGroupCard({
                   {isFirst && (
                     <View className="ml-1.5 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: success + "14" }}>
                       <Text className="text-[10px] font-semibold" style={{ color: success }}>
-                        OLDEST
+                        LATEST
                       </Text>
                     </View>
                   )}
                 </View>
               </Pressable>
 
-              {/* Per-row reject (only for non-oldest, active mode) */}
-              {!readOnly && !isFirst && onRejectDuplicate && (
+              {/* Per-row reject — available on every row so user can keep whichever entry they prefer */}
+              {!readOnly && onRejectDuplicate && (
                 <Pressable
                   onPress={() => onRejectDuplicate(expense.id)}
                   className="w-9 h-9 rounded-full items-center justify-center"
@@ -199,7 +199,7 @@ export function DuplicateGroupCard({
             className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl"
             style={{ backgroundColor: danger + "14" }}
             accessibilityRole="button"
-            accessibilityLabel="Auto-resolve: keep oldest, reject duplicates"
+            accessibilityLabel="Auto-resolve: keep latest, reject duplicates"
           >
             <Ionicons name="flash-outline" size={16} color={danger} />
             <Text className="text-xs font-semibold ml-1.5" style={{ color: danger }}>
@@ -214,7 +214,7 @@ export function DuplicateGroupCard({
         <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary">
           {readOnly
             ? "You marked this group as 'not duplicates'. Restore to flag it again on the next scan."
-            : "Auto-Resolve keeps the oldest and rejects the rest. Keep Both marks them as not duplicates so they won't be flagged again."}
+            : "Auto-Resolve keeps the latest and rejects the rest. Use the trash icons to manually keep whichever entry you prefer. Keep Both marks them as not duplicates."}
         </Text>
       </View>
     </View>
