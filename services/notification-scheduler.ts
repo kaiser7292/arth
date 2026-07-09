@@ -59,6 +59,9 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
   const parts: string[] = [];
 
   try {
+    const { getDatabase } = await import("@/database");
+    const db = getDatabase();
+
     if (overdueEnabled) {
       const overdue = await getOverdueForecasts(userId, today);
       if (overdue.length > 0) {
@@ -85,8 +88,6 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
         parts.push(`${dueReminders.length} reminder${dueReminders.length > 1 ? "s" : ""} due`);
       }
 
-      const { getDatabase } = await import("@/database");
-      const db = getDatabase();
       const twoDaysOut = new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0];
       const upcomingEMIs = await db.getAllAsync<{ id: string }>(
         `SELECT se.id FROM loan_schedule_entries se
@@ -100,6 +101,16 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
       if (upcomingEMIs.length > 0) {
         parts.push("EMI due soon");
       }
+    }
+
+    const pendingRows = await db.getAllAsync<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt FROM expenses
+       WHERE user_id = ? AND status = 'pending_review' AND deleted_at IS NULL;`,
+      userId,
+    );
+    const pendingCount = pendingRows[0]?.cnt ?? 0;
+    if (pendingCount > 0) {
+      parts.push(`${pendingCount} pending review`);
     }
   } catch (e) {
     logger.warn("scheduleSmartDailyDigest: data query failed", e);
