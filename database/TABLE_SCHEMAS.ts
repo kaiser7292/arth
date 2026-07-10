@@ -845,6 +845,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "status",
     "import_format",
     "import_filename",
+    "pre_arth_cutoff",
     "created_at",
     "completed_at",
     "deleted_at",

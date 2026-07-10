@@ -21,6 +21,7 @@ export interface ReconciliationSession {
   status: ReconStatus;
   import_format: ImportFormat | null;
   import_filename: string | null;
+  pre_arth_cutoff: string | null;
   created_at: string;
   completed_at: string | null;
   deleted_at: string | null;
@@ -104,6 +105,7 @@ export async function updateSession(id: string, patch: Partial<{
   matched_count: number;
   status: ReconStatus;
   completed_at: string;
+  pre_arth_cutoff: string | null;
 }>): Promise<void> {
   const db = getDatabase();
   const sets: string[] = [];
@@ -116,6 +118,7 @@ export async function updateSession(id: string, patch: Partial<{
     ["matched_count", patch.matched_count],
     ["status", patch.status],
     ["completed_at", patch.completed_at],
+    ["pre_arth_cutoff", "pre_arth_cutoff" in patch ? patch.pre_arth_cutoff : undefined],
   ];
 
   for (const [col, val] of map) {

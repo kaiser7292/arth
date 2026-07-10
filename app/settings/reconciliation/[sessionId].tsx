@@ -25,7 +25,6 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getSession,
   getItemsEnriched,
-  getPreArthCutoff,
   bulkMarkPreArth,
   undoPreArthItems,
   updateItem,
@@ -71,22 +70,19 @@ export default function ReconciliationSessionScreen() {
   const [exporting, setExporting] = useState(false);
 
   // Pre-Arth baseline
-  const [preArthCutoff, setPreArthCutoff] = useState<string | null>(null);
   const [showPreArthModal, setShowPreArthModal] = useState(false);
   const [preArthPickerDate, setPreArthPickerDate] = useState("");
 
   const load = useCallback(async () => {
     if (!sessionId) return;
     try {
-      const [sess, allItems, accs, cutoff] = await Promise.all([
+      const [sess, allItems, accs] = await Promise.all([
         getSession(sessionId),
         getItemsEnriched(sessionId),
         getActiveAccounts(DEFAULT_USER_ID),
-        getPreArthCutoff(sessionId),
       ]);
       setSession(sess);
       setItems(allItems);
-      setPreArthCutoff(cutoff);
       const map: Record<string, FinancialAccount> = {};
       for (const a of accs) map[a.id] = a;
       setAccounts(map);
@@ -150,11 +146,12 @@ export default function ReconciliationSessionScreen() {
 
   const handleApplyPreArth = useCallback(async () => {
     if (!preArthPickerDate || !sessionId) return;
-    // cutoff is exclusive: mark items with stmt_date < (cutoff + 1 day)
+    // Store user's picked date, then mark items with stmt_date <= that date
     const cutoffExclusive = new Date(preArthPickerDate);
     cutoffExclusive.setDate(cutoffExclusive.getDate() + 1);
     const cutoffStr = cutoffExclusive.toISOString().slice(0, 10);
-    await undoPreArthItems(sessionId); // clear old pre_arth first
+    await updateSession(sessionId, { pre_arth_cutoff: preArthPickerDate });
+    await undoPreArthItems(sessionId);
     await bulkMarkPreArth(sessionId, cutoffStr);
     setShowPreArthModal(false);
     load();
@@ -168,8 +165,8 @@ export default function ReconciliationSessionScreen() {
         {
           text: "Clear",
           onPress: async () => {
+            await updateSession(sessionId!, { pre_arth_cutoff: null });
             await undoPreArthItems(sessionId!);
-            setPreArthCutoff(null);
             load();
           },
         },
@@ -627,9 +624,9 @@ export default function ReconciliationSessionScreen() {
                   <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
                     Pre-Arth baseline
                   </Text>
-                  {preArthCutoff ? (
+                  {session.pre_arth_cutoff ? (
                     <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary mt-0.5">
-                      Up to {new Date(preArthCutoff).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} · {preArthItems.length} items excluded
+                      Up to {new Date(session.pre_arth_cutoff).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} · {preArthItems.length} items excluded
                     </Text>
                   ) : (
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
@@ -637,9 +634,9 @@ export default function ReconciliationSessionScreen() {
                     </Text>
                   )}
                 </View>
-                {preArthCutoff ? (
+                {session.pre_arth_cutoff ? (
                   <View className="flex-row gap-3 ml-3">
-                    <Pressable onPress={() => { setPreArthPickerDate(preArthCutoff); setShowPreArthModal(true); }}>
+                    <Pressable onPress={() => { setPreArthPickerDate(session.pre_arth_cutoff!); setShowPreArthModal(true); }}>
                       <Text className="text-xs font-semibold" style={{ color: accent[500] }}>Change</Text>
                     </Pressable>
                     <Pressable onPress={handleClearPreArth}>
