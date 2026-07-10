@@ -5,6 +5,7 @@ import { FlatList, Pressable, SectionList, Text, TextInput, View } from "react-n
 import { FAB, LoadingState, ScreenContainer } from "@/components/ui";
 import { VaultIcon } from "@/components/ui/VaultIcon";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { ac } from "@/utils/accent";
 import {
   VAULT_CATEGORY_GROUPS,
   VAULT_CATEGORY_ICONS,
@@ -162,17 +163,17 @@ export default function VaultIndexScreen() {
             <View className="flex-row items-center px-4 pt-5 pb-1">
               <View
                 className="w-5 h-5 rounded-md items-center justify-center mr-2"
-                style={{ backgroundColor: accent[500] + "22" }}
+                style={{ backgroundColor: ac(accent, colorScheme, 500, 300) + "22" }}
               >
                 <Ionicons
                   name={section.icon as any}
                   size={11}
-                  color={accent[500]}
+                  color={ac(accent, colorScheme, 500, 300)}
                 />
               </View>
               <Text
                 className="text-xs font-semibold uppercase tracking-wider"
-                style={{ color: accent[600] }}
+                style={{ color: ac(accent, colorScheme, 600, 400) }}
               >
                 {section.title}
               </Text>

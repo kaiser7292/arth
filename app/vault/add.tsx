@@ -12,6 +12,7 @@ import {
 import { Card, ScreenContainer } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { ac } from "@/utils/accent";
 import {
   LOGIN_METHOD_LABELS,
   LoginMethod,
@@ -47,7 +48,7 @@ const CATEGORY_LOGIN_METHODS: Record<VaultCategory, LoginMethod[]> = {
 export default function VaultAddScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent } = useColorScheme();
+  const { colors, accent, colorScheme } = useColorScheme();
   const params = useLocalSearchParams<{
     id?: string;
     linked_account_id?: string;
@@ -566,13 +567,13 @@ export default function VaultAddScreen() {
                     onPress={() => setLoginMethod(method)}
                     className="px-3 py-1.5 rounded-full border"
                     style={{
-                      backgroundColor: selected ? accent[100] : "transparent",
+                      backgroundColor: selected ? ac(accent, colorScheme, 100, 800) : "transparent",
                       borderColor: selected ? accent[500] : colors.border,
                     }}
                   >
                     <Text
                       className="text-xs font-medium"
-                      style={{ color: selected ? accent[700] : colors.textSecondary }}
+                      style={{ color: selected ? ac(accent, colorScheme, 700, 200) : colors.textSecondary }}
                     >
                       {LOGIN_METHOD_LABELS[method]}
                     </Text>

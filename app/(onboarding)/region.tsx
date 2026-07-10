@@ -127,7 +127,7 @@ export default function OnboardingRegion() {
         <Pressable
           onPress={() => setCurrencyPickerOpen(true)}
           className="flex-row items-center px-4 py-3 rounded-xl mb-6"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+          style={{ backgroundColor: colors.surface }}
         >
           <Text className="text-base font-bold mr-3 text-text-primary dark:text-text-dark-primary w-14">
             {selectedCurrencyDef.symbol || "-"}

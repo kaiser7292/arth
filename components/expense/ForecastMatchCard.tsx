@@ -104,10 +104,11 @@ export function ForecastMatchCard({
 
         <Pressable
           onPress={() => onBothDifferent(forecast.id, realized.id)}
-          className="flex-1 flex-row items-center justify-center py-2 mx-1 rounded-lg bg-muted-light/10 dark:bg-muted-dark/10"
+          className="flex-1 flex-row items-center justify-center py-2 mx-1 rounded-lg"
+          style={{ backgroundColor: colors.textSecondary + '14' }}
         >
           <Ionicons name="git-branch" size={16} color={colors.textSecondary} />
-          <Text className="text-xs font-semibold text-secondary-light dark:text-secondary-dark ml-1">
+          <Text className="text-xs font-semibold ml-1" style={{ color: colors.textSecondary }}>
             Both Different
           </Text>
         </Pressable>
