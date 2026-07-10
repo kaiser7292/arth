@@ -5,7 +5,7 @@ import * as Sharing from "expo-sharing";
 import * as TaskManager from "expo-task-manager";
 import { settingsStorage as storage } from "@/services/storage";
 import { isNotificationEnabled } from "@/services/notifications";
-import { BACKUP_TABLES, convertLegacyRupeesToPaise, restoreFromData } from "@/services/backup";
+import { BACKUP_TABLES, restoreFromData } from "@/services/backup";
 import type { RestoreResult } from "@/services/backup";
 import { getDatabase } from "@/database";
 import { logger } from "@/utils/logger";
@@ -113,7 +113,7 @@ export async function createScheduledBackup(): Promise<void> {
   }
 
   const file = new File(dir, buildFileName(now));
-  file.write(JSON.stringify({ version: 2, createdAt: now.toISOString(), tables: BACKUP_TABLES, data: tableData }));
+  file.write(JSON.stringify({ version: 1, createdAt: now.toISOString(), tables: BACKUP_TABLES, data: tableData }));
   pruneOldBackups(dir);
   storage.set(KEY_LAST_RUN, now.toISOString());
 }
@@ -188,17 +188,14 @@ export async function restoreScheduledBackup(filePath: string): Promise<RestoreR
       return { success: false, tablesRestored: [], totalRows: 0, error: "Backup file not found." };
     }
     const raw = await file.text();
-    let payload: { version?: number; data: Record<string, unknown[]> };
+    let payload: { data: Record<string, unknown[]> };
     try {
-      payload = JSON.parse(raw) as { version?: number; data: Record<string, unknown[]> };
+      payload = JSON.parse(raw) as { data: Record<string, unknown[]> };
     } catch {
       return { success: false, tablesRestored: [], totalRows: 0, error: "Backup file is corrupted." };
     }
     if (!payload?.data) {
       return { success: false, tablesRestored: [], totalRows: 0, error: "Invalid backup format." };
-    }
-    if ((payload.version ?? 1) < 2) {
-      convertLegacyRupeesToPaise(payload.data);
     }
     return await restoreFromData(payload.data);
   } catch (e) {

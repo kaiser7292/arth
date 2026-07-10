@@ -37,7 +37,7 @@ export interface RestoreResult {
 // Constants
 // ---------------------------------------------------------------------------
 
-const BACKUP_VERSION = 2; // v2 = integer paise storage (migration 060)
+const BACKUP_VERSION = 1;
 export const MIN_PASSWORD_LENGTH = 8;
 // Read version dynamically from app.json
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -709,12 +709,7 @@ export async function restoreBackup(
       };
     }
 
-    // 7. Convert rupee amounts to paise if restoring an old v1 backup
-    if ((parsed.metadata.version ?? 1) < 2) {
-      convertLegacyRupeesToPaise(parsed.data);
-    }
-
-    // 8. Restore tables via shared restoreFromData helper
+    // 7. Restore tables via shared restoreFromData helper
     return await restoreFromData(parsed.data);
   } catch (e) {
     try { await getDatabase().execAsync("PRAGMA foreign_keys = ON;"); } catch { /* ignore */ }
@@ -730,107 +725,6 @@ export async function restoreBackup(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Amount columns per table that need ×100 conversion when restoring a v1
- * backup (rupees) into a v2+ database (paise). Non-monetary columns
- * (percentages, counts, IDs) are intentionally excluded.
- */
-const PAISE_COLUMNS: Partial<Record<string, string[]>> = {
-  expenses: ["amount", "split_original_amount", "split_exact_amount", "convenience_fee", "fee_absorbed"],
-  account_month_balances: ["opening_balance"],
-  account_transfers: ["amount"],
-  account_credits: ["amount"],
-  budgets: ["amount"],
-  budget_breakdowns: ["amount"],
-  yearly_plans: ["annual_salary_in_hand", "expected_bonus", "total_planned_expenses", "total_planned_investments", "total_planned_milestones"],
-  investment_buckets: ["annual_target", "current_contributed"],
-  investment_contributions: ["amount"],
-  life_milestones: ["target_amount", "current_saved", "monthly_contribution_planned"],
-  milestone_contributions: ["amount"],
-  financial_accounts: ["credit_limit", "last_known_balance", "total_due", "min_due", "nach_amount", "fund_balance", "min_balance"],
-  hisaab_persons: ["initial_balance"],
-  hisaab_entries: ["amount"],
-  expense_splits: ["amount"],
-  loan_accounts: ["principal_sanctioned", "principal_disbursed", "emi_amount", "processing_fee", "stamp_duty", "insurance_premium", "foreclosure_waiver_min_amount", "last_sms_reminder_amount"],
-  loan_schedule_entries: ["opening_principal", "emi_amount", "principal_component", "interest_component", "closing_principal", "paid_amount"],
-  loan_prepayments: ["amount", "prepayment_charge", "gst_on_charge"],
-  loan_corrections: ["outstanding_principal", "emi_amount"],
-  simulation_entries: ["amount"],
-  simulation_hisaab_inclusions: ["amount"],
-  demat_portfolio_snapshots: ["portfolio_value"],
-  demat_fund_snapshots: ["fund_value"],
-  sms_scan_details: ["parsed_amount"],
-  recurring_transactions: ["amount"],
-  expense_classifications: ["amount_range_low", "amount_range_high"],
-  expense_loan_links: ["amount"],
-  expense_investment_links: ["contribution_amount"],
-  unavoidable_baselines: ["monthly_amount"],
-  reconciliation_sessions: ["stmt_closing_bal", "arth_closing_bal"],
-  reconciliation_items: ["stmt_amount"],
-  recurring_expense_rules: ["amount"],
-  salary_profiles: [
-    "annual_ctc", "vpf_monthly", "professional_tax_annual",
-    "deductions_80c", "deductions_80d", "hra_exemption_annual",
-    "home_loan_interest", "other_deductions", "expected_capital_gains",
-    "expected_bonus", "capital_gains_equity_ltcg", "capital_gains_equity_stcg",
-    "capital_gains_debt", "capital_gains_fd", "capital_gains_gold",
-    "capital_gains_real_estate", "computed_monthly_in_hand", "computed_annual_tax",
-    "manual_monthly_in_hand", "manual_basic", "manual_hra", "manual_special",
-    "manual_employer_epf", "manual_gratuity",
-  ],
-  smart_rules: ["match_min_amount", "match_max_amount"],
-};
-
-/**
- * Convert a v1 backup's amounts (rupees) to integer paise in-place so it
- * can be safely restored into a v2+ database. Also patches smart_rules
- * amount conditions stored in the `conditions` JSON column.
- */
-export function convertLegacyRupeesToPaise(data: Record<string, unknown[]>): void {
-  for (const [table, amountCols] of Object.entries(PAISE_COLUMNS)) {
-    const rows = data[table] as Array<Record<string, unknown>> | undefined;
-    if (!rows) continue;
-    for (const row of rows) {
-      for (const col of amountCols!) {
-        if (col in row && row[col] != null && typeof row[col] === "number") {
-          row[col] = Math.round((row[col] as number) * 100);
-        }
-      }
-      // Smart rules: patch amount conditions in the `conditions` JSON column
-      if (table === "smart_rules" && typeof row.conditions === "string") {
-        try {
-          const conds = JSON.parse(row.conditions) as Array<{ field: string; operator: string; value: unknown }>;
-          let changed = false;
-          const updated = conds.map((c) => {
-            if (c.field !== "amount") return c;
-            if (Array.isArray(c.value)) {
-              changed = true;
-              return { ...c, value: (c.value as number[]).map((v) => Math.round(v * 100)) };
-            }
-            if (typeof c.value === "number") {
-              changed = true;
-              return { ...c, value: Math.round(c.value * 100) };
-            }
-            return c;
-          });
-          if (changed) row.conditions = JSON.stringify(updated);
-        } catch { /* malformed JSON, skip */ }
-      }
-      // Salary profiles: patch monthly_overrides JSON {month: amount_rupees}
-      if (table === "salary_profiles" && typeof row.monthly_overrides === "string") {
-        try {
-          const overrides = JSON.parse(row.monthly_overrides) as Record<string, number>;
-          const patched: Record<string, number> = {};
-          for (const [month, val] of Object.entries(overrides)) {
-            patched[month] = typeof val === "number" ? Math.round(val * 100) : val;
-          }
-          row.monthly_overrides = JSON.stringify(patched);
-        } catch { /* malformed JSON, skip */ }
-      }
-    }
-  }
-}
 
 function arrayToHex(arr: Uint8Array): string {
   return Array.from(arr)
