@@ -39,15 +39,14 @@ function formatPositiveAmount(abs: number, decimals: number, grouping: NumberGro
 
 /**
  * Format an amount using the user's locale preferences (currency symbol +
- * grouping). Amounts are stored as integer paise (÷100 = rupees at display).
- * Pass a currency override only for cases where the user's preference should
- * NOT apply.
+ * grouping). Callers pass just the number; pass a currency override only
+ * for ad-hoc cases where the user's preference should NOT apply.
  */
 export function formatAmount(amount: number, currencyOverride?: CurrencyCode): string {
   const code = currencyOverride ?? getCurrency();
   const grouping = getNumberGrouping();
   const def = getCurrencyDef(code);
-  const abs = Math.abs(amount) / 100;
+  const abs = Math.abs(amount);
   const body = formatPositiveAmount(abs, def.decimals, grouping);
   // Suppress the minus sign when the formatted body rounds to zero (e.g. -0,
   // or a tiny floating-point residual like -0.0001 that toFixed(0) renders as "0").
@@ -60,10 +59,10 @@ export function formatAmount(amount: number, currencyOverride?: CurrencyCode): s
 /**
  * Compact format for sublabels/messaging (Rule: never for primary amounts).
  * Uses lakh/thousand abbreviations regardless of user locale \u2014 the compact
- * form is about density, not locale. Input is paise (\u00f7100 \u2192 rupees).
+ * form is about density, not locale.
  */
 export function formatCompact(n: number): string {
-  const abs = Math.abs(n) / 100;
+  const abs = Math.abs(n);
   if (abs >= 100000) {
     const body = (abs / 100000).toFixed(1) + "L";
     const sign = n < 0 && !body.replace(/[0,.L]/g, "") ? "" : n < 0 ? "-" : "";
@@ -82,11 +81,11 @@ export function formatCompact(n: number): string {
 /**
  * Format number with user's grouping preference, no currency symbol. Used
  * by exports (PDF/Excel hisaab statements) where the column header already
- * implies currency. Input is paise (÷100 → rupees).
+ * implies currency.
  */
 export function formatNumber(amount: number): string {
   const grouping = getNumberGrouping();
-  const abs = Math.abs(amount) / 100;
+  const abs = Math.abs(amount);
   const decimals = abs % 1 !== 0 ? 2 : 0;
   const body = formatPositiveAmount(abs, decimals, grouping);
   const isZeroDisplay = !body.replace(/[0,.]/g, "");

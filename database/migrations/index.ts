@@ -58,7 +58,6 @@ import migration056 from "./056_recurring_rule_amount";
 import migration057 from "./057_vault_entries";
 import migration058 from "./058_reconciliation_sessions";
 import migration059 from "./059_reconciliation_items";
-import migration060 from "./060_paise";
 
 export interface Migration {
   version: number;
@@ -67,7 +66,7 @@ export interface Migration {
 }
 
 /** All migrations in order. Add new migrations to the end of this array. */
-const migrations: Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006, migration007, migration008, migration009, migration010, migration011, migration012, migration013, migration014, migration015, migration016, migration017, migration018, migration019, migration020, migration021, migration022, migration023, migration024, migration025, migration026, migration027, migration028, migration029, migration030, migration031, migration032, migration033, migration034, migration035, migration036, migration038, migration039, migration040, migration042, migration043, migration046, migration047, migration048, migration049, migration050, migration051, migration052, migration053, migration054, migration055, migration056, migration057, migration058, migration059, migration060];
+const migrations: Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006, migration007, migration008, migration009, migration010, migration011, migration012, migration013, migration014, migration015, migration016, migration017, migration018, migration019, migration020, migration021, migration022, migration023, migration024, migration025, migration026, migration027, migration028, migration029, migration030, migration031, migration032, migration033, migration034, migration035, migration036, migration038, migration039, migration040, migration042, migration043, migration046, migration047, migration048, migration049, migration050, migration051, migration052, migration053, migration054, migration055, migration056, migration057, migration058, migration059];
 
 /**
  * Run all pending schema migrations.

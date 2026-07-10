@@ -1,14 +1,4 @@
-/** Round to nearest integer paise (used for stored monetary amounts). */
+/** Round to 2 decimal places */
 export function round2(n: number): number {
-  return Math.round(n);
-}
-
-/** Convert user-entered rupees to integer paise for DB storage. */
-export function toPaise(rupees: number): number {
-  return Math.round(rupees * 100);
-}
-
-/** Convert paise back to rupees for display (prefer formatAmount instead). */
-export function toRupees(paise: number): number {
-  return paise / 100;
+  return Math.round(n * 100) / 100;
 }
