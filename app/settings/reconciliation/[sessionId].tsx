@@ -238,6 +238,34 @@ export default function ReconciliationSessionScreen() {
     });
   }, [router, sessionId]);
 
+  // From Extra tab: pick a Missing statement row to pair with this Arth entry
+  const handleLinkExtraToMissing = useCallback((item: ReconciliationItemEnriched) => {
+    router.push({
+      pathname: "/settings/reconciliation/link-extra",
+      params: {
+        mode: "find_missing",
+        session_id: sessionId,
+        item_id: item.id,
+        date: item.arth_date ?? item.stmt_date,
+        amount: String(item.arth_amount ?? item.stmt_amount),
+      },
+    });
+  }, [router, sessionId]);
+
+  // From Missing tab: pick an Extra Arth entry to pair with this statement row
+  const handleLinkMissingToExtra = useCallback((item: ReconciliationItem) => {
+    router.push({
+      pathname: "/settings/reconciliation/link-extra",
+      params: {
+        mode: "find_extra",
+        session_id: sessionId,
+        item_id: item.id,
+        date: item.stmt_date,
+        amount: String(item.stmt_amount),
+      },
+    });
+  }, [router, sessionId]);
+
   const handleMarkReconciled = useCallback(async () => {
     if (!session) return;
     const unresolvedCount = missing.length; // pre-Arth items are excluded, not missing
@@ -393,6 +421,15 @@ export default function ReconciliationSessionScreen() {
           <Ionicons name="link-outline" size={14} color={colors.textSecondary} />
           <Text className="text-xs font-semibold ml-1 text-text-secondary dark:text-text-dark-secondary">Link</Text>
         </Pressable>
+        {added.length > 0 && (
+          <Pressable
+            onPress={() => handleLinkMissingToExtra(item)}
+            className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-border-light dark:border-border-dark"
+          >
+            <Ionicons name="git-merge-outline" size={14} color={accent[500]} />
+            <Text className="text-xs font-semibold ml-1" style={{ color: accent[500] }}>Extra</Text>
+          </Pressable>
+        )}
         <Pressable
           onPress={() => handleExclude(item)}
           className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-border-light dark:border-border-dark"
@@ -683,6 +720,15 @@ export default function ReconciliationSessionScreen() {
                         </Text>
                       </View>
                     </View>
+                    {missing.length > 0 && (
+                      <Pressable
+                        onPress={() => handleLinkExtraToMissing(item)}
+                        className="flex-row items-center mt-2.5 py-2 px-3 rounded-lg border border-border-light dark:border-border-dark self-start"
+                      >
+                        <Ionicons name="git-merge-outline" size={14} color={accent[500]} />
+                        <Text className="text-xs font-semibold ml-1" style={{ color: accent[500] }}>Link to statement row</Text>
+                      </Pressable>
+                    )}
                   </View>
                 ))
           )}

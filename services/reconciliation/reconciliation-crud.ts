@@ -340,6 +340,15 @@ export async function getPreArthCutoff(sessionId: string): Promise<string | null
   return row?.max_date ?? null;
 }
 
+// Soft-delete a single item (used to clean up Extra placeholders after cross-linking)
+export async function deleteItem(id: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    "UPDATE reconciliation_items SET deleted_at = ? WHERE id = ?",
+    [new Date().toISOString(), id],
+  );
+}
+
 // Check if a session already exists for this account + period (duplicate detection)
 export async function findExistingSession(
   accountId: string,
