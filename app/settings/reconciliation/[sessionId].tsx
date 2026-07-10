@@ -543,7 +543,7 @@ export default function ReconciliationSessionScreen() {
         </View>
       </Modal>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: session.status === "in_progress" ? 100 : 32 }}>
         {/* Summary card */}
         <View className="px-4 pt-4">
           <Card className="mb-4">
@@ -572,7 +572,7 @@ export default function ReconciliationSessionScreen() {
                     width: session.total_stmt_count
                       ? `${Math.min(100, (matched.length / session.total_stmt_count) * 100)}%`
                       : "0%",
-                    backgroundColor: accent[500],
+                    backgroundColor: session.status === "completed" ? "#22C55E" : accent[500],
                   }}
                 />
               </View>
@@ -580,6 +580,14 @@ export default function ReconciliationSessionScreen() {
                 {matched.length}/{session.total_stmt_count ?? items.length} matched
               </Text>
             </View>
+            {session.status === "completed" && session.completed_at && (
+              <View className="flex-row items-center mt-2">
+                <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
+                <Text className="text-xs font-semibold ml-1" style={{ color: "#22C55E" }}>
+                  Reconciled on {new Date(session.completed_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                </Text>
+              </View>
+            )}
 
             {/* Balance comparison */}
             {session.stmt_closing_bal != null && (
@@ -797,15 +805,6 @@ export default function ReconciliationSessionScreen() {
         </View>
       )}
 
-      {session.status === "completed" && (
-        <View className="absolute bottom-6 left-4 right-4">
-          <View className="py-4 rounded-2xl items-center" style={{ backgroundColor: "#22C55E22" }}>
-            <Text className="text-base font-semibold" style={{ color: "#22C55E" }}>
-              ✓ Reconciled on {session.completed_at ? formatDate(session.completed_at) : ""}
-            </Text>
-          </View>
-        </View>
-      )}
     </ScreenContainer>
   );
 }
