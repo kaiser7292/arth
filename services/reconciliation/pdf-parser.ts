@@ -221,20 +221,27 @@ function parseStructuredRows(
     // ── 3. Direction ──
     const rowText = cols.join(" ");
     const hasCR = /\bCR\b/i.test(rowText);
-    const hasDR = /\bDR\b/i.test(rowText);
+    // Exclude "0.00 Dr" / "1,234.56 Dr" balance suffixes — only match DR when
+    // NOT immediately preceded by a decimal amount (e.g. "0.00 Dr" is a balance
+    // annotation, not a direction marker).
+    const hasDR = /(?<![\d,]\s*)\bDR\b/i.test(rowText);
     const hasPlus = cols.some((c) => isSign(c) && c.trim() === "+");
+    const kwDirection = directionFromText(rowText);
 
     let direction: "debit" | "credit";
     if (hasCR && !hasDR) {
       direction = "credit";
     } else if (hasDR) {
-      direction = "debit";
+      // Keyword match (e.g. "cashback", "refund") overrides the DR marker —
+      // handles narrations like "CASHBACK CREDIT ... 0.00 Dr" where "Dr" is a
+      // balance suffix rather than a true debit indicator.
+      direction = kwDirection === "credit" ? "credit" : "debit";
     } else if (hasPlus) {
       direction = "credit";
     } else if (balance !== null) {
-      direction = balanceDelta(prevBalance, balance) ?? directionFromText(rowText) ?? "debit";
+      direction = balanceDelta(prevBalance, balance) ?? kwDirection ?? "debit";
     } else {
-      direction = directionFromText(rowText) ?? "debit";
+      direction = kwDirection ?? "debit";
     }
 
     // ── 4. Narration ──
@@ -315,15 +322,16 @@ function parseRawTextFallback(
     const narration = rest.replace(/([\d,]+\.\d{2})/g, "").replace(/\b(DR|CR)\b/gi, "").trim().replace(/\s{2,}/g, " ");
 
     const hasCR = /\bCR\b/i.test(rest);
-    const hasDR = /\bDR\b/i.test(rest);
+    const hasDR = /(?<![\d,]\s*)\bDR\b/i.test(rest);
     const hasPlus = /\+\s*(?:[^\d]|$)/.test(rest);
+    const kwDir = directionFromText(narration);
 
     let direction: "debit" | "credit";
     if (hasCR && !hasDR) direction = "credit";
-    else if (hasDR) direction = "debit";
+    else if (hasDR) direction = kwDir === "credit" ? "credit" : "debit";
     else if (hasPlus) direction = "credit";
-    else if (balance !== null) direction = balanceDelta(prevBalance, balance) ?? directionFromText(narration) ?? "debit";
-    else direction = directionFromText(narration) ?? "debit";
+    else if (balance !== null) direction = balanceDelta(prevBalance, balance) ?? kwDir ?? "debit";
+    else direction = kwDir ?? "debit";
 
     if (txAmt > 0) rows.push({ date, amount: txAmt, direction, narration });
     if (balance !== null) { prevBalance = balance; closing = balance; }

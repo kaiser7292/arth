@@ -52,21 +52,25 @@ export default function ManualLinkScreen() {
     const windowStart = new Date(new Date(stmtDate).getTime() - 30 * 86_400_000).toISOString().slice(0, 10);
     const windowEnd = new Date(new Date(stmtDate).getTime() + 30 * 86_400_000).toISOString().slice(0, 10);
 
-    const nature = dir === "debit" ? "'realized','ledger_adjustment'" : "'credit'";
+    // Show all expense types regardless of direction — manual link is the
+    // fallback for when auto-match failed, which is often due to a direction
+    // mismatch (e.g. a cashback credit parsed as debit in the PDF).
     const expenses = await db.getAllAsync<{
       id: string; date: string; amount: number;
       split_original_amount: number | null;
+      nature: string;
       merchant_name: string | null; description: string | null;
       account_label: string | null; bank_name: string | null; account_identifier: string | null;
       category_name: string | null;
     }>(
-      `SELECT e.id, e.date, e.amount, e.split_original_amount, e.merchant_name, e.description,
+      `SELECT e.id, e.date, e.amount, e.split_original_amount, e.nature,
+              e.merchant_name, e.description,
               fa.account_label, fa.bank_name, fa.account_identifier,
               c.name AS category_name
        FROM expenses e
        LEFT JOIN financial_accounts fa ON fa.id = e.account_id
        LEFT JOIN categories c ON c.id = e.category_id
-       WHERE e.nature IN (${nature})
+       WHERE e.nature IN ('realized', 'credit', 'ledger_adjustment')
          AND e.date BETWEEN ? AND ?
          AND e.deleted_at IS NULL AND e.status != 'rejected'
        ORDER BY ABS(JULIANDAY(e.date) - JULIANDAY(?)) ASC LIMIT 100`,
@@ -85,7 +89,7 @@ export default function ManualLinkScreen() {
         amount: e.split_original_amount && e.split_original_amount > 0
           ? e.split_original_amount : e.amount,
         description: e.merchant_name || e.description || "(no description)",
-        direction: dir,
+        direction: e.nature === "credit" ? "credit" : "debit",
         account: accountDisplay,
         category: e.category_name,
         merchant: e.merchant_name,
