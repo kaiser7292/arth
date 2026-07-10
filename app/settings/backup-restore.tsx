@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import {
   createBackup,
   shareBackup,
   saveBackupToStorage,
+  cleanupBackupFile,
   pickAndValidateBackupFile,
   restoreBackup,
   MIN_PASSWORD_LENGTH,
@@ -64,6 +65,15 @@ export default function BackupRestoreScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [backupResult, setBackupResult] = useState<BackupResult | null>(null);
+  const pendingBackupFileRef = useRef<string | null>(null);
+  useEffect(() => {
+    pendingBackupFileRef.current = backupResult?.filePath ?? null;
+  }, [backupResult]);
+  useEffect(() => {
+    return () => {
+      if (pendingBackupFileRef.current) cleanupBackupFile(pendingBackupFileRef.current);
+    };
+  }, []);
   const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null);
   const [pickedFile, setPickedFile] = useState<PickedBackupFile | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -540,7 +550,15 @@ export default function BackupRestoreScreen() {
                   variant={Platform.OS === "android" ? "outline" : undefined}
                 />
               )}
-              <Button title="Done" onPress={resetState} variant="ghost" />
+              <Button
+                title="Done"
+                onPress={() => {
+                  if (backupResult?.filePath) cleanupBackupFile(backupResult.filePath);
+                  pendingBackupFileRef.current = null;
+                  resetState();
+                }}
+                variant="ghost"
+              />
             </View>
           </View>
         )}

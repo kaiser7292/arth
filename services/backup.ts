@@ -364,14 +364,15 @@ export async function shareBackup(filePath: string): Promise<void> {
       dialogTitle: "Save Artha Backup",
     });
   }
-  // Clean up the temporary backup file from cache after sharing
+}
+
+/** Delete a temporary backup file once the user is done with it. */
+export function cleanupBackupFile(filePath: string): void {
   try {
-    const tempFile = new File(filePath);
-    if (tempFile.exists) {
-      tempFile.delete();
-    }
+    const f = new File(filePath);
+    if (f.exists) f.delete();
   } catch {
-    // Non-critical — file will be cleaned up by OS cache management
+    // Non-critical — OS will clean up cache dir eventually
   }
 }
 
@@ -413,7 +414,6 @@ export async function saveBackupToStorage(
     encoding: "utf8",
     mimeType: "application/octet-stream",
     fileName: filePath.split("/").pop() ?? "arth-backup.arth",
-    deleteSourceOnSuccess: true,
   });
 }
 
