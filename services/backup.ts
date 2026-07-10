@@ -4,8 +4,12 @@ import { bumpDataVersion, setLastBackupAt } from "@/services/settings";
 import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
+import * as SecureStore from "expo-secure-store";
 import * as Sharing from "expo-sharing";
 import Aes from "react-native-aes-crypto";
+
+// Must match the constant in services/vault.ts
+const VAULT_KEY_STORE = "arth_vault_master_key";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -300,7 +304,12 @@ export async function createBackup(password: string): Promise<BackupResult> {
       rowCounts,
     };
 
-    const payload = JSON.stringify({ metadata, data: tableData });
+    // Include the vault master key so encrypted vault fields survive restore.
+    // Safe: the whole payload is AES-256-GCM encrypted with the backup password.
+    let vaultKey: string | null = null;
+    try { vaultKey = await SecureStore.getItemAsync(VAULT_KEY_STORE); } catch { /* ignore */ }
+
+    const payload = JSON.stringify({ metadata, data: tableData, vaultKey });
 
     // 3. Generate salt and IV (as hex strings)
     const saltHex = arrayToHex(Crypto.getRandomBytes(SALT_LENGTH));
@@ -505,6 +514,7 @@ export async function pickAndValidateBackupFile(): Promise<PickedBackupFile | nu
  */
 export async function restoreFromData(
   data: Record<string, unknown[]>,
+  vaultKey?: string | null,
 ): Promise<RestoreResult> {
   const db = getDatabase();
   const tablesRestored: string[] = [];
@@ -618,6 +628,13 @@ export async function restoreFromData(
     await db.execAsync("PRAGMA foreign_keys = ON;");
   }
 
+  // Restore vault master key so encrypted vault fields (passwords, card numbers,
+  // CVVs, PINs) can be decrypted after restore. Only present in backups created
+  // from v2.4.3 onwards; absent in older backups — silently skipped.
+  if (vaultKey) {
+    try { await SecureStore.setItemAsync(VAULT_KEY_STORE, vaultKey); } catch { /* ignore */ }
+  }
+
   await bumpDataVersion();
   return { success: true, tablesRestored, totalRows, error: null };
 }
@@ -687,7 +704,7 @@ export async function restoreBackup(
     }
 
     // 5. Parse JSON
-    let parsed: { metadata: BackupMetadata; data: Record<string, unknown[]> };
+    let parsed: { metadata: BackupMetadata; data: Record<string, unknown[]>; vaultKey?: string | null };
     try {
       parsed = JSON.parse(payload);
     } catch {
@@ -710,7 +727,7 @@ export async function restoreBackup(
     }
 
     // 7. Restore tables via shared restoreFromData helper
-    return await restoreFromData(parsed.data);
+    return await restoreFromData(parsed.data, parsed.vaultKey);
   } catch (e) {
     try { await getDatabase().execAsync("PRAGMA foreign_keys = ON;"); } catch { /* ignore */ }
     return {

@@ -225,11 +225,9 @@ export async function updateVaultEntry(
         : null
       : undefined;
   const custom_fields_enc =
-    input.custom_fields_data !== undefined
-      ? Object.keys(input.custom_fields_data).length > 0
-        ? await encryptField(JSON.stringify(input.custom_fields_data))
-        : null
-      : undefined;
+    input.custom_fields_data !== undefined && Object.keys(input.custom_fields_data).length > 0
+      ? await encryptField(JSON.stringify(input.custom_fields_data))
+      : undefined; // empty or absent → skip update (preserve existing encrypted blob)
 
   const sets: string[] = ["updated_at = ?"];
   const vals: (string | null)[] = [now];
