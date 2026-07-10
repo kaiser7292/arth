@@ -277,9 +277,9 @@ export async function updateItem(
   const map: [string, string | null | undefined][] = [
     ["matched_expense_id", patch.matched_expense_id],
     ["matched_transfer_id", patch.matched_transfer_id],
-    ["match_confidence", patch.match_confidence ?? null],
-    ["status", patch.status ?? null],
-    ["exclude_reason", patch.exclude_reason ?? null],
+    ["match_confidence", "match_confidence" in patch ? patch.match_confidence : undefined],
+    ["status", "status" in patch ? patch.status : undefined],
+    ["exclude_reason", "exclude_reason" in patch ? patch.exclude_reason : undefined],
   ];
 
   for (const [col, val] of map) {

@@ -98,6 +98,8 @@ export default function NewReconciliationScreen() {
       } else {
         setMismatchWarning(null);
       }
+    } else {
+      setMismatchWarning(null);
     }
 
     setStep("file");
@@ -378,6 +380,23 @@ export default function NewReconciliationScreen() {
         })),
       );
 
+      // Insert extra-in-Arth items (logged in Arth but absent from the statement)
+      if (extraInArth.length > 0) {
+        await bulkInsertItems(
+          sid,
+          extraInArth.map((a, i) => ({
+            stmt_date: a.date,
+            stmt_amount: a.amount,
+            stmt_direction: a.direction,
+            stmt_narration: a.description,
+            matched_expense_id: a.kind === "expense" ? a.id : undefined,
+            matched_transfer_id: a.kind === "transfer" ? a.id : undefined,
+            status: "added" as const,
+            sort_order: results.length + i,
+          })),
+        );
+      }
+
       await updateSession(sid, {
         total_stmt_count: results.length,
         matched_count: matched.length,
@@ -392,6 +411,13 @@ export default function NewReconciliationScreen() {
       setMatchingAccount(false);
     }
   }, [selectedAccountId, parsed, filename, alert]);
+
+  // Navigate when matching completes — must be above any early returns (Rules of Hooks)
+  useEffect(() => {
+    if (step === "done" && sessionId) {
+      router.replace(`/settings/reconciliation/${sessionId}`);
+    }
+  }, [step, sessionId, router]);
 
   // ─── Render steps ──────────────────────────────────────────────────────────
 
@@ -410,12 +436,6 @@ export default function NewReconciliationScreen() {
       </ScreenContainer>
     );
   }
-
-  useEffect(() => {
-    if (step === "done" && sessionId) {
-      router.replace(`/settings/reconciliation/${sessionId}`);
-    }
-  }, [step, sessionId, router]);
 
   // ─── Password modals (shared between steps) ────────────────────────────────
 

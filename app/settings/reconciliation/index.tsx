@@ -55,6 +55,7 @@ export default function ReconciliationHubScreen() {
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
     await deleteSession(deleteTarget.id);
+    setDeleteTarget(null);
     load();
   }, [deleteTarget, load]);
 

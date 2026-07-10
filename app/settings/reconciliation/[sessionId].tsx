@@ -10,7 +10,17 @@ import { Card, DateInput, ScreenContainer } from "@/components/ui";
 import { useAlert, type AlertButton } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
-import { getMonthBalanceSummary, computeUnseededBalance, isAccountSeeded } from "@/services/account-balance";
+import { getDatabase } from "@/database";
+import {
+  getOrCreateMonthBalance,
+  computeUnseededBalance,
+  isAccountSeeded,
+  getAccountExpensesTotal,
+  getAccountCreditsTotal,
+  getAccountAdjustmentNet,
+  computeClosing,
+} from "@/services/account-balance";
+import { getTransfersOutTotal, getTransfersInTotal } from "@/services/account-transfer";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getSession,
@@ -81,17 +91,45 @@ export default function ReconciliationSessionScreen() {
       for (const a of accs) map[a.id] = a;
       setAccounts(map);
 
-      // Compute Arth closing balance for the statement period
+      // Compute Arth balance as of stmt_end_date (not month-end, to avoid
+      // mid-month statements showing inflated differences)
       if (sess) {
         try {
-          const month = sess.stmt_end_date.slice(0, 7); // YYYY-MM
+          const endDate = sess.stmt_end_date;
+          const month = endDate.slice(0, 7); // YYYY-MM
+          const monthStart = `${month}-01`;
+          const db = getDatabase();
+          const acct = await db.getFirstAsync<{ account_type: string }>(
+            "SELECT account_type FROM financial_accounts WHERE id = ?",
+            [sess.account_id],
+          );
+          const isCC = acct?.account_type === "credit_card";
           const seeded = await isAccountSeeded(sess.account_id);
+
           if (seeded) {
-            const summary = await getMonthBalanceSummary(sess.account_id, month);
-            setArthBalance(summary?.closing_balance ?? null);
+            const record = await getOrCreateMonthBalance(sess.account_id, month);
+            if (record) {
+              const [expenses, credits, tOut, tIn, adjNet] = await Promise.all([
+                getAccountExpensesTotal(sess.account_id, monthStart, endDate),
+                getAccountCreditsTotal(sess.account_id, monthStart, endDate),
+                getTransfersOutTotal(sess.account_id, monthStart, endDate),
+                getTransfersInTotal(sess.account_id, monthStart, endDate),
+                getAccountAdjustmentNet(sess.account_id, monthStart, endDate),
+              ]);
+              setArthBalance(computeClosing({ opening: record.opening_balance, expenses, credits, transfersOut: tOut, transfersIn: tIn, adjustmentNet: adjNet, isCC }));
+            }
           } else {
             const unseed = await computeUnseededBalance(sess.account_id, month);
-            setArthBalance(unseed?.closing ?? null);
+            // computeUnseededBalance gives the full-month closing; for mid-month
+            // statements approximate by recomputing with bounded endDate
+            const [expenses, credits, tOut, tIn, adjNet] = await Promise.all([
+              getAccountExpensesTotal(sess.account_id, monthStart, endDate),
+              getAccountCreditsTotal(sess.account_id, monthStart, endDate),
+              getTransfersOutTotal(sess.account_id, monthStart, endDate),
+              getTransfersInTotal(sess.account_id, monthStart, endDate),
+              getAccountAdjustmentNet(sess.account_id, monthStart, endDate),
+            ]);
+            setArthBalance(computeClosing({ opening: unseed.opening, expenses, credits, transfersOut: tOut, transfersIn: tIn, adjustmentNet: adjNet, isCC }));
           }
         } catch {
           // balance check non-fatal
@@ -419,6 +457,7 @@ export default function ReconciliationSessionScreen() {
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "matched", label: "Matched", count: matched.length },
     { key: "missing", label: "Missing", count: missing.length },
+    { key: "extra", label: "Extra", count: added.length },
     { key: "excluded", label: "Excluded", count: excluded.length + preArthItems.length },
   ];
 
@@ -616,6 +655,36 @@ export default function ReconciliationSessionScreen() {
             missing.length === 0
               ? <EmptyTab label="All statement transactions are matched or excluded." />
               : missing.map((item) => renderMissing({ item }))
+          )}
+          {activeTab === "extra" && (
+            added.length === 0
+              ? <EmptyTab label="No extra Arth entries in this period." />
+              : added.map((item) => (
+                  <View key={item.id} className="py-3 border-b border-border-light dark:border-border-dark">
+                    <View className="flex-row items-start justify-between">
+                      <View className="flex-1">
+                        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                          {item.arth_description || item.stmt_narration || "(no description)"}
+                        </Text>
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                          {item.arth_date ? formatDate(item.arth_date) : formatDate(item.stmt_date)}
+                          {" · "}{item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.arth_amount ?? item.stmt_amount)}
+                          {item.arth_category ? ` · ${item.arth_category}` : ""}
+                        </Text>
+                        {item.arth_account && (
+                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                            {item.arth_account}
+                          </Text>
+                        )}
+                      </View>
+                      <View className="ml-3 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F59E0B22" }}>
+                        <Text className="text-[10px] font-semibold uppercase" style={{ color: "#F59E0B" }}>
+                          {item.matched_transfer_id ? "Transfer" : "Expense"}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
           )}
           {activeTab === "excluded" && (
             excluded.length === 0 && preArthItems.length === 0
