@@ -107,24 +107,59 @@ function balanceDelta(prev: number | null, next: number): "debit" | "credit" | n
 function directionFromText(text: string): "debit" | "credit" | null {
   const n = text.toLowerCase();
   const creditKw = [
-    "payment received", "refund", "reversal", "cashback", "credit interest",
-    "salary", "neft credit", "imps credit", "rtgs credit", "by transfer", "by clearing",
-    "bbps payment received",
-    // ACH/NACH credits (GAIL, NALCO dividends, pension, salary via NACH)
-    "ach/", "nach credit", "achcr",
-    // Inward NEFT/IMPS/UPI
-    "neft transfer from", "transfer from", "upi/cr/", "upi/p2p/", "upi/p2a/",
-    "incoming", "credited by", "interest paid",
+    // Payments received / bill payments
+    "payment received", "bill payment received", "bbps payment received",
+    "pymnt rcvd", "pmt rcvd",
+    // Refunds / reversals / corrections
+    "refund", "reversal", "chargeback", "dispute credit", "disputed amount",
+    "correction credit", "excess charged", "waiver",
+    // Cashback / rewards
+    "cashback", "cash back", "reward", "loyalty credit", "bonus credit",
+    // Interest / dividends
+    "interest credit", "credit interest", "savings interest", "interest earned",
+    "interest on deposit", "int cr", "int. cr", "interest paid",
+    "dividend", "div credit", "div cr",
+    // Salary / pension / stipend
+    "salary", "sal cr", "payroll", "stipend", "pension credit", "epf credit",
+    // Bank transfers inward (NEFT / IMPS / RTGS / UPI)
+    "neft credit", "neft cr", "neft transfer from", "transfer from",
+    "imps credit", "imps cr",
+    "rtgs credit", "rtgs cr",
+    "upi/cr/", "upi/p2p/", "upi/p2a/", "upi credit",
+    "by transfer", "by clearing", "by order",
+    "incoming", "inward", "credited by", "credit by",
+    // ACH / NACH / ECS inward (dividends, pension, mutual fund redemptions)
+    "ach/", "nach credit", "achcr", "ecs credit", "ecs cr",
+    "mutual fund", "mf redemption", "redemption credit",
+    // Insurance / claim credits
+    "claim credit", "insurance credit", "maturity credit",
+    // Miscellaneous bank credits
+    "forex refund", "tds refund", "gst refund", "income tax refund",
+    "sweep in", "fd maturity", "rd maturity", "od transfer in",
   ];
   const debitKw = [
-    "purchase", "pos ", "atm ", "withdrawal", "neft debit", "imps debit",
-    "rtgs debit", "to transfer", "emi ", "payment to",
-    // CC payment from savings is a debit
-    "creditcard payment", "credit card payment",
-    // Loan, NACH debit
-    "nach debit", "loan a/c payment", "mb/part loan",
-    // UPI outward
-    "upi/dr/", "upi/p2m/",
+    // Point-of-sale / purchases
+    "purchase", "pos ", "pos/", "merchant payment",
+    // ATM / cash
+    "atm ", "atm/", "cash withdrawal", "withdrawal",
+    // Bank transfers outward
+    "neft debit", "neft dr", "imps debit", "imps dr",
+    "rtgs debit", "rtgs dr",
+    "upi/dr/", "upi/p2m/", "upi debit",
+    "to transfer", "outward", "transfer to",
+    // EMI / loan
+    "emi ", "emi/", "loan a/c payment", "mb/part loan", "loan repayment",
+    // Bill payments from account
+    "payment to", "bill pay", "utility payment",
+    // CC payment from savings is a debit on savings side
+    "creditcard payment", "credit card payment", "cc payment",
+    // NACH / ECS outward
+    "nach debit", "nach dr", "ecs debit", "ecs dr",
+    // Charges / fees
+    "annual fee", "late fee", "overlimit fee", "processing fee",
+    "service charge", "bank charge", "gst charge",
+    // Sweep / FD booking
+    "sweep out", "fd booking", "od transfer out",
   ];
   if (creditKw.some((k) => n.includes(k))) return "credit";
   if (debitKw.some((k) => n.includes(k))) return "debit";
