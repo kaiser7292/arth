@@ -27,13 +27,53 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function scoreEntry(
+  entry: { amount: number; date: string; direction: "debit" | "credit"; description: string; merchant: string | null },
+  stmtAmount: number,
+  stmtDate: string,
+  stmtDirection: "debit" | "credit",
+  stmtNarration: string,
+): number {
+  let score = 0;
+
+  // Amount similarity (strongest signal)
+  const amtDiff = Math.abs(entry.amount - stmtAmount);
+  if (amtDiff === 0) score += 30;
+  else if (amtDiff <= 1) score += 20;
+  else if (amtDiff <= 10) score += 10;
+  else if (amtDiff <= 50) score += 3;
+
+  // Date proximity
+  const daysDiff = Math.abs(new Date(entry.date).getTime() - new Date(stmtDate).getTime()) / 86_400_000;
+  if (daysDiff < 1) score += 20;
+  else if (daysDiff <= 1) score += 15;
+  else if (daysDiff <= 3) score += 10;
+  else if (daysDiff <= 7) score += 5;
+  else if (daysDiff <= 14) score += 2;
+
+  // Direction match
+  if (entry.direction === stmtDirection) score += 10;
+
+  // Keyword overlap between narration and description/merchant
+  if (stmtNarration) {
+    const words = stmtNarration.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
+    const haystack = `${entry.description} ${entry.merchant ?? ""}`.toLowerCase();
+    for (const word of words) {
+      if (haystack.includes(word)) score += 5;
+    }
+  }
+
+  return score;
+}
+
 export default function ManualLinkScreen() {
-  const { item_id, session_id, direction, amount, date } = useLocalSearchParams<{
+  const { item_id, session_id, direction, amount, date, narration } = useLocalSearchParams<{
     item_id: string;
     session_id: string;
     direction: string;
     amount: string;
     date: string;
+    narration: string;
   }>();
   const router = useRouter();
   const { colors, accent } = useColorScheme();
@@ -47,8 +87,10 @@ export default function ManualLinkScreen() {
     const db = getDatabase();
     const dir = direction as "debit" | "credit";
 
-    // Pool: expenses + transfers for this direction, ±30 days from stmt date
+    // Pool: expenses + transfers, ±30 days from stmt date
     const stmtDate = date ?? new Date().toISOString().slice(0, 10);
+    const stmtAmount = parseFloat(amount ?? "0");
+    const stmtNarration = narration ?? "";
     const windowStart = new Date(new Date(stmtDate).getTime() - 30 * 86_400_000).toISOString().slice(0, 10);
     const windowEnd = new Date(new Date(stmtDate).getTime() + 30 * 86_400_000).toISOString().slice(0, 10);
 
@@ -73,8 +115,8 @@ export default function ManualLinkScreen() {
        WHERE e.nature IN ('realized', 'credit', 'ledger_adjustment')
          AND e.date BETWEEN ? AND ?
          AND e.deleted_at IS NULL AND e.status != 'rejected'
-       ORDER BY ABS(JULIANDAY(e.date) - JULIANDAY(?)) ASC LIMIT 100`,
-      [windowStart, windowEnd, stmtDate],
+       LIMIT 150`,
+      [windowStart, windowEnd],
     );
 
     const expEntries: ArthEntry[] = expenses.map((e) => {
@@ -108,8 +150,8 @@ export default function ManualLinkScreen() {
        LEFT JOIN financial_accounts fa ON fa.id = t.from_account_id
        LEFT JOIN financial_accounts ta ON ta.id = t.to_account_id
        WHERE t.date BETWEEN ? AND ? AND t.deleted_at IS NULL
-       ORDER BY ABS(JULIANDAY(t.date) - JULIANDAY(?)) ASC LIMIT 50`,
-      [windowStart, windowEnd, stmtDate],
+       LIMIT 50`,
+      [windowStart, windowEnd],
     );
 
     const trEntries: ArthEntry[] = transfers.map((t) => {
@@ -129,9 +171,15 @@ export default function ManualLinkScreen() {
       };
     });
 
-    setEntries([...expEntries, ...trEntries]);
+    const allEntries = [...expEntries, ...trEntries];
+    allEntries.sort(
+      (a, b) =>
+        scoreEntry(b, stmtAmount, stmtDate, dir, stmtNarration) -
+        scoreEntry(a, stmtAmount, stmtDate, dir, stmtNarration),
+    );
+    setEntries(allEntries);
     setLoading(false);
-  }, [direction, date]);
+  }, [direction, amount, date, narration]);
 
   useEffect(() => { loadEntries(); }, [loadEntries]);
 

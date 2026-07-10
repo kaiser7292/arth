@@ -234,6 +234,7 @@ export default function ReconciliationSessionScreen() {
         direction: item.stmt_direction,
         amount: String(item.stmt_amount),
         date: item.stmt_date,
+        narration: item.stmt_narration ?? "",
       },
     });
   }, [router, sessionId]);
