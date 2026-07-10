@@ -59,7 +59,7 @@ export function BottomSheet({
   if (!visible) return null;
 
   return (
-    <Modal transparent animationType="slide" visible={visible} onRequestClose={handleClose}>
+    <Modal transparent animationType="none" visible={visible} onRequestClose={handleClose}>
       <Pressable
         className="flex-1 bg-black/40"
         onPress={handleClose}
