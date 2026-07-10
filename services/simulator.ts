@@ -992,7 +992,7 @@ export async function reconcileStaleEntries(
 
   const upcoming = await db.getAllAsync<SimulationEntry>(
     `SELECT * FROM simulation_entries
-     WHERE scenario_id = ? AND status = 'upcoming' AND date < ?;`,
+     WHERE scenario_id = ? AND status = 'upcoming' AND date <= ?;`,
     scenarioId,
     today,
   );
