@@ -10,6 +10,10 @@ import {
   listRules, deleteRule, listDeletedRules, restoreRule, restoreAllRules, purgeDeletedRules,
   FIELD_LABELS, OPERATOR_LABELS, type SmartRule,
 } from "@/services/smart-rules";
+import { getCategories, type Category } from "@/services/category";
+import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
+import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
+import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { getErrorMessage } from "@/utils/error-message";
 
@@ -23,12 +27,23 @@ export default function SmartRulesListScreen() {
   const [deletedRules, setDeletedRules] = useState<SmartRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [categoryMap, setCategoryMap] = useState<Map<string, Category>>(new Map());
+  const [paymentModeMap, setPaymentModeMap] = useState<Map<string, PaymentMode>>(new Map());
+  const [accountMap, setAccountMap] = useState<Map<string, FinancialAccount>>(new Map());
 
   const load = useCallback(async () => {
     try {
-      const [active, deleted] = await Promise.all([listRules(), listDeletedRules()]);
+      const [active, deleted, cats, pms, accts] = await Promise.all([
+        listRules(), listDeletedRules(),
+        getCategories(DEFAULT_USER_ID),
+        getPaymentModes(DEFAULT_USER_ID),
+        getActiveAccounts(DEFAULT_USER_ID),
+      ]);
       setRules(active);
       setDeletedRules(deleted);
+      setCategoryMap(new Map(cats.map((c) => [c.id, c])));
+      setPaymentModeMap(new Map(pms.map((p) => [p.id, p])));
+      setAccountMap(new Map(accts.map((a) => [a.id, a])));
     } catch (e) {
       alert("Couldn't load rules", getErrorMessage(e));
     } finally {
@@ -115,17 +130,34 @@ export default function SmartRulesListScreen() {
     ]);
   }, [alert, load]);
 
-  const summarizeConditions = (r: SmartRule): string => {
+  const resolveConditionValue = useCallback((field: string, value: unknown): string => {
+    if (Array.isArray(value)) return `${value[0]}–${value[1]}`;
+    const raw = String(value ?? "");
+    if (field === "account_id") {
+      const a = accountMap.get(raw);
+      return a ? (a.account_label || a.bank_name) : raw;
+    }
+    if (field === "payment_mode") {
+      return paymentModeMap.get(raw)?.name ?? raw;
+    }
+    if (field === "category_id") {
+      return categoryMap.get(raw)?.name ?? raw;
+    }
+    return raw;
+  }, [accountMap, paymentModeMap, categoryMap]);
+
+  const summarizeConditions = useCallback((r: SmartRule): string => {
     if (r.conditions.length === 0) return "No conditions";
     const joiner = r.match_mode === "any" ? " OR " : " AND ";
     return r.conditions
       .map((c) => {
-        const value = Array.isArray(c.value) ? `${c.value[0]}–${c.value[1]}` : c.value ?? "";
-        const valueText = c.operator === "is_empty" || c.operator === "is_not_empty" ? "" : ` "${value}"`;
+        const valueText = c.operator === "is_empty" || c.operator === "is_not_empty"
+          ? ""
+          : ` "${resolveConditionValue(c.field, c.value)}"`;
         return `${FIELD_LABELS[c.field]} ${OPERATOR_LABELS[c.operator]}${valueText}`;
       })
       .join(joiner);
-  };
+  }, [resolveConditionValue]);
 
   const summarizeActions = (r: SmartRule): string => {
     const parts: string[] = [];
