@@ -695,7 +695,14 @@ function assertValidInput(input: CreateSmartRuleInput): void {
 
 export interface RetroactiveScope {
   ruleId: string;
-  sinceDaysAgo: number;
+  /** Fallback window when startDate is not provided. Defaults to 90. */
+  sinceDaysAgo?: number;
+  /** Explicit start date (YYYY-MM-DD, inclusive). Takes priority over sinceDaysAgo. */
+  startDate?: string | null;
+  /** Explicit end date (YYYY-MM-DD, inclusive). No upper bound if omitted. */
+  endDate?: string | null;
+  /** Restrict to these account IDs. Empty / null = all accounts. */
+  accountIds?: string[] | null;
   overwriteExisting: boolean;
 }
 
@@ -716,18 +723,39 @@ type RetroactiveCandidate = {
   raw_source_text: string | null;
 };
 
-async function fetchRetroactiveCandidates(sinceDaysAgo: number): Promise<RetroactiveCandidate[]> {
+async function fetchRetroactiveCandidates(
+  scope: Pick<RetroactiveScope, "startDate" | "endDate" | "accountIds" | "sinceDaysAgo">,
+): Promise<RetroactiveCandidate[]> {
   const db = getDatabase();
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - sinceDaysAgo);
-  const cutoffIso = cutoff.toISOString().slice(0, 10);
+  const conds: string[] = ["deleted_at IS NULL"];
+  const params: (string | number)[] = [];
+
+  if (scope.startDate) {
+    conds.push("date >= ?");
+    params.push(scope.startDate);
+  } else {
+    const days = scope.sinceDaysAgo ?? 90;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    conds.push("date >= ?");
+    params.push(cutoff.toISOString().slice(0, 10));
+  }
+
+  if (scope.endDate) {
+    conds.push("date <= ?");
+    params.push(scope.endDate);
+  }
+
+  if (scope.accountIds && scope.accountIds.length > 0) {
+    conds.push(`account_id IN (${scope.accountIds.map(() => "?").join(",")})`);
+    params.push(...scope.accountIds);
+  }
 
   return db.getAllAsync<RetroactiveCandidate>(
     `SELECT id, amount, merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text
      FROM expenses
-     WHERE deleted_at IS NULL
-       AND date >= ?;`,
-    cutoffIso,
+     WHERE ${conds.join(" AND ")};`,
+    params,
   );
 }
 
@@ -752,7 +780,7 @@ export async function previewRetroactiveApply(
   const rule = await getRule(scope.ruleId);
   if (!rule) return { matching: 0, wouldOverwrite: 0, wouldSkip: 0 };
 
-  const candidates = await fetchRetroactiveCandidates(scope.sinceDaysAgo);
+  const candidates = await fetchRetroactiveCandidates(scope);
 
   let matching = 0;
   let wouldOverwrite = 0;
@@ -777,7 +805,7 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
   const rule = await getRule(scope.ruleId);
   if (!rule) return 0;
 
-  const candidates = await fetchRetroactiveCandidates(scope.sinceDaysAgo);
+  const candidates = await fetchRetroactiveCandidates(scope);
   const application = materialize(rule);
   let applied = 0;
 

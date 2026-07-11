@@ -56,6 +56,18 @@ function dateMinusDays(days: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function accountTypeLabel(type: string): string {
+  switch (type) {
+    case "credit_card": return "Credit Card";
+    case "savings": case "bank": return "Savings";
+    case "wallet": return "Wallet";
+    case "loan": return "Loan";
+    case "pension": return "Pension";
+    case "demat": return "Demat";
+    default: return type;
+  }
+}
+
 
 const FY_OPTIONS = [
   { month: 1, label: "January – December", region: "US / UK" },
@@ -645,7 +657,7 @@ export default function SettingsScreen() {
                             ? "Leave empty to scan all accounts"
                             : allAccounts
                                 .filter((a) => smsScanAccountIds.includes(a.id))
-                                .map((a) => `${a.bank_name} ••••${a.account_identifier}`)
+                                .map((a) => a.account_label || a.bank_name)
                                 .join(", ")}
                         </Text>
                       </View>
@@ -906,10 +918,10 @@ export default function SettingsScreen() {
                 >
                   <View className="flex-1">
                     <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
-                      {account.bank_name}
+                      {account.account_label || account.bank_name}
                     </Text>
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                      ••••{account.account_identifier}
+                      {accountTypeLabel(account.account_type)} · ••••{account.account_identifier}
                     </Text>
                   </View>
                   <Ionicons

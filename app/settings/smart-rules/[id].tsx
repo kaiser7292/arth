@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, ActivityIndicator, Switch, TextInput } from "react-native";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer } from "@/components/ui";
@@ -25,6 +26,7 @@ import {
   type ActionType,
   type ConditionField,
   type ConditionOperator,
+  type RetroactivePreview,
 } from "@/services/smart-rules";
 import { getCategories, type Category } from "@/services/category";
 import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
@@ -43,6 +45,28 @@ import { getErrorMessage } from "@/utils/error-message";
  * dynamic list of (field, operator, value) conditions, replacing the
  * old fixed 7-field form.
  */
+
+function accountTypeLabel(type: string): string {
+  switch (type) {
+    case "credit_card": return "Credit Card";
+    case "savings": case "bank": return "Savings";
+    case "wallet": return "Wallet";
+    case "loan": return "Loan";
+    case "pension": return "Pension";
+    case "demat": return "Demat";
+    default: return type;
+  }
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function daysAgoIso(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
 
 const FIELD_OPTIONS: { key: ConditionField; label: string }[] = (
   Object.keys(FIELD_LABELS) as ConditionField[]
@@ -126,10 +150,21 @@ export default function SmartRuleDetailScreen() {
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
 
-  // Index of the condition row whose Field/Operator picker is expanded, and a search query for it.
+  // Index of the condition row whose Field/Operator/Value picker is expanded.
   const [expandedFieldRow, setExpandedFieldRow] = useState<number | null>(null);
   const [expandedOperatorRow, setExpandedOperatorRow] = useState<number | null>(null);
+  const [expandedCondValueRow, setExpandedCondValueRow] = useState<number | null>(null);
   const [fieldSearch, setFieldSearch] = useState("");
+
+  // Retroactive apply sheet
+  const [showRetroSheet, setShowRetroSheet] = useState(false);
+  const [retroStart, setRetroStart] = useState("");
+  const [retroEnd, setRetroEnd] = useState("");
+  const [retroAccountIds, setRetroAccountIds] = useState<string[]>([]);
+  const [retroOverwrite, setRetroOverwrite] = useState(false);
+  const [retroPreview, setRetroPreview] = useState<RetroactivePreview | null>(null);
+  const [retroPreviewing, setRetroPreviewing] = useState(false);
+  const [retroApplying, setRetroApplying] = useState(false);
 
   useEffect(() => {
     getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => setCategories([]));
@@ -181,6 +216,7 @@ export default function SmartRuleDetailScreen() {
   const setConditionField = useCallback((index: number, field: ConditionField) => {
     setConditions((prev) => prev.map((c, i) => (i === index ? defaultConditionFor(field) : c)));
     setExpandedFieldRow(null);
+    setExpandedCondValueRow(null);
     setFieldSearch("");
   }, []);
 
@@ -277,40 +313,53 @@ export default function SmartRuleDetailScreen() {
     }
   }, [saving, name, priority, isActive, matchMode, conditions, buildActions, buildLinkBucketId, isCreate, id, alert, router]);
 
-  const onRetroactive = useCallback(async () => {
-    if (isCreate) return;
+  const openRetroSheet = useCallback(() => {
+    setRetroStart(daysAgoIso(90));
+    setRetroEnd(todayIso());
+    setRetroAccountIds([]);
+    setRetroOverwrite(false);
+    setRetroPreview(null);
+    setShowRetroSheet(true);
+  }, []);
+
+  const onRetroPreview = useCallback(async () => {
+    setRetroPreviewing(true);
+    setRetroPreview(null);
     try {
       const preview = await previewRetroactiveApply({
         ruleId: id,
-        sinceDaysAgo: 90,
-        overwriteExisting: false,
+        startDate: retroStart || null,
+        endDate: retroEnd || null,
+        accountIds: retroAccountIds.length > 0 ? retroAccountIds : null,
+        overwriteExisting: retroOverwrite,
       });
-      alert(
-        "Apply to past expenses?",
-        `${preview.matching} expense${preview.matching === 1 ? "" : "s"} in the last 90 days match this rule. ${preview.wouldOverwrite} will be categorized. ${preview.wouldSkip} already have a category and will be skipped.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Apply",
-            onPress: async () => {
-              try {
-                const applied = await runRetroactiveApply({
-                  ruleId: id,
-                  sinceDaysAgo: 90,
-                  overwriteExisting: false,
-                });
-                alert("Done", `Applied to ${applied} expense${applied === 1 ? "" : "s"}.`);
-              } catch (e) {
-                alert("Couldn't apply", getErrorMessage(e));
-              }
-            },
-          },
-        ],
-      );
+      setRetroPreview(preview);
     } catch (e) {
       alert("Couldn't preview", getErrorMessage(e));
+    } finally {
+      setRetroPreviewing(false);
     }
-  }, [isCreate, id, alert]);
+  }, [id, retroStart, retroEnd, retroAccountIds, retroOverwrite, alert]);
+
+  const onRetroApply = useCallback(async () => {
+    if (!retroPreview || retroApplying) return;
+    setRetroApplying(true);
+    try {
+      const applied = await runRetroactiveApply({
+        ruleId: id,
+        startDate: retroStart || null,
+        endDate: retroEnd || null,
+        accountIds: retroAccountIds.length > 0 ? retroAccountIds : null,
+        overwriteExisting: retroOverwrite,
+      });
+      setShowRetroSheet(false);
+      alert("Done", `Applied to ${applied} expense${applied === 1 ? "" : "s"}.`);
+    } catch (e) {
+      alert("Couldn't apply", getErrorMessage(e));
+    } finally {
+      setRetroApplying(false);
+    }
+  }, [id, retroStart, retroEnd, retroAccountIds, retroOverwrite, retroPreview, retroApplying, alert]);
 
   const filteredFields = useMemo(() => {
     const q = fieldSearch.trim().toLowerCase();
@@ -416,6 +465,7 @@ export default function SmartRuleDetailScreen() {
                     onPress={() => {
                       setExpandedFieldRow(fieldExpanded ? null : index);
                       setExpandedOperatorRow(null);
+                      setExpandedCondValueRow(null);
                       setFieldSearch("");
                     }}
                     className="flex-row items-center justify-between py-2"
@@ -465,6 +515,7 @@ export default function SmartRuleDetailScreen() {
                     onPress={() => {
                       setExpandedOperatorRow(operatorExpanded ? null : index);
                       setExpandedFieldRow(null);
+                      setExpandedCondValueRow(null);
                     }}
                     className="flex-row items-center justify-between py-2"
                   >
@@ -527,28 +578,90 @@ export default function SmartRuleDetailScreen() {
                             className="flex-1 rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
                           />
                         </View>
-                      ) : isPicker ? (
-                        <View className="flex-row flex-wrap" style={{ gap: 8 }}>
-                          {(condition.field === "account_id" ? accounts.map((a) => ({ id: a.id, name: a.account_label || a.bank_name }))
-                            : condition.field === "payment_mode" ? paymentModes.map((m) => ({ id: m.id, name: m.name }))
-                            : categories.map((c) => ({ id: c.id, name: c.name }))
-                          ).map((opt) => (
+                      ) : isPicker ? (() => {
+                        const condValueExpanded = expandedCondValueRow === index;
+                        const selectedLabel = condition.field === "account_id"
+                          ? (() => { const a = accounts.find((x) => x.id === condition.value); return a ? (a.account_label || a.bank_name) : null; })()
+                          : condition.field === "payment_mode"
+                          ? paymentModes.find((m) => m.id === condition.value)?.name ?? null
+                          : categories.find((c) => c.id === condition.value)?.name ?? null;
+                        const placeholder = condition.field === "account_id" ? "Select account"
+                          : condition.field === "payment_mode" ? "Select payment mode"
+                          : "Select category";
+                        return (
+                          <>
                             <Pressable
-                              key={opt.id}
-                              onPress={() => updateCondition(index, { value: opt.id })}
-                              className="px-3 py-1.5 rounded-full border"
-                              style={{
-                                backgroundColor: condition.value === opt.id ? accentColor : "transparent",
-                                borderColor: condition.value === opt.id ? accentColor : colors.border,
+                              onPress={() => {
+                                setExpandedCondValueRow(condValueExpanded ? null : index);
+                                setExpandedFieldRow(null);
+                                setExpandedOperatorRow(null);
                               }}
+                              className="flex-row items-center justify-between py-2.5 px-3 rounded-lg border border-border-light dark:border-border-dark"
                             >
-                              <Text className={condition.value === opt.id ? "text-white text-xs font-medium" : "text-text-secondary dark:text-text-dark-secondary text-xs"}>
-                                {opt.name}
+                              <Text className="text-sm flex-1" style={{ color: selectedLabel ? colors.text : colors.tabIconDefault }}>
+                                {selectedLabel ?? placeholder}
                               </Text>
+                              <Ionicons name={condValueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                             </Pressable>
-                          ))}
-                        </View>
-                      ) : (
+                            {condValueExpanded && (
+                              <View className="mt-1 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
+                                {condition.field === "account_id"
+                                  ? accounts.map((a) => {
+                                      const isSel = condition.value === a.id;
+                                      return (
+                                        <Pressable
+                                          key={a.id}
+                                          onPress={() => { updateCondition(index, { value: a.id }); setExpandedCondValueRow(null); }}
+                                          className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                          style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
+                                        >
+                                          <View className="flex-1">
+                                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : colors.text }}>
+                                              {a.account_label || a.bank_name}
+                                            </Text>
+                                            <Text className="text-xs text-text-tertiary mt-0.5">
+                                              {accountTypeLabel(a.account_type)} · ••••{a.account_identifier}
+                                            </Text>
+                                          </View>
+                                          {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                                        </Pressable>
+                                      );
+                                    })
+                                  : condition.field === "payment_mode"
+                                  ? paymentModes.map((m) => {
+                                      const isSel = condition.value === m.id;
+                                      return (
+                                        <Pressable
+                                          key={m.id}
+                                          onPress={() => { updateCondition(index, { value: m.id }); setExpandedCondValueRow(null); }}
+                                          className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                          style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
+                                        >
+                                          <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : colors.text }}>{m.name}</Text>
+                                          {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                                        </Pressable>
+                                      );
+                                    })
+                                  : categories.map((c) => {
+                                      const isSel = condition.value === c.id;
+                                      return (
+                                        <Pressable
+                                          key={c.id}
+                                          onPress={() => { updateCondition(index, { value: c.id }); setExpandedCondValueRow(null); }}
+                                          className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                          style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
+                                        >
+                                          <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : colors.text }}>{c.name}</Text>
+                                          {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                                        </Pressable>
+                                      );
+                                    })
+                                }
+                              </View>
+                            )}
+                          </>
+                        );
+                      })() : (
                         <TextInput
                           placeholder={condition.field === "amount" ? "e.g. 500" : "e.g. swiggy"}
                           placeholderTextColor={colors.tabIconDefault}
@@ -921,14 +1034,14 @@ export default function SmartRuleDetailScreen() {
 
           {!isCreate && (
             <Card className="mb-4">
-              <Pressable onPress={onRetroactive} className="flex-row items-center py-3">
+              <Pressable onPress={openRetroSheet} className="flex-row items-center py-3">
                 <Ionicons name="time-outline" size={20} color={accentColor} />
                 <View className="flex-1 ml-3">
                   <Text className="text-base text-text-primary dark:text-text-dark-primary font-semibold">
                     Apply to past expenses
                   </Text>
                   <Text className="text-xs text-text-tertiary mt-0.5">
-                    Retroactively categorize matching expenses from the last 90 days
+                    Retroactively apply this rule to matching past expenses
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
@@ -944,6 +1057,155 @@ export default function SmartRuleDetailScreen() {
           />
         </View>
       </ScrollView>
+      {/* Retroactive apply sheet */}
+      <BottomSheet visible={showRetroSheet} onClose={() => setShowRetroSheet(false)}>
+        <View className="px-4 pb-6">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-semibold text-text-primary dark:text-text-dark-primary">
+              Apply to past expenses
+            </Text>
+            <Pressable onPress={() => setShowRetroSheet(false)}>
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+
+          {/* Date range */}
+          <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-2">
+            Date range
+          </Text>
+          <View className="flex-row mb-4" style={{ gap: 8 }}>
+            <View className="flex-1">
+              <Text className="text-xs text-text-tertiary mb-1">From</Text>
+              <TextInput
+                value={retroStart}
+                onChangeText={(v) => { setRetroStart(v); setRetroPreview(null); }}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={colors.tabIconDefault}
+                className="rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+            </View>
+            <View className="flex-1">
+              <Text className="text-xs text-text-tertiary mb-1">To</Text>
+              <TextInput
+                value={retroEnd}
+                onChangeText={(v) => { setRetroEnd(v); setRetroPreview(null); }}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={colors.tabIconDefault}
+                className="rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
+              />
+            </View>
+          </View>
+
+          {/* Quick presets */}
+          <View className="flex-row flex-wrap mb-4" style={{ gap: 6 }}>
+            {[
+              { label: "Last 30 days", days: 30 },
+              { label: "Last 90 days", days: 90 },
+              { label: "Last 6 months", days: 180 },
+              { label: "Last year", days: 365 },
+            ].map(({ label, days }) => (
+              <Pressable
+                key={days}
+                onPress={() => { setRetroStart(daysAgoIso(days)); setRetroEnd(todayIso()); setRetroPreview(null); }}
+                className="px-3 py-1.5 rounded-full border"
+                style={{ borderColor: colors.border }}
+              >
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Account filter */}
+          {accounts.length > 0 && (
+            <>
+              <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-2">
+                Filter by account (optional)
+              </Text>
+              <ScrollView className="max-h-36 mb-4" showsVerticalScrollIndicator={false}>
+                {accounts.map((a) => {
+                  const isSel = retroAccountIds.includes(a.id);
+                  return (
+                    <Pressable
+                      key={a.id}
+                      onPress={() => {
+                        setRetroAccountIds((prev) =>
+                          isSel ? prev.filter((x) => x !== a.id) : [...prev, a.id],
+                        );
+                        setRetroPreview(null);
+                      }}
+                      className={`flex-row items-center justify-between py-2.5 px-3 rounded-lg mb-1.5 border ${isSel ? "" : "border-border-light dark:border-border-dark"}`}
+                      style={isSel ? { borderColor: accentColor, backgroundColor: accentColor + "18" } : undefined}
+                    >
+                      <View className="flex-1">
+                        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : colors.text }}>
+                          {a.account_label || a.bank_name}
+                        </Text>
+                        <Text className="text-xs text-text-tertiary mt-0.5">
+                          {accountTypeLabel(a.account_type)} · ••••{a.account_identifier}
+                        </Text>
+                      </View>
+                      <Ionicons name={isSel ? "checkbox" : "square-outline"} size={20} color={isSel ? accentColor : colors.textSecondary} />
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </>
+          )}
+
+          {/* Overwrite toggle */}
+          <View className="flex-row items-center justify-between py-3 border-t border-border-light dark:border-border-dark mb-4">
+            <View className="flex-1 mr-4">
+              <Text className="text-sm text-text-primary dark:text-text-dark-primary">Overwrite existing categories</Text>
+              <Text className="text-xs text-text-tertiary mt-0.5">If off, only uncategorized expenses are updated</Text>
+            </View>
+            <Switch
+              value={retroOverwrite}
+              onValueChange={(v) => { setRetroOverwrite(v); setRetroPreview(null); }}
+              trackColor={{ false: colors.border, true: accentColor }}
+            />
+          </View>
+
+          {/* Preview result */}
+          {retroPreview && (
+            <View className="rounded-lg px-4 py-3 mb-4" style={{ backgroundColor: accentColor + "14" }}>
+              <Text className="text-sm font-semibold mb-1" style={{ color: accentColor }}>
+                Preview
+              </Text>
+              <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                {retroPreview.matching} matching expense{retroPreview.matching === 1 ? "" : "s"}
+              </Text>
+              <Text className="text-xs text-text-tertiary mt-0.5">
+                {retroPreview.wouldOverwrite} will be updated · {retroPreview.wouldSkip} skipped (already categorized)
+              </Text>
+            </View>
+          )}
+
+          {/* Actions */}
+          <View className="flex-row" style={{ gap: 8 }}>
+            <Pressable
+              onPress={onRetroPreview}
+              disabled={retroPreviewing}
+              className="flex-1 py-3 rounded-xl items-center border border-border-light dark:border-border-dark"
+            >
+              {retroPreviewing
+                ? <ActivityIndicator size="small" color={accentColor} />
+                : <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">Preview</Text>
+              }
+            </Pressable>
+            <Pressable
+              onPress={onRetroApply}
+              disabled={!retroPreview || retroPreview.wouldOverwrite === 0 || retroApplying}
+              className="flex-1 py-3 rounded-xl items-center"
+              style={{ backgroundColor: (!retroPreview || retroPreview.wouldOverwrite === 0) ? colors.border : accentColor }}
+            >
+              {retroApplying
+                ? <ActivityIndicator size="small" color="white" />
+                : <Text className="text-sm font-semibold text-white">Apply</Text>
+              }
+            </Pressable>
+          </View>
+        </View>
+      </BottomSheet>
     </ScreenContainer>
   );
 }
