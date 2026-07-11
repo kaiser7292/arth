@@ -36,6 +36,7 @@ import { getPaymentModes } from "@/services/payment-mode";
 import { getActiveAccounts } from "@/services/financial-account";
 import { getTags, getTagsForExpenses } from "@/services/tags";
 import { getDistinctMerchantNames } from "@/services/merchant-alias";
+import { listRules, type SmartRule } from "@/services/smart-rules";
 import type { Expense } from "@/services/expense";
 import type { Category } from "@/services/category";
 import type { PaymentMode } from "@/services/payment-mode";
@@ -83,6 +84,8 @@ export default function ExpensesScreen() {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [allMerchantNames, setAllMerchantNames] = useState<string[]>([]);
+  const [allRules, setAllRules] = useState<SmartRule[]>([]);
+  const [filterRuleIds, setFilterRuleIds] = useState<string[]>([]);
   const [expenseTagMap, setExpenseTagMap] = useState<Record<string, Tag[]>>({});
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -231,6 +234,7 @@ export default function ExpensesScreen() {
           merchantNames: filterMerchantNames.length > 0 ? filterMerchantNames : undefined,
           refundedStatus: filterRefundedStatus || undefined,
           avoidability: filterAvoidability || undefined,
+          ruleIds: filterRuleIds.length > 0 ? filterRuleIds : undefined,
           nature,
           segment,
         };
@@ -271,25 +275,27 @@ export default function ExpensesScreen() {
         setLoading(false);
       }
     },
-    [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterNature, summaryGroupBy, loading],
+    [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterNature, summaryGroupBy, loading],
   );
 
   // Load reference data once
   useEffect(() => {
     async function loadReferenceData() {
       try {
-        const [cats, pms, accts, tags, merchants] = await Promise.all([
+        const [cats, pms, accts, tags, merchants, rules] = await Promise.all([
           getCategories(DEFAULT_USER_ID),
           getPaymentModes(DEFAULT_USER_ID),
           getActiveAccounts(DEFAULT_USER_ID),
           getTags(DEFAULT_USER_ID),
           getDistinctMerchantNames(DEFAULT_USER_ID),
+          listRules(),
         ]);
         setCategories(cats);
         setPaymentModes(pms);
         setAccounts(accts);
         setAllTags(tags);
         setAllMerchantNames(merchants);
+        setAllRules(rules);
       } catch {
         // Database not ready
       }
@@ -302,7 +308,7 @@ export default function ExpensesScreen() {
     useCallback(() => {
       loadExpenses(true);
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterNature, summaryGroupBy]),
+    }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterNature, summaryGroupBy]),
   );
 
   const handleDelete = useCallback(
@@ -361,6 +367,7 @@ export default function ExpensesScreen() {
     setFilterMerchantNames([]);
     setFilterRefundedStatus("");
     setFilterAvoidability("");
+    setFilterRuleIds([]);
     setFilterNature("realized");
   }, []);
 
@@ -459,7 +466,7 @@ export default function ExpensesScreen() {
     }
   }, [applyFilterView]);
 
-  const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterNature !== "realized";
+  const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0 || filterNature !== "realized";
   const hasActiveFilters = hasNonDateFilters || datePreset !== "this_month";
 
   const handleItemPress = useCallback(
@@ -993,6 +1000,7 @@ export default function ExpensesScreen() {
           { key: "account", label: "Account", type: "multi", options: accounts.map((a) => ({ id: a.id, label: `${a.bank_name} ****${a.account_identifier}` })), selectedIds: filterAccountIds, searchable: true },
           { key: "tags", label: "Tags", type: "multi", options: allTags.map((t) => ({ id: t.id, label: t.name, color: t.color })), selectedIds: filterTagIds },
           { key: "merchant", label: "Merchant", type: "multi", options: allMerchantNames.map((m) => ({ id: m, label: m })), selectedIds: filterMerchantNames, searchable: true },
+          ...(allRules.length > 0 ? [{ key: "rule", label: "Smart Rule", type: "multi" as const, options: allRules.map((r) => ({ id: r.id, label: r.name })), selectedIds: filterRuleIds }] : []),
           ...(filterNature === "realized" ? [
             { key: "refundStatus", label: "Refund Status", type: "single" as const, options: [{ id: "refunded", label: "Refunded" }, { id: "not_refunded", label: "Not Refunded" }], selectedIds: filterRefundedStatus ? [filterRefundedStatus] : [] },
             { key: "avoidability", label: "Avoidability", type: "single" as const, options: [{ id: "unavoidable", label: "Unavoidable" }, { id: "avoidable", label: "Avoidable" }], selectedIds: filterAvoidability ? [filterAvoidability] : [] },
@@ -1004,6 +1012,7 @@ export default function ExpensesScreen() {
           setFilterAccountIds(selections.account ?? []);
           setFilterTagIds(selections.tags ?? []);
           setFilterMerchantNames(selections.merchant ?? []);
+          setFilterRuleIds(selections.rule ?? []);
           setFilterRefundedStatus(((selections.refundStatus ?? [])[0] ?? "") as typeof filterRefundedStatus);
           setFilterAvoidability(((selections.avoidability ?? [])[0] ?? "") as typeof filterAvoidability);
         }}
@@ -1013,6 +1022,7 @@ export default function ExpensesScreen() {
           setFilterAccountIds([]);
           setFilterTagIds([]);
           setFilterMerchantNames([]);
+          setFilterRuleIds([]);
           setFilterRefundedStatus("");
           setFilterAvoidability("");
           setActiveViewId(null);
@@ -1059,6 +1069,16 @@ export default function ExpensesScreen() {
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           ))}
+          {filterRuleIds.map((rid) => {
+            const rule = allRules.find((r) => r.id === rid);
+            if (!rule) return null;
+            return (
+              <Pressable key={`rule-${rid}`} onPress={() => setFilterRuleIds((prev) => prev.filter((x) => x !== rid))} className="flex-row items-center mr-3 mb-1">
+                <Text className="text-[10px] text-text-tertiary">Rule: {rule.name}</Text>
+                <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
+              </Pressable>
+            );
+          })}
           {filterRefundedStatus !== "" && (
             <Pressable onPress={() => setFilterRefundedStatus("")} className="flex-row items-center mr-3 mb-1">
               <Text className="text-[10px] text-text-tertiary">{filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded"}</Text>

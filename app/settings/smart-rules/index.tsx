@@ -196,9 +196,14 @@ export default function SmartRulesListScreen() {
                       <Text className={`text-base font-semibold ${item.is_active ? "text-text-primary dark:text-text-dark-primary" : "text-text-tertiary"}`}>
                         {item.name}
                       </Text>
-                      <Text className="text-xs text-text-tertiary mt-0.5">
-                        Priority {item.priority} · Applied {item.apply_count} time{item.apply_count === 1 ? "" : "s"}
-                      </Text>
+                      <Pressable
+                        onPress={() => router.push(`/settings/smart-rules/applications/${item.id}` as never)}
+                        hitSlop={8}
+                      >
+                        <Text className="text-xs text-text-tertiary mt-0.5">
+                          Priority {item.priority} · <Text style={{ color: item.apply_count > 0 ? accentColor : undefined }}>Applied {item.apply_count} time{item.apply_count === 1 ? "" : "s"}</Text>
+                        </Text>
+                      </Pressable>
                     </View>
                     {!item.is_active && (
                       <View className="px-2 py-0.5 bg-surface-light-alt dark:bg-surface-dark-alt rounded">

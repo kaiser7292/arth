@@ -66,6 +66,8 @@ export interface Expense {
    * win once set. Cleared on rule delete.
    */
   applied_rule_id: string | null;
+  /** migration 061 — JSON-encoded array of ALL rule IDs that fired, not just the first. */
+  applied_rule_ids?: string | null;
   /**
    * v15.12.1: When set to 1, this expense/credit has been reclassified as a transfer.
    * Instead of soft-deleting, we mark it to keep it visible in the UI.
@@ -149,6 +151,8 @@ export interface ExpenseFilters {
   avoidability?: "avoidable" | "unavoidable";
   /** Filter by merchant name (exact match from distinct list). */
   merchantNames?: string[];
+  /** Filter by smart rule ID — matches expenses where any of these rules fired. */
+  ruleIds?: string[];
 }
 
 export interface CategoryActual {

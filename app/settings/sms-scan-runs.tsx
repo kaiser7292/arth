@@ -21,6 +21,7 @@ import {
   type ScanDetailRow,
   type ScanDetailCategory,
 } from "@/services/sms";
+import { listRules } from "@/services/smart-rules";
 import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
 
@@ -50,6 +51,7 @@ export default function SmsScanRunsScreen() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ScanDetailCategory | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [ruleNameMap, setRuleNameMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -79,8 +81,11 @@ export default function SmsScanRunsScreen() {
     setSelectedRun(run);
     setViewMode("drilldown");
     setDetailsLoading(true);
-    const d = await getScanRunDetails(run.id);
+    const [d, rules] = await Promise.all([getScanRunDetails(run.id), listRules()]);
     setDetails(d);
+    const nameMap: Record<string, string> = {};
+    for (const r of rules) nameMap[r.id] = r.name;
+    setRuleNameMap(nameMap);
     setDetailsLoading(false);
   }
 
@@ -378,7 +383,7 @@ export default function SmsScanRunsScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          renderItem={({ item: detail }) => <SmsDetailCard detail={detail} />}
+          renderItem={({ item: detail }) => <SmsDetailCard detail={detail} ruleNameMap={ruleNameMap} />}
           ListEmptyComponent={
             <View className="items-center py-8">
               <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
@@ -394,7 +399,7 @@ export default function SmsScanRunsScreen() {
     );
   }
 
-  function SmsDetailCard({ detail }: { detail: ScanDetailRow }) {
+  function SmsDetailCard({ detail, ruleNameMap }: { detail: ScanDetailRow; ruleNameMap: Record<string, string> }) {
     const dateStr = detail.sms_date
       ? new Date(detail.sms_date).toLocaleString([], {
           month: "short",
@@ -455,6 +460,28 @@ export default function SmsScanRunsScreen() {
               )}
             </View>
           )}
+
+          {/* Rules applied */}
+          {detail.applied_rule_ids && (() => {
+            let ruleIds: string[] = [];
+            try { ruleIds = JSON.parse(detail.applied_rule_ids); } catch {}
+            if (ruleIds.length === 0) return null;
+            return (
+              <View className="border-t border-border-light dark:border-border-dark pt-2 mt-1">
+                <Text className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">
+                  Rules Applied
+                </Text>
+                {ruleIds.map((id) => (
+                  <View key={id} className="flex-row items-center py-0.5">
+                    <Ionicons name="sparkles" size={10} color={accent[500]} style={{ marginRight: 4 }} />
+                    <Text className="text-xs font-medium" style={{ color: accent[500] }}>
+                      {ruleNameMap[id] ?? id}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            );
+          })()}
 
           {/* Teach action for unrecognized */}
           {detail.category === "unrecognized" && detail.sms_body_preview && (

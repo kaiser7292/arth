@@ -144,7 +144,7 @@ export async function runSmsScan(
     );
 
     // Phase 4: Process (create expenses/credits)
-    let processResult = { created: 0, credits: 0, skipped: 0, errors: [] as string[] };
+    let processResult = { created: 0, credits: 0, skipped: 0, errors: [] as string[], itemResults: [] as Array<{ pendingSmsId: string; appliedRuleIds: string[] | null }> };
     if (passed.length > 0) {
       processResult = await processParseResults(
         DEFAULT_USER_ID,
@@ -160,6 +160,10 @@ export async function runSmsScan(
     // Phase 5: Build scan details for logging
     const details: ScanDetail[] = [];
 
+    const ruleMap = new Map(
+      processResult.itemResults.map((r) => [r.pendingSmsId, r.appliedRuleIds]),
+    );
+
     for (const item of passed) {
       const cat: ScanDetailCategory = item.parsed._matchSource === "template"
         ? "template"
@@ -173,6 +177,7 @@ export async function runSmsScan(
         parsedAmount: item.parsed.amount ?? null,
         parsedMerchant: item.parsed.merchant ?? null,
         parsedType: item.parsed.type ?? null,
+        appliedRuleIds: ruleMap.get(item.pendingSmsId) ?? null,
       });
     }
 

@@ -32,6 +32,7 @@ export interface ScanDetail {
   parsedAmount?: number | null;
   parsedMerchant?: string | null;
   parsedType?: string | null;
+  appliedRuleIds?: string[] | null;
 }
 
 export interface ScanRunInput {
@@ -86,6 +87,8 @@ export interface ScanDetailRow {
   parsed_amount: number | null;
   parsed_merchant: string | null;
   parsed_type: string | null;
+  /** JSON-encoded array of smart rule IDs that fired for this SMS. */
+  applied_rule_ids: string | null;
   created_at: string;
 }
 
@@ -135,7 +138,7 @@ export async function saveScanRun(input: ScanRunInput): Promise<string> {
         const CHUNK_SIZE = 50;
         for (let i = 0; i < input.details.length; i += CHUNK_SIZE) {
           const chunk = input.details.slice(i, i + CHUNK_SIZE);
-          const placeholders = chunk.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ");
+          const placeholders = chunk.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ");
           const values: (string | number | null)[] = [];
           for (const d of chunk) {
             values.push(
@@ -151,12 +154,13 @@ export async function saveScanRun(input: ScanRunInput): Promise<string> {
               d.parsedAmount ?? null,
               d.parsedMerchant ?? null,
               d.parsedType ?? null,
+              d.appliedRuleIds && d.appliedRuleIds.length > 0 ? JSON.stringify(d.appliedRuleIds) : null,
             );
           }
           await db.runAsync(
             `INSERT INTO sms_scan_details (id, scan_run_id, pending_sms_id, sms_address,
               sms_body_preview, sms_date, category, matched_template_id, filter_reason,
-              parsed_amount, parsed_merchant, parsed_type)
+              parsed_amount, parsed_merchant, parsed_type, applied_rule_ids)
              VALUES ${placeholders};`,
             ...values,
           );

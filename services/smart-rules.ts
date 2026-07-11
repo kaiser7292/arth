@@ -347,6 +347,16 @@ export function findFirstMatch(
 }
 
 /**
+ * Return ALL matching rules for the target (in priority order).
+ */
+export function findAllMatches(
+  rules: SmartRule[],
+  target: EvaluationTarget,
+): SmartRule[] {
+  return rules.filter((r) => evaluateRule(r, target));
+}
+
+/**
  * Convert a matched rule into a RuleApplication the caller can project onto
  * its expense record. Later actions of the same type win.
  */
@@ -426,6 +436,71 @@ export async function applyRules(
     return materialize(hit);
   } catch (e) {
     logger.warn("applyRules failed (non-fatal):", e);
+    return null;
+  }
+}
+
+/**
+ * High-level: evaluate ALL active rules against a target and return a merged
+ * application (later priority rules win per-field; tags accumulate) plus the
+ * full list of matched rule IDs. Returns null when no rules match.
+ */
+export async function applyAllRules(
+  target: EvaluationTarget,
+): Promise<{ application: RuleApplication; ruleIds: string[] } | null> {
+  if (!getFlag("v15_smart_rules")) return null;
+  try {
+    const rules = await getActiveRules();
+    const matches = findAllMatches(rules, target);
+    if (matches.length === 0) return null;
+
+    // Merge: rules are in priority ASC order; later entries win per-field.
+    let category_id: string | null = null;
+    let payment_mode: string | null = null;
+    let description: string | null = null;
+    let tag_ids: string[] = [];
+    let is_right_spend: number | null = null;
+    let mark_auto = false;
+    let split_person_id: string | null = null;
+    let split_mode: string | null = null;
+    let split_paid_by: string | null = null;
+    let primaryRule = matches[0];
+
+    for (const rule of matches) {
+      const app = materialize(rule);
+      if (app.category_id !== null) category_id = app.category_id;
+      if (app.payment_mode !== null) payment_mode = app.payment_mode;
+      if (app.description !== null) description = app.description;
+      if (app.tag_ids.length > 0) {
+        const tagSet = new Set([...tag_ids, ...app.tag_ids]);
+        tag_ids = Array.from(tagSet);
+      }
+      if (app.is_right_spend !== null) is_right_spend = app.is_right_spend;
+      if (app.mark_auto) mark_auto = true;
+      if (app.split_person_id !== null) {
+        split_person_id = app.split_person_id;
+        split_mode = app.split_mode;
+        split_paid_by = app.split_paid_by;
+        primaryRule = rule;
+      }
+    }
+
+    const application: RuleApplication = {
+      rule: primaryRule,
+      category_id,
+      payment_mode,
+      description,
+      tag_ids,
+      is_right_spend,
+      mark_auto,
+      split_person_id,
+      split_mode,
+      split_paid_by,
+    };
+
+    return { application, ruleIds: matches.map((r) => r.id) };
+  } catch (e) {
+    logger.warn("applyAllRules failed (non-fatal):", e);
     return null;
   }
 }

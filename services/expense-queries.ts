@@ -162,6 +162,13 @@ export async function getExpensesPaginated(
     conditions.push(`merchant_name IN (${placeholders})`);
     params.push(...filters.merchantNames);
   }
+  if (filters.ruleIds && filters.ruleIds.length > 0) {
+    const inPlaceholders = filters.ruleIds.map(() => "?").join(",");
+    const likeParts = filters.ruleIds.map(() => `applied_rule_ids LIKE ?`).join(" OR ");
+    conditions.push(`(applied_rule_id IN (${inPlaceholders}) OR ${likeParts})`);
+    params.push(...filters.ruleIds);
+    params.push(...filters.ruleIds.map((id) => `%"${id}"%`));
+  }
   if (filters.segment === "spend") {
     conditions.push(`NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)`);
     conditions.push(`NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id)`);
@@ -280,6 +287,13 @@ export async function getFilteredExpenseSummary(
     const placeholders = filters.merchantNames.map(() => "?").join(",");
     conditions.push(`merchant_name IN (${placeholders})`);
     params.push(...filters.merchantNames);
+  }
+  if (filters.ruleIds && filters.ruleIds.length > 0) {
+    const inPlaceholders = filters.ruleIds.map(() => "?").join(",");
+    const likeParts = filters.ruleIds.map(() => `applied_rule_ids LIKE ?`).join(" OR ");
+    conditions.push(`(applied_rule_id IN (${inPlaceholders}) OR ${likeParts})`);
+    params.push(...filters.ruleIds);
+    params.push(...filters.ruleIds.map((id) => `%"${id}"%`));
   }
   if (filters.segment === "spend") {
     conditions.push(`NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)`);

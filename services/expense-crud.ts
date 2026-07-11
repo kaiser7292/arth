@@ -4,7 +4,7 @@ import { findPaymentModeByType } from "@/services/account-master";
 import { learnMerchantAlias } from "@/services/merchant-alias";
 import { bumpDataVersion } from "@/services/settings";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
-import { applyRules, stampApplication } from "@/services/smart-rules";
+import { applyAllRules, stampApplication } from "@/services/smart-rules";
 import { inferPaymentMode, parseBankSMS } from "@/services/sms/bank-patterns";
 import { logger } from "@/utils/logger";
 import { round2 } from "@/utils/math";
@@ -26,6 +26,8 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
   let paymentModeId = input.payment_mode_id ?? null;
   let isRightSpend = input.is_right_spend ?? null;
   let appliedRuleId: string | null = null;
+  let appliedRuleIdsJson: string | null = null;
+  let matchedRuleIds: string[] = [];
 
   const userSetCategory = input.category_id !== undefined && input.category_id !== null;
   const userSetPaymentMode = input.payment_mode_id !== undefined && input.payment_mode_id !== null;
@@ -33,7 +35,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
 
   let linkToBucketId: string | null = null;
   try {
-    const rule = await applyRules({
+    const allRules = await applyAllRules({
       amount: input.amount,
       merchant: input.merchant_name ?? null,
       description: input.description ?? null,
@@ -42,11 +44,14 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
       payment_mode_id: input.payment_mode_id ?? null,
       sms_body: null,
     });
-    if (rule) {
+    if (allRules) {
+      const { application: rule, ruleIds } = allRules;
       if (!userSetCategory && rule.category_id) categoryId = rule.category_id;
       if (!userSetPaymentMode && rule.payment_mode) paymentModeId = rule.payment_mode;
       if (!userSetRightSpend && rule.is_right_spend !== null) isRightSpend = rule.is_right_spend;
-      appliedRuleId = rule.rule.id;
+      matchedRuleIds = ruleIds;
+      appliedRuleId = ruleIds[ruleIds.length - 1];
+      appliedRuleIdsJson = JSON.stringify(ruleIds);
       linkToBucketId = rule.rule.action_link_to_investment_bucket_id ?? null;
     }
   } catch (e) {
@@ -57,8 +62,8 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
 
   const now = new Date().toISOString(); // Local time in ISO format
   await db.runAsync(
-    `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, nature, is_right_spend, refund_of_expense_id, purchase_group_id, due_date, applied_rule_id, source, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', ?);`,
+    `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, nature, is_right_spend, refund_of_expense_id, purchase_group_id, due_date, applied_rule_id, applied_rule_ids, source, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', ?);`,
     id,
     input.user_id,
     round2(input.amount),
@@ -76,11 +81,12 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
     input.purchase_group_id ?? null,
     input.due_date ?? null,
     appliedRuleId,
+    appliedRuleIdsJson,
     now,
   );
 
-  if (appliedRuleId) {
-    stampApplication(appliedRuleId).catch((e) =>
+  for (const ruleId of matchedRuleIds) {
+    stampApplication(ruleId).catch((e) =>
       logger.warn("stampApplication failed (non-fatal)", e),
     );
   }

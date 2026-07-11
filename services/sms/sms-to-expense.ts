@@ -21,7 +21,7 @@ import { discoverOrUpdateAccount, handlePaymentReceived, linkExpenseToAccount, u
 import { cleanMerchantName, normalizeMerchantName } from "@/services/merchant-alias";
 import { bumpDataVersion } from "@/services/settings";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
-import { applyRules, stampApplication } from "@/services/smart-rules";
+import { applyAllRules, stampApplication } from "@/services/smart-rules";
 import { formatLocalDate } from "@/utils/fiscal-year";
 import { logger } from "@/utils/logger";
 import { generateUUID } from "@/utils/uuid";
@@ -33,6 +33,8 @@ export interface SmsExpenseResult {
   expenseId: string | null;
   isCredit: boolean;
   error: string | null;
+  /** IDs of all smart rules that fired for this expense (in priority order). */
+  appliedRuleIds?: string[] | null;
 }
 
 /**
@@ -378,9 +380,11 @@ export async function createExpenseFromSms(
       //   - promote status to 'approved' when action_mark_auto is 1
       //   - stamp applied_rule_id for audit
       let ruleAppliedRuleId: string | null = null;
+      let ruleAppliedRuleIdsJson: string | null = null;
+      let matchedRuleIds: string[] = [];
       let status: "pending_review" | "approved" = "pending_review";
       try {
-        const ruleApp = await applyRules({
+        const allRules = await applyAllRules({
           amount: parsed.amount,
           merchant: normalizedMerchant ?? parsed.merchant ?? null,
           description,
@@ -389,11 +393,14 @@ export async function createExpenseFromSms(
           payment_mode_id: paymentModeId ?? null,
           sms_body: rawBody,
         });
-        if (ruleApp) {
+        if (allRules) {
+          const { application: ruleApp, ruleIds } = allRules;
           if (ruleApp.category_id) categoryId = ruleApp.category_id;
           if (ruleApp.payment_mode) paymentModeId = ruleApp.payment_mode;
           if (ruleApp.mark_auto) status = "approved";
-          ruleAppliedRuleId = ruleApp.rule.id;
+          matchedRuleIds = ruleIds;
+          ruleAppliedRuleId = ruleIds[ruleIds.length - 1];
+          ruleAppliedRuleIdsJson = JSON.stringify(ruleIds);
         }
       } catch (e) {
         logger.warn("Smart rule application failed in SMS realize path (non-fatal):", e);
@@ -403,8 +410,8 @@ export async function createExpenseFromSms(
       const expenseId = generateUUID();
       const now = new Date().toISOString(); // Local time in ISO format
       await db.runAsync(
-        `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, raw_merchant_name, category_id, payment_mode_id, date, transaction_time, nature, source, status, raw_source_text, matched_forecast_id, applied_rule_id, created_at)
-         VALUES (?, ?, ?, 'INR', ?, ?, ?, ?, ?, ?, ?, 'realized', 'sms_auto', ?, ?, ?, ?, ?);`,
+        `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, raw_merchant_name, category_id, payment_mode_id, date, transaction_time, nature, source, status, raw_source_text, matched_forecast_id, applied_rule_id, applied_rule_ids, created_at)
+         VALUES (?, ?, ?, 'INR', ?, ?, ?, ?, ?, ?, ?, 'realized', 'sms_auto', ?, ?, ?, ?, ?, ?);`,
         expenseId,
         userId,
         parsed.amount,
@@ -419,10 +426,11 @@ export async function createExpenseFromSms(
         rawBody,
         matchResult ? matchResult.forecast.id : null,
         ruleAppliedRuleId,
+        ruleAppliedRuleIdsJson,
         now,
       );
-      if (ruleAppliedRuleId) {
-        stampApplication(ruleAppliedRuleId).catch(() => {});
+      for (const ruleId of matchedRuleIds) {
+        stampApplication(ruleId).catch(() => {});
       }
       // Link expense to its financial account
       await linkExpenseToAccount(userId, expenseId, parsed.cardLast4, parsed.bank, parsed.accountNickname);
@@ -450,7 +458,7 @@ export async function createExpenseFromSms(
 
       await markSmsProcessed(pendingSmsId, expenseId);
       await bumpDataVersion();
-      return { success: true, expenseId, isCredit: false, error: null };
+      return { success: true, expenseId, isCredit: false, error: null, appliedRuleIds: matchedRuleIds.length > 0 ? matchedRuleIds : null };
     }
 
     // v17.6.0 — if this is an EMI reminder AND we can match it to a known
@@ -600,11 +608,18 @@ export async function processParseResults(
     rawBody: string;
     smsDate?: number;
   }>,
-): Promise<{ created: number; credits: number; skipped: number; errors: string[] }> {
+): Promise<{
+  created: number;
+  credits: number;
+  skipped: number;
+  errors: string[];
+  itemResults: Array<{ pendingSmsId: string; appliedRuleIds: string[] | null }>;
+}> {
   let created = 0;
   let credits = 0;
   let skipped = 0;
   const errors: string[] = [];
+  const itemResults: Array<{ pendingSmsId: string; appliedRuleIds: string[] | null }> = [];
 
   for (const item of items) {
     const result = await createExpenseFromSms(
@@ -614,6 +629,8 @@ export async function processParseResults(
       item.rawBody,
       item.smsDate,
     );
+
+    itemResults.push({ pendingSmsId: item.pendingSmsId, appliedRuleIds: result.appliedRuleIds ?? null });
 
     if (result.error) {
       errors.push(result.error);
@@ -626,5 +643,5 @@ export async function processParseResults(
     }
   }
 
-  return { created, credits, skipped, errors };
+  return { created, credits, skipped, errors, itemResults };
 }

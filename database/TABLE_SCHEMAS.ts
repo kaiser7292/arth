@@ -77,6 +77,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "reclassified_as_transfer", // migration 046
     "linked_transfer_id", // migration 046
     "source_sms_address", // migration 048
+    "applied_rule_ids", // migration 061 — JSON array of all rule IDs that fired
   ] as const,
 
   budgets: [
@@ -809,6 +810,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "parsed_amount",
     "parsed_merchant",
     "parsed_type",
+    "applied_rule_ids", // migration 061
     "created_at",
   ] as const,
 
