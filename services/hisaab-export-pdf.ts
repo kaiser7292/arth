@@ -94,30 +94,53 @@ function statementStyles(): string {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; color: #1A1A1A; font-size: 12px; }
 
-    @page { margin: 74px 24px 44px; }
+    @page { margin: 10px 24px; }
 
-    /* Repeating page header — appears on every printed page via position:fixed */
-    .page-header-fixed {
-      position: fixed; top: -74px; left: 0; right: 0; height: 64px;
+    /* ── Outer page-wrap table ───────────────────────────────────────────
+       thead / tfoot repeat on every page — the only cross-WebKit-reliable
+       way to get per-page headers and footers in expo-print. The old
+       position:fixed approach rendered the element once at the document
+       origin and appeared at the bottom of page 1 as a bleed artifact. */
+    table.page-wrap { width: 100%; border-collapse: collapse; }
+    table.page-wrap > thead > tr > td,
+    table.page-wrap > tfoot > tr > td,
+    table.page-wrap > tbody > tr > td { padding: 0; border: none; }
+
+    /* Per-page header */
+    .phf {
       background: linear-gradient(135deg, #134E4A 0%, #0F766E 100%);
-      color: white; padding: 0 20px;
+      color: white; padding: 10px 20px;
       display: flex; align-items: center; justify-content: space-between;
     }
-    .page-header-fixed .phf-brand { display: flex; align-items: center; gap: 8px; }
-    .page-header-fixed .phf-logo { width: 22px; height: 22px; border-radius: 5px; }
-    .page-header-fixed .phf-name { font-size: 14px; font-weight: 800; letter-spacing: 0.4px; }
-    .page-header-fixed .phf-label { font-size: 8px; opacity: 0.65; letter-spacing: 0.3px; margin-top: 1px; }
-    .page-header-fixed .phf-right { text-align: right; }
-    .page-header-fixed .phf-person { font-size: 12px; font-weight: 600; }
-    .page-header-fixed .phf-period { font-size: 9px; opacity: 0.7; margin-top: 2px; }
+    .phf-brand { display: flex; align-items: center; gap: 8px; }
+    .phf-logo { width: 22px; height: 22px; border-radius: 5px; }
+    .phf-name { font-size: 14px; font-weight: 800; letter-spacing: 0.4px; }
+    .phf-label { font-size: 8px; opacity: 0.65; letter-spacing: 0.3px; margin-top: 1px; }
+    .phf-right { text-align: right; }
+    .phf-person { font-size: 12px; font-weight: 600; }
+    .phf-period { font-size: 9px; opacity: 0.7; margin-top: 2px; }
 
-    /* Repeating page footer — appears on every printed page via position:fixed */
-    .page-footer-fixed {
-      position: fixed; bottom: -44px; left: 0; right: 0; height: 36px;
-      border-top: 1px solid #E2E8F0; background: white;
-      padding-top: 9px; text-align: center; font-size: 9px; color: #94A3B8;
+    /* Per-page footer */
+    .pff {
+      border-top: 1px solid #E2E8F0;
+      padding: 6px 0 3px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 9px; color: #94A3B8;
     }
-    .page-footer-fixed .app-name { font-weight: 600; letter-spacing: 0.5px; }
+    .pff-left { font-weight: 600; letter-spacing: 0.5px; }
+    .pff-center { flex: 1; text-align: center; }
+    /* CSS counter(page) is a WebKit Paged Media extension — renders where supported */
+    .pff-right .pg::after { content: "Page " counter(page); }
+
+    /* Diagonal watermark — position:fixed centred on page; repeats reliably */
+    .watermark {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 72px; font-weight: 900;
+      color: rgba(19, 78, 74, 0.04);
+      letter-spacing: 16px; white-space: nowrap;
+      pointer-events: none; z-index: 0;
+    }
 
     .stmt-container { padding: 16px 0; }
 
@@ -177,9 +200,8 @@ function statementStyles(): string {
     .totals-table td.value.cr { color: #22C55E; }
     .totals-table td.value.nil { color: #64748B; }
 
-    /* Footer (page-1 inline footer — kept for print renderers that don't support fixed) */
-    .stmt-footer { margin-top: 24px; text-align: center; font-size: 9px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 12px; padding-bottom: 8px; }
-    .stmt-footer .app-name { font-weight: 600; letter-spacing: 0.5px; }
+    /* End-of-content rule separator — no longer used as a floating footer */
+    .stmt-footer { display: none; }
 
     /* Empty state */
     .empty { text-align: center; padding: 32px 20px; color: #94A3B8; font-size: 13px; }
@@ -288,24 +310,37 @@ function personStatementHtml(
   const hasEntries = entries.length > 0;
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${statementStyles()}</style></head><body>
-    <!-- Fixed header — repeats on every page -->
-    <div class="page-header-fixed">
-      <div class="phf-brand">
-        ${logoBase64 ? `<img class="phf-logo" src="data:image/png;base64,${logoBase64}" />` : ""}
-        <div>
-          <div class="phf-name">Arth अर्थ</div>
-          <div class="phf-label">Hisaab Statement</div>
-        </div>
-      </div>
-      <div class="phf-right">
-        <div class="phf-person">${htmlEscape(name)}</div>
-        <div class="phf-period">${formatPeriod(startDate, endDate)}</div>
-      </div>
-    </div>
-    <!-- Fixed footer — repeats on every page -->
-    <div class="page-footer-fixed">
-      <span class="app-name">Arth · अर्थ</span> · Your Finance, Your Way · Created by Sourav Baid · Generated on ${today}
-    </div>
+    <!-- Diagonal watermark — position:fixed centred, repeats on every page -->
+    <div class="watermark">ARTH</div>
+    <!-- Outer table: thead / tfoot repeat reliably on every page in WebKit print -->
+    <table class="page-wrap">
+      <thead>
+        <tr><td>
+          <div class="phf">
+            <div class="phf-brand">
+              ${logoBase64 ? `<img class="phf-logo" src="data:image/png;base64,${logoBase64}" />` : ""}
+              <div>
+                <div class="phf-name">Arth अर्थ</div>
+                <div class="phf-label">Hisaab Statement</div>
+              </div>
+            </div>
+            <div class="phf-right">
+              <div class="phf-person">${htmlEscape(name)}</div>
+              <div class="phf-period">${formatPeriod(startDate, endDate)}</div>
+            </div>
+          </div>
+        </td></tr>
+      </thead>
+      <tfoot>
+        <tr><td>
+          <div class="pff">
+            <span class="pff-left">Arth · अर्थ</span>
+            <span class="pff-center">Your Finance, Your Way · Created by Sourav Baid · ${today}</span>
+            <span class="pff-right"><span class="pg"></span></span>
+          </div>
+        </td></tr>
+      </tfoot>
+      <tbody><tr><td>
     <div class="stmt-container">
       <div class="stmt-header">
         <div class="brand">
@@ -406,10 +441,9 @@ function personStatementHtml(
         <strong>Balance Dr</strong> = net amount they owe you · <strong>Balance Cr</strong> = net amount you owe them · <strong>Nil</strong> = settled
       </div>
 
-      <div class="stmt-footer">
-        <span class="app-name">Arth · अर्थ</span> · Your Finance, Your Way · Created by Sourav Baid · Generated on ${today}
-      </div>
     </div>
+      </td></tr></tbody>
+    </table>
   </body></html>`;
 }
 
