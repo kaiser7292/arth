@@ -345,9 +345,15 @@ export function inferPaymentMode(parsed: ParsedSMS, smsBody: string): PaymentMod
   if (parsed.upiSubtype === "p2m" || parsed.upiSubtype === "p2a") return "upi";
   if (parsed.type === "upi_debit" || parsed.type === "upi_credit") return "upi";
 
-  // 2. Auto-debit types
-  if (parsed.type === "standing_instruction" || parsed.type === "nach_debit" || parsed.type === "emi") return "auto_debit";
-  if (parsed.type === "standing_instruction_reminder" || parsed.type === "emi_reminder") return "auto_debit";
+  // 2. Auto-debit types — CC SIs/reminders stay as credit_card, not auto_debit
+  if (parsed.type === "standing_instruction" || parsed.type === "nach_debit" || parsed.type === "emi") {
+    if (parsed.accountType === "credit_card") return "credit_card";
+    return "auto_debit";
+  }
+  if (parsed.type === "standing_instruction_reminder" || parsed.type === "emi_reminder") {
+    if (parsed.accountType === "credit_card") return "credit_card";
+    return "auto_debit";
+  }
 
   // 3. Wallet
   if (parsed.accountType === "wallet") return "wallet";
@@ -368,6 +374,14 @@ export function inferPaymentMode(parsed: ParsedSMS, smsBody: string): PaymentMod
     if (parsed.availableBalance && !parsed.creditLimit) return "debit_card";
     if (/AVL\s*BAL|AVAIL\s*BAL/i.test(smsBody)) return "debit_card";
     // Card with no other signal — in India, card SMS with limits = CC
+    return "credit_card";
+  }
+
+  // 5b. SI/upcoming debit + credit card text signal not captured by any parser
+  if (
+    /standing\s+instruction|upcoming\s+SI\b/i.test(smsBody) &&
+    /credit\s+card|\bCC\s*\d{4}/i.test(smsBody)
+  ) {
     return "credit_card";
   }
 
