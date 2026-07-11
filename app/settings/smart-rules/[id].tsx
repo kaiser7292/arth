@@ -1155,8 +1155,8 @@ export default function SmartRuleDetailScreen() {
           {/* Overwrite toggle */}
           <View className="flex-row items-center justify-between py-3 border-t border-border-light dark:border-border-dark mb-4">
             <View className="flex-1 mr-4">
-              <Text className="text-sm text-text-primary dark:text-text-dark-primary">Overwrite existing categories</Text>
-              <Text className="text-xs text-text-tertiary mt-0.5">If off, only uncategorized expenses are updated</Text>
+              <Text className="text-sm text-text-primary dark:text-text-dark-primary">Override existing values</Text>
+              <Text className="text-xs text-text-tertiary mt-0.5">If off, expenses that already have a category are skipped</Text>
             </View>
             <Switch
               value={retroOverwrite}
