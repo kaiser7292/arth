@@ -390,8 +390,8 @@ export async function createExpenseFromSms(
           sms_body: rawBody,
         });
         if (ruleApp) {
-          if (!categoryId && ruleApp.category_id) categoryId = ruleApp.category_id;
-          if (!paymentModeId && ruleApp.payment_mode) paymentModeId = ruleApp.payment_mode;
+          if (ruleApp.category_id) categoryId = ruleApp.category_id;
+          if (ruleApp.payment_mode) paymentModeId = ruleApp.payment_mode;
           if (ruleApp.mark_auto) status = "approved";
           ruleAppliedRuleId = ruleApp.rule.id;
         }

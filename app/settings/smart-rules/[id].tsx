@@ -656,7 +656,7 @@ export default function SmartRuleDetailScreen() {
                         >
                           <View>
                             <Text className="text-xs text-text-tertiary">Category</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedCat ? undefined : colors.tabIconDefault }}>
+                            <Text className="text-base" style={{ color: selectedCat ? colors.text : colors.tabIconDefault }}>
                               {selectedCat?.name ?? "Select category"}
                             </Text>
                           </View>
@@ -695,7 +695,7 @@ export default function SmartRuleDetailScreen() {
                         >
                           <View>
                             <Text className="text-xs text-text-tertiary">Payment mode</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedMode ? undefined : colors.tabIconDefault }}>
+                            <Text className="text-base" style={{ color: selectedMode ? colors.text : colors.tabIconDefault }}>
                               {selectedMode?.name ?? "Select payment mode"}
                             </Text>
                           </View>
