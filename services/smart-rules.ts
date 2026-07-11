@@ -772,6 +772,16 @@ function candidateToTarget(e: RetroactiveCandidate): EvaluationTarget {
 }
 
 /**
+ * Returns true when every field the rule would set is already populated on the
+ * candidate — meaning "don't override" mode has nothing to contribute.
+ */
+function hasNothingToAdd(app: RuleApplication, e: RetroactiveCandidate): boolean {
+  if (app.category_id !== null && e.category_id === null) return false;
+  if (app.payment_mode !== null && e.payment_mode_id === null) return false;
+  return true;
+}
+
+/**
  * Preview how many past expenses a rule would affect. Does not write.
  */
 export async function previewRetroactiveApply(
@@ -781,6 +791,7 @@ export async function previewRetroactiveApply(
   if (!rule) return { matching: 0, wouldOverwrite: 0, wouldSkip: 0 };
 
   const candidates = await fetchRetroactiveCandidates(scope);
+  const application = materialize(rule);
 
   let matching = 0;
   let wouldOverwrite = 0;
@@ -789,8 +800,7 @@ export async function previewRetroactiveApply(
   for (const e of candidates) {
     if (!evaluateRule(rule, candidateToTarget(e))) continue;
     matching++;
-    const alreadyCategorized = e.category_id !== null;
-    if (alreadyCategorized && !scope.overwriteExisting) {
+    if (!scope.overwriteExisting && hasNothingToAdd(application, e)) {
       wouldSkip++;
     } else {
       wouldOverwrite++;
@@ -812,11 +822,15 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
   await db.withTransactionAsync(async () => {
     for (const e of candidates) {
       if (!evaluateRule(rule, candidateToTarget(e))) continue;
-      const alreadyCategorized = e.category_id !== null;
-      if (alreadyCategorized && !scope.overwriteExisting) continue;
+      if (!scope.overwriteExisting && hasNothingToAdd(application, e)) continue;
 
-      const nextCategory = application.category_id ?? e.category_id;
-      const nextPaymentMode = application.payment_mode ?? e.payment_mode_id;
+      // Per-field: when not overriding, keep existing non-null values
+      const nextCategory = scope.overwriteExisting
+        ? (application.category_id ?? e.category_id)
+        : (e.category_id ?? application.category_id);
+      const nextPaymentMode = scope.overwriteExisting
+        ? (application.payment_mode ?? e.payment_mode_id)
+        : (e.payment_mode_id ?? application.payment_mode);
 
       await db.runAsync(
         `UPDATE expenses SET
