@@ -94,10 +94,35 @@ function statementStyles(): string {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; color: #1A1A1A; font-size: 12px; }
 
-    .stmt-container { padding: 28px 24px; }
+    @page { margin: 74px 24px 44px; }
 
-    /* Header */
-    .stmt-header { background: linear-gradient(135deg, #134E4A 0%, #0F766E 100%); color: white; padding: 24px 28px; margin: -28px -24px 24px; }
+    /* Repeating page header — appears on every printed page via position:fixed */
+    .page-header-fixed {
+      position: fixed; top: -74px; left: 0; right: 0; height: 64px;
+      background: linear-gradient(135deg, #134E4A 0%, #0F766E 100%);
+      color: white; padding: 0 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .page-header-fixed .phf-brand { display: flex; align-items: center; gap: 8px; }
+    .page-header-fixed .phf-logo { width: 22px; height: 22px; border-radius: 5px; }
+    .page-header-fixed .phf-name { font-size: 14px; font-weight: 800; letter-spacing: 0.4px; }
+    .page-header-fixed .phf-label { font-size: 8px; opacity: 0.65; letter-spacing: 0.3px; margin-top: 1px; }
+    .page-header-fixed .phf-right { text-align: right; }
+    .page-header-fixed .phf-person { font-size: 12px; font-weight: 600; }
+    .page-header-fixed .phf-period { font-size: 9px; opacity: 0.7; margin-top: 2px; }
+
+    /* Repeating page footer — appears on every printed page via position:fixed */
+    .page-footer-fixed {
+      position: fixed; bottom: -44px; left: 0; right: 0; height: 36px;
+      border-top: 1px solid #E2E8F0; background: white;
+      padding-top: 9px; text-align: center; font-size: 9px; color: #94A3B8;
+    }
+    .page-footer-fixed .app-name { font-weight: 600; letter-spacing: 0.5px; }
+
+    .stmt-container { padding: 16px 0; }
+
+    /* Header (page-1 decorative block) */
+    .stmt-header { background: linear-gradient(135deg, #134E4A 0%, #0F766E 100%); color: white; padding: 24px 20px; margin: -16px 0 20px; }
     .stmt-header .brand { display: flex; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.15); }
     .stmt-header .brand-logo { width: 28px; height: 28px; border-radius: 6px; margin-right: 10px; }
     .stmt-header .brand-text { flex: 1; }
@@ -113,7 +138,7 @@ function statementStyles(): string {
     .stmt-header .meta-value { font-weight: 600; font-size: 13px; }
 
     /* Info box */
-    .info-row { display: flex; justify-content: space-between; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; }
+    .info-row { display: flex; justify-content: space-between; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 18px; margin: 0 0 20px; }
     .info-cell .label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B; margin-bottom: 3px; }
     .info-cell .value { font-size: 14px; font-weight: 700; color: #1E293B; }
     .info-cell .value.dr { color: #EF4444; }
@@ -152,8 +177,8 @@ function statementStyles(): string {
     .totals-table td.value.cr { color: #22C55E; }
     .totals-table td.value.nil { color: #64748B; }
 
-    /* Footer */
-    .stmt-footer { margin-top: 24px; text-align: center; font-size: 9px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 12px; }
+    /* Footer (page-1 inline footer — kept for print renderers that don't support fixed) */
+    .stmt-footer { margin-top: 24px; text-align: center; font-size: 9px; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 12px; padding-bottom: 8px; }
     .stmt-footer .app-name { font-weight: 600; letter-spacing: 0.5px; }
 
     /* Empty state */
@@ -263,6 +288,24 @@ function personStatementHtml(
   const hasEntries = entries.length > 0;
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${statementStyles()}</style></head><body>
+    <!-- Fixed header — repeats on every page -->
+    <div class="page-header-fixed">
+      <div class="phf-brand">
+        ${logoBase64 ? `<img class="phf-logo" src="data:image/png;base64,${logoBase64}" />` : ""}
+        <div>
+          <div class="phf-name">Arth अर्थ</div>
+          <div class="phf-label">Hisaab Statement</div>
+        </div>
+      </div>
+      <div class="phf-right">
+        <div class="phf-person">${htmlEscape(name)}</div>
+        <div class="phf-period">${formatPeriod(startDate, endDate)}</div>
+      </div>
+    </div>
+    <!-- Fixed footer — repeats on every page -->
+    <div class="page-footer-fixed">
+      <span class="app-name">Arth · अर्थ</span> · Your Finance, Your Way · Created by Sourav Baid · Generated on ${today}
+    </div>
     <div class="stmt-container">
       <div class="stmt-header">
         <div class="brand">
