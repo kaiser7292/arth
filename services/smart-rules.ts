@@ -136,6 +136,8 @@ export interface SmartRule {
 
   apply_count: number;
   last_applied_at: string | null;
+  /** 1 = rule was created or edited since last retroactive apply; 0 = up-to-date */
+  pending_retroactive: number;
   deleted_at: string | null;
 
   created_at: string;
@@ -196,6 +198,7 @@ interface SmartRuleRow {
   action_link_to_investment_bucket_id: string | null;
   apply_count: number;
   last_applied_at: string | null;
+  pending_retroactive: number;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -234,6 +237,7 @@ function fromRow(row: SmartRuleRow): SmartRule {
     action_link_to_investment_bucket_id: row.action_link_to_investment_bucket_id,
     apply_count: row.apply_count,
     last_applied_at: row.last_applied_at,
+    pending_retroactive: row.pending_retroactive ?? 1,
     deleted_at: row.deleted_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -554,8 +558,8 @@ export async function createRule(input: CreateSmartRuleInput): Promise<string> {
     `INSERT INTO smart_rules (
        id, user_id, name, priority, is_active,
        match_mode, conditions, actions,
-       action_link_to_investment_bucket_id
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+       action_link_to_investment_bucket_id, pending_retroactive
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1);`,
     id,
     DEFAULT_USER_ID,
     input.name.trim(),
@@ -595,6 +599,7 @@ export async function updateRule(id: string, input: UpdateSmartRuleInput): Promi
        name = ?, priority = ?, is_active = ?,
        match_mode = ?, conditions = ?, actions = ?,
        action_link_to_investment_bucket_id = ?,
+       pending_retroactive = 1,
        updated_at = datetime('now')
      WHERE id = ?;`,
     merged.name.trim(),
@@ -848,10 +853,31 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
     }
   });
 
+  // Always clear the pending flag — the rule is now up-to-date with past expenses
+  // regardless of whether any matched, so the user doesn't need to re-run.
+  await db.runAsync(
+    "UPDATE smart_rules SET pending_retroactive = 0, updated_at = datetime('now') WHERE id = ?;",
+    rule.id,
+  );
+
   if (applied > 0) {
     await stampApplication(rule.id);
     await bumpDataVersion();
   }
 
   return applied;
+}
+
+export async function duplicateRule(id: string): Promise<string> {
+  const original = await getRule(id);
+  if (!original) throw new Error(`Rule ${id} not found`);
+  return createRule({
+    name: `Copy of ${original.name}`,
+    priority: original.priority,
+    is_active: original.is_active === 1,
+    match_mode: original.match_mode,
+    conditions: original.conditions,
+    actions: original.actions,
+    action_link_to_investment_bucket_id: original.action_link_to_investment_bucket_id,
+  });
 }

@@ -503,6 +503,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "action_link_to_investment_bucket_id", // v17.2.0
     "apply_count",
     "last_applied_at",
+    "pending_retroactive",
     "created_at",
     "updated_at",
   ] as const,

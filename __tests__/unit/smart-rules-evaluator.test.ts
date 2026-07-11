@@ -26,6 +26,7 @@ function rule(overrides: Partial<SmartRule> = {}): SmartRule {
     action_link_to_investment_bucket_id: overrides.action_link_to_investment_bucket_id ?? null,
     apply_count: 0,
     last_applied_at: null,
+    pending_retroactive: 1,
     deleted_at: null,
     created_at: "2026-04-29T00:00:00Z",
     updated_at: "2026-04-29T00:00:00Z",

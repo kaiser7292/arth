@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import {
-  listRules, deleteRule, listDeletedRules, restoreRule, restoreAllRules, purgeDeletedRules,
+  listRules, deleteRule, duplicateRule, listDeletedRules, restoreRule, restoreAllRules, purgeDeletedRules,
   FIELD_LABELS, OPERATOR_LABELS, type SmartRule,
 } from "@/services/smart-rules";
 import { getCategories, type Category } from "@/services/category";
@@ -60,6 +60,18 @@ export default function SmartRulesListScreen() {
       setLoading(true);
       load();
     }, [load]),
+  );
+
+  const handleDuplicate = useCallback(
+    async (rule: SmartRule) => {
+      try {
+        await duplicateRule(rule.id);
+        await load();
+      } catch (e) {
+        alert("Couldn't duplicate", getErrorMessage(e));
+      }
+    },
+    [load, alert],
   );
 
   const confirmDelete = useCallback(
@@ -250,7 +262,12 @@ export default function SmartRulesListScreen() {
                     THEN: {summarizeActions(item)}
                   </Text>
                 </Pressable>
-                <View className="flex-row justify-end mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+                <View className="flex-row justify-end mt-3 pt-3 border-t border-border-light dark:border-border-dark" style={{ gap: 16 }}>
+                  <Pressable onPress={() => handleDuplicate(item)} hitSlop={8}>
+                    <Text className="text-sm" style={{ color: accentColor }}>
+                      Duplicate
+                    </Text>
+                  </Pressable>
                   <Pressable onPress={() => confirmDelete(item)} hitSlop={8}>
                     <Text className="text-sm" style={{ color: StatusColors[colorScheme].danger }}>
                       Delete

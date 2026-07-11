@@ -156,6 +156,8 @@ export default function SmartRuleDetailScreen() {
   const [expandedCondValueRow, setExpandedCondValueRow] = useState<number | null>(null);
   const [fieldSearch, setFieldSearch] = useState("");
 
+  const [isPendingRetroactive, setIsPendingRetroactive] = useState(true);
+
   // Retroactive apply sheet
   const [showRetroSheet, setShowRetroSheet] = useState(false);
   const [retroStart, setRetroStart] = useState("");
@@ -200,6 +202,7 @@ export default function SmartRuleDetailScreen() {
     setPriority(String(r.priority));
     setIsActive(r.is_active === 1);
     setMatchMode(r.match_mode);
+    setIsPendingRetroactive(r.pending_retroactive === 1);
     setConditions(r.conditions.length > 0 ? r.conditions : [defaultConditionFor("merchant")]);
 
     const uiActions: UIRuleAction[] = [...r.actions];
@@ -304,6 +307,7 @@ export default function SmartRuleDetailScreen() {
         await createRule(input);
       } else {
         await updateRule(id, input);
+        setIsPendingRetroactive(true);
       }
       router.back();
     } catch (e) {
@@ -353,6 +357,7 @@ export default function SmartRuleDetailScreen() {
         overwriteExisting: retroOverwrite,
       });
       setShowRetroSheet(false);
+      setIsPendingRetroactive(false);
       alert("Done", `Applied to ${applied} expense${applied === 1 ? "" : "s"}.`);
     } catch (e) {
       alert("Couldn't apply", getErrorMessage(e));
@@ -1033,20 +1038,29 @@ export default function SmartRuleDetailScreen() {
           </Card>
 
           {!isCreate && (
-            <Card className="mb-4">
-              <Pressable onPress={openRetroSheet} className="flex-row items-center py-3">
-                <Ionicons name="time-outline" size={20} color={accentColor} />
+            <View className="mb-4" style={{ opacity: isPendingRetroactive ? 1 : 0.5 }}>
+            <Card>
+              <Pressable
+                onPress={isPendingRetroactive ? openRetroSheet : undefined}
+                className="flex-row items-center py-3"
+              >
+                <Ionicons name="time-outline" size={20} color={isPendingRetroactive ? accentColor : colors.textSecondary} />
                 <View className="flex-1 ml-3">
-                  <Text className="text-base text-text-primary dark:text-text-dark-primary font-semibold">
+                  <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
                     Apply to past expenses
                   </Text>
                   <Text className="text-xs text-text-tertiary mt-0.5">
-                    Retroactively apply this rule to matching past expenses
+                    {isPendingRetroactive
+                      ? "Retroactively apply this rule to matching past expenses"
+                      : "Already applied — edit the rule to enable again"}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+                {isPendingRetroactive && (
+                  <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+                )}
               </Pressable>
             </Card>
+            </View>
           )}
 
           <Button
