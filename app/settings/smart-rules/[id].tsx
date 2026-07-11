@@ -3,7 +3,7 @@ import { View, Text, Pressable, ScrollView, ActivityIndicator, Switch, TextInput
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer } from "@/components/ui";
+import { DateInput, ScreenContainer } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -162,6 +162,7 @@ export default function SmartRuleDetailScreen() {
   const [showRetroSheet, setShowRetroSheet] = useState(false);
   const [retroStart, setRetroStart] = useState("");
   const [retroEnd, setRetroEnd] = useState("");
+  const [retroPreset, setRetroPreset] = useState<number | null>(90);
   const [retroAccountIds, setRetroAccountIds] = useState<string[]>([]);
   const [retroOverwrite, setRetroOverwrite] = useState(false);
   const [retroPreview, setRetroPreview] = useState<RetroactivePreview | null>(null);
@@ -307,19 +308,19 @@ export default function SmartRuleDetailScreen() {
         await createRule(input);
       } else {
         await updateRule(id, input);
-        setIsPendingRetroactive(true);
       }
+      // Navigate first — don't touch state after this, the component unmounts
       router.back();
     } catch (e) {
-      alert("Couldn't save", getErrorMessage(e));
-    } finally {
       setSaving(false);
+      alert("Couldn't save", getErrorMessage(e));
     }
   }, [saving, name, priority, isActive, matchMode, conditions, buildActions, buildLinkBucketId, isCreate, id, alert, router]);
 
   const openRetroSheet = useCallback(() => {
     setRetroStart(daysAgoIso(90));
     setRetroEnd(todayIso());
+    setRetroPreset(90);
     setRetroAccountIds([]);
     setRetroOverwrite(false);
     setRetroPreview(null);
@@ -1083,50 +1084,57 @@ export default function SmartRuleDetailScreen() {
             </Pressable>
           </View>
 
-          {/* Date range */}
+          {/* Quick presets */}
           <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-2">
             Date range
           </Text>
-          <View className="flex-row mb-4" style={{ gap: 8 }}>
-            <View className="flex-1">
-              <Text className="text-xs text-text-tertiary mb-1">From</Text>
-              <TextInput
-                value={retroStart}
-                onChangeText={(v) => { setRetroStart(v); setRetroPreview(null); }}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.tabIconDefault}
-                className="rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
-              />
-            </View>
-            <View className="flex-1">
-              <Text className="text-xs text-text-tertiary mb-1">To</Text>
-              <TextInput
-                value={retroEnd}
-                onChangeText={(v) => { setRetroEnd(v); setRetroPreview(null); }}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.tabIconDefault}
-                className="rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
-              />
-            </View>
+          <View className="flex-row flex-wrap mb-3" style={{ gap: 6 }}>
+            {[
+              { label: "30 days", days: 30 },
+              { label: "90 days", days: 90 },
+              { label: "6 months", days: 180 },
+              { label: "1 year", days: 365 },
+            ].map(({ label, days }) => {
+              const active = retroPreset === days;
+              return (
+                <Pressable
+                  key={days}
+                  onPress={() => {
+                    setRetroPreset(days);
+                    setRetroStart(daysAgoIso(days));
+                    setRetroEnd(todayIso());
+                    setRetroPreview(null);
+                  }}
+                  className="px-3 py-1.5 rounded-full border"
+                  style={{
+                    borderColor: active ? accentColor : colors.border,
+                    backgroundColor: active ? accentColor + "18" : "transparent",
+                  }}
+                >
+                  <Text className="text-xs font-medium" style={{ color: active ? accentColor : colors.textSecondary }}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
-          {/* Quick presets */}
-          <View className="flex-row flex-wrap mb-4" style={{ gap: 6 }}>
-            {[
-              { label: "Last 30 days", days: 30 },
-              { label: "Last 90 days", days: 90 },
-              { label: "Last 6 months", days: 180 },
-              { label: "Last year", days: 365 },
-            ].map(({ label, days }) => (
-              <Pressable
-                key={days}
-                onPress={() => { setRetroStart(daysAgoIso(days)); setRetroEnd(todayIso()); setRetroPreview(null); }}
-                className="px-3 py-1.5 rounded-full border"
-                style={{ borderColor: colors.border }}
-              >
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{label}</Text>
-              </Pressable>
-            ))}
+          {/* Date pickers */}
+          <View className="flex-row mb-4" style={{ gap: 8 }}>
+            <DateInput
+              label="From"
+              value={retroStart}
+              onChange={(v) => { setRetroStart(v); setRetroPreset(null); setRetroPreview(null); }}
+              maximumDate={null}
+              containerClassName="flex-1"
+            />
+            <DateInput
+              label="To"
+              value={retroEnd}
+              onChange={(v) => { setRetroEnd(v); setRetroPreset(null); setRetroPreview(null); }}
+              maximumDate={null}
+              containerClassName="flex-1"
+            />
           </View>
 
           {/* Account filter */}
@@ -1180,10 +1188,10 @@ export default function SmartRuleDetailScreen() {
           </View>
 
           {/* Preview result */}
-          {retroPreview && (
+          {retroPreview ? (
             <View className="rounded-lg px-4 py-3 mb-4" style={{ backgroundColor: accentColor + "14" }}>
               <Text className="text-sm font-semibold mb-1" style={{ color: accentColor }}>
-                Preview
+                Preview result
               </Text>
               <Text className="text-sm text-text-primary dark:text-text-dark-primary">
                 {retroPreview.matching} matching expense{retroPreview.matching === 1 ? "" : "s"}
@@ -1192,32 +1200,45 @@ export default function SmartRuleDetailScreen() {
                 {retroPreview.wouldOverwrite} will be updated · {retroPreview.wouldSkip} skipped (already categorized)
               </Text>
             </View>
+          ) : (
+            <Text className="text-xs text-text-tertiary text-center mb-4">
+              Run Preview first to see how many expenses will be updated, then Apply.
+            </Text>
           )}
 
           {/* Actions */}
-          <View className="flex-row" style={{ gap: 8 }}>
+          {!retroPreview ? (
             <Pressable
               onPress={onRetroPreview}
               disabled={retroPreviewing}
-              className="flex-1 py-3 rounded-xl items-center border border-border-light dark:border-border-dark"
+              className="py-3 rounded-xl items-center border border-border-light dark:border-border-dark"
             >
               {retroPreviewing
                 ? <ActivityIndicator size="small" color={accentColor} />
                 : <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">Preview</Text>
               }
             </Pressable>
-            <Pressable
-              onPress={onRetroApply}
-              disabled={!retroPreview || retroPreview.wouldOverwrite === 0 || retroApplying}
-              className="flex-1 py-3 rounded-xl items-center"
-              style={{ backgroundColor: (!retroPreview || retroPreview.wouldOverwrite === 0) ? colors.border : accentColor }}
-            >
-              {retroApplying
-                ? <ActivityIndicator size="small" color="white" />
-                : <Text className="text-sm font-semibold text-white">Apply</Text>
-              }
-            </Pressable>
-          </View>
+          ) : (
+            <View className="flex-row" style={{ gap: 8 }}>
+              <Pressable
+                onPress={() => { setRetroPreview(null); }}
+                className="flex-1 py-3 rounded-xl items-center border border-border-light dark:border-border-dark"
+              >
+                <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">Re-Preview</Text>
+              </Pressable>
+              <Pressable
+                onPress={onRetroApply}
+                disabled={retroPreview.wouldOverwrite === 0 || retroApplying}
+                className="flex-1 py-3 rounded-xl items-center"
+                style={{ backgroundColor: retroPreview.wouldOverwrite === 0 ? colors.border : accentColor }}
+              >
+                {retroApplying
+                  ? <ActivityIndicator size="small" color="white" />
+                  : <Text className="text-sm font-semibold text-white">Apply ({retroPreview.wouldOverwrite})</Text>
+                }
+              </Pressable>
+            </View>
+          )}
         </View>
       </BottomSheet>
     </ScreenContainer>

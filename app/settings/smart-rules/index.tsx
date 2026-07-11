@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, Pressable, FlatList, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, FAB } from "@/components/ui";
@@ -204,10 +204,51 @@ export default function SmartRulesListScreen() {
     return parts.length > 0 ? parts.join(" · ") : "No actions";
   };
 
+  const deletedSection = deletedRules.length > 0 ? (
+    <View className="mt-4">
+      <Pressable
+        onPress={() => setShowDeleted((v) => !v)}
+        className="flex-row items-center justify-between py-2 mb-2"
+      >
+        <Text className="text-xs font-semibold uppercase" style={{ color: colors.textSecondary, letterSpacing: 0.5 }}>
+          Deleted ({deletedRules.length})
+        </Text>
+        <Ionicons name={showDeleted ? "chevron-up" : "chevron-down"} size={14} color={colors.textSecondary} />
+      </Pressable>
+      {showDeleted && (
+        <>
+          <View className="flex-row gap-2 mb-3">
+            <Pressable onPress={confirmRestoreAll} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: colors.tint + "20" }}>
+              <Text className="text-xs font-semibold" style={{ color: colors.tint }}>Restore All</Text>
+            </Pressable>
+            <Pressable onPress={confirmPurge} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: StatusColors[colorScheme].danger + "14" }}>
+              <Text className="text-xs font-semibold" style={{ color: StatusColors[colorScheme].danger }}>Delete Forever</Text>
+            </Pressable>
+          </View>
+          {deletedRules.map((item) => (
+            <View key={item.id} className="mb-2" style={{ opacity: 0.6 }}>
+              <Card>
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-sm font-medium text-text-tertiary flex-1" numberOfLines={1}>{item.name}</Text>
+                  <Pressable onPress={() => handleRestore(item)} hitSlop={8} className="ml-3">
+                    <Text className="text-xs font-semibold" style={{ color: colors.tint }}>Restore</Text>
+                  </Pressable>
+                </View>
+                <Text className="text-xs text-text-tertiary mt-0.5" numberOfLines={1}>
+                  {summarizeConditions(item)}
+                </Text>
+              </Card>
+            </View>
+          ))}
+        </>
+      )}
+    </View>
+  ) : null;
+
   return (
     <ScreenContainer padTop={false}>
       <View className="flex-1">
-        <View className="px-4 pt-3 pb-2 flex-row items-center justify-between">
+        <View className="px-4 pt-3 pb-2">
           <Text className="text-xs text-text-tertiary">
             Rules auto-apply when new expenses are added (manually or from SMS). First matching rule wins.
           </Text>
@@ -218,42 +259,33 @@ export default function SmartRulesListScreen() {
             <ActivityIndicator size="large" color={accentColor} />
           </View>
         ) : rules.length === 0 ? (
-          <View className="flex-1 items-center justify-center px-8">
-            <Ionicons name="sparkles-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
-              No rules yet
-            </Text>
-            <Text className="text-sm text-text-tertiary text-center mt-2">
-              Create a rule to auto-categorize expenses by merchant, amount, or account.
-            </Text>
-          </View>
+          <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingBottom: 96 }}>
+            <View className="flex-1 items-center justify-center py-16 px-8">
+              <Ionicons name="sparkles-outline" size={48} color={colors.textSecondary} />
+              <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+                No rules yet
+              </Text>
+              <Text className="text-sm text-text-tertiary text-center mt-2">
+                Create a rule to auto-categorize expenses by merchant, amount, or account.
+              </Text>
+            </View>
+            {deletedSection}
+          </ScrollView>
         ) : (
-          <FlatList
-            data={rules}
-            keyExtractor={(r) => r.id}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
-            renderItem={({ item }) => (
-              <Card className="mb-3">
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}>
+            {rules.map((item) => (
+              <Card key={item.id} className="mb-3">
                 <Pressable onPress={() => router.push(`/settings/smart-rules/${item.id}` as never)}>
                   <View className="flex-row items-center mb-2">
                     <View className="flex-1">
                       <Text className={`text-base font-semibold ${item.is_active ? "text-text-primary dark:text-text-dark-primary" : "text-text-tertiary"}`}>
                         {item.name}
                       </Text>
-                      <Pressable
-                        onPress={() => router.push(`/settings/smart-rules/applications/${item.id}` as never)}
-                        hitSlop={8}
-                      >
-                        <Text className="text-xs text-text-tertiary mt-0.5">
-                          Priority {item.priority} · <Text style={{ color: item.apply_count > 0 ? accentColor : undefined }}>Applied {item.apply_count} time{item.apply_count === 1 ? "" : "s"}</Text>
-                        </Text>
-                      </Pressable>
+                      <Text className="text-xs text-text-tertiary mt-0.5">
+                        Priority {item.priority}
+                        {!item.is_active && <Text> · Paused</Text>}
+                      </Text>
                     </View>
-                    {!item.is_active && (
-                      <View className="px-2 py-0.5 bg-surface-light-alt dark:bg-surface-dark-alt rounded">
-                        <Text className="text-xs text-text-tertiary">Paused</Text>
-                      </View>
-                    )}
                   </View>
                   <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-1">
                     WHEN: {summarizeConditions(item)}
@@ -262,61 +294,46 @@ export default function SmartRulesListScreen() {
                     THEN: {summarizeActions(item)}
                   </Text>
                 </Pressable>
-                <View className="flex-row justify-end mt-3 pt-3 border-t border-border-light dark:border-border-dark" style={{ gap: 16 }}>
-                  <Pressable onPress={() => handleDuplicate(item)} hitSlop={8}>
-                    <Text className="text-sm" style={{ color: accentColor }}>
-                      Duplicate
+                <View className="flex-row mt-3 pt-3 border-t border-border-light dark:border-border-dark" style={{ gap: 0 }}>
+                  <Pressable
+                    onPress={() => router.push(`/settings/smart-rules/${item.id}` as never)}
+                    hitSlop={4}
+                    className="flex-1 items-center py-1"
+                  >
+                    <Ionicons name="create-outline" size={16} color={accentColor} />
+                    <Text className="text-xs mt-0.5" style={{ color: accentColor }}>Edit</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => router.push(`/settings/smart-rules/applications/${item.id}` as never)}
+                    hitSlop={4}
+                    className="flex-1 items-center py-1"
+                  >
+                    <Ionicons name="checkmark-circle-outline" size={16} color={item.apply_count > 0 ? accentColor : colors.textSecondary} />
+                    <Text className="text-xs mt-0.5" style={{ color: item.apply_count > 0 ? accentColor : colors.textSecondary }}>
+                      Applied {item.apply_count}
                     </Text>
                   </Pressable>
-                  <Pressable onPress={() => confirmDelete(item)} hitSlop={8}>
-                    <Text className="text-sm" style={{ color: StatusColors[colorScheme].danger }}>
-                      Delete
-                    </Text>
+                  <Pressable
+                    onPress={() => handleDuplicate(item)}
+                    hitSlop={4}
+                    className="flex-1 items-center py-1"
+                  >
+                    <Ionicons name="copy-outline" size={16} color={colors.textSecondary} />
+                    <Text className="text-xs mt-0.5 text-text-tertiary">Duplicate</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => confirmDelete(item)}
+                    hitSlop={4}
+                    className="flex-1 items-center py-1"
+                  >
+                    <Ionicons name="trash-outline" size={16} color={StatusColors[colorScheme].danger} />
+                    <Text className="text-xs mt-0.5" style={{ color: StatusColors[colorScheme].danger }}>Delete</Text>
                   </Pressable>
                 </View>
               </Card>
-            )}
-            ListFooterComponent={
-              deletedRules.length > 0 ? (
-                <View className="mt-4">
-                  <Pressable
-                    onPress={() => setShowDeleted((v) => !v)}
-                    className="flex-row items-center justify-between py-2 mb-2"
-                  >
-                    <Text className="text-xs font-semibold uppercase" style={{ color: colors.textSecondary, letterSpacing: 0.5 }}>
-                      Deleted ({deletedRules.length})
-                    </Text>
-                    <Ionicons name={showDeleted ? "chevron-up" : "chevron-down"} size={14} color={colors.textSecondary} />
-                  </Pressable>
-                  {showDeleted && (
-                    <>
-                      <View className="flex-row gap-2 mb-3">
-                        <Pressable onPress={confirmRestoreAll} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: colors.tint + "20" }}>
-                          <Text className="text-xs font-semibold" style={{ color: colors.tint }}>Restore All</Text>
-                        </Pressable>
-                        <Pressable onPress={confirmPurge} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: StatusColors[colorScheme].danger + "14" }}>
-                          <Text className="text-xs font-semibold" style={{ color: StatusColors[colorScheme].danger }}>Delete Forever</Text>
-                        </Pressable>
-                      </View>
-                      {deletedRules.map((item) => (
-                        <View key={item.id} className="mb-2" style={{ opacity: 0.6 }}><Card>
-                          <View className="flex-row items-center justify-between">
-                            <Text className="text-sm font-medium text-text-tertiary flex-1" numberOfLines={1}>{item.name}</Text>
-                            <Pressable onPress={() => handleRestore(item)} hitSlop={8} className="ml-3">
-                              <Text className="text-xs font-semibold" style={{ color: colors.tint }}>Restore</Text>
-                            </Pressable>
-                          </View>
-                          <Text className="text-xs text-text-tertiary mt-0.5" numberOfLines={1}>
-                            {summarizeConditions(item)}
-                          </Text>
-                        </Card></View>
-                      ))}
-                    </>
-                  )}
-                </View>
-              ) : null
-            }
-          />
+            ))}
+            {deletedSection}
+          </ScrollView>
         )}
 
         <FAB

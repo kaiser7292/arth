@@ -2,8 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
-import { ConfirmSheet, FAB, ProgressBar, ScreenContainer } from "@/components/ui";
+import { FAB, ProgressBar, ScreenContainer } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAlert } from "@/hooks/use-alert";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getSessions, deleteSession, type ReconciliationSession } from "@/services/reconciliation/reconciliation-crud";
@@ -29,11 +30,11 @@ function formatDate(iso: string): string {
 export default function ReconciliationHubScreen() {
   const router = useRouter();
   const { colors, accent } = useColorScheme();
+  const alert = useAlert();
 
   const [sessions, setSessions] = useState<ReconciliationSession[]>([]);
   const [accounts, setAccounts] = useState<Record<string, FinancialAccount>>({});
   const [loading, setLoading] = useState(true);
-  const [deleteTarget, setDeleteTarget] = useState<ReconciliationSession | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -52,12 +53,24 @@ export default function ReconciliationHubScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const handleConfirmDelete = useCallback(async () => {
-    if (!deleteTarget) return;
-    await deleteSession(deleteTarget.id);
-    setDeleteTarget(null);
-    load();
-  }, [deleteTarget, load]);
+  const confirmDelete = useCallback((item: ReconciliationSession) => {
+    const account = accounts[item.account_id];
+    const name = account ? (account.account_label || account.bank_name) : "this session";
+    const dateRange = item.stmt_start_date && item.stmt_end_date
+      ? ` (${formatDate(item.stmt_start_date)} – ${formatDate(item.stmt_end_date)})`
+      : "";
+    alert(`Delete reconciliation?`, `Delete "${name}"${dateRange}? This cannot be undone.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await deleteSession(item.id);
+          load();
+        },
+      },
+    ]);
+  }, [accounts, alert, load]);
 
   const renderItem = ({ item }: { item: ReconciliationSession }) => {
     const account = accounts[item.account_id];
@@ -72,8 +85,6 @@ export default function ReconciliationHubScreen() {
     return (
       <Pressable
         onPress={() => router.push(`/settings/reconciliation/${item.id}`)}
-        onLongPress={() => setDeleteTarget(item)}
-        delayLongPress={400}
         className="py-3.5 border-b border-border-light dark:border-border-dark"
       >
         <View className="flex-row items-center">
@@ -107,7 +118,7 @@ export default function ReconciliationHubScreen() {
               </Text>
             )}
           </View>
-          <Pressable onPress={() => setDeleteTarget(item)} hitSlop={8} className="ml-3">
+          <Pressable onPress={() => confirmDelete(item)} hitSlop={8} className="ml-3">
             <Ionicons name="trash-outline" size={16} color="#EF444466" />
           </Pressable>
         </View>
@@ -124,11 +135,6 @@ export default function ReconciliationHubScreen() {
       </Pressable>
     );
   };
-
-  const deleteAccount = deleteTarget ? accounts[deleteTarget.account_id] : null;
-  const deleteLabel = deleteAccount
-    ? (deleteAccount.account_label || deleteAccount.bank_name)
-    : undefined;
 
   return (
     <ScreenContainer padTop={false}>
@@ -160,21 +166,6 @@ export default function ReconciliationHubScreen() {
         />
       )}
       <FAB icon="add" onPress={() => router.push("/settings/reconciliation/new")} />
-
-      <ConfirmSheet
-        visible={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        title="Delete reconciliation?"
-        context={deleteLabel}
-        message={
-          deleteTarget?.stmt_start_date && deleteTarget?.stmt_end_date
-            ? `${formatDate(deleteTarget.stmt_start_date)} – ${formatDate(deleteTarget.stmt_end_date)}`
-            : undefined
-        }
-        confirmLabel="Delete"
-        destructive
-        onConfirm={handleConfirmDelete}
-      />
     </ScreenContainer>
   );
 }
