@@ -11,19 +11,52 @@ const KEYS = {
   AI_DATA_BUDGET: "arth_ai_data_budget",
   AI_DATA_HISAAB: "arth_ai_data_hisaab",
   AI_DATA_VAULT: "arth_ai_data_vault",
+  ACTIVE_MODEL: "arth_ai_active_model",
 } as const;
 
-// ── Model config ──────────────────────────────────────────────────
-// Llama 3.2 1B Instruct Q4_K_M — ~880 MB, ungated on bartowski's HF mirror.
-// If the download fails with auth errors, grab the direct URL from:
-// https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF
-export const MODEL_FILENAME = "Llama-3.2-1B-Instruct-Q4_K_M.gguf";
-export const MODEL_URL =
-  "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf";
-export const MODEL_SIZE_MB = 880;
+// ── Model registry ────────────────────────────────────────────────
+export interface ModelDefinition {
+  id: string;
+  name: string;
+  filename: string;
+  url: string;
+  sizeMB: number;
+  description: string;
+  minRAMGB: number;
+}
 
-// Few-shot prompt pattern: small models imitate examples far better than they
-// follow abstract rules. Keep this short — every token here costs context window.
+export const AVAILABLE_MODELS: ModelDefinition[] = [
+  {
+    id: "1b",
+    name: "Llama 3.2 1B",
+    filename: "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+    url: "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+    sizeMB: 880,
+    description: "Fast responses · Works on any Android phone",
+    minRAMGB: 3,
+  },
+  {
+    id: "3b",
+    name: "Llama 3.2 3B",
+    filename: "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+    url: "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+    sizeMB: 1930,
+    description: "Smarter & more accurate · Needs 4 GB+ RAM",
+    minRAMGB: 4,
+  },
+];
+
+// Legacy single-model exports kept for any code that still references them
+export const MODEL_FILENAME = AVAILABLE_MODELS[0].filename;
+export const MODEL_URL = AVAILABLE_MODELS[0].url;
+export const MODEL_SIZE_MB = AVAILABLE_MODELS[0].sizeMB;
+
+function getModelDef(modelId: string): ModelDefinition {
+  return AVAILABLE_MODELS.find((m) => m.id === modelId) ?? AVAILABLE_MODELS[0];
+}
+
+// ── System prompt (few-shot) ──────────────────────────────────────
+// Small models imitate patterns better than they follow abstract rules.
 const SYSTEM_PROMPT =
   "You are Arth AI inside the Arth personal finance app. " +
   "Answer ONLY from the financial data provided. Never calculate — every number is pre-computed by the app and already correct. " +
@@ -44,7 +77,6 @@ const SYSTEM_PROMPT =
 export function isArthAIEnabled(): boolean {
   return settingsStorage.getBoolean(KEYS.AI_ENABLED) ?? false;
 }
-
 export function setArthAIEnabled(enabled: boolean): void {
   settingsStorage.set(KEYS.AI_ENABLED, enabled);
 }
@@ -52,9 +84,19 @@ export function setArthAIEnabled(enabled: boolean): void {
 export function isNLSearchEnabled(): boolean {
   return settingsStorage.getBoolean(KEYS.NL_SEARCH_ENABLED) ?? true;
 }
-
 export function setNLSearchEnabled(enabled: boolean): void {
   settingsStorage.set(KEYS.NL_SEARCH_ENABLED, enabled);
+}
+
+// ── Active model ──────────────────────────────────────────────────
+export function getActiveModelId(): string {
+  return settingsStorage.getString(KEYS.ACTIVE_MODEL) ?? "1b";
+}
+
+export function setActiveModelId(modelId: string): void {
+  settingsStorage.set(KEYS.ACTIVE_MODEL, modelId);
+  // Release context so the next chat open re-inits with the new model
+  releaseAIContext();
 }
 
 // ── Data access toggle helpers ───────────────────────────────────
@@ -93,28 +135,27 @@ export function setAIDataVaultEnabled(v: boolean): void {
   settingsStorage.set(KEYS.AI_DATA_VAULT, v);
 }
 
-// ── Model file helpers ────────────────────────────────────────────
-export function getModelPath(): string {
-  // documentDirectory always has a trailing slash and matches the download destination
-  return (documentDirectory ?? "") + MODEL_FILENAME;
+// ── Per-model file helpers ────────────────────────────────────────
+export function getModelPath(modelId?: string): string {
+  const def = getModelDef(modelId ?? getActiveModelId());
+  return (documentDirectory ?? "") + def.filename;
 }
 
-// Native path for llama.rn (strips file:// URI prefix)
-export function getModelNativePath(): string {
-  return getModelPath().replace(/^file:\/\//, "");
+export function getModelNativePath(modelId?: string): string {
+  return getModelPath(modelId).replace(/^file:\/\//, "");
 }
 
-export async function isModelDownloaded(): Promise<boolean> {
+export async function isModelDownloaded(modelId?: string): Promise<boolean> {
   try {
-    return new File(getModelPath()).exists;
+    return new File(getModelPath(modelId)).exists;
   } catch {
     return false;
   }
 }
 
-export async function getModelSizeOnDisk(): Promise<number> {
+export async function getModelSizeOnDisk(modelId?: string): Promise<number> {
   try {
-    const f = new File(getModelPath());
+    const f = new File(getModelPath(modelId));
     if (!f.exists) return 0;
     return Math.round(f.size / 1024 / 1024);
   } catch {
@@ -122,27 +163,37 @@ export async function getModelSizeOnDisk(): Promise<number> {
   }
 }
 
-export async function deleteModel(): Promise<void> {
-  await releaseAIContext();
-  const f = new File(getModelPath());
+export async function deleteModel(modelId?: string): Promise<void> {
+  const targetId = modelId ?? getActiveModelId();
+  // Release context if we're deleting the currently loaded model
+  if (targetId === loadedModelId) await releaseAIContext();
+  const f = new File(getModelPath(targetId));
   if (f.exists) f.delete();
 }
 
+// ── Download ──────────────────────────────────────────────────────
 let activeDownload: DownloadResumable | null = null;
+let downloadingModelId: string | null = null;
+
+export function getDownloadingModelId(): string | null {
+  return downloadingModelId;
+}
 
 export async function downloadModel(
+  modelId: string,
   onProgress: (downloadedMB: number, totalMB: number, pct: number) => void,
 ): Promise<void> {
-  const dest = getModelPath();
+  const def = getModelDef(modelId);
+  downloadingModelId = modelId;
   activeDownload = createDownloadResumable(
-    MODEL_URL,
-    dest,
+    def.url,
+    getModelPath(modelId),
     {},
     ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
       const dl = totalBytesWritten / 1024 / 1024;
       const total = totalBytesExpectedToWrite > 0
         ? totalBytesExpectedToWrite / 1024 / 1024
-        : MODEL_SIZE_MB;
+        : def.sizeMB;
       const pct = total > 0 ? Math.min(dl / total, 1) : 0;
       onProgress(Math.round(dl), Math.round(total), pct);
     },
@@ -152,39 +203,53 @@ export async function downloadModel(
     if (!result) throw new Error("Download returned no result");
   } finally {
     activeDownload = null;
+    downloadingModelId = null;
   }
 }
 
 export async function cancelDownload(): Promise<void> {
   if (activeDownload) {
+    const modelId = downloadingModelId;
     await activeDownload.cancelAsync();
     activeDownload = null;
-    const f = new File(getModelPath());
-    if (f.exists) f.delete();
+    downloadingModelId = null;
+    if (modelId) {
+      const f = new File(getModelPath(modelId));
+      if (f.exists) f.delete();
+    }
   }
 }
 
 // ── LLM context (module-level singleton) ─────────────────────────
-// Kept alive across screens so reinit cost (3-6s) is paid once per session.
-// Release on app background via AppState listener in the chat screen.
 type LlamaContext = Awaited<ReturnType<typeof import("llama.rn").initLlama>>;
 let llamaContext: LlamaContext | null = null;
 let initPromise: Promise<void> | null = null;
+let loadedModelId: string | null = null;
 
 export async function initAIContext(): Promise<void> {
-  if (llamaContext) return;
+  const targetId = getActiveModelId();
+
+  // Already loaded with the right model
+  if (llamaContext && loadedModelId === targetId) return;
+
+  // Loaded with a different model — release before re-init
+  if (llamaContext && loadedModelId !== targetId) {
+    await releaseAIContext();
+  }
+
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
     const { initLlama } = await import("llama.rn");
     llamaContext = await initLlama({
-      model: getModelNativePath(),
+      model: getModelNativePath(targetId),
       n_ctx: 2048,
       n_batch: 512,
       n_threads: 4,
       n_gpu_layers: 0,
       use_mlock: false,
     });
+    loadedModelId = targetId;
   })();
 
   try {
@@ -208,10 +273,11 @@ export async function releaseAIContext(): Promise<void> {
   try {
     await llamaContext.release();
   } catch {
-    // ignore — process may already be clean
+    // ignore
   }
   llamaContext = null;
   initPromise = null;
+  loadedModelId = null;
 }
 
 export interface ChatMessage {
