@@ -118,8 +118,10 @@ export async function initAIContext(): Promise<void> {
 
   initPromise = (async () => {
     const { initLlama } = await import("llama.rn");
+    // initLlama needs a native filesystem path, not a file:// URI
+    const nativePath = getModelPath().replace(/^file:\/\//, "");
     llamaContext = await initLlama({
-      model: getModelPath(),
+      model: nativePath,
       n_ctx: 2048,
       n_batch: 512,
       n_threads: 4,

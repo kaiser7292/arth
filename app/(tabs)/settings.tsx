@@ -839,14 +839,14 @@ export default function SettingsScreen() {
               />
             )}
             <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">App Name</Text>
-              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm" style={{ color: colors.textSecondary }}>App Name</Text>
+              <Text className="text-sm font-medium" style={{ color: colors.text }}>
                 Arth · अर्थ
               </Text>
             </View>
             <View className="flex-row items-center justify-between py-2">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Version</Text>
-              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm" style={{ color: colors.textSecondary }}>Version</Text>
+              <Text className="text-sm font-medium" style={{ color: colors.text }}>
                 {(() => {
                   const v = require("expo-constants").default.expoConfig?.version ?? "-";
                   const sha = require("@/constants/build-info").COMMIT_SHA;

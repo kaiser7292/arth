@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { isNLSearchEnabled } from "@/services/ai-assistant";
+import { parseNLQuery } from "@/utils/nl-search";
 import { View, Text, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -108,6 +110,8 @@ export default function ExpensesScreen() {
     () => resolveDatePreset(datePreset, customStartDate, customEndDate),
     [datePreset, customStartDate, customEndDate],
   );
+
+  const nlEnabled = isNLSearchEnabled();
 
   // Filters (all multi-select)
   const [search, setSearch] = useState("");
@@ -466,6 +470,16 @@ export default function ExpensesScreen() {
     }
   }, [applyFilterView]);
 
+  const handleSearchChange = useCallback((text: string) => {
+    if (!nlEnabled) {
+      setSearch(text);
+      return;
+    }
+    const { textSearch, datePreset: parsedPreset } = parseNLQuery(text);
+    setSearch(textSearch);
+    if (parsedPreset) setDatePreset(parsedPreset);
+  }, [nlEnabled, setDatePreset]);
+
   const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0 || filterNature !== "realized";
   const hasActiveFilters = hasNonDateFilters || datePreset !== "this_month";
 
@@ -749,8 +763,8 @@ export default function ExpensesScreen() {
           <Ionicons name="search" size={18} color={colors.textSecondary} />
           <TextInput
             value={search}
-            onChangeText={setSearch}
-            placeholder="Search expenses..."
+            onChangeText={handleSearchChange}
+            placeholder={nlEnabled ? "Try 'food last month'…" : "Search expenses…"}
             placeholderTextColor={colors.tabIconDefault}
             maxLength={100}
             accessibilityLabel="Search expenses"
