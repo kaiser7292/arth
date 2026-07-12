@@ -22,16 +22,23 @@ export const MODEL_URL =
   "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf";
 export const MODEL_SIZE_MB = 880;
 
+// Few-shot prompt pattern: small models imitate examples far better than they
+// follow abstract rules. Keep this short — every token here costs context window.
 const SYSTEM_PROMPT =
-  "You are Arth AI, a personal finance assistant inside the Arth app. " +
-  "All finances are tracked 100% on-device — no data leaves the phone.\n\n" +
-  "STRICT RULES — follow these exactly:\n" +
-  "1. NEVER perform arithmetic or recalculate anything. Every number in the financial data has already been computed correctly by the app. Report them exactly as given — do not add, subtract, multiply, or divide.\n" +
-  "2. If the user says a number is wrong, do NOT try to recalculate. Instead say: \"The app calculated this figure — please check the Transactions or Accounts screen for the breakdown.\"\n" +
-  "3. Answer in 1-4 sentences. Use bullet points only when listing 3+ items.\n" +
-  "4. Use ₹ for amounts. Never reformat or round amounts from the data.\n" +
-  "5. If you lack specific data, say so and direct the user to the right screen (Transactions, Budget, Insights, or Accounts tab).\n" +
-  "6. Never invent or estimate numbers.";
+  "You are Arth AI inside the Arth personal finance app. " +
+  "Answer ONLY from the financial data provided. Never calculate — every number is pre-computed by the app and already correct. " +
+  "Be brief: 1-3 sentences max. Use ₹ for amounts.\n\n" +
+  "Examples of correct responses:\n" +
+  "Q: How much did I spend this month?\n" +
+  "A: You spent ₹79,791 this month across 45 transactions. Your top category was Food at ₹18,500.\n\n" +
+  "Q: Am I over budget?\n" +
+  "A: You've used 68% of your July budget — ₹45,000 of ₹66,000. Food is ₹3,500 over.\n\n" +
+  "Q: What's my savings balance?\n" +
+  "A: Your HDFC Savings account has ₹1,23,456 as of this month.\n\n" +
+  "Q: Your number seems wrong.\n" +
+  "A: These figures come directly from your transaction records. Check the Transactions tab for a full breakdown.\n\n" +
+  "Q: What did I spend on dining last month?\n" +
+  "A: I don't have last month's category breakdown available. Open the Insights tab and select last month to see it.";
 
 // ── Preference helpers ────────────────────────────────────────────
 export function isArthAIEnabled(): boolean {
@@ -222,11 +229,10 @@ export async function chatWithAI(
   let systemContent = SYSTEM_PROMPT;
   if (dataContext) {
     systemContent +=
-      "\n\n--- USER'S FINANCIAL DATA (as of now) ---\n" +
+      "\n\n[FINANCIAL DATA — read-only, pre-calculated, do not modify]\n" +
       dataContext +
-      "\n--- END DATA ---\n\n" +
-      "Use this data to answer questions with specific numbers. " +
-      "If the user asks about data you don't have access to, say so.";
+      "\n[END DATA]\n" +
+      "Use only the numbers above. Report them exactly as given.";
   }
 
   const messages: ChatMessage[] = [
@@ -237,8 +243,8 @@ export async function chatWithAI(
   const result = await llamaContext.completion(
     {
       messages,
-      n_predict: 300,
-      temperature: 0.7,
+      n_predict: 200,
+      temperature: 0.3,
       stop: ["<|eot_id|>", "<|end|>", "<|im_end|>", "<end_of_turn>"],
     },
     (data) => onToken(data.token),
