@@ -48,6 +48,7 @@ yarn-error.*
 
 # IDE
 .idea/
+.claude/
 
 # Local build artifacts (use gh release upload instead)
 build-*.apk
