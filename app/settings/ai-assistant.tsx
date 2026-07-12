@@ -5,6 +5,8 @@ import {
   cancelDownload,
   deleteModel,
   downloadModel,
+  getLastInitError,
+  getModelNativePath,
   getModelSizeOnDisk,
   isArthAIEnabled,
   isModelDownloaded,
@@ -32,6 +34,8 @@ export default function AIAssistantSettings() {
   const [downloadedMB, setDownloadedMB] = useState(0);
   const [totalMB, setTotalMB] = useState(MODEL_SIZE_MB);
   const [downloadPct, setDownloadPct] = useState(0);
+  const [initError, setInitError] = useState<string | undefined>(undefined);
+  const [modelPath, setModelPath] = useState<string>("");
 
   const isMounted = useRef(true);
 
@@ -44,6 +48,8 @@ export default function AIAssistantSettings() {
         if (isMounted.current) {
           setModelDownloaded(downloaded);
           setModelSizeMB(sizeMB);
+          setInitError(getLastInitError());
+          setModelPath(getModelNativePath());
         }
       })();
       return () => { isMounted.current = false; };
@@ -282,6 +288,24 @@ export default function AIAssistantSettings() {
                   </View>
                 </Pressable>
               )}
+            </Card>
+          )}
+
+          {/* Debug info — shows path and last init error so we can diagnose failures */}
+          {aiEnabled && (initError || modelPath) && (
+            <Card title="Debug Info" className="mb-4">
+              <View className="py-2">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">Model path:</Text>
+                <Text className="text-xs font-mono" style={{ color: initError ? "#f85149" : "#3fb950" }} selectable>
+                  {modelPath || "—"}
+                </Text>
+                {initError && (
+                  <>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-3 mb-1">Init error:</Text>
+                    <Text className="text-xs text-danger" selectable>{initError}</Text>
+                  </>
+                )}
+              </View>
             </Card>
           )}
 

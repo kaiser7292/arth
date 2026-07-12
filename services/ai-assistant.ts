@@ -1,10 +1,11 @@
-import { File, Paths } from "expo-file-system";
-import { createDownloadResumable, type DownloadResumable } from "expo-file-system/legacy";
+import { File } from "expo-file-system";
+import { createDownloadResumable, documentDirectory, type DownloadResumable } from "expo-file-system/legacy";
 import { settingsStorage } from "./storage";
 
 const KEYS = {
   AI_ENABLED: "arth_ai_enabled",
   NL_SEARCH_ENABLED: "arth_ai_nl_search_enabled",
+  LAST_INIT_ERROR: "arth_ai_last_init_error",
 } as const;
 
 // ── Model config ──────────────────────────────────────────────────
@@ -42,7 +43,13 @@ export function setNLSearchEnabled(enabled: boolean): void {
 
 // ── Model file helpers ────────────────────────────────────────────
 export function getModelPath(): string {
-  return Paths.document.uri + MODEL_FILENAME;
+  // documentDirectory always has a trailing slash and matches the download destination
+  return (documentDirectory ?? "") + MODEL_FILENAME;
+}
+
+// Native path for llama.rn (strips file:// URI prefix)
+export function getModelNativePath(): string {
+  return getModelPath().replace(/^file:\/\//, "");
 }
 
 export async function isModelDownloaded(): Promise<boolean> {
@@ -118,10 +125,8 @@ export async function initAIContext(): Promise<void> {
 
   initPromise = (async () => {
     const { initLlama } = await import("llama.rn");
-    // initLlama needs a native filesystem path, not a file:// URI
-    const nativePath = getModelPath().replace(/^file:\/\//, "");
     llamaContext = await initLlama({
-      model: nativePath,
+      model: getModelNativePath(),
       n_ctx: 2048,
       n_batch: 512,
       n_threads: 4,
@@ -132,9 +137,18 @@ export async function initAIContext(): Promise<void> {
 
   try {
     await initPromise;
+    settingsStorage.delete(KEYS.LAST_INIT_ERROR);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    settingsStorage.set(KEYS.LAST_INIT_ERROR, msg);
+    throw e;
   } finally {
     initPromise = null;
   }
+}
+
+export function getLastInitError(): string | undefined {
+  return settingsStorage.getString(KEYS.LAST_INIT_ERROR);
 }
 
 export async function releaseAIContext(): Promise<void> {
