@@ -2,11 +2,17 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   chatWithAI,
   initAIContext,
+  isAIDataAccountsEnabled,
+  isAIDataBudgetEnabled,
+  isAIDataExpensesEnabled,
+  isAIDataHisaabEnabled,
+  isAIDataVaultEnabled,
   isArthAIEnabled,
   isModelDownloaded,
   releaseAIContext,
   type ChatMessage,
 } from "@/services/ai-assistant";
+import { buildAIDataContext } from "@/services/ai-data-context";
 import { ac } from "@/utils/accent";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -116,14 +122,22 @@ export default function AIChatScreen() {
 
       let fullText = "";
       try {
-        fullText = await chatWithAI(historyRef.current, (token) => {
+        const dataContext = await buildAIDataContext({
+          expenses: isAIDataExpensesEnabled(),
+          accounts: isAIDataAccountsEnabled(),
+          budget: isAIDataBudgetEnabled(),
+          hisaab: isAIDataHisaabEnabled(),
+          vault: isAIDataVaultEnabled(),
+        });
+        const trimmedHistory = historyRef.current.slice(-6);
+        fullText = await chatWithAI(trimmedHistory, (token) => {
           if (!isMounted.current) return;
           fullText += token;
           setMessages((prev) =>
             prev.map((m) => (m.id === aiMsgId ? { ...m, content: fullText } : m)),
           );
           scrollToBottom();
-        });
+        }, dataContext || undefined);
         historyRef.current = [
           ...historyRef.current,
           { role: "assistant", content: fullText },

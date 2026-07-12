@@ -6,6 +6,11 @@ const KEYS = {
   AI_ENABLED: "arth_ai_enabled",
   NL_SEARCH_ENABLED: "arth_ai_nl_search_enabled",
   LAST_INIT_ERROR: "arth_ai_last_init_error",
+  AI_DATA_EXPENSES: "arth_ai_data_expenses",
+  AI_DATA_ACCOUNTS: "arth_ai_data_accounts",
+  AI_DATA_BUDGET: "arth_ai_data_budget",
+  AI_DATA_HISAAB: "arth_ai_data_hisaab",
+  AI_DATA_VAULT: "arth_ai_data_vault",
 } as const;
 
 // ── Model config ──────────────────────────────────────────────────
@@ -39,6 +44,42 @@ export function isNLSearchEnabled(): boolean {
 
 export function setNLSearchEnabled(enabled: boolean): void {
   settingsStorage.set(KEYS.NL_SEARCH_ENABLED, enabled);
+}
+
+// ── Data access toggle helpers ───────────────────────────────────
+export function isAIDataExpensesEnabled(): boolean {
+  return settingsStorage.getBoolean(KEYS.AI_DATA_EXPENSES) ?? false;
+}
+export function setAIDataExpensesEnabled(v: boolean): void {
+  settingsStorage.set(KEYS.AI_DATA_EXPENSES, v);
+}
+
+export function isAIDataAccountsEnabled(): boolean {
+  return settingsStorage.getBoolean(KEYS.AI_DATA_ACCOUNTS) ?? false;
+}
+export function setAIDataAccountsEnabled(v: boolean): void {
+  settingsStorage.set(KEYS.AI_DATA_ACCOUNTS, v);
+}
+
+export function isAIDataBudgetEnabled(): boolean {
+  return settingsStorage.getBoolean(KEYS.AI_DATA_BUDGET) ?? false;
+}
+export function setAIDataBudgetEnabled(v: boolean): void {
+  settingsStorage.set(KEYS.AI_DATA_BUDGET, v);
+}
+
+export function isAIDataHisaabEnabled(): boolean {
+  return settingsStorage.getBoolean(KEYS.AI_DATA_HISAAB) ?? false;
+}
+export function setAIDataHisaabEnabled(v: boolean): void {
+  settingsStorage.set(KEYS.AI_DATA_HISAAB, v);
+}
+
+export function isAIDataVaultEnabled(): boolean {
+  return settingsStorage.getBoolean(KEYS.AI_DATA_VAULT) ?? false;
+}
+export function setAIDataVaultEnabled(v: boolean): void {
+  settingsStorage.set(KEYS.AI_DATA_VAULT, v);
 }
 
 // ── Model file helpers ────────────────────────────────────────────
@@ -170,11 +211,22 @@ export interface ChatMessage {
 export async function chatWithAI(
   history: ChatMessage[],
   onToken: (token: string) => void,
+  dataContext?: string,
 ): Promise<string> {
   if (!llamaContext) throw new Error("Model not loaded");
 
+  let systemContent = SYSTEM_PROMPT;
+  if (dataContext) {
+    systemContent +=
+      "\n\n--- USER'S FINANCIAL DATA (as of now) ---\n" +
+      dataContext +
+      "\n--- END DATA ---\n\n" +
+      "Use this data to answer questions with specific numbers. " +
+      "If the user asks about data you don't have access to, say so.";
+  }
+
   const messages: ChatMessage[] = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: systemContent },
     ...history,
   ];
 

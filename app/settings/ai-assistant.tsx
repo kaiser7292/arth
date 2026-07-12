@@ -8,10 +8,20 @@ import {
   getLastInitError,
   getModelNativePath,
   getModelSizeOnDisk,
+  isAIDataAccountsEnabled,
+  isAIDataBudgetEnabled,
+  isAIDataExpensesEnabled,
+  isAIDataHisaabEnabled,
+  isAIDataVaultEnabled,
   isArthAIEnabled,
   isModelDownloaded,
   isNLSearchEnabled,
   MODEL_SIZE_MB,
+  setAIDataAccountsEnabled,
+  setAIDataBudgetEnabled,
+  setAIDataExpensesEnabled,
+  setAIDataHisaabEnabled,
+  setAIDataVaultEnabled,
   setArthAIEnabled,
   setNLSearchEnabled,
 } from "@/services/ai-assistant";
@@ -36,6 +46,12 @@ export default function AIAssistantSettings() {
   const [downloadPct, setDownloadPct] = useState(0);
   const [initError, setInitError] = useState<string | undefined>(undefined);
   const [modelPath, setModelPath] = useState<string>("");
+
+  const [dataExpenses, setDataExpenses] = useState(isAIDataExpensesEnabled);
+  const [dataAccounts, setDataAccounts] = useState(isAIDataAccountsEnabled);
+  const [dataBudget, setDataBudget] = useState(isAIDataBudgetEnabled);
+  const [dataHisaab, setDataHisaab] = useState(isAIDataHisaabEnabled);
+  const [dataVault, setDataVault] = useState(isAIDataVaultEnabled);
 
   const isMounted = useRef(true);
 
@@ -305,6 +321,82 @@ export default function AIAssistantSettings() {
                     <Text className="text-xs text-danger" selectable>{initError}</Text>
                   </>
                 )}
+              </View>
+            </Card>
+          )}
+
+          {/* Data access toggles */}
+          {aiEnabled && (
+            <Card title="Data Access" className="mb-4">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+                Choose what data the AI assistant can see. All processing stays on-device.
+              </Text>
+
+              <View className="flex-row items-center justify-between py-2.5 border-b border-border-light dark:border-border-dark">
+                <View className="flex-1 mr-3">
+                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">Expenses & Transactions</Text>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">Monthly totals, top categories, transaction counts</Text>
+                </View>
+                <Switch
+                  value={dataExpenses}
+                  onValueChange={(v) => { setAIDataExpensesEnabled(v); setDataExpenses(v); }}
+                  trackColor={{ false: colors.border, true: accent[500] }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              <View className="flex-row items-center justify-between py-2.5 border-b border-border-light dark:border-border-dark">
+                <View className="flex-1 mr-3">
+                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">Accounts & Balances</Text>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">Account names, balances, credit utilization</Text>
+                </View>
+                <Switch
+                  value={dataAccounts}
+                  onValueChange={(v) => { setAIDataAccountsEnabled(v); setDataAccounts(v); }}
+                  trackColor={{ false: colors.border, true: accent[500] }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              <View className="flex-row items-center justify-between py-2.5 border-b border-border-light dark:border-border-dark">
+                <View className="flex-1 mr-3">
+                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">Budget</Text>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">Budget limits vs actual spending per category</Text>
+                </View>
+                <Switch
+                  value={dataBudget}
+                  onValueChange={(v) => { setAIDataBudgetEnabled(v); setDataBudget(v); }}
+                  trackColor={{ false: colors.border, true: accent[500] }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              <View className="flex-row items-center justify-between py-2.5 border-b border-border-light dark:border-border-dark">
+                <View className="flex-1 mr-3">
+                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">Hisaab (Family Ledger)</Text>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">Who owes what, net balances</Text>
+                </View>
+                <Switch
+                  value={dataHisaab}
+                  onValueChange={(v) => { setAIDataHisaabEnabled(v); setDataHisaab(v); }}
+                  trackColor={{ false: colors.border, true: accent[500] }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              <View className="flex-row items-center justify-between py-2.5">
+                <View className="flex-1 mr-3">
+                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">Vault (Passwords & Logins)</Text>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    Entry titles and renewal dates only — passwords are never shared with the AI
+                  </Text>
+                </View>
+                <Switch
+                  value={dataVault}
+                  onValueChange={(v) => { setAIDataVaultEnabled(v); setDataVault(v); }}
+                  trackColor={{ false: colors.border, true: accent[500] }}
+                  thumbColor="#FFFFFF"
+                />
               </View>
             </Card>
           )}
