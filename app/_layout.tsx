@@ -525,6 +525,10 @@ export default function RootLayout(): React.JSX.Element {
           name="vault"
           options={{ headerShown: false }}
         />
+        <Stack.Screen
+          name="ai-chat"
+          options={{ headerShown: false, presentation: "modal" }}
+        />
       </Stack>
     </>
     </GestureHandlerRootView>

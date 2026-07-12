@@ -46,6 +46,7 @@ import {
     detectBreaches,
     unacknowledgedBreaches,
 } from "@/services/min-balance";
+import { isArthAIEnabled } from "@/services/ai-assistant";
 import { bumpDataVersion, dismissBackupWarning, getFYStartMonth, shouldShowBackupWarning } from "@/services/settings";
 import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
 import { getLastAutoScanRun, getSmsScanAccountIds, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
@@ -349,6 +350,20 @@ export default function HomeScreen() {
               </Text>
             )}
             <View className="flex-row items-center gap-2">
+              {isArthAIEnabled() && (
+                <Pressable
+                  onPress={() => router.push("/ai-chat" as never)}
+                  hitSlop={8}
+                  accessibilityLabel="Ask Arth AI"
+                  className="flex-row items-center rounded-full px-2.5 py-1.5"
+                  style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}
+                >
+                  <Ionicons name="sparkles" size={13} color={accent[500]} />
+                  <Text className="text-xs font-semibold ml-1" style={{ color: accent[500] }}>
+                    Ask AI
+                  </Text>
+                </Pressable>
+              )}
               <Pressable
                 onPress={() => router.push("/vault")}
                 hitSlop={8}
@@ -936,6 +951,32 @@ export default function HomeScreen() {
           </View>
         )}
 
+
+        {/* Arth AI card — visible when AI is enabled */}
+        {isArthAIEnabled() && isHomeCardVisible("insights") && (
+          <View>
+            <Pressable onPress={() => router.push("/ai-chat" as never)} accessibilityLabel="Open Arth AI" accessibilityRole="button">
+              <Card className="mx-4 mt-3">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}>
+                      <Ionicons name="sparkles" size={20} color={accent[500]} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        Ask Arth AI
+                      </Text>
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        Chat about your finances · runs privately on your phone
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </View>
+              </Card>
+            </Pressable>
+          </View>
+        )}
 
         {/* Advisor + Reconcile Statements cards removed in v17.5.2 — features
             not yet shipped. Reconciliation detail screens are still reachable

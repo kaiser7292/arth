@@ -49,6 +49,8 @@
       "./plugins/withDisableBackup",
       "./plugins/withNotificationListener",
       "./plugins/withArmOnly",
+      "./plugins/withLargeHeap",
+      "llama.rn",
       [
         "expo-splash-screen",
         {
