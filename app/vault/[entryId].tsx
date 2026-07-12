@@ -221,10 +221,10 @@ export default function VaultEntryScreen() {
         {isCard && customFields.card_number && (
           <SecretRow
             label="Card Number"
-            value={customFields.card_number}
+            value={formatCardNumber(customFields.card_number)}
             show={showCardNumber}
             onToggle={() => setShowCardNumber((p) => !p)}
-            onCopy={() => handleCopy("Card Number", customFields.card_number)}
+            onCopy={() => handleCopy("Card Number", formatCardNumber(customFields.card_number))}
             copied={copiedField === "Card Number"}
             accent={accent}
             colors={colors}
@@ -450,6 +450,12 @@ export default function VaultEntryScreen() {
       </ScrollView>
     </ScreenContainer>
   );
+}
+
+function formatCardNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length !== 16) return raw;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 8)}-${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
 function FieldRow({

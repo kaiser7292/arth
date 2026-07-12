@@ -13,8 +13,10 @@ import {
   type ChatMessage,
 } from "@/services/ai-assistant";
 import { buildAIDataContext } from "@/services/ai-data-context";
+import { settingsStorage } from "@/services/storage";
 import { ac } from "@/utils/accent";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -29,11 +31,15 @@ import {
   View,
 } from "react-native";
 
+const CHAT_HISTORY_KEY = "arth_ai_chat_history";
+const MAX_STORED = 30;
+
 interface DisplayMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   streaming?: boolean;
+  failed?: boolean;
 }
 
 const SUGGESTIONS = [
@@ -45,6 +51,100 @@ const SUGGESTIONS = [
 
 type LoadState = "checking" | "loading" | "ready" | "no_model" | "disabled";
 
+// ── Simple markdown renderer ──────────────────────────────────────
+
+function renderInlineParts(text: string, baseStyle: object): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/);
+  if (parts.length === 1) return <Text style={baseStyle}>{text}</Text>;
+  return (
+    <Text style={baseStyle}>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return (
+            <Text key={i} style={{ fontWeight: "700" }}>
+              {part.slice(2, -2)}
+            </Text>
+          );
+        }
+        if (part.startsWith("`") && part.endsWith("`")) {
+          return (
+            <Text
+              key={i}
+              style={{
+                fontFamily: Platform.OS === "android" ? "monospace" : "Courier",
+                backgroundColor: "#00000020",
+                borderRadius: 3,
+              }}
+            >
+              {part.slice(1, -1)}
+            </Text>
+          );
+        }
+        return <Text key={i}>{part}</Text>;
+      })}
+    </Text>
+  );
+}
+
+function MessageContent({ text, textColor }: { text: string; textColor: string }) {
+  const baseStyle = { color: textColor, fontSize: 14, lineHeight: 21 } as const;
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+
+    if (!trimmed) {
+      if (i > 0 && i < lines.length - 1) {
+        elements.push(<View key={`sp-${i}`} style={{ height: 6 }} />);
+      }
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^#{1,3}\s+(.+)/);
+    if (headingMatch) {
+      elements.push(
+        <Text key={i} style={{ ...baseStyle, fontWeight: "700", fontSize: 15, marginBottom: 2 }}>
+          {headingMatch[1]}
+        </Text>,
+      );
+      continue;
+    }
+
+    const bulletMatch = trimmed.match(/^[-•*]\s+(.+)/);
+    if (bulletMatch) {
+      elements.push(
+        <View key={i} style={{ flexDirection: "row", marginBottom: 2 }}>
+          <Text style={{ ...baseStyle, marginRight: 6 }}>{"•"}</Text>
+          <View style={{ flex: 1 }}>{renderInlineParts(bulletMatch[1], baseStyle)}</View>
+        </View>,
+      );
+      continue;
+    }
+
+    const numMatch = trimmed.match(/^(\d+)[.)]\s+(.+)/);
+    if (numMatch) {
+      elements.push(
+        <View key={i} style={{ flexDirection: "row", marginBottom: 2 }}>
+          <Text style={{ ...baseStyle, marginRight: 6, minWidth: 22 }}>{numMatch[1]}.</Text>
+          <View style={{ flex: 1 }}>{renderInlineParts(numMatch[2], baseStyle)}</View>
+        </View>,
+      );
+      continue;
+    }
+
+    elements.push(
+      <View key={i} style={{ marginBottom: 2 }}>
+        {renderInlineParts(trimmed, baseStyle)}
+      </View>,
+    );
+  }
+
+  return <>{elements}</>;
+}
+
+// ─────────────────────────────────────────────────────────────────
+
 export default function AIChatScreen() {
   const router = useRouter();
   const { colors, accent, colorScheme } = useColorScheme();
@@ -53,23 +153,36 @@ export default function AIChatScreen() {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [retryText, setRetryText] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const historyRef = useRef<ChatMessage[]>([]);
   const isMounted = useRef(true);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load persisted history on mount
+  useEffect(() => {
+    try {
+      const stored = settingsStorage.getString(CHAT_HISTORY_KEY);
+      if (stored) {
+        const parsed: DisplayMessage[] = JSON.parse(stored);
+        const cleaned = parsed.map((m) => ({ ...m, streaming: false, failed: false }));
+        setMessages(cleaned);
+        historyRef.current = cleaned.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        }));
+      }
+    } catch {}
+  }, []);
 
   // Initialise model on mount
   useEffect(() => {
     isMounted.current = true;
     (async () => {
-      if (!isArthAIEnabled()) {
-        setLoadState("disabled");
-        return;
-      }
+      if (!isArthAIEnabled()) { setLoadState("disabled"); return; }
       const downloaded = await isModelDownloaded();
-      if (!downloaded) {
-        setLoadState("no_model");
-        return;
-      }
+      if (!downloaded) { setLoadState("no_model"); return; }
       setLoadState("loading");
       try {
         await initAIContext();
@@ -78,13 +191,9 @@ export default function AIChatScreen() {
         if (isMounted.current) setLoadState("no_model");
       }
     })();
-
-    return () => {
-      isMounted.current = false;
-    };
+    return () => { isMounted.current = false; };
   }, []);
 
-  // Release context when app goes to background
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "background") releaseAIContext();
@@ -92,35 +201,36 @@ export default function AIChatScreen() {
     return () => sub.remove();
   }, []);
 
+  const saveHistory = useCallback((msgs: DisplayMessage[]) => {
+    try {
+      const toStore = msgs.filter((m) => !m.streaming && !m.failed).slice(-MAX_STORED);
+      settingsStorage.set(CHAT_HISTORY_KEY, JSON.stringify(toStore));
+    } catch {}
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    setMessages([]);
+    historyRef.current = [];
+    setRetryText(null);
+    settingsStorage.delete(CHAT_HISTORY_KEY);
+  }, []);
+
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   }, []);
 
-  const sendMessage = useCallback(
-    async (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed || isGenerating || loadState !== "ready") return;
+  const handleCopy = useCallback((id: string, text: string) => {
+    Clipboard.setStringAsync(text);
+    setCopiedId(id);
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+    copyTimer.current = setTimeout(() => setCopiedId(null), 2000);
+  }, []);
 
-      const userMsg: DisplayMessage = {
-        id: Date.now().toString(),
-        role: "user",
-        content: trimmed,
-      };
-      const aiMsgId = (Date.now() + 1).toString();
-      const aiMsg: DisplayMessage = {
-        id: aiMsgId,
-        role: "assistant",
-        content: "",
-        streaming: true,
-      };
-
-      setMessages((prev) => [...prev, userMsg, aiMsg]);
-      historyRef.current = [...historyRef.current, { role: "user", content: trimmed }];
-      setInputText("");
-      setIsGenerating(true);
-      scrollToBottom();
-
+  // Core generation shared by sendMessage and retry
+  const generate = useCallback(
+    async (aiMsgId: string, userText: string) => {
       let fullText = "";
+      let success = false;
       try {
         const dataContext = await buildAIDataContext({
           expenses: isAIDataExpensesEnabled(),
@@ -130,38 +240,92 @@ export default function AIChatScreen() {
           vault: isAIDataVaultEnabled(),
         });
         const trimmedHistory = historyRef.current.slice(-6);
-        fullText = await chatWithAI(trimmedHistory, (token) => {
-          if (!isMounted.current) return;
-          fullText += token;
-          setMessages((prev) =>
-            prev.map((m) => (m.id === aiMsgId ? { ...m, content: fullText } : m)),
-          );
-          scrollToBottom();
-        }, dataContext || undefined);
-        historyRef.current = [
-          ...historyRef.current,
-          { role: "assistant", content: fullText },
-        ];
-      } catch (e) {
-        const errText = "Something went wrong. Try again.";
+        fullText = await chatWithAI(
+          trimmedHistory,
+          (token) => {
+            if (!isMounted.current) return;
+            fullText += token;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === aiMsgId ? { ...m, content: fullText } : m)),
+            );
+            scrollToBottom();
+          },
+          dataContext || undefined,
+        );
+        historyRef.current = [...historyRef.current, { role: "assistant", content: fullText }];
+        success = true;
+      } catch {
         if (isMounted.current) {
           setMessages((prev) =>
-            prev.map((m) => (m.id === aiMsgId ? { ...m, content: errText, streaming: false } : m)),
+            prev.map((m) =>
+              m.id === aiMsgId
+                ? {
+                    ...m,
+                    content: "Something went wrong. Tap Retry to try again.",
+                    streaming: false,
+                    failed: true,
+                  }
+                : m,
+            ),
           );
+          setRetryText(userText);
         }
       } finally {
         if (isMounted.current) {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === aiMsgId ? { ...m, streaming: false } : m)),
-          );
+          setMessages((prev) => {
+            const updated = prev.map((m) =>
+              m.id === aiMsgId ? { ...m, streaming: false } : m,
+            );
+            if (success) saveHistory(updated);
+            return updated;
+          });
           setIsGenerating(false);
         }
       }
     },
-    [isGenerating, loadState, scrollToBottom],
+    [scrollToBottom, saveHistory],
   );
 
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed || isGenerating || loadState !== "ready") return;
+
+      const userMsg: DisplayMessage = { id: Date.now().toString(), role: "user", content: trimmed };
+      const aiMsgId = (Date.now() + 1).toString();
+      const aiMsg: DisplayMessage = { id: aiMsgId, role: "assistant", content: "", streaming: true };
+
+      setMessages((prev) => [...prev, userMsg, aiMsg]);
+      historyRef.current = [...historyRef.current, { role: "user", content: trimmed }];
+      setInputText("");
+      setRetryText(null);
+      setIsGenerating(true);
+      scrollToBottom();
+
+      await generate(aiMsgId, trimmed);
+    },
+    [isGenerating, loadState, scrollToBottom, generate],
+  );
+
+  const retryLastMessage = useCallback(async () => {
+    if (!retryText || isGenerating || loadState !== "ready") return;
+    const text = retryText;
+    setRetryText(null);
+
+    const aiMsgId = Date.now().toString();
+    // Replace failed AI message with a fresh streaming one
+    setMessages((prev) => {
+      const withoutFailed = prev.filter((m) => !m.failed);
+      return [...withoutFailed, { id: aiMsgId, role: "assistant", content: "", streaming: true }];
+    });
+    setIsGenerating(true);
+    scrollToBottom();
+
+    await generate(aiMsgId, text);
+  }, [retryText, isGenerating, loadState, scrollToBottom, generate]);
+
   const accentColor = accent[500];
+  const bubbleAiBg = colorScheme === "dark" ? "#1c2128" : "#f3f4f6";
 
   return (
     <KeyboardAvoidingView
@@ -188,7 +352,10 @@ export default function AIChatScreen() {
           <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
             Arth AI
           </Text>
-          <Text className="text-xs" style={{ color: loadState === "ready" ? "#3fb950" : colors.textSecondary }}>
+          <Text
+            className="text-xs"
+            style={{ color: loadState === "ready" ? "#3fb950" : colors.textSecondary }}
+          >
             {loadState === "ready"
               ? "On-device · private"
               : loadState === "loading"
@@ -196,6 +363,11 @@ export default function AIChatScreen() {
               : ""}
           </Text>
         </View>
+        {messages.length > 0 && (
+          <Pressable onPress={clearHistory} hitSlop={12}>
+            <Ionicons name="trash-outline" size={20} color={colors.textSecondary} />
+          </Pressable>
+        )}
       </View>
 
       {/* Loading / error states */}
@@ -203,7 +375,9 @@ export default function AIChatScreen() {
         <View className="flex-1 items-center justify-center gap-3">
           <ActivityIndicator size="large" color={accentColor} />
           <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
-            {loadState === "loading" ? "Loading AI model… (first time takes a few seconds)" : "Checking model…"}
+            {loadState === "loading"
+              ? "Loading AI model… (first time takes a few seconds)"
+              : "Checking model…"}
           </Text>
         </View>
       ) : loadState === "disabled" ? (
@@ -267,38 +441,90 @@ export default function AIChatScreen() {
               </View>
             )}
 
-            {messages.map((msg) => (
-              <View
-                key={msg.id}
-                className={`mb-3 max-w-[85%] ${msg.role === "user" ? "self-end" : "self-start"}`}
-              >
+            {messages.map((msg) => {
+              const isUser = msg.role === "user";
+              const isCopied = copiedId === msg.id;
+              const userBubbleBg = ac(accent, colorScheme, 100, 800);
+              const userTextColor = ac(accent, colorScheme, 700, 100) as string;
+
+              return (
                 <View
-                  className="rounded-2xl px-4 py-3"
-                  style={{
-                    backgroundColor:
-                      msg.role === "user"
-                        ? ac(accent, colorScheme, 100, 800)
-                        : colorScheme === "dark" ? "#1c2128" : "#f3f4f6",
-                    borderBottomRightRadius: msg.role === "user" ? 4 : 16,
-                    borderBottomLeftRadius: msg.role === "user" ? 16 : 4,
-                  }}
+                  key={msg.id}
+                  className={`mb-4 max-w-[88%] ${isUser ? "self-end" : "self-start"}`}
                 >
-                  <Text
-                    className="text-sm leading-6"
+                  {/* Bubble */}
+                  <View
+                    className="rounded-2xl px-4 py-3"
                     style={{
-                      color: msg.role === "user"
-                        ? ac(accent, colorScheme, 700, 100)
-                        : colors.text,
+                      backgroundColor: isUser ? userBubbleBg : bubbleAiBg,
+                      borderBottomRightRadius: isUser ? 4 : 16,
+                      borderBottomLeftRadius: isUser ? 16 : 4,
                     }}
                   >
-                    {msg.content}
-                    {msg.streaming && (
-                      <Text style={{ color: accentColor }}>▍</Text>
+                    {isUser ? (
+                      <Text
+                        className="text-sm leading-6"
+                        style={{ color: userTextColor }}
+                        selectable
+                      >
+                        {msg.content}
+                      </Text>
+                    ) : (
+                      <>
+                        <MessageContent
+                          text={msg.content || (msg.streaming ? "" : "")}
+                          textColor={colors.text}
+                        />
+                        {msg.streaming && (
+                          <Text style={{ color: accentColor, fontSize: 14 }}>{"▍"}</Text>
+                        )}
+                      </>
                     )}
-                  </Text>
+                  </View>
+
+                  {/* Actions row — shown when not streaming */}
+                  {!msg.streaming && (
+                    <View
+                      className={`flex-row items-center mt-1 gap-3 ${isUser ? "justify-end" : "justify-start"}`}
+                    >
+                      {/* Retry button for failed AI messages */}
+                      {!isUser && msg.failed && retryText && (
+                        <Pressable
+                          onPress={retryLastMessage}
+                          className="flex-row items-center gap-1 px-2 py-1 rounded-lg"
+                          style={{ backgroundColor: accentColor + "20" }}
+                        >
+                          <Ionicons name="refresh-outline" size={12} color={accentColor} />
+                          <Text className="text-xs font-semibold" style={{ color: accentColor }}>
+                            Retry
+                          </Text>
+                        </Pressable>
+                      )}
+
+                      {/* Copy button */}
+                      {msg.content ? (
+                        <Pressable
+                          onPress={() => handleCopy(msg.id, msg.content)}
+                          hitSlop={8}
+                          className="flex-row items-center gap-1"
+                        >
+                          <Ionicons
+                            name={isCopied ? "checkmark" : "copy-outline"}
+                            size={13}
+                            color={isCopied ? accentColor : colors.textSecondary}
+                          />
+                          {isCopied && (
+                            <Text className="text-xs" style={{ color: accentColor }}>
+                              Copied
+                            </Text>
+                          )}
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  )}
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </ScrollView>
 
           {/* Suggestion chips — only before first message */}

@@ -151,6 +151,13 @@ export default function VaultAddScreen() {
     setCardExpiry(digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits);
   }, []);
 
+  const handleCardNumberChange = useCallback((text: string) => {
+    const digits = text.replace(/\D/g, "").slice(0, 16);
+    const parts: string[] = [];
+    for (let i = 0; i < digits.length; i += 4) parts.push(digits.slice(i, i + 4));
+    setCardNumber(parts.join("-"));
+  }, []);
+
   // Reset login method when category changes (if current method not available)
   useEffect(() => {
     const available = CATEGORY_LOGIN_METHODS[category];
@@ -432,8 +439,8 @@ export default function VaultAddScreen() {
             <Field label={editId ? "Card Number (leave blank to keep current)" : "Card Number"} colors={colors}>
               <TextInput
                 value={cardNumber}
-                onChangeText={setCardNumber}
-                placeholder="XXXX XXXX XXXX XXXX"
+                onChangeText={handleCardNumberChange}
+                placeholder="XXXX-XXXX-XXXX-XXXX"
                 placeholderTextColor={colors.textSecondary}
                 secureTextEntry={!showCardNumber}
                 keyboardType="number-pad"

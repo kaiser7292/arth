@@ -840,9 +840,10 @@ export default function SettingsScreen() {
             )}
             <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
               <Text className="text-sm" style={{ color: colors.textSecondary }}>App Name</Text>
-              <Text className="text-sm font-medium" style={{ color: colors.text }}>
-                Arth · अर्थ
-              </Text>
+              <View className="flex-row items-center" style={{ gap: 4 }}>
+                <Text className="text-sm font-medium" style={{ color: colors.text }}>Arth ·</Text>
+                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">अर्थ</Text>
+              </View>
             </View>
             <View className="flex-row items-center justify-between py-2">
               <Text className="text-sm" style={{ color: colors.textSecondary }}>Version</Text>
