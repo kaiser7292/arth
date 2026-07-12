@@ -471,14 +471,15 @@ export default function ExpensesScreen() {
   }, [applyFilterView]);
 
   const handleSearchChange = useCallback((text: string) => {
-    if (!nlEnabled) {
-      setSearch(text);
-      return;
-    }
-    const { textSearch, datePreset: parsedPreset } = parseNLQuery(text);
+    setSearch(text);
+  }, []);
+
+  const applyNLSearch = useCallback(() => {
+    if (!nlEnabled || !search.trim()) return;
+    const { textSearch, datePreset: parsedPreset } = parseNLQuery(search);
     setSearch(textSearch);
     if (parsedPreset) setDatePreset(parsedPreset);
-  }, [nlEnabled, setDatePreset]);
+  }, [nlEnabled, search, setDatePreset]);
 
   const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0 || filterNature !== "realized";
   const hasActiveFilters = hasNonDateFilters || datePreset !== "this_month";
@@ -764,16 +765,29 @@ export default function ExpensesScreen() {
           <TextInput
             value={search}
             onChangeText={handleSearchChange}
+            onSubmitEditing={nlEnabled ? applyNLSearch : undefined}
             placeholder={nlEnabled ? "Try 'food last month'…" : "Search expenses…"}
             placeholderTextColor={colors.tabIconDefault}
             maxLength={100}
             accessibilityLabel="Search expenses"
             className="flex-1 ml-2 text-base text-text-primary dark:text-text-dark-primary"
-            returnKeyType="search"
+            returnKeyType={nlEnabled ? "go" : "search"}
+            blurOnSubmit={false}
           />
           {search !== "" && (
             <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search" accessibilityRole="button">
               <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+            </Pressable>
+          )}
+          {nlEnabled && search.trim() !== "" && (
+            <Pressable
+              onPress={applyNLSearch}
+              accessibilityLabel="Apply smart search"
+              accessibilityRole="button"
+              className="ml-2 px-2 py-1 rounded-md"
+              style={{ backgroundColor: accent[500] }}
+            >
+              <Text className="text-xs font-semibold text-white">Apply</Text>
             </Pressable>
           )}
           <Pressable

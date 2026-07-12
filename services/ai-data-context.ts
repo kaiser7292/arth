@@ -45,7 +45,12 @@ function monthRange(month: string): { start: string; end: string } {
 }
 
 function maskAccount(identifier: string): string {
-  if (!identifier || identifier.length <= 4) return identifier || "—";
+  if (!identifier) return "—";
+  const digits = identifier.replace(/\D/g, "");
+  if (digits.length === 16) {
+    return `XXXX-XXXX-XXXX-${digits.slice(-4)}`;
+  }
+  if (identifier.length <= 4) return identifier;
   return "****" + identifier.slice(-4);
 }
 
