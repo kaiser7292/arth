@@ -550,11 +550,10 @@ export async function reclassifyCreditAsTransfer(
     split_mode: string | null;
     split_person_id: string | null;
     fulfills_rule_id: string | null;
-    linked_settlement_id: string | null;
     updated_at: string;
   }>(
     `SELECT id, account_id, user_id, amount, description, date, matched_forecast_id, raw_source_text, source,
-            split_mode, split_person_id, fulfills_rule_id, linked_settlement_id, updated_at
+            split_mode, split_person_id, fulfills_rule_id, updated_at
      FROM expenses WHERE id = ? AND nature = 'credit' AND deleted_at IS NULL;`,
     creditId,
   );
@@ -570,8 +569,12 @@ export async function reclassifyCreditAsTransfer(
     throw new Error("Cannot reclassify split credit legs. Delete the split first or reclassify the original credit.");
   }
 
-  // Guard: prevent reclassifying credits linked to settlements
-  if (credit.linked_settlement_id) {
+  // Guard: prevent reclassifying credits linked to hisaab settlements
+  const settlementLink = await db.getFirstAsync<{ id: string }>(
+    `SELECT id FROM hisaab_entries WHERE linked_expense_id = ? AND type = 'settlement' LIMIT 1;`,
+    creditId,
+  );
+  if (settlementLink) {
     throw new Error("Cannot reclassify credit already used for hisaab settlement.");
   }
 
