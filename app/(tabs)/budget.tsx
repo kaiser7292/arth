@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
-import { View, Text, ScrollView, Pressable, Switch, RefreshControl } from "react-native";
+import { useState, useCallback, useMemo, useRef } from "react";
+import { View, Text, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, ProgressBar, StatusPill, WidgetCard, PeriodNavigator } from "@/components/ui";
@@ -17,8 +17,8 @@ import { formatAmount } from "@/utils/expense-validation";
 import { calculateMonthlyCompliance } from "@/utils/budget-compliance";
 import type { MonthlyComplianceSnapshot } from "@/utils/budget-compliance";
 import { getCurrentFY, getFYRange, getFiscalMonth } from "@/utils/fiscal-year";
-import { getFYStartMonth, getBudgetWidgets, setBudgetWidgets, clearCollapsibleState } from "@/services/settings";
-import type { BudgetWidgetId } from "@/services/settings";
+import { getFYStartMonth, getBudgetWidgets, setBudgetWidgets, clearCollapsibleState, getBudgetCategorySort, setBudgetCategorySort, bumpDataVersion } from "@/services/settings";
+import type { BudgetWidgetId, BudgetCategorySort } from "@/services/settings";
 import {
   getMonthDateRange,
   getDaysRemaining,
@@ -29,6 +29,7 @@ import {
 } from "@/utils/budget-helpers";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
+import { upsertBudget } from "@/services/budget";
 
 interface BudgetDashboardRow {
   category: Category;
@@ -57,6 +58,10 @@ export default function BudgetScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [v2Forecast, setV2Forecast] = useState<AnalyticsForecast | null>(null);
   const [rollingSurplus, setRollingSurplus] = useState<number>(0);
+  const [sortBy, setSortBy] = useState<BudgetCategorySort>(getBudgetCategorySort);
+  const [quickBudgetRow, setQuickBudgetRow] = useState<BudgetDashboardRow | null>(null);
+  const [quickBudgetAmount, setQuickBudgetAmount] = useState("");
+  const quickBudgetInputRef = useRef<TextInput>(null);
 
   const WIDGET_STORAGE_KEYS: Record<BudgetWidgetId, string> = {
     summary: "budget_summary",
@@ -112,14 +117,6 @@ export default function BudgetScreen() {
         budget: budgetMap.get(cat.id) ?? 0,
         spent: actualMap.get(cat.id) ?? 0,
       }));
-
-      // Sort: over-budget first, then by spent descending
-      merged.sort((a, b) => {
-        const aOver = a.budget > 0 && a.spent > a.budget ? 1 : 0;
-        const bOver = b.budget > 0 && b.spent > b.budget ? 1 : 0;
-        if (aOver !== bOver) return bOver - aOver;
-        return b.spent - a.spent;
-      });
 
       setRows(merged);
       setTotalBudget(budgets.reduce((sum, b) => sum + b.amount, 0));
@@ -223,6 +220,33 @@ export default function BudgetScreen() {
     });
   }, [totalSpent, totalBudget, daysElapsed, daysTotal, yearlyPlan, annualSpentYTD]);
 
+  const displayRows = useMemo(() => {
+    const visible = rows.filter((r) => r.budget > 0 || r.spent > 0);
+    return [...visible].sort((a, b) => {
+      switch (sortBy) {
+        case "alphabetical":
+          return a.category.name.localeCompare(b.category.name);
+        case "budget_desc":
+          return b.budget - a.budget;
+        case "spent_amount":
+          return b.spent - a.spent;
+        case "spent_pct": {
+          const aPct = a.budget > 0 ? a.spent / a.budget : a.spent > 0 ? 2 : 0;
+          const bPct = b.budget > 0 ? b.spent / b.budget : b.spent > 0 ? 2 : 0;
+          return bPct - aPct;
+        }
+        default: {
+          const aOver = a.budget > 0 && a.spent > a.budget ? 1 : 0;
+          const bOver = b.budget > 0 && b.spent > b.budget ? 1 : 0;
+          if (aOver !== bOver) return bOver - aOver;
+          return b.spent - a.spent;
+        }
+      }
+    });
+  }, [rows, sortBy]);
+
+  const hiddenCount = rows.length - displayRows.length;
+
   const overallStatus = getBudgetStatus(totalSpent, totalBudget);
   const overallColor = getBudgetStatusColor(overallStatus);
   const overallPct = totalBudget > 0 ? totalSpent / totalBudget : 0;
@@ -278,6 +302,46 @@ export default function BudgetScreen() {
               />
             </View>
           ))}
+
+          <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+              Sort categories by
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(
+                [
+                  { id: "default", label: "Over budget first" },
+                  { id: "alphabetical", label: "Alphabetical" },
+                  { id: "budget_desc", label: "Highest budget" },
+                  { id: "spent_amount", label: "Most spent ₹" },
+                  { id: "spent_pct", label: "Most spent %" },
+                ] as { id: BudgetCategorySort; label: string }[]
+              ).map((opt) => {
+                const selected = sortBy === opt.id;
+                return (
+                  <Pressable
+                    key={opt.id}
+                    onPress={() => {
+                      setSortBy(opt.id);
+                      setBudgetCategorySort(opt.id);
+                    }}
+                    className="px-3 py-1 rounded-full border"
+                    style={{
+                      backgroundColor: selected ? colors.blue : "transparent",
+                      borderColor: selected ? colors.blue : colors.border,
+                    }}
+                  >
+                    <Text
+                      className="text-xs font-medium"
+                      style={{ color: selected ? "#fff" : colors.textSecondary }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         </View>
       )}
 
@@ -706,8 +770,18 @@ export default function BudgetScreen() {
         )}
 
         {/* Category list */}
-        {rows.length > 0 ? (
-          rows.map((item) => {
+        {hiddenCount > 0 && (
+          <View className="px-4 pt-2 pb-1 flex-row items-center justify-between">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">
+              Categories
+            </Text>
+            <Text className="text-xs text-text-tertiary">
+              {hiddenCount} empty hidden
+            </Text>
+          </View>
+        )}
+        {displayRows.length > 0 ? (
+          displayRows.map((item) => {
             const status = getBudgetStatus(item.spent, item.budget);
             const color = getBudgetStatusColor(status);
             const pct = item.budget > 0 ? item.spent / item.budget : 0;
@@ -769,7 +843,21 @@ export default function BudgetScreen() {
                 )}
 
                 {item.budget === 0 && item.spent > 0 && (
-                  <Text className="text-xs text-text-tertiary mt-1">No budget set</Text>
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setQuickBudgetRow(item);
+                      setQuickBudgetAmount("");
+                    }}
+                    className="self-start mt-2 flex-row items-center px-2 py-1 rounded-full border"
+                    style={{ borderColor: colors.blue + "66", backgroundColor: colors.blue + "14" }}
+                    hitSlop={6}
+                  >
+                    <Ionicons name="add" size={12} color={colors.blue} />
+                    <Text className="text-xs font-medium ml-0.5" style={{ color: colors.blue }}>
+                      Set budget for {monthLabel}
+                    </Text>
+                  </Pressable>
                 )}
               </Pressable>
             );
@@ -785,6 +873,107 @@ export default function BudgetScreen() {
             </Text>
           </View>
         )}
+
+        {/* Quick-set budget modal (centered dialog, keyboard-safe) */}
+        <Modal
+          visible={quickBudgetRow !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setQuickBudgetRow(null)}
+          onShow={() => setTimeout(() => quickBudgetInputRef.current?.focus(), 80)}
+        >
+          <Pressable
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.65)", justifyContent: "flex-start", paddingTop: 120, paddingHorizontal: 32 }}
+            onPress={() => setQuickBudgetRow(null)}
+          >
+            <Pressable onPress={() => {}} style={{ borderRadius: 16, overflow: "hidden" }}>
+              <View
+                className="rounded-2xl border border-border-light dark:border-border-dark"
+                style={{ backgroundColor: colorScheme === "dark" ? "#1C2230" : "#fff" }}
+              >
+                {/* Category row */}
+                <View className="flex-row items-center gap-3 px-4 py-3 border-b border-border-light dark:border-border-dark">
+                  <View
+                    className="w-9 h-9 rounded-full items-center justify-center"
+                    style={{ backgroundColor: (quickBudgetRow?.category.color ?? "#000") + "20" }}
+                  >
+                    <Ionicons
+                      name={(quickBudgetRow?.category.icon ?? "help-circle") as keyof typeof Ionicons.glyphMap}
+                      size={18}
+                      color={quickBudgetRow?.category.color}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      {quickBudgetRow?.category.name}
+                    </Text>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                      {formatAmount(quickBudgetRow?.spent ?? 0)} spent · {monthLabel} only
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Amount input */}
+                <View className="px-4 pt-4 pb-2">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                    Budget amount
+                  </Text>
+                  <View
+                    className="flex-row items-center rounded-xl border px-3"
+                    style={{ borderColor: colors.blue, backgroundColor: colorScheme === "dark" ? "#0D1117" : "#F8F9FA" }}
+                  >
+                    <Text className="text-lg font-semibold text-text-secondary dark:text-text-dark-secondary mr-1">₹</Text>
+                    <TextInput
+                      ref={quickBudgetInputRef}
+                      value={quickBudgetAmount}
+                      onChangeText={setQuickBudgetAmount}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor={colors.textSecondary + "80"}
+                      style={{ flex: 1, fontSize: 20, fontWeight: "700", color: colors.text, paddingVertical: 10, textAlign: "right" }}
+                      returnKeyType="done"
+                      onSubmitEditing={async () => {
+                        const amt = parseFloat(quickBudgetAmount);
+                        if (!quickBudgetRow || isNaN(amt) || amt <= 0) return;
+                        await upsertBudget({ user_id: DEFAULT_USER_ID, category_id: quickBudgetRow.category.id, month, amount: amt });
+                        bumpDataVersion();
+                        setQuickBudgetRow(null);
+                      }}
+                    />
+                  </View>
+                  <Text className="text-xs text-text-tertiary mt-2">
+                    Won't affect other months. Use Settings › Budget Config to set recurring budgets.
+                  </Text>
+                </View>
+
+                {/* Actions */}
+                <View className="flex-row border-t border-border-light dark:border-border-dark">
+                  <Pressable
+                    onPress={() => setQuickBudgetRow(null)}
+                    className="flex-1 py-3 items-center border-r border-border-light dark:border-border-dark"
+                  >
+                    <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={async () => {
+                      const amt = parseFloat(quickBudgetAmount);
+                      if (!quickBudgetRow || isNaN(amt) || amt <= 0) return;
+                      await upsertBudget({ user_id: DEFAULT_USER_ID, category_id: quickBudgetRow.category.id, month, amount: amt });
+                      bumpDataVersion();
+                      setQuickBudgetRow(null);
+                    }}
+                    className="flex-2 py-3 items-center"
+                    style={{ flex: 2 }}
+                  >
+                    <Text className="text-sm font-semibold" style={{ color: colors.blue }}>
+                      Save for {monthLabel}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </ScrollView>
     </ScreenContainer>
   );

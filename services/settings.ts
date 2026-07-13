@@ -7,6 +7,7 @@ const KEYS = {
   THEME: "theme",
   ACCENT_THEME: "accent_theme",
   BUDGET_WIDGETS_VISIBLE: "budget_widgets_visible",
+  BUDGET_CATEGORY_SORT: "budget_category_sort",
   DATA_VERSION: "data_version",
   LAST_BACKUP_AT: "last_backup_at",
   BACKUP_WARNING_DISMISSED_UNTIL: "backup_warning_dismissed_until",
@@ -15,6 +16,16 @@ const KEYS = {
 
 export const DEFAULT_BUDGET_WIDGETS = ["summary", "projection"] as const;
 export type BudgetWidgetId = (typeof DEFAULT_BUDGET_WIDGETS)[number];
+
+export type BudgetCategorySort = "default" | "alphabetical" | "budget_desc" | "spent_amount" | "spent_pct";
+
+export function getBudgetCategorySort(): BudgetCategorySort {
+  return (storage.getString(KEYS.BUDGET_CATEGORY_SORT) as BudgetCategorySort) ?? "default";
+}
+
+export function setBudgetCategorySort(sort: BudgetCategorySort): void {
+  storage.set(KEYS.BUDGET_CATEGORY_SORT, sort);
+}
 
 /**
  * Get the fiscal year start month (1-12). Default: 4 (April, Indian FY).
