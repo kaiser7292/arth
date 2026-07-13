@@ -19,7 +19,7 @@ export interface AIDataContextOptions {
   vault: boolean;
 }
 
-const MAX_CONTEXT_CHARS = 2500;
+const MAX_CONTEXT_CHARS = 6000;
 
 function monthLabel(month: string): string {
   const [y, m] = month.split("-");
@@ -65,7 +65,7 @@ async function buildExpensesContext(): Promise<string> {
     getExpenseTotal(uid, curRange.start, curRange.end),
     getExpenseTotal(uid, prevRange.start, prevRange.end),
     getExpenseCount(uid, curRange.start, curRange.end),
-    getTopCategoriesBySpending(uid, curRange.start, curRange.end, 5),
+    getTopCategoriesBySpending(uid, curRange.start, curRange.end, 10),
     getCategories(uid),
   ]);
 
@@ -91,7 +91,7 @@ async function buildAccountsContext(): Promise<string> {
   let out = `[ACCOUNTS]\n`;
   out += `Total savings: ${formatAmount(summary.totalBalance)}. Credit available: ${formatAmount(summary.totalCreditAvailable)}. Dues: ${formatAmount(summary.totalDues)}. ${summary.accountCount} accounts.\n`;
 
-  const lines = accounts.slice(0, 8).map((a) => {
+  const lines = accounts.slice(0, 15).map((a) => {
     const label = a.account_label || `${a.bank_name} ${maskAccount(a.account_identifier)}`;
     const bal =
       a.account_type === "credit_card"
@@ -117,7 +117,7 @@ async function buildBudgetContext(): Promise<string> {
   const over = result.rows
     .filter((r) => r.totalActual > r.totalBudget && r.totalBudget > 0)
     .sort((a, b) => (b.totalActual - b.totalBudget) - (a.totalActual - a.totalBudget))
-    .slice(0, 4);
+    .slice(0, 8);
   if (over.length) {
     const lines = over.map((r) => {
       const oPct = Math.round(((r.totalActual - r.totalBudget) / r.totalBudget) * 100);
@@ -129,7 +129,7 @@ async function buildBudgetContext(): Promise<string> {
   const under = result.rows
     .filter((r) => r.totalActual <= r.totalBudget && r.totalBudget > 0)
     .sort((a, b) => a.totalActual / a.totalBudget - b.totalActual / b.totalBudget)
-    .slice(0, 4);
+    .slice(0, 8);
   if (under.length) {
     const lines = under.map((r) => {
       const uPct = Math.round((r.totalActual / r.totalBudget) * 100);
@@ -160,7 +160,7 @@ async function buildHisaabContext(): Promise<string> {
   const top = persons
     .filter((p) => p.balance !== 0)
     .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance))
-    .slice(0, 6);
+    .slice(0, 12);
   if (top.length) {
     const lines = top.map((p) => {
       const sign = p.balance > 0 ? "+" : "";
