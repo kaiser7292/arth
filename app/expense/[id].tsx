@@ -1862,7 +1862,7 @@ export default function ExpenseDetailScreen() {
               )}
 
               {/* 1c. Pending Review Action Bar */}
-              {expense.status === "pending_review" && (
+              {expense.status === "pending_review" && !transfer && (
                 <View className="mx-4 mt-1 flex-row rounded-xl overflow-hidden" style={{ backgroundColor: StatusColors[colorScheme].warning + "12" }}>
                   <Pressable
                     onPress={handleApprove}

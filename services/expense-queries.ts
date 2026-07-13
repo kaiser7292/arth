@@ -669,6 +669,7 @@ export async function getPendingExpensesForReview(
   return db.getAllAsync<Expense>(
     `SELECT * FROM expenses
      WHERE user_id = ? AND status = 'pending_review' AND deleted_at IS NULL
+       AND ${NOT_RECLASSIFIED}
      ORDER BY created_at DESC;`,
     userId,
   );
@@ -683,7 +684,8 @@ export async function getPendingExpenseCount(
   const db = getDatabase();
   const row = await db.getFirstAsync<{ count: number }>(
     `SELECT COUNT(*) as count FROM expenses
-     WHERE user_id = ? AND status = 'pending_review' AND nature IN ('realized', 'credit') AND deleted_at IS NULL;`,
+     WHERE user_id = ? AND status = 'pending_review' AND nature IN ('realized', 'credit') AND deleted_at IS NULL
+       AND ${NOT_RECLASSIFIED};`,
     userId,
   );
   return row?.count ?? 0;
