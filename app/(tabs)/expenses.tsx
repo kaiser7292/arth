@@ -4,8 +4,8 @@ import { parseNLQuery } from "@/utils/nl-search";
 import { View, Text, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, FABMenu, DateInput, EmptyState, Input, Card } from "@/components/ui";
-import type { FABMenuItem } from "@/components/ui";
+import { ScreenContainer, FABMenu, DateInput, EmptyState, Input, Card, SwipePager } from "@/components/ui";
+import type { FABMenuItem, SwipePagerPage } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -70,7 +70,13 @@ import { StatusColors } from "@/constants/theme";
 
 const PAGE_SIZE = 50;
 
-
+const NATURE_TABS: SwipePagerPage[] = [
+  { key: "all", label: "All" },
+  { key: "realized", label: "Expenses" },
+  { key: "committed", label: "Committed" },
+  { key: "credit", label: "Credits" },
+  { key: "transfers", label: "Transfers" },
+];
 
 export default function ExpensesScreen() {
   const alert = useAlert();
@@ -359,6 +365,27 @@ export default function ExpensesScreen() {
     }
   }, [hasMore, loading, loadExpenses]);
 
+  const handleNatureChange = useCallback((index: number) => {
+    const tab = NATURE_TABS[index];
+    if (!tab) return;
+    const newKey = tab.key as typeof filterNature;
+    if (newKey === filterNature) return;
+    if (filterNature === "realized") groupByForRealizedRef.current = summaryGroupBy;
+    else if (filterNature === "credit") groupByForCreditRef.current = summaryGroupBy;
+    setFilterNature(newKey);
+    setSummaryGroupBy(newKey === "credit" ? groupByForCreditRef.current : groupByForRealizedRef.current);
+    if (newKey !== "realized") {
+      setFilterRefundedStatus("");
+      setFilterAvoidability("");
+    }
+    if (newKey === "transfers") {
+      setFilterCategoryIds([]);
+      setFilterPaymentModeIds([]);
+      setFilterTagIds([]);
+      setFilterMerchantNames([]);
+    }
+  }, [filterNature, summaryGroupBy]);
+
   const clearFilters = useCallback(() => {
     setDatePreset("this_month");
     setCustomStartDate("");
@@ -481,7 +508,8 @@ export default function ExpensesScreen() {
     if (parsedPreset) setDatePreset(parsedPreset);
   }, [nlEnabled, search, setDatePreset]);
 
-  const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0 || filterNature !== "realized";
+  const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0;
+  const activeNatureIndex = NATURE_TABS.findIndex((t) => t.key === filterNature);
   const hasActiveFilters = hasNonDateFilters || datePreset !== "this_month";
 
   const handleItemPress = useCallback(
@@ -881,76 +909,6 @@ export default function ExpensesScreen() {
         </View>
       )}
 
-      {/* Expenses / Committed / Credits toggle + Save view actions */}
-      <View className="px-4 pb-2 flex-row items-center justify-between">
-        <View className="flex-row">
-          {([
-            { key: "all" as const, label: "All", icon: "layers-outline" as const },
-            { key: "realized" as const, label: "Expenses", icon: "receipt-outline" as const },
-            { key: "committed" as const, label: "Committed", icon: "lock-closed-outline" as const },
-            { key: "credit" as const, label: "Credits", icon: "arrow-down-circle-outline" as const },
-            { key: "transfers" as const, label: "Transfers", icon: "swap-horizontal-outline" as const },
-          ]).map((opt) => {
-            const isActive = filterNature === opt.key;
-            return (
-              <Pressable
-                key={opt.key}
-                onPress={() => {
-                  if (isActive) return;
-                  if (filterNature === "realized") groupByForRealizedRef.current = summaryGroupBy;
-                  else if (filterNature === "credit") groupByForCreditRef.current = summaryGroupBy;
-                  setFilterNature(opt.key);
-                  setSummaryGroupBy(
-                    opt.key === "credit" ? groupByForCreditRef.current : groupByForRealizedRef.current,
-                  );
-                  if (opt.key !== "realized") {
-                    setFilterRefundedStatus("");
-                    setFilterAvoidability("");
-                  }
-                  if (opt.key === "transfers") {
-                    setFilterCategoryIds([]);
-                    setFilterPaymentModeIds([]);
-                    setFilterTagIds([]);
-                    setFilterMerchantNames([]);
-                  }
-                }}
-                accessibilityRole="button"
-                className={`flex-row items-center px-3 py-1.5 rounded-lg mr-1.5 ${
-                  isActive ? "border" : "bg-surface-light-alt dark:bg-surface-dark-alt"
-                }`}
-                style={isActive ? { backgroundColor: ac(accent, colorScheme, 100, 700), borderColor: accent[500] } : undefined}
-              >
-                <Ionicons
-                  name={opt.icon}
-                  size={13}
-                  color={isActive ? ac(accent, colorScheme, 500, 200) : colors.textSecondary}
-                  style={{ marginRight: 3 }}
-                />
-                <Text
-                  className={`text-[11px] ${isActive ? "font-medium" : "text-text-secondary dark:text-text-dark-secondary"}`}
-                  style={isActive ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
-                >
-                  {opt.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        {/* Save / Default actions */}
-        <View className="flex-row items-center">
-          {hasActiveFilters && (
-            <Pressable onPress={handleSaveView} className="mr-3">
-              <Ionicons name="bookmark-outline" size={16} color={accent[500]} />
-            </Pressable>
-          )}
-          {activeViewId && (
-            <Pressable onPress={() => handleSetDefault(activeViewId)}>
-              <Ionicons name={getDefaultFilterViewId() === activeViewId ? "star" : "star-outline"} size={16} color="#F59E0B" />
-            </Pressable>
-          )}
-        </View>
-      </View>
-
       {/* Date preset selector */}
       <View className="px-4 pb-2">
         <Pressable
@@ -1131,96 +1089,124 @@ export default function ExpensesScreen() {
         </View>
       )}
 
-      {/* Expense list */}
-      {filterNature === "transfers" ? (
-        <FlatList
-          data={transfers}
-          keyExtractor={(item) => item.id}
-          renderItem={renderTransferItem}
-          contentContainerStyle={{ paddingBottom: 80 }}
-          refreshing={loading && transfers.length === 0}
-          onRefresh={() => loadExpenses(true)}
-          ListEmptyComponent={
-            !loading ? (
-              <EmptyState
-                icon="swap-horizontal-outline"
-                title="No transfers yet"
-                subtitle="Transfers between accounts will appear here"
-              />
-            ) : null
-          }
-        />
-      ) : (
-        <FlatList
-          data={expenses}
-          keyExtractor={(item) => item.id}
-          renderItem={renderExpenseItem}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
-          contentContainerStyle={{ paddingBottom: 80 }}
-          refreshing={loading && expenses.length === 0}
-          onRefresh={() => loadExpenses(true)}
-          ListHeaderComponent={
-            summary && summary.count > 0 ? (
-              <FilterSummaryCard
-              summary={summary}
-              groupLabelHeader={
-                summaryGroupBy === "category"
-                  ? "Category"
-                  : summaryGroupBy === "account"
-                    ? "Account"
-                    : summaryGroupBy === "merchant"
-                      ? "Merchant"
-                      : "Payment Mode"
-              }
-              resolveGroupLabel={(key) => {
-                if (!key) return summaryGroupBy === "merchant" ? "No merchant" : "Uncategorized";
-                if (summaryGroupBy === "category") return categoryMap.get(key)?.name ?? "Unknown";
-                if (summaryGroupBy === "payment_mode") return paymentModeMap.get(key)?.name ?? "Unknown";
-                if (summaryGroupBy === "merchant") return key;
-                const acct = accountMap.get(key);
-                return acct
-                  ? `${acct.bank_name} ****${acct.account_identifier}`
-                  : "Unknown";
-              }}
-              allowGroupByChange
-              onChangeGroupBy={setSummaryGroupBy}
-              previousTotal={previousTotal}
-              natureKind={filterNature === "credit" ? "credit" : "realized" as const}
-              availableGroupBys={
-                filterNature === "credit"
-                  ? (["account", "payment_mode", "merchant"] as const)
-                  : (["category", "account", "payment_mode", "merchant"] as const)
-              }
-            />
-          ) : null
+      {/* Nature tabs + transaction list */}
+      <SwipePager
+        pages={NATURE_TABS}
+        activeIndex={activeNatureIndex}
+        onIndexChange={handleNatureChange}
+        trailing={
+          <View className="flex-row items-center">
+            {hasActiveFilters && (
+              <Pressable onPress={handleSaveView} className="mr-3">
+                <Ionicons name="bookmark-outline" size={16} color={accent[500]} />
+              </Pressable>
+            )}
+            {activeViewId && (
+              <Pressable onPress={() => handleSetDefault(activeViewId)}>
+                <Ionicons name={getDefaultFilterViewId() === activeViewId ? "star" : "star-outline"} size={16} color="#F59E0B" />
+              </Pressable>
+            )}
+          </View>
         }
-        ListEmptyComponent={
-          !loading ? (() => {
-            const isCreditView = filterNature === "credit";
-            const emptyIcon = isCreditView ? "arrow-down-circle-outline" : "receipt-outline";
-            const emptyTitle = hasActiveFilters
-              ? isCreditView ? "No matching credits" : "No matching expenses"
-              : isCreditView ? "No credits yet" : "No expenses yet";
-            const emptySubtitle = hasActiveFilters
-              ? "Try adjusting your filters"
-              : isCreditView
-                ? "Credits appear here when an incoming SMS is parsed"
-                : "Tap + to add your first expense";
-            return <EmptyState icon={emptyIcon} title={emptyTitle} subtitle={emptySubtitle} />;
-          })() : null
-        }
-        ListFooterComponent={
-          loading ? (
-            <View className="py-4 items-center">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
-                Loading expenses...
-              </Text>
-            </View>
-          ) : null
-        }
-      />
-      )}
+      >
+        {NATURE_TABS.map((page, pageIdx) => (
+          <View key={page.key} style={{ flex: 1 }}>
+            {activeNatureIndex === pageIdx ? (
+              filterNature === "transfers" ? (
+                <FlatList
+                  data={transfers}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderTransferItem}
+                  contentContainerStyle={{ paddingBottom: 80 }}
+                  refreshing={loading && transfers.length === 0}
+                  onRefresh={() => loadExpenses(true)}
+                  ListEmptyComponent={
+                    !loading ? (
+                      <EmptyState
+                        icon="swap-horizontal-outline"
+                        title="No transfers yet"
+                        subtitle="Transfers between accounts will appear here"
+                      />
+                    ) : null
+                  }
+                />
+              ) : (
+                <FlatList
+                  data={expenses}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderExpenseItem}
+                  onEndReached={handleLoadMore}
+                  onEndReachedThreshold={0.3}
+                  contentContainerStyle={{ paddingBottom: 80 }}
+                  refreshing={loading && expenses.length === 0}
+                  onRefresh={() => loadExpenses(true)}
+                  ListHeaderComponent={
+                    summary && summary.count > 0 ? (
+                      <FilterSummaryCard
+                        summary={summary}
+                        groupLabelHeader={
+                          summaryGroupBy === "category"
+                            ? "Category"
+                            : summaryGroupBy === "account"
+                              ? "Account"
+                              : summaryGroupBy === "merchant"
+                                ? "Merchant"
+                                : "Payment Mode"
+                        }
+                        resolveGroupLabel={(key) => {
+                          if (!key) return summaryGroupBy === "merchant" ? "No merchant" : "Uncategorized";
+                          if (summaryGroupBy === "category") return categoryMap.get(key)?.name ?? "Unknown";
+                          if (summaryGroupBy === "payment_mode") return paymentModeMap.get(key)?.name ?? "Unknown";
+                          if (summaryGroupBy === "merchant") return key;
+                          const acct = accountMap.get(key);
+                          return acct
+                            ? `${acct.bank_name} ****${acct.account_identifier}`
+                            : "Unknown";
+                        }}
+                        allowGroupByChange
+                        onChangeGroupBy={setSummaryGroupBy}
+                        previousTotal={previousTotal}
+                        natureKind={filterNature === "credit" ? "credit" : "realized" as const}
+                        availableGroupBys={
+                          filterNature === "credit"
+                            ? (["account", "payment_mode", "merchant"] as const)
+                            : (["category", "account", "payment_mode", "merchant"] as const)
+                        }
+                      />
+                    ) : null
+                  }
+                  ListEmptyComponent={
+                    !loading ? (() => {
+                      const isCreditView = filterNature === "credit";
+                      const emptyIcon = isCreditView ? "arrow-down-circle-outline" : "receipt-outline";
+                      const emptyTitle = hasActiveFilters
+                        ? isCreditView ? "No matching credits" : "No matching expenses"
+                        : isCreditView ? "No credits yet" : "No expenses yet";
+                      const emptySubtitle = hasActiveFilters
+                        ? "Try adjusting your filters"
+                        : isCreditView
+                          ? "Credits appear here when an incoming SMS is parsed"
+                          : "Tap + to add your first expense";
+                      return <EmptyState icon={emptyIcon} title={emptyTitle} subtitle={emptySubtitle} />;
+                    })() : null
+                  }
+                  ListFooterComponent={
+                    loading ? (
+                      <View className="py-4 items-center">
+                        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                          Loading expenses...
+                        </Text>
+                      </View>
+                    ) : null
+                  }
+                />
+              )
+            ) : (
+              <View style={{ flex: 1 }} />
+            )}
+          </View>
+        ))}
+      </SwipePager>
 
       <FABMenu
         hidden={bulkMode}

@@ -21,6 +21,8 @@ export { ProgressBar } from "./ProgressBar";
 export { ScreenContainer } from "./ScreenContainer";
 export { SectionHeader } from "./SectionHeader";
 export { StatusPill } from "./StatusPill";
+export { SwipePager } from "./SwipePager";
+export type { SwipePagerPage } from "./SwipePager";
 export { SwipeableRow } from "./SwipeableRow";
 export { TimePickerModal } from "./TimePickerModal";
 export { WidgetCard } from "./WidgetCard";

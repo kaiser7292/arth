@@ -2,7 +2,8 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { View, Text, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, ProgressBar, StatusPill, WidgetCard, PeriodNavigator } from "@/components/ui";
+import { ScreenContainer, ProgressBar, StatusPill, WidgetCard, PeriodNavigator, SwipePager } from "@/components/ui";
+import { SpendingSplitPage } from "@/components/budget/SpendingSplitPage";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";
 import { StatusColors } from "@/constants/theme";
@@ -62,6 +63,8 @@ export default function BudgetScreen() {
   const [quickBudgetRow, setQuickBudgetRow] = useState<BudgetDashboardRow | null>(null);
   const [quickBudgetAmount, setQuickBudgetAmount] = useState("");
   const quickBudgetInputRef = useRef<TextInput>(null);
+  const [activePageIndex, setActivePageIndex] = useState(0);
+  const [visitedSplit, setVisitedSplit] = useState(false);
 
   const WIDGET_STORAGE_KEYS: Record<BudgetWidgetId, string> = {
     summary: "budget_summary",
@@ -254,30 +257,32 @@ export default function BudgetScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      {/* Month selector + widget manager toggle */}
+      {/* Month selector + widget manager toggle (toggle hidden on Spending Split page) */}
       <PeriodNavigator
         mode="month"
         value={month}
         onChange={setMonth}
         trailing={
-          <Pressable
-            onPress={() => setShowWidgetManager((v) => !v)}
-            accessibilityLabel="Manage widgets"
-            accessibilityRole="button"
-            className="p-2 ml-1"
-            hitSlop={6}
-          >
-            <Ionicons
-              name="options-outline"
-              size={18}
-              color={showWidgetManager ? colors.blue : "#6B7280"}
-            />
-          </Pressable>
+          activePageIndex === 0 ? (
+            <Pressable
+              onPress={() => setShowWidgetManager((v) => !v)}
+              accessibilityLabel="Manage widgets"
+              accessibilityRole="button"
+              className="p-2 ml-1"
+              hitSlop={6}
+            >
+              <Ionicons
+                name="options-outline"
+                size={18}
+                color={showWidgetManager ? colors.blue : "#6B7280"}
+              />
+            </Pressable>
+          ) : null
         }
       />
 
-      {/* Widget management panel */}
-      {showWidgetManager && (
+      {/* Widget management panel (only on Monthly Summary page) */}
+      {activePageIndex === 0 && showWidgetManager && (
         <View className="mx-4 mt-2 mb-1 p-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt border border-border-light dark:border-border-dark">
           <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">
             Manage Widgets
@@ -345,21 +350,34 @@ export default function BudgetScreen() {
         </View>
       )}
 
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={async () => {
-              setRefreshing(true);
-              await loadData();
-              setRefreshing(false);
-            }}
-          />
-        }
+      <SwipePager
+        pages={[
+          { key: "monthly", label: "Monthly summary" },
+          { key: "split", label: "Spending split" },
+        ]}
+        activeIndex={activePageIndex}
+        onIndexChange={(i) => {
+          setActivePageIndex(i);
+          if (i !== 0) setShowWidgetManager(false);
+          if (i === 1) setVisitedSplit(true);
+        }}
       >
+        {/* Page 0 — Monthly Summary */}
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => {
+                setRefreshing(true);
+                await loadData();
+                setRefreshing(false);
+              }}
+            />
+          }
+        >
         {/* Budget Summary Widget */}
         {visibleWidgets.includes("summary") && (
           <WidgetCard
@@ -438,15 +456,6 @@ export default function BudgetScreen() {
               >
                 <Text className="text-xs font-medium" style={{ color: ac(accent, colorScheme, 500, 200) }}>
                   Monthly Summary
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => router.push({ pathname: "/budget/spending-split", params: { month } })}
-                className="flex-1 py-2 rounded-xl items-center"
-                style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}
-              >
-                <Text className="text-xs font-medium" style={{ color: ac(accent, colorScheme, 500, 200) }}>
-                  Spending Split
                 </Text>
               </Pressable>
             </View>
@@ -874,8 +883,8 @@ export default function BudgetScreen() {
           </View>
         )}
 
-        {/* Quick-set budget modal (centered dialog, keyboard-safe) */}
-        <Modal
+          {/* Quick-set budget modal (centered dialog, keyboard-safe) */}
+          <Modal
           visible={quickBudgetRow !== null}
           transparent
           animationType="fade"
@@ -974,7 +983,13 @@ export default function BudgetScreen() {
             </Pressable>
           </Pressable>
         </Modal>
-      </ScrollView>
+        </ScrollView>
+
+        {/* Page 1 — Spending Split (lazy: only mount after first visit) */}
+        {visitedSplit
+          ? <SpendingSplitPage month={month} />
+          : <View style={{ flex: 1 }} />}
+      </SwipePager>
     </ScreenContainer>
   );
 }

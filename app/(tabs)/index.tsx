@@ -1,6 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
+import { InsightsPage } from "@/components/home/pages/InsightsPage";
+import { ReviewQueuePage } from "@/components/home/pages/ReviewQueuePage";
+import { VaultPage } from "@/components/home/pages/VaultPage";
+import { SimulatorPage } from "@/components/home/pages/SimulatorPage";
 import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
@@ -13,8 +17,8 @@ import { LoanSummaryCard } from "@/components/home/LoanSummaryCard";
 import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
 import { PensionSummaryCard } from "@/components/home/PensionSummaryCard";
 import { WalletSummary } from "@/components/home/WalletSummary";
-import { Card, ProgressBar, ScreenContainer, StatusPill } from "@/components/ui";
-import { VaultIcon } from "@/components/ui/VaultIcon";
+import { Card, ProgressBar, ScreenContainer, StatusPill, SwipePager } from "@/components/ui";
+import type { SwipePagerPage } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -47,10 +51,10 @@ import {
     unacknowledgedBreaches,
 } from "@/services/min-balance";
 import { isArthAIEnabled } from "@/services/ai-assistant";
-import { bumpDataVersion, dismissBackupWarning, getFYStartMonth, shouldShowBackupWarning } from "@/services/settings";
+import { dismissBackupWarning, getFYStartMonth, shouldShowBackupWarning } from "@/services/settings";
 import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
-import { getLastAutoScanRun, getSmsScanAccountIds, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
 import { findAutoMatches, dismissReminderMatch, clearDismissalsForRule, pruneExpiredDismissals } from "@/services/reminder-matching";
+import { getSmsScanAccountIds, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
 import type { ReminderAutoMatch } from "@/services/reminder-matching";
 import { ac, acAlpha } from "@/utils/accent";
 import {
@@ -61,6 +65,14 @@ import {
 } from "@/utils/budget-helpers";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import { logger } from "@/utils/logger";
+
+const HOME_TABS: SwipePagerPage[] = [
+  { key: "overview", label: "Overview" },
+  { key: "insights", label: "Insights" },
+  { key: "queue", label: "Queue" },
+  { key: "vault", label: "Vault" },
+  { key: "simulator", label: "Simulator" },
+];
 
 const preloaded = consumeHomePreload();
 
@@ -113,7 +125,23 @@ export default function HomeScreen() {
   const [loansSummary, setLoansSummary] = useState<LoansSummary | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [smsScanning, setSmsScanning] = useState(false);
-  const [lastScanTs, setLastScanTs] = useState(() => getLastAutoScanRun());
+  const [activeHomeIndex, setActiveHomeIndex] = useState(0);
+  const [visitedHomePages, setVisitedHomePages] = useState(new Set([0]));
+  const handleHomeIndexChange = useCallback((idx: number) => {
+    setActiveHomeIndex(idx);
+    setVisitedHomePages((prev) => new Set([...prev, idx]));
+  }, []);
+
+  const handleHomeScan = useCallback(async () => {
+    if (smsScanning) return;
+    setSmsScanning(true);
+    try {
+      const accountIds = getSmsScanAccountIds();
+      await runSmsScan({ manual: true, accountIds });
+    } finally {
+      setSmsScanning(false);
+    }
+  }, [smsScanning]);
 
   // Collapsible sections — closed by default
   const [duesOpen, setDuesOpen] = useState(false);
@@ -268,131 +296,46 @@ export default function HomeScreen() {
     setDismissTick((t) => t + 1);
   }, [month]);
 
-  const monthLabel = (() => {
-    const [year, m] = month.split("-").map(Number);
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    return `${months[m - 1]} ${year}`;
-  })();
-
   const healthLabel =
     overallStatus === "under" ? "On Track" :
     overallStatus === "warning" ? "Watch Spending" : "Over Budget";
 
-  const handleSmsScan = useCallback(async () => {
-    if (smsScanning) return;
-    setSmsScanning(true);
-    try {
-      const accountIds = getSmsScanAccountIds();
-      await runSmsScan({ manual: true, accountIds });
-      const ts = getLastAutoScanRun();
-      setLastScanTs(ts > 0 ? ts : Date.now());
-      bumpDataVersion();
-    } catch {
-      // non-fatal
-    } finally {
-      setSmsScanning(false);
-    }
-  }, [smsScanning]);
-
-  const smsEnabled = isSmsDetectionEnabled();
-
-  const lastScanLabel = (() => {
-    if (lastScanTs === 0) return null;
-    const d = new Date(lastScanTs);
-    if (isNaN(d.getTime())) return null;
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffMin = Math.floor(diffMs / 60000);
-    if (diffMin < 1) return "just now";
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffH = Math.floor(diffMin / 60);
-    if (diffH < 24) return `${diffH}h ago`;
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    return `${d.getDate()} ${months[d.getMonth()]}`;
-  })();
-
   return (
     <ScreenContainer padTop={false}>
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={async () => {
-              setRefreshing(true);
-              await loadData();
-              setRefreshing(false);
-            }}
-          />
+      <SwipePager
+        pages={HOME_TABS}
+        activeIndex={activeHomeIndex}
+        onIndexChange={handleHomeIndexChange}
+        trailing={
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+            {isArthAIEnabled() && (
+              <Pressable onPress={() => router.push("/ai-chat" as never)} hitSlop={8} accessibilityLabel="Ask Arth AI">
+                <Ionicons name="sparkles-outline" size={20} color={colors.tint} />
+              </Pressable>
+            )}
+            {isSmsDetectionEnabled() && (
+              <Pressable onPress={handleHomeScan} disabled={smsScanning} hitSlop={8} accessibilityLabel="Scan SMS">
+                <Ionicons name={smsScanning ? "sync-outline" : "scan-outline"} size={20} color={colors.tabIconDefault} />
+              </Pressable>
+            )}
+          </View>
         }
       >
-        {/* App Header */}
-        <View className="px-4 pt-5 pb-3 flex-row items-start justify-between">
-          <View>
-            <View className="flex-row items-baseline" style={{ gap: 6 }}>
-              <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">Arth</Text>
-              <Text className="text-lg text-text-secondary dark:text-text-dark-secondary">·</Text>
-              <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">अर्थ</Text>
-            </View>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-              {monthLabel}
-            </Text>
-          </View>
-          <View className="items-end mt-0.5">
-            {smsEnabled && lastScanLabel && (
-              <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary mb-1">
-                {lastScanLabel}
-              </Text>
-            )}
-            <View className="flex-row items-center gap-2">
-              {isArthAIEnabled() && (
-                <Pressable
-                  onPress={() => router.push("/ai-chat" as never)}
-                  hitSlop={8}
-                  accessibilityLabel="Ask Arth AI"
-                  className="flex-row items-center rounded-full px-2.5 py-1.5"
-                  style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}
-                >
-                  <Ionicons name="sparkles" size={13} color={accent[500]} />
-                  <Text className="text-xs font-semibold ml-1" style={{ color: accent[500] }}>
-                    Ask AI
-                  </Text>
-                </Pressable>
-              )}
-              <Pressable
-                onPress={() => router.push("/vault")}
-                hitSlop={8}
-                accessibilityLabel="Open Vault"
-                className="w-8 h-8 rounded-full items-center justify-center"
-                style={{ backgroundColor: colors.border + "66" }}
-              >
-                <VaultIcon size={16} color={colors.textSecondary} />
-              </Pressable>
-              {smsEnabled && (
-                <Pressable
-                  onPress={handleSmsScan}
-                  disabled={smsScanning}
-                  hitSlop={8}
-                  accessibilityLabel="Scan SMS"
-                  className="w-8 h-8 rounded-full items-center justify-center"
-                  style={{ backgroundColor: colors.border + "66" }}
-                >
-                  {smsScanning ? (
-                    <Ionicons name="sync-outline" size={16} color={colors.textSecondary} />
-                  ) : (
-                    <Ionicons name="scan-outline" size={16} color={colors.textSecondary} />
-                  )}
-                </Pressable>
-              )}
-            </View>
-          </View>
-        </View>
-
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 80 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => {
+                setRefreshing(true);
+                await loadData();
+                setRefreshing(false);
+              }}
+            />
+          }
+        >
         {/* Stale backup warning */}
         {showBackupReminder && (
           <Pressable
@@ -850,7 +793,7 @@ export default function HomeScreen() {
           <CreditCardDashboard accounts={ccAccounts} expenseTotals={ccExpenseTotals} computedBalances={computedBalanceMap} />
         )}
         {isHomeCardVisible("bank_balances") && (
-          <BankBalanceSummary accounts={bankAccounts} computedBalances={computedBalanceMap} expenseTotals={ccExpenseTotals} />
+          <BankBalanceSummary accounts={bankAccounts} />
         )}
         {isHomeCardVisible("wallets") && (
           <WalletSummary accounts={walletAccounts} computedBalances={computedBalanceMap} expenseTotals={ccExpenseTotals} />
@@ -983,7 +926,13 @@ export default function HomeScreen() {
             via the Credit Cards / Bank Accounts / Wallets / Demat Portfolio
             sub-screens under the Account Master. */}
 
-      </ScrollView>
+        </ScrollView>
+
+        {visitedHomePages.has(1) ? <InsightsPage /> : <View style={{ flex: 1 }} />}
+        {visitedHomePages.has(2) ? <ReviewQueuePage /> : <View style={{ flex: 1 }} />}
+        {visitedHomePages.has(3) ? <VaultPage /> : <View style={{ flex: 1 }} />}
+        {visitedHomePages.has(4) ? <SimulatorPage /> : <View style={{ flex: 1 }} />}
+      </SwipePager>
 
       <AccountPickerSheet
         visible={accountPickerVisible}
