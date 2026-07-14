@@ -785,7 +785,7 @@ export default function ExpensesScreen() {
   );
 
   return (
-    <ScreenContainer padTop={false}>
+    <ScreenContainer>
       {/* Search bar */}
       <View className="px-4 pt-3 pb-2">
         <View className="flex-row items-center rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt px-3 py-2">

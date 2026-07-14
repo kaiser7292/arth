@@ -68,14 +68,14 @@ export default function GoalsScreen() {
 
   if (!setupChecked || cockpit.loading) {
     return (
-      <ScreenContainer padTop={false}>
+      <ScreenContainer>
         <LoadingState message="Loading goals..." icon="trophy-outline" />
       </ScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer padTop={false}>
+    <ScreenContainer>
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

@@ -412,7 +412,7 @@ export default function SettingsScreen() {
     : theme === "dark" ? "Dark" : "Light";
 
   return (
-    <ScreenContainer padTop={false}>
+    <ScreenContainer>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 py-4">
           <Card title="Data Management" className="mb-4">

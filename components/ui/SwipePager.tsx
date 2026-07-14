@@ -13,11 +13,12 @@ interface SwipePagerProps {
   onIndexChange: (index: number) => void;
   children: React.ReactNode[];
   trailing?: React.ReactNode;
+  /** Width of each tab label cell. Defaults to 80. Increase for longer labels. */
+  tabWidth?: number;
 }
 
-const TAB_WIDTH = 80;
-
-export function SwipePager({ pages, activeIndex, onIndexChange, children, trailing }: SwipePagerProps) {
+export function SwipePager({ pages, activeIndex, onIndexChange, children, trailing, tabWidth: tabWidthProp }: SwipePagerProps) {
+  const tw = tabWidthProp ?? 80;
   const { colors, accent } = useColorScheme();
   const contentRef = useRef<ScrollView>(null);
   const tabStripRef = useRef<ScrollView>(null);
@@ -30,8 +31,8 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
     if (contentSize.width === 0) return;
     contentRef.current?.scrollTo({ x: activeIndex * contentSize.width, animated: true });
     // Keep tab strip centred on active tab
-    tabStripRef.current?.scrollTo({ x: Math.max(0, (activeIndex - 1) * TAB_WIDTH), animated: true });
-  }, [activeIndex, contentSize.width]);
+    tabStripRef.current?.scrollTo({ x: Math.max(0, (activeIndex - 1) * tw), animated: true });
+  }, [activeIndex, contentSize.width, tw]);
 
   const handleTabPress = useCallback(
     (index: number) => {
@@ -46,7 +47,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
       const newIndex = Math.round(e.nativeEvent.contentOffset.x / contentSize.width);
       if (newIndex !== activeIndex) {
         onIndexChange(newIndex);
-        tabStripRef.current?.scrollTo({ x: Math.max(0, (newIndex - 1) * TAB_WIDTH), animated: true });
+        tabStripRef.current?.scrollTo({ x: Math.max(0, (newIndex - 1) * tw), animated: true });
       }
     },
     [activeIndex, contentSize.width, onIndexChange],
@@ -57,10 +58,10 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
     contentSize.width > 0
       ? scrollX.interpolate({
           inputRange: pages.map((_, i) => i * contentSize.width),
-          outputRange: pages.map((_, i) => i * TAB_WIDTH),
+          outputRange: pages.map((_, i) => i * tw),
           extrapolate: "clamp",
         })
-      : new Animated.Value(activeIndex * TAB_WIDTH);
+      : new Animated.Value(activeIndex * tw);
 
   return (
     <View style={{ flex: 1 }}>
@@ -78,7 +79,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
             <Pressable
               key={page.key}
               onPress={() => handleTabPress(index)}
-              style={{ width: TAB_WIDTH, height: 40, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}
+              style={{ width: tw, height: 40, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}
               hitSlop={8}
             >
               <Text
@@ -100,7 +101,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
               position: "absolute",
               bottom: 0,
               height: 2,
-              width: TAB_WIDTH - 28, // 14px margin each side
+              width: tw - 28, // 14px margin each side
               marginHorizontal: 14,
               backgroundColor: accent[500],
               borderRadius: 2,

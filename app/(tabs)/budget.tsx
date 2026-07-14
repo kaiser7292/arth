@@ -256,7 +256,7 @@ export default function BudgetScreen() {
   const perDayRemaining = getPerDayRemaining(totalBudget, totalSpent, daysRemaining);
 
   return (
-    <ScreenContainer padTop={false}>
+    <ScreenContainer>
       {/* Month selector + widget manager toggle (toggle hidden on Spending Split page) */}
       <PeriodNavigator
         mode="month"
@@ -281,7 +281,7 @@ export default function BudgetScreen() {
         }
       />
 
-      {/* Widget management panel (only on Monthly Summary page) */}
+      {/* Widget management panel (only on Overview page) */}
       {activePageIndex === 0 && showWidgetManager && (
         <View className="mx-4 mt-2 mb-1 p-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt border border-border-light dark:border-border-dark">
           <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">
@@ -352,17 +352,19 @@ export default function BudgetScreen() {
 
       <SwipePager
         pages={[
-          { key: "monthly", label: "Monthly summary" },
-          { key: "split", label: "Spending split" },
+          { key: "overview", label: "Overview" },
+          { key: "monthly", label: "Monthly Summary" },
+          { key: "split", label: "Spending Split" },
         ]}
+        tabWidth={120}
         activeIndex={activePageIndex}
         onIndexChange={(i) => {
           setActivePageIndex(i);
           if (i !== 0) setShowWidgetManager(false);
-          if (i === 1) setVisitedSplit(true);
+          if (i === 2) setVisitedSplit(true);
         }}
       >
-        {/* Page 0 — Monthly Summary */}
+        {/* Page 0 — Overview */}
         <ScrollView
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
@@ -755,7 +757,24 @@ export default function BudgetScreen() {
             )}
           </WidgetCard>
         )}
+        </ScrollView>
 
+        {/* Page 1 — Monthly Summary */}
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => {
+                setRefreshing(true);
+                await loadData();
+                setRefreshing(false);
+              }}
+            />
+          }
+        >
         {/* Uncategorized banner */}
         {uncategorized > 0 && (
           <Pressable
@@ -985,7 +1004,7 @@ export default function BudgetScreen() {
         </Modal>
         </ScrollView>
 
-        {/* Page 1 — Spending Split (lazy: only mount after first visit) */}
+        {/* Page 2 — Spending Split (lazy: only mount after first visit) */}
         {visitedSplit
           ? <SpendingSplitPage month={month} />
           : <View style={{ flex: 1 }} />}

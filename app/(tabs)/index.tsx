@@ -301,7 +301,7 @@ export default function HomeScreen() {
     overallStatus === "warning" ? "Watch Spending" : "Over Budget";
 
   return (
-    <ScreenContainer padTop={false}>
+    <ScreenContainer>
       <SwipePager
         pages={HOME_TABS}
         activeIndex={activeHomeIndex}
