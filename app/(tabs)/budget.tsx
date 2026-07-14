@@ -354,10 +354,15 @@ export default function BudgetScreen() {
         pages={[
           { key: "overview", label: "Overview" },
           { key: "split", label: "Spending Split" },
+          { key: "monthly", label: "Monthly Summary" },
         ]}
         tabWidth={120}
         activeIndex={activePageIndex}
         onIndexChange={(i) => {
+          if (i === 2) {
+            router.push({ pathname: "/summary/[month]", params: { month } });
+            return;
+          }
           setActivePageIndex(i);
           if (i !== 0) setShowWidgetManager(false);
           if (i === 1) setVisitedSplit(true);
@@ -446,20 +451,6 @@ export default function BudgetScreen() {
               </View>
             </View>
 
-            {/* Action buttons */}
-            <View className="flex-row mt-3 gap-2">
-              <Pressable
-                onPress={() =>
-                  router.push({ pathname: "/summary/[month]", params: { month } })
-                }
-                className="flex-1 py-2 rounded-xl items-center"
-                style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}
-              >
-                <Text className="text-xs font-medium" style={{ color: ac(accent, colorScheme, 500, 200) }}>
-                  Monthly Summary
-                </Text>
-              </Pressable>
-            </View>
           </WidgetCard>
         )}
 
@@ -989,6 +980,9 @@ export default function BudgetScreen() {
         {visitedSplit
           ? <SpendingSplitPage month={month} />
           : <View style={{ flex: 1 }} />}
+
+        {/* Page 2 — Monthly Summary (navigates away on select, placeholder keeps SwipePager child count correct) */}
+        <View style={{ flex: 1 }} />
       </SwipePager>
     </ScreenContainer>
   );

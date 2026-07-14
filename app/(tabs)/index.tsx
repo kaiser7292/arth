@@ -70,8 +70,8 @@ const HOME_TABS: SwipePagerPage[] = [
   { key: "overview", label: "Overview" },
   { key: "insights", label: "Insights" },
   { key: "queue", label: "Queue" },
-  { key: "vault", label: "Vault" },
   { key: "simulator", label: "Simulator" },
+  { key: "vault", label: "Vault" },
 ];
 
 const preloaded = consumeHomePreload();
@@ -930,8 +930,8 @@ export default function HomeScreen() {
 
         {visitedHomePages.has(1) ? <InsightsPage /> : <View style={{ flex: 1 }} />}
         {visitedHomePages.has(2) ? <ReviewQueuePage /> : <View style={{ flex: 1 }} />}
-        {visitedHomePages.has(3) ? <VaultPage /> : <View style={{ flex: 1 }} />}
-        {visitedHomePages.has(4) ? <SimulatorPage /> : <View style={{ flex: 1 }} />}
+        {visitedHomePages.has(3) ? <SimulatorPage /> : <View style={{ flex: 1 }} />}
+        {visitedHomePages.has(4) ? <VaultPage /> : <View style={{ flex: 1 }} />}
       </SwipePager>
 
       <AccountPickerSheet
