@@ -353,7 +353,6 @@ export default function BudgetScreen() {
       <SwipePager
         pages={[
           { key: "overview", label: "Overview" },
-          { key: "monthly", label: "Monthly Summary" },
           { key: "split", label: "Spending Split" },
         ]}
         tabWidth={120}
@@ -361,7 +360,7 @@ export default function BudgetScreen() {
         onIndexChange={(i) => {
           setActivePageIndex(i);
           if (i !== 0) setShowWidgetManager(false);
-          if (i === 2) setVisitedSplit(true);
+          if (i === 1) setVisitedSplit(true);
         }}
       >
         {/* Page 0 — Overview */}
@@ -757,24 +756,6 @@ export default function BudgetScreen() {
             )}
           </WidgetCard>
         )}
-        </ScrollView>
-
-        {/* Page 1 — Monthly Summary */}
-        <ScrollView
-          style={{ flex: 1 }}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={async () => {
-                setRefreshing(true);
-                await loadData();
-                setRefreshing(false);
-              }}
-            />
-          }
-        >
         {/* Uncategorized banner */}
         {uncategorized > 0 && (
           <Pressable
@@ -1004,7 +985,7 @@ export default function BudgetScreen() {
         </Modal>
         </ScrollView>
 
-        {/* Page 2 — Spending Split (lazy: only mount after first visit) */}
+        {/* Page 1 — Spending Split (lazy: only mount after first visit) */}
         {visitedSplit
           ? <SpendingSplitPage month={month} />
           : <View style={{ flex: 1 }} />}
