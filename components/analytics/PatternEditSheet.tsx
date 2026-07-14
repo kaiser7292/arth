@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
 import { Button } from "@/components/ui/Button";
@@ -27,6 +28,7 @@ const FREQUENCIES: { value: RecurringFrequency; label: string }[] = [
 export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheetProps) {
   const { colorScheme, colors, accent } = useColorScheme();
   const statusColors = StatusColors[colorScheme];
+  const insets = useSafeAreaInsets();
 
   const [amount, setAmount] = useState(String(Math.round(pattern.amount)));
   const [frequency, setFrequency] = useState<RecurringFrequency>(pattern.frequency as RecurringFrequency);
@@ -65,14 +67,12 @@ export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheet
     >
       <Pressable className="flex-1 bg-black/40" onPress={onClose} />
       <KeyboardAvoidingView
-        // v16.0.6 — `padding` on both platforms; see EntryEditSheet note.
-        behavior="padding"
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
       >
       <View
-        className="bg-surface-light-alt dark:bg-surface-dark-alt rounded-t-3xl px-5 pt-4 pb-8"
-        style={{ maxHeight: "92%" }}
+        className="bg-surface-light-alt dark:bg-surface-dark-alt rounded-t-3xl px-5 pt-4"
+        style={{ maxHeight: "92%", paddingBottom: Math.max(insets.bottom, 8) }}
       >
         {/* Handle */}
         <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark self-center mb-4" />

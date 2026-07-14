@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { View, Text, Pressable, Modal, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
@@ -35,6 +36,7 @@ export function HisaabSettlementPickerSheet({
   onClose,
 }: Props) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const slideAnim = useSharedValue(400);
@@ -94,9 +96,9 @@ export function HisaabSettlementPickerSheet({
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             maxHeight: "80%",
+            paddingBottom: Math.max(insets.bottom, 8),
           },
         ]}
-        className="pb-8"
       >
         {/* Drag handle */}
         <View className="items-center pt-3 pb-1">
@@ -131,6 +133,8 @@ export function HisaabSettlementPickerSheet({
             className="px-5"
             contentContainerStyle={{ paddingBottom: 8 }}
             showsVerticalScrollIndicator={false}
+            scrollEnabled={persons.length > 4}
+            alwaysBounceVertical={false}
           >
             {persons.map((p) => {
               const owesYou = p.balance > 0;

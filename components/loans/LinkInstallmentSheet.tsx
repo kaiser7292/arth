@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, Pressable, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   runOnJS,
@@ -44,6 +45,7 @@ function prettyDate(ymd: string): string {
 
 export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }: Props) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const slideAnim = useSharedValue(400);
 
@@ -170,9 +172,9 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
             left: 0,
             right: 0,
             bottom: 0,
+            paddingBottom: Math.max(insets.bottom, 8),
           },
         ]}
-        className="pb-8"
       >
         <View className="items-center pt-3 pb-1">
           <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />

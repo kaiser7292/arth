@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { View, Text, Pressable, Modal, ScrollView } from "react-native";
+import { View, Text, Pressable, Modal } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -53,6 +54,7 @@ export function ForeclosureQuoteSheet({
   onClose,
 }: Props) {
   const { colors } = useColorScheme();
+  const insets = useSafeAreaInsets();
   const slideAnim = useSharedValue(500);
   const today = new Date().toISOString().split("T")[0];
 
@@ -123,9 +125,9 @@ export function ForeclosureQuoteSheet({
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             maxHeight: "80%",
+            paddingBottom: Math.max(insets.bottom, 8),
           },
         ]}
-        className="pb-8"
       >
         <View className="items-center pt-3 pb-1">
           <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
@@ -138,7 +140,7 @@ export function ForeclosureQuoteSheet({
             Close this loan today. Quote valid for {today}.
           </Text>
         </View>
-        <ScrollView className="px-5" contentContainerStyle={{ paddingBottom: 8 }}>
+        <View className="px-5">
           <View
             className="p-4 rounded-xl"
             style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
@@ -166,7 +168,7 @@ export function ForeclosureQuoteSheet({
             />
             <Row label="Months saved" value={`${quote.monthsSaved}`} color="success" />
           </View>
-        </ScrollView>
+        </View>
         <View className="px-5 pt-3 flex-row gap-2">
           <View className="flex-1">
             <Button title="Close" variant="outline" onPress={handleClose} />

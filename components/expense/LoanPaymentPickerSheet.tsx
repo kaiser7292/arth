@@ -6,6 +6,7 @@ import {
   Modal,
   ScrollView,
   KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -355,8 +356,7 @@ export function LoanPaymentPickerSheet({
         accessibilityRole="button"
       />
       <KeyboardAvoidingView
-        behavior="padding"
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
       >
       <Animated.View
@@ -431,6 +431,13 @@ export function LoanPaymentPickerSheet({
           className="px-5"
           contentContainerStyle={{ paddingBottom: 8 }}
           showsVerticalScrollIndicator={false}
+          alwaysBounceVertical={false}
+          scrollEnabled={
+            step === "loan" ? loans.length > 3 :
+            step === "emi_installment" ? eligibleInstallments.length > 5 :
+            step === "prepayment_strategy" ? false :
+            true
+          }
         >
           {loading && (
             <View className="px-5 py-8 items-center">

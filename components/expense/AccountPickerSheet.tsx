@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { View, Text, Pressable, Modal, FlatList } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
@@ -49,6 +50,7 @@ export function AccountPickerSheet({
   excludeAccountId,
 }: AccountPickerSheetProps) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   // Computed balances from the ledger (opening - expenses + credits - transfers).
   // Always preferred over last_known_balance, which reflects only the latest SMS
@@ -113,9 +115,8 @@ export function AccountPickerSheet({
       <Animated.View
         style={[
           animStyle,
-          { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+          { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: Math.max(insets.bottom, 8) },
         ]}
-        className="pb-8"
       >
         <View className="items-center pt-3 pb-1">
           <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />

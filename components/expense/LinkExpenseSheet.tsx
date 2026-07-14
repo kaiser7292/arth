@@ -7,6 +7,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
@@ -51,6 +52,7 @@ export function LinkExpenseSheet({
   onClose,
 }: LinkExpenseSheetProps) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
   const [candidates, setCandidates] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const slideAnim = useSharedValue(400);
@@ -109,9 +111,8 @@ export function LinkExpenseSheet({
       <Animated.View
         style={[
           animStyle,
-          { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+          { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: Math.max(insets.bottom, 8) },
         ]}
-        className="pb-8"
       >
         <View className="items-center pt-3 pb-1">
           <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />

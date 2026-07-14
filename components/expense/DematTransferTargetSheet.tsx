@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { View, Text, Pressable, Modal, FlatList } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
@@ -48,6 +49,7 @@ export function DematTransferTargetSheet({
   onClose,
 }: DematTransferTargetSheetProps) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
   const [target, setTarget] = useState<DematTarget>("fund");
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
   const [bucketId, setBucketId] = useState<string | null>(null);
@@ -109,9 +111,8 @@ export function DematTransferTargetSheet({
       <Animated.View
         style={[
           animStyle,
-          { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+          { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: Math.max(insets.bottom, 8) },
         ]}
-        className="pb-8"
       >
         {/* Drag handle */}
         <View className="items-center pt-3 pb-1">

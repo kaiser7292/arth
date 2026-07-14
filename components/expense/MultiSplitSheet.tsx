@@ -8,7 +8,9 @@ import {
   ScrollView,
   TextInput,
   KeyboardAvoidingView,
+  Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -61,6 +63,7 @@ export function MultiSplitSheet({
   const [showAddPerson, setShowAddPerson] = useState(false);
 
   const { accent, colorScheme, colors } = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   const slideAnim = useSharedValue(0);
 
@@ -190,14 +193,14 @@ export function MultiSplitSheet({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose}>
-      <KeyboardAvoidingView behavior="padding" className="flex-1">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
         <Pressable onPress={handleClose} className="flex-1">
           <Animated.View style={backdropStyle} className="flex-1 bg-black" />
         </Pressable>
 
         <Animated.View
-          style={animatedStyle}
-          className="bg-white dark:bg-surface-dark-alt rounded-t-3xl px-5 pb-8 pt-3"
+          style={[animatedStyle, { paddingBottom: Math.max(insets.bottom, 8) }]}
+          className="bg-white dark:bg-surface-dark-alt rounded-t-3xl px-5 pt-3"
         >
           <View className="items-center mb-4">
             <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />

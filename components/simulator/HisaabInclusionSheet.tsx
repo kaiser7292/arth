@@ -255,7 +255,7 @@ export function HisaabInclusionSheet({
         // v16.0.6 — `padding` on both platforms avoids the "lost cursor
         // on first tap" Android bug that `height` causes by re-laying
         // out the container on focus.
-        behavior="padding"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
         style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
       >

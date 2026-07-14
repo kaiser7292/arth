@@ -212,7 +212,7 @@ export function RecurringRuleSheet({
       <KeyboardAvoidingView
         // v16.0.6 — `padding` on both platforms; see EntryEditSheet note
         // about Android `"height"` blurring focused TextInputs.
-        behavior="padding"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
         style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
       >

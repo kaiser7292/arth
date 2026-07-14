@@ -1,6 +1,6 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useEffect } from "react";
-import { KeyboardAvoidingView, Modal, Pressable, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, View } from "react-native";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -67,8 +67,7 @@ export function BottomSheet({
         accessibilityRole="button"
       />
       <KeyboardAvoidingView
-        behavior="position"
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
       >
         <Animated.View

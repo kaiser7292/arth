@@ -24,7 +24,7 @@
         "android.permission.USE_EXACT_ALARM"
       ],
       "allowBackup": false,
-      "softwareKeyboardLayoutMode": "pan",
+      "softwareKeyboardLayoutMode": "resize",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "intentFilters": [

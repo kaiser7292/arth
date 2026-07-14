@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { View, Text, Pressable, Modal, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
@@ -39,6 +40,7 @@ export function InvestmentBucketPickerSheet({
   onClose,
 }: Props) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFY, setCurrentFY] = useState<string>("");
@@ -108,9 +110,9 @@ export function InvestmentBucketPickerSheet({
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             maxHeight: "85%",
+            paddingBottom: Math.max(insets.bottom, 8),
           },
         ]}
-        className="pb-8"
       >
         <View className="items-center pt-3 pb-1">
           <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
@@ -144,6 +146,8 @@ export function InvestmentBucketPickerSheet({
             className="px-5"
             contentContainerStyle={{ paddingBottom: 8 }}
             showsVerticalScrollIndicator={false}
+            scrollEnabled={buckets.length > 4}
+            alwaysBounceVertical={false}
           >
             {buckets.map((b) => {
               const fyNum = parseInt(b.financial_year ?? "0", 10);
