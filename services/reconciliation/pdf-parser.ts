@@ -219,7 +219,7 @@ function parseStructuredRows(
     // ── 1. Date ──
     let dateIdx = -1;
     let parsedDate: string | null = null;
-    for (let i = 0; i < Math.min(cols.length, 4); i++) {
+    for (let i = 0; i < Math.min(cols.length, 6); i++) {
       // HDFC CC puts "02/04/2026|" with a pipe — strip everything from | onward
       const raw = cols[i].split("|")[0].trim();
       const d = parsePdfDate(raw);
@@ -326,8 +326,11 @@ function parseRawTextFallback(
     .map((l) => l.trim())
     .filter((l) => l.length > 3 && !l.startsWith("--- PAGE ---"));
 
-  // Generic: finds lines starting with a date in any common format
-  const dateRe = /^(?:\d+\s+)?(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}\s+\d{2,4})\|?(?:\s+\d{2}:\d{2})?\s+(.+)$/;
+  // Primary: anchored — date at start of line (optionally preceded by digits)
+  const dateReAnchored = /^(?:\d+\s+)?(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{1,2}\s+[A-Za-z]{3}\s+\d{2,4})\|?(?:\s+\d{2}:\d{2})?\s+(.+)$/;
+  // Fallback: relaxed — date anywhere in the line (handles ICICI CC where sidebar
+  // marketing text like "8%", "Others-84% Dining-1%" precedes the transaction date)
+  const dateReRelaxed = /(?:^|\s)(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\|?(?:\s+\d{2}:\d{2})?\s+(.+)$/;
 
   for (const line of lines) {
     // Opening/closing balance header lines — seed prevBalance, don't emit a row
@@ -342,7 +345,7 @@ function parseRawTextFallback(
       continue;
     }
 
-    const dm = line.match(dateRe);
+    const dm = line.match(dateReAnchored) ?? line.match(dateReRelaxed);
     if (!dm) continue;
     const date = parsePdfDate(dm[1]);
     if (!date) continue;

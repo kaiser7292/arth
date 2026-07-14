@@ -309,24 +309,30 @@ export async function getMatchedCount(sessionId: string): Promise<number> {
   return row?.c ?? 0;
 }
 
-// Mark all unmatched items with stmt_date < cutoffDate as pre_arth excluded
+// Mark unmatched AND extra (added) items with stmt_date < cutoffDate as pre_arth excluded
 export async function bulkMarkPreArth(sessionId: string, cutoffDate: string): Promise<number> {
   const db = getDatabase();
   const result = await db.runAsync(
     `UPDATE reconciliation_items
      SET status = 'excluded', exclude_reason = 'pre_arth'
-     WHERE session_id = ? AND status = 'unmatched' AND stmt_date < ? AND deleted_at IS NULL`,
+     WHERE session_id = ? AND status IN ('unmatched', 'added') AND stmt_date < ? AND deleted_at IS NULL`,
     [sessionId, cutoffDate],
   );
   return result.changes;
 }
 
-// Revert all pre_arth-excluded items back to unmatched for a session
+// Revert all pre_arth-excluded items back to their original status:
+// items with a matched_expense_id or matched_transfer_id were 'added' (Extra),
+// others were 'unmatched' (Missing)
 export async function undoPreArthItems(sessionId: string): Promise<void> {
   const db = getDatabase();
   await db.runAsync(
     `UPDATE reconciliation_items
-     SET status = 'unmatched', exclude_reason = NULL
+     SET status = CASE
+       WHEN matched_expense_id IS NOT NULL OR matched_transfer_id IS NOT NULL THEN 'added'
+       ELSE 'unmatched'
+     END,
+     exclude_reason = NULL
      WHERE session_id = ? AND exclude_reason = 'pre_arth' AND deleted_at IS NULL`,
     [sessionId],
   );
