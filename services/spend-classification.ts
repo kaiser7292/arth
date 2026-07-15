@@ -107,6 +107,7 @@ export async function getSpendClassificationTotals(
         COALESCE(SUM(CASE WHEN is_right_spend IS NULL THEN ${amtExpr} ELSE 0 END), 0) AS uncategorized
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,

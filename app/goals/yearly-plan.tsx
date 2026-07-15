@@ -75,76 +75,69 @@ export default function YearlyPlanScreen() {
           const preload = consumeYearlyPlanPreload();
           const usePreload = preload && preload.fy === targetFY;
 
-          const [derivedResult, profileResult] = await Promise.all([
+          // Phase 1: core plan data + loan list (loan list is cheap; needed for Phase 2)
+          const [derivedResult, profileResult, loans] = await Promise.all([
             usePreload ? Promise.resolve(preload.derived) : deriveYearlyPlan(DEFAULT_USER_ID, targetFY),
             usePreload ? Promise.resolve(preload.profile) : getSalaryProfileByFY(DEFAULT_USER_ID, targetFY),
+            listActiveLoans(DEFAULT_USER_ID),
           ]);
           if (cancelled) return;
+
+          const loanIds = loans.map((l) => l.id);
+          const { start: fyStart, end: fyEnd } = getFYRange(targetFYNum, startMonth);
+          const pad = (d: Date) =>
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          const fyStartStr = pad(fyStart);
+          const fyEndStr = pad(fyEnd);
+
+          // Phase 2: everything else in parallel — reality check, savings, and full loan details.
+          // getSchedulesByLoanIds / getPrepaymentsByLoanIds both handle empty arrays safely.
+          const [rc, snap, schedules, prepayments, loansWithBank] = await Promise.all([
+            getRealityCheck(DEFAULT_USER_ID, targetFY, derivedResult ?? undefined),
+            getSavingsSnapshot(DEFAULT_USER_ID, targetFYNum),
+            getSchedulesByLoanIds(loanIds),
+            getPrepaymentsByLoanIds(loanIds),
+            listAllLoansWithBankName(DEFAULT_USER_ID),
+          ]);
+          if (cancelled) return;
+
+          const bankByLoan = new Map(loansWithBank.map((l) => [l.id, l.bank_name]));
+          const loanRows: LoanForecastRow[] = loans.map((loan) => {
+            const schedule = schedules.get(loan.id) ?? [];
+            const loanPrepayments = prepayments.get(loan.id) ?? [];
+            const annualEmiTotal = schedule
+              .filter((e) => e.due_date >= fyStartStr && e.due_date <= fyEndStr)
+              .reduce((s, e) => s + e.emi_amount, 0);
+            const annualPrepaymentTotal = loanPrepayments
+              .filter((p) => p.prepayment_date >= fyStartStr && p.prepayment_date <= fyEndStr)
+              .reduce((s, p) => s + p.amount, 0);
+            const currentEMI = schedule
+              .filter((e) => e.due_date <= fyEndStr)
+              .slice(-1)[0]?.emi_amount ?? loan.emi_amount;
+            return {
+              loanId: loan.id,
+              bankName: bankByLoan.get(loan.id) ?? "Loan",
+              loanType: loan.loan_type,
+              currentEMI,
+              annualEmiTotal,
+              annualPrepaymentTotal,
+              annualOutflowTotal: annualEmiTotal + annualPrepaymentTotal,
+              currency: loan.currency,
+            };
+          });
+
+          // Set everything at once — screen renders with complete data on first paint
           setDerived(derivedResult);
           setProfile(profileResult);
           setBuckets(derivedResult?._buckets ?? []);
           setMilestones(derivedResult?._milestones ?? []);
+          setRealityCheck(rc);
+          setSavings(snap);
+          setLoanForecast(loanRows);
           setLoaded(true);
-
-          const [rc, snap, loans] = await Promise.all([
-            getRealityCheck(DEFAULT_USER_ID, targetFY, derivedResult ?? undefined),
-            getSavingsSnapshot(DEFAULT_USER_ID, targetFYNum),
-            listActiveLoans(DEFAULT_USER_ID),
-          ]);
-          if (!cancelled) {
-            setRealityCheck(rc);
-            setSavings(snap);
-          }
-
-          // v17.5.0 — loan forecast: per-loan EMI + prepayment outflow within FY window
-          if (loans.length > 0 && !cancelled) {
-            const { start: fyStart, end: fyEnd } = getFYRange(targetFYNum, startMonth);
-            const pad = (d: Date) =>
-              `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-            const fyStartStr = pad(fyStart);
-            const fyEndStr = pad(fyEnd);
-            // v17.5.9 — batched: 3 queries total regardless of loan count
-            // (was 3 × N serial queries per focus on Yearly Plan screen).
-            const loanIds = loans.map((l) => l.id);
-            const [schedules, prepayments, loansWithBank] = await Promise.all([
-              getSchedulesByLoanIds(loanIds),
-              getPrepaymentsByLoanIds(loanIds),
-              listAllLoansWithBankName(DEFAULT_USER_ID),
-            ]);
-            const bankByLoan = new Map(
-              loansWithBank.map((l) => [l.id, l.bank_name]),
-            );
-            const rows: LoanForecastRow[] = loans.map((loan) => {
-              const schedule = schedules.get(loan.id) ?? [];
-              const loanPrepayments = prepayments.get(loan.id) ?? [];
-              const annualEmiTotal = schedule
-                .filter((e) => e.due_date >= fyStartStr && e.due_date <= fyEndStr)
-                .reduce((s, e) => s + e.emi_amount, 0);
-              const annualPrepaymentTotal = loanPrepayments
-                .filter((p) => p.prepayment_date >= fyStartStr && p.prepayment_date <= fyEndStr)
-                .reduce((s, p) => s + p.amount, 0);
-              const currentEMI = schedule
-                .filter((e) => e.due_date <= fyEndStr)
-                .slice(-1)[0]?.emi_amount ?? loan.emi_amount;
-              return {
-                loanId: loan.id,
-                bankName: bankByLoan.get(loan.id) ?? "Loan",
-                loanType: loan.loan_type,
-                currentEMI,
-                annualEmiTotal,
-                annualPrepaymentTotal,
-                annualOutflowTotal: annualEmiTotal + annualPrepaymentTotal,
-                currency: loan.currency,
-              };
-            });
-            if (!cancelled) setLoanForecast(rows);
-          } else if (!cancelled) {
-            setLoanForecast([]);
-          }
         } catch {
-          // DB not ready
+          setLoaded(true);
         }
-        if (!cancelled) setLoaded(true);
       })();
       return () => { cancelled = true; };
     }, [targetFY]),
