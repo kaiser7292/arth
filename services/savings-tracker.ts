@@ -50,7 +50,9 @@ async function getTotalExpensesInRange(
   const db = getDatabase();
   const row = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ?
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
+       AND date >= ? AND date <= ?
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
     userId,
