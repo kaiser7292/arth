@@ -147,7 +147,7 @@ npx expo prebuild --platform android
 cd android; .\gradlew assembleRelease
 
 # 4. Release (from repo root)
-gh release create vX.Y.Z "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk#Arth-vX.Y.Z.apk" --title "vX.Y.Z" --notes "..."
+gh release create vX.Y.Z "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" --title "vX.Y.Z" --notes "..."
 ```
 Output APK is `app-arm64-v8a-release.apk` (~120 MB). See `.context/BUILD_AND_RELEASE.md` for full details.
 GitHub Actions auto-builds on push to staging/main (not master).

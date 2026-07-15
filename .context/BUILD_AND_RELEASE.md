@@ -60,7 +60,7 @@ Build takes 3–8 minutes. Output: `android/app/build/outputs/apk/release/app-ar
 ### Step 4 — Create GitHub release
 ```powershell
 cd ..   # back to repo root
-gh release create vX.Y.Z "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk#Arth-vX.Y.Z.apk" --title "vX.Y.Z" --notes "## What's new
+gh release create vX.Y.Z "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" --title "vX.Y.Z" --notes "## What's new
 
 - Bullet point"
 ```
