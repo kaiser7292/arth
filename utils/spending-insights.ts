@@ -78,6 +78,8 @@ export interface InsightsSummary {
   topMerchants: MerchantInsight[];
   dayPattern: DayPattern;
   paymentModes: PaymentModeShare[];
+  /** Headline totals for the Spending Pulse (all expenses, not just categorized) */
+  monthTotals: { currentMonth: number; previousMonth: number };
 }
 
 // ═══════════════════════════════════════════════

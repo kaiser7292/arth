@@ -35,17 +35,8 @@ export default function AnalyticsDashboardScreen() {
       setForecast(forecastData);
       setInsights(insightData);
 
-      // Spending pulse: current vs last month totals from category trends
-      if (spendingData.categoryTrends.length > 0) {
-        let currentTotal = 0;
-        let prevTotal = 0;
-        for (const trend of spendingData.categoryTrends) {
-          currentTotal += trend.currentMonth;
-          prevTotal += trend.previousMonth;
-        }
-        setThisMonthTotal(currentTotal);
-        setLastMonthTotal(prevTotal);
-      }
+      setThisMonthTotal(spendingData.monthTotals.currentMonth);
+      setLastMonthTotal(spendingData.monthTotals.previousMonth);
     } catch {
       // DB not ready
     } finally {

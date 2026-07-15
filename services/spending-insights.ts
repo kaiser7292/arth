@@ -143,7 +143,46 @@ export async function getSpendingInsights(
     categoryNames.set(row.id, row.name);
   }
 
-  // 5. Run all analyses
+  // 5. Headline totals for the Spending Pulse — all approved realized expenses,
+  //    including uncategorized, excluding reclassified-as-transfer.
+  const currentMonthStart = `${endMonth}-01`;
+  const prevMonth = months[1];
+  const prevMonthStart = `${prevMonth}-01`;
+  const prevMonthEnd = getLastDayOfMonth(prevMonth);
+
+  const [currentTotalRow, prevTotalRow] = await Promise.all([
+    db.getFirstAsync<{ total: number | null }>(
+      `SELECT COALESCE(SUM(${effectiveAmountSql("expenses")}), 0) as total
+       FROM expenses
+       WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+         AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
+         AND date >= ? AND date <= ?
+         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
+         AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
+      userId,
+      currentMonthStart,
+      endDate,
+    ),
+    db.getFirstAsync<{ total: number | null }>(
+      `SELECT COALESCE(SUM(${effectiveAmountSql("expenses")}), 0) as total
+       FROM expenses
+       WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+         AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
+         AND date >= ? AND date <= ?
+         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
+         AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
+      userId,
+      prevMonthStart,
+      prevMonthEnd,
+    ),
+  ]);
+
+  const monthTotals = {
+    currentMonth: currentTotalRow?.total ?? 0,
+    previousMonth: prevTotalRow?.total ?? 0,
+  };
+
+  // 6. Run all analyses
   const categoryTrends = calculateCategoryTrends(monthlyData, months);
   const anomalies = detectAnomalies(expenses, categoryAverages);
   const topMerchants = analyzeMerchants(expenses);
@@ -164,6 +203,7 @@ export async function getSpendingInsights(
     topMerchants,
     dayPattern,
     paymentModes,
+    monthTotals,
   };
 }
 
