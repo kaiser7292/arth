@@ -225,17 +225,19 @@ export default function GoalsScreen() {
                     )}
                   </View>
                 </View>
-                <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
-                  <View
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${Math.min(100, cockpitData.savings.targetSavings > 0 ? (cockpitData.savings.totalSaved / cockpitData.savings.targetSavings) * 100 : 0)}%`,
-                      backgroundColor: cockpitData.savings.isOnTrack
-                        ? StatusColors[colorScheme].success
-                        : StatusColors[colorScheme].warning,
-                    }}
-                  />
-                </View>
+                {cockpitData.savings.targetSavings > 0 && (
+                  <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
+                    <View
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, (cockpitData.savings.totalSaved / cockpitData.savings.targetSavings) * 100)}%`,
+                        backgroundColor: cockpitData.savings.isOnTrack
+                          ? StatusColors[colorScheme].success
+                          : StatusColors[colorScheme].warning,
+                      }}
+                    />
+                  </View>
+                )}
               </Card>
             </Pressable>
           )}

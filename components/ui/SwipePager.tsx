@@ -78,7 +78,6 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
           borderBottomColor: colors.border,
           backgroundColor: colors.background,
         }}
-        onLayout={(e) => setTabStripWidth(e.nativeEvent.layout.width)}
       >
         <ScrollView
           ref={tabStripRef}
@@ -86,6 +85,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
           showsHorizontalScrollIndicator={false}
           scrollEnabled={pages.length > 4}
           style={{ flex: 1 }}
+          onLayout={(e) => setTabStripWidth(e.nativeEvent.layout.width)}
           contentContainerStyle={{ position: "relative", flexGrow: 1, justifyContent: "center" }}
         >
           {pages.map((page, index) => (
