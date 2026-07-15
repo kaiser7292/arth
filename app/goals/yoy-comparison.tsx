@@ -179,6 +179,14 @@ export default function YoYComparisonScreen() {
     }
   }
 
+  if (loading) {
+    return (
+      <ScreenContainer padTop={false}>
+        <LoadingState icon="git-compare-outline" message="Loading comparison…" />
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer padTop={false}>
       <ScrollView
@@ -186,9 +194,7 @@ export default function YoYComparisonScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
-        {loading ? (
-          <LoadingState icon="git-compare-outline" message="Loading comparison…" />
-        ) : noData ? (
+        {noData ? (
           <View className="flex-1 items-center justify-center py-20">
             <Ionicons name="git-compare-outline" size={48} color={colors.textSecondary} />
             <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">

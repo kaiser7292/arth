@@ -1,4 +1,4 @@
-import { Card, DateInput, LearnMoreChip, ScreenContainer } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, LearnMoreChip, ScreenContainer } from "@/components/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
@@ -413,6 +413,7 @@ export default function SettingsScreen() {
 
   return (
     <ScreenContainer>
+      <ContextualHeader title="Settings" />
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 py-4">
           <Card title="Data Management" className="mb-4">

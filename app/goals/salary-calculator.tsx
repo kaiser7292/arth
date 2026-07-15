@@ -11,7 +11,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, Button } from "@/components/ui";
+import { ScreenContainer, Card, Input, Button, LoadingState } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
@@ -66,6 +66,7 @@ export default function SalaryCalculatorScreen() {
   const [inputMode, setInputMode] = useState<"ctc" | "direct">("ctc");
   const [saving, setSaving] = useState(false);
   const [loadingFY, setLoadingFY] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
   const [existingProfile, setExistingProfile] = useState<SalaryProfile | null>(
     null,
@@ -239,6 +240,7 @@ export default function SalaryCalculatorScreen() {
         setIsDraft(profile.status === "draft");
         populateFormFromProfile(profile);
         setLoadingFY(false);
+        setLoaded(true);
       } else {
         const prevProfile = await getSalaryProfileByFY(
           DEFAULT_USER_ID,
@@ -250,6 +252,7 @@ export default function SalaryCalculatorScreen() {
           setShowCopyPrompt(true);
         }
         setLoadingFY(false);
+        setLoaded(true);
       }
     })();
     return () => { cancelled = true; };
@@ -529,6 +532,14 @@ export default function SalaryCalculatorScreen() {
   //          → Empty state (if no calc)]
   //   → Additional Income (both modes)
   //   → Grand Total → CG Reference → Save
+
+  if (!loaded) {
+    return (
+      <ScreenContainer padTop={false}>
+        <LoadingState icon="calculator-outline" message="Loading calculator…" />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer padTop={false}>
