@@ -39,9 +39,7 @@ export default function WalletsScreen() {
   const router = useRouter();
   const { accent, colors, colorScheme } = useColorScheme();
   const sc = StatusColors[colorScheme];
-  const [summaries, setSummaries] = useState<WalletSummary[]>(
-    (preloaded?.summaries ?? []).map((s) => ({ ...s, transfersOut: 0, transfersIn: 0 }))
-  );
+  const [summaries, setSummaries] = useState<WalletSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
   const [refreshing, setRefreshing] = useState(false);

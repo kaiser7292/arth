@@ -17,10 +17,13 @@ import {
   mergeLoanFinancialAccounts,
   type LoanMergeCandidate,
 } from "@/services/loan-account-merge";
+import { consumeLoansPreload } from "@/services/home-preload";
 import { logger } from "@/utils/logger";
 import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
 import { ac, acAlpha } from "@/utils/accent";
+
+const preloaded = consumeLoansPreload();
 
 const LOAN_TYPE_LABEL: Record<string, string> = {
   personal: "Personal",
@@ -41,8 +44,8 @@ export default function LoansListScreen() {
     bank_name: string;
     outstanding: number;
     current_emi: number;
-  }>>([]);
-  const [loaded, setLoaded] = useState(false);
+  }>>(preloaded?.loans ?? []);
+  const [loaded, setLoaded] = useState(preloaded != null);
   const [refreshing, setRefreshing] = useState(false);
   // v17.6.0 — session-local record of merge prompts the user dismissed.
   // Keyed by `${loanFaId}:${candidateFaId}` so we don't nag them every time

@@ -42,7 +42,14 @@ import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { getMilestonesForFY } from "@/services/life-milestone";
 import type { LifeMilestone } from "@/services/life-milestone";
-import { listActiveLoans } from "@/services/loan-accounts";
+import {
+  listActiveLoans,
+  listAllLoansWithBankName,
+  getLoanOutstandingsByLoanId,
+  getCurrentEMIsByLoanId,
+} from "@/services/loan-accounts";
+import type { LoanAccount } from "@/services/loan-accounts";
+import { getTransfersOutTotal, getTransfersInTotal } from "@/services/account-transfer";
 import { deriveYearlyPlan, getBucketsByFY } from "@/services/yearly-plan";
 import type { DerivedPlanSummary, InvestmentBucket } from "@/services/yearly-plan";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
@@ -109,6 +116,8 @@ export interface AccountSummaryRow {
   opening: number;
   expenses: number;
   credits: number;
+  transfersOut: number;
+  transfersIn: number;
   current: number;
   seeded: boolean;
   autoDetectedStale: boolean;
@@ -156,6 +165,16 @@ export interface YearlyPlanPreloadData {
 }
 
 // ---------------------------------------------------------------------------
+// Loans
+// ---------------------------------------------------------------------------
+
+export type EnrichedLoan = LoanAccount & { bank_name: string; outstanding: number; current_emi: number };
+
+export interface LoansPreloadData {
+  loans: EnrichedLoan[];
+}
+
+// ---------------------------------------------------------------------------
 // Vault
 // ---------------------------------------------------------------------------
 
@@ -178,6 +197,7 @@ interface Cache {
   pensionAccounts: PensionAccountsPreloadData | null;
   goals: GoalsPreloadData | null;
   yearlyPlan: YearlyPlanPreloadData | null;
+  loans: LoansPreloadData | null;
   vault: VaultPreloadData | null;
 }
 const cache: Cache = {
@@ -190,6 +210,7 @@ const cache: Cache = {
   pensionAccounts: null,
   goals: null,
   yearlyPlan: null,
+  loans: null,
   vault: null,
 };
 
@@ -348,20 +369,26 @@ async function loadAccountGroupSection(
 
     const summaries: AccountSummaryRow[] = await Promise.all(
       group.map(async (account) => {
-        const summary = await getMonthBalanceSummary(account.id, month);
         const latestActivity = staleDates[account.id];
         const autoDetectedStale = !!(
           account.last_balance_date &&
           latestActivity &&
           latestActivity > account.last_balance_date
         );
-        if (summary) {
+        const [summaryResult, txOut, txIn] = await Promise.all([
+          getMonthBalanceSummary(account.id, month),
+          getTransfersOutTotal(account.id, startDate, endDate),
+          getTransfersInTotal(account.id, startDate, endDate),
+        ]);
+        if (summaryResult) {
           return {
             account,
-            opening: summary.opening_balance,
-            expenses: summary.expenses,
-            credits: summary.credits,
-            current: summary.closing_balance,
+            opening: summaryResult.opening_balance,
+            expenses: summaryResult.expenses,
+            credits: summaryResult.credits,
+            transfersOut: txOut,
+            transfersIn: txIn,
+            current: summaryResult.closing_balance,
             seeded: true,
             autoDetectedStale,
           };
@@ -376,6 +403,8 @@ async function loadAccountGroupSection(
           opening: 0,
           expenses,
           credits,
+          transfersOut: txOut,
+          transfersIn: txIn,
           current: 0 - expenses + credits + adjNet,
           seeded: false,
           autoDetectedStale,
@@ -431,6 +460,27 @@ async function loadYearlyPlanSection(): Promise<YearlyPlanPreloadData | null> {
   }
 }
 
+async function loadLoansSection(): Promise<LoansPreloadData | null> {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const [all, outstandingMap, emiMap] = await Promise.all([
+      listAllLoansWithBankName(DEFAULT_USER_ID),
+      getLoanOutstandingsByLoanId(DEFAULT_USER_ID, today),
+      getCurrentEMIsByLoanId(DEFAULT_USER_ID, today),
+    ]);
+    const loans: EnrichedLoan[] = all.map((loan) => ({
+      ...loan,
+      bank_name: loan.bank_name ?? "Loan",
+      outstanding: outstandingMap.get(loan.id) ?? 0,
+      current_emi: emiMap.get(loan.id) ?? loan.emi_amount,
+    }));
+    return { loans };
+  } catch (e) {
+    logger.warn("Loans preload section failed:", e);
+    return null;
+  }
+}
+
 async function loadVaultSection(): Promise<VaultPreloadData | null> {
   try {
     const entries = await getVaultEntries();
@@ -457,7 +507,7 @@ export async function preloadHomeData(): Promise<void> {
   const [
     home, accounts, balanceSheet, creditCards,
     bankAccounts, wallets, pensionAccounts,
-    goals, yearlyPlan, vault,
+    goals, yearlyPlan, loans, vault,
   ] = await Promise.all([
     loadHomeSection(),
     loadAccountsSection(),
@@ -468,6 +518,7 @@ export async function preloadHomeData(): Promise<void> {
     loadAccountGroupSection("pension"),
     loadGoalsSection(),
     loadYearlyPlanSection(),
+    loadLoansSection(),
     loadVaultSection(),
   ]);
   cache.home = home;
@@ -479,6 +530,7 @@ export async function preloadHomeData(): Promise<void> {
   cache.pensionAccounts = pensionAccounts;
   cache.goals = goals;
   cache.yearlyPlan = yearlyPlan;
+  cache.loans = loans;
   cache.vault = vault;
 }
 
@@ -533,6 +585,12 @@ export function consumeGoalsPreload(): GoalsPreloadData | null {
 export function consumeYearlyPlanPreload(): YearlyPlanPreloadData | null {
   const data = cache.yearlyPlan;
   cache.yearlyPlan = null;
+  return data;
+}
+
+export function consumeLoansPreload(): LoansPreloadData | null {
+  const data = cache.loans;
+  cache.loans = null;
   return data;
 }
 
