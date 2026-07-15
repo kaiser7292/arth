@@ -101,6 +101,35 @@ export default function GoalsScreen() {
   const accentColor = ac(accent, colorScheme, 500, 400);
   const accentBg = ac(accent, colorScheme, 500, 700) + "14";
 
+  // Grade pill colours (computed only when cockpit data is available)
+  const gradeColorVal = hasCockpit && cockpitData
+    ? (cockpitData.healthGrade === "A+" || cockpitData.healthGrade === "A"
+        ? StatusColors[colorScheme].success
+        : cockpitData.healthGrade === "B"
+          ? accentColor
+          : cockpitData.healthGrade === "C"
+            ? StatusColors[colorScheme].warning
+            : StatusColors[colorScheme].danger)
+    : colors.textSecondary;
+  const gradeBgVal = hasCockpit && cockpitData
+    ? (cockpitData.healthGrade === "A+" || cockpitData.healthGrade === "A"
+        ? StatusColors[colorScheme].successBg
+        : cockpitData.healthGrade === "B"
+          ? accentColor + "14"
+          : cockpitData.healthGrade === "C"
+            ? StatusColors[colorScheme].warningBg
+            : StatusColors[colorScheme].dangerBg)
+    : colors.border;
+
+  // FY end label for on-track signal (e.g. "Mar 2026")
+  const fyEndLabel = (() => {
+    const short = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const startIdx = startMonth - 1;
+    const endIdx = (startIdx + 11) % 12;
+    const endYear = endIdx < startIdx ? currentFY + 1 : currentFY;
+    return `${short[endIdx]} ${endYear}`;
+  })();
+
   if (!setupChecked) {
     return (
       <ScreenContainer>
@@ -208,12 +237,41 @@ export default function GoalsScreen() {
               className="mb-4"
             >
               <Card>
+                {/* Header: label + tappable grade pill + chevron */}
                 <View className="flex-row items-center justify-between mb-3">
-                  <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary">
-                    Financial Health
-                  </Text>
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary">
+                      Financial Health
+                    </Text>
+                    <Pressable
+                      onPress={() =>
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        router.push({
+                          pathname: "/goals/health-grade" as any,
+                          params: {
+                            grade: cockpitData.healthGrade,
+                            score: String(Math.round(cockpitData.healthScore)),
+                            factorsJson: JSON.stringify(cockpitData.healthFactors),
+                          },
+                        })
+                      }
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <View
+                        className="flex-row items-center gap-1 px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: gradeBgVal }}
+                      >
+                        <Text className="text-[10px] font-bold" style={{ color: gradeColorVal }}>
+                          Grade {cockpitData.healthGrade}
+                        </Text>
+                        <Ionicons name="information-circle-outline" size={10} color={gradeColorVal} />
+                      </View>
+                    </Pressable>
+                  </View>
                   <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
                 </View>
+
+                {/* Metrics: Savings Rate | Monthly Headroom */}
                 <View className="flex-row gap-4 mb-3">
                   <View className="flex-1">
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Savings Rate</Text>
@@ -226,20 +284,46 @@ export default function GoalsScreen() {
                       </Text>
                     )}
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Saved This FY</Text>
-                    <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
-                      {formatAmount(cockpitData.savings.totalSaved)}
-                    </Text>
-                    {cockpitData.savings.targetSavings > 0 && (
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                        of {formatAmount(cockpitData.savings.targetSavings)}
-                      </Text>
-                    )}
-                  </View>
+                  {(() => {
+                    const hRoom = cockpitData.waterfall.breathingRoomMonthly;
+                    const hNeg  = hRoom < 0;
+                    const hZero = hRoom === 0;
+                    const hColor = hNeg
+                      ? StatusColors[colorScheme].danger
+                      : hZero
+                        ? StatusColors[colorScheme].warning
+                        : undefined;
+                    return (
+                      <View className="flex-1">
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">
+                          Monthly Headroom
+                        </Text>
+                        <Text
+                          className="text-xl font-bold text-text-primary dark:text-text-dark-primary"
+                          style={hColor ? { color: hColor } : undefined}
+                        >
+                          {hNeg ? `−${formatAmount(Math.abs(hRoom))}` : formatAmount(hRoom)}
+                        </Text>
+                        <Text
+                          className="text-xs text-text-secondary dark:text-text-dark-secondary"
+                          style={hColor ? { color: hColor } : undefined}
+                        >
+                          {hNeg ? "commitments exceed income" : hZero ? "all income committed" : "after commitments"}
+                        </Text>
+                      </View>
+                    );
+                  })()}
                 </View>
+
+                {/* Savings progress bar */}
                 {cockpitData.savings.targetSavings > 0 && (
-                  <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
+                  <View
+                    className="h-1.5 rounded-full overflow-hidden"
+                    style={{
+                      backgroundColor: colors.border,
+                      marginBottom: cockpitData.savings.targetRatePct > 0 && cockpitData.monthsElapsed > 0 ? 8 : 0,
+                    }}
+                  >
                     <View
                       className="h-full rounded-full"
                       style={{
@@ -249,6 +333,34 @@ export default function GoalsScreen() {
                           : StatusColors[colorScheme].warning,
                       }}
                     />
+                  </View>
+                )}
+
+                {/* On-track signal */}
+                {cockpitData.savings.targetRatePct > 0 && cockpitData.monthsElapsed > 0 && (
+                  <View className="flex-row items-center gap-1.5">
+                    <Ionicons
+                      name={cockpitData.savings.isOnTrack ? "checkmark-circle" : "warning-outline"}
+                      size={11}
+                      color={
+                        cockpitData.savings.isOnTrack
+                          ? StatusColors[colorScheme].success
+                          : StatusColors[colorScheme].warning
+                      }
+                    />
+                    <Text
+                      className="text-[11px] font-medium"
+                      style={{
+                        color: cockpitData.savings.isOnTrack
+                          ? StatusColors[colorScheme].success
+                          : StatusColors[colorScheme].warning,
+                      }}
+                    >
+                      {cockpitData.savings.isOnTrack
+                        ? `On track · projected ${cockpitData.savings.projectedYearEndRate.toFixed(0)}% by ${fyEndLabel}`
+                        : `${formatAmount(cockpitData.savings.courseCorrectionPerMonth)}/mo to reach ${cockpitData.savings.targetRatePct.toFixed(0)}% by ${fyEndLabel}`
+                      }
+                    </Text>
                   </View>
                 )}
               </Card>

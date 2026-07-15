@@ -23,7 +23,7 @@ import type { LifeMilestone } from "@/services/life-milestone";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { formatAmount } from "@/utils/expense-validation";
-import { formatCompact } from "@/utils/format";
+import { formatCompact, formatAmount as fmtFull } from "@/utils/format";
 import { StatusColors } from "@/constants/theme";
 import { getRealityCheck, type RealityCheckData } from "@/services/financial-cockpit";
 import { consumeYearlyPlanPreload } from "@/services/home-preload";
@@ -44,6 +44,7 @@ interface LoanForecastRow {
   annualEmiTotal: number;
   annualPrepaymentTotal: number;
   annualOutflowTotal: number;
+  ytdOutflowTotal: number;
   currency: string;
 }
 
@@ -102,6 +103,7 @@ export default function YearlyPlanScreen() {
           if (cancelled) return;
 
           const bankByLoan = new Map(loansWithBank.map((l) => [l.id, l.bank_name]));
+          const todayStr = pad(new Date());
           const loanRows: LoanForecastRow[] = loans.map((loan) => {
             const schedule = schedules.get(loan.id) ?? [];
             const loanPrepayments = prepayments.get(loan.id) ?? [];
@@ -110,6 +112,12 @@ export default function YearlyPlanScreen() {
               .reduce((s, e) => s + e.emi_amount, 0);
             const annualPrepaymentTotal = loanPrepayments
               .filter((p) => p.prepayment_date >= fyStartStr && p.prepayment_date <= fyEndStr)
+              .reduce((s, p) => s + p.amount, 0);
+            const ytdEmiTotal = schedule
+              .filter((e) => e.due_date >= fyStartStr && e.due_date <= todayStr)
+              .reduce((s, e) => s + e.emi_amount, 0);
+            const ytdPrepaymentTotal = loanPrepayments
+              .filter((p) => p.prepayment_date >= fyStartStr && p.prepayment_date <= todayStr)
               .reduce((s, p) => s + p.amount, 0);
             const currentEMI = schedule
               .filter((e) => e.due_date <= fyEndStr)
@@ -122,6 +130,7 @@ export default function YearlyPlanScreen() {
               annualEmiTotal,
               annualPrepaymentTotal,
               annualOutflowTotal: annualEmiTotal + annualPrepaymentTotal,
+              ytdOutflowTotal: ytdEmiTotal + ytdPrepaymentTotal,
               currency: loan.currency,
             };
           });
@@ -685,86 +694,190 @@ export default function YearlyPlanScreen() {
                 )}
               </View>
 
-              {/* Table header */}
-              <View className="flex-row items-center mb-1.5 pb-1 border-b border-border-light dark:border-border-dark">
-                <Text className="flex-1 text-[10px] font-semibold text-text-tertiary">
-                  Category
-                </Text>
-                <Text className="w-16 text-[10px] font-semibold text-text-tertiary text-right">
-                  {realityCheck.isPastFY ? "Planned" : "Expected"}
-                </Text>
-                <Text className="w-16 text-[10px] font-semibold text-text-tertiary text-right">
-                  Actual
-                </Text>
-                <Text className="w-20 text-[10px] font-semibold text-text-tertiary text-right">
-                  Status
-                </Text>
-              </View>
+              {/* Per-category blocks */}
+              {(() => {
+                const debtAnnual = loanForecast
+                  .filter((r) => r.currency === "INR")
+                  .reduce((s, r) => s + r.annualOutflowTotal, 0);
+                const debtYTD = loanForecast
+                  .filter((r) => r.currency === "INR")
+                  .reduce((s, r) => s + r.ytdOutflowTotal, 0);
+                const debtProrated = realityCheck.monthsElapsed > 0
+                  ? Math.round((debtAnnual / 12) * realityCheck.monthsElapsed)
+                  : 0;
+                const debtGap = debtYTD - debtProrated;
+                const debtIsAhead = debtGap <= 0;
+                const debtGapLabel = Math.abs(debtGap) < 1
+                  ? "On track"
+                  : debtGap > 0
+                    ? `${formatCompact(debtGap)} over`
+                    : `${formatCompact(Math.abs(debtGap))} under`;
+                const debtProjYearEnd = !realityCheck.isPastFY && realityCheck.monthsElapsed > 0 && debtYTD > 0
+                  ? Math.round((debtYTD / realityCheck.monthsElapsed) * 12)
+                  : debtAnnual;
+                const netSurplusProj = realityCheck.netSurplusProjected - debtProjYearEnd;
+                const netSurplusPlanned = realityCheck.netSurplusPlanned - debtAnnual;
 
-              {/* Rows */}
-              {realityCheck.rows.map((row) => (
-                <View key={row.label} className="py-2 border-b border-border-light dark:border-border-dark">
-                  <View className="flex-row items-center">
-                    <Text className="flex-1 text-xs font-medium text-text-primary dark:text-text-dark-primary">
-                      {row.label}
-                    </Text>
-                    <Text className="w-16 text-xs text-text-secondary dark:text-text-dark-secondary text-right">
-                      {formatCompact(realityCheck.isPastFY ? row.planned : row.proratedTarget)}
-                    </Text>
-                    <Text className="w-16 text-xs font-medium text-text-primary dark:text-text-dark-primary text-right">
-                      {formatCompact(row.actualYTD)}
-                    </Text>
-                    <Text
-                      className="w-20 text-xs font-bold text-right"
-                      style={{
-                        color: Math.abs(row.gap) < 1
-                          ? StatusColors[colorScheme].muted
-                          : row.isAhead
+                const renderRow = (
+                  label: string,
+                  planned: number,
+                  proratedTarget: number,
+                  actualYTD: number,
+                  gap: number,
+                  isAhead: boolean,
+                  gapLabel: string,
+                  correctionLabel: string,
+                  projYearEnd: number | null,
+                  borderBottom: boolean,
+                ) => {
+                  const statusColor = Math.abs(gap) < 1
+                    ? colors.textSecondary
+                    : isAhead
+                      ? StatusColors[colorScheme].success
+                      : StatusColors[colorScheme].danger;
+                  const statusBg = Math.abs(gap) < 1
+                    ? colors.surface
+                    : isAhead
+                      ? StatusColors[colorScheme].successBg
+                      : StatusColors[colorScheme].dangerBg;
+                  return (
+                    <View
+                      key={label}
+                      className={`py-3${borderBottom ? " border-b border-border-light dark:border-border-dark" : ""}`}
+                    >
+                      {/* Section header */}
+                      <View className="flex-row items-center justify-between mb-2">
+                        <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">
+                          {label}
+                        </Text>
+                        <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: statusBg }}>
+                          <Text className="text-[10px] font-bold" style={{ color: statusColor }}>
+                            {gapLabel}
+                          </Text>
+                        </View>
+                      </View>
+                      {/* Expected vs Actual */}
+                      <View className="flex-row items-center justify-between mb-1">
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                          {realityCheck.isPastFY ? "Planned" : "Expected so far"}
+                        </Text>
+                        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                          {fmtFull(realityCheck.isPastFY ? planned : proratedTarget)}
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center justify-between mb-2">
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Actual</Text>
+                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                          {fmtFull(actualYTD)}
+                        </Text>
+                      </View>
+                      {/* Year-end projection (current FY only) */}
+                      {!realityCheck.isPastFY && projYearEnd !== null && (
+                        <View
+                          className="rounded-lg px-3 py-2 mb-1"
+                          style={{ backgroundColor: colors.surface }}
+                        >
+                          <View className="flex-row items-center justify-between">
+                            <Text className="text-[10px] text-text-tertiary">Year-end projection</Text>
+                            <Text
+                              className="text-xs font-semibold"
+                              style={{
+                                color: Math.abs(gap) < 1
+                                  ? colors.textSecondary
+                                  : isAhead
+                                    ? StatusColors[colorScheme].success
+                                    : StatusColors[colorScheme].danger,
+                              }}
+                            >
+                              {fmtFull(projYearEnd)}
+                            </Text>
+                          </View>
+                          <View className="items-end mt-0.5">
+                            <Text className="text-[10px] text-text-tertiary">{fmtFull(planned)} planned</Text>
+                          </View>
+                        </View>
+                      )}
+                      {/* Correction / confirmation hint */}
+                      {!realityCheck.isPastFY && !isAhead && Math.abs(gap) >= 1 && (
+                        <View className="flex-row items-center gap-1.5">
+                          <Ionicons name="arrow-forward" size={11} color={StatusColors[colorScheme].danger} />
+                          <Text className="text-xs font-semibold" style={{ color: StatusColors[colorScheme].danger }}>
+                            {correctionLabel} to get back on track
+                          </Text>
+                        </View>
+                      )}
+                      {!realityCheck.isPastFY && isAhead && Math.abs(gap) >= 1 && (
+                        <View className="flex-row items-center gap-1.5">
+                          <Ionicons name="checkmark" size={11} color={StatusColors[colorScheme].success} />
+                          <Text className="text-xs font-semibold" style={{ color: StatusColors[colorScheme].success }}>
+                            {correctionLabel}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                };
+
+                const rcRows = realityCheck.rows.map((row, i) => {
+                  const projYearEnd = !realityCheck.isPastFY && realityCheck.monthsElapsed > 0
+                    ? Math.round((row.actualYTD / realityCheck.monthsElapsed) * 12)
+                    : null;
+                  return renderRow(
+                    row.label,
+                    row.planned,
+                    row.proratedTarget,
+                    row.actualYTD,
+                    row.gap,
+                    row.isAhead,
+                    row.gapLabel,
+                    row.correctionLabel,
+                    projYearEnd,
+                    true,
+                  );
+                });
+
+                // Debt servicing block (only if there are INR loans)
+                const debtBlock = debtAnnual > 0
+                  ? renderRow(
+                      "Debt Servicing",
+                      debtAnnual,
+                      debtProrated,
+                      debtYTD,
+                      debtGap,
+                      debtIsAhead,
+                      debtGapLabel,
+                      debtGap > 0 ? `${formatCompact(debtGap)} above expected` : "",
+                      !realityCheck.isPastFY ? debtProjYearEnd : null,
+                      false,
+                    )
+                  : null;
+
+                return (
+                  <>
+                    {rcRows}
+                    {debtBlock}
+                    {/* Net surplus */}
+                    <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+                      <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary">
+                        {realityCheck.isPastFY ? "Actual Surplus" : "Projected Surplus"}
+                      </Text>
+                      <Text
+                        className="text-sm font-bold"
+                        style={{
+                          color: netSurplusProj >= 0
                             ? StatusColors[colorScheme].success
                             : StatusColors[colorScheme].danger,
-                      }}
-                    >
-                      {row.gapLabel}
-                    </Text>
-                  </View>
-                  {!realityCheck.isPastFY && !row.isAhead && Math.abs(row.gap) >= 1 && (
-                    <View className="flex-row items-center mt-1">
-                      <Ionicons name="arrow-forward" size={10} color={StatusColors[colorScheme].danger} style={{ marginRight: 4 }} />
-                      <Text className="text-[10px] font-medium" style={{ color: StatusColors[colorScheme].danger }}>
-                        {row.correctionLabel} to get back on track
+                        }}
+                      >
+                        {fmtFull(netSurplusProj)}
+                        <Text className="text-[10px] font-normal text-text-tertiary">
+                          {" "}(plan: {fmtFull(netSurplusPlanned)})
+                        </Text>
                       </Text>
                     </View>
-                  )}
-                  {!realityCheck.isPastFY && row.isAhead && Math.abs(row.gap) >= 1 && (
-                    <View className="flex-row items-center mt-1">
-                      <Ionicons name="checkmark" size={10} color={StatusColors[colorScheme].success} style={{ marginRight: 4 }} />
-                      <Text className="text-[10px] font-medium" style={{ color: StatusColors[colorScheme].success }}>
-                        {row.correctionLabel}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              ))}
-
-              {/* Net surplus comparison */}
-              <View className="flex-row items-center justify-between mt-3 pt-2">
-                <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary">
-                  {realityCheck.isPastFY ? "Actual Surplus" : "Projected Surplus"}
-                </Text>
-                <Text
-                  className="text-xs font-bold"
-                  style={{
-                    color: realityCheck.netSurplusProjected >= 0
-                      ? StatusColors[colorScheme].success
-                      : StatusColors[colorScheme].danger,
-                  }}
-                >
-                  {realityCheck.netSurplusProjected >= 0 ? "" : "-"}{formatCompact(Math.abs(realityCheck.netSurplusProjected))}
-                  <Text className="text-[10px] font-normal text-text-tertiary">
-                    {" "}(plan: {formatCompact(realityCheck.netSurplusPlanned)})
-                  </Text>
-                </Text>
-              </View>
+                  </>
+                );
+              })()}
 
               {/* Action summary */}
               {realityCheck.summaryLines.length > 0 && (

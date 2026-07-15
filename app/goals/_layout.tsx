@@ -64,6 +64,10 @@ export default function GoalsLayout() {
         name="capital-gains-reference"
         options={{ title: "Capital Gains Reference" }}
       />
+      <Stack.Screen
+        name="health-grade"
+        options={{ title: "Financial Health" }}
+      />
     </Stack>
   );
 }
