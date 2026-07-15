@@ -321,22 +321,24 @@ export default function GoalsScreen() {
               onPress={() => router.push({ pathname: "/goals/investment-buckets", params: { fy: String(currentFY) } })}
             >
               <Card className="flex-1">
-                <View
-                  className="w-8 h-8 rounded-full items-center justify-center mb-3"
-                  style={{ backgroundColor: accentBg }}
-                >
-                  <Ionicons name="pie-chart-outline" size={16} color={accentColor} />
+                <View className="flex-row items-center gap-2 mb-3">
+                  <View
+                    className="w-8 h-8 rounded-full items-center justify-center shrink-0"
+                    style={{ backgroundColor: accentBg }}
+                  >
+                    <Ionicons name="pie-chart-outline" size={16} color={accentColor} />
+                  </View>
+                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1" numberOfLines={1}>
+                    Investment Buckets
+                  </Text>
                 </View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">
-                  Investment Buckets
-                </Text>
                 {fyBuckets.length > 0 ? (
                   <>
                     <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
-                      {fyBuckets.length} active
+                      {formatAmount(bucketContributed)}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
-                      {formatAmount(bucketContributed)} of {formatAmount(bucketTotalTarget)}
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2" numberOfLines={1}>
+                      of {formatAmount(bucketTotalTarget)} · {fyBuckets.length} buckets
                     </Text>
                     <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
                       <View
@@ -359,22 +361,24 @@ export default function GoalsScreen() {
               onPress={() => router.push("/goals/milestones")}
             >
               <Card className="flex-1">
-                <View
-                  className="w-8 h-8 rounded-full items-center justify-center mb-3"
-                  style={{ backgroundColor: "#14B8A614" }}
-                >
-                  <Ionicons name="flag-outline" size={16} color="#14B8A6" />
+                <View className="flex-row items-center gap-2 mb-3">
+                  <View
+                    className="w-8 h-8 rounded-full items-center justify-center shrink-0"
+                    style={{ backgroundColor: "#14B8A614" }}
+                  >
+                    <Ionicons name="flag-outline" size={16} color="#14B8A6" />
+                  </View>
+                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1" numberOfLines={1}>
+                    Life Milestones
+                  </Text>
                 </View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">
-                  Milestones
-                </Text>
                 {fyMilestones.length > 0 ? (
                   <>
                     <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
-                      {fyMilestones.length} this FY
+                      {formatAmount(milestoneTotalSaved)}
                     </Text>
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2" numberOfLines={1}>
-                      {nextMilestone ? `Next: ${nextMilestone.name}` : "All on track"}
+                      of {formatAmount(milestoneTotalTarget)} · {fyMilestones.length} goals
                     </Text>
                     <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
                       <View
