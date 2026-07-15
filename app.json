@@ -50,6 +50,7 @@
       "./plugins/withDisableBackup",
       "./plugins/withNotificationListener",
       "./plugins/withArmOnly",
+      "./plugins/withAapt2Fix",
       "./plugins/withLargeHeap",
       "llama.rn",
       [
