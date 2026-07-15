@@ -22,15 +22,18 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
   const { colors, accent } = useColorScheme();
   const contentRef = useRef<ScrollView>(null);
   const tabStripRef = useRef<ScrollView>(null);
-  // Dimensions of the content area (below tab strip)
   const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
+  const [tabStripWidth, setTabStripWidth] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
+
+  // When tabs fit within the strip, centre them; otherwise left-align and scroll.
+  const totalTabsWidth = pages.length * tw;
+  const centerOffset = tabStripWidth > 0 ? Math.max(0, (tabStripWidth - totalTabsWidth) / 2) : 0;
 
   // Scroll content to active page whenever activeIndex changes (from tab tap)
   useEffect(() => {
     if (contentSize.width === 0) return;
     contentRef.current?.scrollTo({ x: activeIndex * contentSize.width, animated: true });
-    // Keep tab strip centred on active tab
     tabStripRef.current?.scrollTo({ x: Math.max(0, (activeIndex - 1) * tw), animated: true });
   }, [activeIndex, contentSize.width, tw]);
 
@@ -53,27 +56,37 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
     [activeIndex, contentSize.width, onIndexChange],
   );
 
-  // Underline translates across the tab strip in sync with page scroll
+  // Underline translates across the tab strip in sync with page scroll.
+  // Add centerOffset so it stays under the correct (centred) tab.
   const underlineX =
     contentSize.width > 0
       ? scrollX.interpolate({
           inputRange: pages.map((_, i) => i * contentSize.width),
-          outputRange: pages.map((_, i) => i * tw),
+          outputRange: pages.map((_, i) => centerOffset + i * tw),
           extrapolate: "clamp",
         })
-      : new Animated.Value(activeIndex * tw);
+      : new Animated.Value(centerOffset + activeIndex * tw);
 
   return (
     <View style={{ flex: 1 }}>
       {/* Tab strip */}
-      <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 0.5, borderBottomColor: colors.border, backgroundColor: colors.background }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          borderBottomWidth: 0.5,
+          borderBottomColor: colors.border,
+          backgroundColor: colors.background,
+        }}
+        onLayout={(e) => setTabStripWidth(e.nativeEvent.layout.width)}
+      >
         <ScrollView
           ref={tabStripRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           scrollEnabled={pages.length > 4}
           style={{ flex: 1 }}
-          contentContainerStyle={{ position: "relative" }}
+          contentContainerStyle={{ position: "relative", flexGrow: 1, justifyContent: "center" }}
         >
           {pages.map((page, index) => (
             <Pressable
@@ -116,7 +129,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
         )}
       </View>
 
-      {/* Content area — captures its own size so pages fill it exactly */}
+      {/* Content area */}
       <View
         style={{ flex: 1 }}
         onLayout={(e) =>

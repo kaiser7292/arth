@@ -207,9 +207,11 @@ export default function GoalsScreen() {
                     <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
                       {cockpitData.savings.actualRatePct.toFixed(1)}%
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                      of {cockpitData.savings.targetRatePct.toFixed(0)}% target
-                    </Text>
+                    {cockpitData.savings.targetRatePct > 0 && (
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        of {cockpitData.savings.targetRatePct.toFixed(0)}% target
+                      </Text>
+                    )}
                   </View>
                   <View className="flex-1">
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Saved This FY</Text>
