@@ -21,127 +21,78 @@ phrasings:
   - Why does Reality Check say I'm behind?
 ---
 
-The **Yearly Plan** screen (Goals tab → open automatically, or tap the Financial Health card) shows a single-screen view of your entire fiscal year: income, planned outflows, and how your actual numbers compare to the plan so far.
-
-## Where to find it
-
-**Goals tab → Financial Health card → tap anywhere** → Yearly Plan.
-
-Or use **Goals tab → Yearly Plan** if it appears as a direct card.
+The **Yearly Plan** screen (Goals tab → tap the Financial Health card) shows your entire fiscal year in one place: income, planned outflows, and how your actual numbers compare to the plan so far.
 
 The screen respects your fiscal year setting (default: April–March). Use the period navigator at the top to switch to a previous FY.
 
----
-
 ## Plan Summary card
 
-Shows the high-level income vs outflow picture for the full FY:
+This card shows the high-level income versus outflow picture for the full FY.
 
-| Row | What it is |
-|-----|-----------|
-| **Gross Income** | Annual salary / income as set in the Income Calculator |
-| **Taxes** | Estimated tax liability based on your income and savings profile |
-| **In-Hand** | Gross minus taxes — what you actually receive |
-| **Expenses** | Planned annual spending across all budget categories |
-| **Investments** | Total target contributions to Investment Buckets for the FY |
-| **Milestones** | Annual milestone contributions |
-| **Debt Servicing** | Total EMIs + prepayments due across all active loans this FY |
-| **Surplus / Deficit** | In-Hand minus all outflows; positive = achievable plan, negative = deficit |
+- **Gross Income** — annual salary or income as set in the Income Calculator
+- **Taxes** — estimated tax liability based on your income and savings profile
+- **In-Hand** — Gross minus Taxes; what you actually receive each year
+- **Expenses** — planned annual spending across all budget categories
+- **Investments** — total target contributions to Investment Buckets for the FY
+- **Milestones** — annual milestone contributions
+- **Debt Servicing** — total EMIs plus any prepayments due across all active loans this FY
+- **Surplus / Deficit** — In-Hand minus all outflows. Positive means the plan is achievable; negative means you cannot fund all targets simultaneously with your current income.
 
-A green "Plan is achievable" or amber "Plan has a deficit" badge at the bottom summarises at a glance.
-
----
+A green "Plan is achievable" or amber "Plan has a deficit" badge at the bottom of the card summarises the verdict at a glance.
 
 ## Reality Check card
 
-Compares your **actual YTD** (year-to-date) numbers against what was **expected by now** given how many months of the FY have elapsed. Appears only when at least one month of the FY has passed.
+This card compares your actual year-to-date numbers against what was expected by now given how many months of the FY have elapsed. It only appears after at least one month of the FY has passed.
 
-### How it works
+For each category, Arth computes the prorated expected amount (annual plan divided by 12, multiplied by months elapsed), then compares it against what you have actually spent, invested, or paid. A status pill — ahead, on track, or behind — captures the verdict instantly.
 
-For each category, Arth computes:
+### Expenses
 
-- **Expected so far** = (Annual plan / 12) × months elapsed
-- **Actual** = real transactions recorded for the same period
-- **Status pill** = on track / ahead / behind compared to the prorated expected figure
+Shows whether you are spending more or less than planned at this point in the year. If you are spending less, the year-end projection comes in below your annual budget. If you are over, the correction hint shows the monthly reduction needed to close the gap before year-end.
 
-### Category sections
+### Investments
 
-Each category gets its own block with full amounts, a year-end projection, and a correction hint:
+Shows whether your investment bucket contributions are on pace. Behind here means you are under-contributing; the correction hint shows the monthly catch-up amount. If your SIPs arrive via SMS and are sitting in the review queue, approve them first — pending transactions do not count toward the actual.
 
-**Expenses** — are you spending more or less than planned?
-- *Ahead* (lower cost): spending less than the prorated target; year-end projection < plan.
-- *Behind* (higher cost): overspending; correction hint shows how much to cut per month to close the gap.
+### Milestones
 
-**Investments** — are your bucket contributions on pace?
-- *Ahead*: contributing more than expected; on pace for a larger FY total.
-- *Behind*: under-contributing; correction hint shows the monthly catch-up amount.
+Same logic as investments: prorated expected versus actual contributions, with a correction hint when behind.
 
-**Milestones** — are milestone contributions on pace?
-- Same logic as investments.
+### Debt Servicing
 
-**Debt Servicing** — are you paying your EMIs and prepayments on schedule?
-- Compares EMIs paid so far (from the amortization schedule + recorded prepayments) against the prorated annual total.
-- *Under* expected: could indicate a missed EMI — check the loan detail.
-- *Over* expected: you made a prepayment or had a higher-than-usual instalment.
+Compares EMIs paid so far (from your loan amortization schedule plus any recorded prepayments) against the prorated annual total. Running under the expected amount typically means a scheduled EMI has not been marked paid yet — check the loan detail screen. Running over means you made a prepayment or had a higher-than-usual instalment.
 
 ### Year-end projection
 
-Each block shows a projection box: at your current pace, what will the full-year total be? A projection much higher than planned (expenses) or much lower than planned (investments) indicates the gap is widening.
+Each category block shows a projection: at your current pace, what will the full-year total be? A projection much higher than planned for expenses, or much lower for investments, means the gap is widening and needs attention now rather than at year-end.
 
 ### Projected Surplus
 
-At the bottom of the card, a single "Projected Surplus" line shows:
+At the bottom of the Reality Check card, a single line shows the projected surplus for the full year. It subtracts projected expenses, projected investments, projected milestones, and projected debt servicing from your projected income. This tells you at a glance whether the year will end better or worse than planned.
 
-```
-Projected = Projected Income − Projected Expenses − Projected Investments
-           − Projected Milestones − Projected Debt Servicing
-```
+### Past FY — Year-End Review
 
-Compared against the planned surplus so you can see at a glance whether the year will end better or worse than planned.
-
-### Past FY (Year-End Review)
-
-When viewing a completed fiscal year, the card title changes to "Year-End Review". The "Expected so far" column becomes "Planned" (the annual target), and "Actual" is the full-year outcome. No projection box is shown — the year is done.
-
----
+When viewing a completed fiscal year, the card title changes to "Year-End Review". The expected column becomes the annual plan target, and the actual column shows the full-year outcome. No projections are shown because the year is done.
 
 ## Loan Debt section
 
-Below the Reality Check, a dedicated Loan Debt section lists every active loan with:
-
-- Bank name and loan type
-- Current EMI
-- Annual EMI total (sum of all scheduled EMIs in the FY)
-- Annual prepayment total (sum of all prepayments in the FY)
-- Combined annual outflow
-
-Loans in non-INR currencies are shown separately and excluded from the INR totals.
-
----
+Below the Reality Check card, a dedicated section lists every active loan with the bank name, loan type, current EMI, annual EMI total, annual prepayment total, and combined annual outflow. Loans tracked in foreign currencies are shown separately and excluded from the INR totals.
 
 ## Income Calculator
 
-The income figure in the Yearly Plan comes from the **Income Calculator** (Goals tab → Income Calculator). Set your CTC (or take-home) there; Arth calculates monthly in-hand, taxes, and PF/NPS deductions.
+The income figure driving the Yearly Plan comes from the Income Calculator (Goals tab → Income Calculator). Set your CTC or take-home there; Arth calculates monthly in-hand, taxes, and PF/NPS deductions.
 
 Without an income profile, the Yearly Plan and Financial Health grade cannot compute savings rates or surpluses — set it up first.
 
----
-
 ## Common situations
 
-**"My projected surplus looks wrong."**
-Check that your income is set correctly in the Income Calculator. Also verify that your Investment Bucket targets reflect actual annual commitments — over-targeting buckets will inflate the projected outflow.
+**"My projected surplus looks wrong."** Check that your income is set correctly in the Income Calculator. Also verify that your Investment Bucket targets reflect actual annual commitments — over-targeting buckets will inflate the projected outflow.
 
-**"Reality Check says I'm behind on investments but my SIPs are running."**
-If your SIPs arrive via SMS and are in the review queue, they count as pending, not approved. Approve them in the review queue; the Investments actual will update.
+**"Reality Check says I'm behind on investments but my SIPs are running."** If your SIPs arrived via SMS and are in the review queue, they count as pending, not approved. Approve them; the Investments actual will update immediately.
 
-**"The Debt Servicing row is blank."**
-Appears only if you have active INR loans tracked in Arth. Add your loans under Goals → Loans & Debt.
+**"The Debt Servicing row is blank."** This section only appears when you have active INR loans tracked in Arth. Add your loans under Goals → Loans and Debt.
 
-**"Why does the surplus show negative even though I'm saving?"**
-The surplus is Income − All planned outflows. If your combined bucket + milestone + EMI targets exceed your income, the plan shows a deficit even if you're saving something — it means you can't fund all targets simultaneously and something needs to give.
-
----
+**"Why does the surplus show negative even though I'm saving?"** The surplus is Income minus all planned outflows. If your combined bucket, milestone, and EMI targets exceed your income, the plan shows a deficit even if you are saving something — it means you cannot fund all targets simultaneously at your current income and something needs to change.
 
 ## Related
 
