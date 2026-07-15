@@ -1,9 +1,12 @@
 import { Card, LoadingState, ScreenContainer } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
-import { useCockpitData } from "@/hooks/use-cockpit-data";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getBalanceSheetColumn } from "@/services/balance-sheet";
+import { getFinancialCockpit } from "@/services/financial-cockpit";
+import type { FinancialCockpitData } from "@/services/financial-cockpit";
+import { consumeGoalsPreload } from "@/services/home-preload";
 import { getMilestonesForFY, LifeMilestone } from "@/services/life-milestone";
 import { listActiveLoans } from "@/services/loan-accounts";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
@@ -13,9 +16,12 @@ import { ac } from "@/utils/accent";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+
+// Consume preload once at module level (single-use, clears the cache slot)
+const preloaded = consumeGoalsPreload();
 
 export default function GoalsScreen() {
   const router = useRouter();
@@ -24,29 +30,34 @@ export default function GoalsScreen() {
   const currentFY = getCurrentFY(startMonth);
   const fyLabel = getFYLabel(currentFY, startMonth);
 
-  const [hasSalaryProfile, setHasSalaryProfile] = useState(false);
-  const [fyBuckets, setFyBuckets] = useState<InvestmentBucket[]>([]);
-  const [fyMilestones, setFyMilestones] = useState<LifeMilestone[]>([]);
-  const [activeLoansCount, setActiveLoansCount] = useState(0);
-  const [totalMonthlyEMI, setTotalMonthlyEMI] = useState(0);
+  // Initialise from preload so the page renders instantly on first open
+  const [hasSalaryProfile, setHasSalaryProfile] = useState(preloaded?.hasSalaryProfile ?? false);
+  const [fyBuckets, setFyBuckets] = useState<InvestmentBucket[]>(preloaded?.fyBuckets ?? []);
+  const [fyMilestones, setFyMilestones] = useState<LifeMilestone[]>(preloaded?.fyMilestones ?? []);
+  const [activeLoansCount, setActiveLoansCount] = useState(preloaded?.activeLoansCount ?? 0);
+  const [totalMonthlyEMI, setTotalMonthlyEMI] = useState(preloaded?.totalMonthlyEMI ?? 0);
   const [netWorth, setNetWorth] = useState<number | null>(null);
-  const [setupChecked, setSetupChecked] = useState(false);
+  const [cockpitData, setCockpitData] = useState<FinancialCockpitData | null>(preloaded?.cockpit ?? null);
+  // If preloaded data is available the page is ready immediately; otherwise wait for first load
+  const [setupChecked, setSetupChecked] = useState(preloaded != null);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadGoals = useCallback(async () => {
     try {
       const fyStr = String(currentFY);
-      const [salary, fetchedBuckets, fetchedMilestones, activeLoans] = await Promise.all([
+      const [salary, fetchedBuckets, fetchedMilestones, activeLoans, cockpit] = await Promise.all([
         getSalaryProfileByFY(DEFAULT_USER_ID, fyStr),
         getBucketsByFY(DEFAULT_USER_ID, fyStr),
         getMilestonesForFY(DEFAULT_USER_ID, fyStr),
         listActiveLoans(DEFAULT_USER_ID),
+        getFinancialCockpit(DEFAULT_USER_ID, fyStr),
       ]);
       setHasSalaryProfile(salary != null && salary.computed_monthly_in_hand > 0);
       setFyBuckets(fetchedBuckets);
       setFyMilestones(fetchedMilestones);
       setActiveLoansCount(activeLoans.length);
       setTotalMonthlyEMI(activeLoans.reduce((s, l) => s + l.emi_amount, 0));
+      setCockpitData(cockpit);
     } catch {
       // DB not ready
     }
@@ -62,21 +73,15 @@ export default function GoalsScreen() {
     }
   }, [currentFY]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadGoals();
-    }, [loadGoals]),
-  );
+  useDataRefresh(loadGoals);
 
-  const cockpit = useCockpitData();
-  const hasSalaryInfo = hasSalaryProfile;
   const hasFYBuckets = fyBuckets.length > 0;
   const hasMilestones = fyMilestones.length > 0;
-  const setupComplete = hasSalaryInfo && hasFYBuckets && hasMilestones;
-  const hasCockpit = cockpit.data != null;
+  const setupComplete = hasSalaryProfile && hasFYBuckets && hasMilestones;
+  const hasCockpit = cockpitData != null;
 
   const setupSteps = [
-    { label: "Set your income", done: hasSalaryInfo, route: "/goals/salary-calculator" as const },
+    { label: "Set your income", done: hasSalaryProfile, route: "/goals/salary-calculator" as const },
     { label: "Add investment goals", done: hasFYBuckets, route: "/goals/investment-buckets" as const },
     { label: "Add life goals", done: hasMilestones, route: "/goals/milestones" as const },
   ];
@@ -87,10 +92,16 @@ export default function GoalsScreen() {
   const bucketContributed = fyBuckets.reduce((s, b) => s + b.current_contributed, 0);
   const bucketProgressPct = bucketTotalTarget > 0 ? Math.min(100, (bucketContributed / bucketTotalTarget) * 100) : 0;
 
+  // Milestone progress: total saved / total target across all FY milestones
+  const milestoneTotalTarget = fyMilestones.reduce((s, m) => s + m.target_amount, 0);
+  const milestoneTotalSaved = fyMilestones.reduce((s, m) => s + m.current_saved, 0);
+  const milestoneProgressPct =
+    milestoneTotalTarget > 0 ? Math.min(100, (milestoneTotalSaved / milestoneTotalTarget) * 100) : 0;
+
   const accentColor = ac(accent, colorScheme, 500, 400);
   const accentBg = ac(accent, colorScheme, 500, 700) + "14";
 
-  if (!setupChecked || cockpit.loading) {
+  if (!setupChecked) {
     return (
       <ScreenContainer>
         <LoadingState message="Loading goals..." icon="trophy-outline" />
@@ -121,7 +132,7 @@ export default function GoalsScreen() {
           <View className="mb-4">
             <View className="flex-row items-center justify-between mb-2">
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                {fyLabel} · Month {cockpit.data?.fiscalMonth ?? "—"} of 12
+                {fyLabel} · Month {cockpitData?.fiscalMonth ?? "—"} of 12
               </Text>
               {!setupComplete && (
                 <View className="flex-row items-center gap-1.5">
@@ -135,12 +146,12 @@ export default function GoalsScreen() {
                 </View>
               )}
             </View>
-            {cockpit.data && (
+            {cockpitData && (
               <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
                 <View
                   className="h-full rounded-full"
                   style={{
-                    width: `${(cockpit.data.fiscalMonth / 12) * 100}%`,
+                    width: `${(cockpitData.fiscalMonth / 12) * 100}%`,
                     backgroundColor: accentColor,
                   }}
                 />
@@ -178,7 +189,7 @@ export default function GoalsScreen() {
           )}
 
           {/* ── Financial Health card ── */}
-          {hasCockpit && cockpit.data && (
+          {hasCockpit && cockpitData && (
             <Pressable
               onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
               className="mb-4"
@@ -194,20 +205,20 @@ export default function GoalsScreen() {
                   <View className="flex-1">
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Savings Rate</Text>
                     <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
-                      {cockpit.data.savings.actualRatePct.toFixed(1)}%
+                      {cockpitData.savings.actualRatePct.toFixed(1)}%
                     </Text>
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                      of {cockpit.data.savings.targetRatePct.toFixed(0)}% target
+                      of {cockpitData.savings.targetRatePct.toFixed(0)}% target
                     </Text>
                   </View>
                   <View className="flex-1">
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Saved This FY</Text>
                     <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
-                      {formatAmount(cockpit.data.savings.totalSaved)}
+                      {formatAmount(cockpitData.savings.totalSaved)}
                     </Text>
-                    {cockpit.data.savings.targetSavings > 0 && (
+                    {cockpitData.savings.targetSavings > 0 && (
                       <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                        of {formatAmount(cockpit.data.savings.targetSavings)}
+                        of {formatAmount(cockpitData.savings.targetSavings)}
                       </Text>
                     )}
                   </View>
@@ -216,8 +227,8 @@ export default function GoalsScreen() {
                   <View
                     className="h-full rounded-full"
                     style={{
-                      width: `${Math.min(100, cockpit.data.savings.targetSavings > 0 ? (cockpit.data.savings.totalSaved / cockpit.data.savings.targetSavings) * 100 : 0)}%`,
-                      backgroundColor: cockpit.data.savings.isOnTrack
+                      width: `${Math.min(100, cockpitData.savings.targetSavings > 0 ? (cockpitData.savings.totalSaved / cockpitData.savings.targetSavings) * 100 : 0)}%`,
+                      backgroundColor: cockpitData.savings.isOnTrack
                         ? StatusColors[colorScheme].success
                         : StatusColors[colorScheme].warning,
                     }}
@@ -228,14 +239,14 @@ export default function GoalsScreen() {
           )}
 
           {/* ── Advisory strip ── */}
-          {cockpit.data && cockpit.data.advisories.length > 0 && (
+          {cockpitData && cockpitData.advisories.length > 0 && (
             <Pressable
               onPress={() =>
                 router.push({
                   pathname: "/goals/advisory-detail",
                   params: {
-                    advisoryJson: JSON.stringify(cockpit.data!.advisories[0]),
-                    cockpitJson: JSON.stringify(cockpit.data),
+                    advisoryJson: JSON.stringify(cockpitData.advisories[0]),
+                    cockpitJson: JSON.stringify(cockpitData),
                   },
                 })
               }
@@ -252,14 +263,14 @@ export default function GoalsScreen() {
                     style={{ color: StatusColors[colorScheme].warning }}
                     numberOfLines={1}
                   >
-                    {cockpit.data.advisories[0].title}
+                    {cockpitData.advisories[0].title}
                   </Text>
                   <Text
                     className="text-xs"
                     style={{ color: StatusColors[colorScheme].warning, opacity: 0.8 }}
                     numberOfLines={2}
                   >
-                    {cockpit.data.advisories[0].message}
+                    {cockpitData.advisories[0].message}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={14} color={StatusColors[colorScheme].warning} />
@@ -282,53 +293,11 @@ export default function GoalsScreen() {
             </Card>
           )}
 
-          {/* ── PLAN section ── */}
+          {/* ── PLAN section: Investment Buckets + Life Milestones ── */}
           <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-2">
             Plan
           </Text>
           <View className="flex-row gap-3 mb-4">
-            {/* Yearly Plan */}
-            <Pressable
-              className="flex-1"
-              onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
-            >
-              <Card className="flex-1">
-                <View
-                  className="w-8 h-8 rounded-full items-center justify-center mb-3"
-                  style={{ backgroundColor: colors.blue + "14" }}
-                >
-                  <Ionicons name="document-text-outline" size={16} color={colors.blue} />
-                </View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Yearly Plan</Text>
-                {cockpit.data && cockpit.data.savings.targetSavings > 0 ? (
-                  <>
-                    <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
-                      {formatAmount(cockpit.data.savings.targetSavings)}
-                    </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
-                      target savings
-                    </Text>
-                    <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
-                      <View
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${(cockpit.data.fiscalMonth / 12) * 100}%`,
-                          backgroundColor: colors.blue,
-                        }}
-                      />
-                    </View>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
-                      Month {cockpit.data.fiscalMonth} of 12
-                    </Text>
-                  </>
-                ) : (
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
-                    {fyLabel} plan
-                  </Text>
-                )}
-              </Card>
-            </Pressable>
-
             {/* Investment Buckets */}
             <Pressable
               className="flex-1"
@@ -341,7 +310,9 @@ export default function GoalsScreen() {
                 >
                   <Ionicons name="pie-chart-outline" size={16} color={accentColor} />
                 </View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Buckets</Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">
+                  Investment Buckets
+                </Text>
                 {fyBuckets.length > 0 ? (
                   <>
                     <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
@@ -364,36 +335,51 @@ export default function GoalsScreen() {
                 )}
               </Card>
             </Pressable>
+
+            {/* Life Milestones */}
+            <Pressable
+              className="flex-1"
+              onPress={() => router.push("/goals/milestones")}
+            >
+              <Card className="flex-1">
+                <View
+                  className="w-8 h-8 rounded-full items-center justify-center mb-3"
+                  style={{ backgroundColor: "#14B8A614" }}
+                >
+                  <Ionicons name="flag-outline" size={16} color="#14B8A6" />
+                </View>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">
+                  Milestones
+                </Text>
+                {fyMilestones.length > 0 ? (
+                  <>
+                    <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                      {fyMilestones.length} this FY
+                    </Text>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2" numberOfLines={1}>
+                      {nextMilestone ? `Next: ${nextMilestone.name}` : "All on track"}
+                    </Text>
+                    <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
+                      <View
+                        className="h-full rounded-full"
+                        style={{ width: `${milestoneProgressPct}%`, backgroundColor: "#14B8A6" }}
+                      />
+                    </View>
+                  </>
+                ) : (
+                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                    None added
+                  </Text>
+                )}
+              </Card>
+            </Pressable>
           </View>
 
-          {/* ── TRACK section ── */}
+          {/* ── TRACK section: Loans + Balance Sheet ── */}
           <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-2">
             Track
           </Text>
           <Card className="mb-4">
-            <Pressable
-              onPress={() => router.push("/goals/milestones")}
-              className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
-            >
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: "#14B8A614" }}
-              >
-                <Ionicons name="flag-outline" size={18} color="#14B8A6" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
-                  Life Milestones
-                </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                  {fyMilestones.length > 0
-                    ? `${fyMilestones.length} this FY${nextMilestone ? ` · Next: ${nextMilestone.name}` : ""}`
-                    : "Add big life goals"}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
-
             <Pressable
               onPress={() => router.push("/goals/loans" as never)}
               className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"

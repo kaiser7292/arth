@@ -70,7 +70,7 @@ export default function MilestonesScreen() {
       const usePreload = preload && preload.fy === String(currentFY);
 
       const [data, cd] = await Promise.all([
-        usePreload ? Promise.resolve(preload.milestones) : getLifeMilestones(DEFAULT_USER_ID),
+        usePreload ? Promise.resolve(preload.fyMilestones) : getLifeMilestones(DEFAULT_USER_ID),
         usePreload ? Promise.resolve(preload.cockpit) : getFinancialCockpit(DEFAULT_USER_ID, String(currentFY)),
       ]);
       setMilestones(data);

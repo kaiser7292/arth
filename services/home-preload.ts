@@ -40,10 +40,11 @@ import { getCurrentFY, formatLocalDate } from "@/utils/fiscal-year";
 import { logger } from "@/utils/logger";
 import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
-import { getLifeMilestones } from "@/services/life-milestone";
+import { getMilestonesForFY } from "@/services/life-milestone";
 import type { LifeMilestone } from "@/services/life-milestone";
-import { deriveYearlyPlan } from "@/services/yearly-plan";
-import type { DerivedPlanSummary } from "@/services/yearly-plan";
+import { listActiveLoans } from "@/services/loan-accounts";
+import { deriveYearlyPlan, getBucketsByFY } from "@/services/yearly-plan";
+import type { DerivedPlanSummary, InvestmentBucket } from "@/services/yearly-plan";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import type { SalaryProfile } from "@/services/salary-profile";
 import { getFYStartMonth } from "@/services/settings";
@@ -134,7 +135,11 @@ export interface PensionAccountsPreloadData {
 
 export interface GoalsPreloadData {
   cockpit: FinancialCockpitData | null;
-  milestones: LifeMilestone[];
+  fyMilestones: LifeMilestone[];
+  fyBuckets: InvestmentBucket[];
+  hasSalaryProfile: boolean;
+  activeLoansCount: number;
+  totalMonthlyEMI: number;
   /** Which FY the cockpit was computed for (YYYY string). */
   fy: string;
 }
@@ -389,11 +394,22 @@ async function loadGoalsSection(): Promise<GoalsPreloadData | null> {
   try {
     const startMonth = getFYStartMonth();
     const fy = String(getCurrentFY(startMonth));
-    const [cockpit, milestones] = await Promise.all([
+    const [cockpit, fyMilestones, fyBuckets, salary, activeLoans] = await Promise.all([
       getFinancialCockpit(DEFAULT_USER_ID, fy),
-      getLifeMilestones(DEFAULT_USER_ID),
+      getMilestonesForFY(DEFAULT_USER_ID, fy),
+      getBucketsByFY(DEFAULT_USER_ID, fy),
+      getSalaryProfileByFY(DEFAULT_USER_ID, fy),
+      listActiveLoans(DEFAULT_USER_ID),
     ]);
-    return { cockpit, milestones, fy };
+    return {
+      cockpit,
+      fyMilestones,
+      fyBuckets,
+      hasSalaryProfile: salary != null && salary.computed_monthly_in_hand > 0,
+      activeLoansCount: activeLoans.length,
+      totalMonthlyEMI: activeLoans.reduce((s, l) => s + l.emi_amount, 0),
+      fy,
+    };
   } catch (e) {
     logger.warn("Goals preload section failed:", e);
     return null;

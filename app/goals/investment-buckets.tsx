@@ -82,7 +82,7 @@ export default function InvestmentBucketsScreen() {
 
       const [p, ms, cd] = await Promise.all([
         getYearlyPlanByFY(DEFAULT_USER_ID, fyStr),
-        usePreload ? Promise.resolve(preload.milestones) : getLifeMilestones(DEFAULT_USER_ID),
+        usePreload ? Promise.resolve(preload.fyMilestones) : getLifeMilestones(DEFAULT_USER_ID),
         usePreload ? Promise.resolve(preload.cockpit) : getFinancialCockpit(DEFAULT_USER_ID, fyStr),
       ]);
       setPlan(p);
