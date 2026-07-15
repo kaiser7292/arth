@@ -35,25 +35,31 @@ export default function GoalsScreen() {
 
   const loadGoals = useCallback(async () => {
     try {
-      const today = new Date().toISOString().split("T")[0];
       const fyStr = String(currentFY);
-      const [salary, fetchedBuckets, fetchedMilestones, activeLoans, bsCol] = await Promise.all([
+      const [salary, fetchedBuckets, fetchedMilestones, activeLoans] = await Promise.all([
         getSalaryProfileByFY(DEFAULT_USER_ID, fyStr),
         getBucketsByFY(DEFAULT_USER_ID, fyStr),
         getMilestonesForFY(DEFAULT_USER_ID, fyStr),
         listActiveLoans(DEFAULT_USER_ID),
-        getBalanceSheetColumn(DEFAULT_USER_ID, today, "Today", true, null),
       ]);
       setHasSalaryProfile(salary != null && salary.computed_monthly_in_hand > 0);
       setFyBuckets(fetchedBuckets);
       setFyMilestones(fetchedMilestones);
       setActiveLoansCount(activeLoans.length);
       setTotalMonthlyEMI(activeLoans.reduce((s, l) => s + l.emi_amount, 0));
-      setNetWorth(bsCol?.netWorth ?? null);
     } catch {
       // DB not ready
     }
     setSetupChecked(true);
+
+    // Balance sheet is heavy — fetch separately so it never blocks the page render
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const bsCol = await getBalanceSheetColumn(DEFAULT_USER_ID, today, "Today", true, null);
+      setNetWorth(bsCol?.netWorth ?? null);
+    } catch {
+      // Balance sheet not available yet
+    }
   }, [currentFY]);
 
   useFocusEffect(

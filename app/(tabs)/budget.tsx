@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, ProgressBar, StatusPill, WidgetCard, PeriodNavigator, SwipePager } from "@/components/ui";
 import { SpendingSplitPage } from "@/components/budget/SpendingSplitPage";
+import { MonthlySummaryPage } from "@/components/budget/MonthlySummaryPage";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";
 import { StatusColors } from "@/constants/theme";
@@ -65,6 +66,7 @@ export default function BudgetScreen() {
   const quickBudgetInputRef = useRef<TextInput>(null);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [visitedSplit, setVisitedSplit] = useState(false);
+  const [visitedMonthly, setVisitedMonthly] = useState(false);
 
   const WIDGET_STORAGE_KEYS: Record<BudgetWidgetId, string> = {
     summary: "budget_summary",
@@ -359,13 +361,10 @@ export default function BudgetScreen() {
         tabWidth={120}
         activeIndex={activePageIndex}
         onIndexChange={(i) => {
-          if (i === 2) {
-            router.push({ pathname: "/summary/[month]", params: { month } });
-            return;
-          }
           setActivePageIndex(i);
           if (i !== 0) setShowWidgetManager(false);
           if (i === 1) setVisitedSplit(true);
+          if (i === 2) setVisitedMonthly(true);
         }}
       >
         {/* Page 0 — Overview */}
@@ -981,8 +980,10 @@ export default function BudgetScreen() {
           ? <SpendingSplitPage month={month} />
           : <View style={{ flex: 1 }} />}
 
-        {/* Page 2 — Monthly Summary (navigates away on select, placeholder keeps SwipePager child count correct) */}
-        <View style={{ flex: 1 }} />
+        {/* Page 2 — Monthly Summary (lazy: only mount after first visit) */}
+        {visitedMonthly
+          ? <MonthlySummaryPage month={month} />
+          : <View style={{ flex: 1 }} />}
       </SwipePager>
     </ScreenContainer>
   );

@@ -20,6 +20,8 @@ interface Totals {
   opening: number;
   expenses: number;
   credits: number;
+  transfersOut: number;
+  transfersIn: number;
   closing: number;
 }
 
@@ -27,7 +29,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
   const router = useRouter();
   const { accent, colorScheme, colors } = useColorScheme();
   const sc = StatusColors[colorScheme];
-  const [totals, setTotals] = useState<Totals>({ opening: 0, expenses: 0, credits: 0, closing: 0 });
+  const [totals, setTotals] = useState<Totals>({ opening: 0, expenses: 0, credits: 0, transfersOut: 0, transfersIn: 0, closing: 0 });
 
   const load = useCallback(async () => {
     if (accounts.length === 0) return;
@@ -35,13 +37,15 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
       const ids = accounts.map((a) => a.id);
       const month = getCurrentMonth();
       const components = await getComputedBalanceComponents(ids);
-      let opening = 0, expenses = 0, credits = 0, closing = 0;
+      let opening = 0, expenses = 0, credits = 0, transfersOut = 0, transfersIn = 0, closing = 0;
       for (const id of ids) {
         const c = components[id];
         if (c) {
           opening += c.opening;
           expenses += c.expenses;
           credits += c.credits;
+          transfersOut += c.transfersOut;
+          transfersIn += c.transfersIn;
           closing += c.closing;
         } else {
           // Unseeded account — chain forward from ₹0
@@ -52,7 +56,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           closing += unseeded.closing;
         }
       }
-      setTotals({ opening, expenses, credits, closing });
+      setTotals({ opening, expenses, credits, transfersOut, transfersIn, closing });
     } catch {
       // DB not ready
     }
@@ -62,7 +66,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
 
   if (accounts.length === 0) return null;
 
-  const { opening, expenses, credits, closing } = totals;
+  const { opening, expenses, credits, transfersOut, transfersIn, closing } = totals;
 
   return (
     <View>
@@ -113,6 +117,26 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Credits / Refunds</Text>
               <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                 +{formatAmount(credits)}
+              </Text>
+            </View>
+          )}
+
+          {/* Transfers Out */}
+          {transfersOut > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers Out</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                −{formatAmount(transfersOut)}
+              </Text>
+            </View>
+          )}
+
+          {/* Transfers In */}
+          {transfersIn > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers In</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                +{formatAmount(transfersIn)}
               </Text>
             </View>
           )}

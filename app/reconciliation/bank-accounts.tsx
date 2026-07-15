@@ -17,6 +17,7 @@ import {
   computeUnseededBalance,
   getAdjustmentAbsTotalByAccountType,
 } from "@/services/account-balance";
+import { getTransfersOutTotal, getTransfersInTotal } from "@/services/account-transfer";
 import { getCurrentMonth } from "@/services/budget";
 import { consumeBankAccountsPreload } from "@/services/home-preload";
 
@@ -28,6 +29,8 @@ interface AccountSummary {
   opening: number;
   expenses: number;
   credits: number;
+  transfersOut: number;
+  transfersIn: number;
   current: number;
   seeded: boolean;
   /** True if latest SMS-parsed realized expense or any credit post-dates last_balance_date. */
@@ -38,7 +41,9 @@ export default function BankAccountsScreen() {
   const router = useRouter();
   const { accent, colors, colorScheme } = useColorScheme();
   const sc = StatusColors[colorScheme];
-  const [summaries, setSummaries] = useState<AccountSummary[]>(preloaded?.summaries ?? []);
+  const [summaries, setSummaries] = useState<AccountSummary[]>(
+    preloaded?.summaries.map((s) => ({ ...s, transfersOut: 0, transfersIn: 0 })) ?? [],
+  );
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
   const [refreshing, setRefreshing] = useState(false);
@@ -56,19 +61,25 @@ export default function BankAccountsScreen() {
 
       const results: AccountSummary[] = await Promise.all(
         bankAccounts.map(async (account) => {
-          const summary = await getMonthBalanceSummary(account.id, month);
           const latestActivity = staleDates[account.id];
           const autoDetectedStale = !!(
             account.last_balance_date &&
             latestActivity &&
             latestActivity > account.last_balance_date
           );
+          const [summary, tOut, tIn] = await Promise.all([
+            getMonthBalanceSummary(account.id, month),
+            getTransfersOutTotal(account.id, startDate, endDate),
+            getTransfersInTotal(account.id, startDate, endDate),
+          ]);
           if (summary) {
             return {
               account,
               opening: summary.opening_balance,
               expenses: summary.expenses,
               credits: summary.credits,
+              transfersOut: tOut,
+              transfersIn: tIn,
               current: summary.closing_balance,
               seeded: true,
               autoDetectedStale,
@@ -80,6 +91,8 @@ export default function BankAccountsScreen() {
             opening: unseeded.opening,
             expenses: unseeded.expenses,
             credits: unseeded.credits,
+            transfersOut: tOut,
+            transfersIn: tIn,
             current: unseeded.closing,
             seeded: false,
             autoDetectedStale,
@@ -96,6 +109,8 @@ export default function BankAccountsScreen() {
   const totalBalance = summaries.reduce((sum, s) => sum + s.current, 0);
   const totalExpenses = summaries.reduce((sum, s) => sum + s.expenses, 0);
   const totalCredits = summaries.reduce((sum, s) => sum + s.credits, 0);
+  const totalTransfersOut = summaries.reduce((sum, s) => sum + s.transfersOut, 0);
+  const totalTransfersIn = summaries.reduce((sum, s) => sum + s.transfersIn, 0);
 
   return (
     <ScreenContainer padTop={false}>
@@ -136,10 +151,26 @@ export default function BankAccountsScreen() {
             </Text>
           </View>
           {totalCredits > 0 && (
-            <View className="flex-row justify-between">
+            <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Credits this month</Text>
               <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                 {formatAmount(totalCredits)}
+              </Text>
+            </View>
+          )}
+          {totalTransfersOut > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers Out</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                −{formatAmount(totalTransfersOut)}
+              </Text>
+            </View>
+          )}
+          {totalTransfersIn > 0 && (
+            <View className="flex-row justify-between">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers In</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                +{formatAmount(totalTransfersIn)}
               </Text>
             </View>
           )}
@@ -159,7 +190,7 @@ export default function BankAccountsScreen() {
         </Card>
 
         {/* Per-account cards */}
-        {summaries.map(({ account, opening, expenses, credits, current, seeded, autoDetectedStale }) => {
+        {summaries.map(({ account, opening, expenses, credits, transfersOut, transfersIn, current, seeded, autoDetectedStale }) => {
           const smsDelta = account.last_known_balance != null
             ? Math.abs(account.last_known_balance - current)
             : null;
@@ -224,6 +255,22 @@ export default function BankAccountsScreen() {
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Credits / Refunds</Text>
                     <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                       +{formatAmount(credits)}
+                    </Text>
+                  </View>
+                )}
+                {transfersOut > 0 && (
+                  <View className="flex-row justify-between mb-1">
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers Out</Text>
+                    <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                      −{formatAmount(transfersOut)}
+                    </Text>
+                  </View>
+                )}
+                {transfersIn > 0 && (
+                  <View className="flex-row justify-between mb-1">
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers In</Text>
+                    <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                      +{formatAmount(transfersIn)}
                     </Text>
                   </View>
                 )}
