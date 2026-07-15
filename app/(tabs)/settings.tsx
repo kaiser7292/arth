@@ -1,4 +1,4 @@
-import { Card, ContextualHeader, DateInput, LearnMoreChip, ScreenContainer } from "@/components/ui";
+import { Card, DateInput, LearnMoreChip, ScreenContainer } from "@/components/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
@@ -16,11 +16,9 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts } from "@/services/financial-account";
 import {
   getFYStartMonth,
-  getLastBackupAt,
   getThemePreference,
   setFYStartMonth,
   setThemePreference,
-  shouldShowBackupWarning,
 } from "@/services/settings";
 import {
   disableSmsDetection,
@@ -121,7 +119,6 @@ export default function SettingsScreen() {
   const { colorScheme, setColorScheme, colors, accent } = useColorScheme();
   const [startMonth, setStartMonth] = useState(getFYStartMonth);
   const [theme, setTheme] = useState(getThemePreference);
-  const [backupWarning, setBackupWarning] = useState(() => shouldShowBackupWarning());
   const [smsEnabled, setSmsEnabled] = useState(() => isSmsDetectionEnabled());
   const [unrecognisedSmsCount, setUnrecognisedSmsCount] = useState(0);
   const [smsToggling, setSmsToggling] = useState(false);
@@ -169,7 +166,6 @@ export default function SettingsScreen() {
       setSmsScanCreated(0);
       setDupScanResult(null);
       setDupGroupCount(0);
-      setBackupWarning(shouldShowBackupWarning());
     }, []),
   );
 
@@ -415,26 +411,8 @@ export default function SettingsScreen() {
     ? `System (${colorScheme === "dark" ? "Dark" : "Light"})`
     : theme === "dark" ? "Dark" : "Light";
 
-  const backupSubtitle = (() => {
-    const last = getLastBackupAt();
-    if (!last) return "Never backed up";
-    const diffDays = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
-    if (diffDays === 0) return "Backed up today";
-    if (diffDays === 1) return "Last backup yesterday";
-    return `Last backup ${diffDays} days ago`;
-  })();
-
   return (
     <ScreenContainer>
-      <ContextualHeader
-        title="Settings"
-        subtitle={backupSubtitle}
-        badge={backupWarning ? {
-          label: "Back up",
-          variant: "warning",
-          onPress: () => router.push("/settings/backup-restore"),
-        } : undefined}
-      />
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 py-4">
           <Card title="Data Management" className="mb-4">

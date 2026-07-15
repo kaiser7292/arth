@@ -110,10 +110,12 @@ export default function GoalsScreen() {
   }
 
   const fyRange = (() => {
-    const startMonthIdx = getFYStartMonth() - 1;
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const fullMonths = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const startMonthIdx = getFYStartMonth() - 1; // 0-based
     const endMonthIdx = (startMonthIdx + 11) % 12;
-    return `${months[startMonthIdx]} – ${months[endMonthIdx]}`;
+    const startYear = currentFY;
+    const endYear = endMonthIdx < startMonthIdx ? currentFY + 1 : currentFY;
+    return `${fullMonths[startMonthIdx]} ${startYear} – ${fullMonths[endMonthIdx]} ${endYear}`;
   })();
 
   return (

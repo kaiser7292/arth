@@ -105,83 +105,71 @@ export default function BudgetScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [categories, budgets, actuals, total, uncat, uncatCount] = await Promise.all([
+      // Pre-compute FY date ranges synchronously so all queries fire in one batch
+      const fyStartMonth = getFYStartMonth();
+      const fy = getCurrentFY(fyStartMonth);
+      const { start: fyStartDate, end: fyEndDate } = getFYRange(fy, fyStartMonth);
+      const fmt = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const fyStartStr = fmt(fyStartDate);
+      const fyEndStr = fmt(fyEndDate);
+      const rangeStartMonthStr = `${fyStartDate.getFullYear()}-${String(fyStartDate.getMonth() + 1).padStart(2, "0")}`;
+      const [currentY, currentM] = month.split("-").map(Number);
+      const prevMonthDate = new Date(currentY, currentM - 2, 1);
+      const shouldComputeSurplus = prevMonthDate >= fyStartDate;
+      const rangeEndMonthStr = shouldComputeSurplus
+        ? `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}`
+        : "";
+      const surplusStartDate = shouldComputeSurplus ? getMonthDateRange(rangeStartMonthStr).startDate : "";
+      const surplusEndDate = shouldComputeSurplus && rangeEndMonthStr ? getMonthDateRange(rangeEndMonthStr).endDate : "";
+
+      // Single parallel round-trip for all data
+      const [
+        categories, budgets, actuals, total, uncat, uncatCount,
+        forecast, plan, ytd, budgetTotals, spendTotals,
+      ] = await Promise.all([
         getCategories(DEFAULT_USER_ID),
         getBudgetsForMonth(DEFAULT_USER_ID, month),
         getExpenseTotalsByCategory(DEFAULT_USER_ID, startDate, endDate),
         getExpenseTotal(DEFAULT_USER_ID, startDate, endDate),
         getUncategorizedTotal(DEFAULT_USER_ID, startDate, endDate),
         getUncategorizedCount(DEFAULT_USER_ID),
+        getAnalyticsForecast(DEFAULT_USER_ID, month).catch(() => null),
+        getYearlyPlanByFY(DEFAULT_USER_ID, String(fy)).catch(() => null),
+        getExpenseTotal(DEFAULT_USER_ID, fyStartStr, fyEndStr).catch(() => 0),
+        shouldComputeSurplus
+          ? getMonthlyBudgetTotals(DEFAULT_USER_ID, rangeStartMonthStr, rangeEndMonthStr).catch(() => new Map<string, number>())
+          : Promise.resolve(new Map<string, number>()),
+        shouldComputeSurplus
+          ? getMonthlyExpenseTotals(DEFAULT_USER_ID, surplusStartDate, surplusEndDate).catch(() => new Map<string, number>())
+          : Promise.resolve(new Map<string, number>()),
       ]);
 
+      // Compute derived values in-memory
       const budgetMap = new Map(budgets.map((b) => [b.category_id, b.amount]));
       const actualMap = new Map(actuals.map((a) => [a.category_id, a.total]));
-
       const merged: BudgetDashboardRow[] = categories.map((cat) => ({
         category: cat,
         budget: budgetMap.get(cat.id) ?? 0,
         spent: actualMap.get(cat.id) ?? 0,
       }));
+      let surplus = 0;
+      if (shouldComputeSurplus) {
+        for (const [mStr, mBudgetTotal] of budgetTotals.entries()) {
+          if (mBudgetTotal > 0) surplus += mBudgetTotal - (spendTotals.get(mStr) ?? 0);
+        }
+      }
 
+      // Single batch of state updates → single re-render
       setRows(merged);
       setTotalBudget(budgets.reduce((sum, b) => sum + b.amount, 0));
       setTotalSpent(total);
       setUncategorized(uncat);
       setUncategorizedCount(uncatCount);
-
-      // Load V2 forecast for current month
-      try {
-        const forecast = await getAnalyticsForecast(DEFAULT_USER_ID, month);
-        setV2Forecast(forecast);
-      } catch {
-        setV2Forecast(null);
-      }
-
-      // Compute rolling surplus: sum of (budget - actual) for all prior months in FY
-      try {
-        const startMonth = getFYStartMonth();
-        const fy = getCurrentFY(startMonth);
-        const plan = await getYearlyPlanByFY(DEFAULT_USER_ID, String(fy));
-        setYearlyPlan(plan);
-
-        if (plan) {
-          const { start, end } = getFYRange(fy, startMonth);
-          const fyStart = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
-          const fyEnd = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
-          const ytd = await getExpenseTotal(DEFAULT_USER_ID, fyStart, fyEnd);
-          setAnnualSpentYTD(ytd);
-        }
-
-        // Calculate rolling surplus from FY start to previous month.
-        // Batched: one aggregate query for budget totals + one for expense
-        // totals across the whole range, then an in-memory month-by-month
-        // diff. Replaces the v15.8.0 loop that fired 2×N serial queries.
-        const { start: fyStartDate } = getFYRange(fy, startMonth);
-        const [currentY, currentM] = month.split("-").map(Number);
-        const rangeStartMonth = `${fyStartDate.getFullYear()}-${String(fyStartDate.getMonth() + 1).padStart(2, "0")}`;
-        // Previous month (exclusive end of range)
-        const prevMonthDate = new Date(currentY, currentM - 2, 1);
-        if (prevMonthDate >= fyStartDate) {
-          const rangeEndMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}`;
-          const { startDate: rangeStartDate } = getMonthDateRange(rangeStartMonth);
-          const { endDate: rangeEndDate } = getMonthDateRange(rangeEndMonth);
-          const [budgetTotals, spendTotals] = await Promise.all([
-            getMonthlyBudgetTotals(DEFAULT_USER_ID, rangeStartMonth, rangeEndMonth),
-            getMonthlyExpenseTotals(DEFAULT_USER_ID, rangeStartDate, rangeEndDate),
-          ]);
-          let surplus = 0;
-          for (const [mStr, mBudgetTotal] of budgetTotals.entries()) {
-            if (mBudgetTotal > 0) {
-              surplus += mBudgetTotal - (spendTotals.get(mStr) ?? 0);
-            }
-          }
-          setRollingSurplus(surplus);
-        } else {
-          setRollingSurplus(0);
-        }
-      } catch {
-        // Yearly plan not set up yet — that's fine
-      }
+      setV2Forecast(forecast);
+      setYearlyPlan(plan);
+      setAnnualSpentYTD(plan ? ytd : 0);
+      setRollingSurplus(surplus);
     } catch {
       // Database not ready
     }
@@ -264,10 +252,8 @@ export default function BudgetScreen() {
     <ScreenContainer>
       <ContextualHeader
         title="Budget"
-        subtitle={monthLabel}
-        badge={totalBudget > 0 ? { label: budgetBadgeLabel, variant: budgetBadgeVariant } : undefined}
         rightActions={activePageIndex === 0 ? [{
-          icon: "options-outline",
+          icon: "apps-outline",
           onPress: () => setShowWidgetManager((v) => !v),
           color: showWidgetManager ? colors.blue : "#6B7280",
         }] : []}
