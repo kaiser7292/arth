@@ -108,11 +108,22 @@ export function computeSplitAmounts(
       otherPersonShare = 0;
       break;
     case "exact":
-      otherPersonShare = config.exactAmount ?? 0;
+      // When paidBy==="me": "How much do they owe?" → exactAmount is OTHER person's share
+      // When paidBy!=="me": "How much do you owe?"  → exactAmount is MY share
+      if (config.paidBy === "me") {
+        otherPersonShare = config.exactAmount ?? 0;
+      } else {
+        otherPersonShare = Math.round((totalAmount - (config.exactAmount ?? 0)) * 100) / 100;
+      }
       break;
     case "percentage":
-      otherPersonShare =
-        Math.round(totalAmount * ((config.percentage ?? 0) / 100) * 100) / 100;
+      // When paidBy==="me": "Their share %" → percentage is OTHER person's share
+      // When paidBy!=="me": "Your share %"  → percentage is MY share
+      if (config.paidBy === "me") {
+        otherPersonShare = Math.round(totalAmount * ((config.percentage ?? 0) / 100) * 100) / 100;
+      } else {
+        otherPersonShare = Math.round(totalAmount * ((100 - (config.percentage ?? 0)) / 100) * 100) / 100;
+      }
       break;
   }
 
