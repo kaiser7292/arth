@@ -135,12 +135,22 @@ npx jest --testPathPattern=X    # Specific test
 npx tsc --noEmit                # Type check
 ```
 
-### Build (macOS)
-```bash
-./bin/build-apk.sh              # Standard build
-./bin/build-apk.sh --clean      # After branch switch
+### Build (Windows — the actual machine this runs on)
+```powershell
+# 1. Stop any running Gradle daemons
+Get-Process -Name "java" -ErrorAction SilentlyContinue | Stop-Process -Force
+
+# 2. Prebuild (applies config plugins — do NOT use --clean unless deps changed)
+npx expo prebuild --platform android
+
+# 3. Build APK
+cd android; .\gradlew assembleRelease
+
+# 4. Release (from repo root)
+gh release create vX.Y.Z "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk#Arth-vX.Y.Z.apk" --title "vX.Y.Z" --notes "..."
 ```
-GitHub Actions auto-builds on push to staging/main.
+Output APK is `app-arm64-v8a-release.apk` (~120 MB). See `.context/BUILD_AND_RELEASE.md` for full details.
+GitHub Actions auto-builds on push to staging/main (not master).
 
 ### Git Convention
 ```
@@ -151,7 +161,7 @@ chore(scope): description
 ```
 
 ### Working Reference Versions
-The latest GitHub release (currently v1.1.0 / v18.0.0) ships an APK that the user trusts as a known-good baseline. When a regression appears, diffing against the working tag is faster than guessing — `git diff <tag>..HEAD -- <path>`.
+The latest GitHub release (currently v2.11.3) ships an APK that the user trusts as a known-good baseline. When a regression appears, diffing against the working tag is faster than guessing — `git diff <tag>..HEAD -- <path>`.
 
 ---
 
@@ -310,6 +320,33 @@ Every write operation calls `bumpDataVersion()` (an MMKV counter). `useDataRefre
 ### Preload Pattern
 `services/home-preload.ts` runs expensive queries once on app start, caches results. Individual screens consume via `consumeXxxPreload()`. Each consume clears its slot — single-use, no stale data on re-entry.
 
+Call `consumeXxxPreload()` at **module level** (outside the component function) so it fires once when the module loads, not on every render. Initialize all state from the preloaded value so the screen renders immediately without a loading spinner:
+```ts
+const preloaded = consumeGoalsPreload();
+
+export default function GoalsScreen() {
+  const [fyBuckets, setFyBuckets] = useState(preloaded?.fyBuckets ?? []);
+  const [setupChecked, setSetupChecked] = useState(preloaded != null);
+  // ...
+}
+```
+The `GoalsPreloadData` interface includes: `cockpit`, `fyMilestones`, `fyBuckets`, `hasSalaryProfile`, `activeLoansCount`, `totalMonthlyEMI`, `fy`.
+
+### SwipePager Centering
+`components/ui/SwipePager.tsx` centres tabs when they fit within the strip width. The animated underline uses `centerOffset` added to each tab's `translateX` so it stays under the correct centred tab:
+- Measure the **ScrollView's own width** via `onLayout` on the ScrollView (not the outer row, which includes any trailing element)
+- `centerOffset = max(0, (scrollViewWidth - pages.length * tabWidth) / 2)`
+- Underline `outputRange` = `pages.map((_, i) => centerOffset + i * tabWidth)`
+- `contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}` centres tabs; `flexGrow: 1` makes the content container fill the ScrollView width so the absolute underline is in the right coordinate space
+
+### Budget Tab — Inline Swipe Pages
+The Budget tab (`app/(tabs)/budget.tsx`) uses `SwipePager` with three inline pages:
+1. **Overview** — category spend list
+2. **Spending Split** — pie chart breakdown
+3. **Monthly Summary** — inline `MonthlySummaryPage` component (NOT `router.push`)
+
+`MonthlySummaryPage` (`components/budget/MonthlySummaryPage.tsx`) is the inline version of `app/summary/[month].tsx`. It receives `{ month: string }` and uses `useDataRefresh` for reactivity. Lazy-mounted via `visitedMonthly` state flag — placeholder `<View style={{ flex: 1 }} />` until first visit.
+
 ### Account Types
 `bank` (alias for `savings`), `credit_card`, `wallet`, `demat`, `loan`, `pension`, `savings`
 
@@ -322,6 +359,57 @@ Creating an expense with split data writes:
 3. A `hisaab_entries` row (the family-ledger entry, with `linked_expense_id`)
 
 All three must travel together through backup/restore. The post-restore repair step uses `expense_splits` as the canonical bridge to recover the hisaab → expense link if `linked_expense_id` was lost.
+
+---
+
+## Goals Screen Architecture (`app/(tabs)/goals.tsx`)
+
+Three sections: **Plan**, **Track**, **Analyse**. Driven entirely by preloaded + refreshed data — no `useCockpitData` hook dependency.
+
+### Plan section (2-col grid)
+- **Investment Buckets** card → `/goals/investment-buckets` — shows bucket count, contributed vs target, progress bar
+- **Life Milestones** card → `/goals/milestones` — shows milestone count, next upcoming, progress bar
+
+### Track section (list)
+- **Loans & Debt** → `/goals/loans` — active loan count + monthly EMI
+- **Balance Sheet** → `/goals/balance-sheet` — net worth (loaded async after page is visible)
+
+### Analyse section (list)
+- **Year-over-Year** → `/goals/yoy-comparison`
+- **Income Calculator** → `/goals/salary-calculator`
+
+### Financial Health card (top)
+Shows savings rate + saved-this-FY. Guards:
+- "of X% target" subtitle: only shown when `targetRatePct > 0`
+- Progress bar: only shown when `targetSavings > 0`
+- Advisory strip: only shown when `cockpitData.advisories.length > 0`
+
+### Loading strategy
+- `setupChecked` starts as `true` when preloaded data is available → no spinner on first open
+- Balance sheet (`getBalanceSheetColumn`) is fetched **after** `setSetupChecked(true)` in a separate try/catch — it's heavy and must never block the page render
+- `cockpit` is fetched inline via `useDataRefresh` alongside all other data (NOT via `useCockpitData` hook)
+
+---
+
+## APK Build Infrastructure
+
+### Config plugins (`plugins/`)
+| Plugin | File | Effect |
+|--------|------|--------|
+| `withArmOnly` | `plugins/withArmOnly.js` | ABI splits → arm64-v8a only APK (~120 MB vs ~210 MB) |
+| `withAapt2Fix` | `plugins/withAapt2Fix.js` | Pins AAPT2 binary to prevent Windows AGP 8.11+ crash |
+| `withDisableBackup` | `plugins/withDisableBackup.js` | Disables Android cloud backup |
+| `withLargeHeap` | `plugins/withLargeHeap.js` | `android:largeHeap="true"` |
+| `withNotificationListener` | `plugins/withNotificationListener.js` | Notification listener service |
+
+All registered in `app.json` under `expo.plugins`. Applied automatically on every `expo prebuild`.
+
+### APK size reality
+- `llama.rn` (AI assistant) contributes ~60 MB of arm64 native libs (6 CPU-variant `.so` files for runtime dispatch). Cannot be reduced without removing the AI feature.
+- The remaining ~60 MB is React Native core (`libreactnative.so`, Hermes, etc.) + JS bundle + assets.
+
+### Bank accounts — transfers display
+`BankBalanceSummary` (home hero card) and `bank-accounts.tsx` both show Transfers Out / Transfers In rows. These come from `getTransfersOutTotal` / `getTransfersInTotal` (month-range aware, in `services/account-transfer.ts`). `getComputedBalanceComponents` already returns `transfersOut`/`transfersIn` for the current month in `BankBalanceSummary`.
 
 ---
 
@@ -347,3 +435,7 @@ All three must travel together through backup/restore. The post-restore repair s
 4. **Don't add minMonth/maxMonth to ledger PeriodNavigators just because they support it.** Several screens are intentionally unbounded; user wants free navigation.
 5. **Don't use optimistic local state filtering after bulk approve/reject.** Use `loadItems()` for a full reload — duplicates and uncategorized counts depend on it.
 6. **Don't assume a column exists on `expenses` because it exists on `account_transfers`.** They're sibling tables — check the migration that added it.
+7. **Don't use `ndk { abiFilters }` and `splits { abi }` together.** They conflict in AGP 8+ and will crash the build. Use `splits` (via `withArmOnly` config plugin) — it subsumes `abiFilters`. Never add `ndk.abiFilters` back to `build.gradle`.
+8. **Don't edit `android/app/build.gradle` or `android/gradle.properties` directly.** Both files are regenerated by `expo prebuild`. All permanent build customisations must go in a config plugin in `plugins/`.
+9. **Don't call `consumeXxxPreload()` inside a component function.** It must be at module level — calling it inside the component runs it on every render and always gets `null` after the first consume.
+10. **Don't show UI elements that depend on unset targets.** Guard with `targetValue > 0` before rendering progress bars, "of X target" subtitles, etc. (e.g. Financial Health card in Goals).
