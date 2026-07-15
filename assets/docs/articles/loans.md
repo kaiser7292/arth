@@ -122,6 +122,8 @@ When an EMI payment SMS arrives ("Rs 22,317 debited from A/C XXX for EMI …"), 
 
 Active loans feed the **Yearly Plan → Debt Servicing** total - Arth sums every scheduled EMI falling in the FY plus any recorded prepayments within the FY window. This updates automatically when you record a prepayment.
 
+The **Reality Check card** in Yearly Plan includes a **Debt Servicing** section showing how much you have actually paid in EMIs + prepayments year-to-date versus the prorated expected amount, along with a year-end projection. A "behind" status here typically means a scheduled EMI hasn't been marked paid yet — check the amortization schedule on the loan detail screen.
+
 The **YoY Comparison** view has a dedicated **Loans & Debts** category. Row direction is "lower is better" (shrinking outflow year-over-year = good), but the plan-vs-actual gap inverts: paying MORE than planned is treated as GOOD (faster debt payoff).
 
 ## Editing and deleting

@@ -73,7 +73,9 @@ The transfer is deleted and the original expense/credit is restored (no longer m
 ## Where transfers show up
 
 - **Transfers tab** - all transfers listed by date, separate from spending
-- **Account ledgers** - appears as debit in source account, credit in destination account
+- **Account ledgers** - appears as debit in source account, credit in destination account; both sides show the counter-account name (e.g. "From Savings" or "To Credit Card")
+- **Wallet screens** - the wallet ledger and the Wallets overview both show Transfers In and Transfers Out rows so your wallet balance reconciles correctly
+- **Home tab → account summary rows** - Transfers Out and Transfers In are shown alongside the month's expenses and credits for each account
 - **Budget / Insights** - excluded from spending totals
 - **Transactions tab** - filtered when "Transfers" nature is selected
 
