@@ -332,13 +332,6 @@ export default function GoalsScreen() {
 ```
 The `GoalsPreloadData` interface includes: `cockpit`, `fyMilestones`, `fyBuckets`, `hasSalaryProfile`, `activeLoansCount`, `totalMonthlyEMI`, `fy`.
 
-### SwipePager Centering
-`components/ui/SwipePager.tsx` centres tabs when they fit within the strip width. The animated underline uses `centerOffset` added to each tab's `translateX` so it stays under the correct centred tab:
-- Measure the **ScrollView's own width** via `onLayout` on the ScrollView (not the outer row, which includes any trailing element)
-- `centerOffset = max(0, (scrollViewWidth - pages.length * tabWidth) / 2)`
-- Underline `outputRange` = `pages.map((_, i) => centerOffset + i * tabWidth)`
-- `contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}` centres tabs; `flexGrow: 1` makes the content container fill the ScrollView width so the absolute underline is in the right coordinate space
-
 ### Budget Tab — Inline Swipe Pages
 The Budget tab (`app/(tabs)/budget.tsx`) uses `SwipePager` with three inline pages:
 1. **Overview** — category spend list
