@@ -281,6 +281,12 @@ export default function PeriodComparisonScreen() {
                   ({data.delta.countDelta > 0 ? "+" : ""}{data.delta.countDelta} txns)
                 </Text>
               </View>
+              <View className="flex-row items-center justify-center mt-2">
+                <Ionicons name="information-circle-outline" size={11} color={colors.textSecondary} />
+                <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary ml-1">
+                  Excludes transfers, investments & loan payments · matches Budget tab
+                </Text>
+              </View>
             </Card>
 
             {/* Category Comparison */}

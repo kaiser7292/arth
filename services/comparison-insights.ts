@@ -10,7 +10,8 @@ import { round2 } from "@/utils/math";
 import { getLastDayOfMonth } from "@/utils/date";
 import { effectiveAmountSql } from "./expense-effective-amount";
 
-const NOT_INVESTMENT_LINKED = `
+const NOT_BUDGET_EXCLUDED = `
+  AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
   AND NOT EXISTS (
     SELECT 1 FROM expense_investment_links l
     WHERE l.expense_id = e.id
@@ -20,7 +21,8 @@ const NOT_INVESTMENT_LINKED = `
     WHERE ll.expense_id = e.id
   )`;
 
-const NOT_INVESTMENT_LINKED_BARE = `
+const NOT_BUDGET_EXCLUDED_BARE = `
+  AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
   AND NOT EXISTS (
     SELECT 1 FROM expense_investment_links l
     WHERE l.expense_id = expenses.id
@@ -129,7 +131,7 @@ async function queryRangeSummary(
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
        AND date >= ? AND date <= ?
-       ${NOT_INVESTMENT_LINKED_BARE};`,
+       ${NOT_BUDGET_EXCLUDED_BARE};`,
     userId,
     startDate,
     endDate,
@@ -144,7 +146,7 @@ async function queryRangeSummary(
      JOIN categories c ON e.category_id = c.id
      WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND e.deleted_at IS NULL
        AND e.date >= ? AND e.date <= ?
-       ${NOT_INVESTMENT_LINKED}
+       ${NOT_BUDGET_EXCLUDED}
      GROUP BY c.id
      ORDER BY total DESC LIMIT 1;`,
     userId,
@@ -158,7 +160,7 @@ async function queryRangeSummary(
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
        AND merchant_name IS NOT NULL
        AND date >= ? AND date <= ?
-       ${NOT_INVESTMENT_LINKED_BARE}
+       ${NOT_BUDGET_EXCLUDED_BARE}
      GROUP BY merchant_name
      ORDER BY total DESC LIMIT 1;`,
     userId,
@@ -197,7 +199,7 @@ async function queryCategoryBreakdown(
      JOIN categories c ON e.category_id = c.id
      WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND e.deleted_at IS NULL
        AND ((e.date >= ? AND e.date <= ?) OR (e.date >= ? AND e.date <= ?))
-       ${NOT_INVESTMENT_LINKED}
+       ${NOT_BUDGET_EXCLUDED}
      GROUP BY c.id, range_tag;`,
     r1Start, r1End,
     userId,
@@ -245,7 +247,7 @@ async function queryMerchantBreakdown(
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
        AND merchant_name IS NOT NULL
        AND ((date >= ? AND date <= ?) OR (date >= ? AND date <= ?))
-       ${NOT_INVESTMENT_LINKED_BARE}
+       ${NOT_BUDGET_EXCLUDED_BARE}
      GROUP BY merchant_name, range_tag;`,
     r1Start, r1End,
     userId,
@@ -296,7 +298,7 @@ async function queryPaymentModeBreakdown(
      LEFT JOIN payment_modes pm ON e.payment_mode_id = pm.id
      WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND e.deleted_at IS NULL
        AND ((e.date >= ? AND e.date <= ?) OR (e.date >= ? AND e.date <= ?))
-       ${NOT_INVESTMENT_LINKED}
+       ${NOT_BUDGET_EXCLUDED}
      GROUP BY e.payment_mode_id, range_tag;`,
     r1Start, r1End,
     userId,
@@ -338,7 +340,7 @@ export async function getComparisonExpenseIds(
   filter: ComparisonDrillFilter,
 ): Promise<string[]> {
   const db = getDatabase();
-  let where = `user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ? AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)`;
+  let where = `user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0) AND date >= ? AND date <= ? AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)`;
   const params: string[] = [userId, startDate, endDate];
 
   if (filter.type === "category") {
