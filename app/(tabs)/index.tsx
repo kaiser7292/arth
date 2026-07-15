@@ -317,8 +317,7 @@ export default function HomeScreen() {
   return (
     <ScreenContainer>
       <ContextualHeader
-        title="Arth"
-        titleSuffix="अर्थ"
+        title="Arth · अर्थ"
         rightActions={homeHeaderActions}
       />
       <SwipePager

@@ -18,13 +18,12 @@ export interface ContextualHeaderBadge {
 
 interface Props {
   title: string;
-  titleSuffix?: string;
   subtitle?: string;
   badge?: ContextualHeaderBadge;
   rightActions?: ContextualHeaderAction[];
 }
 
-export function ContextualHeader({ title, titleSuffix, subtitle, badge, rightActions }: Props) {
+export function ContextualHeader({ title, subtitle, badge, rightActions }: Props) {
   const { colorScheme, colors } = useColorScheme();
 
   const badgeColors = badge
@@ -42,22 +41,12 @@ export function ContextualHeader({ title, titleSuffix, subtitle, badge, rightAct
     >
       {/* Left: title + optional subtitle */}
       <View className="flex-1">
-        <View className="flex-row items-baseline gap-x-2">
-          <Text
-            className="text-base font-semibold text-text-primary dark:text-text-dark-primary"
-            numberOfLines={1}
-          >
-            {title}
-          </Text>
-          {titleSuffix ? (
-            <Text
-              className="text-sm text-text-secondary dark:text-text-dark-secondary"
-              numberOfLines={1}
-            >
-              {titleSuffix}
-            </Text>
-          ) : null}
-        </View>
+        <Text
+          className="text-base font-semibold text-text-primary dark:text-text-dark-primary"
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
         {subtitle ? (
           <Text
             className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"

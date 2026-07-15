@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card } from "@/components/ui";
+import { ScreenContainer, Card, LoadingState } from "@/components/ui";
 import { getYearlyPlans, getBucketsByFY } from "@/services/yearly-plan";
 import { getExpenseTotal } from "@/services/expense";
 import { getSavingsSnapshot } from "@/services/savings-tracker";
@@ -187,12 +187,7 @@ export default function YoYComparisonScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         {loading ? (
-          <View className="flex-1 items-center justify-center py-20">
-            <ActivityIndicator size="large" color={colors.tint} />
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-3">
-              Loading comparison…
-            </Text>
-          </View>
+          <LoadingState icon="git-compare-outline" message="Loading comparison…" />
         ) : noData ? (
           <View className="flex-1 items-center justify-center py-20">
             <Ionicons name="git-compare-outline" size={48} color={colors.textSecondary} />
