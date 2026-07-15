@@ -1,4 +1,6 @@
 export { AlertBanner } from "./AlertBanner";
+export { ContextualHeader } from "./ContextualHeader";
+export type { ContextualHeaderAction, ContextualHeaderBadge } from "./ContextualHeader";
 export { ConfirmSheet } from "./ConfirmSheet";
 export { Button } from "./Button";
 export { CalendarModal } from "./CalendarModal";

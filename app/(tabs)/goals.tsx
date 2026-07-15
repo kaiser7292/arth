@@ -1,4 +1,4 @@
-import { Card, LoadingState, ScreenContainer } from "@/components/ui";
+import { Card, ContextualHeader, LoadingState, ScreenContainer } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -109,8 +109,19 @@ export default function GoalsScreen() {
     );
   }
 
+  const fyRange = (() => {
+    const startMonthIdx = getFYStartMonth() - 1;
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const endMonthIdx = (startMonthIdx + 11) % 12;
+    return `${months[startMonthIdx]} – ${months[endMonthIdx]}`;
+  })();
+
   return (
     <ScreenContainer>
+      <ContextualHeader
+        title="Goals"
+        subtitle={`${fyLabel} · ${fyRange}`}
+      />
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

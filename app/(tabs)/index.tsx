@@ -17,7 +17,7 @@ import { LoanSummaryCard } from "@/components/home/LoanSummaryCard";
 import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
 import { PensionSummaryCard } from "@/components/home/PensionSummaryCard";
 import { WalletSummary } from "@/components/home/WalletSummary";
-import { Card, ProgressBar, ScreenContainer, StatusPill, SwipePager } from "@/components/ui";
+import { Card, ContextualHeader, ProgressBar, ScreenContainer, StatusPill, SwipePager } from "@/components/ui";
 import type { SwipePagerPage } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
@@ -300,26 +300,31 @@ export default function HomeScreen() {
     overallStatus === "under" ? "On Track" :
     overallStatus === "warning" ? "Watch Spending" : "Over Budget";
 
+  const smsScanIcon: "sync-outline" | "scan-outline" = smsScanning ? "sync-outline" : "scan-outline";
+  const homeHeaderActions = [
+    ...(isArthAIEnabled() ? [{
+      icon: "sparkles-outline" as const,
+      onPress: () => router.push("/ai-chat" as never),
+      color: colors.tint,
+    }] : []),
+    ...(isSmsDetectionEnabled() ? [{
+      icon: smsScanIcon,
+      onPress: handleHomeScan,
+      disabled: smsScanning,
+    }] : []),
+  ];
+
   return (
     <ScreenContainer>
+      <ContextualHeader
+        title="Arth"
+        titleSuffix="अर्थ"
+        rightActions={homeHeaderActions}
+      />
       <SwipePager
         pages={HOME_TABS}
         activeIndex={activeHomeIndex}
         onIndexChange={handleHomeIndexChange}
-        trailing={
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-            {isArthAIEnabled() && (
-              <Pressable onPress={() => router.push("/ai-chat" as never)} hitSlop={8} accessibilityLabel="Ask Arth AI">
-                <Ionicons name="sparkles-outline" size={20} color={colors.tint} />
-              </Pressable>
-            )}
-            {isSmsDetectionEnabled() && (
-              <Pressable onPress={handleHomeScan} disabled={smsScanning} hitSlop={8} accessibilityLabel="Scan SMS">
-                <Ionicons name={smsScanning ? "sync-outline" : "scan-outline"} size={20} color={colors.tabIconDefault} />
-              </Pressable>
-            )}
-          </View>
-        }
       >
         <ScrollView
           className="flex-1"

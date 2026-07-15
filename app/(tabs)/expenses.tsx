@@ -4,7 +4,7 @@ import { parseNLQuery } from "@/utils/nl-search";
 import { View, Text, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, FABMenu, DateInput, EmptyState, Input, Card, SwipePager } from "@/components/ui";
+import { ContextualHeader, ScreenContainer, FABMenu, DateInput, EmptyState, Input, Card, SwipePager } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -20,6 +20,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getExpensesPaginated,
   getFilteredExpenseSummary,
+  getPendingExpenseCount,
   getPreviousPeriodTotal,
   deleteExpense,
   deleteSplitExpense,
@@ -86,6 +87,7 @@ export default function ExpensesScreen() {
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
   const [refundedMap, setRefundedMap] = useState<Map<string, number>>(new Map());
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
@@ -292,13 +294,14 @@ export default function ExpensesScreen() {
   useEffect(() => {
     async function loadReferenceData() {
       try {
-        const [cats, pms, accts, tags, merchants, rules] = await Promise.all([
+        const [cats, pms, accts, tags, merchants, rules, pending] = await Promise.all([
           getCategories(DEFAULT_USER_ID),
           getPaymentModes(DEFAULT_USER_ID),
           getActiveAccounts(DEFAULT_USER_ID),
           getTags(DEFAULT_USER_ID),
           getDistinctMerchantNames(DEFAULT_USER_ID),
           listRules(),
+          getPendingExpenseCount(DEFAULT_USER_ID),
         ]);
         setCategories(cats);
         setPaymentModes(pms);
@@ -306,6 +309,7 @@ export default function ExpensesScreen() {
         setAllTags(tags);
         setAllMerchantNames(merchants);
         setAllRules(rules);
+        setPendingCount(pending);
       } catch {
         // Database not ready
       }
@@ -317,6 +321,7 @@ export default function ExpensesScreen() {
   useFocusEffect(
     useCallback(() => {
       loadExpenses(true);
+      getPendingExpenseCount(DEFAULT_USER_ID).then(setPendingCount).catch(() => {});
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterNature, summaryGroupBy]),
   );
@@ -748,44 +753,117 @@ export default function ExpensesScreen() {
     [accountMap, colors, accent, alert, loadExpenses, router],
   );
 
+  // Group expenses by date for display. Each entry is either a date header
+  // sentinel or an expense item. useMemo keeps it O(n) and only reruns when
+  // the expenses array reference changes.
+  type DateGroupRow =
+    | { _type: "header"; date: string; label: string }
+    | { _type: "item"; expense: Expense };
+
+  const groupedExpenses = useMemo<DateGroupRow[]>(() => {
+    if (expenses.length === 0) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+    const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const currentYear = today.getFullYear();
+
+    function dateLabel(dateStr: string): string {
+      const d = new Date(dateStr + "T00:00:00");
+      if (d.getTime() === today.getTime()) {
+        return `Today · ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+      }
+      if (d.getTime() === yesterday.getTime()) {
+        return `Yesterday · ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+      }
+      if (d >= sevenDaysAgo) {
+        return `${WEEKDAYS[d.getDay()]} · ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+      }
+      if (d.getFullYear() === currentYear) {
+        return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+      }
+      return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    const rows: DateGroupRow[] = [];
+    let lastDate = "";
+    for (const expense of expenses) {
+      const expDate = expense.date?.slice(0, 10) ?? "";
+      if (expDate !== lastDate) {
+        rows.push({ _type: "header", date: expDate, label: dateLabel(expDate) });
+        lastDate = expDate;
+      }
+      rows.push({ _type: "item", expense });
+    }
+    return rows;
+  }, [expenses]);
+
   const renderExpenseItem = useCallback(
-    ({ item }: { item: Expense }) => (
-      <View className="flex-row items-center">
-        {bulkMode && (
-          <Pressable
-            onPress={() => handleItemPress(item.id)}
-            className="pl-4 pr-1 py-3"
-          >
-            <View
-              className="w-5 h-5 rounded items-center justify-center"
-              style={{
-                backgroundColor: selectedExpenseIds.has(item.id) ? accent[500] : "transparent",
-                borderWidth: selectedExpenseIds.has(item.id) ? 0 : 1.5,
-                borderColor: selectedExpenseIds.has(item.id) ? accent[500] : colors.border,
-              }}
+    ({ item }: { item: DateGroupRow }) => {
+      if (item._type === "header") {
+        return (
+          <View className="px-4 pt-4 pb-1.5">
+            <Text
+              className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary"
+              style={{ letterSpacing: 0.6 }}
             >
-              {selectedExpenseIds.has(item.id) && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
-            </View>
-          </Pressable>
-        )}
-        <View className="flex-1">
-          <ExpenseListRow
-            item={item}
-            categoryMap={categoryMap}
-            paymentModeMap={paymentModeMap}
-            accountMap={accountMap}
-            refundedMap={refundedMap}
-            onPress={handleItemPress}
-            onLongPress={handleLongPress}
-          />
+              {item.label}
+            </Text>
+          </View>
+        );
+      }
+      const expense = item.expense;
+      return (
+        <View className="flex-row items-center">
+          {bulkMode && (
+            <Pressable
+              onPress={() => handleItemPress(expense.id)}
+              className="pl-4 pr-1 py-3"
+            >
+              <View
+                className="w-5 h-5 rounded items-center justify-center"
+                style={{
+                  backgroundColor: selectedExpenseIds.has(expense.id) ? accent[500] : "transparent",
+                  borderWidth: selectedExpenseIds.has(expense.id) ? 0 : 1.5,
+                  borderColor: selectedExpenseIds.has(expense.id) ? accent[500] : colors.border,
+                }}
+              >
+                {selectedExpenseIds.has(expense.id) && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
+              </View>
+            </Pressable>
+          )}
+          <View className="flex-1">
+            <ExpenseListRow
+              item={expense}
+              categoryMap={categoryMap}
+              paymentModeMap={paymentModeMap}
+              accountMap={accountMap}
+              refundedMap={refundedMap}
+              onPress={handleItemPress}
+              onLongPress={handleLongPress}
+            />
+          </View>
         </View>
-      </View>
-    ),
+      );
+    },
     [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, accent, colors],
   );
 
   return (
     <ScreenContainer>
+      <ContextualHeader
+        title="Transactions"
+        subtitle={pendingCount > 0 ? `${pendingCount} pending review` : undefined}
+        badge={pendingCount > 0 ? {
+          label: `${pendingCount} pending`,
+          variant: "warning",
+          onPress: () => router.push("/expense/review-queue"),
+        } : undefined}
+      />
       {/* Search bar */}
       <View className="px-4 pt-3 pb-2">
         <View className="flex-row items-center rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt px-3 py-2">
@@ -1132,8 +1210,8 @@ export default function ExpensesScreen() {
                 />
               ) : (
                 <FlatList
-                  data={expenses}
-                  keyExtractor={(item) => item.id}
+                  data={groupedExpenses}
+                  keyExtractor={(item) => item._type === "header" ? `header-${item.date}` : item.expense.id}
                   renderItem={renderExpenseItem}
                   onEndReached={handleLoadMore}
                   onEndReachedThreshold={0.3}

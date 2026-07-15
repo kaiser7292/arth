@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { View, Text, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, ProgressBar, StatusPill, WidgetCard, PeriodNavigator, SwipePager } from "@/components/ui";
+import { ContextualHeader, ScreenContainer, ProgressBar, StatusPill, WidgetCard, PeriodNavigator, SwipePager } from "@/components/ui";
 import { SpendingSplitPage } from "@/components/budget/SpendingSplitPage";
 import { MonthlySummaryPage } from "@/components/budget/MonthlySummaryPage";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -257,30 +257,26 @@ export default function BudgetScreen() {
   const overallPct = totalBudget > 0 ? totalSpent / totalBudget : 0;
   const perDayRemaining = getPerDayRemaining(totalBudget, totalSpent, daysRemaining);
 
+  const budgetBadgeVariant = overallStatus === "over" ? "danger" : overallStatus === "warning" ? "warning" : "success";
+  const budgetBadgeLabel = overallStatus === "over" ? "Over" : overallStatus === "warning" ? "Watch" : "On track";
+
   return (
     <ScreenContainer>
-      {/* Month selector + widget manager toggle (toggle hidden on Spending Split page) */}
+      <ContextualHeader
+        title="Budget"
+        subtitle={monthLabel}
+        badge={totalBudget > 0 ? { label: budgetBadgeLabel, variant: budgetBadgeVariant } : undefined}
+        rightActions={activePageIndex === 0 ? [{
+          icon: "options-outline",
+          onPress: () => setShowWidgetManager((v) => !v),
+          color: showWidgetManager ? colors.blue : "#6B7280",
+        }] : []}
+      />
+      {/* Month selector */}
       <PeriodNavigator
         mode="month"
         value={month}
         onChange={setMonth}
-        trailing={
-          activePageIndex === 0 ? (
-            <Pressable
-              onPress={() => setShowWidgetManager((v) => !v)}
-              accessibilityLabel="Manage widgets"
-              accessibilityRole="button"
-              className="p-2 ml-1"
-              hitSlop={6}
-            >
-              <Ionicons
-                name="options-outline"
-                size={18}
-                color={showWidgetManager ? colors.blue : "#6B7280"}
-              />
-            </Pressable>
-          ) : null
-        }
       />
 
       {/* Widget management panel (only on Overview page) */}
