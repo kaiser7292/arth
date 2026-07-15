@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, Card } from "@/components/ui";
@@ -28,6 +28,7 @@ export default function YoYComparisonScreen() {
   const [previousFYLabel, setPreviousFYLabel] = useState("");
   const [currentFYLabel, setCurrentFYLabel] = useState("");
   const [noData, setNoData] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
@@ -36,6 +37,7 @@ export default function YoYComparisonScreen() {
   );
 
   async function loadData() {
+    setLoading(true);
     try {
       const startMonth = getFYStartMonth();
       const currentFY = getCurrentFY(startMonth);
@@ -105,13 +107,19 @@ export default function YoYComparisonScreen() {
       const prevEndStr = formatDate(prevRange.end);
       const currStartStr = formatDate(currRange.start);
       const currEndStr = formatDate(currRange.end);
+
+      // Fetch all schedules and prepayments in parallel instead of serially per loan.
+      const loanData = await Promise.all(
+        inrLoans.map((loan) =>
+          Promise.all([getSchedule(loan.id), getPrepayments(loan.id)])
+        )
+      );
+
       let prevPlannedLoan = 0,
         prevActualLoan = 0,
         currPlannedLoan = 0,
         currActualLoan = 0;
-      for (const loan of inrLoans) {
-        const schedule = await getSchedule(loan.id);
-        const prepayments = await getPrepayments(loan.id);
+      for (const [schedule, prepayments] of loanData) {
         for (const e of schedule) {
           if (e.due_date >= prevStartStr && e.due_date <= prevEndStr) {
             prevPlannedLoan += e.emi_amount;
@@ -166,6 +174,8 @@ export default function YoYComparisonScreen() {
       setNoData(false);
     } catch {
       setNoData(true);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -176,7 +186,14 @@ export default function YoYComparisonScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
-        {noData ? (
+        {loading ? (
+          <View className="flex-1 items-center justify-center py-20">
+            <ActivityIndicator size="large" color={colors.tint} />
+            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-3">
+              Loading comparison…
+            </Text>
+          </View>
+        ) : noData ? (
           <View className="flex-1 items-center justify-center py-20">
             <Ionicons name="git-compare-outline" size={48} color={colors.textSecondary} />
             <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
