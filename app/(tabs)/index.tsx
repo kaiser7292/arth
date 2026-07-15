@@ -800,7 +800,7 @@ export default function HomeScreen() {
           <BankBalanceSummary accounts={bankAccounts} />
         )}
         {isHomeCardVisible("wallets") && (
-          <WalletSummary accounts={walletAccounts} computedBalances={computedBalanceMap} expenseTotals={ccExpenseTotals} />
+          <WalletSummary accounts={walletAccounts} />
         )}
         {isHomeCardVisible("demat") && (
           <DematSummaryCard totalPortfolio={dematSummary.totalPortfolio} totalFund={dematSummary.totalFund} accountCount={dematSummary.accountCount} />

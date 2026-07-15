@@ -8,6 +8,7 @@ import {
     computeUnseededBalance,
     getMonthBalanceSummary,
 } from "@/services/account-balance";
+import { getTransfersInTotal, getTransfersOutTotal } from "@/services/account-transfer";
 import { getCurrentMonth } from "@/services/budget";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getAccountLatestStaleCheckDates, getActiveAccounts } from "@/services/financial-account";
@@ -27,6 +28,8 @@ interface WalletSummary {
   opening: number;
   expenses: number;
   credits: number;
+  transfersOut: number;
+  transfersIn: number;
   current: number;
   seeded: boolean;
   autoDetectedStale: boolean;
@@ -36,7 +39,9 @@ export default function WalletsScreen() {
   const router = useRouter();
   const { accent, colors, colorScheme } = useColorScheme();
   const sc = StatusColors[colorScheme];
-  const [summaries, setSummaries] = useState<WalletSummary[]>(preloaded?.summaries ?? []);
+  const [summaries, setSummaries] = useState<WalletSummary[]>(
+    (preloaded?.summaries ?? []).map((s) => ({ ...s, transfersOut: 0, transfersIn: 0 }))
+  );
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [month, setMonth] = useState(getCurrentMonth());
   const [refreshing, setRefreshing] = useState(false);
@@ -54,7 +59,11 @@ export default function WalletsScreen() {
 
       const results: WalletSummary[] = await Promise.all(
         wallets.map(async (account) => {
-          const summary = await getMonthBalanceSummary(account.id, month);
+          const [summary, txOut, txIn] = await Promise.all([
+            getMonthBalanceSummary(account.id, month),
+            getTransfersOutTotal(account.id, startDate, endDate),
+            getTransfersInTotal(account.id, startDate, endDate),
+          ]);
           const latestActivity = staleDates[account.id];
           const autoDetectedStale = !!(
             account.last_balance_date &&
@@ -67,6 +76,8 @@ export default function WalletsScreen() {
               opening: summary.opening_balance,
               expenses: summary.expenses,
               credits: summary.credits,
+              transfersOut: txOut,
+              transfersIn: txIn,
               current: summary.closing_balance,
               seeded: true,
               autoDetectedStale,
@@ -78,6 +89,8 @@ export default function WalletsScreen() {
             opening: unseeded.opening,
             expenses: unseeded.expenses,
             credits: unseeded.credits,
+            transfersOut: txOut,
+            transfersIn: txIn,
             current: unseeded.closing,
             seeded: false,
             autoDetectedStale,
@@ -90,9 +103,12 @@ export default function WalletsScreen() {
 
   useDataRefresh(loadData);
 
+  const totalOpening = summaries.reduce((sum, s) => sum + s.opening, 0);
   const totalBalance = summaries.reduce((sum, s) => sum + s.current, 0);
   const totalExpenses = summaries.reduce((sum, s) => sum + s.expenses, 0);
   const totalCredits = summaries.reduce((sum, s) => sum + s.credits, 0);
+  const totalTransfersOut = summaries.reduce((sum, s) => sum + s.transfersOut, 0);
+  const totalTransfersIn = summaries.reduce((sum, s) => sum + s.transfersIn, 0);
 
   return (
     <ScreenContainer padTop={false}>
@@ -117,28 +133,49 @@ export default function WalletsScreen() {
           </View>
 
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Current Balance</Text>
-            <Text
-              className="text-sm font-bold"
-              style={{ color: totalBalance >= 0 ? sc.success : sc.danger }}
-            >
-              {formatAmount(totalBalance)}
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Opening Balance</Text>
+            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              {formatAmount(totalOpening)}
             </Text>
           </View>
-          <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Spent this month</Text>
-            <Text className="text-sm font-semibold" style={{ color: totalExpenses > 0 ? sc.danger : colors.text }}>
-              {formatAmount(totalExpenses)}
-            </Text>
-          </View>
-          {totalCredits > 0 && (
-            <View className="flex-row justify-between">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Top-ups this month</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
-                {formatAmount(totalCredits)}
+          {totalExpenses > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Expenses</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                −{formatAmount(totalExpenses)}
               </Text>
             </View>
           )}
+          {totalCredits > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Top-ups / Refunds</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                +{formatAmount(totalCredits)}
+              </Text>
+            </View>
+          )}
+          {totalTransfersOut > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers Out</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                −{formatAmount(totalTransfersOut)}
+              </Text>
+            </View>
+          )}
+          {totalTransfersIn > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers In</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                +{formatAmount(totalTransfersIn)}
+              </Text>
+            </View>
+          )}
+          <View className="flex-row justify-between pt-2 mt-1 border-t border-border-light dark:border-border-dark">
+            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">Closing Balance</Text>
+            <Text className="text-sm font-bold" style={{ color: totalBalance >= 0 ? sc.success : sc.danger }}>
+              {formatAmount(totalBalance)}
+            </Text>
+          </View>
 
           {adjustmentStats.count > 0 && (
             <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark flex-row justify-between">
@@ -153,7 +190,7 @@ export default function WalletsScreen() {
         </Card>
 
         {/* Per-wallet cards */}
-        {summaries.map(({ account, opening, expenses, credits, current, seeded, autoDetectedStale }) => (
+        {summaries.map(({ account, opening, expenses, credits, transfersOut, transfersIn, current, seeded, autoDetectedStale }) => (
           <Card key={account.id} className="mx-4 mb-2">
             <Pressable
               onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id, month } })}
@@ -209,6 +246,22 @@ export default function WalletsScreen() {
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Top-ups / Refunds</Text>
                   <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                     +{formatAmount(credits)}
+                  </Text>
+                </View>
+              )}
+              {transfersOut > 0 && (
+                <View className="flex-row justify-between mb-1">
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers Out</Text>
+                  <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                    −{formatAmount(transfersOut)}
+                  </Text>
+                </View>
+              )}
+              {transfersIn > 0 && (
+                <View className="flex-row justify-between mb-1">
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers In</Text>
+                  <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                    +{formatAmount(transfersIn)}
                   </Text>
                 </View>
               )}

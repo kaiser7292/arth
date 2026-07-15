@@ -1,50 +1,87 @@
-import { memo } from "react";
+import { memo, useState, useCallback } from "react";
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { ac, acAlpha } from "@/utils/accent";
 import { formatAmount } from "@/utils/format";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+import { StatusColors } from "@/constants/theme";
 import type { FinancialAccount } from "@/services/financial-account";
+import { getComputedBalanceComponents, computeUnseededBalance } from "@/services/account-balance";
+import { getCurrentMonth } from "@/services/budget";
 
 interface WalletSummaryProps {
   accounts: FinancialAccount[];
-  computedBalances: Record<string, number | null>;
-  expenseTotals: Record<string, number>;
 }
 
-function WalletSummaryImpl({ accounts, computedBalances, expenseTotals }: WalletSummaryProps) {
+interface Totals {
+  opening: number;
+  expenses: number;
+  credits: number;
+  transfersOut: number;
+  transfersIn: number;
+  closing: number;
+}
+
+function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
   const router = useRouter();
   const { accent, colorScheme, colors } = useColorScheme();
+  const sc = StatusColors[colorScheme];
+  const [totals, setTotals] = useState<Totals>({ opening: 0, expenses: 0, credits: 0, transfersOut: 0, transfersIn: 0, closing: 0 });
+
+  const load = useCallback(async () => {
+    if (accounts.length === 0) return;
+    try {
+      const ids = accounts.map((a) => a.id);
+      const month = getCurrentMonth();
+      const components = await getComputedBalanceComponents(ids);
+      let opening = 0, expenses = 0, credits = 0, transfersOut = 0, transfersIn = 0, closing = 0;
+      for (const id of ids) {
+        const c = components[id];
+        if (c) {
+          opening += c.opening;
+          expenses += c.expenses;
+          credits += c.credits;
+          transfersOut += c.transfersOut;
+          transfersIn += c.transfersIn;
+          closing += c.closing;
+        } else {
+          const unseeded = await computeUnseededBalance(id, month);
+          opening += unseeded.opening;
+          expenses += unseeded.expenses;
+          credits += unseeded.credits;
+          closing += unseeded.closing;
+        }
+      }
+      setTotals({ opening, expenses, credits, transfersOut, transfersIn, closing });
+    } catch {
+      // DB not ready
+    }
+  }, [accounts]);
+
+  useDataRefresh(load);
 
   if (accounts.length === 0) return null;
 
-  const getBalance = (a: FinancialAccount) => computedBalances[a.id] ?? a.last_known_balance ?? 0;
-  const totalBalance = accounts.reduce((sum, a) => sum + getBalance(a), 0);
-  const totalSpent = accounts.reduce((sum, a) => sum + (expenseTotals[a.id] ?? 0), 0);
+  const { opening, expenses, credits, transfersOut, transfersIn, closing } = totals;
 
   return (
     <View>
-      {/* v15.2.1: Pressable outside Card. See BankBalanceSummary for rationale. */}
       <Pressable
         onPress={() => router.push("/reconciliation/wallets" as never)}
         accessibilityLabel="View wallet account details"
         accessibilityRole="button"
       >
         <Card className="mx-4 mt-2">
-          {/* Header row: icon + title + account count + chevron */}
+          {/* Header */}
           <View className="flex-row items-center mb-3">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
               style={{ backgroundColor: acAlpha(accent, 600, 0.08) }}
             >
-              <Ionicons
-                name="phone-portrait-outline"
-                size={20}
-                color={ac(accent, colorScheme, 700, 300)}
-              />
+              <Ionicons name="phone-portrait-outline" size={20} color={ac(accent, colorScheme, 700, 300)} />
             </View>
             <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1">
               Digital Wallets
@@ -52,34 +89,66 @@ function WalletSummaryImpl({ accounts, computedBalances, expenseTotals }: Wallet
             <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
               {accounts.length} wallet{accounts.length !== 1 ? "s" : ""}
             </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={colors.textSecondary}
-            />
+            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
           </View>
 
-          {/* Balance + Spent */}
+          {/* Opening */}
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Total Balance</Text>
-            <Text
-              className="text-sm font-bold"
-              style={{ color: totalBalance >= 0 ? STATUS_COLORS.success : STATUS_COLORS.error }}
-            >
-              {formatAmount(totalBalance)}
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Opening Balance</Text>
+            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              {formatAmount(opening)}
             </Text>
           </View>
-          {totalSpent > 0 && (
-            <View className="flex-row justify-between">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Spent this month</Text>
-              <Text
-                className="text-sm font-semibold"
-                style={{ color: STATUS_COLORS.error }}
-              >
-                {formatAmount(totalSpent)}
+
+          {/* Expenses */}
+          {expenses > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Expenses</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                −{formatAmount(expenses)}
               </Text>
             </View>
           )}
+
+          {/* Top-ups / Credits */}
+          {credits > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Top-ups / Refunds</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                +{formatAmount(credits)}
+              </Text>
+            </View>
+          )}
+
+          {/* Transfers Out */}
+          {transfersOut > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers Out</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                −{formatAmount(transfersOut)}
+              </Text>
+            </View>
+          )}
+
+          {/* Transfers In */}
+          {transfersIn > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers In</Text>
+              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                +{formatAmount(transfersIn)}
+              </Text>
+            </View>
+          )}
+
+          {/* Closing */}
+          <View className="flex-row justify-between pt-2 mt-1 border-t border-border-light dark:border-border-dark">
+            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
+              Closing Balance
+            </Text>
+            <Text className="text-sm font-bold" style={{ color: closing >= 0 ? sc.success : sc.danger }}>
+              {formatAmount(closing)}
+            </Text>
+          </View>
         </Card>
       </Pressable>
     </View>

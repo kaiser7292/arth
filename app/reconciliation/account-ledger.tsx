@@ -28,6 +28,8 @@ import {
     createTransfer,
     deleteTransfer,
     getTransfersForMonth,
+    getTransfersInTotal,
+    getTransfersOutTotal,
     reclassifyCreditAsTransfer,
 } from "@/services/account-transfer";
 import { getCurrentMonth } from "@/services/budget";
@@ -111,6 +113,8 @@ export default function AccountLedgerScreen() {
   const [opening, setOpening] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalCredits, setTotalCredits] = useState(0);
+  const [totalTransfersOut, setTotalTransfersOut] = useState(0);
+  const [totalTransfersIn, setTotalTransfersIn] = useState(0);
   const [closing, setClosing] = useState(0);
   const [seeded, setSeeded] = useState(false);
   const [isCreditCard, setIsCreditCard] = useState(false);
@@ -267,6 +271,14 @@ const loadData = useCallback(async () => {
       setTotalExpenses(balanceData.expenses);
       setTotalCredits(balanceData.credits);
       setClosing(balanceData.closing);
+
+      // Fetch transfer totals for summary card display
+      const [txOutTotals, txInTotals] = await Promise.all([
+        Promise.all(ledgerAccountIds.map((id) => getTransfersOutTotal(id, startDate, endDate))),
+        Promise.all(ledgerAccountIds.map((id) => getTransfersInTotal(id, startDate, endDate))),
+      ]);
+      setTotalTransfersOut(txOutTotals.reduce((s, v) => s + v, 0));
+      setTotalTransfersIn(txInTotals.reduce((s, v) => s + v, 0));
 
       // Fetch individual transactions — aggregated across pool siblings when applicable.
       const expenseLists = await Promise.all(
@@ -772,6 +784,26 @@ const loadData = useCallback(async () => {
                 </Text>
                 <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                   +{formatAmount(totalCredits)}
+                </Text>
+              </View>
+            )}
+            {!isCreditCard && totalTransfersOut > 0 && (
+              <View className="flex-row justify-between mb-1">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  Transfers Out
+                </Text>
+                <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                  −{formatAmount(totalTransfersOut)}
+                </Text>
+              </View>
+            )}
+            {!isCreditCard && totalTransfersIn > 0 && (
+              <View className="flex-row justify-between mb-1">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  Transfers In
+                </Text>
+                <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                  +{formatAmount(totalTransfersIn)}
                 </Text>
               </View>
             )}
