@@ -126,7 +126,7 @@ async function main() {
   const files = (await fs.readdir(ARTICLES_DIR)).filter((f) => f.endsWith(".md"));
 
   for (const file of files) {
-    const raw = await fs.readFile(path.join(ARTICLES_DIR, file), "utf8");
+    const raw = (await fs.readFile(path.join(ARTICLES_DIR, file), "utf8")).replace(/^﻿/, "").replace(/\r\n/g, "\n");
     const { meta, body } = parseFrontmatter(raw);
 
     if (!meta.title) throw new Error(`${file}: missing title`);
