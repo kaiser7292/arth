@@ -312,25 +312,11 @@ function personStatementHtml(
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${statementStyles()}</style></head><body>
     <!-- Diagonal watermark — position:fixed centred, repeats on every page -->
     <div class="watermark">ARTH</div>
-    <!-- Outer table: thead / tfoot repeat reliably on every page in WebKit print -->
+    <!-- Outer table: tfoot repeats on every page; no thead so the page-1
+         stmt-header cover is the only header on page 1. The per-page compact
+         bar (.phf) lives in the inner stmt-table thead so it repeats from
+         page 2 onward without doubling up on page 1. -->
     <table class="page-wrap">
-      <thead>
-        <tr><td>
-          <div class="phf">
-            <div class="phf-brand">
-              ${logoBase64 ? `<img class="phf-logo" src="data:image/png;base64,${logoBase64}" />` : ""}
-              <div>
-                <div class="phf-name">Arth अर्थ</div>
-                <div class="phf-label">Hisaab Statement</div>
-              </div>
-            </div>
-            <div class="phf-right">
-              <div class="phf-person">${htmlEscape(name)}</div>
-              <div class="phf-period">${formatPeriod(startDate, endDate)}</div>
-            </div>
-          </div>
-        </td></tr>
-      </thead>
       <tfoot>
         <tr><td>
           <div class="pff">
@@ -405,6 +391,23 @@ function personStatementHtml(
             <col class="col-amount" />
           </colgroup>
           <thead>
+            <tr>
+              <td colspan="8" style="padding: 0; border: none">
+                <div class="phf">
+                  <div class="phf-brand">
+                    ${logoBase64 ? `<img class="phf-logo" src="data:image/png;base64,${logoBase64}" />` : ""}
+                    <div>
+                      <div class="phf-name">Arth अर्थ</div>
+                      <div class="phf-label">Hisaab Statement</div>
+                    </div>
+                  </div>
+                  <div class="phf-right">
+                    <div class="phf-person">${htmlEscape(name)}</div>
+                    <div class="phf-period">${formatPeriod(startDate, endDate)}</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
             <tr>
               <th>Date</th>
               <th>Description</th>

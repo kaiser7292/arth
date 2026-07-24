@@ -204,6 +204,22 @@ function sameSplitTenderGroup(a: Expense, b: Expense): boolean {
 }
 
 /**
+ * Returns true if both expenses have non-empty descriptions that are
+ * meaningfully different after normalization (lowercase, strip spaces and
+ * special chars). Two expenses whose descriptions differ are genuinely
+ * distinct transactions and must NOT be clustered as duplicates even if
+ * amount/merchant/date match.
+ *
+ * Returns false (don't split the cluster) when either description is blank
+ * — blank descriptions are intentionally neutral.
+ */
+function descriptionsDistinct(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return norm(a) !== norm(b);
+}
+
+/**
  * Core grouping logic shared by realized and forecast scans.
  * Groups expenses by (effectiveAmount, date), then clusters by
  * merchant similarity + account compatibility.
@@ -249,7 +265,8 @@ function findDuplicateGroups(
           merchantsMatch(exp.merchant_name, representative.merchant_name) &&
           accountsCompatible(exp.account_id, representative.account_id) &&
           sameSign(effectiveAmount(exp), effectiveAmount(representative)) &&
-          !sameSplitTenderGroup(exp, representative)
+          !sameSplitTenderGroup(exp, representative) &&
+          !descriptionsDistinct(exp.description, representative.description)
         ) {
           cluster.push(exp);
           foundCluster = true;
@@ -328,7 +345,8 @@ function findNearbyDuplicateGroups(
           merchantsMatch(exp.merchant_name, rep.merchant_name) &&
           accountsCompatible(exp.account_id, rep.account_id) &&
           sameSign(effectiveAmount(exp), effectiveAmount(rep)) &&
-          !sameSplitTenderGroup(exp, rep)
+          !sameSplitTenderGroup(exp, rep) &&
+          !descriptionsDistinct(exp.description, rep.description)
         ) {
           cluster.push(exp);
           placed = true;

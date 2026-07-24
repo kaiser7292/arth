@@ -118,9 +118,9 @@ export default function HomeScreen() {
   const [ccExpenseTotals, setCcExpenseTotals] = useState<Record<string, number>>(preloaded?.ccExpenseTotals ?? {});
   const [computedBalanceMap, setComputedBalanceMap] = useState<Record<string, number | null>>(preloaded?.computedBalanceMap ?? {});
   const [dematSummary, setDematSummary] = useState(preloaded?.dematSummary ?? { totalPortfolio: 0, totalFund: 0, accountCount: 0 });
-  const [pensionCreditTotals, setPensionCreditTotals] = useState<Record<string, number>>({});
-  const [pensionLastContributionDate, setPensionLastContributionDate] = useState<string | null>(null);
-  const [pensionYtdContributions, setPensionYtdContributions] = useState<number>(0);
+  const [pensionCreditTotals, setPensionCreditTotals] = useState<Record<string, number>>(preloaded?.pensionCreditTotals ?? {});
+  const [pensionLastContributionDate, setPensionLastContributionDate] = useState<string | null>(preloaded?.pensionLastContributionDate ?? null);
+  const [pensionYtdContributions, setPensionYtdContributions] = useState<number>(preloaded?.pensionYtdContributions ?? 0);
   // v17.4.0 — Loans summary (home stat card + Goals entry)
   const [loansSummary, setLoansSummary] = useState<LoansSummary | null>(null);
   const [refreshing, setRefreshing] = useState(false);

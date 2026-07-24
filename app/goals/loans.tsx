@@ -10,6 +10,7 @@ import {
   listAllLoansWithBankName,
   getLoanOutstandingsByLoanId,
   getCurrentEMIsByLoanId,
+  getSchedulesByLoanIds,
   type LoanAccount,
 } from "@/services/loan-accounts";
 import {
@@ -44,7 +45,8 @@ export default function LoansListScreen() {
     bank_name: string;
     outstanding: number;
     current_emi: number;
-  }>>(preloaded?.loans ?? []);
+    remaining_months: number;
+  }>>(preloaded?.loans.map((l) => ({ ...l, remaining_months: 0 })) ?? []);
   const [loaded, setLoaded] = useState(preloaded != null);
   const [refreshing, setRefreshing] = useState(false);
   // v17.6.0 — session-local record of merge prompts the user dismissed.
@@ -62,12 +64,14 @@ export default function LoansListScreen() {
       getLoanOutstandingsByLoanId(DEFAULT_USER_ID, today),
       getCurrentEMIsByLoanId(DEFAULT_USER_ID, today),
     ]);
+    const allIds = all.map((l) => l.id);
+    const scheduleMap = await getSchedulesByLoanIds(allIds);
     const enriched = all.map((loan) => ({
       ...loan,
       bank_name: loan.bank_name ?? "Loan",
       outstanding: outstandingMap.get(loan.id) ?? 0,
-      // v17.5.6 — prefer next scheduled EMI (reflects reduce_emi prepayments)
       current_emi: emiMap.get(loan.id) ?? loan.emi_amount,
+      remaining_months: (scheduleMap.get(loan.id) ?? []).filter((e) => e.status === "scheduled").length,
     }));
     setLoans(enriched);
     setLoaded(true);
@@ -236,7 +240,7 @@ function LoanCard({
   loan,
   onPress,
 }: {
-  loan: LoanAccount & { bank_name: string; outstanding: number; current_emi: number };
+  loan: LoanAccount & { bank_name: string; outstanding: number; current_emi: number; remaining_months: number };
   onPress: () => void;
 }) {
   const { colors, accent, colorScheme } = useColorScheme();
@@ -289,7 +293,7 @@ function LoanCard({
           />
         </View>
         <Text className="text-xs text-text-tertiary mt-1">
-          {progress.toFixed(0)}% paid · Disbursed {formatDate(loan.disbursement_date)}
+          {progress.toFixed(0)}% paid · {loan.remaining_months > 0 ? `${loan.remaining_months}mo remaining` : "Fully paid"} · Disbursed {formatDate(loan.disbursement_date)}
         </Text>
       </Card>
     </Pressable>

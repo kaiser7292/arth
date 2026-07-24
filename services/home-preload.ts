@@ -36,7 +36,7 @@ import { getBalanceSheetColumn } from "@/services/balance-sheet";
 import type { BalanceSheetColumn } from "@/services/balance-sheet";
 import { getBalanceSourceInfo } from "@/services/balance-source";
 import { getMonthDateRange } from "@/utils/budget-helpers";
-import { getCurrentFY, formatLocalDate } from "@/utils/fiscal-year";
+import { getCurrentFY, getFYRange, formatLocalDate } from "@/utils/fiscal-year";
 import { logger } from "@/utils/logger";
 import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
@@ -78,6 +78,9 @@ export interface HomePreloadData {
   ccExpenseTotals: Record<string, number>;
   computedBalanceMap: Record<string, number | null>;
   dematSummary: { totalPortfolio: number; totalFund: number; accountCount: number };
+  pensionCreditTotals: Record<string, number>;
+  pensionLastContributionDate: string | null;
+  pensionYtdContributions: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -250,6 +253,24 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
     }
     const activeDues = forecasts.filter((f) => f.due_date && f.status !== "rejected");
 
+    // Pension contribution metrics
+    const pensionCreditTotalsMap: Record<string, number> = {};
+    let pensionLastContributionDate: string | null = null;
+    let pensionYtdContributions = 0;
+    const fyStartMonth = getFYStartMonth();
+    const fy = getCurrentFY(fyStartMonth);
+    const fyRange = getFYRange(fy, fyStartMonth);
+    const fyStart = `${fyRange.start.getFullYear()}-${String(fyRange.start.getMonth() + 1).padStart(2, "0")}-01`;
+    for (const acct of pensionAccts) {
+      const credits = await getAccountCreditsTotal(acct.id, startDate, endDate);
+      pensionCreditTotalsMap[acct.id] = credits;
+      if (acct.last_balance_date && (!pensionLastContributionDate || acct.last_balance_date > pensionLastContributionDate)) {
+        pensionLastContributionDate = acct.last_balance_date;
+      }
+      const ytd = await getAccountCreditsTotal(acct.id, fyStart, today);
+      pensionYtdContributions += ytd;
+    }
+
     return {
       totalSpent: total,
       totalBudget: budgets.reduce((sum, b) => sum + b.amount, 0),
@@ -266,6 +287,9 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
       ccExpenseTotals: ccTotals,
       computedBalanceMap: balances,
       dematSummary: dematSum,
+      pensionCreditTotals: pensionCreditTotalsMap,
+      pensionLastContributionDate,
+      pensionYtdContributions,
     };
   } catch (e) {
     logger.warn("Home preload section failed:", e);
@@ -423,20 +447,23 @@ async function loadGoalsSection(): Promise<GoalsPreloadData | null> {
   try {
     const startMonth = getFYStartMonth();
     const fy = String(getCurrentFY(startMonth));
-    const [cockpit, fyMilestones, fyBuckets, salary, activeLoans] = await Promise.all([
+    const today = new Date().toISOString().split("T")[0];
+    const [cockpit, fyMilestones, fyBuckets, salary, activeLoans, emiMap] = await Promise.all([
       getFinancialCockpit(DEFAULT_USER_ID, fy),
       getMilestonesForFY(DEFAULT_USER_ID, fy),
       getBucketsByFY(DEFAULT_USER_ID, fy),
       getSalaryProfileByFY(DEFAULT_USER_ID, fy),
       listActiveLoans(DEFAULT_USER_ID),
+      getCurrentEMIsByLoanId(DEFAULT_USER_ID, today),
     ]);
+    const totalMonthlyEMI = activeLoans.reduce((s, l) => s + (emiMap.get(l.id) ?? l.emi_amount), 0);
     return {
       cockpit,
       fyMilestones,
       fyBuckets,
       hasSalaryProfile: salary != null && salary.computed_monthly_in_hand > 0,
       activeLoansCount: activeLoans.length,
-      totalMonthlyEMI: activeLoans.reduce((s, l) => s + l.emi_amount, 0),
+      totalMonthlyEMI,
       fy,
     };
   } catch (e) {

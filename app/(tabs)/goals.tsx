@@ -8,7 +8,7 @@ import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
 import { getMilestonesForFY, LifeMilestone } from "@/services/life-milestone";
-import { listActiveLoans } from "@/services/loan-accounts";
+import { listActiveLoans, getCurrentEMIsByLoanId } from "@/services/loan-accounts";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { getFYStartMonth } from "@/services/settings";
 import { getBucketsByFY, InvestmentBucket } from "@/services/yearly-plan";
@@ -45,18 +45,21 @@ export default function GoalsScreen() {
   const loadGoals = useCallback(async () => {
     try {
       const fyStr = String(currentFY);
-      const [salary, fetchedBuckets, fetchedMilestones, activeLoans, cockpit] = await Promise.all([
+      const today = new Date().toISOString().split("T")[0];
+      const [salary, fetchedBuckets, fetchedMilestones, activeLoans, cockpit, emiMap] = await Promise.all([
         getSalaryProfileByFY(DEFAULT_USER_ID, fyStr),
         getBucketsByFY(DEFAULT_USER_ID, fyStr),
         getMilestonesForFY(DEFAULT_USER_ID, fyStr),
         listActiveLoans(DEFAULT_USER_ID),
         getFinancialCockpit(DEFAULT_USER_ID, fyStr),
+        getCurrentEMIsByLoanId(DEFAULT_USER_ID, today),
       ]);
       setHasSalaryProfile(salary != null && salary.computed_monthly_in_hand > 0);
       setFyBuckets(fetchedBuckets);
       setFyMilestones(fetchedMilestones);
       setActiveLoansCount(activeLoans.length);
-      setTotalMonthlyEMI(activeLoans.reduce((s, l) => s + l.emi_amount, 0));
+      const liveEMI = activeLoans.reduce((s, l) => s + (emiMap.get(l.id) ?? l.emi_amount), 0);
+      setTotalMonthlyEMI(liveEMI);
       setCockpitData(cockpit);
     } catch {
       // DB not ready

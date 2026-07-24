@@ -2,7 +2,7 @@ import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DuplicateGroupCard } from "@/components/expense/DuplicateGroupCard";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
 import { ForecastMatchCard } from "@/components/expense/ForecastMatchCard";
-import { LearnMoreChip, ScreenContainer } from "@/components/ui";
+import { LearnMoreChip, LoadingState, ScreenContainer } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useAlert } from "@/hooks/use-alert";
@@ -631,6 +631,14 @@ export default function ReviewQueueScreen() {
 
   const totalItems = counts.all;
   const hasBottomBar = selectedUncat.size > 0;
+
+  if (loading && items.length === 0) {
+    return (
+      <ScreenContainer padTop={false}>
+        <LoadingState message="Loading review queue…" />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>

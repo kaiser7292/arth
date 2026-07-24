@@ -134,7 +134,7 @@ export default function LoanDetailScreen() {
   if (!loaded) {
     return (
       <ScreenContainer padTop={false}>
-        <LoadingState />
+        <LoadingState icon="cash-outline" />
       </ScreenContainer>
     );
   }

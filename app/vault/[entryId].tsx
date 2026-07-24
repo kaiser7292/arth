@@ -432,11 +432,20 @@ export default function VaultEntryScreen() {
 
         {entry.notes && (
           <View className="mt-2">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-1.5">
-              Notes
-            </Text>
+            <View className="flex-row items-center justify-between mb-1.5">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">
+                Notes
+              </Text>
+              <Pressable onPress={() => handleCopy("Notes", entry.notes!)} hitSlop={8}>
+                <Ionicons
+                  name={copiedField === "Notes" ? "checkmark" : "copy-outline"}
+                  size={14}
+                  color={copiedField === "Notes" ? accent[500] : colors.textSecondary}
+                />
+              </Pressable>
+            </View>
             <Card>
-              <Text className="text-sm text-text-primary dark:text-text-dark-primary leading-5">
+              <Text selectable className="text-sm text-text-primary dark:text-text-dark-primary leading-5">
                 {entry.notes}
               </Text>
             </Card>

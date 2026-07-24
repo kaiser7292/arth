@@ -25,23 +25,24 @@ export default function AnalyticsDashboardScreen() {
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
+    // Spending pulse runs independently — a failure in forecast/insights
+    // must not leave the card showing stale data from a previous load.
     try {
-      const [forecastData, insightData, spendingData] = await Promise.all([
-        getAnalyticsForecast(DEFAULT_USER_ID),
-        getInsights(DEFAULT_USER_ID),
-        getSpendingInsights(DEFAULT_USER_ID),
-      ]);
-
-      setForecast(forecastData);
-      setInsights(insightData);
-
+      const spendingData = await getSpendingInsights(DEFAULT_USER_ID);
       setThisMonthTotal(spendingData.monthTotals.currentMonth);
       setLastMonthTotal(spendingData.monthTotals.previousMonth);
-    } catch {
-      // DB not ready
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* DB not ready */ }
+
+    try {
+      const [forecastData, insightData] = await Promise.all([
+        getAnalyticsForecast(DEFAULT_USER_ID),
+        getInsights(DEFAULT_USER_ID),
+      ]);
+      setForecast(forecastData);
+      setInsights(insightData);
+    } catch { /* forecast/insights non-fatal */ }
+
+    setLoading(false);
   }, []);
 
   useDataRefresh(loadData);
@@ -93,44 +94,43 @@ export default function AnalyticsDashboardScreen() {
 
         {/* Spending Pulse */}
         <View className="px-4 mt-2">
-          <SectionHeader
-            title="Spending Pulse"
-            action={{ label: "Compare \u2192", onPress: () => router.push("/insights/compare" as never) }}
-          />
-          <Card>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
-              This month vs Last month
-            </Text>
-            <View className="flex-row items-baseline gap-2 mb-1">
-              <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
-                {formatAmount(thisMonthTotal)}
+          <SectionHeader title="Spending Pulse" />
+          <Pressable onPress={() => router.push("/insights/compare" as never)} accessibilityRole="button">
+            <Card>
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
+                This month vs Last month
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
-                vs {formatAmount(lastMonthTotal)}
-              </Text>
-            </View>
-            {lastMonthTotal > 0 && (() => {
-              const pulseColor =
-                diff <= 0
-                  ? StatusColors[colorScheme].success
-                  : StatusColors[colorScheme].danger;
-              return (
-                <View className="flex-row items-center gap-1">
-                  <Ionicons
-                    name={diff <= 0 ? "arrow-down" : "arrow-up"}
-                    size={14}
-                    color={pulseColor}
-                  />
-                  <Text
-                    className="text-sm font-medium"
-                    style={{ color: pulseColor }}
-                  >
-                    {formatAmount(Math.abs(diff))} ({Math.abs(diffPct)}%)
-                  </Text>
-                </View>
-              );
-            })()}
-          </Card>
+              <View className="flex-row items-baseline gap-2 mb-1">
+                <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                  {formatAmount(thisMonthTotal)}
+                </Text>
+                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                  vs {formatAmount(lastMonthTotal)}
+                </Text>
+              </View>
+              {lastMonthTotal > 0 && (() => {
+                const pulseColor =
+                  diff <= 0
+                    ? StatusColors[colorScheme].success
+                    : StatusColors[colorScheme].danger;
+                return (
+                  <View className="flex-row items-center gap-1">
+                    <Ionicons
+                      name={diff <= 0 ? "arrow-down" : "arrow-up"}
+                      size={14}
+                      color={pulseColor}
+                    />
+                    <Text
+                      className="text-sm font-medium"
+                      style={{ color: pulseColor }}
+                    >
+                      {formatAmount(Math.abs(diff))} ({Math.abs(diffPct)}%)
+                    </Text>
+                  </View>
+                );
+              })()}
+            </Card>
+          </Pressable>
         </View>
 
         {/* Quick Actions */}
