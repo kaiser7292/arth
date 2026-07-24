@@ -45,8 +45,8 @@ export default function LoansListScreen() {
     bank_name: string;
     outstanding: number;
     current_emi: number;
-    remaining_months: number;
-  }>>(preloaded?.loans.map((l) => ({ ...l, remaining_months: 0 })) ?? []);
+    remaining_months: number | null;
+  }>>(preloaded?.loans.map((l) => ({ ...l, remaining_months: null })) ?? []);
   const [loaded, setLoaded] = useState(preloaded != null);
   const [refreshing, setRefreshing] = useState(false);
   // v17.6.0 — session-local record of merge prompts the user dismissed.
@@ -240,7 +240,7 @@ function LoanCard({
   loan,
   onPress,
 }: {
-  loan: LoanAccount & { bank_name: string; outstanding: number; current_emi: number; remaining_months: number };
+  loan: LoanAccount & { bank_name: string; outstanding: number; current_emi: number; remaining_months: number | null };
   onPress: () => void;
 }) {
   const { colors, accent, colorScheme } = useColorScheme();
@@ -293,7 +293,7 @@ function LoanCard({
           />
         </View>
         <Text className="text-xs text-text-tertiary mt-1">
-          {progress.toFixed(0)}% paid · {loan.remaining_months > 0 ? `${loan.remaining_months}mo remaining` : "Fully paid"} · Disbursed {formatDate(loan.disbursement_date)}
+          {progress.toFixed(0)}% paid{loan.remaining_months != null ? ` · ${loan.remaining_months > 0 ? `${loan.remaining_months}mo remaining` : "Fully paid"}` : ""} · Disbursed {formatDate(loan.disbursement_date)}
         </Text>
       </Card>
     </Pressable>
