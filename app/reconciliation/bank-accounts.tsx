@@ -11,7 +11,6 @@ import { StatusColors } from "@/constants/theme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getActiveAccounts, getAccountLatestStaleCheckDates } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
-import { getVaultEntriesForAccount } from "@/services/vault";
 import {
   getMonthBalanceSummary,
   computeUnseededBalance,
@@ -310,45 +309,6 @@ export default function BankAccountsScreen() {
                 )}
               </Pressable>
 
-              {/* Reconcile + Credentials shortcuts */}
-              <View className="flex-row mt-3 pt-3 border-t border-border-light dark:border-border-dark">
-                <Pressable
-                  onPress={() => router.push({
-                    pathname: "/settings/reconciliation/new",
-                    params: { prefill_account_id: account.id },
-                  })}
-                  className="flex-1 flex-row items-center justify-center"
-                  hitSlop={8}
-                >
-                  <Ionicons name="checkmark-done-outline" size={14} color={colors.textSecondary} />
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary ml-1.5">
-                    Reconcile
-                  </Text>
-                </Pressable>
-                <View className="w-px" style={{ backgroundColor: colors.border }} />
-                <Pressable
-                  onPress={async () => {
-                    try {
-                      const entries = await getVaultEntriesForAccount(account.id);
-                      if (entries.length > 0) {
-                        router.push(`/vault/${entries[0].id}`);
-                      } else {
-                        const prefillTitle = encodeURIComponent(account.account_label || account.bank_name || "");
-                        router.push(`/vault/add?linked_account_id=${account.id}&prefill_category=banking&prefill_title=${prefillTitle}`);
-                      }
-                    } catch {
-                      router.push("/vault");
-                    }
-                  }}
-                  className="flex-1 flex-row items-center justify-center"
-                  hitSlop={8}
-                >
-                  <Ionicons name="lock-closed-outline" size={14} color={colors.textSecondary} />
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary ml-1.5">
-                    Credentials
-                  </Text>
-                </Pressable>
-              </View>
             </Card>
           );
         })}
