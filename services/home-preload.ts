@@ -47,6 +47,7 @@ import {
   listAllLoansWithBankName,
   getLoanOutstandingsByLoanId,
   getCurrentEMIsByLoanId,
+  getSchedulesByLoanIds,
 } from "@/services/loan-accounts";
 import type { LoanAccount } from "@/services/loan-accounts";
 import { getTransfersOutTotal, getTransfersInTotal } from "@/services/account-transfer";
@@ -171,7 +172,7 @@ export interface YearlyPlanPreloadData {
 // Loans
 // ---------------------------------------------------------------------------
 
-export type EnrichedLoan = LoanAccount & { bank_name: string; outstanding: number; current_emi: number };
+export type EnrichedLoan = LoanAccount & { bank_name: string; outstanding: number; current_emi: number; remaining_months: number };
 
 export interface LoansPreloadData {
   loans: EnrichedLoan[];
@@ -495,11 +496,14 @@ async function loadLoansSection(): Promise<LoansPreloadData | null> {
       getLoanOutstandingsByLoanId(DEFAULT_USER_ID, today),
       getCurrentEMIsByLoanId(DEFAULT_USER_ID, today),
     ]);
+    const allIds = all.map((l) => l.id);
+    const scheduleMap = await getSchedulesByLoanIds(allIds);
     const loans: EnrichedLoan[] = all.map((loan) => ({
       ...loan,
       bank_name: loan.bank_name ?? "Loan",
       outstanding: outstandingMap.get(loan.id) ?? 0,
       current_emi: emiMap.get(loan.id) ?? loan.emi_amount,
+      remaining_months: (scheduleMap.get(loan.id) ?? []).filter((e) => e.status === "scheduled").length,
     }));
     return { loans };
   } catch (e) {

@@ -46,7 +46,7 @@ export default function LoansListScreen() {
     outstanding: number;
     current_emi: number;
     remaining_months: number | null;
-  }>>(preloaded?.loans.map((l) => ({ ...l, remaining_months: null })) ?? []);
+  }>>(preloaded?.loans ?? []);
   const [loaded, setLoaded] = useState(preloaded != null);
   const [refreshing, setRefreshing] = useState(false);
   // v17.6.0 — session-local record of merge prompts the user dismissed.
