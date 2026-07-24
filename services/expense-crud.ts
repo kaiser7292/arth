@@ -1015,6 +1015,56 @@ export async function undoRefund(refundCreditId: string): Promise<void> {
 }
 
 /**
+ * Tag an existing credit as a refund for a realized expense, creating a soft
+ * link via refund_of_expense_id. The credit's balance impact (money received)
+ * is unchanged — only budget/insights effective-spend calculations see the
+ * reduction, via effectiveAmountSql.
+ */
+export async function linkCreditAsRefund(creditId: string, expenseId: string): Promise<void> {
+  const db = getDatabase();
+
+  const credit = await db.getFirstAsync<{
+    nature: string;
+    refund_of_expense_id: string | null;
+    deleted_at: string | null;
+  }>(
+    `SELECT nature, refund_of_expense_id, deleted_at FROM expenses WHERE id = ?;`,
+    creditId,
+  );
+  if (!credit || credit.deleted_at) throw new Error("Credit not found");
+  if (credit.nature !== "credit") throw new Error("Only credits can be tagged as refunds");
+  if (credit.refund_of_expense_id) throw new Error("This credit is already linked to an expense");
+
+  const expense = await db.getFirstAsync<{ nature: string; deleted_at: string | null }>(
+    `SELECT nature, deleted_at FROM expenses WHERE id = ?;`,
+    expenseId,
+  );
+  if (!expense || expense.deleted_at) throw new Error("Expense not found");
+  if (expense.nature !== "realized") throw new Error("Can only link a refund to a realized expense");
+
+  await db.runAsync(
+    `UPDATE expenses SET refund_of_expense_id = ?, updated_at = datetime('now') WHERE id = ?;`,
+    expenseId,
+    creditId,
+  );
+  bumpDataVersion();
+}
+
+/**
+ * Remove the refund soft-link from a credit (sets refund_of_expense_id = NULL).
+ * The credit remains in the account ledger; budget/insights stop deducting it.
+ */
+export async function unlinkCreditAsRefund(creditId: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE expenses SET refund_of_expense_id = NULL, updated_at = datetime('now')
+     WHERE id = ? AND nature = 'credit';`,
+    creditId,
+  );
+  bumpDataVersion();
+}
+
+/**
  * Approve a pending CC-repayment credit by running the full Pay flow:
  * deletes the pending credit row, marks the matched forecast paid, creates a
  * savings → CC transfer, and updates CC dues/available.

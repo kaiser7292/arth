@@ -364,6 +364,23 @@ export async function getComparisonExpenseIds(
 // ─── Public API ───
 
 /**
+ * Returns this month's and last month's total spending using the same SQL and
+ * date ranges as the Compare screen's "This Month vs Last Month" preset.
+ * Use this for the Spending Pulse card so the numbers are guaranteed to match.
+ */
+export async function getThisVsLastMonthTotals(
+  userId: string,
+): Promise<{ currentMonth: number; previousMonth: number }> {
+  const presets = getComparisonPresets();
+  const preset = presets.find((p) => p.label === "This Month vs Last Month") ?? presets[1];
+  const [current, previous] = await Promise.all([
+    queryRangeSummary(userId, preset.range2Start, preset.range2End),
+    queryRangeSummary(userId, preset.range1Start, preset.range1End),
+  ]);
+  return { currentMonth: current.totalSpent, previousMonth: previous.totalSpent };
+}
+
+/**
  * Compare spending between two arbitrary date ranges.
  */
 export async function getDateRangeComparison(

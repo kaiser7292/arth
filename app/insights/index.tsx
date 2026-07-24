@@ -11,7 +11,7 @@ import { StatusColors } from "@/constants/theme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
 import { getInsights, type Insight } from "@/services/insight-engine";
-import { getSpendingInsights } from "@/services/spending-insights";
+import { getThisVsLastMonthTotals } from "@/services/comparison-insights";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 
@@ -28,9 +28,9 @@ export default function AnalyticsDashboardScreen() {
     // Spending pulse runs independently — a failure in forecast/insights
     // must not leave the card showing stale data from a previous load.
     try {
-      const spendingData = await getSpendingInsights(DEFAULT_USER_ID);
-      setThisMonthTotal(spendingData.monthTotals.currentMonth);
-      setLastMonthTotal(spendingData.monthTotals.previousMonth);
+      const totals = await getThisVsLastMonthTotals(DEFAULT_USER_ID);
+      setThisMonthTotal(totals.currentMonth);
+      setLastMonthTotal(totals.previousMonth);
     } catch { /* DB not ready */ }
 
     try {
@@ -95,11 +95,14 @@ export default function AnalyticsDashboardScreen() {
         {/* Spending Pulse */}
         <View className="px-4 mt-2">
           <SectionHeader title="Spending Pulse" />
-          <Pressable onPress={() => router.push("/insights/compare" as never)} accessibilityRole="button">
+          <Pressable onPress={() => router.push("/insights/compare" as never)} accessibilityRole="button" android_ripple={{ color: "transparent" }}>
             <Card>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
-                This month vs Last month
-              </Text>
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  This month vs Last month
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+              </View>
               <View className="flex-row items-baseline gap-2 mb-1">
                 <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
                   {formatAmount(thisMonthTotal)}
@@ -137,7 +140,6 @@ export default function AnalyticsDashboardScreen() {
         <View className="px-4 mt-4">
           <SectionHeader title="Explore" />
           <View className="flex-row flex-wrap gap-3">
-            <QuickAction icon="git-compare-outline" label="Compare" onPress={() => router.push("/insights/compare" as never)} color={accent[500]} />
             <QuickAction icon="trending-up-outline" label="Forecast" onPress={() => router.push("/insights/forecast" as never)} color={accent[600]} />
             <QuickAction icon="repeat-outline" label="Patterns" onPress={() => router.push("/insights/patterns" as never)} color={accent[700]} />
             <QuickAction icon="storefront-outline" label="Merchants" onPress={() => router.push("/insights/merchants" as never)} color={accent[800]} />

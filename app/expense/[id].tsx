@@ -18,6 +18,7 @@ import { LoanPaymentPickerSheet } from "@/components/expense/LoanPaymentPickerSh
 import { MultiSplitSheet } from "@/components/expense/MultiSplitSheet";
 import { RecurringRuleSheet } from "@/components/expense/RecurringRuleSheet";
 import { RefundTargetSheet } from "@/components/expense/RefundTargetSheet";
+import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
 import { SplitSheet } from "@/components/expense/SplitSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
 import { Button, Input, LoadingState, ScreenContainer } from "@/components/ui";
@@ -776,6 +777,61 @@ export default function ExpenseDetailScreen() {
       }
     })();
   }, [expense?.id, expense?.nature, expense?.updated_at]);
+
+  // "Tag as Refund" — for credits that already exist and should be linked to an expense.
+  const [refundExpensePickerVisible, setRefundExpensePickerVisible] = useState(false);
+  // Expense name shown in the badge when this credit is already linked as a refund.
+  const [linkedExpenseSummary, setLinkedExpenseSummary] = useState<string | null>(null);
+  useEffect(() => {
+    if (!expense?.id || expense.nature !== "credit" || !expense.refund_of_expense_id) {
+      setLinkedExpenseSummary(null);
+      return;
+    }
+    (async () => {
+      try {
+        const { getExpenseById } = await import("@/services/expense");
+        const linked = await getExpenseById(expense.refund_of_expense_id!);
+        setLinkedExpenseSummary(linked?.merchant_name || linked?.description || linked?.date || null);
+      } catch {
+        setLinkedExpenseSummary(null);
+      }
+    })();
+  }, [expense?.id, expense?.nature, expense?.refund_of_expense_id]);
+
+  const handleLinkAsRefund = useCallback(
+    async (expenseId: string, expenseSummary: string) => {
+      setRefundExpensePickerVisible(false);
+      if (!expense) return;
+      try {
+        const { linkCreditAsRefund } = await import("@/services/expense");
+        await linkCreditAsRefund(expense.id, expenseId);
+        setLinkedExpenseSummary(expenseSummary);
+        // Reload the expense so expense.refund_of_expense_id is current
+        const { getExpenseById } = await import("@/services/expense");
+        const updated = await getExpenseById(expense.id);
+        if (updated) setExpense(updated);
+      } catch (e) {
+        logger.error("Tag as refund failed:", e);
+        alert("Couldn't link refund", formatError("Tag as refund", e));
+      }
+    },
+    [expense, alert],
+  );
+
+  const handleUnlinkCreditAsRefund = useCallback(async () => {
+    if (!expense) return;
+    try {
+      const { unlinkCreditAsRefund } = await import("@/services/expense");
+      await unlinkCreditAsRefund(expense.id);
+      setLinkedExpenseSummary(null);
+      const { getExpenseById } = await import("@/services/expense");
+      const updated = await getExpenseById(expense.id);
+      if (updated) setExpense(updated);
+    } catch (e) {
+      logger.error("Unlink credit as refund failed:", e);
+      alert("Error", formatError("Unlink refund", e));
+    }
+  }, [expense, alert]);
 
   // v15.12.0: load any existing hisaab-settlement link for this credit so we
   // can render the badge + Undo action instead of the "Mark as Settlement" row.
@@ -2514,6 +2570,86 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
+              {/* Tag as Refund (credits only) — links this credit to the expense it
+                   refunded. Hidden when already linked, or already classified
+                   as settlement/transfer (mutually exclusive). */}
+              {expense.nature === "credit"
+                && !expense.refund_of_expense_id
+                && !linkedSettlement
+                && !transfer && (
+                <Pressable
+                  onPress={() => setRefundExpensePickerVisible(true)}
+                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt"
+                  accessibilityRole="button"
+                  accessibilityLabel="Tag this credit as a refund for an expense"
+                >
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                    <Ionicons name="return-up-back-outline" size={20} color={colors.blue} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      Tag as Refund
+                    </Text>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                      Link to the expense this money came back for
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </Pressable>
+              )}
+
+              {/* Badge: credit already tagged as refund. Tap expense name to deep-link;
+                   tap Unlink to remove the soft link (credit stays in ledger). */}
+              {expense.nature === "credit" && expense.refund_of_expense_id && (
+                <View
+                  className="mx-4 mt-3 p-3 rounded-xl"
+                  style={{ backgroundColor: accent[500] + "1A" }}
+                >
+                  <View className="flex-row items-center">
+                    <View
+                      className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                      style={{ backgroundColor: ac(accent, colorScheme, 100, 700) }}
+                    >
+                      <Ionicons
+                        name="return-up-back"
+                        size={20}
+                        color={ac(accent, colorScheme, 600, 200)}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                        Refund for {linkedExpenseSummary ?? "an expense"}
+                      </Text>
+                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                        Reduces effective spend in budget &amp; insights
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row mt-3 gap-2">
+                    <Pressable
+                      onPress={() => router.push(`/expense/${expense.refund_of_expense_id}`)}
+                      className="flex-1 py-2 rounded-lg items-center"
+                      style={{ backgroundColor: accent[500] }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Open the linked expense"
+                    >
+                      <Text className="text-sm font-semibold text-white">View expense</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={handleUnlinkCreditAsRefund}
+                      className="flex-1 py-2 rounded-lg items-center"
+                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Unlink refund"
+                    >
+                      <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+                        Unlink
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+
               {/* v17.0.0: Mark as Investment (realized, non-credit, non-refund,
                    non-split). Lets user promote an expense (SIP, PPF, gold
                    purchase) to an investment bucket contribution. */}
@@ -3041,6 +3177,16 @@ export default function ExpenseDetailScreen() {
           creditAmount={expense.amount}
           onPick={handleHisaabSettlementPersonSelected}
           onClose={() => setHisaabSettlementSheetVisible(false)}
+        />
+      )}
+
+      {/* Tag as Refund — expense picker for existing credits. */}
+      {expense && (
+        <RefundExpensePickerSheet
+          visible={refundExpensePickerVisible}
+          creditAmount={expense.amount}
+          onPick={handleLinkAsRefund}
+          onClose={() => setRefundExpensePickerVisible(false)}
         />
       )}
 

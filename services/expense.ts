@@ -34,6 +34,8 @@ export {
   remapExpenses,
   bulkAssignCategory,
   undoRefund,
+  linkCreditAsRefund,
+  unlinkCreditAsRefund,
 } from "./expense-crud";
 
 export type { FilteredSummary, FilteredSummaryGroup } from "./expense-queries";
