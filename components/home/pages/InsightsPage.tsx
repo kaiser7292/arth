@@ -11,7 +11,7 @@ import { StatusColors } from "@/constants/theme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
 import { getInsights, type Insight } from "@/services/insight-engine";
-import { getSpendingInsights } from "@/services/spending-insights";
+import { getThisVsLastMonthTotals } from "@/services/comparison-insights";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 
@@ -26,29 +26,24 @@ export function InsightsPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
+    // Spending pulse runs independently so forecast errors don't leave the
+    // card showing stale data. Uses the same query as the Compare screen.
     try {
-      const [forecastData, insightData, spendingData] = await Promise.all([
+      const totals = await getThisVsLastMonthTotals(DEFAULT_USER_ID);
+      setThisMonthTotal(totals.currentMonth);
+      setLastMonthTotal(totals.previousMonth);
+    } catch { /* DB not ready */ }
+
+    try {
+      const [forecastData, insightData] = await Promise.all([
         getAnalyticsForecast(DEFAULT_USER_ID),
         getInsights(DEFAULT_USER_ID),
-        getSpendingInsights(DEFAULT_USER_ID),
       ]);
       setForecast(forecastData);
       setInsights(insightData);
-      if (spendingData.categoryTrends.length > 0) {
-        let currentTotal = 0;
-        let prevTotal = 0;
-        for (const trend of spendingData.categoryTrends) {
-          currentTotal += trend.currentMonth;
-          prevTotal += trend.previousMonth;
-        }
-        setThisMonthTotal(currentTotal);
-        setLastMonthTotal(prevTotal);
-      }
-    } catch {
-      // DB not ready
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* non-fatal */ }
+
+    setLoading(false);
   }, []);
 
   useDataRefresh(loadData);
@@ -103,35 +98,37 @@ export function InsightsPage() {
 
       {/* Spending Pulse */}
       <View className="px-4 mt-2">
-        <SectionHeader
-          title="Spending Pulse"
-          action={{ label: "Compare →", onPress: () => router.push("/insights/compare" as never) }}
-        />
-        <Card>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
-            This month vs Last month
-          </Text>
-          <View className="flex-row items-baseline gap-2 mb-1">
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
-              {formatAmount(thisMonthTotal)}
-            </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
-              vs {formatAmount(lastMonthTotal)}
-            </Text>
-          </View>
-          {lastMonthTotal > 0 && (() => {
-            const pulseColor =
-              diff <= 0 ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger;
-            return (
-              <View className="flex-row items-center gap-1">
-                <Ionicons name={diff <= 0 ? "arrow-down" : "arrow-up"} size={14} color={pulseColor} />
-                <Text className="text-sm font-medium" style={{ color: pulseColor }}>
-                  {formatAmount(Math.abs(diff))} ({Math.abs(diffPct)}%)
-                </Text>
-              </View>
-            );
-          })()}
-        </Card>
+        <SectionHeader title="Spending Pulse" />
+        <Pressable onPress={() => router.push("/insights/compare" as never)} accessibilityRole="button" android_ripple={{ color: "transparent" }}>
+          <Card>
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                This month vs Last month
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+            </View>
+            <View className="flex-row items-baseline gap-2 mb-1">
+              <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                {formatAmount(thisMonthTotal)}
+              </Text>
+              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                vs {formatAmount(lastMonthTotal)}
+              </Text>
+            </View>
+            {lastMonthTotal > 0 && (() => {
+              const pulseColor =
+                diff <= 0 ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger;
+              return (
+                <View className="flex-row items-center gap-1">
+                  <Ionicons name={diff <= 0 ? "arrow-down" : "arrow-up"} size={14} color={pulseColor} />
+                  <Text className="text-sm font-medium" style={{ color: pulseColor }}>
+                    {formatAmount(Math.abs(diff))} ({Math.abs(diffPct)}%)
+                  </Text>
+                </View>
+              );
+            })()}
+          </Card>
+        </Pressable>
       </View>
 
       {/* Quick Actions */}
