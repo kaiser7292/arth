@@ -140,6 +140,7 @@ export default function AnalyticsDashboardScreen() {
         <View className="px-4 mt-4">
           <SectionHeader title="Explore" />
           <View className="flex-row flex-wrap gap-3">
+            <QuickAction icon="git-compare-outline" label="Compare" onPress={() => router.push("/insights/compare" as never)} color={accent[500]} />
             <QuickAction icon="trending-up-outline" label="Forecast" onPress={() => router.push("/insights/forecast" as never)} color={accent[600]} />
             <QuickAction icon="repeat-outline" label="Patterns" onPress={() => router.push("/insights/patterns" as never)} color={accent[700]} />
             <QuickAction icon="storefront-outline" label="Merchants" onPress={() => router.push("/insights/merchants" as never)} color={accent[800]} />
