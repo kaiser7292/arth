@@ -397,7 +397,7 @@ function personStatementHtml(
                   <div class="phf-brand">
                     ${logoBase64 ? `<img class="phf-logo" src="data:image/png;base64,${logoBase64}" />` : ""}
                     <div>
-                      <div class="phf-name">Arth अर्थ</div>
+                      <div class="phf-name">Arth · अर्थ</div>
                       <div class="phf-label">Hisaab Statement</div>
                     </div>
                   </div>
