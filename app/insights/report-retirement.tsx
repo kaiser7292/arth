@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, ScrollView, Pressable, Alert, TextInput } from "react-native";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ScreenContainer, Card, SectionHeader, LoadingState } from "@/components/ui";
@@ -137,6 +138,7 @@ export default function RetirementReportScreen() {
   const [showSheet, setShowSheet] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [expandedDrawdown, setExpandedDrawdown] = useState<number | null>(null);
+  const [showScoreInfo, setShowScoreInfo] = useState(false);
 
   async function generate() {
     setShowSheet(false);
@@ -343,20 +345,7 @@ export default function RetirementReportScreen() {
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
                     Retirement readiness
                   </Text>
-                  <Pressable
-                    onPress={() =>
-                      Alert.alert(
-                        "Readiness Score",
-                        "Your score is based on four factors:\n\n"
-                        + "• Corpus progress (40%) — how close your projected corpus is to the target\n"
-                        + "• Savings rate (25%) — higher savings rate = faster corpus growth\n"
-                        + "• Emergency fund (15%) — months of expenses covered by liquid assets\n"
-                        + "• Debt load (20%) — lower EMI-to-income ratio means more investable surplus\n\n"
-                        + "80+ Strong · 60-79 Good · 40-59 Needs work · <40 At risk",
-                      )
-                    }
-                    hitSlop={10}
-                  >
+                  <Pressable onPress={() => setShowScoreInfo(true)} hitSlop={10}>
                     <Ionicons name="information-circle-outline" size={14} color={tint} />
                   </Pressable>
                 </View>
@@ -852,6 +841,116 @@ export default function RetirementReportScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Readiness Score breakdown sheet */}
+      {report && (() => {
+        const corpusPct = Math.min(100, (report.projectedCorpus / Math.max(1, report.targetCorpus)) * 100);
+        const corpusScore = Math.round(corpusPct * 0.4);
+
+        const sr = report.currentSavingsRate;
+        const savingsScore = sr >= 40 ? 25 : sr >= 30 ? 20 : sr >= 20 ? 12 : Math.round(Math.max(0, sr * 0.5));
+
+        const emergencyMonths = report.currentMonthlyExpenses > 0
+          ? report.totalAssets / report.currentMonthlyExpenses : 0;
+        const emergencyScore = emergencyMonths >= 6 ? 15 : emergencyMonths >= 3 ? 10 : Math.round(emergencyMonths * 2);
+
+        const dti = report.currentMonthlyInHand > 0
+          ? (report.monthlyEMI / report.currentMonthlyInHand) * 100 : 0;
+        const debtScore = dti === 0 ? 20 : dti <= 20 ? 15 : dti <= 40 ? 8 : 2;
+
+        const dimensions = [
+          {
+            label: "Corpus Progress",
+            weight: 40,
+            score: corpusScore,
+            max: 40,
+            detail: `Projected ${Math.round(corpusPct)}% of target corpus`,
+            color: corpusScore >= 30 ? status.success : corpusScore >= 16 ? status.warning : status.danger,
+          },
+          {
+            label: "Savings Rate",
+            weight: 25,
+            score: savingsScore,
+            max: 25,
+            detail: `${Math.round(sr)}% of income saved`,
+            color: savingsScore >= 20 ? status.success : savingsScore >= 12 ? status.warning : status.danger,
+          },
+          {
+            label: "Emergency Fund",
+            weight: 15,
+            score: emergencyScore,
+            max: 15,
+            detail: `${Math.round(emergencyMonths * 10) / 10} months of expenses covered`,
+            color: emergencyScore >= 10 ? status.success : emergencyScore >= 6 ? status.warning : status.danger,
+          },
+          {
+            label: "Debt Load",
+            weight: 20,
+            score: debtScore,
+            max: 20,
+            detail: dti === 0 ? "No EMI obligations" : `${Math.round(dti)}% of income goes to EMIs`,
+            color: debtScore >= 15 ? status.success : debtScore >= 8 ? status.warning : status.danger,
+          },
+        ];
+
+        return (
+          <BottomSheet visible={showScoreInfo} onClose={() => setShowScoreInfo(false)}>
+            <View className="px-5 pb-4">
+              <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mb-1">
+                Readiness Score Breakdown
+              </Text>
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-4">
+                Your score of {report.readinessScore}/100 is computed from four dimensions, each weighted by importance.
+              </Text>
+
+              {dimensions.map((d) => (
+                <View key={d.label} className="mb-4">
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                      {d.label}
+                    </Text>
+                    <Text className="text-xs font-bold" style={{ color: d.color }}>
+                      {d.score}/{d.max}
+                    </Text>
+                  </View>
+                  <View className="h-2 bg-border-light dark:bg-border-dark rounded-full overflow-hidden mb-1">
+                    <View
+                      className="h-full rounded-full"
+                      style={{ width: `${(d.score / d.max) * 100}%`, backgroundColor: d.color }}
+                    />
+                  </View>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary opacity-70">
+                    {d.detail} · {d.weight}% weight
+                  </Text>
+                </View>
+              ))}
+
+              {/* Score bands */}
+              <View className="pt-3 border-t border-border-light dark:border-border-dark">
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+                  Score Bands
+                </Text>
+                {[
+                  { range: "80–100", label: "Strong", desc: "Well on track", color: status.success },
+                  { range: "60–79", label: "Good", desc: "A few areas to strengthen", color: "#3B82F6" },
+                  { range: "40–59", label: "Needs work", desc: "Significant gaps remain", color: status.warning },
+                  { range: "0–39", label: "At risk", desc: "Urgent action needed", color: status.danger },
+                ].map((b) => (
+                  <View key={b.range} className="flex-row items-center gap-2 mb-1.5">
+                    <View className="w-2 h-2 rounded-full" style={{ backgroundColor: b.color }} />
+                    <Text className="text-xs text-text-primary dark:text-text-dark-primary w-12 font-medium">
+                      {b.range}
+                    </Text>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+                      {b.label} — {b.desc}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </BottomSheet>
+        );
+      })()}
     </ScreenContainer>
   );
 }
