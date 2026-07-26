@@ -203,7 +203,7 @@ export default function SimulatorListScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
-        <LoadingState message="Loading simulator…" />
+        <LoadingState message="Loading simulator…" icon="analytics-outline" />
       </ScreenContainer>
     );
   }

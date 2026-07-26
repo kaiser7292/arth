@@ -635,7 +635,7 @@ export default function ReviewQueueScreen() {
   if (loading && items.length === 0) {
     return (
       <ScreenContainer padTop={false}>
-        <LoadingState message="Loading review queue…" />
+        <LoadingState message="Loading review queue…" icon="checkmark-done-outline" />
       </ScreenContainer>
     );
   }

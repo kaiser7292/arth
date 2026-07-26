@@ -145,7 +145,7 @@ export default function AnalyticsDashboardScreen() {
             <QuickAction icon="repeat-outline" label="Patterns" onPress={() => router.push("/insights/patterns" as never)} color={accent[700]} />
             <QuickAction icon="storefront-outline" label="Merchants" onPress={() => router.push("/insights/merchants" as never)} color={accent[800]} />
             <QuickAction icon="bar-chart-outline" label="Budget" onPress={() => router.push("/insights/budget-vs-actual" as never)} color={accent[500]} />
-            <QuickAction icon="document-text-outline" label="Reports" onPress={() => router.push("/insights/reports" as never)} color="#0F766E" />
+            <QuickAction icon="document-text-outline" label="Reports" onPress={() => router.push("/insights/reports" as never)} color={accent[500]} />
           </View>
         </View>
 

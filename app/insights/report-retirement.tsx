@@ -357,7 +357,7 @@ export default function RetirementReportScreen() {
                     }
                     hitSlop={10}
                   >
-                    <Ionicons name="information-circle-outline" size={14} color="#3B82F6" />
+                    <Ionicons name="information-circle-outline" size={14} color={tint} />
                   </Pressable>
                 </View>
                 <Text className="text-3xl font-bold" style={{ color: scoreColor }}>

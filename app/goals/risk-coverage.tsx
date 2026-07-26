@@ -85,7 +85,7 @@ export default function RiskCoverageScreen() {
   if (!loaded) {
     return (
       <ScreenContainer padTop={false}>
-        <LoadingState message="Loading policies…" />
+        <LoadingState message="Loading policies…" icon="shield-checkmark-outline" />
       </ScreenContainer>
     );
   }
