@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 import { ScreenContainer, Card, SectionHeader, LoadingState } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -12,7 +13,6 @@ import { getExpensesPaginated } from "@/services/expense-queries";
 import { getFYStartMonth } from "@/services/settings";
 import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
 import { toIsoDate } from "@/utils/date";
-import type { Expense } from "@/services/expense-types";
 import {
   generateFinancialHealthReport,
   type FinancialHealthReport,
@@ -50,20 +50,10 @@ function GradeBar({ label, grade, score, colorScheme }: { label: string; grade: 
   );
 }
 
-function StatBox({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
+function StatBox({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
     <View className="bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark flex-1">
-      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">
-        {label}
-      </Text>
+      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">{label}</Text>
       <Text
         className="text-base font-bold text-text-primary dark:text-text-dark-primary"
         style={color ? { color } : undefined}
@@ -76,13 +66,13 @@ function StatBox({
 }
 
 export default function FinancialHealthReportScreen() {
+  const router = useRouter();
   const { colorScheme, colors } = useColorScheme();
   const status = StatusColors[colorScheme];
+  const tint = colors.tint;
   const [report, setReport] = useState<FinancialHealthReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const [expandedCats, setExpandedCats] = useState<Record<string, Expense[]>>({});
-  const [loadingCats, setLoadingCats] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
     try {
@@ -106,12 +96,7 @@ export default function FinancialHealthReportScreen() {
     setExporting(false);
   }
 
-  async function toggleCategory(categoryId: string) {
-    if (expandedCats[categoryId]) {
-      setExpandedCats((prev) => { const next = { ...prev }; delete next[categoryId]; return next; });
-      return;
-    }
-    setLoadingCats((prev) => ({ ...prev, [categoryId]: true }));
+  async function drillCategory(categoryId: string, categoryName: string) {
     try {
       const startMonth = getFYStartMonth();
       const fyYear = getCurrentFY(startMonth);
@@ -119,11 +104,38 @@ export default function FinancialHealthReportScreen() {
       const txns = await getExpensesPaginated(
         DEFAULT_USER_ID,
         { categoryIds: [categoryId], startDate: toIsoDate(start), endDate: toIsoDate(end), status: "approved" },
-        50,
+        200,
       );
-      setExpandedCats((prev) => ({ ...prev, [categoryId]: txns }));
+      if (txns.length === 0) return;
+      router.push({
+        pathname: "/insights/filtered" as never,
+        params: {
+          expenseIds: txns.map((t) => t.id).join(","),
+          title: categoryName,
+        },
+      });
     } catch {}
-    setLoadingCats((prev) => ({ ...prev, [categoryId]: false }));
+  }
+
+  async function drillSpikeCategory(categoryId: string, categoryName: string) {
+    try {
+      const now = new Date();
+      const startDate = toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1));
+      const endDate = toIsoDate(now);
+      const txns = await getExpensesPaginated(
+        DEFAULT_USER_ID,
+        { categoryIds: [categoryId], startDate, endDate, status: "approved" },
+        200,
+      );
+      if (txns.length === 0) return;
+      router.push({
+        pathname: "/insights/filtered" as never,
+        params: {
+          expenseIds: txns.map((t) => t.id).join(","),
+          title: `${categoryName} — This Month`,
+        },
+      });
+    } catch {}
   }
 
   if (loading) {
@@ -196,8 +208,26 @@ export default function FinancialHealthReportScreen() {
           </Card>
         </View>
 
-        {/* Net Worth */}
+        {/* Dimension Detail */}
         <View className="px-4">
+          {report.dimensions.map((d) => {
+            const dc = gradeColor(d.grade, colorScheme);
+            return (
+              <View key={d.name} className="flex-row items-center gap-2 mb-2">
+                <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: `${dc}18` }}>
+                  <Text className="text-xs font-bold" style={{ color: dc }}>{d.grade}</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{d.name}</Text>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{d.description}</Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Net Worth */}
+        <View className="px-4 mt-4">
           <SectionHeader title="Net Worth" />
           <View className="flex-row gap-3 mb-3">
             <StatBox label="Total assets" value={formatAmount(report.totalAssets)} color={status.success} />
@@ -218,11 +248,12 @@ export default function FinancialHealthReportScreen() {
           </Card>
         </View>
 
-        {/* Savings Rate Trend */}
+        {/* Savings Rate Trend — detailed breakdown */}
         {report.monthlySavingsRates.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Savings Rate Trend" />
             <Card>
+              {/* Bar chart */}
               <View className="flex-row items-end gap-1.5" style={{ height: 80 }}>
                 {report.monthlySavingsRates.map((m, i) => {
                   const h = Math.max(4, (m.rate / 100) * 70);
@@ -255,6 +286,50 @@ export default function FinancialHealthReportScreen() {
                     {m.month.slice(5)}
                   </Text>
                 ))}
+              </View>
+            </Card>
+
+            {/* Monthly detail table */}
+            <Card>
+              <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary mb-2">
+                How each month's savings rate is derived
+              </Text>
+              {/* Header */}
+              <View className="flex-row items-center pb-1.5 mb-1 border-b border-border-light dark:border-border-dark">
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10">Month</Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Income</Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Spent</Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Saved</Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10 text-right">Rate</Text>
+              </View>
+              {report.monthlySavingsRates.map((m) => (
+                <View key={m.month} className="flex-row items-center py-1.5 border-b border-border-light dark:border-border-dark">
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-10">{m.month.slice(5)}</Text>
+                  <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1 text-right">{formatAmount(m.income)}</Text>
+                  <Text className="text-xs flex-1 text-right" style={{ color: status.danger }}>{formatAmount(m.expenses)}</Text>
+                  <Text className="text-xs font-medium flex-1 text-right" style={{ color: m.saved >= 0 ? status.success : status.danger }}>
+                    {formatAmount(m.saved)}
+                  </Text>
+                  <Text className="text-xs font-semibold w-10 text-right" style={{ color: m.rate >= 30 ? status.success : m.rate >= 0 ? status.warning : status.danger }}>
+                    {Math.round(m.rate)}%
+                  </Text>
+                </View>
+              ))}
+              {/* Average row */}
+              <View className="flex-row items-center pt-2 mt-1">
+                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-10">Avg</Text>
+                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1 text-right">
+                  {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.income, 0) / report.monthlySavingsRates.length)}
+                </Text>
+                <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.danger }}>
+                  {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.expenses, 0) / report.monthlySavingsRates.length)}
+                </Text>
+                <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.success }}>
+                  {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.saved, 0) / report.monthlySavingsRates.length)}
+                </Text>
+                <Text className="text-xs font-bold w-10 text-right" style={{ color: report.avgSavingsRate >= 30 ? status.success : status.warning }}>
+                  {Math.round(report.avgSavingsRate)}%
+                </Text>
               </View>
             </Card>
           </View>
@@ -293,10 +368,7 @@ export default function FinancialHealthReportScreen() {
         {report.emergencyGap > 0 && (
           <View className="px-4 mt-3">
             <Card>
-              <View
-                className="rounded-lg p-3"
-                style={{ backgroundColor: status.dangerBg }}
-              >
+              <View className="rounded-lg p-3" style={{ backgroundColor: status.dangerBg }}>
                 <View className="flex-row items-center gap-2 mb-1">
                   <Ionicons name="warning-outline" size={14} color={status.danger} />
                   <Text className="text-xs font-semibold" style={{ color: status.danger }}>
@@ -313,7 +385,7 @@ export default function FinancialHealthReportScreen() {
           </View>
         )}
 
-        {/* Expense Composition */}
+        {/* Expense Composition — tap to drill down to transaction list */}
         {report.categoryBreakdown.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Expense Composition" />
@@ -325,106 +397,94 @@ export default function FinancialHealthReportScreen() {
                   return (
                     <View
                       key={c.categoryId}
-                      style={{
-                        flex: c.percentage,
-                        backgroundColor: barColors[i % barColors.length],
-                      }}
+                      style={{ flex: c.percentage, backgroundColor: barColors[i % barColors.length] }}
                     />
                   );
                 })}
               </View>
-              {/* Legend — tappable for transaction drill-down */}
+              {/* Legend — tap to navigate */}
               {report.categoryBreakdown.slice(0, 7).map((c, i) => {
                 const barColors = ["#2563EB", "#22C55E", "#F59E0B", "#8B5CF6", "#EC4899", "#0EA5E9", "#6B7280"];
-                const isExpanded = !!expandedCats[c.categoryId];
-                const isLoading = !!loadingCats[c.categoryId];
                 return (
-                  <View key={c.categoryId}>
-                    <Pressable
-                      onPress={() => toggleCategory(c.categoryId)}
-                      className="flex-row items-center justify-between py-1.5"
-                    >
-                      <View className="flex-row items-center gap-2">
-                        <View
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: barColors[i % barColors.length] }}
-                        />
-                        <Text className="text-xs text-text-primary dark:text-text-dark-primary">
-                          {c.categoryName}
-                        </Text>
-                        <Ionicons
-                          name={isExpanded ? "chevron-up" : "chevron-down"}
-                          size={10}
-                          color={colors.textSecondary}
-                        />
-                      </View>
-                      <View className="flex-row items-center gap-3">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                          {Math.round(c.percentage)}%
-                        </Text>
-                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-16 text-right">
-                          {formatAmount(c.amount)}
-                        </Text>
-                      </View>
-                    </Pressable>
-                    {isLoading && (
-                      <View className="py-2 items-center">
-                        <ActivityIndicator size="small" color={colors.tint} />
-                      </View>
-                    )}
-                    {isExpanded && expandedCats[c.categoryId]?.length > 0 && (
-                      <View className="ml-4 mb-2 border-l-2 border-border-light dark:border-border-dark pl-3">
-                        {expandedCats[c.categoryId].map((txn) => (
-                          <View key={txn.id} className="flex-row items-center justify-between py-1">
-                            <View className="flex-1 mr-2">
-                              <Text className="text-xs text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
-                                {txn.merchant_name || txn.description || "Expense"}
-                              </Text>
-                              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" style={{ fontSize: 10 }}>
-                                {txn.date}
-                              </Text>
-                            </View>
-                            <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
-                              {formatAmount(txn.amount)}
-                            </Text>
-                          </View>
-                        ))}
-                        {expandedCats[c.categoryId].length >= 50 && (
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-1" style={{ fontSize: 10 }}>
-                            Showing first 50 transactions
-                          </Text>
-                        )}
-                      </View>
-                    )}
-                    {isExpanded && expandedCats[c.categoryId]?.length === 0 && (
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-4 mb-2">
-                        No transactions found
+                  <Pressable
+                    key={c.categoryId}
+                    onPress={() => drillCategory(c.categoryId, c.categoryName)}
+                    className="flex-row items-center justify-between py-1.5"
+                  >
+                    <View className="flex-row items-center gap-2">
+                      <View
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: barColors[i % barColors.length] }}
+                      />
+                      <Text className="text-xs text-text-primary dark:text-text-dark-primary">
+                        {c.categoryName}
                       </Text>
-                    )}
-                  </View>
+                      <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />
+                    </View>
+                    <View className="flex-row items-center gap-3">
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        {Math.round(c.percentage)}%
+                      </Text>
+                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-16 text-right">
+                        {formatAmount(c.amount)}
+                      </Text>
+                    </View>
+                  </Pressable>
                 );
               })}
             </Card>
           </View>
         )}
 
-        {/* Spending Spikes */}
+        {/* Fixed vs Discretionary */}
+        {report.fixedVsDiscretionary && (
+          <View className="px-4 mt-4">
+            <Card>
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">Fixed vs Discretionary</Text>
+              </View>
+              <View className="flex-row h-2 rounded-full overflow-hidden mb-2">
+                <View style={{ flex: report.fixedVsDiscretionary.fixed, backgroundColor: "#6B7280" }} />
+                <View style={{ flex: report.fixedVsDiscretionary.discretionary, backgroundColor: tint }} />
+              </View>
+              <View className="flex-row justify-between">
+                <View className="flex-row items-center gap-1">
+                  <View className="w-2 h-2 rounded-full" style={{ backgroundColor: "#6B7280" }} />
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    Fixed {formatAmount(report.fixedVsDiscretionary.fixed)}
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-1">
+                  <View className="w-2 h-2 rounded-full" style={{ backgroundColor: tint }} />
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    Discretionary {formatAmount(report.fixedVsDiscretionary.discretionary)}
+                  </Text>
+                </View>
+              </View>
+            </Card>
+          </View>
+        )}
+
+        {/* Spending Spikes — tap to drill down */}
         {report.spikingCategories.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Spending Spikes" />
             {report.spikingCategories.map((s) => (
-              <Card key={s.categoryId}>
-                <View className="flex-row items-center gap-2 mb-1">
-                  <Ionicons name="trending-up" size={14} color={status.warning} />
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
-                    {s.categoryName}
+              <Pressable key={s.categoryId} onPress={() => drillSpikeCategory(s.categoryId, s.categoryName)}>
+                <Card>
+                  <View className="flex-row items-center gap-2 mb-1">
+                    <Ionicons name="trending-up" size={14} color={status.warning} />
+                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+                      {s.categoryName}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} />
+                  </View>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    {formatAmount(s.currentMonth)} this month — {s.spikeMultiple.toFixed(1)}x your 3-month average of{" "}
+                    {formatAmount(s.avgPrevious)}
                   </Text>
-                </View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                  {formatAmount(s.currentMonth)} this month — {s.spikeMultiple.toFixed(1)}x your 3-month average of{" "}
-                  {formatAmount(s.avgPrevious)}
-                </Text>
-              </Card>
+                </Card>
+              </Pressable>
             ))}
           </View>
         )}

@@ -2,6 +2,7 @@ import { getBalanceSheetColumn } from "@/services/balance-sheet";
 import { getLoansSummary } from "@/services/loan-accounts";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { getSavingsSnapshot } from "@/services/savings-tracker";
+import { getLifeMilestones, type LifeMilestone } from "@/services/life-milestone";
 import { getFYStartMonth } from "@/services/settings";
 import { toIsoDate } from "@/utils/date";
 import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
@@ -89,6 +90,34 @@ export interface RetirementReport {
     title: string;
     description: string;
   }[];
+
+  milestones: {
+    name: string;
+    targetAmount: number;
+    currentSaved: number;
+    progressPct: number;
+    targetDate: string | null;
+    monthlyNeeded: number;
+    impactOnRetirement: string;
+  }[];
+
+  corpusMilestones: {
+    year: number;
+    age: number;
+    sipMonthly: number;
+    corpusAccumulated: number;
+    milestone: string;
+  }[];
+
+  drawdownPlan: {
+    withdrawalRate: number;
+    annualWithdrawal: number;
+    corpusLastsYears: number;
+    sustainable: boolean;
+  }[];
+
+  readinessScore: number;
+  readinessLabel: string;
 }
 
 function computeGrowingSIP(
@@ -368,6 +397,149 @@ function buildActions(
   return actions.slice(0, 3);
 }
 
+function buildCorpusMilestones(
+  currentAge: number,
+  yearsToRetirement: number,
+  requiredMonthlySIP: number,
+  sipStepUpPct: number,
+  expectedReturnPct: number,
+  existingAssets: number,
+): RetirementReport["corpusMilestones"] {
+  const milestones: RetirementReport["corpusMilestones"] = [];
+  const monthlyRate = expectedReturnPct / 100 / 12;
+  const g = sipStepUpPct / 100;
+
+  let corpus = existingAssets;
+  const intervals = yearsToRetirement <= 10
+    ? [2, 5, 7, 10]
+    : yearsToRetirement <= 20
+      ? [3, 5, 10, 15, 20]
+      : [5, 10, 15, 20, 25, 30];
+
+  for (let yr = 1; yr <= yearsToRetirement; yr++) {
+    const sipThisYear = requiredMonthlySIP * Math.pow(1 + g, yr - 1);
+    for (let m = 0; m < 12; m++) {
+      corpus = corpus * (1 + monthlyRate) + sipThisYear;
+    }
+
+    if (intervals.includes(yr) || yr === yearsToRetirement) {
+      let milestone = "";
+      if (yr === yearsToRetirement) milestone = "Retirement!";
+      else if (corpus >= 10_00_00_000) milestone = "₹" + Math.round(corpus / 1_00_00_000) + " Cr";
+      else if (corpus >= 1_00_00_000) milestone = "₹" + (corpus / 1_00_00_000).toFixed(1) + " Cr";
+      else milestone = "₹" + Math.round(corpus / 1_00_000) + " L";
+
+      milestones.push({
+        year: yr,
+        age: currentAge + yr,
+        sipMonthly: Math.round(sipThisYear),
+        corpusAccumulated: Math.round(corpus),
+        milestone,
+      });
+    }
+  }
+  return milestones;
+}
+
+function buildDrawdownPlan(
+  targetCorpus: number,
+  retirementAnnualExpense: number,
+  inflationPct: number,
+  portfolioYieldPct: number,
+  lifeExpectancy: number,
+  retirementAge: number,
+): RetirementReport["drawdownPlan"] {
+  const rates = [3, 4, 5, 6];
+  return rates.map((rate) => {
+    const annualWithdrawal = targetCorpus * rate / 100;
+    let corpus = targetCorpus;
+    let years = 0;
+    const realReturn = (portfolioYieldPct - inflationPct) / 100;
+    while (corpus > 0 && years < 60) {
+      corpus = corpus * (1 + realReturn) - annualWithdrawal;
+      years++;
+    }
+    return {
+      withdrawalRate: rate,
+      annualWithdrawal: Math.round(annualWithdrawal),
+      corpusLastsYears: years,
+      sustainable: years >= (lifeExpectancy - retirementAge),
+    };
+  });
+}
+
+function buildMilestoneImpact(
+  milestones: LifeMilestone[],
+  currentMonthlyInHand: number,
+): RetirementReport["milestones"] {
+  return milestones
+    .filter((m) => m.is_completed === 0)
+    .map((m) => {
+      const remaining = Math.max(0, m.target_amount - m.current_saved);
+      const totalMonths = Math.max(1, m.duration_years * 12 + m.duration_months);
+      const progressPct = m.target_amount > 0
+        ? Math.min(100, (m.current_saved / m.target_amount) * 100)
+        : 0;
+      const monthlyNeeded = m.monthly_contribution_planned > 0
+        ? m.monthly_contribution_planned
+        : remaining / totalMonths;
+      const pctOfIncome = currentMonthlyInHand > 0
+        ? Math.round((monthlyNeeded / currentMonthlyInHand) * 100)
+        : 0;
+      const impactOnRetirement = pctOfIncome > 0
+        ? `Uses ${pctOfIncome}% of monthly income`
+        : "No income impact data";
+      return {
+        name: m.name,
+        targetAmount: m.target_amount,
+        currentSaved: m.current_saved,
+        progressPct: Math.round(progressPct),
+        targetDate: m.target_date,
+        monthlyNeeded: Math.round(monthlyNeeded),
+        impactOnRetirement,
+      };
+    });
+}
+
+function computeReadinessScore(
+  currentSavingsRate: number,
+  projectedCorpus: number,
+  targetCorpus: number,
+  emergencyMonths: number,
+  monthlyEMI: number,
+  currentMonthlyInHand: number,
+): { score: number; label: string } {
+  let score = 0;
+
+  const corpusPct = Math.min(100, (projectedCorpus / Math.max(1, targetCorpus)) * 100);
+  score += corpusPct * 0.4;
+
+  if (currentSavingsRate >= 40) score += 25;
+  else if (currentSavingsRate >= 30) score += 20;
+  else if (currentSavingsRate >= 20) score += 12;
+  else score += Math.max(0, currentSavingsRate * 0.5);
+
+  if (emergencyMonths >= 6) score += 15;
+  else if (emergencyMonths >= 3) score += 10;
+  else score += emergencyMonths * 2;
+
+  const dti = currentMonthlyInHand > 0 ? (monthlyEMI / currentMonthlyInHand) * 100 : 0;
+  if (dti === 0) score += 20;
+  else if (dti <= 20) score += 15;
+  else if (dti <= 40) score += 8;
+  else score += 2;
+
+  score = Math.round(Math.min(100, score));
+
+  let label: string;
+  if (score >= 80) label = "Strong — you're well on track";
+  else if (score >= 60) label = "Good — a few areas to strengthen";
+  else if (score >= 40) label = "Needs work — significant gaps remain";
+  else label = "At risk — urgent action needed";
+
+  return { score, label };
+}
+
 export async function generateRetirementReport(
   userId: string,
   inputs: RetirementInputs,
@@ -378,11 +550,12 @@ export async function generateRetirementReport(
     const startMonth = getFYStartMonth();
     const fyYear = getCurrentFY(startMonth);
 
-    const [bs, snapshot, salary, loansSummary] = await Promise.all([
+    const [bs, snapshot, salary, loansSummary, allMilestones] = await Promise.all([
       getBalanceSheetColumn(userId, today, "Today", true, null),
       getSavingsSnapshot(userId, fyYear),
       getSalaryProfileByFY(userId, String(fyYear)),
       getLoansSummary(userId),
+      getLifeMilestones(userId),
     ]);
 
     const totalAssets = bs.totalAssets;
@@ -529,6 +702,39 @@ export async function generateRetirementReport(
       targetSavingsRatePct,
     );
 
+    const milestones = buildMilestoneImpact(allMilestones, monthlyInHand);
+
+    const corpusMilestones = buildCorpusMilestones(
+      currentAge,
+      yearsToRetirement,
+      requiredMonthlySIP,
+      sipAnnualStepUpPct,
+      inputs.expectedReturnPct,
+      totalAssets,
+    );
+
+    const emergencyMonths = currentMonthlyExpenses > 0
+      ? totalAssets / currentMonthlyExpenses
+      : 0;
+
+    const drawdownPlan = buildDrawdownPlan(
+      targetCorpus,
+      retirementAnnualExpense,
+      inputs.inflationPct,
+      inputs.retirementPortfolioYieldPct,
+      inputs.lifeExpectancy,
+      inputs.retirementAge,
+    );
+
+    const { score: readinessScore, label: readinessLabel } = computeReadinessScore(
+      currentSavingsRate,
+      projectedCorpus,
+      targetCorpus,
+      emergencyMonths,
+      monthlyEMI,
+      monthlyInHand,
+    );
+
     return {
       generatedAt: now.toISOString(),
       dataAsOf: today,
@@ -557,6 +763,11 @@ export async function generateRetirementReport(
       childEducation,
       risks,
       actions,
+      milestones,
+      corpusMilestones,
+      drawdownPlan,
+      readinessScore,
+      readinessLabel,
     };
   } catch (error) {
     throw new Error(

@@ -86,15 +86,7 @@ function InputLabel({ text }: { text: string }) {
   );
 }
 
-function MetricBox({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
+function MetricBox({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
     <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
       <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{label}</Text>
@@ -278,6 +270,10 @@ export default function RetirementReportScreen() {
     );
   }
 
+  const scoreColor = report.readinessScore >= 70 ? status.success
+    : report.readinessScore >= 40 ? status.warning
+    : status.danger;
+
   return (
     <ScreenContainer padTop={false}>
       <ScrollView
@@ -295,24 +291,36 @@ export default function RetirementReportScreen() {
           </Pressable>
         </View>
 
-        {/* Headline stats */}
+        {/* Readiness Score */}
         <View className="px-4 mb-3">
           <Card>
             <View className="flex-row items-center justify-between">
-              <View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                  Retire at age {report.inputs.retirementAge}
+              <View className="flex-1">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-1">
+                  Retirement readiness
                 </Text>
-                <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
-                  {report.yearsToRetirement} years to go
+                <Text className="text-3xl font-bold" style={{ color: scoreColor }}>
+                  {report.readinessScore}/100
+                </Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
+                  {report.readinessLabel}
                 </Text>
               </View>
               <View className="items-end">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Target corpus</Text>
-                <Text className="text-lg font-bold" style={{ color: tint }}>
-                  {formatAmount(report.targetCorpus)}
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Retire at</Text>
+                <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
+                  {report.inputs.retirementAge}
+                </Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  {report.yearsToRetirement} yrs to go
                 </Text>
               </View>
+            </View>
+            <View className="h-2 bg-border-light dark:bg-border-dark rounded-full overflow-hidden mt-3">
+              <View
+                className="h-full rounded-full"
+                style={{ width: `${report.readinessScore}%`, backgroundColor: scoreColor }}
+              />
             </View>
           </Card>
         </View>
@@ -324,9 +332,13 @@ export default function RetirementReportScreen() {
             <MetricBox label="Monthly income" value={formatAmount(report.currentMonthlyInHand)} />
             <MetricBox label="Monthly expenses" value={formatAmount(report.currentMonthlyExpenses)} color={status.danger} />
           </View>
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-3 mb-3">
             <MetricBox label="Savings rate" value={`${Math.round(report.currentSavingsRate)}%`} color={status.success} />
             <MetricBox label="Monthly surplus" value={formatAmount(report.currentMonthlySurplus)} color={status.success} />
+          </View>
+          <View className="flex-row gap-3">
+            <MetricBox label="Net worth" value={formatAmount(report.netWorth)} color={report.netWorth >= 0 ? status.success : status.danger} />
+            <MetricBox label="Monthly EMI" value={report.monthlyEMI > 0 ? formatAmount(report.monthlyEMI) : "None"} color={report.monthlyEMI > 0 ? status.warning : status.success} />
           </View>
         </View>
 
@@ -335,11 +347,12 @@ export default function RetirementReportScreen() {
           <SectionHeader title="The Math" />
           <Card>
             {[
-              { label: "Monthly expenses at retirement", value: formatAmount(report.retirementMonthlyExpenseInflated), color: undefined },
+              { label: "Monthly expenses today (excl. EMI)", value: formatAmount(report.retirementMonthlyExpenseToday), color: undefined },
+              { label: `At retirement (${report.inputs.inflationPct}% inflation)`, value: formatAmount(report.retirementMonthlyExpenseInflated), color: status.warning },
               { label: "Annual expense (future)", value: formatAmount(report.retirementAnnualExpense), color: undefined },
               { label: "Target corpus (28x annual)", value: formatAmount(report.targetCorpus), color: tint },
-              { label: "Existing assets at retirement", value: formatAmount(report.existingAssetsAtRetirement), color: status.success },
-              { label: "Gap to fill", value: formatAmount(report.gapToFill), color: status.warning },
+              { label: `Existing assets at retirement (${report.inputs.expectedReturnPct}%)`, value: formatAmount(report.existingAssetsAtRetirement), color: status.success },
+              { label: "Gap to fill via SIP", value: formatAmount(report.gapToFill), color: report.gapToFill > 0 ? status.danger : status.success },
             ].map((row) => (
               <View key={row.label} className="flex-row justify-between items-center py-2 border-b border-border-light dark:border-border-dark">
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">{row.label}</Text>
@@ -372,6 +385,38 @@ export default function RetirementReportScreen() {
           </Card>
         </View>
 
+        {/* Corpus Growth Milestones */}
+        {report.corpusMilestones.length > 0 && (
+          <View className="px-4 mt-4">
+            <SectionHeader title="Corpus Growth Roadmap" />
+            <Card>
+              {/* Header */}
+              <View className="flex-row items-center pb-1.5 mb-1 border-b border-border-light dark:border-border-dark">
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10">Year</Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10">Age</Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">SIP/mo</Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Corpus</Text>
+              </View>
+              {report.corpusMilestones.map((cm, i) => {
+                const isLast = i === report.corpusMilestones.length - 1;
+                return (
+                  <View key={cm.year} className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark">
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-10">{cm.year}</Text>
+                    <Text className="text-xs text-text-primary dark:text-text-dark-primary w-10">{cm.age}</Text>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1 text-right">{formatAmount(cm.sipMonthly)}</Text>
+                    <Text
+                      className="text-xs font-semibold flex-1 text-right"
+                      style={{ color: isLast ? status.success : tint }}
+                    >
+                      {formatAmount(cm.corpusAccumulated)}
+                    </Text>
+                  </View>
+                );
+              })}
+            </Card>
+          </View>
+        )}
+
         {/* Scenarios */}
         <View className="px-4 mt-4">
           <SectionHeader title="Scenarios" />
@@ -395,31 +440,125 @@ export default function RetirementReportScreen() {
           </Card>
         </View>
 
+        {/* Post-Retirement Drawdown */}
+        {report.drawdownPlan.length > 0 && (
+          <View className="px-4 mt-4">
+            <SectionHeader title="Post-Retirement Drawdown" />
+            <Card>
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
+                How long your corpus lasts at different withdrawal rates
+              </Text>
+              {report.drawdownPlan.map((d) => (
+                <View key={d.withdrawalRate} className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
+                  <View>
+                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                      {d.withdrawalRate}% withdrawal
+                    </Text>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      {formatAmount(d.annualWithdrawal)}/year
+                    </Text>
+                  </View>
+                  <View className="items-end">
+                    <Text
+                      className="text-sm font-bold"
+                      style={{ color: d.sustainable ? status.success : status.danger }}
+                    >
+                      {d.corpusLastsYears >= 60 ? "60+" : d.corpusLastsYears} years
+                    </Text>
+                    <Text className="text-xs" style={{ color: d.sustainable ? status.success : status.danger }}>
+                      {d.sustainable ? "Sustainable" : "Runs out early"}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2 opacity-60">
+                Based on {report.inputs.retirementPortfolioYieldPct}% portfolio yield and {report.inputs.inflationPct}% inflation
+              </Text>
+            </Card>
+          </View>
+        )}
+
         {/* Phase Plan */}
         <View className="px-4 mt-4">
           <SectionHeader title="Phase Plan" />
           {report.phases.map((phase, i) => {
             const phaseColors = ["#F59E0B", "#0F766E", "#1E293B", "#22C55E"];
             return (
-              <Card key={i}>
-                <View className="rounded-lg p-3 mb-2" style={{ backgroundColor: phaseColors[i] || "#333" }}>
-                  <Text className="text-sm font-bold text-white">{phase.name}</Text>
-                  <Text className="text-xs text-white opacity-70">{phase.yearRange}</Text>
-                  <Text className="text-xs text-white opacity-70 mt-0.5">Income: {phase.monthlyIncomeEstimate}</Text>
-                </View>
-                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary mb-1">
-                  SIP Target: {phase.sipTarget}
-                </Text>
-                {phase.keyActions.map((action, j) => (
-                  <View key={j} className="flex-row gap-2 items-start mb-1">
-                    <Text className="text-xs" style={{ color: tint }}>→</Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">{action}</Text>
+              <View key={i} className="mb-3">
+                <Card>
+                  <View className="rounded-lg p-3 mb-2" style={{ backgroundColor: phaseColors[i] || "#333" }}>
+                    <Text className="text-sm font-bold text-white">{phase.name}</Text>
+                    <Text className="text-xs text-white opacity-70">{phase.yearRange}</Text>
                   </View>
-                ))}
-              </Card>
+                  <View className="flex-row gap-3 mb-2">
+                    <View className="flex-1">
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Est. income</Text>
+                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{phase.monthlyIncomeEstimate}/mo</Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">SIP target</Text>
+                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{phase.sipTarget}/mo</Text>
+                    </View>
+                  </View>
+                  {phase.goals.length > 0 && (
+                    <View className="mb-2">
+                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">Goals</Text>
+                      {phase.goals.map((goal, j) => (
+                        <View key={j} className="flex-row gap-2 items-start mb-0.5">
+                          <Text className="text-xs" style={{ color: tint }}>•</Text>
+                          <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1">{goal}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  {phase.keyActions.map((action, j) => (
+                    <View key={j} className="flex-row gap-2 items-start mb-1">
+                      <Text className="text-xs" style={{ color: tint }}>→</Text>
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">{action}</Text>
+                    </View>
+                  ))}
+                </Card>
+              </View>
             );
           })}
         </View>
+
+        {/* Life Milestones */}
+        {report.milestones.length > 0 && (
+          <View className="px-4 mt-4">
+            <SectionHeader title="Life Milestones" />
+            <Card>
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
+                Active milestones and their impact on your retirement plan
+              </Text>
+              {report.milestones.map((m, i) => (
+                <View key={i} className="py-2.5 border-b border-border-light dark:border-border-dark">
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1">{m.name}</Text>
+                    <Text className="text-xs font-bold" style={{ color: tint }}>{formatAmount(m.targetAmount)}</Text>
+                  </View>
+                  <View className="h-1.5 bg-border-light dark:bg-border-dark rounded-full overflow-hidden mb-1.5">
+                    <View
+                      className="h-full rounded-full"
+                      style={{ width: `${m.progressPct}%`, backgroundColor: m.progressPct >= 50 ? status.success : status.warning }}
+                    />
+                  </View>
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      {formatAmount(m.currentSaved)} saved · {m.progressPct}%
+                    </Text>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      {formatAmount(m.monthlyNeeded)}/mo needed
+                    </Text>
+                  </View>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5 opacity-70">
+                    {m.impactOnRetirement}
+                  </Text>
+                </View>
+              ))}
+            </Card>
+          </View>
+        )}
 
         {/* Child Education */}
         {report.childEducation && (
@@ -490,7 +629,7 @@ export default function RetirementReportScreen() {
         <View className="px-4 mt-4">
           <View className="rounded-lg p-3" style={{ backgroundColor: status.warningBg }}>
             <Text className="text-xs" style={{ color: status.warning }}>
-              Projections use {report.inputs.expectedReturnPct}% return, {report.inputs.inflationPct}% inflation, {report.inputs.salaryGrowthPct}% salary growth, life expectancy {report.inputs.lifeExpectancy} years.
+              Projections use {report.inputs.expectedReturnPct}% return, {report.inputs.inflationPct}% inflation, {report.inputs.salaryGrowthPct}% salary growth, life expectancy {report.inputs.lifeExpectancy} years, post-retirement yield {report.inputs.retirementPortfolioYieldPct}%.
               These are estimates, not financial advice. Review annually.
             </Text>
           </View>

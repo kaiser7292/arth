@@ -295,11 +295,13 @@ export default function LoanPayoffReportScreen() {
         {/* Strategies */}
         <View className="px-4 mt-4">
           <SectionHeader title="With Extra Payments" />
-          <StrategyCard
-            strategy={report.avalanche}
-            isRecommended={report.recommended === "avalanche"}
-            colorScheme={colorScheme}
-          />
+          <View className="mb-3">
+            <StrategyCard
+              strategy={report.avalanche}
+              isRecommended={report.recommended === "avalanche"}
+              colorScheme={colorScheme}
+            />
+          </View>
           <StrategyCard
             strategy={report.snowball}
             isRecommended={report.recommended === "snowball"}

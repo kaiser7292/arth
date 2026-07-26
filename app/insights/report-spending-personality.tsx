@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 import { ScreenContainer, Card, SectionHeader, LoadingState } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -10,7 +11,6 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import { getExpensesPaginated } from "@/services/expense-queries";
 import { toIsoDate } from "@/utils/date";
-import type { Expense } from "@/services/expense-types";
 import {
   generateSpendingPersonalityReport,
   type SpendingPersonalityReport,
@@ -43,7 +43,14 @@ function PersonalityBadge({ archetype, colorScheme }: { archetype: SpendingPerso
   );
 }
 
+const SENTIMENT_COLORS = {
+  positive: "success" as const,
+  neutral: "muted" as const,
+  warning: "warning" as const,
+};
+
 export default function SpendingPersonalityReportScreen() {
+  const router = useRouter();
   const { colorScheme, colors } = useColorScheme();
   const status = StatusColors[colorScheme];
   const tint = colors.tint;
@@ -51,10 +58,6 @@ export default function SpendingPersonalityReportScreen() {
   const [report, setReport] = useState<SpendingPersonalityReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const [expandedCats, setExpandedCats] = useState<Record<string, Expense[]>>({});
-  const [loadingCats, setLoadingCats] = useState<Record<string, boolean>>({});
-  const [expandedMerchants, setExpandedMerchants] = useState<Record<string, Expense[]>>({});
-  const [loadingMerchants, setLoadingMerchants] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
     try {
@@ -73,40 +76,42 @@ export default function SpendingPersonalityReportScreen() {
     return { startDate, endDate };
   }
 
-  async function toggleCategory(categoryId: string) {
-    if (expandedCats[categoryId]) {
-      setExpandedCats((prev) => { const next = { ...prev }; delete next[categoryId]; return next; });
-      return;
-    }
-    setLoadingCats((prev) => ({ ...prev, [categoryId]: true }));
+  async function drillCategory(categoryId: string, categoryName: string) {
     try {
       const { startDate, endDate } = getDateRange();
       const txns = await getExpensesPaginated(
         DEFAULT_USER_ID,
         { categoryIds: [categoryId], startDate, endDate, status: "approved" },
-        50,
+        200,
       );
-      setExpandedCats((prev) => ({ ...prev, [categoryId]: txns }));
+      if (txns.length === 0) return;
+      router.push({
+        pathname: "/insights/filtered" as never,
+        params: {
+          expenseIds: txns.map((t) => t.id).join(","),
+          title: categoryName,
+        },
+      });
     } catch {}
-    setLoadingCats((prev) => ({ ...prev, [categoryId]: false }));
   }
 
-  async function toggleMerchant(merchant: string) {
-    if (expandedMerchants[merchant]) {
-      setExpandedMerchants((prev) => { const next = { ...prev }; delete next[merchant]; return next; });
-      return;
-    }
-    setLoadingMerchants((prev) => ({ ...prev, [merchant]: true }));
+  async function drillMerchant(merchant: string) {
     try {
       const { startDate, endDate } = getDateRange();
       const txns = await getExpensesPaginated(
         DEFAULT_USER_ID,
         { search: merchant, startDate, endDate, status: "approved" },
-        50,
+        200,
       );
-      setExpandedMerchants((prev) => ({ ...prev, [merchant]: txns }));
+      if (txns.length === 0) return;
+      router.push({
+        pathname: "/insights/filtered" as never,
+        params: {
+          expenseIds: txns.map((t) => t.id).join(","),
+          title: merchant,
+        },
+      });
     } catch {}
-    setLoadingMerchants((prev) => ({ ...prev, [merchant]: false }));
   }
 
   async function handleExportPDF() {
@@ -191,158 +196,84 @@ export default function SpendingPersonalityReportScreen() {
           </Card>
         </View>
 
-        {/* Top categories — tappable for transaction drill-down */}
+        {/* Top categories — tap to drill down */}
         {report.topCategories.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Top Spending Categories" />
             <Card>
-              {report.topCategories.slice(0, 6).map((cat, i) => {
-                const isExpanded = !!expandedCats[cat.categoryId];
-                const isLoading = !!loadingCats[cat.categoryId];
-                return (
-                  <View key={cat.categoryId} className="mb-3">
-                    <Pressable onPress={() => toggleCategory(cat.categoryId)}>
-                      <View className="flex-row items-center justify-between mb-1">
-                        <View className="flex-row items-center gap-1 flex-1">
-                          <Text className="text-xs text-text-primary dark:text-text-dark-primary">
-                            {cat.categoryName}
-                          </Text>
-                          <Ionicons
-                            name={isExpanded ? "chevron-up" : "chevron-down"}
-                            size={10}
-                            color={colors.textSecondary}
-                          />
-                        </View>
-                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
-                          {formatAmount(cat.totalSpent)}
-                        </Text>
-                        {cat.trend !== "stable" && (
-                          <View className="ml-2">
-                            <Ionicons
-                              name={cat.trend === "rising" ? "trending-up" : "trending-down"}
-                              size={12}
-                              color={cat.trend === "rising" ? status.danger : status.success}
-                            />
-                          </View>
-                        )}
-                      </View>
-                    </Pressable>
-                    <View className="h-1.5 bg-border-light dark:bg-border-dark rounded-full overflow-hidden">
-                      <View
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${cat.percentage}%`,
-                          backgroundColor: tint,
-                          opacity: 1 - i * 0.12,
-                        }}
-                      />
-                    </View>
-                    {isLoading && (
-                      <View className="py-2 items-center">
-                        <ActivityIndicator size="small" color={tint} />
-                      </View>
-                    )}
-                    {isExpanded && expandedCats[cat.categoryId]?.length > 0 && (
-                      <View className="ml-2 mt-2 border-l-2 border-border-light dark:border-border-dark pl-3">
-                        {expandedCats[cat.categoryId].map((txn) => (
-                          <View key={txn.id} className="flex-row items-center justify-between py-1">
-                            <View className="flex-1 mr-2">
-                              <Text className="text-xs text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
-                                {txn.merchant_name || txn.description || "Expense"}
-                              </Text>
-                              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" style={{ fontSize: 10 }}>
-                                {txn.date}
-                              </Text>
-                            </View>
-                            <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
-                              {formatAmount(txn.amount)}
-                            </Text>
-                          </View>
-                        ))}
-                        {expandedCats[cat.categoryId].length >= 50 && (
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-1" style={{ fontSize: 10 }}>
-                            Showing first 50 transactions
-                          </Text>
-                        )}
-                      </View>
-                    )}
-                    {isExpanded && expandedCats[cat.categoryId]?.length === 0 && (
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-2 mt-1">
-                        No transactions found
+              {report.topCategories.slice(0, 6).map((cat, i) => (
+                <Pressable
+                  key={cat.categoryId}
+                  onPress={() => drillCategory(cat.categoryId, cat.categoryName)}
+                  className="mb-3"
+                >
+                  <View className="flex-row items-center justify-between mb-1">
+                    <View className="flex-row items-center gap-1 flex-1">
+                      <Text className="text-xs text-text-primary dark:text-text-dark-primary">
+                        {cat.categoryName}
                       </Text>
-                    )}
+                      <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />
+                    </View>
+                    <View className="flex-row items-center gap-2">
+                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                        {formatAmount(cat.totalSpent)}
+                      </Text>
+                      {cat.trend !== "stable" && (
+                        <Ionicons
+                          name={cat.trend === "rising" ? "trending-up" : "trending-down"}
+                          size={12}
+                          color={cat.trend === "rising" ? status.danger : status.success}
+                        />
+                      )}
+                    </View>
                   </View>
-                );
-              })}
+                  <View className="flex-row items-center gap-2 mb-1">
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      {Math.round(cat.percentage)}% of total · avg {formatAmount(cat.avgMonthly)}/mo
+                    </Text>
+                  </View>
+                  <View className="h-1.5 bg-border-light dark:bg-border-dark rounded-full overflow-hidden">
+                    <View
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${cat.percentage}%`,
+                        backgroundColor: tint,
+                        opacity: 1 - i * 0.12,
+                      }}
+                    />
+                  </View>
+                </Pressable>
+              ))}
             </Card>
           </View>
         )}
 
-        {/* Top merchants — tappable for transaction drill-down */}
+        {/* Top merchants — tap to drill down */}
         {report.topMerchants.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Top Merchants" />
             <Card>
-              {report.topMerchants.slice(0, 5).map((m, i) => {
-                const isExpanded = !!expandedMerchants[m.merchant];
-                const isLoading = !!loadingMerchants[m.merchant];
-                return (
-                  <View key={i}>
-                    <Pressable
-                      onPress={() => toggleMerchant(m.merchant)}
-                      className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark"
-                    >
-                      <View className="flex-row items-center gap-2 flex-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-4">{i + 1}</Text>
-                        <Text className="text-xs text-text-primary dark:text-text-dark-primary">{m.merchant}</Text>
-                        <Ionicons
-                          name={isExpanded ? "chevron-up" : "chevron-down"}
-                          size={10}
-                          color={colors.textSecondary}
-                        />
-                      </View>
-                      <View className="items-end">
-                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{formatAmount(m.totalSpent)}</Text>
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{m.transactionCount} txns</Text>
-                      </View>
-                    </Pressable>
-                    {isLoading && (
-                      <View className="py-2 items-center">
-                        <ActivityIndicator size="small" color={tint} />
-                      </View>
-                    )}
-                    {isExpanded && expandedMerchants[m.merchant]?.length > 0 && (
-                      <View className="ml-6 my-1 border-l-2 border-border-light dark:border-border-dark pl-3">
-                        {expandedMerchants[m.merchant].map((txn) => (
-                          <View key={txn.id} className="flex-row items-center justify-between py-1">
-                            <View className="flex-1 mr-2">
-                              <Text className="text-xs text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
-                                {txn.description || txn.merchant_name || "Expense"}
-                              </Text>
-                              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" style={{ fontSize: 10 }}>
-                                {txn.date}
-                              </Text>
-                            </View>
-                            <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
-                              {formatAmount(txn.amount)}
-                            </Text>
-                          </View>
-                        ))}
-                        {expandedMerchants[m.merchant].length >= 50 && (
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-1" style={{ fontSize: 10 }}>
-                            Showing first 50 transactions
-                          </Text>
-                        )}
-                      </View>
-                    )}
-                    {isExpanded && expandedMerchants[m.merchant]?.length === 0 && (
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-6 my-1">
-                        No transactions found
+              {report.topMerchants.slice(0, 5).map((m, i) => (
+                <Pressable
+                  key={i}
+                  onPress={() => drillMerchant(m.merchant)}
+                  className="flex-row items-center justify-between py-2.5 border-b border-border-light dark:border-border-dark"
+                >
+                  <View className="flex-row items-center gap-2 flex-1">
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-4">{i + 1}</Text>
+                    <View className="flex-1">
+                      <Text className="text-xs text-text-primary dark:text-text-dark-primary">{m.merchant}</Text>
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" style={{ fontSize: 10 }}>
+                        {m.transactionCount} txns · avg {formatAmount(m.avgTransaction)}/txn
                       </Text>
-                    )}
+                    </View>
                   </View>
-                );
-              })}
+                  <View className="flex-row items-center gap-1">
+                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{formatAmount(m.totalSpent)}</Text>
+                    <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} />
+                  </View>
+                </Pressable>
+              ))}
             </Card>
           </View>
         )}
@@ -352,7 +283,7 @@ export default function SpendingPersonalityReportScreen() {
           <SectionHeader title="Day of Week Pattern" />
           <Card>
             <View className="flex-row items-end gap-1.5" style={{ height: 80 }}>
-              {report.dayOfWeekPattern.map((d, i) => {
+              {report.dayOfWeekPattern.map((d) => {
                 const h = Math.max(4, (d.avgSpend / maxDayAmount) * 70);
                 const isPeak = d.avgSpend === Math.max(...report.dayOfWeekPattern.map((x) => x.avgSpend));
                 return (
@@ -387,12 +318,36 @@ export default function SpendingPersonalityReportScreen() {
           </Card>
         </View>
 
+        {/* Weekend vs Weekday */}
+        <View className="px-4 mt-4">
+          <Card>
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Weekday avg</Text>
+                <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatAmount(report.weekdayAvgDaily)}/day</Text>
+              </View>
+              <View className="items-center px-3">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">vs</Text>
+              </View>
+              <View className="items-end">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Weekend avg</Text>
+                <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatAmount(report.weekendAvgDaily)}/day</Text>
+              </View>
+            </View>
+            {report.weekendMultiple > 1.1 && (
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center mt-2">
+                You spend {report.weekendMultiple.toFixed(1)}x more on weekends
+              </Text>
+            )}
+          </Card>
+        </View>
+
         {/* Monthly trend */}
         {report.monthlyPattern.length > 1 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Monthly Spending Trend" />
             <Card>
-              {report.monthlyPattern.map((m, i) => {
+              {report.monthlyPattern.map((m) => {
                 const maxMonth = Math.max(...report.monthlyPattern.map((x) => x.total), 1);
                 const pct = (m.total / maxMonth) * 100;
                 return (
@@ -407,29 +362,71 @@ export default function SpendingPersonalityReportScreen() {
                   </View>
                 );
               })}
+              <View className="flex-row justify-between mt-2 pt-2 border-t border-border-light dark:border-border-dark">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  Monthly avg: {formatAmount(report.monthlyAvg)}
+                </Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  Volatility: {Math.round(report.monthlyVolatility)}%
+                </Text>
+              </View>
             </Card>
           </View>
         )}
 
-        {/* Behavioral insights */}
+        {/* Highs & Lows */}
+        {report.highestSpendMonth.month && (
+          <View className="px-4 mt-4">
+            <View className="flex-row gap-3">
+              <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Highest month</Text>
+                <Text className="text-sm font-bold" style={{ color: status.danger }}>{formatAmount(report.highestSpendMonth.total)}</Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{report.highestSpendMonth.month}</Text>
+              </View>
+              <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Lowest month</Text>
+                <Text className="text-sm font-bold" style={{ color: status.success }}>{formatAmount(report.lowestSpendMonth.total)}</Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{report.lowestSpendMonth.month}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Behavioral insights — with Ionicons */}
         {report.insights.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Behavioral Insights" />
-            {report.insights.map((insight, i) => (
-              <Card key={i}>
-                <View className="flex-row items-start gap-2">
-                  <Text style={{ fontSize: 14 }}>{insight.icon}</Text>
-                  <View className="flex-1">
-                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary mb-0.5">
-                      {insight.title}
-                    </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary leading-4">
-                      {insight.detail}
-                    </Text>
+            {report.insights.map((insight, i) => {
+              const sentimentColor = insight.sentiment === "positive"
+                ? status.success
+                : insight.sentiment === "warning"
+                  ? status.warning
+                  : colors.textSecondary;
+              return (
+                <Card key={i}>
+                  <View className="flex-row items-start gap-3">
+                    <View
+                      className="w-8 h-8 rounded-full items-center justify-center mt-0.5"
+                      style={{ backgroundColor: `${sentimentColor}18` }}
+                    >
+                      <Ionicons
+                        name={insight.icon as any}
+                        size={16}
+                        color={sentimentColor}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary mb-0.5">
+                        {insight.title}
+                      </Text>
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary leading-4">
+                        {insight.detail}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </View>
         )}
 

@@ -518,6 +518,52 @@ export async function exportRetirementPDF(
     `
     : "";
 
+  const readinessColor = report.readinessScore >= 70 ? "#22C55E" : report.readinessScore >= 40 ? "#F59E0B" : "#EF4444";
+
+  const corpusMilestoneRows = report.corpusMilestones
+    .map(
+      (cm) => `
+      <tr>
+        <td>${cm.year}</td>
+        <td>${cm.age}</td>
+        <td class="amount">${fmtAmt(Math.round(cm.sipMonthly))}</td>
+        <td class="amount" style="font-weight: 600;">${fmtAmt(Math.round(cm.corpusAccumulated))}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const drawdownRows = report.drawdownPlan
+    .map(
+      (d) => `
+      <tr>
+        <td>${fmtPct(d.withdrawalRate)}</td>
+        <td class="amount">${fmtAmt(Math.round(d.annualWithdrawal))}</td>
+        <td class="amount" style="font-weight: 600; color: ${d.sustainable ? "#22C55E" : "#EF4444"};">${d.corpusLastsYears >= 60 ? "60+" : d.corpusLastsYears} years</td>
+        <td style="text-align: center; color: ${d.sustainable ? "#22C55E" : "#EF4444"}; font-weight: 600;">${d.sustainable ? "Yes" : "No"}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const milestoneRows = report.milestones
+    .map(
+      (m) => `
+      <div class="card" style="margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-weight: 700; font-size: 11px;">${htmlEscape(m.name)}</span>
+          <span style="font-weight: 700; font-size: 11px; color: #0F766E;">${fmtAmt(Math.round(m.targetAmount))}</span>
+        </div>
+        <div style="height: 4px; background: #E2E8F0; border-radius: 2px; overflow: hidden; margin-bottom: 4px;">
+          <div style="height: 100%; width: ${m.progressPct}%; background: ${m.progressPct >= 50 ? "#22C55E" : "#F59E0B"}; border-radius: 2px;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 9px; color: #64748B;">
+          <span>${fmtAmt(Math.round(m.currentSaved))} saved · ${m.progressPct}%</span>
+          <span>${fmtAmt(Math.round(m.monthlyNeeded))}/mo needed</span>
+        </div>
+        <div style="font-size: 9px; color: #64748B; margin-top: 2px;">${htmlEscape(m.impactOnRetirement)}</div>
+      </div>`,
+    )
+    .join("");
+
   const body = `
     <div style="padding: 16px 0;">
       ${reportHeaderHtml("Retirement Readiness Report", "Plan your financial independence", logoBase64, [
@@ -526,6 +572,14 @@ export async function exportRetirementPDF(
         { label: "Target Corpus", value: fmtAmt(Math.round(report.targetCorpus)) },
         { label: "Generated", value: today },
       ])}
+
+      <div class="card" style="text-align: center; margin-bottom: 12px;">
+        <div style="font-size: 36px; font-weight: 800; color: ${readinessColor};">${report.readinessScore}/100</div>
+        <div style="font-size: 11px; color: #64748B; margin-top: 2px;">${htmlEscape(report.readinessLabel)}</div>
+        <div style="height: 6px; background: #E2E8F0; border-radius: 3px; overflow: hidden; margin-top: 8px;">
+          <div style="height: 100%; width: ${report.readinessScore}%; background: ${readinessColor}; border-radius: 3px;"></div>
+        </div>
+      </div>
 
       <div class="stats-grid">
         <div class="stat-box">
@@ -577,8 +631,31 @@ export async function exportRetirementPDF(
         <tbody>${scenarioRows}</tbody>
       </table>
 
+      ${report.corpusMilestones.length > 0 ? `
+        <div class="section-title">Corpus Growth Roadmap</div>
+        <table class="data-table">
+          <thead><tr><th>Year</th><th>Age</th><th style="text-align: right;">SIP/mo</th><th style="text-align: right;">Corpus</th></tr></thead>
+          <tbody>${corpusMilestoneRows}</tbody>
+        </table>
+      ` : ""}
+
       <div class="section-title">Phase Plan</div>
       ${phaseRows}
+
+      ${report.drawdownPlan.length > 0 ? `
+        <div class="section-title">Post-Retirement Drawdown</div>
+        <div style="font-size: 10px; color: #64748B; margin-bottom: 6px;">How long your corpus lasts at different withdrawal rates</div>
+        <table class="data-table">
+          <thead><tr><th>Rate</th><th style="text-align: right;">Annual Withdrawal</th><th style="text-align: right;">Lasts</th><th style="text-align: center;">Sustainable</th></tr></thead>
+          <tbody>${drawdownRows}</tbody>
+        </table>
+      ` : ""}
+
+      ${report.milestones.length > 0 ? `
+        <div class="section-title">Life Milestones</div>
+        <div style="font-size: 10px; color: #64748B; margin-bottom: 6px;">Active milestones and their impact on your retirement plan</div>
+        ${milestoneRows}
+      ` : ""}
 
       ${childEdSection}
 
@@ -803,16 +880,32 @@ export async function exportSpendingPersonalityPDF(
     )
     .join("");
 
+  const iconToEmoji: Record<string, string> = {
+    "calendar-outline": "📅",
+    "trending-up-outline": "📈",
+    "trending-down-outline": "📉",
+    "receipt-outline": "🧾",
+    "shield-checkmark-outline": "🛡️",
+    "flash-outline": "⚡",
+    "restaurant-outline": "🍽️",
+    "pie-chart-outline": "📊",
+    "hourglass-outline": "⏳",
+  };
+
   const insightRows = report.insights
     .map(
-      (ins, i) => `
-      <div class="action-item">
-        <div class="action-num">${i + 1}</div>
-        <div>
+      (ins) => {
+        const emoji = iconToEmoji[ins.icon] || "💡";
+        const sentimentColor = ins.sentiment === "positive" ? "#22C55E" : ins.sentiment === "warning" ? "#F59E0B" : "#6B7280";
+        return `
+      <div class="action-item" style="align-items: flex-start;">
+        <div style="width: 28px; height: 28px; border-radius: 14px; background: ${sentimentColor}18; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px;">${emoji}</div>
+        <div style="flex: 1;">
           <div class="action-title">${htmlEscape(ins.title)}</div>
           <div class="action-desc">${htmlEscape(ins.detail)}</div>
         </div>
-      </div>`,
+      </div>`;
+      },
     )
     .join("");
 
