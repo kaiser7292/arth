@@ -10,6 +10,7 @@ import { getYearlyPlanByFY, getBucketsByFY } from "@/services/yearly-plan";
 import { getMilestonesForFY, getCombinedMilestoneContributionsForFY } from "@/services/life-milestone";
 import { getFYRange, getFiscalMonth, getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
+import { getSalaryProfileByFY } from "@/services/salary-profile";
 import {
   calculateSavingsSnapshot,
   calculateMonthlySavingsTrend,
@@ -170,21 +171,35 @@ export async function getSavingsTrend(
   const plan = await getYearlyPlanByFY(userId, String(fyYear));
   if (!plan) return null;
 
-  const monthlyExpenses = await getMonthlyExpensesByFiscalMonth(
-    userId,
-    fyYear,
-    startMonth,
-  );
+  const [monthlyExpenses, salaryProfile] = await Promise.all([
+    getMonthlyExpensesByFiscalMonth(userId, fyYear, startMonth),
+    getSalaryProfileByFY(userId, String(fyYear)),
+  ]);
 
   const currentFY = getCurrentFY(startMonth);
   const monthsElapsed = fyYear < currentFY ? 12
     : fyYear === currentFY ? getFiscalMonth(startMonth)
     : 0;
 
+  let monthlyIncomeOverrides: Map<number, number> | undefined;
+  if (salaryProfile?.monthly_overrides) {
+    try {
+      const overrides: Record<number, string> = JSON.parse(salaryProfile.monthly_overrides);
+      const defaultInHand = salaryProfile.manual_monthly_in_hand || salaryProfile.computed_monthly_in_hand || 0;
+      monthlyIncomeOverrides = new Map<number, number>();
+      for (let i = 0; i < 12; i++) {
+        const ov = overrides[i];
+        const value = ov !== undefined ? (parseFloat(ov) || 0) : defaultInHand;
+        monthlyIncomeOverrides.set(i + 1, value);
+      }
+    } catch {}
+  }
+
   return calculateMonthlySavingsTrend({
     annualSalary: plan.annual_salary_in_hand,
     monthlyExpenses,
     monthsToShow: monthsElapsed,
+    monthlyIncomeOverrides,
   });
 }
 

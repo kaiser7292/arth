@@ -148,6 +148,8 @@ export function calculateMonthlySavingsTrend(params: {
   monthlyExpenses: Map<number, number>;
   /** Number of fiscal months to include (1-12) */
   monthsToShow: number;
+  /** Per-month income overrides: fiscal month (1-12) → income for that month */
+  monthlyIncomeOverrides?: Map<number, number>;
 }): Array<{
   fiscalMonth: number;
   income: number;
@@ -155,10 +157,11 @@ export function calculateMonthlySavingsTrend(params: {
   saved: number;
   savingsRatePct: number;
 }> {
-  const monthlyIncome = params.annualSalary / 12;
+  const defaultMonthlyIncome = params.annualSalary / 12;
   const result = [];
 
   for (let fm = 1; fm <= params.monthsToShow; fm++) {
+    const monthlyIncome = params.monthlyIncomeOverrides?.get(fm) ?? defaultMonthlyIncome;
     const expenses = params.monthlyExpenses.get(fm) ?? 0;
     const saved = monthlyIncome - expenses;
     const savingsRatePct =

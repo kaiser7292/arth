@@ -338,9 +338,9 @@ export default function FinancialHealthReportScreen() {
                 {report.monthlySavingsRates.map((m) => (
                   <View key={m.month} className="flex-row items-center py-1.5 border-b border-border-light dark:border-border-dark">
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-10">{m.month}</Text>
-                    <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1 text-right">{formatAmount(m.income)}</Text>
-                    <Text className="text-xs flex-1 text-right" style={{ color: status.danger }}>{formatAmount(m.expenses)}</Text>
-                    <Text className="text-xs font-medium flex-1 text-right" style={{ color: m.saved >= 0 ? status.success : status.danger }}>
+                    <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatAmount(m.income)}</Text>
+                    <Text className="text-xs flex-1 text-right" style={{ color: status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatAmount(m.expenses)}</Text>
+                    <Text className="text-xs font-medium flex-1 text-right" style={{ color: m.saved >= 0 ? status.success : status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                       {formatAmount(m.saved)}
                     </Text>
                     <Text className="text-xs font-semibold w-10 text-right" style={{ color: m.rate >= 30 ? status.success : m.rate >= 0 ? status.warning : status.danger }}>
@@ -351,13 +351,13 @@ export default function FinancialHealthReportScreen() {
                 {/* Average row */}
                 <View className="flex-row items-center pt-2 mt-1">
                   <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-10">Avg</Text>
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1 text-right">
+                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                     {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.income, 0) / report.monthlySavingsRates.length)}
                   </Text>
-                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.danger }}>
+                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                     {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.expenses, 0) / report.monthlySavingsRates.length)}
                   </Text>
-                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.success }}>
+                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.success }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                     {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.saved, 0) / report.monthlySavingsRates.length)}
                   </Text>
                   <Text className="text-xs font-bold w-10 text-right" style={{ color: report.avgSavingsRate >= 30 ? status.success : status.warning }}>
@@ -459,7 +459,13 @@ export default function FinancialHealthReportScreen() {
                       <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
                         {Math.round(c.percentage)}%
                       </Text>
-                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-16 text-right">
+                      <Text
+                        className="text-xs font-semibold text-text-primary dark:text-text-dark-primary text-right"
+                        style={{ minWidth: 72 }}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.75}
+                      >
                         {formatAmount(c.amount)}
                       </Text>
                     </View>
@@ -494,7 +500,13 @@ export default function FinancialHealthReportScreen() {
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
                     {Math.round(report.fixedVsDiscretionary.fixedPct)}%
                   </Text>
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-16 text-right">
+                  <Text
+                    className="text-xs font-semibold text-text-primary dark:text-text-dark-primary text-right"
+                    style={{ minWidth: 72 }}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                  >
                     {formatAmount(report.fixedVsDiscretionary.fixed)}
                   </Text>
                 </View>
@@ -514,7 +526,13 @@ export default function FinancialHealthReportScreen() {
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
                     {Math.round(report.fixedVsDiscretionary.discretionaryPct)}%
                   </Text>
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-16 text-right">
+                  <Text
+                    className="text-xs font-semibold text-text-primary dark:text-text-dark-primary text-right"
+                    style={{ minWidth: 72 }}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                  >
                     {formatAmount(report.fixedVsDiscretionary.discretionary)}
                   </Text>
                 </View>

@@ -656,7 +656,7 @@ function buildAgeWhatIf(
         targetCorpus: Math.round(target),
         requiredSIP: Math.round(sip),
         projectedCorpus: Math.round(projected),
-        feasible: projected >= target,
+        feasible: projected >= target * 0.999,
       };
     });
 }
@@ -764,9 +764,9 @@ export async function generateRetirementReport(
       },
     ];
 
-    scenarios[0].isAchievable = scenarios[0].projectedCorpus >= targetCorpus;
-    scenarios[1].isAchievable = scenarios[1].projectedCorpus >= targetCorpus;
-    scenarios[2].isAchievable = scenarios[2].projectedCorpus >= targetCorpus;
+    scenarios[0].isAchievable = scenarios[0].projectedCorpus >= targetCorpus * 0.999;
+    scenarios[1].isAchievable = scenarios[1].projectedCorpus >= targetCorpus * 0.999;
+    scenarios[2].isAchievable = scenarios[2].projectedCorpus >= targetCorpus * 0.999;
 
     // Build milestone impact (exclude completed ones)
     const activeMilestones = allMilestones.filter((m) => m.is_completed === 0);
