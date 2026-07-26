@@ -8,6 +8,7 @@ import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
 import { getMilestonesForFY, LifeMilestone } from "@/services/life-milestone";
+import { getActivePolicies, getInsuranceAdequacy, type InsuranceAdequacy } from "@/services/insurance-policy";
 import { listActiveLoans, getCurrentEMIsByLoanId } from "@/services/loan-accounts";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { getFYStartMonth } from "@/services/settings";
@@ -37,6 +38,8 @@ export default function GoalsScreen() {
   const [activeLoansCount, setActiveLoansCount] = useState(preloaded?.activeLoansCount ?? 0);
   const [totalMonthlyEMI, setTotalMonthlyEMI] = useState(preloaded?.totalMonthlyEMI ?? 0);
   const [netWorth, setNetWorth] = useState<number | null>(null);
+  const [insuranceCount, setInsuranceCount] = useState(0);
+  const [insuranceAdequacy, setInsuranceAdequacy] = useState<InsuranceAdequacy | null>(null);
   const [cockpitData, setCockpitData] = useState<FinancialCockpitData | null>(preloaded?.cockpit ?? null);
   // If preloaded data is available the page is ready immediately; otherwise wait for first load
   const [setupChecked, setSetupChecked] = useState(preloaded != null);
@@ -61,6 +64,17 @@ export default function GoalsScreen() {
       const liveEMI = activeLoans.reduce((s, l) => s + (emiMap.get(l.id) ?? l.emi_amount), 0);
       setTotalMonthlyEMI(liveEMI);
       setCockpitData(cockpit);
+
+      // Insurance coverage summary
+      try {
+        const activePols = await getActivePolicies(DEFAULT_USER_ID);
+        setInsuranceCount(activePols.length);
+        const monthlyIncome = salary?.manual_monthly_in_hand || salary?.computed_monthly_in_hand || 0;
+        const adeq = await getInsuranceAdequacy(DEFAULT_USER_ID, monthlyIncome * 12);
+        setInsuranceAdequacy(adeq);
+      } catch {
+        // insurance not critical for page render
+      }
     } catch {
       // DB not ready
     }
@@ -534,6 +548,29 @@ export default function GoalsScreen() {
                   {activeLoansCount > 0
                     ? `${activeLoansCount} active · ${formatAmount(totalMonthlyEMI)}/mo EMI`
                     : "No active loans"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/goals/risk-coverage" as never)}
+              className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+            >
+              <View
+                className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: "#8B5CF614" }}
+              >
+                <Ionicons name="shield-checkmark-outline" size={18} color="#8B5CF6" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                  Risk Coverage
+                </Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  {insuranceCount > 0
+                    ? `${insuranceCount} active ${insuranceCount === 1 ? "policy" : "policies"}${insuranceAdequacy ? ` · ${insuranceAdequacy.gaps.length > 0 ? `${insuranceAdequacy.gaps.length} gap${insuranceAdequacy.gaps.length > 1 ? "s" : ""}` : "All covered"}` : ""}`
+                    : "Track your insurance policies"}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />

@@ -339,9 +339,27 @@ export default function RetirementReportScreen() {
           <Card>
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-1">
-                  Retirement readiness
-                </Text>
+                <View className="flex-row items-center gap-1.5 mb-1">
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+                    Retirement readiness
+                  </Text>
+                  <Pressable
+                    onPress={() =>
+                      Alert.alert(
+                        "Readiness Score",
+                        "Your score is based on four factors:\n\n"
+                        + "• Corpus progress (40%) — how close your projected corpus is to the target\n"
+                        + "• Savings rate (25%) — higher savings rate = faster corpus growth\n"
+                        + "• Emergency fund (15%) — months of expenses covered by liquid assets\n"
+                        + "• Debt load (20%) — lower EMI-to-income ratio means more investable surplus\n\n"
+                        + "80+ Strong · 60-79 Good · 40-59 Needs work · <40 At risk",
+                      )
+                    }
+                    hitSlop={10}
+                  >
+                    <Ionicons name="information-circle-outline" size={14} color="#3B82F6" />
+                  </Pressable>
+                </View>
                 <Text className="text-3xl font-bold" style={{ color: scoreColor }}>
                   {report.readinessScore}/100
                 </Text>
@@ -649,79 +667,119 @@ export default function RetirementReportScreen() {
               Includes {report.inputs.healthcareInflationPct}% healthcare inflation escalation
             </Text>
             {report.drawdownPlan.map((d, di) => (
-              <View key={d.withdrawalRate} className="mb-3">
+              <Card key={d.withdrawalRate} className="mb-3">
                 <Pressable onPress={() => setExpandedDrawdown(expandedDrawdown === di ? null : di)}>
-                  <Card>
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
-                          {d.withdrawalRate}% withdrawal rate
-                        </Text>
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" numberOfLines={1}>
-                          {fmtCompact(d.monthlyWithdrawal)}/mo · {fmtCompact(d.annualWithdrawal)}/yr
-                        </Text>
-                      </View>
-                      <View className="flex-row items-center gap-2">
-                        <View className="items-end">
-                          <Text
-                            className="text-sm font-bold"
-                            style={{ color: d.sustainable ? status.success : status.danger }}
-                          >
-                            {d.corpusLastsYears >= 60 ? "60+" : d.corpusLastsYears} yrs
-                          </Text>
-                          <Text className="text-xs" style={{ color: d.sustainable ? status.success : status.danger }}>
-                            {d.sustainable ? "Sustainable" : "Runs out"}
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name={expandedDrawdown === di ? "chevron-up" : "chevron-down"}
-                          size={14}
-                          color={colors.textSecondary}
-                        />
-                      </View>
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-1">
+                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                        {d.withdrawalRate}% withdrawal rate
+                      </Text>
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" numberOfLines={1}>
+                        {fmtCompact(d.monthlyWithdrawal)}/mo · {fmtCompact(d.annualWithdrawal)}/yr
+                      </Text>
                     </View>
-                  </Card>
+                    <View className="flex-row items-center gap-2">
+                      <View className="items-end">
+                        <Text
+                          className="text-sm font-bold"
+                          style={{ color: d.sustainable ? status.success : status.danger }}
+                        >
+                          {d.corpusLastsYears >= 60 ? "60+" : d.corpusLastsYears} yrs
+                        </Text>
+                        <Text className="text-xs" style={{ color: d.sustainable ? status.success : status.danger }}>
+                          {d.sustainable ? "Sustainable" : "Runs out"}
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name={expandedDrawdown === di ? "chevron-up" : "chevron-down"}
+                        size={14}
+                        color={colors.textSecondary}
+                      />
+                    </View>
+                  </View>
                 </Pressable>
 
                 {expandedDrawdown === di && d.yearByYear.length > 0 && (
-                  <Card>
-                    <View className="flex-row items-center pb-1.5 mb-1 border-b border-border-light dark:border-border-dark">
-                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-8">Age</Text>
-                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Start</Text>
-                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Out</Text>
-                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">End</Text>
-                    </View>
-                    {d.yearByYear.slice(0, 15).map((yy) => (
-                      <View key={yy.year} className="flex-row items-center py-1 border-b border-border-light dark:border-border-dark">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-8">{yy.age}</Text>
-                        <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1 text-right" numberOfLines={1}>
-                          {fmtCompact(yy.corpusStart)}
-                        </Text>
-                        <Text className="text-xs flex-1 text-right" style={{ color: status.danger }} numberOfLines={1}>
-                          {fmtCompact(yy.withdrawal)}
-                        </Text>
-                        <Text
-                          className="text-xs font-semibold flex-1 text-right"
-                          style={{ color: yy.corpusEnd > 0 ? status.success : status.danger }}
-                          numberOfLines={1}
-                        >
-                          {fmtCompact(yy.corpusEnd)}
-                        </Text>
+                  <>
+                    <View className="border-t border-border-light dark:border-border-dark mt-3 pt-2">
+                      <View className="flex-row items-center pb-1.5 mb-1 border-b border-border-light dark:border-border-dark">
+                        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-8">Age</Text>
+                        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Start</Text>
+                        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Out</Text>
+                        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">End</Text>
                       </View>
-                    ))}
-                    {d.yearByYear.length > 15 && (
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center mt-2 opacity-60">
-                        +{d.yearByYear.length - 15} more years in PDF
-                      </Text>
-                    )}
-                  </Card>
+                      {d.yearByYear.slice(0, 15).map((yy) => (
+                        <View key={yy.year} className="flex-row items-center py-1 border-b border-border-light dark:border-border-dark">
+                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-8">{yy.age}</Text>
+                          <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1 text-right" numberOfLines={1}>
+                            {fmtCompact(yy.corpusStart)}
+                          </Text>
+                          <Text className="text-xs flex-1 text-right" style={{ color: status.danger }} numberOfLines={1}>
+                            {fmtCompact(yy.withdrawal)}
+                          </Text>
+                          <Text
+                            className="text-xs font-semibold flex-1 text-right"
+                            style={{ color: yy.corpusEnd > 0 ? status.success : status.danger }}
+                            numberOfLines={1}
+                          >
+                            {fmtCompact(yy.corpusEnd)}
+                          </Text>
+                        </View>
+                      ))}
+                      {d.yearByYear.length > 15 && (
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center mt-2 opacity-60">
+                          +{d.yearByYear.length - 15} more years in PDF
+                        </Text>
+                      )}
+                    </View>
+                  </>
                 )}
-              </View>
+              </Card>
             ))}
           </View>
         )}
 
-        {/* ── 9. RISKS & ACTIONS ── */}
+        {/* ── 9. INSURANCE COVERAGE ── */}
+        {report.insuranceCoverage && (report.insuranceCoverage.term || report.insuranceCoverage.health || report.insuranceCoverage.car.hasActive) && (
+          <View className="px-4 mt-4">
+            <SectionHeader title="Risk Coverage" />
+            <Card>
+              {report.insuranceCoverage.term && (
+                <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="shield-checkmark-outline" size={14} color={report.insuranceCoverage.term.isAdequate ? status.success : status.warning} />
+                    <Text className="text-xs text-text-primary dark:text-text-dark-primary">Term Life</Text>
+                  </View>
+                  <Text className="text-xs font-medium" style={{ color: report.insuranceCoverage.term.isAdequate ? status.success : status.warning }}>
+                    {fmtCompact(report.insuranceCoverage.term.sumInsured)} ({Math.round(report.insuranceCoverage.term.ratio)}× income)
+                  </Text>
+                </View>
+              )}
+              {report.insuranceCoverage.health && (
+                <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="medkit-outline" size={14} color={report.insuranceCoverage.health.isAdequate ? status.success : status.warning} />
+                    <Text className="text-xs text-text-primary dark:text-text-dark-primary">Health</Text>
+                  </View>
+                  <Text className="text-xs font-medium" style={{ color: report.insuranceCoverage.health.isAdequate ? status.success : status.warning }}>
+                    {fmtCompact(report.insuranceCoverage.health.sumInsured)} ({report.insuranceCoverage.health.familySize} members)
+                  </Text>
+                </View>
+              )}
+              {report.insuranceCoverage.car.hasActive && (
+                <View className="flex-row items-center justify-between py-2">
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="car-outline" size={14} color={status.success} />
+                    <Text className="text-xs text-text-primary dark:text-text-dark-primary">Car</Text>
+                  </View>
+                  <Text className="text-xs font-medium" style={{ color: status.success }}>Active</Text>
+                </View>
+              )}
+            </Card>
+          </View>
+        )}
+
+        {/* ── 10. RISKS & ACTIONS ── */}
         {report.risks.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Risk Flags" />

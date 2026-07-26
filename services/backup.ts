@@ -146,6 +146,8 @@ export const BACKUP_TABLES = [
   // v18.x — reconciliation. Sessions before items (FK: items.session_id → sessions.id).
   "reconciliation_sessions",
   "reconciliation_items",
+  // v19.x — insurance policies. Independent table, no FK dependencies.
+  "insurance_policies",
 ];
 
 // ---------------------------------------------------------------------------

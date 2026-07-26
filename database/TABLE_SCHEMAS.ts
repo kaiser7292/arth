@@ -870,6 +870,26 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "created_at",
     "deleted_at",
   ] as const,
+  // v19.x — insurance / risk coverage (migration 063)
+  insurance_policies: [
+    "id",
+    "user_id",
+    "policy_type",
+    "provider_name",
+    "policy_number",
+    "sum_insured",
+    "annual_premium",
+    "premium_frequency",
+    "start_date",
+    "expiry_date",
+    "is_active",
+    "notes",
+    "covers_family",
+    "family_members_covered",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+  ] as const,
 } as const;
 
 // Type helper to get column names for a specific table

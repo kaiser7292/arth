@@ -1,4 +1,10 @@
 import { getBalanceSheetColumn } from "@/services/balance-sheet";
+import {
+  getInsuranceAdequacy,
+  getInsuranceRiskFlags,
+  getInsuranceScoreBonus,
+  type InsuranceAdequacy,
+} from "@/services/insurance-policy";
 import { getLoansSummary } from "@/services/loan-accounts";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { getSavingsSnapshot } from "@/services/savings-tracker";
@@ -136,6 +142,8 @@ export interface RetirementReport {
 
   readinessScore: number;
   readinessLabel: string;
+
+  insuranceCoverage: InsuranceAdequacy | null;
 }
 
 function computeGrowingSIP(
@@ -348,20 +356,11 @@ function buildRisks(
   currentSavingsRate: number,
   totalAssets: number,
   currentMonthlyExpenses: number,
+  insuranceFlags: RetirementReport["risks"],
 ): RetirementReport["risks"] {
   const risks: RetirementReport["risks"] = [];
 
-  risks.push({
-    severity: "critical",
-    title: "Health insurance check",
-    description: "Ensure you have adequate health insurance (at least ₹10L family floater). Medical emergencies are the #1 retirement plan killer.",
-  });
-
-  risks.push({
-    severity: "critical",
-    title: "Term insurance check",
-    description: "If you have dependents, ensure term life cover of at least 10x annual income. This is non-negotiable until your corpus can self-insure.",
-  });
+  risks.push(...insuranceFlags);
 
   if (currentMonthlyInHand > 0) {
     const dti = (monthlyEMI / currentMonthlyInHand) * 100;
@@ -789,12 +788,19 @@ export async function generateRetirementReport(
 
     const targetSavingsRatePct = snapshot?.targetSavingsRatePct ?? 40;
 
+    const annualIncome = monthlyInHand * 12;
+    const [insuranceFlags, insuranceAdequacy] = await Promise.all([
+      getInsuranceRiskFlags(userId, annualIncome),
+      getInsuranceAdequacy(userId, annualIncome),
+    ]);
+
     const risks = buildRisks(
       monthlyEMI,
       monthlyInHand,
       currentSavingsRate,
       totalAssets,
       currentMonthlyExpenses,
+      insuranceFlags,
     );
 
     const actions = buildActions(
@@ -827,7 +833,8 @@ export async function generateRetirementReport(
       retirementAnnualExpense,
     );
 
-    const { score: readinessScore, label: readinessLabel } = computeReadinessScore(
+    const insuranceBonus = getInsuranceScoreBonus(insuranceAdequacy);
+    const { score: rawScore, label: readinessLabel } = computeReadinessScore(
       currentSavingsRate,
       projectedCorpus,
       targetCorpus,
@@ -835,6 +842,7 @@ export async function generateRetirementReport(
       monthlyEMI,
       monthlyInHand,
     );
+    const readinessScore = Math.min(100, rawScore + insuranceBonus);
 
     const ageWhatIf = buildAgeWhatIf(
       currentAge,
@@ -879,6 +887,7 @@ export async function generateRetirementReport(
       drawdownPlan,
       readinessScore,
       readinessLabel,
+      insuranceCoverage: insuranceAdequacy,
     };
   } catch (error) {
     throw new Error(

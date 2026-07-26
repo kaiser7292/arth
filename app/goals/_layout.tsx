@@ -68,6 +68,10 @@ export default function GoalsLayout() {
         name="health-grade"
         options={{ title: "Financial Health" }}
       />
+      <Stack.Screen
+        name="risk-coverage"
+        options={{ title: "Risk Coverage" }}
+      />
     </Stack>
   );
 }
