@@ -461,6 +461,9 @@ export async function exportRetirementPDF(
         <div style="font-size: 10px; color: #64748B; margin-bottom: 6px;">
           Est. income: ${htmlEscape(p.monthlyIncomeEstimate)}/mo &middot; SIP target: ${htmlEscape(p.sipTarget)}/mo
         </div>
+        <div style="font-size: 9px; color: #0F766E; background: #F0FDF4; padding: 3px 6px; border-radius: 3px; margin-bottom: 6px;">
+          ${htmlEscape(p.allocation)}
+        </div>
         <div style="font-size: 10px;">
           <strong>Goals:</strong> ${p.goals.map((g) => htmlEscape(g)).join(", ")}
         </div>
@@ -537,9 +540,39 @@ export async function exportRetirementPDF(
       (d) => `
       <tr>
         <td>${fmtPct(d.withdrawalRate)}</td>
-        <td class="amount">${fmtAmt(Math.round(d.annualWithdrawal))}</td>
-        <td class="amount" style="font-weight: 600; color: ${d.sustainable ? "#22C55E" : "#EF4444"};">${d.corpusLastsYears >= 60 ? "60+" : d.corpusLastsYears} years</td>
+        <td class="amount">${fmtAmt(Math.round(d.monthlyWithdrawal))}/mo</td>
+        <td class="amount">${fmtAmt(Math.round(d.annualWithdrawal))}/yr</td>
+        <td class="amount" style="font-weight: 600; color: ${d.sustainable ? "#22C55E" : "#EF4444"};">${d.corpusLastsYears >= 60 ? "60+" : d.corpusLastsYears} yrs</td>
         <td style="text-align: center; color: ${d.sustainable ? "#22C55E" : "#EF4444"}; font-weight: 600;">${d.sustainable ? "Yes" : "No"}</td>
+      </tr>`,
+    )
+    .join("");
+
+  // Year-by-year for the recommended 4% rate
+  const recommended = report.drawdownPlan.find((d) => d.withdrawalRate === 4) ?? report.drawdownPlan[1];
+  const yearByYearRows = recommended?.yearByYear
+    .map(
+      (yy) => `
+      <tr>
+        <td>${yy.age}</td>
+        <td class="amount">${fmtAmt(Math.round(yy.corpusStart))}</td>
+        <td class="amount" style="color: #EF4444;">${fmtAmt(Math.round(yy.withdrawal))}</td>
+        <td class="amount">${fmtAmt(Math.round(yy.growth))}</td>
+        <td class="amount" style="font-weight: 600; color: ${yy.corpusEnd > 0 ? "#22C55E" : "#EF4444"};">${fmtAmt(Math.round(yy.corpusEnd))}</td>
+      </tr>`,
+    )
+    .join("") ?? "";
+
+  // Age what-if table
+  const whatIfRows = report.ageWhatIf
+    .map(
+      (w) => `
+      <tr>
+        <td style="font-weight: 600;">${w.retireAt}${w.retireAt === report.inputs.retirementAge ? " ✓" : ""}</td>
+        <td class="amount">${w.yearsToRetirement} yrs</td>
+        <td class="amount">${fmtAmt(Math.round(w.targetCorpus))}</td>
+        <td class="amount">${fmtAmt(Math.round(w.requiredSIP))}/mo</td>
+        <td style="text-align: center; color: ${w.feasible ? "#22C55E" : "#EF4444"}; font-weight: 600;">${w.feasible ? "Yes" : "No"}</td>
       </tr>`,
     )
     .join("");
@@ -550,7 +583,11 @@ export async function exportRetirementPDF(
       <div class="card" style="margin-bottom: 6px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
           <span style="font-weight: 700; font-size: 11px;">${htmlEscape(m.name)}</span>
-          <span style="font-weight: 700; font-size: 11px; color: #0F766E;">${fmtAmt(Math.round(m.targetAmount))}</span>
+          <span style="font-size: 9px; color: #64748B;">${m.yearsAway > 0 ? m.yearsAway + " yrs away" : "Due now"}</span>
+        </div>
+        <div style="display: flex; gap: 12px; margin-bottom: 4px; font-size: 10px;">
+          <div>Today: <strong>${fmtAmt(Math.round(m.targetAmount))}</strong></div>
+          <div>Inflated: <strong style="color: #F59E0B;">${fmtAmt(Math.round(m.inflatedCost))}</strong></div>
         </div>
         <div style="height: 4px; background: #E2E8F0; border-radius: 2px; overflow: hidden; margin-bottom: 4px;">
           <div style="height: 100%; width: ${m.progressPct}%; background: ${m.progressPct >= 50 ? "#22C55E" : "#F59E0B"}; border-radius: 2px;"></div>
@@ -642,18 +679,34 @@ export async function exportRetirementPDF(
       <div class="section-title">Phase Plan</div>
       ${phaseRows}
 
-      ${report.drawdownPlan.length > 0 ? `
-        <div class="section-title">Post-Retirement Drawdown</div>
-        <div style="font-size: 10px; color: #64748B; margin-bottom: 6px;">How long your corpus lasts at different withdrawal rates</div>
+      ${report.ageWhatIf.length > 0 ? `
+        <div class="section-title">What If You Retire At...</div>
         <table class="data-table">
-          <thead><tr><th>Rate</th><th style="text-align: right;">Annual Withdrawal</th><th style="text-align: right;">Lasts</th><th style="text-align: center;">Sustainable</th></tr></thead>
-          <tbody>${drawdownRows}</tbody>
+          <thead><tr><th>Age</th><th style="text-align: right;">Years</th><th style="text-align: right;">Target Corpus</th><th style="text-align: right;">SIP Needed</th><th style="text-align: center;">Feasible</th></tr></thead>
+          <tbody>${whatIfRows}</tbody>
         </table>
       ` : ""}
 
+      ${report.drawdownPlan.length > 0 ? `
+        <div class="section-title">Post-Retirement Drawdown</div>
+        <div style="font-size: 10px; color: #64748B; margin-bottom: 6px;">Includes ${fmtPct(report.inputs.healthcareInflationPct)} healthcare inflation escalation</div>
+        <table class="data-table">
+          <thead><tr><th>Rate</th><th style="text-align: right;">Monthly</th><th style="text-align: right;">Annual</th><th style="text-align: right;">Lasts</th><th style="text-align: center;">OK</th></tr></thead>
+          <tbody>${drawdownRows}</tbody>
+        </table>
+
+        ${yearByYearRows ? `
+          <div style="font-size: 10px; font-weight: 600; margin: 8px 0 4px;">Year-by-Year (4% Rate)</div>
+          <table class="data-table">
+            <thead><tr><th>Age</th><th style="text-align: right;">Corpus Start</th><th style="text-align: right;">Withdraw</th><th style="text-align: right;">Growth</th><th style="text-align: right;">Corpus End</th></tr></thead>
+            <tbody>${yearByYearRows}</tbody>
+          </table>
+        ` : ""}
+      ` : ""}
+
       ${report.milestones.length > 0 ? `
-        <div class="section-title">Life Milestones</div>
-        <div style="font-size: 10px; color: #64748B; margin-bottom: 6px;">Active milestones and their impact on your retirement plan</div>
+        <div class="section-title">Life Milestones &amp; Their Real Cost</div>
+        <div style="font-size: 10px; color: #64748B; margin-bottom: 6px;">Costs inflated at ${fmtPct(report.inputs.inflationPct)} to target year</div>
         ${milestoneRows}
       ` : ""}
 
@@ -672,11 +725,14 @@ export async function exportRetirementPDF(
       ${disclaimerHtml()}
       <div style="margin-top: 8px; font-size: 9px; color: #92400E;">
         <strong>Assumptions:</strong>
+        Age: ${report.currentAge} &middot;
         Expected return: ${fmtPct(report.inputs.expectedReturnPct)} &middot;
         Inflation: ${fmtPct(report.inputs.inflationPct)} &middot;
+        Healthcare inflation: ${fmtPct(report.inputs.healthcareInflationPct)} &middot;
+        Post-retirement expenses: ${report.inputs.postRetirementExpensePct}% &middot;
         Salary growth: ${fmtPct(report.inputs.salaryGrowthPct)} &middot;
         Life expectancy: ${report.inputs.lifeExpectancy} years &middot;
-        Retirement portfolio yield: ${fmtPct(report.inputs.retirementPortfolioYieldPct)}
+        Portfolio yield: ${fmtPct(report.inputs.retirementPortfolioYieldPct)}
       </div>
     </div>
   `;

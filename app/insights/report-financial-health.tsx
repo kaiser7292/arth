@@ -30,26 +30,6 @@ function gradeColor(grade: string, colorScheme: "light" | "dark") {
   return s.danger;
 }
 
-function GradeBar({ label, grade, score, colorScheme }: { label: string; grade: string; score: number; colorScheme: "light" | "dark" }) {
-  const color = gradeColor(grade, colorScheme);
-  return (
-    <View className="flex-row items-center gap-2 mb-2">
-      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-20 text-right">
-        {label}
-      </Text>
-      <View className="flex-1 h-1.5 bg-border-light dark:bg-border-dark rounded-full overflow-hidden">
-        <View
-          className="h-full rounded-full"
-          style={{ width: `${score}%`, backgroundColor: color }}
-        />
-      </View>
-      <Text className="text-xs font-semibold w-6" style={{ color }}>
-        {grade}
-      </Text>
-    </View>
-  );
-}
-
 function StatBox({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
     <View className="bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark flex-1">
@@ -64,6 +44,14 @@ function StatBox({ label, value, color }: { label: string; value: string; color?
     </View>
   );
 }
+
+const DIMENSION_ICONS: Record<string, string> = {
+  "Savings Rate": "trending-up-outline",
+  "Debt Management": "card-outline",
+  "Diversification": "pie-chart-outline",
+  "Emergency Fund": "shield-checkmark-outline",
+  "Spending Discipline": "pulse-outline",
+};
 
 export default function FinancialHealthReportScreen() {
   const router = useRouter();
@@ -96,14 +84,19 @@ export default function FinancialHealthReportScreen() {
     setExporting(false);
   }
 
+  function getFYDates() {
+    const startMonth = getFYStartMonth();
+    const fyYear = getCurrentFY(startMonth);
+    const { start, end } = getFYRange(fyYear, startMonth);
+    return { startDate: toIsoDate(start), endDate: toIsoDate(end) };
+  }
+
   async function drillCategory(categoryId: string, categoryName: string) {
     try {
-      const startMonth = getFYStartMonth();
-      const fyYear = getCurrentFY(startMonth);
-      const { start, end } = getFYRange(fyYear, startMonth);
+      const { startDate, endDate } = getFYDates();
       const txns = await getExpensesPaginated(
         DEFAULT_USER_ID,
-        { categoryIds: [categoryId], startDate: toIsoDate(start), endDate: toIsoDate(end), status: "approved" },
+        { categoryIds: [categoryId], startDate, endDate, status: "approved" },
         200,
       );
       if (txns.length === 0) return;
@@ -133,6 +126,30 @@ export default function FinancialHealthReportScreen() {
         params: {
           expenseIds: txns.map((t) => t.id).join(","),
           title: `${categoryName} — This Month`,
+        },
+      });
+    } catch {}
+  }
+
+  async function drillFixedOrDiscretionary(type: "fixed" | "discretionary") {
+    try {
+      const { startDate, endDate } = getFYDates();
+      const txns = await getExpensesPaginated(
+        DEFAULT_USER_ID,
+        {
+          avoidability: type === "fixed" ? "unavoidable" : "avoidable",
+          startDate,
+          endDate,
+          status: "approved",
+        },
+        200,
+      );
+      if (txns.length === 0) return;
+      router.push({
+        pathname: "/insights/filtered" as never,
+        params: {
+          expenseIds: txns.map((t) => t.id).join(","),
+          title: type === "fixed" ? "Fixed Expenses" : "Discretionary Expenses",
         },
       });
     } catch {}
@@ -178,52 +195,64 @@ export default function FinancialHealthReportScreen() {
           </Text>
         </View>
 
-        {/* Grade Card */}
+        {/* Overall Grade — hero card */}
         <View className="px-4 mb-3">
           <Card>
-            <View className="flex-row items-start justify-between">
-              <View className="flex-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-1">
-                  Overall grade
-                </Text>
-                <Text className="text-4xl font-bold" style={{ color: gc }}>
+            <View className="items-center py-2">
+              {/* Grade ring */}
+              <View
+                className="w-20 h-20 rounded-full items-center justify-center mb-2"
+                style={{
+                  borderWidth: 4,
+                  borderColor: gc,
+                  backgroundColor: `${gc}10`,
+                }}
+              >
+                <Text className="text-3xl font-bold" style={{ color: gc }}>
                   {report.overallGrade}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
-                  {report.gradeSummary}
-                </Text>
               </View>
-              <View className="flex-1 pl-2 pt-1">
-                {report.dimensions.map((d) => (
-                  <GradeBar
-                    key={d.name}
-                    label={d.name}
-                    grade={d.grade}
-                    score={d.score}
-                    colorScheme={colorScheme}
-                  />
-                ))}
-              </View>
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                Score: {report.overallScore}/100
+              </Text>
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center mt-1 px-4">
+                {report.gradeSummary}
+              </Text>
             </View>
           </Card>
         </View>
 
-        {/* Dimension Detail */}
-        <View className="px-4">
-          {report.dimensions.map((d) => {
-            const dc = gradeColor(d.grade, colorScheme);
-            return (
-              <View key={d.name} className="flex-row items-center gap-2 mb-2">
-                <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: `${dc}18` }}>
-                  <Text className="text-xs font-bold" style={{ color: dc }}>{d.grade}</Text>
+        {/* Dimension grades — compact horizontal cards */}
+        <View className="px-4 mb-1">
+          <View className="flex-row flex-wrap gap-2">
+            {report.dimensions.map((d) => {
+              const dc = gradeColor(d.grade, colorScheme);
+              const iconName = DIMENSION_ICONS[d.name] || "ellipse-outline";
+              return (
+                <View
+                  key={d.name}
+                  className="rounded-xl p-2.5 border"
+                  style={{
+                    borderColor: `${dc}30`,
+                    backgroundColor: `${dc}08`,
+                    width: "48%",
+                    flexGrow: 1,
+                  }}
+                >
+                  <View className="flex-row items-center gap-2 mb-1">
+                    <Ionicons name={iconName as any} size={14} color={dc} />
+                    <Text className="text-xs font-bold" style={{ color: dc }}>{d.grade}</Text>
+                  </View>
+                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                    {d.name}
+                  </Text>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5" numberOfLines={2} style={{ fontSize: 10 }}>
+                    {d.description}
+                  </Text>
                 </View>
-                <View className="flex-1">
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{d.name}</Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{d.description}</Text>
-                </View>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
 
         {/* Net Worth */}
@@ -248,19 +277,22 @@ export default function FinancialHealthReportScreen() {
           </Card>
         </View>
 
-        {/* Savings Rate Trend — detailed breakdown */}
+        {/* Savings Rate Trend */}
         {report.monthlySavingsRates.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Savings Rate Trend" />
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2 -mt-1 opacity-70">
+              Based on income from your salary profile
+            </Text>
             <Card>
               {/* Bar chart */}
               <View className="flex-row items-end gap-1.5" style={{ height: 80 }}>
                 {report.monthlySavingsRates.map((m, i) => {
-                  const h = Math.max(4, (m.rate / 100) * 70);
+                  const h = Math.max(4, (Math.max(0, m.rate) / 100) * 70);
                   const isLast = i === report.monthlySavingsRates.length - 1;
                   return (
                     <View key={m.month} className="flex-1 items-center gap-1">
-                      <Text className="text-xs font-medium" style={{ color: status.success, fontSize: 9 }}>
+                      <Text className="text-xs font-medium" style={{ color: m.rate >= 0 ? status.success : status.danger, fontSize: 9 }}>
                         {Math.round(m.rate)}%
                       </Text>
                       <View
@@ -283,55 +315,57 @@ export default function FinancialHealthReportScreen() {
                     className="flex-1 text-center text-text-secondary dark:text-text-dark-secondary"
                     style={{ fontSize: 9 }}
                   >
-                    {m.month.slice(5)}
+                    {m.month}
                   </Text>
                 ))}
               </View>
             </Card>
 
             {/* Monthly detail table */}
-            <Card>
-              <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary mb-2">
-                How each month's savings rate is derived
-              </Text>
-              {/* Header */}
-              <View className="flex-row items-center pb-1.5 mb-1 border-b border-border-light dark:border-border-dark">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10">Month</Text>
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Income</Text>
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Spent</Text>
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Saved</Text>
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10 text-right">Rate</Text>
-              </View>
-              {report.monthlySavingsRates.map((m) => (
-                <View key={m.month} className="flex-row items-center py-1.5 border-b border-border-light dark:border-border-dark">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-10">{m.month.slice(5)}</Text>
-                  <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1 text-right">{formatAmount(m.income)}</Text>
-                  <Text className="text-xs flex-1 text-right" style={{ color: status.danger }}>{formatAmount(m.expenses)}</Text>
-                  <Text className="text-xs font-medium flex-1 text-right" style={{ color: m.saved >= 0 ? status.success : status.danger }}>
-                    {formatAmount(m.saved)}
+            <View className="mt-3">
+              <Card>
+                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary mb-2">
+                  Monthly breakdown
+                </Text>
+                {/* Header */}
+                <View className="flex-row items-center pb-1.5 mb-1 border-b border-border-light dark:border-border-dark">
+                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10">Month</Text>
+                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Income</Text>
+                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Spent</Text>
+                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Saved</Text>
+                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10 text-right">Rate</Text>
+                </View>
+                {report.monthlySavingsRates.map((m) => (
+                  <View key={m.month} className="flex-row items-center py-1.5 border-b border-border-light dark:border-border-dark">
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-10">{m.month}</Text>
+                    <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1 text-right">{formatAmount(m.income)}</Text>
+                    <Text className="text-xs flex-1 text-right" style={{ color: status.danger }}>{formatAmount(m.expenses)}</Text>
+                    <Text className="text-xs font-medium flex-1 text-right" style={{ color: m.saved >= 0 ? status.success : status.danger }}>
+                      {formatAmount(m.saved)}
+                    </Text>
+                    <Text className="text-xs font-semibold w-10 text-right" style={{ color: m.rate >= 30 ? status.success : m.rate >= 0 ? status.warning : status.danger }}>
+                      {Math.round(m.rate)}%
+                    </Text>
+                  </View>
+                ))}
+                {/* Average row */}
+                <View className="flex-row items-center pt-2 mt-1">
+                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-10">Avg</Text>
+                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1 text-right">
+                    {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.income, 0) / report.monthlySavingsRates.length)}
                   </Text>
-                  <Text className="text-xs font-semibold w-10 text-right" style={{ color: m.rate >= 30 ? status.success : m.rate >= 0 ? status.warning : status.danger }}>
-                    {Math.round(m.rate)}%
+                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.danger }}>
+                    {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.expenses, 0) / report.monthlySavingsRates.length)}
+                  </Text>
+                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.success }}>
+                    {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.saved, 0) / report.monthlySavingsRates.length)}
+                  </Text>
+                  <Text className="text-xs font-bold w-10 text-right" style={{ color: report.avgSavingsRate >= 30 ? status.success : status.warning }}>
+                    {Math.round(report.avgSavingsRate)}%
                   </Text>
                 </View>
-              ))}
-              {/* Average row */}
-              <View className="flex-row items-center pt-2 mt-1">
-                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-10">Avg</Text>
-                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1 text-right">
-                  {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.income, 0) / report.monthlySavingsRates.length)}
-                </Text>
-                <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.danger }}>
-                  {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.expenses, 0) / report.monthlySavingsRates.length)}
-                </Text>
-                <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.success }}>
-                  {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.saved, 0) / report.monthlySavingsRates.length)}
-                </Text>
-                <Text className="text-xs font-bold w-10 text-right" style={{ color: report.avgSavingsRate >= 30 ? status.success : status.warning }}>
-                  {Math.round(report.avgSavingsRate)}%
-                </Text>
-              </View>
-            </Card>
+              </Card>
+            </View>
           </View>
         )}
 
@@ -436,31 +470,55 @@ export default function FinancialHealthReportScreen() {
           </View>
         )}
 
-        {/* Fixed vs Discretionary */}
-        {report.fixedVsDiscretionary && (
+        {/* Fixed vs Discretionary — with drilldowns */}
+        {report.fixedVsDiscretionary && (report.fixedVsDiscretionary.fixed > 0 || report.fixedVsDiscretionary.discretionary > 0) && (
           <View className="px-4 mt-4">
+            <SectionHeader title="Fixed vs Discretionary" />
             <Card>
-              <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">Fixed vs Discretionary</Text>
-              </View>
-              <View className="flex-row h-2 rounded-full overflow-hidden mb-2">
+              <View className="flex-row h-2.5 rounded-full overflow-hidden mb-3">
                 <View style={{ flex: report.fixedVsDiscretionary.fixed, backgroundColor: "#6B7280" }} />
                 <View style={{ flex: report.fixedVsDiscretionary.discretionary, backgroundColor: tint }} />
               </View>
-              <View className="flex-row justify-between">
-                <View className="flex-row items-center gap-1">
-                  <View className="w-2 h-2 rounded-full" style={{ backgroundColor: "#6B7280" }} />
+              <Pressable
+                onPress={() => drillFixedOrDiscretionary("fixed")}
+                className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark"
+              >
+                <View className="flex-row items-center gap-2">
+                  <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#6B7280" }} />
+                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                    Fixed / Essential
+                  </Text>
+                  <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />
+                </View>
+                <View className="flex-row items-center gap-2">
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                    Fixed {formatAmount(report.fixedVsDiscretionary.fixed)}
+                    {Math.round(report.fixedVsDiscretionary.fixedPct)}%
+                  </Text>
+                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-16 text-right">
+                    {formatAmount(report.fixedVsDiscretionary.fixed)}
                   </Text>
                 </View>
-                <View className="flex-row items-center gap-1">
-                  <View className="w-2 h-2 rounded-full" style={{ backgroundColor: tint }} />
+              </Pressable>
+              <Pressable
+                onPress={() => drillFixedOrDiscretionary("discretionary")}
+                className="flex-row items-center justify-between py-2"
+              >
+                <View className="flex-row items-center gap-2">
+                  <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tint }} />
+                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                    Discretionary
+                  </Text>
+                  <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />
+                </View>
+                <View className="flex-row items-center gap-2">
                   <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                    Discretionary {formatAmount(report.fixedVsDiscretionary.discretionary)}
+                    {Math.round(report.fixedVsDiscretionary.discretionaryPct)}%
+                  </Text>
+                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-16 text-right">
+                    {formatAmount(report.fixedVsDiscretionary.discretionary)}
                   </Text>
                 </View>
-              </View>
+              </Pressable>
             </Card>
           </View>
         )}

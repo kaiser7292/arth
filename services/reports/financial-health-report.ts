@@ -178,13 +178,19 @@ export async function generateFinancialHealthReport(
     ]);
 
     const currentSavingsRate = snapshot?.actualSavingsRatePct ?? 0;
-    const monthlySavingsRates = (trend ?? []).map((t) => ({
-      month: String(t.fiscalMonth),
-      rate: t.savingsRatePct,
-      income: t.income,
-      expenses: t.expenses,
-      saved: t.saved,
-    }));
+    // Convert fiscal month number to readable label (e.g. fiscal month 1 → "Apr")
+    const fyStartMo = startMonth; // 1-indexed calendar month (4 = April for Indian FY)
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthlySavingsRates = (trend ?? []).map((t) => {
+      const calMonth = ((fyStartMo - 1 + t.fiscalMonth - 1) % 12);
+      return {
+        month: monthNames[calMonth],
+        rate: t.savingsRatePct,
+        income: t.income,
+        expenses: t.expenses,
+        saved: t.saved,
+      };
+    });
     const avgSavingsRate =
       monthlySavingsRates.length > 0
         ? monthlySavingsRates.reduce((sum, m) => sum + m.rate, 0) /

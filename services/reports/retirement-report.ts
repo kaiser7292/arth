@@ -8,25 +8,31 @@ import { toIsoDate } from "@/utils/date";
 import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
 
 export interface RetirementInputs {
+  currentAge: number;
   retirementAge: number;
   lifeExpectancy: number;
   expectedReturnPct: number;
   inflationPct: number;
+  healthcareInflationPct: number;
   salaryGrowthPct: number;
   educationInflationPct: number;
   numberOfChildren: number;
   retirementPortfolioYieldPct: number;
+  postRetirementExpensePct: number;
 }
 
 export const DEFAULT_RETIREMENT_INPUTS: RetirementInputs = {
+  currentAge: 30,
   retirementAge: 55,
   lifeExpectancy: 85,
   expectedReturnPct: 12,
   inflationPct: 6.5,
+  healthcareInflationPct: 10,
   salaryGrowthPct: 10,
   educationInflationPct: 9,
   numberOfChildren: 1,
   retirementPortfolioYieldPct: 8,
+  postRetirementExpensePct: 75,
 };
 
 export interface RetirementReport {
@@ -63,6 +69,15 @@ export interface RetirementReport {
     isAchievable: boolean;
   }[];
 
+  ageWhatIf: {
+    retireAt: number;
+    yearsToRetirement: number;
+    targetCorpus: number;
+    requiredSIP: number;
+    projectedCorpus: number;
+    feasible: boolean;
+  }[];
+
   phases: {
     name: string;
     yearRange: string;
@@ -70,6 +85,7 @@ export interface RetirementReport {
     sipTarget: string;
     goals: string[];
     keyActions: string[];
+    allocation: string;
   }[];
 
   childEducation: {
@@ -94,9 +110,11 @@ export interface RetirementReport {
   milestones: {
     name: string;
     targetAmount: number;
+    inflatedCost: number;
     currentSaved: number;
     progressPct: number;
     targetDate: string | null;
+    yearsAway: number;
     monthlyNeeded: number;
     impactOnRetirement: string;
   }[];
@@ -112,8 +130,18 @@ export interface RetirementReport {
   drawdownPlan: {
     withdrawalRate: number;
     annualWithdrawal: number;
+    monthlyWithdrawal: number;
     corpusLastsYears: number;
+    corpusAtEnd: number;
     sustainable: boolean;
+    yearByYear: {
+      year: number;
+      age: number;
+      corpusStart: number;
+      withdrawal: number;
+      growth: number;
+      corpusEnd: number;
+    }[];
   }[];
 
   readinessScore: number;
@@ -176,6 +204,7 @@ function buildPhases(
   salaryGrowthPct: number,
   requiredMonthlySIP: number,
   monthlyEMI: number,
+  milestoneGoals: { year: number; label: string }[],
 ): RetirementReport["phases"] {
   if (yearsToRetirement <= 0) return [];
 
@@ -188,6 +217,7 @@ function buildPhases(
     endYear: number;
     goals: string[];
     keyActions: string[];
+    allocation: string;
   }[] = [];
 
   if (yearsToRetirement <= 5) {
@@ -201,6 +231,7 @@ function buildPhases(
         "Build 2-year cash runway for early retirement years",
         "Review health and term insurance adequacy",
       ],
+      allocation: "30% Equity · 50% Debt · 20% Cash",
     });
   } else if (yearsToRetirement <= 10) {
     phaseDefs.push(
@@ -214,6 +245,7 @@ function buildPhases(
           "Start SIP of " + formatRupees(requiredMonthlySIP) + "/month",
           "Get term insurance (10x annual income) and health insurance (10L+)",
         ],
+        allocation: "70% Equity · 20% Debt · 10% Gold",
       },
       {
         name: "Acceleration",
@@ -225,6 +257,7 @@ function buildPhases(
           "Diversify across equity, debt, and gold",
           "Review and rebalance portfolio annually",
         ],
+        allocation: "60% Equity · 30% Debt · 10% Gold",
       },
       {
         name: "Power Accumulation",
@@ -236,6 +269,7 @@ function buildPhases(
           "Consider real estate if not already owned",
           "Start shifting to balanced funds in final 3 years",
         ],
+        allocation: "40% Equity · 40% Debt · 20% Cash",
       },
     );
   } else {
@@ -250,6 +284,7 @@ function buildPhases(
           "Start SIP of " + formatRupees(requiredMonthlySIP) + "/month",
           "Get term insurance (10x annual income) and health insurance (10L+)",
         ],
+        allocation: "80% Equity · 15% Debt · 5% Gold",
       },
       {
         name: "Acceleration",
@@ -261,6 +296,7 @@ function buildPhases(
           "Target 80/20 equity-debt split",
           "Start tax-saving investments (ELSS, PPF, NPS)",
         ],
+        allocation: "80% Equity · 15% Debt · 5% Gold",
       },
       {
         name: "House + Family",
@@ -272,6 +308,7 @@ function buildPhases(
           "Start child education SIP if applicable",
           "Continue stepping up retirement SIP despite EMI",
         ],
+        allocation: "70% Equity · 20% Debt · 10% Gold",
       },
       {
         name: "Power Accumulation",
@@ -283,8 +320,19 @@ function buildPhases(
           "Shift to 60/40 equity-debt in final 5 years",
           "Build 2-year cash runway before retirement date",
         ],
+        allocation: "50% Equity · 35% Debt · 15% Cash",
       },
     );
+  }
+
+  // Inject milestone goals into matching phases
+  for (const mg of milestoneGoals) {
+    for (const phase of phaseDefs) {
+      if (mg.year >= phase.startYear && mg.year <= phase.endYear) {
+        phase.goals.push(mg.label);
+        break;
+      }
+    }
   }
 
   return phaseDefs.map((phase) => {
@@ -299,6 +347,7 @@ function buildPhases(
       sipTarget: formatRupees(sipAtMid),
       goals: phase.goals,
       keyActions: phase.keyActions,
+      allocation: phase.allocation,
     };
   });
 }
@@ -443,27 +492,58 @@ function buildCorpusMilestones(
 
 function buildDrawdownPlan(
   targetCorpus: number,
-  retirementAnnualExpense: number,
   inflationPct: number,
   portfolioYieldPct: number,
+  healthcareInflationPct: number,
   lifeExpectancy: number,
   retirementAge: number,
+  retirementAnnualExpense: number,
 ): RetirementReport["drawdownPlan"] {
   const rates = [3, 4, 5, 6];
+  const retirementYears = lifeExpectancy - retirementAge;
+  const realReturn = (portfolioYieldPct - inflationPct) / 100;
+  const healthcareEscalation = (healthcareInflationPct - inflationPct) / 100;
+
   return rates.map((rate) => {
     const annualWithdrawal = targetCorpus * rate / 100;
+    const monthlyWithdrawal = annualWithdrawal / 12;
+
+    // Year-by-year simulation
     let corpus = targetCorpus;
+    const yearByYear: RetirementReport["drawdownPlan"][0]["yearByYear"] = [];
     let years = 0;
-    const realReturn = (portfolioYieldPct - inflationPct) / 100;
-    while (corpus > 0 && years < 60) {
-      corpus = corpus * (1 + realReturn) - annualWithdrawal;
-      years++;
+
+    const maxYears = Math.min(retirementYears + 10, 60);
+    for (let y = 1; y <= maxYears && corpus > 0; y++) {
+      const corpusStart = corpus;
+      // Healthcare costs escalate faster than general inflation
+      const healthcareSurcharge = corpusStart * 0.05 * Math.pow(1 + healthcareEscalation, y);
+      const withdrawal = annualWithdrawal + healthcareSurcharge;
+      const growth = corpusStart * realReturn;
+      corpus = corpusStart + growth - withdrawal;
+      if (corpus < 0) corpus = 0;
+      years = y;
+
+      yearByYear.push({
+        year: y,
+        age: retirementAge + y,
+        corpusStart: Math.round(corpusStart),
+        withdrawal: Math.round(withdrawal),
+        growth: Math.round(growth),
+        corpusEnd: Math.round(corpus),
+      });
+
+      if (corpus <= 0) break;
     }
+
     return {
       withdrawalRate: rate,
       annualWithdrawal: Math.round(annualWithdrawal),
+      monthlyWithdrawal: Math.round(monthlyWithdrawal),
       corpusLastsYears: years,
-      sustainable: years >= (lifeExpectancy - retirementAge),
+      corpusAtEnd: Math.round(corpus),
+      sustainable: years >= retirementYears,
+      yearByYear,
     };
   });
 }
@@ -471,6 +551,8 @@ function buildDrawdownPlan(
 function buildMilestoneImpact(
   milestones: LifeMilestone[],
   currentMonthlyInHand: number,
+  currentAge: number,
+  inflationPct: number,
 ): RetirementReport["milestones"] {
   return milestones
     .filter((m) => m.is_completed === 0)
@@ -480,21 +562,37 @@ function buildMilestoneImpact(
       const progressPct = m.target_amount > 0
         ? Math.min(100, (m.current_saved / m.target_amount) * 100)
         : 0;
+
+      // Calculate years away from target date or duration
+      let yearsAway = totalMonths / 12;
+      if (m.target_date) {
+        const target = new Date(m.target_date);
+        const now = new Date();
+        yearsAway = Math.max(0, (target.getTime() - now.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      }
+
+      // Inflate cost to target year
+      const inflatedCost = m.target_amount * Math.pow(1 + inflationPct / 100, yearsAway);
+
       const monthlyNeeded = m.monthly_contribution_planned > 0
         ? m.monthly_contribution_planned
-        : remaining / totalMonths;
+        : remaining / Math.max(1, yearsAway * 12);
+
       const pctOfIncome = currentMonthlyInHand > 0
         ? Math.round((monthlyNeeded / currentMonthlyInHand) * 100)
         : 0;
       const impactOnRetirement = pctOfIncome > 0
-        ? `Uses ${pctOfIncome}% of monthly income`
+        ? `Uses ${pctOfIncome}% of monthly income · Inflated cost: ${formatRupees(inflatedCost)}`
         : "No income impact data";
+
       return {
         name: m.name,
         targetAmount: m.target_amount,
+        inflatedCost: Math.round(inflatedCost),
         currentSaved: m.current_saved,
         progressPct: Math.round(progressPct),
         targetDate: m.target_date,
+        yearsAway: Math.round(yearsAway * 10) / 10,
         monthlyNeeded: Math.round(monthlyNeeded),
         impactOnRetirement,
       };
@@ -540,6 +638,39 @@ function computeReadinessScore(
   return { score, label };
 }
 
+function buildAgeWhatIf(
+  currentAge: number,
+  totalAssets: number,
+  retirementMonthlyExpenseToday: number,
+  inflationPct: number,
+  expectedReturnPct: number,
+  sipStepUpPct: number,
+  postRetirementExpensePct: number,
+): RetirementReport["ageWhatIf"] {
+  const ages = [50, 55, 60];
+  return ages
+    .filter((a) => a > currentAge)
+    .map((retireAt) => {
+      const yrs = retireAt - currentAge;
+      const monthlyExpAdj = retirementMonthlyExpenseToday * (postRetirementExpensePct / 100);
+      const inflated = monthlyExpAdj * Math.pow(1 + inflationPct / 100, yrs);
+      const annual = inflated * 12;
+      const target = annual * 28;
+      const existingAtRetire = totalAssets * Math.pow(1 + expectedReturnPct / 100, yrs);
+      const gap = Math.max(0, target - existingAtRetire);
+      const sip = computeGrowingSIP(gap, expectedReturnPct, sipStepUpPct, yrs);
+      const projected = existingAtRetire + computeProjectedCorpus(sip, expectedReturnPct, sipStepUpPct, yrs);
+      return {
+        retireAt,
+        yearsToRetirement: yrs,
+        targetCorpus: Math.round(target),
+        requiredSIP: Math.round(sip),
+        projectedCorpus: Math.round(projected),
+        feasible: projected >= target,
+      };
+    });
+}
+
 export async function generateRetirementReport(
   userId: string,
   inputs: RetirementInputs,
@@ -567,7 +698,6 @@ export async function generateRetirementReport(
     const monthlyEMI = loansSummary?.totalMonthlyEMI ?? 0;
 
     const { start: fyStart } = getFYRange(fyYear, startMonth);
-    const fyStartDate = fyStart.getTime();
     const monthsElapsed = snapshot?.monthsElapsed ?? Math.max(1,
       (now.getFullYear() - fyStart.getFullYear()) * 12 +
       (now.getMonth() - fyStart.getMonth()) + 1,
@@ -583,17 +713,16 @@ export async function generateRetirementReport(
       ? (currentMonthlySurplus / monthlyInHand) * 100
       : 0;
 
-    // Assume current age = retirementAge - 30 if we can't derive it; caller provides retirementAge
-    // We use a reasonable default: user is in their late 20s
-    const currentAge = Math.max(inputs.retirementAge - 30, 25);
+    const currentAge = inputs.currentAge;
     const yearsToRetirement = Math.max(inputs.retirementAge - currentAge, 1);
 
+    // Post-retirement expenses = current expenses minus EMI, reduced by expense factor
     const retirementMonthlyExpenseToday = Math.max(currentMonthlyExpenses - monthlyEMI, 0);
+    const adjustedExpenseToday = retirementMonthlyExpenseToday * (inputs.postRetirementExpensePct / 100);
     const retirementMonthlyExpenseInflated =
-      retirementMonthlyExpenseToday * Math.pow(1 + inputs.inflationPct / 100, yearsToRetirement);
+      adjustedExpenseToday * Math.pow(1 + inputs.inflationPct / 100, yearsToRetirement);
     const retirementAnnualExpense = retirementMonthlyExpenseInflated * 12;
 
-    // 28x rule: covers ~30 years of retirement with inflation-adjusted withdrawals
     const targetCorpus = retirementAnnualExpense * 28;
 
     const existingAssetsAtRetirement =
@@ -649,25 +778,36 @@ export async function generateRetirementReport(
     scenarios[1].isAchievable = scenarios[1].projectedCorpus >= targetCorpus;
     scenarios[2].isAchievable = scenarios[2].projectedCorpus >= targetCorpus;
 
+    // Build milestone impact (exclude completed ones)
+    const activeMilestones = allMilestones.filter((m) => m.is_completed === 0);
+    const milestones = buildMilestoneImpact(activeMilestones, monthlyInHand, currentAge, inputs.inflationPct);
+
+    // Create milestone goals for phases
+    const milestoneGoals: { year: number; label: string }[] = milestones.map((m) => ({
+      year: Math.round(m.yearsAway),
+      label: `${m.name} — ${formatRupees(m.inflatedCost)} by ${m.targetDate ? new Date(m.targetDate).getFullYear() : "target"}`,
+    }));
+
     const phases = buildPhases(
       yearsToRetirement,
       monthlyInHand,
       inputs.salaryGrowthPct,
       requiredMonthlySIP,
       monthlyEMI,
+      milestoneGoals,
     );
 
     let childEducation: RetirementReport["childEducation"] = null;
     if (inputs.numberOfChildren > 0) {
       const costTodayPerChild = 40_00_000;
       const costTodayTotal = costTodayPerChild * inputs.numberOfChildren;
-      const yearsUntilNeeded = 18 + 3; // child born in ~3 years, needs funds at 18
+      const yearsUntilNeeded = 18 + 3;
       const costInflated = costTodayTotal *
         Math.pow(1 + inputs.educationInflationPct / 100, yearsUntilNeeded);
       const monthlySIPNeeded = computeGrowingSIP(
         costInflated,
         inputs.expectedReturnPct,
-        10, // 10% annual step-up for education SIP
+        10,
         yearsUntilNeeded,
       );
       const educationProjectedCorpus = computeProjectedCorpus(
@@ -702,8 +842,6 @@ export async function generateRetirementReport(
       targetSavingsRatePct,
     );
 
-    const milestones = buildMilestoneImpact(allMilestones, monthlyInHand);
-
     const corpusMilestones = buildCorpusMilestones(
       currentAge,
       yearsToRetirement,
@@ -719,11 +857,12 @@ export async function generateRetirementReport(
 
     const drawdownPlan = buildDrawdownPlan(
       targetCorpus,
-      retirementAnnualExpense,
       inputs.inflationPct,
       inputs.retirementPortfolioYieldPct,
+      inputs.healthcareInflationPct,
       inputs.lifeExpectancy,
       inputs.retirementAge,
+      retirementAnnualExpense,
     );
 
     const { score: readinessScore, label: readinessLabel } = computeReadinessScore(
@@ -733,6 +872,16 @@ export async function generateRetirementReport(
       emergencyMonths,
       monthlyEMI,
       monthlyInHand,
+    );
+
+    const ageWhatIf = buildAgeWhatIf(
+      currentAge,
+      totalAssets,
+      retirementMonthlyExpenseToday,
+      inputs.inflationPct,
+      inputs.expectedReturnPct,
+      sipAnnualStepUpPct,
+      inputs.postRetirementExpensePct,
     );
 
     return {
@@ -759,6 +908,7 @@ export async function generateRetirementReport(
       sipAnnualStepUpPct,
       projectedCorpus,
       scenarios,
+      ageWhatIf,
       phases,
       childEducation,
       risks,

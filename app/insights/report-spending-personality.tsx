@@ -403,7 +403,8 @@ export default function SpendingPersonalityReportScreen() {
                   ? status.warning
                   : colors.textSecondary;
               return (
-                <Card key={i}>
+                <View key={i} className="mb-2">
+                <Card>
                   <View className="flex-row items-start gap-3">
                     <View
                       className="w-8 h-8 rounded-full items-center justify-center mt-0.5"
@@ -425,6 +426,7 @@ export default function SpendingPersonalityReportScreen() {
                     </View>
                   </View>
                 </Card>
+                </View>
               );
             })}
           </View>

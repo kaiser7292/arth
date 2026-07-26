@@ -48,15 +48,17 @@ function ChipSelector({
   tint: string;
 }) {
   return (
-    <View className="flex-row gap-2">
+    <View className="flex-row flex-wrap gap-2">
       {options.map((opt) => {
         const sel = opt === value;
         return (
           <Pressable
             key={opt}
             onPress={() => onChange(opt)}
-            className="flex-1 py-2 rounded-lg items-center border"
+            className="py-2 rounded-lg items-center border"
             style={{
+              minWidth: 48,
+              flex: 1,
               backgroundColor: sel ? `${tint}18` : colorScheme === "dark" ? "#2a2a2a" : "#F5F5F3",
               borderColor: sel ? tint : colorScheme === "dark" ? "#444" : "#ddd",
               borderWidth: sel ? 1.5 : 0.5,
@@ -110,6 +112,7 @@ export default function RetirementReportScreen() {
   const [loading, setLoading] = useState(false);
   const [showSheet, setShowSheet] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [expandedDrawdown, setExpandedDrawdown] = useState<number | null>(null);
 
   async function generate() {
     setShowSheet(false);
@@ -151,6 +154,17 @@ export default function RetirementReportScreen() {
             </Text>
 
             <View className="mb-5">
+              <InputLabel text="Your current age" />
+              <ChipSelector
+                options={[25, 28, 30, 32, 35, 38, 40, 45]}
+                value={inputs.currentAge}
+                onChange={(v) => setInputs((p) => ({ ...p, currentAge: v }))}
+                colorScheme={colorScheme}
+                tint={tint}
+              />
+            </View>
+
+            <View className="mb-5">
               <InputLabel text="Target retirement age" />
               <ChipSelector
                 options={[45, 50, 55, 60]}
@@ -170,6 +184,24 @@ export default function RetirementReportScreen() {
                 colorScheme={colorScheme}
                 tint={tint}
               />
+            </View>
+
+            <View className="mb-5">
+              <InputLabel text={`Post-retirement expenses: ${inputs.postRetirementExpensePct}% of current`} />
+              <Slider
+                minimumValue={50}
+                maximumValue={100}
+                step={5}
+                value={inputs.postRetirementExpensePct}
+                onValueChange={(v) => setInputs((p) => ({ ...p, postRetirementExpensePct: v }))}
+                minimumTrackTintColor={tint}
+                maximumTrackTintColor={colorScheme === "dark" ? "#333" : "#ddd"}
+                thumbTintColor={tint}
+              />
+              <View className="flex-row justify-between">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary opacity-60">50% frugal</Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary opacity-60">100% same</Text>
+              </View>
             </View>
 
             <View className="mb-5">
@@ -202,6 +234,24 @@ export default function RetirementReportScreen() {
                 maximumTrackTintColor={colorScheme === "dark" ? "#333" : "#ddd"}
                 thumbTintColor="#F59E0B"
               />
+            </View>
+
+            <View className="mb-5">
+              <InputLabel text={`Healthcare inflation: ${inputs.healthcareInflationPct}%`} />
+              <Slider
+                minimumValue={6}
+                maximumValue={15}
+                step={0.5}
+                value={inputs.healthcareInflationPct}
+                onValueChange={(v) => setInputs((p) => ({ ...p, healthcareInflationPct: v }))}
+                minimumTrackTintColor={status.danger}
+                maximumTrackTintColor={colorScheme === "dark" ? "#333" : "#ddd"}
+                thumbTintColor={status.danger}
+              />
+              <View className="flex-row justify-between">
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary opacity-60">6%</Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary opacity-60">15% (India avg ~10%)</Text>
+              </View>
             </View>
 
             <View className="mb-5">
@@ -259,9 +309,6 @@ export default function RetirementReportScreen() {
           <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
             Could not generate report
           </Text>
-          <Text className="text-sm text-center text-text-secondary dark:text-text-dark-secondary mt-2">
-            Make sure you have income and expense data in Arth.
-          </Text>
           <Pressable onPress={() => setShowSheet(true)} className="mt-4">
             <Text className="text-sm font-medium" style={{ color: tint }}>Try again</Text>
           </Pressable>
@@ -307,7 +354,7 @@ export default function RetirementReportScreen() {
                 </Text>
               </View>
               <View className="items-end">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Retire at</Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Age {report.currentAge} → Retire at</Text>
                 <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
                   {report.inputs.retirementAge}
                 </Text>
@@ -346,9 +393,12 @@ export default function RetirementReportScreen() {
         <View className="px-4 mt-4">
           <SectionHeader title="The Math" />
           <Card>
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2 opacity-70">
+              Expenses reduced to {report.inputs.postRetirementExpensePct}% post-retirement
+            </Text>
             {[
               { label: "Monthly expenses today (excl. EMI)", value: formatAmount(report.retirementMonthlyExpenseToday), color: undefined },
-              { label: `At retirement (${report.inputs.inflationPct}% inflation)`, value: formatAmount(report.retirementMonthlyExpenseInflated), color: status.warning },
+              { label: `At retirement (${report.inputs.inflationPct}% inflation, ${report.inputs.postRetirementExpensePct}% factor)`, value: formatAmount(report.retirementMonthlyExpenseInflated), color: status.warning },
               { label: "Annual expense (future)", value: formatAmount(report.retirementAnnualExpense), color: undefined },
               { label: "Target corpus (28x annual)", value: formatAmount(report.targetCorpus), color: tint },
               { label: `Existing assets at retirement (${report.inputs.expectedReturnPct}%)`, value: formatAmount(report.existingAssetsAtRetirement), color: status.success },
@@ -385,12 +435,39 @@ export default function RetirementReportScreen() {
           </Card>
         </View>
 
+        {/* Retire-At What-If */}
+        {report.ageWhatIf.length > 0 && (
+          <View className="px-4 mt-4">
+            <SectionHeader title="What If You Retire At..." />
+            <Card>
+              <View className="flex-row items-center pb-1.5 mb-1 border-b border-border-light dark:border-border-dark">
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-12">Age</Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Target</Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">SIP/mo</Text>
+                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-16 text-right">Feasible</Text>
+              </View>
+              {report.ageWhatIf.map((w) => (
+                <View key={w.retireAt} className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark">
+                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-12">
+                    {w.retireAt}
+                    {w.retireAt === report.inputs.retirementAge ? " ✓" : ""}
+                  </Text>
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1 text-right">{formatAmount(w.targetCorpus)}</Text>
+                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: tint }}>{formatAmount(w.requiredSIP)}</Text>
+                  <Text className="text-xs font-bold w-16 text-right" style={{ color: w.feasible ? status.success : status.danger }}>
+                    {w.feasible ? "Yes" : "No"}
+                  </Text>
+                </View>
+              ))}
+            </Card>
+          </View>
+        )}
+
         {/* Corpus Growth Milestones */}
         {report.corpusMilestones.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Corpus Growth Roadmap" />
             <Card>
-              {/* Header */}
               <View className="flex-row items-center pb-1.5 mb-1 border-b border-border-light dark:border-border-dark">
                 <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10">Year</Text>
                 <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10">Age</Text>
@@ -440,41 +517,79 @@ export default function RetirementReportScreen() {
           </Card>
         </View>
 
-        {/* Post-Retirement Drawdown */}
+        {/* Post-Retirement Drawdown — comprehensive */}
         {report.drawdownPlan.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Post-Retirement Drawdown" />
-            <Card>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
-                How long your corpus lasts at different withdrawal rates
-              </Text>
-              {report.drawdownPlan.map((d) => (
-                <View key={d.withdrawalRate} className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
-                  <View>
-                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
-                      {d.withdrawalRate}% withdrawal
-                    </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                      {formatAmount(d.annualWithdrawal)}/year
-                    </Text>
-                  </View>
-                  <View className="items-end">
-                    <Text
-                      className="text-sm font-bold"
-                      style={{ color: d.sustainable ? status.success : status.danger }}
-                    >
-                      {d.corpusLastsYears >= 60 ? "60+" : d.corpusLastsYears} years
-                    </Text>
-                    <Text className="text-xs" style={{ color: d.sustainable ? status.success : status.danger }}>
-                      {d.sustainable ? "Sustainable" : "Runs out early"}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2 opacity-60">
-                Based on {report.inputs.retirementPortfolioYieldPct}% portfolio yield and {report.inputs.inflationPct}% inflation
-              </Text>
-            </Card>
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2 -mt-1 opacity-70">
+              Includes {report.inputs.healthcareInflationPct}% healthcare inflation escalation
+            </Text>
+            {report.drawdownPlan.map((d, di) => (
+              <View key={d.withdrawalRate} className="mb-3">
+                <Pressable onPress={() => setExpandedDrawdown(expandedDrawdown === di ? null : di)}>
+                  <Card>
+                    <View className="flex-row items-center justify-between">
+                      <View>
+                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                          {d.withdrawalRate}% withdrawal rate
+                        </Text>
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                          {formatAmount(d.monthlyWithdrawal)}/mo · {formatAmount(d.annualWithdrawal)}/yr
+                        </Text>
+                      </View>
+                      <View className="items-end flex-row gap-2">
+                        <View className="items-end">
+                          <Text
+                            className="text-sm font-bold"
+                            style={{ color: d.sustainable ? status.success : status.danger }}
+                          >
+                            {d.corpusLastsYears >= 60 ? "60+" : d.corpusLastsYears} years
+                          </Text>
+                          <Text className="text-xs" style={{ color: d.sustainable ? status.success : status.danger }}>
+                            {d.sustainable ? "Sustainable" : "Runs out early"}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={expandedDrawdown === di ? "chevron-up" : "chevron-down"}
+                          size={14}
+                          color={colors.textSecondary}
+                        />
+                      </View>
+                    </View>
+                  </Card>
+                </Pressable>
+
+                {/* Year-by-year breakdown */}
+                {expandedDrawdown === di && d.yearByYear.length > 0 && (
+                  <Card>
+                    <View className="flex-row items-center pb-1.5 mb-1 border-b border-border-light dark:border-border-dark">
+                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-8">Age</Text>
+                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Corpus Start</Text>
+                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Withdraw</Text>
+                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Corpus End</Text>
+                    </View>
+                    {d.yearByYear.slice(0, 15).map((yy) => (
+                      <View key={yy.year} className="flex-row items-center py-1 border-b border-border-light dark:border-border-dark">
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-8">{yy.age}</Text>
+                        <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1 text-right">{formatAmount(yy.corpusStart)}</Text>
+                        <Text className="text-xs flex-1 text-right" style={{ color: status.danger }}>{formatAmount(yy.withdrawal)}</Text>
+                        <Text
+                          className="text-xs font-semibold flex-1 text-right"
+                          style={{ color: yy.corpusEnd > 0 ? status.success : status.danger }}
+                        >
+                          {formatAmount(yy.corpusEnd)}
+                        </Text>
+                      </View>
+                    ))}
+                    {d.yearByYear.length > 15 && (
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center mt-2 opacity-60">
+                        +{d.yearByYear.length - 15} more years in PDF
+                      </Text>
+                    )}
+                  </Card>
+                )}
+              </View>
+            ))}
           </View>
         )}
 
@@ -500,6 +615,12 @@ export default function RetirementReportScreen() {
                       <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{phase.sipTarget}/mo</Text>
                     </View>
                   </View>
+                  {/* Allocation */}
+                  <View className="rounded-md p-2 mb-2 bg-surface-light-alt dark:bg-surface-dark-alt">
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      Allocation: {phase.allocation}
+                    </Text>
+                  </View>
                   {phase.goals.length > 0 && (
                     <View className="mb-2">
                       <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">Goals</Text>
@@ -523,19 +644,33 @@ export default function RetirementReportScreen() {
           })}
         </View>
 
-        {/* Life Milestones */}
+        {/* Life Milestones with inflation */}
         {report.milestones.length > 0 && (
           <View className="px-4 mt-4">
-            <SectionHeader title="Life Milestones" />
-            <Card>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
-                Active milestones and their impact on your retirement plan
-              </Text>
-              {report.milestones.map((m, i) => (
-                <View key={i} className="py-2.5 border-b border-border-light dark:border-border-dark">
-                  <View className="flex-row items-center justify-between mb-1">
+            <SectionHeader title="Life Milestones & Their Real Cost" />
+            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2 -mt-1 opacity-70">
+              Costs inflated at {report.inputs.inflationPct}% to target year
+            </Text>
+            {report.milestones.map((m, i) => (
+              <View key={i} className="mb-3">
+                <Card>
+                  <View className="flex-row items-center justify-between mb-1.5">
                     <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1">{m.name}</Text>
-                    <Text className="text-xs font-bold" style={{ color: tint }}>{formatAmount(m.targetAmount)}</Text>
+                    <View className="items-end">
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        {m.yearsAway > 0 ? `${m.yearsAway} yrs away` : "Due now"}
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row gap-3 mb-2">
+                    <View className="flex-1">
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Today's cost</Text>
+                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{formatAmount(m.targetAmount)}</Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Inflated cost</Text>
+                      <Text className="text-xs font-semibold" style={{ color: status.warning }}>{formatAmount(m.inflatedCost)}</Text>
+                    </View>
                   </View>
                   <View className="h-1.5 bg-border-light dark:bg-border-dark rounded-full overflow-hidden mb-1.5">
                     <View
@@ -547,16 +682,16 @@ export default function RetirementReportScreen() {
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
                       {formatAmount(m.currentSaved)} saved · {m.progressPct}%
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs font-semibold" style={{ color: tint }}>
                       {formatAmount(m.monthlyNeeded)}/mo needed
                     </Text>
                   </View>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5 opacity-70">
+                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1 opacity-70">
                     {m.impactOnRetirement}
                   </Text>
-                </View>
-              ))}
-            </Card>
+                </Card>
+              </View>
+            ))}
           </View>
         )}
 
@@ -629,7 +764,7 @@ export default function RetirementReportScreen() {
         <View className="px-4 mt-4">
           <View className="rounded-lg p-3" style={{ backgroundColor: status.warningBg }}>
             <Text className="text-xs" style={{ color: status.warning }}>
-              Projections use {report.inputs.expectedReturnPct}% return, {report.inputs.inflationPct}% inflation, {report.inputs.salaryGrowthPct}% salary growth, life expectancy {report.inputs.lifeExpectancy} years, post-retirement yield {report.inputs.retirementPortfolioYieldPct}%.
+              Projections use {report.inputs.expectedReturnPct}% return, {report.inputs.inflationPct}% inflation, {report.inputs.healthcareInflationPct}% healthcare inflation, {report.inputs.salaryGrowthPct}% salary growth, life expectancy {report.inputs.lifeExpectancy} years, post-retirement expenses at {report.inputs.postRetirementExpensePct}% of current, portfolio yield {report.inputs.retirementPortfolioYieldPct}%.
               These are estimates, not financial advice. Review annually.
             </Text>
           </View>
