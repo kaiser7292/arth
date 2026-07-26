@@ -2,7 +2,7 @@
   "expo": {
     "name": "Arth",
     "slug": "artha",
-    "version": "2.12.13",
+    "version": "2.12.14",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "artha",
