@@ -352,11 +352,19 @@ export default function SpendingPersonalityReportScreen() {
                 const pct = (m.total / maxMonth) * 100;
                 return (
                   <View key={m.month} className="flex-row items-center gap-2 mb-2">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-12">{m.month.slice(5)}</Text>
+                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-12">
+                      {new Date(m.month + "-01").toLocaleString("en-IN", { month: "short" })}
+                    </Text>
                     <View className="flex-1 h-2 bg-border-light dark:bg-border-dark rounded-full overflow-hidden">
                       <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: tint }} />
                     </View>
-                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-14 text-right">
+                    <Text
+                      className="text-xs font-semibold text-text-primary dark:text-text-dark-primary text-right"
+                      style={{ minWidth: 72 }}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.75}
+                    >
                       {formatAmount(m.total)}
                     </Text>
                   </View>
@@ -380,13 +388,17 @@ export default function SpendingPersonalityReportScreen() {
             <View className="flex-row gap-3">
               <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Highest month</Text>
-                <Text className="text-sm font-bold" style={{ color: status.danger }}>{formatAmount(report.highestSpendMonth.total)}</Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{report.highestSpendMonth.month}</Text>
+                <Text className="text-sm font-bold" style={{ color: status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatAmount(report.highestSpendMonth.total)}</Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  {new Date(report.highestSpendMonth.month + "-01").toLocaleString("en-IN", { month: "short", year: "numeric" })}
+                </Text>
               </View>
               <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Lowest month</Text>
-                <Text className="text-sm font-bold" style={{ color: status.success }}>{formatAmount(report.lowestSpendMonth.total)}</Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{report.lowestSpendMonth.month}</Text>
+                <Text className="text-sm font-bold" style={{ color: status.success }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatAmount(report.lowestSpendMonth.total)}</Text>
+                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  {new Date(report.lowestSpendMonth.month + "-01").toLocaleString("en-IN", { month: "short", year: "numeric" })}
+                </Text>
               </View>
             </View>
           </View>

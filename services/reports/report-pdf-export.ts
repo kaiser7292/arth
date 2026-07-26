@@ -497,29 +497,6 @@ export async function exportRetirementPDF(
     )
     .join("");
 
-  const childEdSection = report.childEducation
-    ? `
-      <div class="section-title">Child Education</div>
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="stat-label">Cost Today</div>
-          <div class="stat-value">${fmtAmt(Math.round(report.childEducation.costTodayTotal))}</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Inflation-Adjusted Cost</div>
-          <div class="stat-value red">${fmtAmt(Math.round(report.childEducation.costInflated))}</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Monthly SIP Needed</div>
-          <div class="stat-value">${fmtAmt(Math.round(report.childEducation.monthlySIPNeeded))}</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Projected Corpus</div>
-          <div class="stat-value green">${fmtAmt(Math.round(report.childEducation.projectedCorpus))}</div>
-        </div>
-      </div>
-    `
-    : "";
 
   const readinessColor = report.readinessScore >= 70 ? "#22C55E" : report.readinessScore >= 40 ? "#F59E0B" : "#EF4444";
 
@@ -709,8 +686,6 @@ export async function exportRetirementPDF(
         <div style="font-size: 10px; color: #64748B; margin-bottom: 6px;">Costs inflated at ${fmtPct(report.inputs.inflationPct)} to target year</div>
         ${milestoneRows}
       ` : ""}
-
-      ${childEdSection}
 
       ${report.risks.length > 0 ? `
         <div class="section-title">Risk Flags</div>

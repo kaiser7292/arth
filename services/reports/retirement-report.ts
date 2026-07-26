@@ -15,22 +15,18 @@ export interface RetirementInputs {
   inflationPct: number;
   healthcareInflationPct: number;
   salaryGrowthPct: number;
-  educationInflationPct: number;
-  numberOfChildren: number;
   retirementPortfolioYieldPct: number;
   postRetirementExpensePct: number;
 }
 
 export const DEFAULT_RETIREMENT_INPUTS: RetirementInputs = {
-  currentAge: 30,
+  currentAge: 25,
   retirementAge: 55,
   lifeExpectancy: 85,
   expectedReturnPct: 12,
   inflationPct: 6.5,
   healthcareInflationPct: 10,
   salaryGrowthPct: 10,
-  educationInflationPct: 9,
-  numberOfChildren: 1,
   retirementPortfolioYieldPct: 8,
   postRetirementExpensePct: 75,
 };
@@ -88,12 +84,6 @@ export interface RetirementReport {
     allocation: string;
   }[];
 
-  childEducation: {
-    costTodayTotal: number;
-    costInflated: number;
-    monthlySIPNeeded: number;
-    projectedCorpus: number;
-  } | null;
 
   risks: {
     severity: "critical" | "high" | "medium";
@@ -797,34 +787,6 @@ export async function generateRetirementReport(
       milestoneGoals,
     );
 
-    let childEducation: RetirementReport["childEducation"] = null;
-    if (inputs.numberOfChildren > 0) {
-      const costTodayPerChild = 40_00_000;
-      const costTodayTotal = costTodayPerChild * inputs.numberOfChildren;
-      const yearsUntilNeeded = 18 + 3;
-      const costInflated = costTodayTotal *
-        Math.pow(1 + inputs.educationInflationPct / 100, yearsUntilNeeded);
-      const monthlySIPNeeded = computeGrowingSIP(
-        costInflated,
-        inputs.expectedReturnPct,
-        10,
-        yearsUntilNeeded,
-      );
-      const educationProjectedCorpus = computeProjectedCorpus(
-        monthlySIPNeeded,
-        inputs.expectedReturnPct,
-        10,
-        yearsUntilNeeded,
-      );
-
-      childEducation = {
-        costTodayTotal,
-        costInflated,
-        monthlySIPNeeded,
-        projectedCorpus: educationProjectedCorpus,
-      };
-    }
-
     const targetSavingsRatePct = snapshot?.targetSavingsRatePct ?? 40;
 
     const risks = buildRisks(
@@ -910,7 +872,6 @@ export async function generateRetirementReport(
       scenarios,
       ageWhatIf,
       phases,
-      childEducation,
       risks,
       actions,
       milestones,
