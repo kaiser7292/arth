@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ScreenContainer, Card, SectionHeader, LoadingState } from "@/components/ui";
@@ -7,7 +7,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { formatAmount, formatCompact } from "@/utils/format";
+import { formatAmount } from "@/utils/format";
+import { getExpensesPaginated } from "@/services/expense-queries";
+import { toIsoDate } from "@/utils/date";
+import type { Expense } from "@/services/expense-types";
 import {
   generateSpendingPersonalityReport,
   type SpendingPersonalityReport,
@@ -48,6 +51,10 @@ export default function SpendingPersonalityReportScreen() {
   const [report, setReport] = useState<SpendingPersonalityReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [expandedCats, setExpandedCats] = useState<Record<string, Expense[]>>({});
+  const [loadingCats, setLoadingCats] = useState<Record<string, boolean>>({});
+  const [expandedMerchants, setExpandedMerchants] = useState<Record<string, Expense[]>>({});
+  const [loadingMerchants, setLoadingMerchants] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
     try {
@@ -58,6 +65,49 @@ export default function SpendingPersonalityReportScreen() {
   }, []);
 
   useDataRefresh(loadData);
+
+  function getDateRange() {
+    const now = new Date();
+    const endDate = toIsoDate(now);
+    const startDate = toIsoDate(new Date(now.getFullYear(), now.getMonth() - 6, 1));
+    return { startDate, endDate };
+  }
+
+  async function toggleCategory(categoryId: string) {
+    if (expandedCats[categoryId]) {
+      setExpandedCats((prev) => { const next = { ...prev }; delete next[categoryId]; return next; });
+      return;
+    }
+    setLoadingCats((prev) => ({ ...prev, [categoryId]: true }));
+    try {
+      const { startDate, endDate } = getDateRange();
+      const txns = await getExpensesPaginated(
+        DEFAULT_USER_ID,
+        { categoryIds: [categoryId], startDate, endDate, status: "approved" },
+        50,
+      );
+      setExpandedCats((prev) => ({ ...prev, [categoryId]: txns }));
+    } catch {}
+    setLoadingCats((prev) => ({ ...prev, [categoryId]: false }));
+  }
+
+  async function toggleMerchant(merchant: string) {
+    if (expandedMerchants[merchant]) {
+      setExpandedMerchants((prev) => { const next = { ...prev }; delete next[merchant]; return next; });
+      return;
+    }
+    setLoadingMerchants((prev) => ({ ...prev, [merchant]: true }));
+    try {
+      const { startDate, endDate } = getDateRange();
+      const txns = await getExpensesPaginated(
+        DEFAULT_USER_ID,
+        { search: merchant, startDate, endDate, status: "approved" },
+        50,
+      );
+      setExpandedMerchants((prev) => ({ ...prev, [merchant]: txns }));
+    } catch {}
+    setLoadingMerchants((prev) => ({ ...prev, [merchant]: false }));
+  }
 
   async function handleExportPDF() {
     if (!report || exporting) return;
@@ -111,7 +161,7 @@ export default function SpendingPersonalityReportScreen() {
         </View>
 
         {/* Personality archetype */}
-        <View className="px-4 mb-2">
+        <View className="px-4 mb-3">
           <PersonalityBadge archetype={report.archetype} colorScheme={colorScheme} />
         </View>
 
@@ -141,63 +191,158 @@ export default function SpendingPersonalityReportScreen() {
           </Card>
         </View>
 
-        {/* Top categories */}
+        {/* Top categories — tappable for transaction drill-down */}
         {report.topCategories.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Top Spending Categories" />
             <Card>
-              {report.topCategories.slice(0, 6).map((cat, i) => (
-                <View key={cat.categoryId} className="mb-3">
-                  <View className="flex-row items-center justify-between mb-1">
-                    <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1">
-                      {cat.categoryName}
-                    </Text>
-                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
-                      {formatCompact(cat.totalSpent)}
-                    </Text>
-                    {cat.trend !== "stable" && (
-                      <View className="ml-2">
-                        <Ionicons
-                          name={cat.trend === "rising" ? "trending-up" : "trending-down"}
-                          size={12}
-                          color={cat.trend === "rising" ? status.danger : status.success}
-                        />
+              {report.topCategories.slice(0, 6).map((cat, i) => {
+                const isExpanded = !!expandedCats[cat.categoryId];
+                const isLoading = !!loadingCats[cat.categoryId];
+                return (
+                  <View key={cat.categoryId} className="mb-3">
+                    <Pressable onPress={() => toggleCategory(cat.categoryId)}>
+                      <View className="flex-row items-center justify-between mb-1">
+                        <View className="flex-row items-center gap-1 flex-1">
+                          <Text className="text-xs text-text-primary dark:text-text-dark-primary">
+                            {cat.categoryName}
+                          </Text>
+                          <Ionicons
+                            name={isExpanded ? "chevron-up" : "chevron-down"}
+                            size={10}
+                            color={colors.textSecondary}
+                          />
+                        </View>
+                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                          {formatAmount(cat.totalSpent)}
+                        </Text>
+                        {cat.trend !== "stable" && (
+                          <View className="ml-2">
+                            <Ionicons
+                              name={cat.trend === "rising" ? "trending-up" : "trending-down"}
+                              size={12}
+                              color={cat.trend === "rising" ? status.danger : status.success}
+                            />
+                          </View>
+                        )}
+                      </View>
+                    </Pressable>
+                    <View className="h-1.5 bg-border-light dark:bg-border-dark rounded-full overflow-hidden">
+                      <View
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${cat.percentage}%`,
+                          backgroundColor: tint,
+                          opacity: 1 - i * 0.12,
+                        }}
+                      />
+                    </View>
+                    {isLoading && (
+                      <View className="py-2 items-center">
+                        <ActivityIndicator size="small" color={tint} />
                       </View>
                     )}
+                    {isExpanded && expandedCats[cat.categoryId]?.length > 0 && (
+                      <View className="ml-2 mt-2 border-l-2 border-border-light dark:border-border-dark pl-3">
+                        {expandedCats[cat.categoryId].map((txn) => (
+                          <View key={txn.id} className="flex-row items-center justify-between py-1">
+                            <View className="flex-1 mr-2">
+                              <Text className="text-xs text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                                {txn.merchant_name || txn.description || "Expense"}
+                              </Text>
+                              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" style={{ fontSize: 10 }}>
+                                {txn.date}
+                              </Text>
+                            </View>
+                            <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
+                              {formatAmount(txn.amount)}
+                            </Text>
+                          </View>
+                        ))}
+                        {expandedCats[cat.categoryId].length >= 50 && (
+                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-1" style={{ fontSize: 10 }}>
+                            Showing first 50 transactions
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                    {isExpanded && expandedCats[cat.categoryId]?.length === 0 && (
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-2 mt-1">
+                        No transactions found
+                      </Text>
+                    )}
                   </View>
-                  <View className="h-1.5 bg-border-light dark:bg-border-dark rounded-full overflow-hidden">
-                    <View
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${cat.percentage}%`,
-                        backgroundColor: tint,
-                        opacity: 1 - i * 0.12,
-                      }}
-                    />
-                  </View>
-                </View>
-              ))}
+                );
+              })}
             </Card>
           </View>
         )}
 
-        {/* Top merchants */}
+        {/* Top merchants — tappable for transaction drill-down */}
         {report.topMerchants.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Top Merchants" />
             <Card>
-              {report.topMerchants.slice(0, 5).map((m, i) => (
-                <View key={i} className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark last:border-b-0">
-                  <View className="flex-row items-center gap-2 flex-1">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-4">{i + 1}</Text>
-                    <Text className="text-xs text-text-primary dark:text-text-dark-primary">{m.merchant}</Text>
+              {report.topMerchants.slice(0, 5).map((m, i) => {
+                const isExpanded = !!expandedMerchants[m.merchant];
+                const isLoading = !!loadingMerchants[m.merchant];
+                return (
+                  <View key={i}>
+                    <Pressable
+                      onPress={() => toggleMerchant(m.merchant)}
+                      className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark"
+                    >
+                      <View className="flex-row items-center gap-2 flex-1">
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-4">{i + 1}</Text>
+                        <Text className="text-xs text-text-primary dark:text-text-dark-primary">{m.merchant}</Text>
+                        <Ionicons
+                          name={isExpanded ? "chevron-up" : "chevron-down"}
+                          size={10}
+                          color={colors.textSecondary}
+                        />
+                      </View>
+                      <View className="items-end">
+                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{formatAmount(m.totalSpent)}</Text>
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{m.transactionCount} txns</Text>
+                      </View>
+                    </Pressable>
+                    {isLoading && (
+                      <View className="py-2 items-center">
+                        <ActivityIndicator size="small" color={tint} />
+                      </View>
+                    )}
+                    {isExpanded && expandedMerchants[m.merchant]?.length > 0 && (
+                      <View className="ml-6 my-1 border-l-2 border-border-light dark:border-border-dark pl-3">
+                        {expandedMerchants[m.merchant].map((txn) => (
+                          <View key={txn.id} className="flex-row items-center justify-between py-1">
+                            <View className="flex-1 mr-2">
+                              <Text className="text-xs text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                                {txn.description || txn.merchant_name || "Expense"}
+                              </Text>
+                              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" style={{ fontSize: 10 }}>
+                                {txn.date}
+                              </Text>
+                            </View>
+                            <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
+                              {formatAmount(txn.amount)}
+                            </Text>
+                          </View>
+                        ))}
+                        {expandedMerchants[m.merchant].length >= 50 && (
+                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-1" style={{ fontSize: 10 }}>
+                            Showing first 50 transactions
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                    {isExpanded && expandedMerchants[m.merchant]?.length === 0 && (
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-6 my-1">
+                        No transactions found
+                      </Text>
+                    )}
                   </View>
-                  <View className="items-end">
-                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{formatCompact(m.totalSpent)}</Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{m.transactionCount} txns</Text>
-                  </View>
-                </View>
-              ))}
+                );
+              })}
             </Card>
           </View>
         )}
@@ -213,7 +358,7 @@ export default function SpendingPersonalityReportScreen() {
                 return (
                   <View key={d.day} className="flex-1 items-center gap-1">
                     <Text className="text-xs" style={{ fontSize: 8, color: isPeak ? status.warning : colors.textSecondary }}>
-                      {formatCompact(d.avgSpend)}
+                      {formatAmount(d.avgSpend)}
                     </Text>
                     <View
                       className="w-full rounded-t"
@@ -257,7 +402,7 @@ export default function SpendingPersonalityReportScreen() {
                       <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: tint }} />
                     </View>
                     <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-14 text-right">
-                      {formatCompact(m.total)}
+                      {formatAmount(m.total)}
                     </Text>
                   </View>
                 );

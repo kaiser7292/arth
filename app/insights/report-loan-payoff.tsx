@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { View, Text, ScrollView, Pressable, Alert, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -6,7 +6,7 @@ import { ScreenContainer, Card, SectionHeader, LoadingState, EmptyState } from "
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { formatAmount, formatCompact } from "@/utils/format";
+import { formatAmount } from "@/utils/format";
 import { settingsStorage } from "@/services/storage";
 import {
   generateLoanPayoffReport,
@@ -63,7 +63,7 @@ function StrategyCard({
         </View>
         <View className="flex-1">
           <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Interest saved</Text>
-          <Text className="text-sm font-bold" style={{ color: status.success }}>{formatCompact(strategy.interestSaved)}</Text>
+          <Text className="text-sm font-bold" style={{ color: status.success }}>{formatAmount(strategy.interestSaved)}</Text>
         </View>
       </View>
       <View className="flex-row gap-3 mt-2">
@@ -73,7 +73,7 @@ function StrategyCard({
         </View>
         <View className="flex-1">
           <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Total interest</Text>
-          <Text className="text-sm font-bold" style={{ color: status.warning }}>{formatCompact(strategy.totalInterestPaid)}</Text>
+          <Text className="text-sm font-bold" style={{ color: status.warning }}>{formatAmount(strategy.totalInterestPaid)}</Text>
         </View>
       </View>
       {/* Timeline milestones */}
@@ -232,14 +232,14 @@ export default function LoanPayoffReportScreen() {
         {/* Debt Snapshot */}
         <View className="px-4">
           <SectionHeader title="Debt Snapshot" />
-          <View className="flex-row gap-3 mb-2">
+          <View className="flex-row gap-3 mb-3">
             <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Outstanding</Text>
-              <Text className="text-sm font-bold" style={{ color: status.danger }}>{formatCompact(report.totalOutstanding)}</Text>
+              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary" style={{ color: status.danger }}>{formatAmount(report.totalOutstanding)}</Text>
             </View>
             <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Monthly EMI</Text>
-              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatCompact(report.totalMonthlyEMI)}</Text>
+              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatAmount(report.totalMonthlyEMI)}</Text>
             </View>
           </View>
           <View className="flex-row gap-3 mb-3">
@@ -249,7 +249,7 @@ export default function LoanPayoffReportScreen() {
             </View>
             <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Extra/mo</Text>
-              <Text className="text-sm font-bold" style={{ color: status.success }}>{formatCompact(report.inputs.extraMonthlyAmount)}</Text>
+              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary" style={{ color: status.success }}>{formatAmount(report.inputs.extraMonthlyAmount)}</Text>
             </View>
           </View>
         </View>
@@ -265,10 +265,10 @@ export default function LoanPayoffReportScreen() {
               </View>
               <View className="flex-row justify-between">
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                  {formatCompact(loan.outstanding)} outstanding
+                  {formatAmount(loan.outstanding)} outstanding
                 </Text>
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                  EMI {formatCompact(loan.emiAmount)}
+                  EMI {formatAmount(loan.emiAmount)}
                 </Text>
               </View>
             </Card>
@@ -276,7 +276,7 @@ export default function LoanPayoffReportScreen() {
         </View>
 
         {/* Natural vs Optimized */}
-        <View className="px-4 mt-2">
+        <View className="px-4 mt-4">
           <SectionHeader title="Without Extra Payments" />
           <Card>
             <View className="flex-row justify-between items-center">
@@ -286,7 +286,7 @@ export default function LoanPayoffReportScreen() {
               </View>
               <View className="items-end">
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Total interest</Text>
-                <Text className="text-sm font-bold" style={{ color: status.danger }}>{formatCompact(report.naturalTotalInterest)}</Text>
+                <Text className="text-sm font-bold" style={{ color: status.danger }}>{formatAmount(report.naturalTotalInterest)}</Text>
               </View>
             </View>
           </Card>
@@ -308,7 +308,7 @@ export default function LoanPayoffReportScreen() {
         </View>
 
         {/* After debt-free */}
-        <View className="px-4 mt-2">
+        <View className="px-4 mt-4">
           <Card>
             <View className="rounded-lg p-3" style={{ backgroundColor: status.successBg }}>
               <Text className="text-xs font-semibold mb-1" style={{ color: status.success }}>

@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, Alert, Modal } from "react-native";
+import { useState } from "react";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 
@@ -7,7 +7,7 @@ import { ScreenContainer, Card, SectionHeader, LoadingState } from "@/components
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { formatCompact } from "@/utils/format";
+import { formatAmount } from "@/utils/format";
 import { settingsStorage } from "@/services/storage";
 import {
   generateRetirementReport,
@@ -86,6 +86,28 @@ function InputLabel({ text }: { text: string }) {
   );
 }
 
+function MetricBox({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: string;
+  color?: string;
+}) {
+  return (
+    <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
+      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{label}</Text>
+      <Text
+        className="text-sm font-bold text-text-primary dark:text-text-dark-primary"
+        style={color ? { color } : undefined}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 export default function RetirementReportScreen() {
   const { colorScheme, colors } = useColorScheme();
   const status = StatusColors[colorScheme];
@@ -142,6 +164,17 @@ export default function RetirementReportScreen() {
                 options={[45, 50, 55, 60]}
                 value={inputs.retirementAge}
                 onChange={(v) => setInputs((p) => ({ ...p, retirementAge: v }))}
+                colorScheme={colorScheme}
+                tint={tint}
+              />
+            </View>
+
+            <View className="mb-5">
+              <InputLabel text="Life expectancy" />
+              <ChipSelector
+                options={[75, 80, 85, 90]}
+                value={inputs.lifeExpectancy}
+                onChange={(v) => setInputs((p) => ({ ...p, lifeExpectancy: v }))}
                 colorScheme={colorScheme}
                 tint={tint}
               />
@@ -265,7 +298,7 @@ export default function RetirementReportScreen() {
         {/* Headline stats */}
         <View className="px-4 mb-3">
           <Card>
-            <View className="flex-row items-center justify-between mb-3">
+            <View className="flex-row items-center justify-between">
               <View>
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
                   Retire at age {report.inputs.retirementAge}
@@ -277,7 +310,7 @@ export default function RetirementReportScreen() {
               <View className="items-end">
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Target corpus</Text>
                 <Text className="text-lg font-bold" style={{ color: tint }}>
-                  {formatCompact(report.targetCorpus)}
+                  {formatAmount(report.targetCorpus)}
                 </Text>
               </View>
             </View>
@@ -287,25 +320,13 @@ export default function RetirementReportScreen() {
         {/* Current snapshot */}
         <View className="px-4">
           <SectionHeader title="Current Snapshot" />
-          <View className="flex-row gap-3 mb-2">
-            <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Monthly income</Text>
-              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatCompact(report.currentMonthlyInHand)}</Text>
-            </View>
-            <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Monthly expenses</Text>
-              <Text className="text-sm font-bold" style={{ color: status.danger }}>{formatCompact(report.currentMonthlyExpenses)}</Text>
-            </View>
+          <View className="flex-row gap-3 mb-3">
+            <MetricBox label="Monthly income" value={formatAmount(report.currentMonthlyInHand)} />
+            <MetricBox label="Monthly expenses" value={formatAmount(report.currentMonthlyExpenses)} color={status.danger} />
           </View>
-          <View className="flex-row gap-3 mb-2">
-            <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Savings rate</Text>
-              <Text className="text-sm font-bold" style={{ color: status.success }}>{Math.round(report.currentSavingsRate)}%</Text>
-            </View>
-            <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Monthly surplus</Text>
-              <Text className="text-sm font-bold" style={{ color: status.success }}>{formatCompact(report.currentMonthlySurplus)}</Text>
-            </View>
+          <View className="flex-row gap-3">
+            <MetricBox label="Savings rate" value={`${Math.round(report.currentSavingsRate)}%`} color={status.success} />
+            <MetricBox label="Monthly surplus" value={formatAmount(report.currentMonthlySurplus)} color={status.success} />
           </View>
         </View>
 
@@ -314,15 +335,20 @@ export default function RetirementReportScreen() {
           <SectionHeader title="The Math" />
           <Card>
             {[
-              { label: "Monthly expenses at retirement", value: formatCompact(report.retirementMonthlyExpenseInflated), color: undefined },
-              { label: "Annual expense (future)", value: formatCompact(report.retirementAnnualExpense), color: undefined },
-              { label: "Target corpus (28x annual)", value: formatCompact(report.targetCorpus), color: tint },
-              { label: "Existing assets at retirement", value: formatCompact(report.existingAssetsAtRetirement), color: status.success },
-              { label: "Gap to fill", value: formatCompact(report.gapToFill), color: status.warning },
+              { label: "Monthly expenses at retirement", value: formatAmount(report.retirementMonthlyExpenseInflated), color: undefined },
+              { label: "Annual expense (future)", value: formatAmount(report.retirementAnnualExpense), color: undefined },
+              { label: "Target corpus (28x annual)", value: formatAmount(report.targetCorpus), color: tint },
+              { label: "Existing assets at retirement", value: formatAmount(report.existingAssetsAtRetirement), color: status.success },
+              { label: "Gap to fill", value: formatAmount(report.gapToFill), color: status.warning },
             ].map((row) => (
               <View key={row.label} className="flex-row justify-between items-center py-2 border-b border-border-light dark:border-border-dark">
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">{row.label}</Text>
-                <Text className="text-sm font-bold" style={row.color ? { color: row.color } : undefined}>{row.value}</Text>
+                <Text
+                  className="text-sm font-bold text-text-primary dark:text-text-dark-primary"
+                  style={row.color ? { color: row.color } : undefined}
+                >
+                  {row.value}
+                </Text>
               </View>
             ))}
           </Card>
@@ -334,13 +360,13 @@ export default function RetirementReportScreen() {
           <Card>
             <View className="items-center py-2">
               <Text className="text-3xl font-bold" style={{ color: status.success }}>
-                {formatCompact(report.requiredMonthlySIP)}/mo
+                {formatAmount(report.requiredMonthlySIP)}/mo
               </Text>
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
                 with {report.sipAnnualStepUpPct}% annual step-up for {report.yearsToRetirement} years
               </Text>
               <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                Projected corpus: {formatCompact(report.projectedCorpus)}
+                Projected corpus: {formatAmount(report.projectedCorpus)}
               </Text>
             </View>
           </Card>
@@ -358,7 +384,7 @@ export default function RetirementReportScreen() {
                 </View>
                 <View className="items-end">
                   <Text className="text-sm font-bold" style={{ color: s.isAchievable ? status.success : status.danger }}>
-                    {formatCompact(s.projectedCorpus)}
+                    {formatAmount(s.projectedCorpus)}
                   </Text>
                   <Text className="text-xs" style={{ color: s.isAchievable ? status.success : status.danger }}>
                     {s.isAchievable ? "On track" : "Falls short"}
@@ -400,25 +426,13 @@ export default function RetirementReportScreen() {
           <View className="px-4 mt-4">
             <SectionHeader title="Child Education Fund" />
             <Card>
-              <View className="flex-row gap-3 mb-2">
-                <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Cost today</Text>
-                  <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatCompact(report.childEducation.costTodayTotal)}</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Inflated cost</Text>
-                  <Text className="text-sm font-bold" style={{ color: status.danger }}>{formatCompact(report.childEducation.costInflated)}</Text>
-                </View>
+              <View className="flex-row gap-3 mb-3">
+                <MetricBox label="Cost today" value={formatAmount(report.childEducation.costTodayTotal)} />
+                <MetricBox label="Inflated cost" value={formatAmount(report.childEducation.costInflated)} color={status.danger} />
               </View>
               <View className="flex-row gap-3">
-                <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Monthly SIP</Text>
-                  <Text className="text-sm font-bold" style={{ color: tint }}>{formatCompact(report.childEducation.monthlySIPNeeded)}/mo</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Projected corpus</Text>
-                  <Text className="text-sm font-bold" style={{ color: status.success }}>{formatCompact(report.childEducation.projectedCorpus)}</Text>
-                </View>
+                <MetricBox label="Monthly SIP" value={`${formatAmount(report.childEducation.monthlySIPNeeded)}/mo`} color={tint} />
+                <MetricBox label="Projected corpus" value={formatAmount(report.childEducation.projectedCorpus)} color={status.success} />
               </View>
             </Card>
           </View>
@@ -433,7 +447,7 @@ export default function RetirementReportScreen() {
               return (
                 <View
                   key={i}
-                  className="mb-2 rounded-lg p-3 border-l-4"
+                  className="mb-3 rounded-lg p-3 border-l-4"
                   style={{
                     borderLeftColor: riskColor,
                     backgroundColor: colorScheme === "dark" ? "#1E1E1E" : "#F8FAFC",
@@ -460,7 +474,7 @@ export default function RetirementReportScreen() {
             <SectionHeader title="Top Actions" />
             {report.actions.map((action) => (
               <View key={action.priority} className="flex-row gap-3 items-start mb-3">
-                <View className="w-6 h-6 rounded-full bg-primary-600 items-center justify-center">
+                <View className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: tint }}>
                   <Text className="text-xs font-bold text-white">{action.priority}</Text>
                 </View>
                 <View className="flex-1">
@@ -476,7 +490,7 @@ export default function RetirementReportScreen() {
         <View className="px-4 mt-4">
           <View className="rounded-lg p-3" style={{ backgroundColor: status.warningBg }}>
             <Text className="text-xs" style={{ color: status.warning }}>
-              Projections use {report.inputs.expectedReturnPct}% return, {report.inputs.inflationPct}% inflation, {report.inputs.salaryGrowthPct}% salary growth.
+              Projections use {report.inputs.expectedReturnPct}% return, {report.inputs.inflationPct}% inflation, {report.inputs.salaryGrowthPct}% salary growth, life expectancy {report.inputs.lifeExpectancy} years.
               These are estimates, not financial advice. Review annually.
             </Text>
           </View>

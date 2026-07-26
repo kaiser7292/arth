@@ -227,14 +227,13 @@ function gradeColor(grade: string): string {
 
 function wrapPage(
   body: string,
-  reportTitle: string,
-  logoBase64: string,
+  _reportTitle: string,
+  _logoBase64: string,
   generatedDate: string,
 ): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${baseStyles()}</style></head><body>
     <div class="watermark">ARTH</div>
     <table class="page-wrap">
-      <thead><tr><td>${pageHeader(reportTitle, logoBase64)}</td></tr></thead>
       <tfoot><tr><td>${pageFooter(generatedDate)}</td></tr></tfoot>
       <tbody><tr><td>${body}</td></tr></tbody>
     </table>

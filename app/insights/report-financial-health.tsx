@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ScreenContainer, Card, SectionHeader, LoadingState } from "@/components/ui";
@@ -7,7 +7,12 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { formatAmount, formatCompact } from "@/utils/format";
+import { formatAmount } from "@/utils/format";
+import { getExpensesPaginated } from "@/services/expense-queries";
+import { getFYStartMonth } from "@/services/settings";
+import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
+import { toIsoDate } from "@/utils/date";
+import type { Expense } from "@/services/expense-types";
 import {
   generateFinancialHealthReport,
   type FinancialHealthReport,
@@ -60,8 +65,8 @@ function StatBox({
         {label}
       </Text>
       <Text
-        className="text-base font-bold"
-        style={{ color: color || undefined }}
+        className="text-base font-bold text-text-primary dark:text-text-dark-primary"
+        style={color ? { color } : undefined}
         numberOfLines={1}
       >
         {value}
@@ -76,6 +81,8 @@ export default function FinancialHealthReportScreen() {
   const [report, setReport] = useState<FinancialHealthReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [expandedCats, setExpandedCats] = useState<Record<string, Expense[]>>({});
+  const [loadingCats, setLoadingCats] = useState<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
     try {
@@ -97,6 +104,26 @@ export default function FinancialHealthReportScreen() {
       Alert.alert("Export failed", e?.message || "Could not generate PDF");
     }
     setExporting(false);
+  }
+
+  async function toggleCategory(categoryId: string) {
+    if (expandedCats[categoryId]) {
+      setExpandedCats((prev) => { const next = { ...prev }; delete next[categoryId]; return next; });
+      return;
+    }
+    setLoadingCats((prev) => ({ ...prev, [categoryId]: true }));
+    try {
+      const startMonth = getFYStartMonth();
+      const fyYear = getCurrentFY(startMonth);
+      const { start, end } = getFYRange(fyYear, startMonth);
+      const txns = await getExpensesPaginated(
+        DEFAULT_USER_ID,
+        { categoryIds: [categoryId], startDate: toIsoDate(start), endDate: toIsoDate(end), status: "approved" },
+        50,
+      );
+      setExpandedCats((prev) => ({ ...prev, [categoryId]: txns }));
+    } catch {}
+    setLoadingCats((prev) => ({ ...prev, [categoryId]: false }));
   }
 
   if (loading) {
@@ -172,9 +199,9 @@ export default function FinancialHealthReportScreen() {
         {/* Net Worth */}
         <View className="px-4">
           <SectionHeader title="Net Worth" />
-          <View className="flex-row gap-3 mb-2">
-            <StatBox label="Total assets" value={formatCompact(report.totalAssets)} color={status.success} />
-            <StatBox label="Total liabilities" value={formatCompact(report.totalLiabilities)} color={status.danger} />
+          <View className="flex-row gap-3 mb-3">
+            <StatBox label="Total assets" value={formatAmount(report.totalAssets)} color={status.success} />
+            <StatBox label="Total liabilities" value={formatAmount(report.totalLiabilities)} color={status.danger} />
           </View>
           <Card>
             <View className="flex-row items-center justify-between">
@@ -185,7 +212,7 @@ export default function FinancialHealthReportScreen() {
                 className="text-lg font-bold"
                 style={{ color: report.netWorth >= 0 ? status.success : status.danger }}
               >
-                {formatCompact(report.netWorth)}
+                {formatAmount(report.netWorth)}
               </Text>
             </View>
           </Card>
@@ -236,7 +263,7 @@ export default function FinancialHealthReportScreen() {
         {/* Key Metrics */}
         <View className="px-4 mt-4">
           <SectionHeader title="Key Metrics" />
-          <View className="flex-row gap-3 mb-2">
+          <View className="flex-row gap-3 mb-3">
             <StatBox
               label="Savings rate"
               value={`${Math.round(report.currentSavingsRate)}%`}
@@ -256,7 +283,7 @@ export default function FinancialHealthReportScreen() {
             />
             <StatBox
               label="Monthly EMI"
-              value={report.monthlyEMI > 0 ? formatCompact(report.monthlyEMI) : "None"}
+              value={report.monthlyEMI > 0 ? formatAmount(report.monthlyEMI) : "None"}
               color={report.monthlyEMI > 0 ? status.warning : status.success}
             />
           </View>
@@ -277,9 +304,9 @@ export default function FinancialHealthReportScreen() {
                   </Text>
                 </View>
                 <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                  You need {formatCompact(report.emergencyTarget)} (6 months expenses).
-                  Current liquid buffer: {formatCompact(report.liquidAssets)}.
-                  Gap: {formatCompact(report.emergencyGap)}.
+                  You need {formatAmount(report.emergencyTarget)} (6 months expenses).
+                  Current liquid buffer: {formatAmount(report.liquidAssets)}.
+                  Gap: {formatAmount(report.emergencyGap)}.
                 </Text>
               </View>
             </Card>
@@ -306,28 +333,74 @@ export default function FinancialHealthReportScreen() {
                   );
                 })}
               </View>
-              {/* Legend */}
+              {/* Legend — tappable for transaction drill-down */}
               {report.categoryBreakdown.slice(0, 7).map((c, i) => {
                 const barColors = ["#2563EB", "#22C55E", "#F59E0B", "#8B5CF6", "#EC4899", "#0EA5E9", "#6B7280"];
+                const isExpanded = !!expandedCats[c.categoryId];
+                const isLoading = !!loadingCats[c.categoryId];
                 return (
-                  <View key={c.categoryId} className="flex-row items-center justify-between py-1.5">
-                    <View className="flex-row items-center gap-2">
-                      <View
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: barColors[i % barColors.length] }}
-                      />
-                      <Text className="text-xs text-text-primary dark:text-text-dark-primary">
-                        {c.categoryName}
+                  <View key={c.categoryId}>
+                    <Pressable
+                      onPress={() => toggleCategory(c.categoryId)}
+                      className="flex-row items-center justify-between py-1.5"
+                    >
+                      <View className="flex-row items-center gap-2">
+                        <View
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: barColors[i % barColors.length] }}
+                        />
+                        <Text className="text-xs text-text-primary dark:text-text-dark-primary">
+                          {c.categoryName}
+                        </Text>
+                        <Ionicons
+                          name={isExpanded ? "chevron-up" : "chevron-down"}
+                          size={10}
+                          color={colors.textSecondary}
+                        />
+                      </View>
+                      <View className="flex-row items-center gap-3">
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                          {Math.round(c.percentage)}%
+                        </Text>
+                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-16 text-right">
+                          {formatAmount(c.amount)}
+                        </Text>
+                      </View>
+                    </Pressable>
+                    {isLoading && (
+                      <View className="py-2 items-center">
+                        <ActivityIndicator size="small" color={colors.tint} />
+                      </View>
+                    )}
+                    {isExpanded && expandedCats[c.categoryId]?.length > 0 && (
+                      <View className="ml-4 mb-2 border-l-2 border-border-light dark:border-border-dark pl-3">
+                        {expandedCats[c.categoryId].map((txn) => (
+                          <View key={txn.id} className="flex-row items-center justify-between py-1">
+                            <View className="flex-1 mr-2">
+                              <Text className="text-xs text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                                {txn.merchant_name || txn.description || "Expense"}
+                              </Text>
+                              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" style={{ fontSize: 10 }}>
+                                {txn.date}
+                              </Text>
+                            </View>
+                            <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
+                              {formatAmount(txn.amount)}
+                            </Text>
+                          </View>
+                        ))}
+                        {expandedCats[c.categoryId].length >= 50 && (
+                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-1" style={{ fontSize: 10 }}>
+                            Showing first 50 transactions
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                    {isExpanded && expandedCats[c.categoryId]?.length === 0 && (
+                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-4 mb-2">
+                        No transactions found
                       </Text>
-                    </View>
-                    <View className="flex-row items-center gap-3">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                        {Math.round(c.percentage)}%
-                      </Text>
-                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-16 text-right">
-                        {formatCompact(c.amount)}
-                      </Text>
-                    </View>
+                    )}
                   </View>
                 );
               })}
