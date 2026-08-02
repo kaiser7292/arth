@@ -196,6 +196,15 @@ function formatRupees(amount: number): string {
   return "₹" + Math.round(amount).toLocaleString("en-IN");
 }
 
+function computeAllocation(yearsLeft: number): string {
+  if (yearsLeft > 20) return `85% Equity · 10% Debt · 5% Gold`;
+  if (yearsLeft > 15) return `75% Equity · 20% Debt · 5% Gold`;
+  if (yearsLeft > 10) return `65% Equity · 25% Debt · 10% Gold`;
+  if (yearsLeft > 5)  return `50% Equity · 35% Debt · 15% Cash`;
+  if (yearsLeft > 2)  return `30% Equity · 50% Debt · 20% Cash`;
+  return `15% Equity · 55% Debt · 30% Cash`;
+}
+
 function buildPhases(
   yearsToRetirement: number,
   currentMonthlyInHand: number,
@@ -229,7 +238,7 @@ function buildPhases(
         "Build 2-year cash runway for early retirement years",
         "Review health and term insurance adequacy",
       ],
-      allocation: "30% Equity · 50% Debt · 20% Cash",
+      allocation: computeAllocation(yearsToRetirement),
     });
   } else if (yearsToRetirement <= 10) {
     phaseDefs.push(
@@ -243,7 +252,7 @@ function buildPhases(
           "Start SIP of " + formatRupees(requiredMonthlySIP) + "/month",
           "Get term insurance (10x annual income) and health insurance (10L+)",
         ],
-        allocation: "70% Equity · 20% Debt · 10% Gold",
+        allocation: computeAllocation(yearsToRetirement),
       },
       {
         name: "Acceleration",
@@ -255,7 +264,7 @@ function buildPhases(
           "Diversify across equity, debt, and gold",
           "Review and rebalance portfolio annually",
         ],
-        allocation: "60% Equity · 30% Debt · 10% Gold",
+        allocation: computeAllocation(yearsToRetirement - 3),
       },
       {
         name: "Power Accumulation",
@@ -267,7 +276,7 @@ function buildPhases(
           "Consider real estate if not already owned",
           "Start shifting to balanced funds in final 3 years",
         ],
-        allocation: "40% Equity · 40% Debt · 20% Cash",
+        allocation: computeAllocation(yearsToRetirement - 6),
       },
     );
   } else {
@@ -282,7 +291,7 @@ function buildPhases(
           "Start SIP of " + formatRupees(requiredMonthlySIP) + "/month",
           "Get term insurance (10x annual income) and health insurance (10L+)",
         ],
-        allocation: "80% Equity · 15% Debt · 5% Gold",
+        allocation: computeAllocation(yearsToRetirement),
       },
       {
         name: "Acceleration",
@@ -291,10 +300,10 @@ function buildPhases(
         goals: ["Ramp up SIPs with salary growth", "Build diversified portfolio"],
         keyActions: [
           "Step up SIP by " + salaryGrowthPct + "% annually",
-          "Target 80/20 equity-debt split",
+          "Target high-equity allocation — " + Math.min(85, Math.round((yearsToRetirement - 3) * 3)) + "% equity is appropriate at this horizon",
           "Start tax-saving investments (ELSS, PPF, NPS)",
         ],
-        allocation: "80% Equity · 15% Debt · 5% Gold",
+        allocation: computeAllocation(yearsToRetirement - 3),
       },
       {
         name: "House + Family",
@@ -306,7 +315,7 @@ function buildPhases(
           "Start child education SIP if applicable",
           "Continue stepping up retirement SIP despite EMI",
         ],
-        allocation: "70% Equity · 20% Debt · 10% Gold",
+        allocation: computeAllocation(yearsToRetirement - 6),
       },
       {
         name: "Power Accumulation",
@@ -315,10 +324,10 @@ function buildPhases(
         goals: ["Peak earning", "Aggressive corpus building", "Pre-retirement planning"],
         keyActions: [
           "Post-EMI surplus should go entirely to investments",
-          "Shift to 60/40 equity-debt in final 5 years",
+          yearsToRetirement - 15 > 5 ? "Maintain growth allocation — " + (yearsToRetirement - 15) + " years still remain" : "Begin shifting to balanced funds in these final years",
           "Build 2-year cash runway before retirement date",
         ],
-        allocation: "50% Equity · 35% Debt · 15% Cash",
+        allocation: computeAllocation(yearsToRetirement - 15),
       },
     );
   }

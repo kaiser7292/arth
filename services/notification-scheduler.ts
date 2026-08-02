@@ -105,7 +105,9 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
 
     const pendingRows = await db.getAllAsync<{ cnt: number }>(
       `SELECT COUNT(*) AS cnt FROM expenses
-       WHERE user_id = ? AND status = 'pending_review' AND deleted_at IS NULL;`,
+       WHERE user_id = ? AND status = 'pending_review'
+         AND nature IN ('realized', 'credit') AND deleted_at IS NULL
+         AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0);`,
       userId,
     );
     const pendingCount = pendingRows[0]?.cnt ?? 0;

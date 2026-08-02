@@ -1550,7 +1550,7 @@ export async function listHisaabInclusionCandidates(
   );
 
   return rows
-    .filter((r) => Math.abs(r.balance) > 0.01)
+    .filter((r) => Math.abs(r.balance) > 0.01 || r.inclusion_amount != null)
     .map<HisaabInclusionCandidate>((r) => ({
       personId: r.person_id,
       personName: r.person_name,

@@ -80,6 +80,7 @@ async function getMonthlyExpensesByFiscalMonth(
     `SELECT strftime('%Y-%m', date) as month_str, SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ?
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      GROUP BY month_str

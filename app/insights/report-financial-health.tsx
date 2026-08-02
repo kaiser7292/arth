@@ -546,7 +546,7 @@ export default function FinancialHealthReportScreen() {
           <View className="px-4 mt-4">
             <SectionHeader title="Spending Spikes" />
             {report.spikingCategories.map((s) => (
-              <Pressable key={s.categoryId} onPress={() => drillSpikeCategory(s.categoryId, s.categoryName)}>
+              <Pressable key={s.categoryId} onPress={() => drillSpikeCategory(s.categoryId, s.categoryName)} className="mb-3">
                 <Card>
                   <View className="flex-row items-center gap-2 mb-1">
                     <Ionicons name="trending-up" size={14} color={status.warning} />
