@@ -2982,8 +2982,8 @@ export default function ExpenseDetailScreen() {
                 </Pressable>
               )}
 
-              {/* Duplicate — create a new expense pre-filled from this one. */}
-              {expense.nature === "realized" && (
+              {/* Duplicate — create a new expense/credit pre-filled from this one. */}
+              {(expense.nature === "realized" || expense.nature === "credit") && (
                 <Pressable
                   onPress={() =>
                     router.push({
@@ -3003,7 +3003,7 @@ export default function ExpenseDetailScreen() {
                       Duplicate
                     </Text>
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
-                      Start a new expense pre-filled from this one
+                      {expense.nature === "credit" ? "Start a new credit pre-filled from this one" : "Start a new expense pre-filled from this one"}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />

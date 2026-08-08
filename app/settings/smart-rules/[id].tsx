@@ -103,7 +103,7 @@ function defaultActionFor(type: UIActionType): UIRuleAction {
     case "tags": return { type: "tags", tag_ids: [] };
     case "is_right_spend": return { type: "is_right_spend" };
     case "mark_auto": return { type: "mark_auto" };
-    case "split_with_person": return { type: "split_with_person" };
+    case "split_with_person": return { type: "split_with_person", split_mode: "equal", paid_by: "me" };
     case "link_investment_bucket": return { type: "link_investment_bucket", bucket_id: null };
     default: return { type: "category" };
   }
@@ -276,7 +276,7 @@ export default function SmartRuleDetailScreen() {
       if (a.type === "tags" && (!a.tag_ids || a.tag_ids.length === 0)) continue;
       if (a.type === "split_with_person") {
         if (!a.person_id) continue;
-        result.push({ type: "split_with_person", person_id: a.person_id, split_mode: "equal", paid_by: "me" });
+        result.push({ type: "split_with_person", person_id: a.person_id, split_mode: a.split_mode ?? "equal", paid_by: a.paid_by ?? "me" });
         continue;
       }
       result.push(a);
@@ -941,6 +941,8 @@ export default function SmartRuleDetailScreen() {
                   {action.type === "split_with_person" && (() => {
                     const a = action as RuleAction & { type: "split_with_person" };
                     const selectedPerson = persons.find((p) => p.id === a.person_id);
+                    const splitMode = a.split_mode ?? "equal";
+                    const paidBy = a.paid_by ?? "me";
                     return (
                       <>
                         <Pressable
@@ -968,11 +970,47 @@ export default function SmartRuleDetailScreen() {
                                   className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={{ color: isSel ? accentColor : colors.text }}>{p.name}</Text>
+                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSel ? { color: accentColor } : undefined}>{p.name}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
                             })}
+                          </View>
+                        )}
+                        {selectedPerson && (
+                          <View className="mt-1 pb-1">
+                            <Text className="text-xs text-text-tertiary mb-1.5">How to split</Text>
+                            <View className="flex-row gap-2 mb-2">
+                              {([ { mode: "equal", label: "Equal" }, { mode: "they_owe_full", label: "They owe full" }, { mode: "i_owe_full", label: "I owe full" } ] as const).map((opt) => {
+                                const isSel = splitMode === opt.mode;
+                                return (
+                                  <Pressable
+                                    key={opt.mode}
+                                    onPress={() => updateAction(index, { split_mode: opt.mode })}
+                                    className="flex-1 py-1.5 rounded-lg items-center border border-border-light dark:border-border-dark"
+                                    style={isSel ? { backgroundColor: accentColor + "20", borderColor: accentColor } : undefined}
+                                  >
+                                    <Text className="text-xs font-semibold" style={{ color: isSel ? accentColor : colors.textSecondary }}>{opt.label}</Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </View>
+                            <Text className="text-xs text-text-tertiary mb-1.5">Who paid</Text>
+                            <View className="flex-row gap-2">
+                              {([ { value: "me", label: "I paid" }, { value: "them", label: "They paid" } ] as const).map((opt) => {
+                                const isSel = paidBy === opt.value;
+                                return (
+                                  <Pressable
+                                    key={opt.value}
+                                    onPress={() => updateAction(index, { paid_by: opt.value })}
+                                    className="flex-1 py-1.5 rounded-lg items-center border border-border-light dark:border-border-dark"
+                                    style={isSel ? { backgroundColor: accentColor + "20", borderColor: accentColor } : undefined}
+                                  >
+                                    <Text className="text-xs font-semibold" style={{ color: isSel ? accentColor : colors.textSecondary }}>{opt.label}</Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </View>
                           </View>
                         )}
                       </>

@@ -93,6 +93,9 @@ export default function AddExpenseScreen() {
   // Tags state
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
+  // Set when duplicating a credit — so the new row is saved as nature='credit'
+  const [isCreditDuplicate, setIsCreditDuplicate] = useState(false);
+
   // Split state
   const [showSplitSheet, setShowSplitSheet] = useState(false);
   const [splitConfig, setSplitConfig] = useState<SplitConfig | null>(null);
@@ -236,6 +239,7 @@ export default function AddExpenseScreen() {
         if (src.payment_mode_id) setPaymentModeId(src.payment_mode_id);
         if (src.account_id) setAccountId(src.account_id);
         if (src.is_right_spend !== null) setIsRightSpend(src.is_right_spend === 1);
+        if (src.nature === "credit") setIsCreditDuplicate(true);
       })
       .catch((e) => logger.warn("Load source expense for duplicate failed:", e));
   }, [copyFromExpenseId]);
@@ -281,7 +285,11 @@ export default function AddExpenseScreen() {
   const navigateAfterSave = useCallback(() => {
     if (copyFromExpenseId) {
       router.dismissAll();
-      router.replace("/(tabs)/expenses");
+      if (isCreditDuplicate) {
+        router.replace({ pathname: "/(tabs)/expenses", params: { preset: "credits" } });
+      } else {
+        router.replace("/(tabs)/expenses");
+      }
       return;
     }
     if (isRefund) {
@@ -290,7 +298,7 @@ export default function AddExpenseScreen() {
       return;
     }
     router.back();
-  }, [router, copyFromExpenseId, isRefund]);
+  }, [router, copyFromExpenseId, isRefund, isCreditDuplicate]);
 
   const handleSave = useCallback(async () => {
     const validationErrors = validateExpense({
@@ -391,6 +399,8 @@ export default function AddExpenseScreen() {
         is_right_spend: isRightSpend ? 1 : 0,
         ...(isRefund
           ? { nature: "credit" as const, refund_of_expense_id: linkedExpenseId }
+          : isCreditDuplicate
+          ? { nature: "credit" as const }
           : {}),
       };
 

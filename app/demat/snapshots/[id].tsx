@@ -130,13 +130,17 @@ export default function DematSnapshotsScreen() {
         if (!isNaN(fundVal)) {
           await addOrUpdateFundSnapshot(id, addDate, fundVal);
         }
+      } else if (latestFund != null) {
+        // Carry the last known fund value forward as an explicit DB row so it
+        // appears in the table and can be edited later.
+        await addOrUpdateFundSnapshot(id, addDate, latestFund);
       }
       setShowAddForm(false);
       loadData();
     } finally {
       setSaving(false);
     }
-  }, [id, addDate, addPortfolio, addFund, loadData]);
+  }, [id, addDate, addPortfolio, addFund, latestFund, loadData]);
 
   const handleSavePortfolioEdit = useCallback(async (snap: PortfolioSnapshot) => {
     const val = parseFloat(editingPortfolioValue.replace(/,/g, ""));
@@ -311,7 +315,7 @@ export default function DematSnapshotsScreen() {
                 onChangeText={setAddFund}
                 keyboardType="numeric"
                 formula
-                placeholder="Leave blank to carry forward"
+                placeholder={latestFund != null ? `Leave blank to carry ₹${latestFund.toLocaleString("en-IN")}` : "e.g. 5,000"}
                 containerClassName="mb-3"
               />
               <View className="flex-row">
