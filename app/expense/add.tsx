@@ -48,6 +48,11 @@ import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from "expo-speech-recognition";
+import { parseVoiceInput } from "@/utils/voice-parser";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     Keyboard,
@@ -95,6 +100,9 @@ export default function AddExpenseScreen() {
 
   // Set when duplicating a credit — so the new row is saved as nature='credit'
   const [isCreditDuplicate, setIsCreditDuplicate] = useState(false);
+
+  // Voice input
+  const [isListening, setIsListening] = useState(false);
 
   // Split state
   const [showSplitSheet, setShowSplitSheet] = useState(false);
@@ -459,6 +467,40 @@ export default function AddExpenseScreen() {
     [date],
   );
 
+  useSpeechRecognitionEvent("result", (event) => {
+    if (!event.isFinal) return;
+    const transcript = event.results[0]?.transcript ?? "";
+    if (transcript) {
+      const parsed = parseVoiceInput(transcript);
+      if (parsed.amount != null) {
+        setAmount(String(parsed.amount));
+        setErrors((e) => ({ ...e, amount: undefined }));
+      }
+      if (parsed.merchant) setMerchantName(parsed.merchant);
+      if (parsed.description) setDescription(parsed.description);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setIsListening(false);
+  });
+
+  useSpeechRecognitionEvent("error", () => setIsListening(false));
+  useSpeechRecognitionEvent("end", () => setIsListening(false));
+
+  const startVoice = useCallback(async () => {
+    const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    if (!granted) {
+      alert("Microphone needed", "Allow microphone access in Settings to use voice input.");
+      return;
+    }
+    setIsListening(true);
+    ExpoSpeechRecognitionModule.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
+  }, [alert]);
+
+  const stopVoice = useCallback(() => {
+    ExpoSpeechRecognitionModule.abort();
+    setIsListening(false);
+  }, []);
+
   return (
     <ScreenContainer>
       <KeyboardAvoidingView
@@ -494,6 +536,43 @@ export default function AddExpenseScreen() {
               error={errors.amount}
               autoFocus
             />
+
+            {/* Voice input — only for fresh expense entry */}
+            {!isRefund && !copyFromExpenseId && (
+              <View className="items-center mb-4 -mt-2">
+                <Pressable
+                  onPress={isListening ? stopVoice : startVoice}
+                  className="flex-row items-center px-4 py-2 rounded-full border"
+                  style={{
+                    backgroundColor: isListening
+                      ? "rgba(239,68,68,0.08)"
+                      : ac(accent, colorScheme, 50, 900),
+                    borderColor: isListening
+                      ? "#EF4444"
+                      : ac(accent, colorScheme, 200, 800),
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={isListening ? "Stop voice input" : "Start voice input"}
+                >
+                  <Ionicons
+                    name={isListening ? "radio-button-on" : "mic-outline"}
+                    size={15}
+                    color={isListening ? "#EF4444" : accent[500]}
+                  />
+                  <Text
+                    className="ml-2 text-sm font-medium"
+                    style={{ color: isListening ? "#EF4444" : accent[500] }}
+                  >
+                    {isListening ? "Listening… tap to stop" : "Speak expense"}
+                  </Text>
+                </Pressable>
+                {isListening && (
+                  <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-1.5">
+                    Try: "450 at Swiggy for lunch"
+                  </Text>
+                )}
+              </View>
+            )}
 
             {/* Split with someone — hidden for refunds (doesn't make sense to split a refund) */}
             {!isRefund && (
