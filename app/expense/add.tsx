@@ -53,6 +53,7 @@ import {
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
 import { parseVoiceInput } from "@/utils/voice-parser";
+import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     Keyboard,
@@ -102,7 +103,11 @@ export default function AddExpenseScreen() {
   const [isCreditDuplicate, setIsCreditDuplicate] = useState(false);
 
   // Voice input
-  const [isListening, setIsListening] = useState(false);
+  type VoiceState = "idle" | "listening" | "speaking";
+  type VoiceSession = { amount?: number; merchant?: string; description?: string };
+  const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  const [voiceSession, setVoiceSession] = useState<VoiceSession>({});
+  const voiceSessionRef = useRef<VoiceSession>({});
 
   // Split state
   const [showSplitSheet, setShowSplitSheet] = useState(false);
@@ -470,21 +475,61 @@ export default function AddExpenseScreen() {
   useSpeechRecognitionEvent("result", (event) => {
     if (!event.isFinal) return;
     const transcript = event.results[0]?.transcript ?? "";
-    if (transcript) {
-      const parsed = parseVoiceInput(transcript);
-      if (parsed.amount != null) {
-        setAmount(String(parsed.amount));
-        setErrors((e) => ({ ...e, amount: undefined }));
-      }
-      if (parsed.merchant) setMerchantName(parsed.merchant);
-      if (parsed.description) setDescription(parsed.description);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // "skip" → apply whatever we have and finish
+    if (/\bskip\b/i.test(transcript)) {
+      const s = voiceSessionRef.current;
+      if (s.amount != null) { setAmount(String(s.amount)); setErrors((e) => ({ ...e, amount: undefined })); }
+      if (s.merchant) setMerchantName(s.merchant);
+      if (s.description) setDescription(s.description);
+      if (s.amount != null || s.merchant) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      voiceSessionRef.current = {};
+      setVoiceSession({});
+      setVoiceState("idle");
+      return;
     }
-    setIsListening(false);
+
+    const parsed = transcript ? parseVoiceInput(transcript) : {};
+    const updated: VoiceSession = {
+      amount: voiceSessionRef.current.amount ?? parsed.amount,
+      merchant: voiceSessionRef.current.merchant ?? parsed.merchant,
+      description: voiceSessionRef.current.description ?? parsed.description,
+    };
+    voiceSessionRef.current = updated;
+    setVoiceSession({ ...updated });
+
+    const finish = () => {
+      if (updated.amount != null) { setAmount(String(updated.amount)); setErrors((e) => ({ ...e, amount: undefined })); }
+      if (updated.merchant) setMerchantName(updated.merchant);
+      if (updated.description) setDescription(updated.description);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      voiceSessionRef.current = {};
+      setVoiceSession({});
+      setVoiceState("idle");
+    };
+
+    const ask = (question: string) => {
+      setVoiceState("speaking");
+      const restart = () => {
+        setVoiceState("listening");
+        ExpoSpeechRecognitionModule.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
+      };
+      Speech.speak(question, { language: "en-IN", onDone: restart, onError: restart });
+    };
+
+    if (updated.amount == null) {
+      ask("How much did you spend?");
+    } else if (!updated.merchant) {
+      ask("Where did you spend it?");
+    } else if (!updated.description) {
+      ask("What was it for? Say skip to finish.");
+    } else {
+      finish();
+    }
   });
 
-  useSpeechRecognitionEvent("error", () => setIsListening(false));
-  useSpeechRecognitionEvent("end", () => setIsListening(false));
+  useSpeechRecognitionEvent("error", () => setVoiceState("idle"));
+  useSpeechRecognitionEvent("end", () => setVoiceState((prev) => (prev === "listening" ? "idle" : prev)));
 
   const startVoice = useCallback(async () => {
     const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
@@ -492,13 +537,18 @@ export default function AddExpenseScreen() {
       alert("Microphone needed", "Allow microphone access in Settings to use voice input.");
       return;
     }
-    setIsListening(true);
+    voiceSessionRef.current = {};
+    setVoiceSession({});
+    setVoiceState("listening");
     ExpoSpeechRecognitionModule.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
   }, [alert]);
 
-  const stopVoice = useCallback(() => {
+  const cancelVoice = useCallback(() => {
+    Speech.stop();
     ExpoSpeechRecognitionModule.abort();
-    setIsListening(false);
+    voiceSessionRef.current = {};
+    setVoiceSession({});
+    setVoiceState("idle");
   }, []);
 
   return (
@@ -541,32 +591,63 @@ export default function AddExpenseScreen() {
             {!isRefund && !copyFromExpenseId && (
               <View className="items-center mb-4 -mt-2">
                 <Pressable
-                  onPress={isListening ? stopVoice : startVoice}
+                  onPress={voiceState !== "idle" ? cancelVoice : startVoice}
+                  disabled={voiceState === "speaking"}
                   className="flex-row items-center px-4 py-2 rounded-full border"
                   style={{
-                    backgroundColor: isListening
+                    backgroundColor: voiceState !== "idle"
                       ? "rgba(239,68,68,0.08)"
                       : ac(accent, colorScheme, 50, 900),
-                    borderColor: isListening
+                    borderColor: voiceState !== "idle"
                       ? "#EF4444"
                       : ac(accent, colorScheme, 200, 800),
+                    opacity: voiceState === "speaking" ? 0.7 : 1,
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel={isListening ? "Stop voice input" : "Start voice input"}
+                  accessibilityLabel={voiceState !== "idle" ? "Cancel voice input" : "Start voice input"}
                 >
                   <Ionicons
-                    name={isListening ? "radio-button-on" : "mic-outline"}
+                    name={
+                      voiceState === "listening" ? "radio-button-on"
+                      : voiceState === "speaking" ? "volume-high-outline"
+                      : "mic-outline"
+                    }
                     size={15}
-                    color={isListening ? "#EF4444" : accent[500]}
+                    color={voiceState !== "idle" ? "#EF4444" : accent[500]}
                   />
                   <Text
                     className="ml-2 text-sm font-medium"
-                    style={{ color: isListening ? "#EF4444" : accent[500] }}
+                    style={{ color: voiceState !== "idle" ? "#EF4444" : accent[500] }}
                   >
-                    {isListening ? "Listening… tap to stop" : "Speak expense"}
+                    {voiceState === "listening" ? "Listening… tap to cancel"
+                      : voiceState === "speaking" ? "Speaking…"
+                      : "Speak expense"}
                   </Text>
                 </Pressable>
-                {isListening && (
+
+                {/* Collected fields so far */}
+                {voiceState !== "idle" && (voiceSession.amount != null || voiceSession.merchant) && (
+                  <View className="flex-row gap-2 mt-2 flex-wrap justify-center">
+                    {voiceSession.amount != null && (
+                      <View className="flex-row items-center px-2 py-0.5 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+                        <Ionicons name="checkmark-circle" size={12} color={accent[500]} />
+                        <Text className="text-xs ml-1 text-text-secondary dark:text-text-dark-secondary">
+                          {"₹"}{voiceSession.amount.toLocaleString("en-IN")}
+                        </Text>
+                      </View>
+                    )}
+                    {voiceSession.merchant ? (
+                      <View className="flex-row items-center px-2 py-0.5 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+                        <Ionicons name="checkmark-circle" size={12} color={accent[500]} />
+                        <Text className="text-xs ml-1 text-text-secondary dark:text-text-dark-secondary">
+                          {voiceSession.merchant}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                )}
+
+                {voiceState === "listening" && !voiceSession.amount && !voiceSession.merchant && (
                   <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-1.5">
                     Try: "450 at Swiggy for lunch"
                   </Text>
