@@ -76,6 +76,7 @@ export default function AddExpenseScreen() {
     prefillAccountId?: string;
     prefillCategoryId?: string;
     prefillDate?: string;
+    prefillSplitPersonId?: string;
   }>();
   const isRefund = params.type === "refund";
   const linkedExpenseId = params.linkExpenseId ?? null;
@@ -156,6 +157,10 @@ export default function AddExpenseScreen() {
         setPersons(ppl);
         setAccounts(accts);
         setMerchantNames(merchants);
+        if (params.prefillSplitPersonId) {
+          const p = ppl.find((x) => x.id === params.prefillSplitPersonId);
+          if (p) setSplitConfig({ paidBy: "me", splitMode: "equal", personId: p.id });
+        }
       } catch {
         // Database not ready
       }
@@ -257,7 +262,8 @@ export default function AddExpenseScreen() {
     const { prefillAmount, prefillMerchant, prefillDescription, prefillDate,
             prefillPaymentModeId, prefillAccountId, prefillCategoryId } = params;
     if (!prefillAmount && !prefillMerchant && !prefillDescription && !prefillDate &&
-        !prefillPaymentModeId && !prefillAccountId && !prefillCategoryId) return;
+        !prefillPaymentModeId && !prefillAccountId && !prefillCategoryId &&
+        !params.prefillSplitPersonId) return;
     if (prefillAmount) {
       const n = parseFloat(prefillAmount);
       if (!isNaN(n) && n > 0) { setAmount(String(n)); setErrors((e) => ({ ...e, amount: undefined })); }

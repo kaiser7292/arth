@@ -43,6 +43,13 @@ function qualityTag(v: Speech.Voice): string {
   return "";
 }
 
+function genderOf(v: Speech.Voice): "female" | "male" | "unknown" {
+  const text = `${v.name ?? ""} ${v.identifier}`.toLowerCase();
+  if (text.includes("female")) return "female";
+  if (text.includes("male")) return "male";
+  return "unknown";
+}
+
 function buildDisplayVoices(raw: Speech.Voice[]): DisplayVoice[] {
   const english = raw.filter((v) => v.language.toLowerCase().startsWith("en"));
   const sorted = [...english].sort((a, b) => {
@@ -50,18 +57,33 @@ function buildDisplayVoices(raw: Speech.Voice[]): DisplayVoice[] {
     if (rd !== 0) return rd;
     return qualityOrder(a) - qualityOrder(b);
   });
-  const regionCounters: Record<string, number> = {};
-  const result: DisplayVoice[] = [];
+
+  const females: Speech.Voice[] = [];
+  const males: Speech.Voice[] = [];
+  const unknown: Speech.Voice[] = [];
   for (const v of sorted) {
-    const region = regionOf(v.language);
-    regionCounters[region] = (regionCounters[region] ?? 0) + 1;
-    result.push({
-      identifier: v.identifier,
-      language: v.language,
-      friendlyName: `${region} Voice ${regionCounters[region]}${qualityTag(v)}`,
-    });
+    const g = genderOf(v);
+    if (g === "female") females.push(v);
+    else if (g === "male") males.push(v);
+    else unknown.push(v);
   }
-  return result;
+
+  const result: DisplayVoice[] = [];
+  let fn = 0, mn = 0, un = 0;
+  for (const v of females.slice(0, 5)) {
+    fn++;
+    result.push({ identifier: v.identifier, language: v.language, friendlyName: `Female Voice ${fn}${qualityTag(v)}` });
+  }
+  for (const v of males.slice(0, 5)) {
+    mn++;
+    result.push({ identifier: v.identifier, language: v.language, friendlyName: `Male Voice ${mn}${qualityTag(v)}` });
+  }
+  const remaining = 10 - fn - mn;
+  for (const v of unknown.slice(0, remaining)) {
+    un++;
+    result.push({ identifier: v.identifier, language: v.language, friendlyName: `Voice ${un}${qualityTag(v)}` });
+  }
+  return result; // max 10
 }
 
 export default function VoiceInputSettingsScreen() {
