@@ -74,6 +74,7 @@ export default function SimulatorListScreen() {
   const [showArchived, setShowArchived] = useState(false);
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       await purgeRetention(DEFAULT_USER_ID);
       // v16.0.4 — no longer auto-create a default scenario on open. Scenarios
@@ -203,7 +204,7 @@ export default function SimulatorListScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
-        <LoadingState message="Loading simulator…" icon="analytics-outline" />
+        <LoadingState message="Loading simulator…" icon="pulse-outline" />
       </ScreenContainer>
     );
   }

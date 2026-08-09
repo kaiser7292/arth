@@ -111,6 +111,7 @@ export default function ReviewQueueScreen() {
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
   const loadItems = useCallback(async () => {
+    setLoading(true);
     try {
       const [pending, pairs, dupScan, uncat] = await Promise.all([
         getPendingExpensesForReview(DEFAULT_USER_ID),
@@ -635,7 +636,7 @@ export default function ReviewQueueScreen() {
   if (loading && items.length === 0) {
     return (
       <ScreenContainer padTop={false}>
-        <LoadingState message="Loading review queue…" icon="checkmark-done-outline" />
+        <LoadingState message="Loading review queue…" icon="clipboard-outline" />
       </ScreenContainer>
     );
   }
