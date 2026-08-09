@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { isNLSearchEnabled } from "@/services/ai-assistant";
 import { parseNLQuery } from "@/utils/nl-search";
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from "expo-speech-recognition";
 import { View, Text, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -506,12 +510,46 @@ export default function ExpensesScreen() {
     setSearch(text);
   }, []);
 
-  const applyNLSearch = useCallback(() => {
-    if (!nlEnabled || !search.trim()) return;
-    const { textSearch, datePreset: parsedPreset } = parseNLQuery(search);
+  const applyNLSearchWith = useCallback((text: string) => {
+    if (!nlEnabled || !text.trim()) { setSearch(text); return; }
+    const { textSearch, datePreset: parsedPreset } = parseNLQuery(text);
     setSearch(textSearch);
     if (parsedPreset) setDatePreset(parsedPreset);
-  }, [nlEnabled, search, setDatePreset]);
+  }, [nlEnabled, setDatePreset]);
+
+  const applyNLSearch = useCallback(() => {
+    applyNLSearchWith(search);
+  }, [applyNLSearchWith, search]);
+
+  // Voice search
+  const [isVoiceSearching, setIsVoiceSearching] = useState(false);
+
+  useSpeechRecognitionEvent("result", (event) => {
+    if (!isVoiceSearching || !event.isFinal) return;
+    const transcript = event.results[0]?.transcript ?? "";
+    setIsVoiceSearching(false);
+    if (transcript) applyNLSearchWith(transcript);
+  });
+
+  useSpeechRecognitionEvent("error", () => {
+    if (isVoiceSearching) setIsVoiceSearching(false);
+  });
+
+  useSpeechRecognitionEvent("end", () => {
+    setIsVoiceSearching((prev) => (prev ? false : prev));
+  });
+
+  const startVoiceSearch = useCallback(async () => {
+    const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    if (!granted) return;
+    setIsVoiceSearching(true);
+    ExpoSpeechRecognitionModule.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
+  }, []);
+
+  const cancelVoiceSearch = useCallback(() => {
+    ExpoSpeechRecognitionModule.abort();
+    setIsVoiceSearching(false);
+  }, []);
 
   const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0;
   const activeNatureIndex = NATURE_TABS.findIndex((t) => t.key === filterNature);
@@ -885,7 +923,8 @@ export default function ExpensesScreen() {
               <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
             </Pressable>
           )}
-          {nlEnabled && search.trim() !== "" && (
+          {/* Apply button — only shown for typed input; voice auto-applies */}
+          {nlEnabled && search.trim() !== "" && !isVoiceSearching && (
             <Pressable
               onPress={applyNLSearch}
               accessibilityLabel="Apply smart search"
@@ -896,6 +935,19 @@ export default function ExpensesScreen() {
               <Text className="text-xs font-semibold text-white">Apply</Text>
             </Pressable>
           )}
+          {/* Voice search mic */}
+          <Pressable
+            onPress={isVoiceSearching ? cancelVoiceSearch : startVoiceSearch}
+            accessibilityLabel={isVoiceSearching ? "Cancel voice search" : "Voice search"}
+            accessibilityRole="button"
+            className="ml-2 p-1"
+          >
+            <Ionicons
+              name={isVoiceSearching ? "radio-button-on" : "mic-outline"}
+              size={18}
+              color={isVoiceSearching ? "#EF4444" : colors.textSecondary}
+            />
+          </Pressable>
           <Pressable
             onPress={() => setShowFilters(!showFilters)}
             accessibilityLabel={showFilters ? "Hide filters" : "Show filters"}

@@ -72,7 +72,9 @@ export default function AddExpenseScreen() {
     prefillAmount?: string;
     prefillMerchant?: string;
     prefillDescription?: string;
-    prefillPaymentMode?: string;
+    prefillPaymentModeId?: string;
+    prefillAccountId?: string;
+    prefillCategoryId?: string;
     prefillDate?: string;
   }>();
   const isRefund = params.type === "refund";
@@ -249,29 +251,25 @@ export default function AddExpenseScreen() {
       .catch((e) => logger.warn("Load source expense for duplicate failed:", e));
   }, [copyFromExpenseId]);
 
-  // Voice pre-fill — applied once on mount when navigated from VoiceEntrySheet
+  // Voice pre-fill — applied once on mount when navigated from VoiceEntrySheet.
+  // IDs are already resolved by VoiceEntrySheet, so direct assignment is safe.
   useEffect(() => {
-    if (!params.prefillAmount && !params.prefillMerchant && !params.prefillDescription && !params.prefillDate) return;
-    if (params.prefillAmount) {
-      const n = parseFloat(params.prefillAmount);
+    const { prefillAmount, prefillMerchant, prefillDescription, prefillDate,
+            prefillPaymentModeId, prefillAccountId, prefillCategoryId } = params;
+    if (!prefillAmount && !prefillMerchant && !prefillDescription && !prefillDate &&
+        !prefillPaymentModeId && !prefillAccountId && !prefillCategoryId) return;
+    if (prefillAmount) {
+      const n = parseFloat(prefillAmount);
       if (!isNaN(n) && n > 0) { setAmount(String(n)); setErrors((e) => ({ ...e, amount: undefined })); }
     }
-    if (params.prefillMerchant) setMerchantName(params.prefillMerchant);
-    if (params.prefillDescription) setDescription(params.prefillDescription);
-    if (params.prefillDate) setDate(params.prefillDate);
+    if (prefillMerchant) setMerchantName(prefillMerchant);
+    if (prefillDescription) setDescription(prefillDescription);
+    if (prefillDate) setDate(prefillDate);
+    if (prefillPaymentModeId) setPaymentModeId(prefillPaymentModeId);
+    if (prefillAccountId) setAccountId(prefillAccountId);
+    if (prefillCategoryId) setCategoryId(prefillCategoryId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Match voice payment mode name to a real PaymentMode id once modes load
-  useEffect(() => {
-    if (!params.prefillPaymentMode || paymentModes.length === 0) return;
-    const query = params.prefillPaymentMode.toLowerCase();
-    const match = paymentModes.find((pm) => {
-      const n = pm.name.toLowerCase();
-      return n.includes(query) || query.includes(n);
-    });
-    if (match) setPaymentModeId(match.id);
-  }, [params.prefillPaymentMode, paymentModes]);
 
   // Refresh accounts when returning from account-add screen
   useFocusEffect(
@@ -522,7 +520,7 @@ export default function AddExpenseScreen() {
                 if (errors.amount) setErrors((e) => ({ ...e, amount: undefined }));
               }}
               error={errors.amount}
-              autoFocus={!params.prefillAmount && !params.prefillMerchant}
+              autoFocus={!params.prefillAmount && !params.prefillMerchant && !params.prefillPaymentModeId}
             />
 
             {/* Split with someone — hidden for refunds (doesn't make sense to split a refund) */}

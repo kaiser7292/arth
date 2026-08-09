@@ -604,7 +604,7 @@ export default function SmartRuleDetailScreen() {
                               }}
                               className="flex-row items-center justify-between py-2.5 px-3 rounded-lg border border-border-light dark:border-border-dark"
                             >
-                              <Text className="text-sm flex-1 text-text-primary dark:text-text-dark-primary" style={{ color: selectedLabel ? undefined : colors.tabIconDefault }}>
+                              <Text className="text-sm flex-1 text-text-primary dark:text-text-dark-primary" style={selectedLabel ? undefined : { color: colors.tabIconDefault }}>
                                 {selectedLabel ?? placeholder}
                               </Text>
                               <Ionicons name={condValueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
@@ -775,7 +775,7 @@ export default function SmartRuleDetailScreen() {
                         >
                           <View>
                             <Text className="text-xs text-text-tertiary">Category</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedCat ? undefined : colors.tabIconDefault }}>
+                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={selectedCat ? undefined : { color: colors.tabIconDefault }}>
                               {selectedCat?.name ?? "Select category"}
                             </Text>
                           </View>
@@ -814,7 +814,7 @@ export default function SmartRuleDetailScreen() {
                         >
                           <View>
                             <Text className="text-xs text-text-tertiary">Payment mode</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedMode ? undefined : colors.tabIconDefault }}>
+                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={selectedMode ? undefined : { color: colors.tabIconDefault }}>
                               {selectedMode?.name ?? "Select payment mode"}
                             </Text>
                           </View>
@@ -904,7 +904,7 @@ export default function SmartRuleDetailScreen() {
                         >
                           <View>
                             <Text className="text-xs text-text-tertiary">Classification</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedLabel ? undefined : colors.tabIconDefault }}>
+                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={selectedLabel ? undefined : { color: colors.tabIconDefault }}>
                               {selectedLabel ?? "Select classification"}
                             </Text>
                           </View>
@@ -951,7 +951,7 @@ export default function SmartRuleDetailScreen() {
                         >
                           <View>
                             <Text className="text-xs text-text-tertiary">Split with</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedPerson ? undefined : colors.tabIconDefault }}>
+                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={selectedPerson ? undefined : { color: colors.tabIconDefault }}>
                               {selectedPerson?.name ?? "Select person"}
                             </Text>
                           </View>
@@ -1028,7 +1028,7 @@ export default function SmartRuleDetailScreen() {
                         >
                           <View>
                             <Text className="text-xs text-text-tertiary">Investment bucket</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={{ color: selectedBucket ? undefined : colors.tabIconDefault }}>
+                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={selectedBucket ? undefined : { color: colors.tabIconDefault }}>
                               {selectedBucket?.name ?? "Select bucket"}
                             </Text>
                           </View>
