@@ -26,12 +26,14 @@ import { getVoiceSettings } from "@/services/voice-settings";
 import type { VoiceSettings } from "@/services/voice-settings";
 
 type VoiceState = "idle" | "listening" | "speaking";
-
 type SessionType = "expense" | "transfer";
+type PendingField =
+  | "amount" | "merchant" | "category" | "paymentMode" | "account" | "split"
+  | "transferAmount" | "transferFrom" | "transferTo" | "transferConfirm";
 
 interface VoiceSession {
   sessionType: SessionType;
-  // Expense
+  confirming: boolean;
   amount?: number;
   merchant?: string;
   description?: string;
@@ -40,7 +42,6 @@ interface VoiceSession {
   categoryId?: string;
   dateIso?: string;
   splitPersonId?: string;
-  // Transfer
   transferFromAccountId?: string;
   transferToAccountId?: string;
 }
@@ -50,7 +51,7 @@ interface Props {
   onClose: () => void;
 }
 
-// ── Matching helpers ────────────────────────────────────────────────────────
+// ── Matching helpers ─────────────────────────────────────────────────────────
 
 function words3(t: string): string[] {
   return t.toLowerCase().split(/\s+/).filter((w) => w.length >= 3);
@@ -63,30 +64,37 @@ function wordMatchesName(word: string, name: string): boolean {
 
 function matchPaymentMode(text: string, modes: PaymentMode[]): PaymentMode | undefined {
   const t = text.toLowerCase().trim();
-  const exact = modes.find((m) => m.name.toLowerCase() === t);
-  if (exact) return exact;
   return modes.find((m) => {
     const n = m.name.toLowerCase();
-    return n.length > 1 && (n.includes(t) || t.includes(n));
+    return n.length > 1 && (n === t || n.includes(t) || t.includes(n));
   });
 }
 
-function matchAccount(text: string, accounts: FinancialAccount[]): FinancialAccount | undefined {
+// Returns all accounts whose bank/label matches the text (for disambiguation)
+function findAllMatchingAccounts(text: string, accounts: FinancialAccount[]): FinancialAccount[] {
   const t = text.toLowerCase().trim();
-  // Last-4 digits match
-  const byDigits = accounts.find(
-    (a) => a.account_identifier && (
-      a.account_identifier === t ||
-      (a.account_identifier.length >= 4 && t.includes(a.account_identifier.slice(-4)))
-    )
-  );
-  if (byDigits) return byDigits;
-  // Bidirectional word match on bank_name / account_label
-  return accounts.find((a) => {
+  const wds = words3(t);
+
+  // Digit match is specific — return only those
+  const byDigits = accounts.filter((a) => {
+    if (!a.account_identifier || a.account_identifier.length < 3) return false;
+    return t.includes(a.account_identifier.slice(-4)) || t.includes(a.account_identifier.slice(-3));
+  });
+  if (byDigits.length > 0) return byDigits;
+
+  return accounts.filter((a) => {
     const bank = (a.bank_name ?? "").toLowerCase();
     const label = (a.account_label ?? "").toLowerCase();
-    return (bank.length > 2 && (bank.includes(t) || t.includes(bank))) ||
-           (label.length > 2 && (label.includes(t) || t.includes(label)));
+    return wds.some((w) => wordMatchesName(w, bank) || wordMatchesName(w, label));
+  });
+}
+
+// Digit-only match within a known candidate set (disambiguation step)
+function matchByDigits(text: string, candidates: FinancialAccount[]): FinancialAccount | undefined {
+  const t = text.toLowerCase().replace(/\s+/g, "");
+  return candidates.find((a) => {
+    const id = a.account_identifier ?? "";
+    return id.length >= 3 && (t.includes(id.slice(-4)) || t.includes(id.slice(-3)));
   });
 }
 
@@ -100,10 +108,7 @@ function matchCategory(text: string, cats: Category[]): Category | undefined {
   });
 }
 
-function matchPerson(
-  text: string,
-  persons: HisaabPersonWithBalance[],
-): HisaabPersonWithBalance | undefined {
+function matchPerson(text: string, persons: HisaabPersonWithBalance[]): HisaabPersonWithBalance | undefined {
   const t = text.toLowerCase().trim();
   const exact = persons.find((p) => p.name.toLowerCase() === t);
   if (exact) return exact;
@@ -113,6 +118,14 @@ function matchPerson(
   });
 }
 
+function accountDisplayLabel(a: FinancialAccount | undefined): string {
+  if (!a) return "?";
+  const last4 = (a.account_identifier ?? "").slice(-4);
+  const base = a.account_label || a.bank_name || "Account";
+  return last4 && /\d/.test(last4) ? `${base} (${last4})` : base;
+}
+
+// Enrich session from a general utterance — only resolves what it can
 function enrichFromTranscript(
   transcript: string,
   session: VoiceSession,
@@ -125,48 +138,39 @@ function enrichFromTranscript(
   const wds = words3(t);
   const patch: Partial<VoiceSession> = {};
 
-  // Detect transfer intent
+  // Transfer intent — flip session type and try to resolve from/to inline
   if (/\btransfer\b/i.test(transcript)) {
     patch.sessionType = "transfer";
     const fromMatch = transcript.match(/\bfrom\s+(\w+)/i);
     const toMatch = transcript.match(/\bto\s+(\w+)/i);
     if (fromMatch && !session.transferFromAccountId) {
-      const a = matchAccount(fromMatch[1], accounts);
-      if (a) patch.transferFromAccountId = a.id;
+      const m = findAllMatchingAccounts(fromMatch[1], accounts);
+      if (m.length === 1) patch.transferFromAccountId = m[0].id;
     }
     if (toMatch && !session.transferToAccountId) {
-      const a = matchAccount(toMatch[1], accounts);
-      if (a) patch.transferToAccountId = a.id;
+      const m = findAllMatchingAccounts(toMatch[1], accounts);
+      if (m.length === 1) patch.transferToAccountId = m[0].id;
     }
-    return patch; // don't process expense fields for transfer
+    return patch; // don't process expense fields
   }
 
-  // Payment mode
   if (!session.paymentModeId) {
-    const pm = modes.find((m) => {
-      const n = m.name.toLowerCase();
-      return n.length > 1 && t.includes(n);
-    });
+    const pm = modes.find((m) => { const n = m.name.toLowerCase(); return n.length > 1 && t.includes(n); });
     if (pm) patch.paymentModeId = pm.id;
   }
 
-  // Account — word-by-word bidirectional match
+  // Account — only resolve if unambiguous
   if (!session.accountId) {
-    const acct = accounts.find((a) => {
-      const bank = (a.bank_name ?? "").toLowerCase();
-      const label = (a.account_label ?? "").toLowerCase();
-      return wds.some((w) => wordMatchesName(w, bank) || wordMatchesName(w, label));
-    });
-    if (acct) patch.accountId = acct.id;
+    const matches = findAllMatchingAccounts(transcript, accounts);
+    if (matches.length === 1) patch.accountId = matches[0].id;
   }
 
-  // Category
   if (!session.categoryId) {
     const cat = cats.find((c) => c.name.length > 2 && t.includes(c.name.toLowerCase()));
     if (cat) patch.categoryId = cat.id;
   }
 
-  // Split with person
+  // Split person detection
   if (!session.splitPersonId && /\bsplit\b/i.test(transcript)) {
     const afterSplit = transcript.match(/\bsplit\s+(?:with\s+)?(\w+)/i);
     if (afterSplit) {
@@ -174,7 +178,6 @@ function enrichFromTranscript(
       if (p) patch.splitPersonId = p.id;
     }
     if (!patch.splitPersonId) {
-      // fallback: any word matches a person name
       for (const w of wds) {
         const p = matchPerson(w, persons);
         if (p) { patch.splitPersonId = p.id; break; }
@@ -185,19 +188,30 @@ function enrichFromTranscript(
   return patch;
 }
 
+// ── Component ────────────────────────────────────────────────────────────────
+
 export function VoiceEntrySheet({ visible, onClose }: Props) {
   const router = useRouter();
   const { accent, colors } = useColorScheme();
   const accentColor = accent[500];
 
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
-  const [session, setSession] = useState<VoiceSession>({ sessionType: "expense" });
-  const sessionRef = useRef<VoiceSession>({ sessionType: "expense" });
+  const makeBlank = (): VoiceSession => ({ sessionType: "expense", confirming: false });
+  const [session, setSession] = useState<VoiceSession>(makeBlank());
+  const sessionRef = useRef<VoiceSession>(makeBlank());
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [lastHeard, setLastHeard] = useState("");
   const [transferDone, setTransferDone] = useState(false);
 
-  // Loaded reference data
+  // State tracking refs
+  const pendingFieldRef = useRef<PendingField | null>(null);
+  const skippedRef = useRef<Set<string>>(new Set());
+  const ambiguousAccountRef = useRef<FinancialAccount[]>([]);
+  const ambiguousFromRef = useRef<FinancialAccount[]>([]);
+  const ambiguousToRef = useRef<FinancialAccount[]>([]);
+  const currentQuestionRef = useRef("");
+
+  // Reference data
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -214,15 +228,12 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   // Pulse animation
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
-
   useEffect(() => {
     if (voiceState !== "idle") {
-      pulseLoop.current = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
-        ])
-      );
+      pulseLoop.current = Animated.loop(Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
+      ]));
       pulseLoop.current.start();
     } else {
       pulseLoop.current?.stop();
@@ -230,7 +241,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     }
   }, [voiceState, pulseAnim]);
 
-  // Load reference data + voice settings on first render
+  // Load reference data once
   useEffect(() => {
     setVoiceSettings(getVoiceSettings());
     Promise.all([
@@ -239,28 +250,24 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
       getCategories(DEFAULT_USER_ID),
       getPersonsWithBalances(DEFAULT_USER_ID),
     ]).then(([accts, pms, cats, ppl]) => {
-      setAccounts(accts);
-      setPaymentModes(pms);
-      setCategories(cats);
-      setPersons(ppl);
+      setAccounts(accts); setPaymentModes(pms); setCategories(cats); setPersons(ppl);
       dataRef.current = { accounts: accts, paymentModes: pms, categories: cats, persons: ppl };
     }).catch(() => {});
   }, []);
 
-  // Stable ref for navigate
   const navigateRef = useRef((_s: VoiceSession) => {});
   navigateRef.current = (s: VoiceSession) => {
     onClose();
-    const params: Record<string, string> = {};
-    if (s.amount != null) params.prefillAmount = String(s.amount);
-    if (s.merchant) params.prefillMerchant = s.merchant;
-    if (s.description) params.prefillDescription = s.description;
-    if (s.paymentModeId) params.prefillPaymentModeId = s.paymentModeId;
-    if (s.accountId) params.prefillAccountId = s.accountId;
-    if (s.categoryId) params.prefillCategoryId = s.categoryId;
-    if (s.dateIso) params.prefillDate = s.dateIso;
-    if (s.splitPersonId) params.prefillSplitPersonId = s.splitPersonId;
-    setTimeout(() => router.push({ pathname: "/expense/add", params }), 300);
+    const p: Record<string, string> = {};
+    if (s.amount != null) p.prefillAmount = String(s.amount);
+    if (s.merchant) p.prefillMerchant = s.merchant;
+    if (s.description) p.prefillDescription = s.description;
+    if (s.paymentModeId) p.prefillPaymentModeId = s.paymentModeId;
+    if (s.accountId) p.prefillAccountId = s.accountId;
+    if (s.categoryId) p.prefillCategoryId = s.categoryId;
+    if (s.dateIso) p.prefillDate = s.dateIso;
+    if (s.splitPersonId) p.prefillSplitPersonId = s.splitPersonId;
+    setTimeout(() => router.push({ pathname: "/expense/add", params: p }), 300);
   };
 
   const doStartListening = () => {
@@ -268,8 +275,8 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     ExpoSpeechRecognitionModule.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
   };
 
-  const currentQuestionRef = useRef("");
-  const doAsk = (question: string) => {
+  const doAsk = (question: string, field: PendingField) => {
+    pendingFieldRef.current = field;
     currentQuestionRef.current = question;
     setCurrentQuestion(question);
     const settings = getVoiceSettings();
@@ -289,6 +296,8 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   const doCreateTransfer = async (s: VoiceSession) => {
     if (s.amount == null || !s.transferFromAccountId || !s.transferToAccountId) return;
     setVoiceState("idle");
+    setCurrentQuestion("");
+    currentQuestionRef.current = "";
     try {
       const today = new Date().toISOString().split("T")[0];
       await createTransfer({
@@ -304,22 +313,96 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
       setTransferDone(true);
       setTimeout(() => { onClose(); }, 1600);
     } catch {
-      setCurrentQuestion("Couldn't save — please add the transfer manually.");
-      setTimeout(() => { setCurrentQuestion(""); onClose(); }, 2500);
+      setCurrentQuestion("Couldn't save the transfer — please try again.");
+      setTimeout(() => setCurrentQuestion(""), 2500);
     }
   };
 
-  // Start/stop when sheet opens/closes
+  // Determine what to ask next given the current session state
+  const determineNext = (s: VoiceSession) => {
+    const { accounts: accts, categories: cats } = dataRef.current;
+    const skipped = skippedRef.current;
+    const catHint = cats.slice(0, 3).map((c) => c.name).join(", ");
+
+    if (s.sessionType === "transfer") {
+      if (s.amount == null) {
+        doAsk("How much are you transferring?", "transferAmount");
+      } else if (!s.transferFromAccountId) {
+        const cands = ambiguousFromRef.current;
+        if (cands.length > 1) {
+          const opts = cands.map((a) => accountDisplayLabel(a)).join(", or ");
+          doAsk(`You have ${cands.length} matching accounts: ${opts}. Say the last 4 digits to pick one.`, "transferFrom");
+        } else {
+          doAsk("Which account to transfer FROM? Say the bank name or last 4 digits.", "transferFrom");
+        }
+      } else if (!s.transferToAccountId) {
+        const cands = ambiguousToRef.current;
+        if (cands.length > 1) {
+          const opts = cands.map((a) => accountDisplayLabel(a)).join(", or ");
+          doAsk(`Multiple destination accounts found: ${opts}. Say the last 4 digits.`, "transferTo");
+        } else {
+          doAsk("Which account to transfer TO? Say the bank name or last 4 digits.", "transferTo");
+        }
+      } else {
+        // All collected — ask for confirmation
+        const fromAcc = accts.find((a) => a.id === s.transferFromAccountId);
+        const toAcc = accts.find((a) => a.id === s.transferToAccountId);
+        const amt = s.amount.toLocaleString("en-IN");
+        const updated = { ...s, confirming: true };
+        sessionRef.current = updated;
+        setSession(updated);
+        doAsk(
+          `Transfer ₹${amt} from ${accountDisplayLabel(fromAcc)} to ${accountDisplayLabel(toAcc)}. Say yes to confirm or no to cancel.`,
+          "transferConfirm"
+        );
+      }
+    } else {
+      if (s.amount == null) {
+        doAsk("How much did you spend?", "amount");
+      } else if (!s.merchant) {
+        doAsk("Where did you spend it?", "merchant");
+      } else if (!s.categoryId && !skipped.has("category")) {
+        doAsk(
+          catHint ? `What category? For example: ${catHint}. Say skip to continue.` : "What category? Say skip to continue.",
+          "category"
+        );
+      } else if (!s.paymentModeId && !skipped.has("paymentMode")) {
+        doAsk("How did you pay? UPI, cash, or card. Say skip to continue.", "paymentMode");
+      } else if (!s.accountId && !skipped.has("account")) {
+        const cands = ambiguousAccountRef.current;
+        if (cands.length > 1) {
+          const opts = cands.map((a) => accountDisplayLabel(a)).join(", or ");
+          doAsk(`Multiple accounts found: ${opts}. Say the last 4 digits. Say skip to finish.`, "account");
+        } else {
+          doAsk("Which account? Say the bank name or last 4 digits. Say skip to finish.", "account");
+        }
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        navigateRef.current(s);
+      }
+    }
+  };
+
+  const resetRefs = () => {
+    pendingFieldRef.current = null;
+    skippedRef.current = new Set();
+    ambiguousAccountRef.current = [];
+    ambiguousFromRef.current = [];
+    ambiguousToRef.current = [];
+    currentQuestionRef.current = "";
+  };
+
+  // Open/close handling
   useEffect(() => {
     if (visible) {
       setVoiceSettings(getVoiceSettings());
-      const blank: VoiceSession = { sessionType: "expense" };
+      const blank = makeBlank();
       sessionRef.current = blank;
       setSession(blank);
       setCurrentQuestion("");
-      currentQuestionRef.current = "";
       setLastHeard("");
       setTransferDone(false);
+      resetRefs();
       setVoiceState("idle");
       const timer = setTimeout(async () => {
         const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
@@ -340,104 +423,135 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   useSpeechRecognitionEvent("result", (event) => {
     if (!visible || !event.isFinal) return;
     const transcript = event.results[0]?.transcript ?? "";
+
+    // Always show what was heard
     if (transcript) setLastHeard(transcript);
     if (!transcript) { setVoiceState("idle"); return; }
 
-    if (/\b(skip|done|finish|that'?s? all|go ahead|open form)\b/i.test(transcript)) {
+    const { accounts: accts, paymentModes: pms, categories: cats, persons: ppl } = dataRef.current;
+    const prev = sessionRef.current;
+    const pending = pendingFieldRef.current;
+
+    // ── "Open form" command ───────────────────────────────────────────────────
+    if (!prev.confirming && /\b(done|finish|that'?s? all|go ahead|open form)\b/i.test(transcript)) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      navigateRef.current(sessionRef.current);
+      navigateRef.current(prev);
       return;
     }
 
-    const { accounts: accts, paymentModes: pms, categories: cats, persons: ppl } = dataRef.current;
-    const parsed = parseVoiceInput(transcript);
-    const prev = sessionRef.current;
-    const q = currentQuestionRef.current.toLowerCase();
+    // ── Transfer confirmation state ───────────────────────────────────────────
+    if (prev.confirming) {
+      if (/\b(yes|confirm|yep|sure|ok|save|proceed|yeah)\b/i.test(transcript)) {
+        doCreateTransfer(prev);
+      } else if (/\b(no|cancel|stop|abort|back|nope)\b/i.test(transcript)) {
+        // Go back — reset accounts, keep amount, restart from "from" question
+        const reset = { ...prev, confirming: false, transferFromAccountId: undefined, transferToAccountId: undefined };
+        sessionRef.current = reset;
+        setSession(reset);
+        ambiguousFromRef.current = [];
+        ambiguousToRef.current = [];
+        pendingFieldRef.current = null;
+        determineNext(reset);
+      } else {
+        // Unrecognised — re-ask confirm
+        doAsk(currentQuestionRef.current, "transferConfirm");
+      }
+      return;
+    }
 
+    // ── "Skip" — skip current pending field, don't enrich ────────────────────
+    if (/\b(skip|next|pass|move on)\b/i.test(transcript) && pending) {
+      skippedRef.current.add(pending);
+      pendingFieldRef.current = null;
+      setCurrentQuestion("");
+      currentQuestionRef.current = "";
+      determineNext(prev);
+      return;
+    }
+
+    // ── Parse and enrich ──────────────────────────────────────────────────────
+    const parsed = parseVoiceInput(transcript);
     const updated: VoiceSession = {
-      sessionType: prev.sessionType,
+      ...prev,
       amount: prev.amount ?? parsed.amount,
       merchant: prev.merchant ?? parsed.merchant,
       description: prev.description ?? parsed.description,
       dateIso: prev.dateIso ?? parsed.dateIso,
-      paymentModeId: prev.paymentModeId,
-      accountId: prev.accountId,
-      categoryId: prev.categoryId,
-      splitPersonId: prev.splitPersonId,
-      transferFromAccountId: prev.transferFromAccountId,
-      transferToAccountId: prev.transferToAccountId,
     };
 
-    // Enrich from transcript (handles transfer detection, account, category, PM, split)
     const enriched = enrichFromTranscript(transcript, updated, pms, accts, cats, ppl);
     Object.assign(updated, enriched);
 
-    // Question-specific fallback matching
-    if (!updated.paymentModeId && (q.includes("pay") || q.includes("upi") || q.includes("cash"))) {
+    // ── Account disambiguation (when we specifically asked about an account) ──
+    if (pending === "account" && !updated.accountId) {
+      if (ambiguousAccountRef.current.length > 1) {
+        // Already in disambiguation — try digit match within candidates
+        const hit = matchByDigits(transcript, ambiguousAccountRef.current);
+        if (hit) { updated.accountId = hit.id; ambiguousAccountRef.current = []; }
+        // else: still unresolved — will re-ask via determineNext
+      } else {
+        // First answer to account question — check for ambiguity
+        const cands = findAllMatchingAccounts(transcript, accts);
+        if (cands.length === 1) {
+          updated.accountId = cands[0].id;
+          ambiguousAccountRef.current = [];
+        } else if (cands.length > 1) {
+          ambiguousAccountRef.current = cands;
+          // don't set accountId — re-ask with disambiguation prompt
+        }
+      }
+    }
+
+    if (pending === "transferFrom" && !updated.transferFromAccountId) {
+      if (ambiguousFromRef.current.length > 1) {
+        const hit = matchByDigits(transcript, ambiguousFromRef.current);
+        if (hit) { updated.transferFromAccountId = hit.id; ambiguousFromRef.current = []; }
+      } else {
+        const cands = findAllMatchingAccounts(transcript, accts);
+        if (cands.length === 1) { updated.transferFromAccountId = cands[0].id; ambiguousFromRef.current = []; }
+        else if (cands.length > 1) ambiguousFromRef.current = cands;
+      }
+    }
+
+    if (pending === "transferTo" && !updated.transferToAccountId) {
+      if (ambiguousToRef.current.length > 1) {
+        const hit = matchByDigits(transcript, ambiguousToRef.current);
+        if (hit) { updated.transferToAccountId = hit.id; ambiguousToRef.current = []; }
+      } else {
+        const cands = findAllMatchingAccounts(transcript, accts);
+        if (cands.length === 1) { updated.transferToAccountId = cands[0].id; ambiguousToRef.current = []; }
+        else if (cands.length > 1) ambiguousToRef.current = cands;
+      }
+    }
+
+    // ── Question-context specific fallbacks ───────────────────────────────────
+    if (pending === "paymentMode" && !updated.paymentModeId) {
       const pm = matchPaymentMode(transcript, pms);
       if (pm) updated.paymentModeId = pm.id;
     }
-    if (!updated.accountId && (q.includes("account") || q.includes("bank") || q.includes("from"))) {
-      const acct = matchAccount(transcript, accts);
-      if (acct) updated.accountId = acct.id;
-    }
-    if (!updated.transferFromAccountId && q.includes("from")) {
-      const acct = matchAccount(transcript, accts);
-      if (acct) updated.transferFromAccountId = acct.id;
-    }
-    if (!updated.transferToAccountId && q.includes("to")) {
-      const acct = matchAccount(transcript, accts);
-      if (acct) updated.transferToAccountId = acct.id;
-    }
-    if (!updated.categoryId && (q.includes("categor") || q.includes("type"))) {
+    if (pending === "category" && !updated.categoryId) {
       const cat = matchCategory(transcript, cats);
       if (cat) updated.categoryId = cat.id;
     }
-    if (!updated.splitPersonId && (q.includes("split") || q.includes("who"))) {
+    if (pending === "split" && !updated.splitPersonId) {
       const p = matchPerson(transcript, ppl);
       if (p) updated.splitPersonId = p.id;
+    }
+    // When specifically asked "where did you spend?", treat the full utterance as merchant
+    if (pending === "merchant" && !updated.merchant && transcript.trim()) {
+      updated.merchant = transcript.trim();
     }
 
     sessionRef.current = updated;
     setSession({ ...updated });
     setCurrentQuestion("");
     currentQuestionRef.current = "";
+    pendingFieldRef.current = null;
 
-    const catHint = cats.slice(0, 3).map((c) => c.name).join(", ");
-
-    if (updated.sessionType === "transfer") {
-      if (updated.amount == null) {
-        doAsk("How much are you transferring?");
-      } else if (!updated.transferFromAccountId) {
-        doAsk("Which account are you transferring FROM? Say your bank name.");
-      } else if (!updated.transferToAccountId) {
-        doAsk("Which account TO? Say your bank name.");
-      } else {
-        doCreateTransfer(updated);
-      }
-    } else {
-      if (updated.amount == null) {
-        doAsk("How much did you spend?");
-      } else if (!updated.merchant) {
-        doAsk("Where did you spend it?");
-      } else if (!updated.categoryId) {
-        doAsk(catHint ? `What category? For example, ${catHint}. Say skip.` : "What category? Say skip.");
-      } else if (!updated.paymentModeId) {
-        doAsk("How did you pay? UPI, cash, or card. Say skip.");
-      } else if (!updated.accountId) {
-        doAsk("Which account? Say your bank name. Say skip to finish.");
-      } else {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        navigateRef.current(updated);
-      }
-    }
+    determineNext(updated);
   });
 
-  useSpeechRecognitionEvent("error", () => {
-    if (!visible) return;
-    setVoiceState("idle");
-  });
-
+  useSpeechRecognitionEvent("error", () => { if (!visible) return; setVoiceState("idle"); });
   useSpeechRecognitionEvent("end", () => {
     if (!visible) return;
     setVoiceState((prev) => (prev === "listening" ? "idle" : prev));
@@ -473,39 +587,29 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     : voiceState === "speaking" ? "volume-high-outline"
     : "mic-outline";
 
-  // Friendly labels
+  // Labels for chips
   const pmLabel = paymentModes.find((m) => m.id === session.paymentModeId)?.name;
-  const acctLabel = (() => {
-    const a = accounts.find((x) => x.id === session.accountId);
-    return a ? (a.account_label || a.bank_name) : undefined;
-  })();
-  const catLabel = categories.find((c) => c.id === session.categoryId)?.name;
-  const personLabel = persons.find((p) => p.id === session.splitPersonId)?.name;
-  const fromAcctLabel = (() => {
-    const a = accounts.find((x) => x.id === session.transferFromAccountId);
-    return a ? (a.account_label || a.bank_name) : undefined;
-  })();
-  const toAcctLabel = (() => {
-    const a = accounts.find((x) => x.id === session.transferToAccountId);
-    return a ? (a.account_label || a.bank_name) : undefined;
-  })();
+  const acctLbl = (() => { const a = accounts.find((x) => x.id === session.accountId); return a ? accountDisplayLabel(a) : undefined; })();
+  const catLbl = categories.find((c) => c.id === session.categoryId)?.name;
+  const personLbl = persons.find((p) => p.id === session.splitPersonId)?.name;
+  const fromLbl = (() => { const a = accounts.find((x) => x.id === session.transferFromAccountId); return a ? accountDisplayLabel(a) : undefined; })();
+  const toLbl = (() => { const a = accounts.find((x) => x.id === session.transferToAccountId); return a ? accountDisplayLabel(a) : undefined; })();
 
   const isTransfer = session.sessionType === "transfer";
   const hasAnyData = session.amount != null || session.merchant || session.categoryId ||
     session.paymentModeId || session.accountId || session.splitPersonId ||
     session.transferFromAccountId || session.transferToAccountId;
 
+  // Transfer success screen
   if (transferDone) {
     return (
       <BottomSheet visible={visible} onClose={handleCancel} maxHeightPct={40}>
         <View className="flex-1 items-center justify-center px-6 py-12">
           <Ionicons name="checkmark-circle" size={56} color={accentColor} />
-          <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary mt-4">
-            Transfer saved
-          </Text>
-          {session.amount != null && fromAcctLabel && toAcctLabel && (
+          <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary mt-4">Transfer saved</Text>
+          {session.amount != null && fromLbl && toLbl && (
             <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-2 text-center">
-              ₹{session.amount.toLocaleString("en-IN")} from {fromAcctLabel} to {toAcctLabel}
+              ₹{session.amount.toLocaleString("en-IN")} from {fromLbl} to {toLbl}
             </Text>
           )}
         </View>
@@ -514,7 +618,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   }
 
   return (
-    <BottomSheet visible={visible} onClose={handleCancel} maxHeightPct={65}>
+    <BottomSheet visible={visible} onClose={handleCancel} maxHeightPct={70}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pt-5 pb-3">
         <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
@@ -525,8 +629,8 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
         </Pressable>
       </View>
 
-      {/* Indicator */}
-      <View className="items-center py-5">
+      {/* Mic indicator */}
+      <View className="items-center py-4">
         <Animated.View
           style={{
             opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] }),
@@ -536,12 +640,9 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
           <Pressable
             onPress={voiceState === "idle" ? doStartListening : undefined}
             style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
+              width: 72, height: 72, borderRadius: 36,
               backgroundColor: voiceState !== "idle" ? `${indicatorColor}18` : `${accentColor}14`,
-              alignItems: "center",
-              justifyContent: "center",
+              alignItems: "center", justifyContent: "center",
               borderWidth: 2,
               borderColor: voiceState !== "idle" ? indicatorColor : `${accentColor}40`,
             }}
@@ -550,11 +651,9 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
           </Pressable>
         </Animated.View>
 
+        {/* Question (silent mode) or state label */}
         {currentQuestion && !voiceSettings.speakBack ? (
-          <Text
-            className="mt-3 text-base font-semibold text-text-primary dark:text-text-dark-primary text-center px-8"
-            numberOfLines={3}
-          >
+          <Text className="mt-3 text-base font-semibold text-text-primary dark:text-text-dark-primary text-center px-8" numberOfLines={4}>
             {currentQuestion}
           </Text>
         ) : (
@@ -565,6 +664,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
           </Text>
         )}
 
+        {/* Hint on first open */}
         {voiceState === "listening" && !hasAnyData && !currentQuestion && (
           <Text className="mt-1.5 text-xs text-text-tertiary text-center px-8">
             {isTransfer
@@ -573,14 +673,12 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
           </Text>
         )}
 
-        {lastHeard && voiceState !== "listening" && !currentQuestion && (
-          <Text
-            className="mt-1 text-xs text-text-tertiary text-center px-8"
-            numberOfLines={2}
-          >
-            "{lastHeard}"
+        {/* What was heard — always visible when non-empty */}
+        {lastHeard ? (
+          <Text className="mt-2 text-xs italic text-text-tertiary text-center px-10" numberOfLines={2}>
+            Heard: &ldquo;{lastHeard}&rdquo;
           </Text>
-        )}
+        ) : null}
       </View>
 
       {/* Collected field chips */}
@@ -589,7 +687,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
           {session.amount != null && (
             <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 text-text-primary dark:text-text-dark-primary font-medium">
+              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">
                 ₹{session.amount.toLocaleString("en-IN")}
               </Text>
             </View>
@@ -597,71 +695,57 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
           {session.merchant ? (
             <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 text-text-primary dark:text-text-dark-primary font-medium">
-                {session.merchant}
-              </Text>
+              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">{session.merchant}</Text>
             </View>
           ) : null}
-          {catLabel ? (
+          {catLbl ? (
             <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 text-text-primary dark:text-text-dark-primary font-medium">
-                {catLabel}
-              </Text>
+              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">{catLbl}</Text>
             </View>
           ) : null}
           {pmLabel ? (
             <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 text-text-primary dark:text-text-dark-primary font-medium">
-                {pmLabel}
-              </Text>
+              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">{pmLabel}</Text>
             </View>
           ) : null}
-          {acctLabel ? (
+          {acctLbl ? (
             <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 text-text-primary dark:text-text-dark-primary font-medium">
-                {acctLabel}
-              </Text>
+              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">{acctLbl}</Text>
             </View>
           ) : null}
-          {personLabel ? (
+          {personLbl ? (
             <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 text-text-primary dark:text-text-dark-primary font-medium">
-                Split · {personLabel}
-              </Text>
+              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">Split · {personLbl}</Text>
             </View>
           ) : null}
           {session.dateIso ? (
             <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 text-text-primary dark:text-text-dark-primary font-medium">
+              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">
                 {session.dateIso === new Date(Date.now() - 864e5).toISOString().slice(0, 10) ? "Yesterday" : session.dateIso}
               </Text>
             </View>
           ) : null}
-          {fromAcctLabel ? (
+          {fromLbl ? (
             <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 text-text-primary dark:text-text-dark-primary font-medium">
-                From · {fromAcctLabel}
-              </Text>
+              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">From · {fromLbl}</Text>
             </View>
           ) : null}
-          {toAcctLabel ? (
+          {toLbl ? (
             <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 text-text-primary dark:text-text-dark-primary font-medium">
-                To · {toAcctLabel}
-              </Text>
+              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">To · {toLbl}</Text>
             </View>
           ) : null}
         </View>
       )}
 
-      {/* Done so far */}
+      {/* Bottom action */}
       <View className="px-5 pt-3 pb-6">
         <Pressable
           onPress={handleDoneSoFar}
@@ -669,9 +753,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
           style={{ backgroundColor: `${accentColor}18`, borderWidth: 1, borderColor: `${accentColor}35` }}
         >
           <Text className="text-sm font-semibold" style={{ color: accentColor }}>
-            {isTransfer
-              ? "Cancel transfer"
-              : hasAnyData ? "Fill form with what I said" : "Open expense form"}
+            {isTransfer ? "Cancel" : hasAnyData ? "Fill form with what I said" : "Open expense form"}
           </Text>
         </Pressable>
       </View>
