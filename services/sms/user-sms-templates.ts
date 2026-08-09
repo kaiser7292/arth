@@ -139,6 +139,39 @@ export async function getUserTemplate(id: string): Promise<UserSmsTemplate | nul
   return row ?? null;
 }
 
+export async function getTemplateMatchCounts(): Promise<Record<string, number>> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{ matched_template_id: string; cnt: number }>(
+    `SELECT matched_template_id, COUNT(*) as cnt
+     FROM sms_scan_details
+     WHERE matched_template_id IS NOT NULL
+     GROUP BY matched_template_id;`,
+  );
+  const map: Record<string, number> = {};
+  for (const r of rows) map[r.matched_template_id] = r.cnt;
+  return map;
+}
+
+export interface TemplateMatchRow {
+  sms_address: string | null;
+  sms_body_preview: string | null;
+  sms_date: number | null;
+  parsed_amount: number | null;
+  parsed_merchant: string | null;
+}
+
+export async function getTemplateMatches(templateId: string): Promise<TemplateMatchRow[]> {
+  const db = getDatabase();
+  return db.getAllAsync<TemplateMatchRow>(
+    `SELECT sms_address, sms_body_preview, sms_date, parsed_amount, parsed_merchant
+     FROM sms_scan_details
+     WHERE matched_template_id = ?
+     ORDER BY sms_date DESC
+     LIMIT 200;`,
+    templateId,
+  );
+}
+
 // ─── Writes ───
 
 export async function createUserTemplate(

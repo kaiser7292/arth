@@ -8,6 +8,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import {
   listUserTemplates,
+  getTemplateMatchCounts,
   countUnrecognisedSms,
   deleteUserTemplate,
   diagnoseUserTemplate,
@@ -34,18 +35,21 @@ export default function SmartSmsTemplatesListScreen() {
   const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
 
   const [templates, setTemplates] = useState<UserSmsTemplate[]>([]);
+  const [matchCounts, setMatchCounts] = useState<Record<string, number>>({});
   const [unrecognisedCount, setUnrecognisedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [diagnosingId, setDiagnosingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [rows, count] = await Promise.all([
+      const [rows, count, counts] = await Promise.all([
         listUserTemplates(),
         countUnrecognisedSms(),
+        getTemplateMatchCounts(),
       ]);
       setTemplates(rows);
       setUnrecognisedCount(count);
+      setMatchCounts(counts);
     } catch (e) {
       alert(
         "Couldn't load templates",
@@ -206,59 +210,91 @@ export default function SmartSmsTemplatesListScreen() {
               </Card>
             }
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
-            renderItem={({ item }) => (
-              <Card className="mb-3">
-                <Pressable
-                  onPress={() =>
-                    router.push(`/settings/sms-templates/${item.id}` as never)
-                  }
-                >
-                  <View className="flex-row items-center mb-1">
-                    <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary flex-1">
-                      {item.template_id ?? `${item.bank_name} template`}
-                    </Text>
-                    <View className="px-2 py-0.5 bg-surface-light-alt dark:bg-surface-dark-alt rounded">
-                      <Text className="text-xs text-text-tertiary capitalize">
-                        {item.tx_type}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text className="text-xs text-text-tertiary mb-2">
-                    {item.bank_name}
-                  </Text>
-                  {item.sample_sms && (
-                    <Text
-                      className="text-xs text-text-secondary dark:text-text-dark-secondary"
-                      numberOfLines={2}
-                    >
-                      {item.sample_sms}
-                    </Text>
-                  )}
-                </Pressable>
-                <View className="flex-row items-center justify-end mt-3 pt-3 border-t border-border-light dark:border-border-dark" style={{ gap: 16 }}>
+            renderItem={({ item }) => {
+              const matchCount = matchCounts[item.id] ?? 0;
+              return (
+                <Card className="mb-3">
                   <Pressable
-                    onPress={() => handleDiagnose(item)}
-                    hitSlop={8}
-                    disabled={diagnosingId === item.id}
+                    onPress={() =>
+                      router.push(`/settings/sms-templates/${item.id}` as never)
+                    }
                   >
-                    <Text
-                      className="text-sm"
-                      style={{ color: diagnosingId === item.id ? colors.textSecondary : accentColor }}
-                    >
-                      {diagnosingId === item.id ? "Scanning…" : "Diagnose"}
+                    <View className="flex-row items-center mb-1">
+                      <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+                        {item.template_id ?? `${item.bank_name} template`}
+                      </Text>
+                      <View className="px-2 py-0.5 bg-surface-light-alt dark:bg-surface-dark-alt rounded">
+                        <Text className="text-xs text-text-tertiary capitalize">
+                          {item.tx_type}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className="text-xs text-text-tertiary mb-2">
+                      {item.bank_name}
                     </Text>
+                    {item.sample_sms && (
+                      <Text
+                        className="text-xs text-text-secondary dark:text-text-dark-secondary"
+                        numberOfLines={2}
+                      >
+                        {item.sample_sms}
+                      </Text>
+                    )}
                   </Pressable>
-                  <Pressable onPress={() => confirmDelete(item)} hitSlop={8}>
-                    <Text
-                      className="text-sm"
-                      style={{ color: StatusColors[colorScheme].danger }}
+                  <View className="flex-row mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+                    <Pressable
+                      onPress={() => router.push(`/settings/sms-templates/${item.id}` as never)}
+                      hitSlop={4}
+                      className="flex-1 items-center py-1"
                     >
-                      Delete
-                    </Text>
-                  </Pressable>
-                </View>
-              </Card>
-            )}
+                      <Ionicons name="create-outline" size={16} color={accentColor} />
+                      <Text className="text-xs mt-0.5" style={{ color: accentColor }}>Edit</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => router.push(`/settings/sms-templates/matches/${item.id}` as never)}
+                      hitSlop={4}
+                      className="flex-1 items-center py-1"
+                      disabled={matchCount === 0}
+                    >
+                      <Ionicons
+                        name="document-text-outline"
+                        size={16}
+                        color={matchCount > 0 ? accentColor : colors.textSecondary}
+                      />
+                      <Text
+                        className="text-xs mt-0.5"
+                        style={{ color: matchCount > 0 ? accentColor : colors.textSecondary }}
+                      >
+                        Matched {matchCount}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleDiagnose(item)}
+                      hitSlop={4}
+                      className="flex-1 items-center py-1"
+                      disabled={diagnosingId === item.id}
+                    >
+                      <Ionicons
+                        name="pulse-outline"
+                        size={16}
+                        color={diagnosingId === item.id ? colors.textSecondary : colors.textSecondary}
+                      />
+                      <Text className="text-xs mt-0.5 text-text-tertiary">
+                        {diagnosingId === item.id ? "Scanning…" : "Diagnose"}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => confirmDelete(item)}
+                      hitSlop={4}
+                      className="flex-1 items-center py-1"
+                    >
+                      <Ionicons name="trash-outline" size={16} color={StatusColors[colorScheme].danger} />
+                      <Text className="text-xs mt-0.5" style={{ color: StatusColors[colorScheme].danger }}>Delete</Text>
+                    </Pressable>
+                  </View>
+                </Card>
+              );
+            }}
             ListEmptyComponent={
               <View className="items-center justify-center mt-16 px-8">
                 <Ionicons
