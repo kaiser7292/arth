@@ -48,12 +48,6 @@ import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from "expo-speech-recognition";
-import { parseVoiceInput } from "@/utils/voice-parser";
-import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     Keyboard,
@@ -75,6 +69,11 @@ export default function AddExpenseScreen() {
     copyFromExpenseId?: string;
     fulfillsReminderId?: string;
     refundAccountId?: string;
+    prefillAmount?: string;
+    prefillMerchant?: string;
+    prefillDescription?: string;
+    prefillPaymentMode?: string;
+    prefillDate?: string;
   }>();
   const isRefund = params.type === "refund";
   const linkedExpenseId = params.linkExpenseId ?? null;
@@ -101,13 +100,6 @@ export default function AddExpenseScreen() {
 
   // Set when duplicating a credit — so the new row is saved as nature='credit'
   const [isCreditDuplicate, setIsCreditDuplicate] = useState(false);
-
-  // Voice input
-  type VoiceState = "idle" | "listening" | "speaking";
-  type VoiceSession = { amount?: number; merchant?: string; description?: string };
-  const [voiceState, setVoiceState] = useState<VoiceState>("idle");
-  const [voiceSession, setVoiceSession] = useState<VoiceSession>({});
-  const voiceSessionRef = useRef<VoiceSession>({});
 
   // Split state
   const [showSplitSheet, setShowSplitSheet] = useState(false);
@@ -256,6 +248,30 @@ export default function AddExpenseScreen() {
       })
       .catch((e) => logger.warn("Load source expense for duplicate failed:", e));
   }, [copyFromExpenseId]);
+
+  // Voice pre-fill — applied once on mount when navigated from VoiceEntrySheet
+  useEffect(() => {
+    if (!params.prefillAmount && !params.prefillMerchant && !params.prefillDescription && !params.prefillDate) return;
+    if (params.prefillAmount) {
+      const n = parseFloat(params.prefillAmount);
+      if (!isNaN(n) && n > 0) { setAmount(String(n)); setErrors((e) => ({ ...e, amount: undefined })); }
+    }
+    if (params.prefillMerchant) setMerchantName(params.prefillMerchant);
+    if (params.prefillDescription) setDescription(params.prefillDescription);
+    if (params.prefillDate) setDate(params.prefillDate);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Match voice payment mode name to a real PaymentMode id once modes load
+  useEffect(() => {
+    if (!params.prefillPaymentMode || paymentModes.length === 0) return;
+    const query = params.prefillPaymentMode.toLowerCase();
+    const match = paymentModes.find((pm) => {
+      const n = pm.name.toLowerCase();
+      return n.includes(query) || query.includes(n);
+    });
+    if (match) setPaymentModeId(match.id);
+  }, [params.prefillPaymentMode, paymentModes]);
 
   // Refresh accounts when returning from account-add screen
   useFocusEffect(
@@ -472,84 +488,6 @@ export default function AddExpenseScreen() {
     [date],
   );
 
-  useSpeechRecognitionEvent("result", (event) => {
-    if (!event.isFinal) return;
-    const transcript = event.results[0]?.transcript ?? "";
-
-    // "skip" → apply whatever we have and finish
-    if (/\bskip\b/i.test(transcript)) {
-      const s = voiceSessionRef.current;
-      if (s.amount != null) { setAmount(String(s.amount)); setErrors((e) => ({ ...e, amount: undefined })); }
-      if (s.merchant) setMerchantName(s.merchant);
-      if (s.description) setDescription(s.description);
-      if (s.amount != null || s.merchant) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      voiceSessionRef.current = {};
-      setVoiceSession({});
-      setVoiceState("idle");
-      return;
-    }
-
-    const parsed = transcript ? parseVoiceInput(transcript) : {};
-    const updated: VoiceSession = {
-      amount: voiceSessionRef.current.amount ?? parsed.amount,
-      merchant: voiceSessionRef.current.merchant ?? parsed.merchant,
-      description: voiceSessionRef.current.description ?? parsed.description,
-    };
-    voiceSessionRef.current = updated;
-    setVoiceSession({ ...updated });
-
-    const finish = () => {
-      if (updated.amount != null) { setAmount(String(updated.amount)); setErrors((e) => ({ ...e, amount: undefined })); }
-      if (updated.merchant) setMerchantName(updated.merchant);
-      if (updated.description) setDescription(updated.description);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      voiceSessionRef.current = {};
-      setVoiceSession({});
-      setVoiceState("idle");
-    };
-
-    const ask = (question: string) => {
-      setVoiceState("speaking");
-      const restart = () => {
-        setVoiceState("listening");
-        ExpoSpeechRecognitionModule.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
-      };
-      Speech.speak(question, { language: "en-IN", onDone: restart, onError: restart });
-    };
-
-    if (updated.amount == null) {
-      ask("How much did you spend?");
-    } else if (!updated.merchant) {
-      ask("Where did you spend it?");
-    } else if (!updated.description) {
-      ask("What was it for? Say skip to finish.");
-    } else {
-      finish();
-    }
-  });
-
-  useSpeechRecognitionEvent("error", () => setVoiceState("idle"));
-  useSpeechRecognitionEvent("end", () => setVoiceState((prev) => (prev === "listening" ? "idle" : prev)));
-
-  const startVoice = useCallback(async () => {
-    const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-    if (!granted) {
-      alert("Microphone needed", "Allow microphone access in Settings to use voice input.");
-      return;
-    }
-    voiceSessionRef.current = {};
-    setVoiceSession({});
-    setVoiceState("listening");
-    ExpoSpeechRecognitionModule.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
-  }, [alert]);
-
-  const cancelVoice = useCallback(() => {
-    Speech.stop();
-    ExpoSpeechRecognitionModule.abort();
-    voiceSessionRef.current = {};
-    setVoiceSession({});
-    setVoiceState("idle");
-  }, []);
 
   return (
     <ScreenContainer>
@@ -584,76 +522,8 @@ export default function AddExpenseScreen() {
                 if (errors.amount) setErrors((e) => ({ ...e, amount: undefined }));
               }}
               error={errors.amount}
-              autoFocus
+              autoFocus={!params.prefillAmount && !params.prefillMerchant}
             />
-
-            {/* Voice input — only for fresh expense entry */}
-            {!isRefund && !copyFromExpenseId && (
-              <View className="items-center mb-4 -mt-2">
-                <Pressable
-                  onPress={voiceState !== "idle" ? cancelVoice : startVoice}
-                  disabled={voiceState === "speaking"}
-                  className="flex-row items-center px-4 py-2 rounded-full border"
-                  style={{
-                    backgroundColor: voiceState !== "idle"
-                      ? "rgba(239,68,68,0.08)"
-                      : ac(accent, colorScheme, 50, 900),
-                    borderColor: voiceState !== "idle"
-                      ? "#EF4444"
-                      : ac(accent, colorScheme, 200, 800),
-                    opacity: voiceState === "speaking" ? 0.7 : 1,
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={voiceState !== "idle" ? "Cancel voice input" : "Start voice input"}
-                >
-                  <Ionicons
-                    name={
-                      voiceState === "listening" ? "radio-button-on"
-                      : voiceState === "speaking" ? "volume-high-outline"
-                      : "mic-outline"
-                    }
-                    size={15}
-                    color={voiceState !== "idle" ? "#EF4444" : accent[500]}
-                  />
-                  <Text
-                    className="ml-2 text-sm font-medium"
-                    style={{ color: voiceState !== "idle" ? "#EF4444" : accent[500] }}
-                  >
-                    {voiceState === "listening" ? "Listening… tap to cancel"
-                      : voiceState === "speaking" ? "Speaking…"
-                      : "Speak expense"}
-                  </Text>
-                </Pressable>
-
-                {/* Collected fields so far */}
-                {voiceState !== "idle" && (voiceSession.amount != null || voiceSession.merchant) && (
-                  <View className="flex-row gap-2 mt-2 flex-wrap justify-center">
-                    {voiceSession.amount != null && (
-                      <View className="flex-row items-center px-2 py-0.5 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
-                        <Ionicons name="checkmark-circle" size={12} color={accent[500]} />
-                        <Text className="text-xs ml-1 text-text-secondary dark:text-text-dark-secondary">
-                          {"₹"}{voiceSession.amount.toLocaleString("en-IN")}
-                        </Text>
-                      </View>
-                    )}
-                    {voiceSession.merchant ? (
-                      <View className="flex-row items-center px-2 py-0.5 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
-                        <Ionicons name="checkmark-circle" size={12} color={accent[500]} />
-                        <Text className="text-xs ml-1 text-text-secondary dark:text-text-dark-secondary">
-                          {voiceSession.merchant}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                )}
-
-                {voiceState === "listening" && !voiceSession.amount && !voiceSession.merchant && (
-                  <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-1.5">
-                    Try: "450 at Swiggy for lunch"
-                  </Text>
-                )}
-              </View>
-            )}
 
             {/* Split with someone — hidden for refunds (doesn't make sense to split a refund) */}
             {!isRefund && (

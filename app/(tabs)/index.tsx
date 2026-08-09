@@ -13,6 +13,7 @@ import { LinkExpenseSheet } from "@/components/expense/LinkExpenseSheet";
 import { BankBalanceSummary } from "@/components/home/BankBalanceSummary";
 import { CreditCardDashboard } from "@/components/home/CreditCardDashboard";
 import { DematSummaryCard } from "@/components/home/DematSummaryCard";
+import { VoiceEntrySheet } from "@/components/home/VoiceEntrySheet";
 import { LoanSummaryCard } from "@/components/home/LoanSummaryCard";
 import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
 import { PensionSummaryCard } from "@/components/home/PensionSummaryCard";
@@ -300,6 +301,8 @@ export default function HomeScreen() {
     overallStatus === "under" ? "On Track" :
     overallStatus === "warning" ? "Watch Spending" : "Over Budget";
 
+  const [showVoiceSheet, setShowVoiceSheet] = useState(false);
+
   const smsScanIcon: "sync-outline" | "scan-outline" = smsScanning ? "sync-outline" : "scan-outline";
   const homeHeaderActions = [
     ...(isArthAIEnabled() ? [{
@@ -307,6 +310,7 @@ export default function HomeScreen() {
       onPress: () => router.push("/ai-chat" as never),
       color: colors.tint,
     }] : []),
+    { icon: "mic-outline" as const, onPress: () => setShowVoiceSheet(true) },
     ...(isSmsDetectionEnabled() ? [{
       icon: smsScanIcon,
       onPress: handleHomeScan,
@@ -857,6 +861,7 @@ export default function HomeScreen() {
           onClose={() => setLinkSheetFor(null)}
         />
       )}
+      <VoiceEntrySheet visible={showVoiceSheet} onClose={() => setShowVoiceSheet(false)} />
     </ScreenContainer>
   );
 }

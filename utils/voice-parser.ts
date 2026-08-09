@@ -2,6 +2,8 @@ export interface VoiceParseResult {
   amount?: number;
   merchant?: string;
   description?: string;
+  paymentModeName?: string; // "UPI" | "Cash" | "Card" | "Credit Card" | "Debit Card" | "Net Banking"
+  dateIso?: string;         // YYYY-MM-DD if detected in transcript, else undefined = today
 }
 
 function toTitleCase(s: string): string {
@@ -77,6 +79,33 @@ export function parseVoiceInput(raw: string): VoiceParseResult {
       .replace(/\s+/g, " ")
       .trim();
     if (cleaned.length > 1) result.description = cleaned;
+  }
+
+  // Payment mode detection (most specific pattern first)
+  const PM_PATTERNS: [RegExp, string][] = [
+    [/\b(credit\s*card|cc)\b/i, "Credit Card"],
+    [/\b(debit\s*card|dc)\b/i, "Debit Card"],
+    [/\b(net\s*banking|netbanking|bank\s*transfer|online\s*banking|neft|rtgs|imps)\b/i, "Net Banking"],
+    [/\b(upi|gpay|google\s*pay|phonepe|phone\s*pe|paytm|bhim|cred)\b/i, "UPI"],
+    [/\bcash\b/i, "Cash"],
+    [/\bcard\b/i, "Card"],
+  ];
+  for (const [pattern, name] of PM_PATTERNS) {
+    if (pattern.test(raw)) {
+      result.paymentModeName = name;
+      break;
+    }
+  }
+
+  // Date detection
+  if (/\bday\s*before\s*yesterday\b/i.test(raw)) {
+    const d = new Date();
+    d.setDate(d.getDate() - 2);
+    result.dateIso = d.toISOString().slice(0, 10);
+  } else if (/\byesterday\b/i.test(raw)) {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    result.dateIso = d.toISOString().slice(0, 10);
   }
 
   return result;
