@@ -64,9 +64,19 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
   const usableHeight = CHART_HEIGHT - PAD_TOP - PAD_BOTTOM;
   const padH = 20;
 
+  const toMs = (key: string) => {
+    const parts = key.split("-").map(Number);
+    return parts.length === 3
+      ? Date.UTC(parts[0], parts[1] - 1, parts[2])
+      : Date.UTC(parts[0], parts[1] - 1, 1);
+  };
+
   const getX = (i: number) => {
     if (months.length === 1) return width / 2;
-    return padH + (i / (months.length - 1)) * (width - 2 * padH);
+    const t0 = toMs(months[0]);
+    const t1 = toMs(months[months.length - 1]);
+    if (t0 === t1) return width / 2;
+    return padH + ((toMs(months[i]) - t0) / (t1 - t0)) * (width - 2 * padH);
   };
 
   const getY = (value: number) => {

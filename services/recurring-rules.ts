@@ -224,6 +224,8 @@ export async function updateRule(
     frequency?: RecurringFrequency;
     end_date?: string | null;
     notes?: string | null;
+    next_due_date?: string | null;
+    amount?: number | null;
   },
 ): Promise<void> {
   const db = getDatabase();
@@ -236,11 +238,20 @@ export async function updateRule(
   if (patch.end_date !== undefined) {
     if (patch.end_date) assertISODate(patch.end_date, "end_date");
     sets.push("end_date = ?");
-    values.push(patch.end_date);
+    values.push(patch.end_date ?? null);
+  }
+  if (patch.next_due_date !== undefined) {
+    if (patch.next_due_date) assertISODate(patch.next_due_date, "next_due_date");
+    sets.push("next_due_date = ?");
+    values.push(patch.next_due_date ?? null);
+  }
+  if (patch.amount !== undefined) {
+    sets.push("amount = ?");
+    values.push(patch.amount ?? null);
   }
   if (patch.notes !== undefined) {
     sets.push("notes = ?");
-    values.push(patch.notes);
+    values.push(patch.notes ?? null);
   }
   if (sets.length === 0) return;
   sets.push("updated_at = datetime('now')");

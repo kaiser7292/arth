@@ -1564,8 +1564,22 @@ export async function getSnapshotsForMonth(
 
   const portMap = new Map(portRows.map((r) => [r.snapshot_date, r.portfolio_value]));
 
-  let lastPort = 0;
-  let lastFund = 0;
+  // Seed from the last known values before this month so a month with no new
+  // snapshots still shows the carried-forward value instead of dropping to zero.
+  const prevPort = await db.getFirstAsync<{ portfolio_value: number }>(
+    `SELECT portfolio_value FROM demat_portfolio_snapshots
+     WHERE account_id = ? AND snapshot_date < ?
+     ORDER BY snapshot_date DESC LIMIT 1;`,
+    accountId, monthStart,
+  );
+  const prevFund = await db.getFirstAsync<{ fund_value: number }>(
+    `SELECT fund_value FROM demat_fund_snapshots
+     WHERE account_id = ? AND snapshot_date < ?
+     ORDER BY snapshot_date DESC LIMIT 1;`,
+    accountId, monthStart,
+  );
+  let lastPort = prevPort?.portfolio_value ?? 0;
+  let lastFund = prevFund?.fund_value ?? 0;
   return sortedDates.map((date) => {
     if (portMap.has(date)) lastPort = portMap.get(date)!;
     if (fundMap.has(date)) lastFund = fundMap.get(date)!;

@@ -9,7 +9,8 @@ import { inferPaymentMode, parseBankSMS } from "@/services/sms/bank-patterns";
 import { logger } from "@/utils/logger";
 import { round2 } from "@/utils/math";
 import { generateUUID } from "@/utils/uuid";
-import type { CreateExpenseInput, Expense, UpdateExpenseInput } from "./expense-types";
+import { splitNewExpense } from "./expense-splits";
+import type { CreateExpenseInput, Expense, SplitConfig, UpdateExpenseInput } from "./expense-types";
 
 /**
  * Create a new expense. Returns the new ID.
@@ -34,6 +35,9 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
   const userSetRightSpend = input.is_right_spend !== undefined && input.is_right_spend !== null;
 
   let linkToBucketId: string | null = null;
+  let ruleSplitPersonId: string | null = null;
+  let ruleSplitMode: string | null = null;
+  let ruleSplitPaidBy: string | null = null;
   try {
     const allRules = await applyAllRules({
       amount: input.amount,
@@ -53,9 +57,40 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
       appliedRuleId = ruleIds[ruleIds.length - 1];
       appliedRuleIdsJson = JSON.stringify(ruleIds);
       linkToBucketId = rule.rule.action_link_to_investment_bucket_id ?? null;
+      ruleSplitPersonId = rule.split_person_id;
+      ruleSplitMode = rule.split_mode;
+      ruleSplitPaidBy = rule.split_paid_by;
     }
   } catch (e) {
     logger.warn("Smart rule application failed in createExpense (non-fatal):", e);
+  }
+
+  // If a smart rule requested a split, delegate to splitNewExpense which creates
+  // the expense + hisaab entry atomically, then stamp the rule and return early.
+  if (ruleSplitPersonId) {
+    const splitConfig: SplitConfig = {
+      paidBy: (ruleSplitPaidBy as "me") ?? "me",
+      splitMode: (ruleSplitMode as SplitConfig["splitMode"]) ?? "equal",
+      personId: ruleSplitPersonId,
+    };
+    const enrichedInput: CreateExpenseInput = {
+      ...input,
+      category_id: categoryId ?? undefined,
+      payment_mode_id: paymentModeId ?? undefined,
+      is_right_spend: isRightSpend ?? undefined,
+    };
+    const splitId = await splitNewExpense(enrichedInput, input.amount, splitConfig);
+    if (appliedRuleId) {
+      await db.runAsync(
+        "UPDATE expenses SET applied_rule_id = ?, applied_rule_ids = ? WHERE id = ?;",
+        appliedRuleId, appliedRuleIdsJson, splitId,
+      );
+    }
+    for (const ruleId of matchedRuleIds) {
+      stampApplication(ruleId).catch((e) => logger.warn("stampApplication failed (non-fatal)", e));
+    }
+    bumpDataVersion();
+    return splitId;
   }
 
   const description = input.description ?? input.merchant_name ?? null;

@@ -1,31 +1,58 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   Pressable,
   ScrollView,
   ActivityIndicator,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, Card } from "@/components/ui";
+import { CalendarModal } from "@/components/ui/CalendarModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { getReminderDetail, stopRecurringRule } from "@/services/expense";
+import { getReminderDetail, stopRecurringRule, updateRecurringRule } from "@/services/expense";
 import type { ReminderDetail } from "@/services/expense";
+import type { RecurringFrequency } from "@/services/recurring-rules";
 import { StatusColors } from "@/constants/theme";
 import { formatDate, todayIso } from "@/utils/date";
 import { formatAmount } from "@/utils/format";
 import { getErrorMessage } from "@/utils/error-message";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const FREQUENCIES: RecurringFrequency[] = ["weekly", "monthly", "quarterly", "yearly"];
+const FREQ_LABEL: Record<RecurringFrequency, string> = {
+  weekly: "Weekly",
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  yearly: "Yearly",
+};
 
 export default function RecurringRuleDetailScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const alert = useAlert();
   const { colors, accent, colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
   const { ruleId } = useLocalSearchParams<{ ruleId: string }>();
 
   const [detail, setDetail] = useState<ReminderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editVisible, setEditVisible] = useState(false);
+
+  // Edit sheet state
+  const [editFrequency, setEditFrequency] = useState<RecurringFrequency>("monthly");
+  const [editNextDue, setEditNextDue] = useState("");
+  const [editEndDate, setEditEndDate] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [nextDuePicker, setNextDuePicker] = useState(false);
+  const [endDatePicker, setEndDatePicker] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     if (!ruleId) return;
@@ -42,6 +69,64 @@ export default function RecurringRuleDetailScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Wire up the header edit button
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => setEditVisible(true)}
+          hitSlop={8}
+          style={{ padding: 8 }}
+          accessibilityLabel="Edit reminder"
+        >
+          <Ionicons name="create-outline" size={20} color={colors.tint} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, colors.tint]);
+
+  const openEdit = useCallback(() => {
+    if (!detail) return;
+    const { rule } = detail;
+    setEditFrequency(rule.frequency);
+    setEditNextDue(rule.next_due_date ?? todayIso());
+    setEditEndDate(rule.end_date ?? null);
+    setEditAmount(rule.amount != null ? String(rule.amount) : "");
+    setEditNotes(rule.notes ?? "");
+    setEditVisible(true);
+  }, [detail]);
+
+  // Re-open with fresh values when detail loads
+  const editOpenedRef = useRef(false);
+  useEffect(() => {
+    if (detail && editVisible && !editOpenedRef.current) {
+      openEdit();
+      editOpenedRef.current = true;
+    }
+    if (!editVisible) editOpenedRef.current = false;
+  }, [detail, editVisible, openEdit]);
+
+  const handleSave = useCallback(async () => {
+    if (!detail) return;
+    setSaving(true);
+    try {
+      const amountNum = editAmount.trim() ? parseFloat(editAmount.trim()) : null;
+      await updateRecurringRule(detail.rule.id, {
+        frequency: editFrequency,
+        next_due_date: editNextDue || null,
+        end_date: editEndDate,
+        amount: Number.isFinite(amountNum!) ? amountNum : null,
+        notes: editNotes.trim() || null,
+      });
+      setEditVisible(false);
+      await load();
+    } catch (e) {
+      alert("Couldn't save", getErrorMessage(e));
+    } finally {
+      setSaving(false);
+    }
+  }, [detail, editFrequency, editNextDue, editEndDate, editAmount, editNotes, load, alert]);
 
   const handleStop = useCallback(() => {
     if (!detail) return;
@@ -287,23 +372,205 @@ export default function RecurringRuleDetailScreen() {
           )}
         </View>
 
-        {/* Stop button — only shown for active rules */}
-        {rule.is_active === 1 && (
-          <Pressable
-            onPress={handleStop}
-            className="mx-4 mt-6 flex-row items-center justify-center py-3.5 rounded-xl"
-            style={{ backgroundColor: StatusColors[colorScheme].danger + "14" }}
-            accessibilityRole="button"
-            accessibilityLabel="Stop this reminder"
-          >
-            <Ionicons name="pause-outline" size={18} color={StatusColors[colorScheme].danger} />
-            <Text className="text-sm font-semibold ml-2" style={{ color: StatusColors[colorScheme].danger }}>
-              Stop reminder
-            </Text>
-          </Pressable>
-        )}
+        {/* Actions */}
+        <View className="mx-4 mt-6 gap-3">
+          {rule.is_active === 1 && (
+            <Pressable
+              onPress={openEdit}
+              className="flex-row items-center justify-center py-3.5 rounded-xl border border-border-light dark:border-border-dark"
+              style={{ backgroundColor: colors.surface }}
+              accessibilityRole="button"
+              accessibilityLabel="Edit this reminder"
+            >
+              <Ionicons name="create-outline" size={18} color={colors.tint} />
+              <Text className="text-sm font-semibold ml-2" style={{ color: colors.tint }}>
+                Edit reminder
+              </Text>
+            </Pressable>
+          )}
+          {rule.is_active === 1 && (
+            <Pressable
+              onPress={handleStop}
+              className="flex-row items-center justify-center py-3.5 rounded-xl"
+              style={{ backgroundColor: StatusColors[colorScheme].danger + "14" }}
+              accessibilityRole="button"
+              accessibilityLabel="Stop this reminder"
+            >
+              <Ionicons name="pause-outline" size={18} color={StatusColors[colorScheme].danger} />
+              <Text className="text-sm font-semibold ml-2" style={{ color: StatusColors[colorScheme].danger }}>
+                Stop reminder
+              </Text>
+            </Pressable>
+          )}
+        </View>
 
       </ScrollView>
+
+      {/* Edit sheet */}
+      <Modal transparent animationType="slide" visible={editVisible} onRequestClose={() => setEditVisible(false)}>
+        <Pressable className="flex-1 bg-black/40" onPress={() => setEditVisible(false)} />
+        <KeyboardAvoidingView behavior="padding" style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              paddingBottom: Math.max(insets.bottom, 12),
+            }}
+          >
+            {/* Handle */}
+            <View className="items-center pt-3 pb-1">
+              <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            </View>
+            <View className="flex-row items-center justify-between px-5 pb-3">
+              <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">Edit Reminder</Text>
+              <Pressable onPress={() => setEditVisible(false)} hitSlop={8}>
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8, gap: 16 }}>
+
+              {/* Next due date */}
+              <View>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                  Next due date
+                </Text>
+                <Pressable
+                  onPress={() => setNextDuePicker(true)}
+                  className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-xl px-4 py-3"
+                >
+                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                    {editNextDue ? formatDate(editNextDue) : "Not set"}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+                </Pressable>
+              </View>
+
+              {/* Frequency */}
+              <View>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                  Frequency
+                </Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {FREQUENCIES.map((f) => {
+                    const active = editFrequency === f;
+                    return (
+                      <Pressable
+                        key={f}
+                        onPress={() => setEditFrequency(f)}
+                        className="px-4 py-2 rounded-full border"
+                        style={{
+                          backgroundColor: active ? accent[500] + "18" : colors.surface,
+                          borderColor: active ? accent[500] : colors.border,
+                        }}
+                      >
+                        <Text className="text-sm font-medium" style={{ color: active ? accent[500] : colors.textSecondary }}>
+                          {FREQ_LABEL[f]}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* End date */}
+              <View>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                  End date (optional)
+                </Text>
+                <View className="flex-row gap-2">
+                  <Pressable
+                    onPress={() => setEndDatePicker(true)}
+                    className="flex-1 flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-xl px-4 py-3"
+                  >
+                    <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                      {editEndDate ? formatDate(editEndDate) : "No end date"}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+                  </Pressable>
+                  {editEndDate && (
+                    <Pressable
+                      onPress={() => setEditEndDate(null)}
+                      className="w-11 items-center justify-center border border-border-light dark:border-border-dark rounded-xl"
+                    >
+                      <Ionicons name="close" size={18} color={colors.textSecondary} />
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+
+              {/* Amount */}
+              <View>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                  Expected amount (optional)
+                </Text>
+                <TextInput
+                  value={editAmount}
+                  onChangeText={setEditAmount}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 15000"
+                  placeholderTextColor={colors.textSecondary}
+                  className="border border-border-light dark:border-border-dark rounded-xl px-4 py-3 text-sm text-text-primary dark:text-text-dark-primary"
+                />
+              </View>
+
+              {/* Notes */}
+              <View>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                  Notes (optional)
+                </Text>
+                <TextInput
+                  value={editNotes}
+                  onChangeText={setEditNotes}
+                  placeholder="Add a note…"
+                  placeholderTextColor={colors.textSecondary}
+                  multiline
+                  numberOfLines={2}
+                  className="border border-border-light dark:border-border-dark rounded-xl px-4 py-3 text-sm text-text-primary dark:text-text-dark-primary"
+                  style={{ minHeight: 64, textAlignVertical: "top" }}
+                />
+              </View>
+
+            </ScrollView>
+
+            {/* Save / Cancel */}
+            <View className="flex-row px-5 pt-3 gap-3">
+              <Pressable
+                onPress={() => setEditVisible(false)}
+                className="flex-1 py-3 rounded-xl items-center border border-border-light dark:border-border-dark"
+                style={{ backgroundColor: colors.surface }}
+              >
+                <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSave}
+                disabled={saving}
+                className="flex-1 py-3 rounded-xl items-center"
+                style={{ backgroundColor: accent[500], opacity: saving ? 0.6 : 1 }}
+              >
+                <Text className="text-sm font-semibold text-white">{saving ? "Saving…" : "Save"}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Calendar pickers */}
+      <CalendarModal
+        visible={nextDuePicker}
+        onClose={() => setNextDuePicker(false)}
+        value={editNextDue || todayIso()}
+        onChange={(d) => { setEditNextDue(d); setNextDuePicker(false); }}
+        maximumDate={null}
+      />
+      <CalendarModal
+        visible={endDatePicker}
+        onClose={() => setEndDatePicker(false)}
+        value={editEndDate ?? todayIso()}
+        onChange={(d) => { setEditEndDate(d); setEndDatePicker(false); }}
+        maximumDate={null}
+      />
     </ScreenContainer>
   );
 }
