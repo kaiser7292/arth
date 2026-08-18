@@ -195,6 +195,7 @@ export default function AddExpenseScreen() {
           setAccountId(linked.account_id);
         }
         if (linked.category_id) setCategoryId(linked.category_id);
+        if (linked.payment_mode_id) setPaymentModeId(linked.payment_mode_id);
         // Capture split mode so we know whether to ask for the other person's refund share.
         if (linked.split_original_amount) {
           setLinkedExpenseSplitMode((linked.split_mode as string | null) ?? null);
