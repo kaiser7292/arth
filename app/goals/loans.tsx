@@ -49,6 +49,7 @@ export default function LoansListScreen() {
   }>>(preloaded?.loans ?? []);
   const [loaded, setLoaded] = useState(preloaded != null);
   const [refreshing, setRefreshing] = useState(false);
+  const [closedLoansExpanded, setClosedLoansExpanded] = useState(false);
   // v17.6.0 — session-local record of merge prompts the user dismissed.
   // Keyed by `${loanFaId}:${candidateFaId}` so we don't nag them every time
   // they visit the loans list, but we re-check after the app is killed.
@@ -213,10 +214,17 @@ export default function LoansListScreen() {
 
         {closedLoans.length > 0 && (
           <>
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2 mt-4">
-              Closed
-            </Text>
-            {closedLoans.map((loan) => (
+            <Pressable
+              onPress={() => setClosedLoansExpanded(e => !e)}
+              className="flex-row items-center mt-4 mb-2"
+            >
+              <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider flex-1">
+                {closedLoans.length} settled / closed {closedLoans.length === 1 ? "loan" : "loans"}
+              </Text>
+              <Ionicons name={closedLoansExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
+            </Pressable>
+            {closedLoansExpanded && closedLoans.map((loan) => (
               <LoanCard
                 key={loan.id}
                 loan={loan}

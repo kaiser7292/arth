@@ -20,6 +20,8 @@ import {
 import type { PaymentMode, AccountWithModes } from "@/services/account-master";
 import {
   deactivateAccount,
+  closeAccount,
+  reopenAccount,
   updateAccountFinancials,
   updateAccountType,
   getActiveAccounts,
@@ -289,18 +291,46 @@ export default function AccountDetailScreen() {
     );
   }, [accountId, loadData, alert]);
 
+  const handleClose = useCallback(() => {
+    if (!account) return;
+    const displayName =
+      account.account_label ??
+      `${account.bank_name} ****${account.account_identifier}`;
+    alert(
+      "Close this account?",
+      `${displayName} will be removed from active tracking. All transactions and history are preserved — you can browse them any time from the closed accounts section.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Close account",
+          style: "destructive",
+          onPress: async () => {
+            await closeAccount(account.id);
+            router.back();
+          },
+        },
+      ],
+    );
+  }, [account, router, alert]);
+
+  const handleReopen = useCallback(async () => {
+    if (!account) return;
+    await reopenAccount(account.id);
+    loadData();
+  }, [account, loadData]);
+
   const handleDelete = useCallback(() => {
     if (!account) return;
     const displayName =
       account.account_label ??
       `${account.bank_name} ****${account.account_identifier}`;
     alert(
-      "Delete Account",
+      "Remove Account",
       `Remove "${displayName}"? The account will be hidden but linked expenses are preserved.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete",
+          text: "Remove",
           style: "destructive",
           onPress: async () => {
             await deactivateAccount(account.id);
@@ -309,7 +339,7 @@ export default function AccountDetailScreen() {
         },
       ],
     );
-  }, [account, router]);
+  }, [account, router, alert]);
 
   const handleToggleMode = useCallback(
     async (mode: PaymentMode, isLinked: boolean) => {
@@ -391,6 +421,16 @@ export default function AccountDetailScreen() {
           }
         >
           <View className="px-4 py-4">
+          {/* Closed account banner */}
+          {account.closed_at && (
+            <View className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 mb-3 flex-row items-center gap-3">
+              <Ionicons name="lock-closed-outline" size={18} color="#D97706" />
+              <Text className="text-sm text-amber-700 dark:text-amber-400 flex-1">
+                This account is closed. History is read-only.
+              </Text>
+            </View>
+          )}
+
           {/* Account identity */}
           <Card className="mb-3">
             <View className="flex-row items-center mb-4">
@@ -867,15 +907,23 @@ export default function AccountDetailScreen() {
 
           {/* Danger zone */}
           <Card className="mb-3">
-            <Pressable
-              onPress={handleDelete}
-              className="flex-row items-center justify-center py-1"
-            >
-              <Ionicons name="trash-outline" size={18} color={sc.danger} />
-              <Text className="text-sm font-medium ml-2" style={{ color: sc.danger }}>
-                Delete Account
-              </Text>
-            </Pressable>
+            {account.closed_at ? (
+              <Pressable onPress={handleReopen} className="flex-row items-center justify-center py-1">
+                <Ionicons name="refresh-outline" size={18} color={colors.blue} />
+                <Text className="text-sm font-medium ml-2" style={{ color: colors.blue }}>Reopen account</Text>
+              </Pressable>
+            ) : (
+              <Pressable onPress={handleClose} className="flex-row items-center justify-center py-1">
+                <Ionicons name="lock-closed-outline" size={18} color={sc.danger} />
+                <Text className="text-sm font-medium ml-2" style={{ color: sc.danger }}>Close account</Text>
+              </Pressable>
+            )}
+            <View className="border-t border-border-light dark:border-border-dark mt-3 pt-3">
+              <Pressable onPress={handleDelete} className="flex-row items-center justify-center py-1">
+                <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
+                <Text className="text-sm ml-2 text-text-secondary dark:text-text-dark-secondary">Remove account</Text>
+              </Pressable>
+            </View>
           </Card>
           </View>
         </ScrollView>

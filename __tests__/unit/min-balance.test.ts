@@ -43,6 +43,8 @@ function savings(id: string, overrides: Partial<FinancialAccount> = {}): Financi
     min_due: null,
     due_date: null,
     is_active: 1,
+    closed_at: null,
+    closed_note: null,
     discovered_from_sms: 0,
     fund_balance: 0,
     account_number: null,

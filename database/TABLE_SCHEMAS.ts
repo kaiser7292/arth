@@ -197,6 +197,8 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "account_number", // 011 (demat DP ID)
     "last_balance_sms_id", // 008
     "min_balance", // 019 (savings min-balance alert threshold)
+    "closed_at", // 064 (account closure — IS NOT NULL means closed, still active for history)
+    "closed_note", // 064 (optional closure note)
   ] as const,
 
   salary_profiles: [

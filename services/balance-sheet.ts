@@ -72,7 +72,7 @@ async function loadAccounts(userId: string): Promise<AccountRow[]> {
     `SELECT id, account_type, account_label, bank_name, account_identifier,
             last_known_balance
      FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1;`,
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL;`,
     userId,
   );
 }

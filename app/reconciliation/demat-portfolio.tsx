@@ -14,8 +14,9 @@ import {
   getAggregateSnapshotsForMonth,
   getSnapshotsForMonth,
   getDematSummary,
+  getClosedAccounts,
 } from "@/services/financial-account";
-import type { DematAccountSummary } from "@/services/financial-account";
+import type { DematAccountSummary, FinancialAccount } from "@/services/financial-account";
 import { TrendLineChart } from "@/components/charts/TrendLineChart";
 import type { TrendSeries } from "@/components/charts/TrendLineChart";
 
@@ -53,6 +54,8 @@ export default function DematPortfolioScreen() {
   const [summary, setSummary] = useState({ totalPortfolio: 0, totalFund: 0, accountCount: 0 });
   const [monthOffset, setMonthOffset] = useState(0);
   const [noData, setNoData] = useState(false);
+  const [closedDemats, setClosedDemats] = useState<FinancialAccount[]>([]);
+  const [closedExpanded, setClosedExpanded] = useState(false);
 
   const currentYM = getYearMonth(monthOffset);
 
@@ -103,12 +106,14 @@ export default function DematPortfolioScreen() {
 
   useDataRefresh(
     useCallback(async () => {
-      const [accts, sum] = await Promise.all([
+      const [accts, sum, closed] = await Promise.all([
         getDematAccountsWithSummary(DEFAULT_USER_ID),
         getDematSummary(DEFAULT_USER_ID),
+        getClosedAccounts(DEFAULT_USER_ID, "demat"),
       ]);
       setAccounts(accts);
       setSummary(sum);
+      setClosedDemats(closed);
       await loadTrend(accts, getYearMonth(monthOffset));
     }, [monthOffset, loadTrend]),
   );
@@ -290,7 +295,7 @@ export default function DematPortfolioScreen() {
         })}
 
         {/* Empty state */}
-        {accounts.length === 0 && (
+        {accounts.length === 0 && closedDemats.length === 0 && (
           <View className="items-center py-16">
             <Ionicons name="trending-up-outline" size={48} color={colors.textSecondary} />
             <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
@@ -300,6 +305,46 @@ export default function DematPortfolioScreen() {
               Demat accounts will appear here once added from Account Master.
             </Text>
           </View>
+        )}
+
+        {/* Closed demat accounts */}
+        {closedDemats.length > 0 && (
+          <>
+            <View className="border-t border-border-light dark:border-border-dark mx-4 mt-2 mb-3" />
+            <Pressable
+              onPress={() => setClosedExpanded(e => !e)}
+              className="flex-row items-center px-4 mb-2"
+            >
+              <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+                {closedDemats.length} closed {closedDemats.length === 1 ? "account" : "accounts"}
+              </Text>
+              <Ionicons name={closedExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
+            </Pressable>
+            {closedExpanded && closedDemats.map(acct => (
+              <Card key={acct.id} className="mx-4 mb-2">
+                <Pressable
+                  onPress={() => router.push({ pathname: "/demat/snapshots/[id]", params: { id: acct.id } })}
+                  className="flex-row items-center"
+                >
+                  <View className="flex-1">
+                    <View className="flex-row items-center gap-2 mb-0.5">
+                      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                        {acct.account_label || acct.bank_name}
+                      </Text>
+                      <View className="bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
+                        <Text className="text-[10px] font-semibold text-red-600 dark:text-red-400">Closed</Text>
+                      </View>
+                    </View>
+                    {acct.account_number && (
+                      <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">{acct.account_number}</Text>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward-outline" size={14} color={colors.textSecondary} />
+                </Pressable>
+              </Card>
+            ))}
+          </>
         )}
       </ScrollView>
     </ScreenContainer>

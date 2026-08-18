@@ -9,7 +9,7 @@ import { acAlpha } from "@/utils/accent";
 import { formatAmount } from "@/utils/format";
 import { StatusColors } from "@/constants/theme";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { getActiveAccounts, getAccountLatestStaleCheckDates } from "@/services/financial-account";
+import { getActiveAccounts, getClosedAccounts, getAccountLatestStaleCheckDates } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
 import {
   getMonthBalanceSummary,
@@ -42,19 +42,23 @@ export default function BankAccountsScreen() {
   const sc = StatusColors[colorScheme];
   const [summaries, setSummaries] = useState<AccountSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
+  const [closedAccounts, setClosedAccounts] = useState<FinancialAccount[]>([]);
+  const [closedExpanded, setClosedExpanded] = useState(false);
   const [month, setMonth] = useState(getCurrentMonth());
   const [refreshing, setRefreshing] = useState(false);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
   const loadData = useCallback(async () => {
-      const [allAccounts, staleDates, adjStats] = await Promise.all([
+      const [allAccounts, staleDates, adjStats, closed] = await Promise.all([
         getActiveAccounts(DEFAULT_USER_ID),
         getAccountLatestStaleCheckDates(DEFAULT_USER_ID, startDate, endDate),
         getAdjustmentAbsTotalByAccountType(DEFAULT_USER_ID, "savings", startDate, endDate),
+        getClosedAccounts(DEFAULT_USER_ID, "savings"),
       ]);
       const bankAccounts = allAccounts.filter((a) => a.account_type === "savings");
       setAdjustmentStats(adjStats);
+      setClosedAccounts(closed);
 
       const results: AccountSummary[] = await Promise.all(
         bankAccounts.map(async (account) => {
@@ -314,7 +318,7 @@ export default function BankAccountsScreen() {
         })}
 
         {/* Empty state */}
-        {summaries.length === 0 && (
+        {summaries.length === 0 && closedAccounts.length === 0 && (
           <View className="items-center py-16">
             <Ionicons name="wallet-outline" size={48} color={colors.textSecondary} />
             <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
@@ -324,6 +328,44 @@ export default function BankAccountsScreen() {
               Bank accounts will appear here once detected from SMS or added manually.
             </Text>
           </View>
+        )}
+
+        {/* Closed accounts */}
+        {closedAccounts.length > 0 && (
+          <>
+            <View className="border-t border-border-light dark:border-border-dark mx-4 mt-2 mb-3" />
+            <Pressable
+              onPress={() => setClosedExpanded(e => !e)}
+              className="flex-row items-center px-4 mb-2"
+            >
+              <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+                {closedAccounts.length} closed {closedAccounts.length === 1 ? "account" : "accounts"}
+              </Text>
+              <Ionicons name={closedExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
+            </Pressable>
+            {closedExpanded && closedAccounts.map(acct => (
+              <Card key={acct.id} className="mx-4 mb-2">
+                <Pressable
+                  onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: acct.id } })}
+                  className="flex-row items-center"
+                >
+                  <View className="flex-1">
+                    <View className="flex-row items-center gap-2 mb-0.5">
+                      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                        {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
+                      </Text>
+                      <View className="bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
+                        <Text className="text-[10px] font-semibold text-red-600 dark:text-red-400">Closed</Text>
+                      </View>
+                    </View>
+                    <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">{acct.bank_name}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward-outline" size={14} color={colors.textSecondary} />
+                </Pressable>
+              </Card>
+            ))}
+          </>
         )}
       </ScrollView>
     </ScreenContainer>

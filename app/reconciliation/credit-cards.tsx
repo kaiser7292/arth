@@ -9,7 +9,7 @@ import { acAlpha } from "@/utils/accent";
 import { formatAmount } from "@/utils/format";
 import { StatusColors } from "@/constants/theme";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { getActiveAccounts, getCcExpenseTotals, clearCcDues } from "@/services/financial-account";
+import { getActiveAccounts, getCcExpenseTotals, clearCcDues, getClosedAccounts } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
 import { useAlert } from "@/hooks/use-alert";
 import { getComputedBalanceComponents, getEarliestMonthForAccounts, getAdjustmentAbsTotalByAccountType } from "@/services/account-balance";
@@ -65,6 +65,8 @@ export default function CreditCardsScreen() {
   const alert = useAlert();
   const { accent, colors, colorScheme } = useColorScheme();
   const sc = StatusColors[colorScheme];
+  const [closedCCs, setClosedCCs] = useState<FinancialAccount[]>([]);
+  const [closedExpanded, setClosedExpanded] = useState(false);
   const [ccAccounts, setCcAccounts] = useState<FinancialAccount[]>(preloaded?.ccAccounts ?? []);
   const [expenseTotals, setExpenseTotals] = useState<Record<string, number>>(preloaded?.expenseTotals ?? {});
   const [balanceComponents, setBalanceComponents] = useState<Record<string, BalanceComponents | null>>(preloaded?.balanceComponents ?? {});
@@ -90,12 +92,14 @@ export default function CreditCardsScreen() {
   // monthLabel and handleMonthShift replaced by PeriodNavigator
 
   const loadData = useCallback(async () => {
-      const [allAccounts, totals, adjStats] = await Promise.all([
+      const [allAccounts, totals, adjStats, closed] = await Promise.all([
         getActiveAccounts(DEFAULT_USER_ID),
         getCcExpenseTotals(DEFAULT_USER_ID, startDate, endDate),
         getAdjustmentAbsTotalByAccountType(DEFAULT_USER_ID, "credit_card", startDate, endDate),
+        getClosedAccounts(DEFAULT_USER_ID, "credit_card"),
       ]);
       const ccOnly = allAccounts.filter((a) => a.account_type === "credit_card");
+      setClosedCCs(closed);
       setCcAccounts(ccOnly);
       setExpenseTotals(totals);
       setAdjustmentStats(adjStats);
@@ -557,7 +561,7 @@ export default function CreditCardsScreen() {
         })}
 
         {/* Empty state */}
-        {ccAccounts.length === 0 && (
+        {ccAccounts.length === 0 && closedCCs.length === 0 && (
           <View className="items-center py-16">
             <Ionicons name="card-outline" size={48} color={colors.textSecondary} />
             <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
@@ -567,6 +571,44 @@ export default function CreditCardsScreen() {
               Credit cards will appear here once detected from SMS or added manually.
             </Text>
           </View>
+        )}
+
+        {/* Closed credit cards */}
+        {closedCCs.length > 0 && (
+          <>
+            <View className="border-t border-border-light dark:border-border-dark mx-4 mt-2 mb-3" />
+            <Pressable
+              onPress={() => setClosedExpanded(e => !e)}
+              className="flex-row items-center px-4 mb-2"
+            >
+              <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+                {closedCCs.length} closed {closedCCs.length === 1 ? "card" : "cards"}
+              </Text>
+              <Ionicons name={closedExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
+            </Pressable>
+            {closedExpanded && closedCCs.map(acct => (
+              <Card key={acct.id} className="mx-4 mb-2">
+                <Pressable
+                  onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: acct.id } })}
+                  className="flex-row items-center"
+                >
+                  <View className="flex-1">
+                    <View className="flex-row items-center gap-2 mb-0.5">
+                      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                        {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
+                      </Text>
+                      <View className="bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
+                        <Text className="text-[10px] font-semibold text-red-600 dark:text-red-400">Closed</Text>
+                      </View>
+                    </View>
+                    <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">{acct.bank_name}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward-outline" size={14} color={colors.textSecondary} />
+                </Pressable>
+              </Card>
+            ))}
+          </>
         )}
       </ScrollView>
     </ScreenContainer>

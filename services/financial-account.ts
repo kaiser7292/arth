@@ -29,6 +29,8 @@ export interface FinancialAccount {
   min_due: number | null;
   due_date: string | null;
   is_active: number;
+  closed_at: string | null;
+  closed_note: string | null;
   discovered_from_sms: number;
   fund_balance: number;
   account_number: string | null;
@@ -132,7 +134,7 @@ export async function getPensionSummary(userId: string): Promise<{
 }> {
   const db = getDatabase();
   const accounts = await db.getAllAsync<FinancialAccount>(
-    `SELECT * FROM financial_accounts WHERE user_id = ? AND account_type = 'pension' AND is_active = 1`,
+    `SELECT * FROM financial_accounts WHERE user_id = ? AND account_type = 'pension' AND is_active = 1 AND closed_at IS NULL`,
     userId,
   );
 
@@ -391,6 +393,7 @@ export async function linkExpenseToAccount(
       `SELECT id FROM financial_accounts
         WHERE user_id = ?
           AND is_active = 1
+          AND closed_at IS NULL
           AND account_identifier = ?
         ORDER BY
           CASE WHEN LOWER(TRIM(bank_name)) = LOWER(?) THEN 0 ELSE 1 END,
@@ -410,6 +413,7 @@ export async function linkExpenseToAccount(
       `SELECT id FROM financial_accounts
         WHERE user_id = ?
           AND is_active = 1
+          AND closed_at IS NULL
           AND (
             (account_label IS NOT NULL AND LOWER(TRIM(account_label)) = LOWER(?))
             OR
@@ -455,7 +459,7 @@ export async function getAccountById(accountId: string): Promise<FinancialAccoun
 export async function getActiveAccounts(userId: string): Promise<FinancialAccount[]> {
   const db = getDatabase();
   return db.getAllAsync<FinancialAccount>(
-    `SELECT * FROM financial_accounts WHERE user_id = ? AND is_active = 1 ORDER BY bank_name, account_type;`,
+    `SELECT * FROM financial_accounts WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL ORDER BY bank_name, account_type;`,
     userId,
   );
 }
@@ -638,24 +642,24 @@ export async function getAccountSummary(userId: string): Promise<{
 
   const savingsSum = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(last_known_balance) as total FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND account_type = 'savings';`,
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND account_type = 'savings';`,
     userId,
   );
 
   const creditSum = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(last_known_balance) as total FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND account_type = 'credit_card';`,
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND account_type = 'credit_card';`,
     userId,
   );
 
   const duesSum = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(total_due) as total FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND total_due > 0;`,
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND total_due > 0;`,
     userId,
   );
 
   const countRow = await db.getFirstAsync<{ count: number }>(
-    `SELECT COUNT(*) as count FROM financial_accounts WHERE user_id = ? AND is_active = 1;`,
+    `SELECT COUNT(*) as count FROM financial_accounts WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL;`,
     userId,
   );
 
@@ -714,6 +718,50 @@ export async function updateAccountType(
     accountId,
   );
   await bumpDataVersion();
+}
+
+/**
+ * Close a financial account (marks it as closed without removing from active list for history).
+ * A closed account has closed_at IS NOT NULL AND is_active = 1.
+ */
+export async function closeAccount(accountId: string, note?: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE financial_accounts SET closed_at = datetime('now'), closed_note = ?, updated_at = datetime('now') WHERE id = ?;`,
+    note ?? null,
+    accountId,
+  );
+  await bumpDataVersion();
+}
+
+/**
+ * Reopen a previously closed account.
+ */
+export async function reopenAccount(accountId: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE financial_accounts SET closed_at = NULL, closed_note = NULL, updated_at = datetime('now') WHERE id = ?;`,
+    accountId,
+  );
+  await bumpDataVersion();
+}
+
+/**
+ * Get all closed (but not soft-deleted) accounts for a user, optionally filtered by type.
+ */
+export async function getClosedAccounts(userId: string, accountType?: string): Promise<FinancialAccount[]> {
+  const db = getDatabase();
+  if (accountType) {
+    return db.getAllAsync<FinancialAccount>(
+      `SELECT * FROM financial_accounts WHERE user_id = ? AND is_active = 1 AND closed_at IS NOT NULL AND account_type = ? ORDER BY closed_at DESC;`,
+      userId,
+      accountType,
+    );
+  }
+  return db.getAllAsync<FinancialAccount>(
+    `SELECT * FROM financial_accounts WHERE user_id = ? AND is_active = 1 AND closed_at IS NOT NULL ORDER BY closed_at DESC;`,
+    userId,
+  );
 }
 
 /**
@@ -1037,7 +1085,7 @@ export async function getUpcomingDues(
   const db = getDatabase();
   return db.getAllAsync<FinancialAccount>(
     `SELECT * FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND total_due > 0 AND due_date IS NOT NULL
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND total_due > 0 AND due_date IS NOT NULL
      ORDER BY due_date ASC;`,
     userId,
   );
@@ -1193,7 +1241,7 @@ export async function getAggregatePortfolioTrend(
             SUM(s.portfolio_value) AS total
      FROM demat_portfolio_snapshots s
      INNER JOIN financial_accounts fa ON fa.id = s.account_id
-     WHERE fa.user_id = ? AND fa.is_active = 1 AND fa.account_type = 'demat'
+     WHERE fa.user_id = ? AND fa.is_active = 1 AND fa.closed_at IS NULL AND fa.account_type = 'demat'
        AND s.snapshot_date = (
          SELECT MAX(s2.snapshot_date)
          FROM demat_portfolio_snapshots s2
@@ -1512,7 +1560,7 @@ export async function getAggregateWeeklyNetWorthTrend(
   const db = getDatabase();
   const accounts = await db.getAllAsync<{ id: string }>(
     `SELECT id FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND account_type = 'demat';`,
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND account_type = 'demat';`,
     userId,
   );
   if (accounts.length === 0) {
@@ -1597,7 +1645,7 @@ export async function getAggregateSnapshotsForMonth(
   const db = getDatabase();
   const accounts = await db.getAllAsync<{ id: string }>(
     `SELECT id FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND account_type = 'demat';`,
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND account_type = 'demat';`,
     userId,
   );
   if (accounts.length === 0) return [];
@@ -1634,7 +1682,7 @@ export async function getDematSummary(
 
   const accounts = await db.getAllAsync<{ id: string }>(
     `SELECT id FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND account_type = 'demat';`,
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND account_type = 'demat';`,
     userId,
   );
 
@@ -1686,7 +1734,7 @@ export async function getDematAccountsWithSummary(
 
   const accounts = await db.getAllAsync<FinancialAccount>(
     `SELECT * FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND account_type = 'demat'
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND account_type = 'demat'
      ORDER BY bank_name ASC;`,
     userId,
   );
