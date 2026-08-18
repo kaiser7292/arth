@@ -47,8 +47,24 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
 
   if (allSeries.length === 0) return null;
 
-  const months = allSeries[0].data.map((d) => d.month);
-  const allValues = allSeries.flatMap((s) => s.data.map((d) => d.total));
+  // Unified date axis: union of all series' dates in sorted order.
+  const months = [...new Set(allSeries.flatMap((s) => s.data.map((d) => d.month)))].sort();
+
+  // Expand every series to the unified axis so getX(i) lines up correctly.
+  // Carry forward the last known value for dates not in a given series.
+  const expandedSeries = allSeries.map((s) => {
+    let last = 0;
+    const dataMap = new Map(s.data.map((d) => [d.month, d.total]));
+    return {
+      ...s,
+      data: months.map((date) => {
+        if (dataMap.has(date)) last = dataMap.get(date)!;
+        return { month: date, total: last };
+      }),
+    };
+  });
+
+  const allValues = expandedSeries.flatMap((s) => s.data.map((d) => d.total));
   const maxValue = Math.max(...allValues);
 
   if (maxValue === 0) {
@@ -125,7 +141,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
           <Text style={{ fontSize: 10, color: "#9CA3AF", textAlign: "center" }}>
             {formatXLabel(months[selectedIndex])}
           </Text>
-          {allSeries.map((s, si) => {
+          {expandedSeries.map((s, si) => {
             const val = s.data[selectedIndex]?.total ?? 0;
             if (val === 0 && isMulti) return null;
             return (
@@ -147,7 +163,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
         {width > 0 && (
           <Svg width={width} height={CHART_HEIGHT}>
             <Defs>
-              {allSeries.map((s, si) => (
+              {expandedSeries.map((s, si) => (
                 <LinearGradient key={`grad-${si}`} id={`areaGrad-${si}`} x1="0" y1="0" x2="0" y2="1">
                   <Stop offset="0" stopColor={s.color} stopOpacity={isMulti ? 0.08 : 0.18} />
                   <Stop offset="1" stopColor={s.color} stopOpacity={0.02} />
@@ -169,10 +185,13 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
               />
             )}
 
-            {allSeries.map((s, si) => {
-              const points = s.data.map((d, i) => ({ x: getX(i), y: getY(d.total) }));
-              const hasData = s.data.some((d) => d.total > 0);
-              if (!hasData) return null;
+            {expandedSeries.map((s, si) => {
+              // Only draw from the first non-zero point so an account that starts
+              // mid-month doesn't show a flat-zero segment at the left edge.
+              const firstNonZero = s.data.findIndex((d) => d.total > 0);
+              if (firstNonZero === -1) return null;
+              const trimmed = s.data.slice(firstNonZero);
+              const points = trimmed.map((d, i) => ({ x: getX(firstNonZero + i), y: getY(d.total) }));
 
               const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
               const areaPath = `${linePath} L ${points[points.length - 1].x} ${CHART_HEIGHT} L ${points[0].x} ${CHART_HEIGHT} Z`;
@@ -194,13 +213,14 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
                   />
 
                   {points.map((p, i) => {
-                    if (s.data[i].total === 0) return null;
-                    const isSelected = selectedIndex === i;
-                    const isLast = i === s.data.length - 1;
+                    if (trimmed[i].total === 0) return null;
+                    const absI = firstNonZero + i;
+                    const isSelected = selectedIndex === absI;
+                    const isLast = absI === s.data.length - 1;
                     const baseR = isLast ? (si === 0 ? 4 : 3) : 2.5;
                     return (
                       <Circle
-                        key={`${si}-${i}`}
+                        key={`${si}-${absI}`}
                         cx={p.x}
                         cy={p.y}
                         r={isSelected ? baseR + 2 : baseR}
@@ -264,7 +284,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
       {/* Legend — shows latest value per series */}
       {showLegend && isMulti && (
         <View className="flex-row flex-wrap mt-3 pt-2 border-t border-border-light dark:border-border-dark">
-          {allSeries.map((s, si) => {
+          {expandedSeries.map((s, si) => {
             const latestVal = s.data[s.data.length - 1]?.total ?? 0;
             return (
               <View key={si} className="flex-row items-center mr-4 mb-1">
