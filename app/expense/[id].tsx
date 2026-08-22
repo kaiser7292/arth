@@ -1076,7 +1076,7 @@ export default function ExpenseDetailScreen() {
   }, [expense, linkedSettlement, alert]);
 
   // v15.2: If this expense was auto-categorized by a smart rule, fetch the
-  // rule's display name for the "Categorized by rule" badge.
+  // rule's display name for the "Processed by rule" badge.
   const [appliedRuleSummary, setAppliedRuleSummary] = useState<string | null>(null);
   useEffect(() => {
     if (!expense?.applied_rule_id) {
@@ -2922,7 +2922,7 @@ export default function ExpenseDetailScreen() {
                   <Ionicons name="sparkles" size={18} color={colors.textSecondary} />
                   <View className="flex-1 ml-2">
                     <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
-                      Categorized by rule
+                      Processed by rule
                     </Text>
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
                       {appliedRuleSummary}

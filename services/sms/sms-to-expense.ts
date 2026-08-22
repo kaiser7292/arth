@@ -388,11 +388,12 @@ export async function createExpenseFromSms(
       let ruleSplitPersonId: string | null = null;
       let ruleSplitMode: string | null = null;
       let ruleSplitPaidBy: string | null = null;
+      let ruleSplitPercentage: number | null = null;
+      let ruleSplitExactAmount: number | null = null;
       try {
         const allRules = await applyAllRules({
           amount: parsed.amount,
           merchant: normalizedMerchant ?? parsed.merchant ?? null,
-          raw_merchant: rawMerchantName,
           description,
           category_id: categoryId,
           account_id: accountId ?? null,
@@ -407,6 +408,8 @@ export async function createExpenseFromSms(
           ruleSplitPersonId = ruleApp.split_person_id;
           ruleSplitMode = ruleApp.split_mode;
           ruleSplitPaidBy = ruleApp.split_paid_by;
+          ruleSplitPercentage = ruleApp.split_percentage;
+          ruleSplitExactAmount = ruleApp.split_exact_amount;
           matchedRuleIds = ruleIds;
           ruleAppliedRuleId = ruleIds[ruleIds.length - 1];
           ruleAppliedRuleIdsJson = JSON.stringify(ruleIds);
@@ -452,6 +455,8 @@ export async function createExpenseFromSms(
             paidBy: (ruleSplitPaidBy as SplitConfig["paidBy"]) ?? "me",
             splitMode: (ruleSplitMode as SplitConfig["splitMode"]) ?? "equal",
             personId: ruleSplitPersonId,
+            ...(ruleSplitPercentage != null ? { percentage: ruleSplitPercentage } : {}),
+            ...(ruleSplitExactAmount != null ? { exactAmount: ruleSplitExactAmount } : {}),
           };
           await splitExistingExpense(expenseId, splitConfig, { skipAutoApprove: true });
         } catch (e) {

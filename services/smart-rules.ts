@@ -121,6 +121,8 @@ export interface RuleAction {
   person_id?: string;
   split_mode?: string;
   paid_by?: string;
+  split_percentage?: number;
+  split_exact_amount?: number;
 }
 
 export interface SmartRule {
@@ -166,9 +168,6 @@ export interface UpdateSmartRuleInput extends Partial<CreateSmartRuleInput> {}
 export interface EvaluationTarget {
   amount: number;
   merchant: string | null;
-  /** Pre-alias SMS merchant name. When set, positive string merchant conditions
-   *  also test against this value so rules survive alias creation. */
-  raw_merchant?: string | null;
   account_id: string | null;
   payment_mode_id: string | null;
   sms_body?: string | null;
@@ -187,6 +186,8 @@ export interface RuleApplication {
   split_person_id: string | null;
   split_mode: string | null;
   split_paid_by: string | null;
+  split_percentage: number | null;
+  split_exact_amount: number | null;
 }
 
 // ─── Raw DB row (conditions/actions still JSON text) ───
@@ -330,31 +331,9 @@ function evaluateSingleValue(
   }
 }
 
-// Operators where a fallback to raw_merchant makes sense: positive string
-// matches. NOT operators are intentionally excluded — they should not flip to
-// true just because the alias name doesn't contain a term.
-const POSITIVE_STRING_OPERATORS = new Set<ConditionOperator>([
-  "contains", "starts_with", "ends_with", "regex", "equals",
-]);
-
 function evaluateCondition(condition: RuleCondition, target: EvaluationTarget): boolean {
   const fieldValue = getFieldValue(condition.field, target);
-  const result = evaluateSingleValue(condition.operator, condition.value, fieldValue);
-
-  // For merchant conditions: if the normalized (aliased) name didn't satisfy a
-  // positive string match, also try the raw pre-alias SMS name. This lets rules
-  // written before an alias was added continue to fire against the original name.
-  if (
-    !result &&
-    condition.field === "merchant" &&
-    POSITIVE_STRING_OPERATORS.has(condition.operator) &&
-    target.raw_merchant != null &&
-    target.raw_merchant !== target.merchant
-  ) {
-    return evaluateSingleValue(condition.operator, condition.value, target.raw_merchant);
-  }
-
-  return result;
+  return evaluateSingleValue(condition.operator, condition.value, fieldValue);
 }
 
 /**
@@ -409,6 +388,8 @@ export function materialize(rule: SmartRule): RuleApplication {
   let split_person_id: string | null = null;
   let split_mode: string | null = null;
   let split_paid_by: string | null = null;
+  let split_percentage: number | null = null;
+  let split_exact_amount: number | null = null;
 
   for (const action of rule.actions) {
     switch (action.type) {
@@ -435,12 +416,14 @@ export function materialize(rule: SmartRule): RuleApplication {
           split_person_id = action.person_id;
           split_mode = action.split_mode ?? null;
           split_paid_by = action.paid_by ?? null;
+          split_percentage = action.split_percentage ?? null;
+          split_exact_amount = action.split_exact_amount ?? null;
         }
         break;
     }
   }
 
-  return { rule, category_id, payment_mode, description, tag_ids, is_right_spend, mark_auto, split_person_id, split_mode, split_paid_by };
+  return { rule, category_id, payment_mode, description, tag_ids, is_right_spend, mark_auto, split_person_id, split_mode, split_paid_by, split_percentage, split_exact_amount };
 }
 
 // ─── DB-backed operations ───
@@ -503,6 +486,8 @@ export async function applyAllRules(
     let split_person_id: string | null = null;
     let split_mode: string | null = null;
     let split_paid_by: string | null = null;
+    let split_percentage: number | null = null;
+    let split_exact_amount: number | null = null;
     let primaryRule = matches[0];
 
     for (const rule of matches) {
@@ -520,6 +505,8 @@ export async function applyAllRules(
         split_person_id = app.split_person_id;
         split_mode = app.split_mode;
         split_paid_by = app.split_paid_by;
+        split_percentage = app.split_percentage;
+        split_exact_amount = app.split_exact_amount;
         primaryRule = rule;
       }
     }
@@ -535,6 +522,8 @@ export async function applyAllRules(
       split_person_id,
       split_mode,
       split_paid_by,
+      split_percentage,
+      split_exact_amount,
     };
 
     return { application, ruleIds: matches.map((r) => r.id) };
@@ -764,6 +753,7 @@ type RetroactiveCandidate = {
   raw_source_text: string | null;
   status: string | null;
   split_hisaab_entry_id: string | null;
+  is_right_spend: number | null;
 };
 
 async function fetchRetroactiveCandidates(
@@ -795,7 +785,7 @@ async function fetchRetroactiveCandidates(
   }
 
   return db.getAllAsync<RetroactiveCandidate>(
-    `SELECT id, amount, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text, status, split_hisaab_entry_id
+    `SELECT id, amount, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text, status, split_hisaab_entry_id, is_right_spend
      FROM expenses
      WHERE ${conds.join(" AND ")};`,
     params,
@@ -806,7 +796,6 @@ function candidateToTarget(e: RetroactiveCandidate): EvaluationTarget {
   return {
     amount: e.amount,
     merchant: e.merchant_name,
-    raw_merchant: e.raw_merchant_name,
     description: e.description,
     account_id: e.account_id,
     payment_mode_id: e.payment_mode_id,
@@ -822,6 +811,8 @@ function candidateToTarget(e: RetroactiveCandidate): EvaluationTarget {
 function hasNothingToAdd(app: RuleApplication, e: RetroactiveCandidate): boolean {
   if (app.category_id !== null && e.category_id === null) return false;
   if (app.payment_mode !== null && e.payment_mode_id === null) return false;
+  if (app.description !== null && e.description === null) return false;
+  if (app.is_right_spend !== null && e.is_right_spend === null) return false;
   if (app.mark_auto && e.status === "pending_review") return false;
   if (app.split_person_id !== null && e.split_hisaab_entry_id === null) return false;
   return true;
@@ -877,16 +868,26 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
       const nextPaymentMode = scope.overwriteExisting
         ? (application.payment_mode ?? e.payment_mode_id)
         : (e.payment_mode_id ?? application.payment_mode);
+      const nextDescription = scope.overwriteExisting
+        ? (application.description ?? e.description)
+        : (e.description ?? application.description);
+      const nextIsRightSpend = scope.overwriteExisting
+        ? (application.is_right_spend ?? e.is_right_spend)
+        : (e.is_right_spend ?? application.is_right_spend);
 
       await db.runAsync(
         `UPDATE expenses SET
            category_id = ?,
            payment_mode_id = ?,
+           description = ?,
+           is_right_spend = ?,
            applied_rule_id = ?,
            updated_at = datetime('now')
          WHERE id = ?;`,
         nextCategory,
         nextPaymentMode,
+        nextDescription,
+        nextIsRightSpend,
         rule.id,
         e.id,
       );
@@ -904,6 +905,8 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
             personId: application.split_person_id,
             splitMode: (application.split_mode ?? "equal") as SplitMode,
             paidBy: application.split_paid_by ?? "me",
+            ...(application.split_percentage != null ? { percentage: application.split_percentage } : {}),
+            ...(application.split_exact_amount != null ? { exactAmount: application.split_exact_amount } : {}),
           }, { skipAutoApprove: true });
         } catch (splitErr) {
           logger.warn(`retroactive split failed for expense ${e.id}`, splitErr);

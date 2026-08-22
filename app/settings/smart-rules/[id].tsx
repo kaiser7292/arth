@@ -276,7 +276,15 @@ export default function SmartRuleDetailScreen() {
       if (a.type === "tags" && (!a.tag_ids || a.tag_ids.length === 0)) continue;
       if (a.type === "split_with_person") {
         if (!a.person_id) continue;
-        result.push({ type: "split_with_person", person_id: a.person_id, split_mode: a.split_mode ?? "equal", paid_by: a.paid_by ?? "me" });
+        const splitAction: RuleAction = {
+          type: "split_with_person",
+          person_id: a.person_id,
+          split_mode: a.split_mode ?? "equal",
+          paid_by: a.paid_by ?? "me",
+          ...(a.split_mode === "percentage" && a.split_percentage != null ? { split_percentage: a.split_percentage } : {}),
+          ...(a.split_mode === "exact" && a.split_exact_amount != null ? { split_exact_amount: a.split_exact_amount } : {}),
+        };
+        result.push(splitAction);
         continue;
       }
       result.push(a);
@@ -980,14 +988,20 @@ export default function SmartRuleDetailScreen() {
                         {selectedPerson && (
                           <View className="mt-1 pb-1">
                             <Text className="text-xs text-text-tertiary mb-1.5">How to split</Text>
-                            <View className="flex-row gap-2 mb-2">
-                              {([ { mode: "equal", label: "Equal" }, { mode: "they_owe_full", label: "They owe full" }, { mode: "i_owe_full", label: "I owe full" } ] as const).map((opt) => {
+                            <View className="flex-row flex-wrap gap-2 mb-2">
+                              {([
+                                { mode: "equal", label: "Equal" },
+                                { mode: "they_owe_full", label: "They owe full" },
+                                { mode: "i_owe_full", label: "I owe full" },
+                                { mode: "percentage", label: "By %" },
+                                { mode: "exact", label: "By amount" },
+                              ] as const).map((opt) => {
                                 const isSel = splitMode === opt.mode;
                                 return (
                                   <Pressable
                                     key={opt.mode}
                                     onPress={() => updateAction(index, { split_mode: opt.mode })}
-                                    className="flex-1 py-1.5 rounded-lg items-center border border-border-light dark:border-border-dark"
+                                    className="px-3 py-1.5 rounded-lg items-center border border-border-light dark:border-border-dark"
                                     style={isSel ? { backgroundColor: accentColor + "20", borderColor: accentColor } : undefined}
                                   >
                                     <Text className="text-xs font-semibold" style={{ color: isSel ? accentColor : colors.textSecondary }}>{opt.label}</Text>
@@ -995,6 +1009,36 @@ export default function SmartRuleDetailScreen() {
                                 );
                               })}
                             </View>
+                            {splitMode === "percentage" && (
+                              <View className="mb-2">
+                                <TextInput
+                                  value={String(a.split_percentage ?? "")}
+                                  onChangeText={(v) => {
+                                    const n = parseFloat(v);
+                                    updateAction(index, { split_percentage: isNaN(n) ? undefined : Math.min(100, Math.max(0, n)) });
+                                  }}
+                                  keyboardType="numeric"
+                                  placeholder="Their share % (e.g. 50)"
+                                  placeholderTextColor={colors.tabIconDefault}
+                                  className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark text-sm text-text-primary dark:text-text-dark-primary"
+                                />
+                              </View>
+                            )}
+                            {splitMode === "exact" && (
+                              <View className="mb-2">
+                                <TextInput
+                                  value={String(a.split_exact_amount ?? "")}
+                                  onChangeText={(v) => {
+                                    const n = parseFloat(v);
+                                    updateAction(index, { split_exact_amount: isNaN(n) ? undefined : n });
+                                  }}
+                                  keyboardType="numeric"
+                                  placeholder="Their share amount (₹)"
+                                  placeholderTextColor={colors.tabIconDefault}
+                                  className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark text-sm text-text-primary dark:text-text-dark-primary"
+                                />
+                              </View>
+                            )}
                             <Text className="text-xs text-text-tertiary mb-1.5">Who paid</Text>
                             <View className="flex-row gap-2">
                               {([ { value: "me", label: "I paid" }, { value: "them", label: "They paid" } ] as const).map((opt) => {
