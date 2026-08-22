@@ -76,7 +76,7 @@ A personal finance app for Android, built with React Native and Expo. Tracks exp
 - Scan filtering by account so only relevant SMS are processed
 
 ### Backup & Restore
-- AES-256-GCM encrypted backups with a user-set password (`.artha` format, backward-compatible)
+- AES-256-GCM encrypted backups with a user-set password (`.arth` format, backward-compatible with `.artha`)
 - Scheduled auto-backup: configurable interval (4h / 6h / 8h / 12h / 24h / 48h), notification-triggered execution
 - Safety checkpoints: silent auto-backup before any destructive delete — up to 10 kept, one-tap restore
 - Share any backup file directly from the settings screen
