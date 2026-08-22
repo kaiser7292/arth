@@ -254,7 +254,7 @@ artha/
 - **SMS pipeline** — four-stage: reader → parser → orchestrator → expense creator. All outcomes are logged for inspection in Scan Runs.
 - **Review queue** — auto-detected data always goes through approve/edit/reject before affecting budgets or balances.
 - **Soft delete** — `deleted_at` column everywhere; 30-day auto-purge; restorable from recycle bin.
-- **Indian FY** — April–March fiscal year (configurable). Drives yearly plans, savings rates, YoY comparison.
+- **Fiscal Year** — April–March (configurable). Drives yearly plans, savings rates, and year-over-year comparison.
 
 ---
 
