@@ -162,7 +162,7 @@ export default function SmartRuleDetailScreen() {
   const [showRetroSheet, setShowRetroSheet] = useState(false);
   const [retroStart, setRetroStart] = useState("");
   const [retroEnd, setRetroEnd] = useState("");
-  const [retroPreset, setRetroPreset] = useState<number | null>(90);
+  const [retroPreset, setRetroPreset] = useState<number | null>(7);
   const [retroAccountIds, setRetroAccountIds] = useState<string[]>([]);
   const [retroOverwrite, setRetroOverwrite] = useState(false);
   const [retroPreview, setRetroPreview] = useState<RetroactivePreview | null>(null);
@@ -318,9 +318,9 @@ export default function SmartRuleDetailScreen() {
   }, [saving, name, priority, isActive, matchMode, conditions, buildActions, buildLinkBucketId, isCreate, id, alert, router]);
 
   const openRetroSheet = useCallback(() => {
-    setRetroStart(daysAgoIso(90));
+    setRetroStart(daysAgoIso(7));
     setRetroEnd(todayIso());
-    setRetroPreset(90);
+    setRetroPreset(7);
     setRetroAccountIds([]);
     setRetroOverwrite(false);
     setRetroPreview(null);
@@ -1128,6 +1128,7 @@ export default function SmartRuleDetailScreen() {
           </Text>
           <View className="flex-row flex-wrap mb-3" style={{ gap: 6 }}>
             {[
+              { label: "7 days", days: 7 },
               { label: "30 days", days: 30 },
               { label: "90 days", days: 90 },
               { label: "6 months", days: 180 },

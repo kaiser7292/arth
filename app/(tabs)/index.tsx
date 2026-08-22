@@ -37,6 +37,7 @@ import {
     getOverdueForecasts,
     getPendingExpenseCount,
     getUncategorizedCount,
+    skipReminderCycle,
 } from "@/services/expense";
 import { getFlag } from "@/services/feature-flags";
 import type { FinancialAccount } from "@/services/financial-account";
@@ -560,17 +561,35 @@ export default function HomeScreen() {
                       </Pressable>
                     )}
 
-                    {/* State B — no match → original Link button */}
+                    {/* State B — no match → Link + Skip */}
                     {!match && (
-                      <Pressable
-                        onPress={() => setLinkSheetFor({ ruleId: r.rule.id, description })}
-                        accessibilityRole="button"
-                        accessibilityLabel="Link expense to this reminder"
-                        className="px-3 py-1.5 rounded-lg"
-                        style={{ backgroundColor: accent[500] }}
-                      >
-                        <Text className="text-xs font-semibold text-white">Link</Text>
-                      </Pressable>
+                      <View className="flex-row items-center" style={{ gap: 6 }}>
+                        <Pressable
+                          onPress={async () => {
+                            try {
+                              await skipReminderCycle(r.rule.id);
+                              await loadData();
+                            } catch (e) {
+                              logger.warn("Skip reminder failed", e);
+                            }
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Skip this reminder cycle"
+                          className="px-3 py-1.5 rounded-lg border"
+                          style={{ borderColor: colors.border }}
+                        >
+                          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">Skip</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => setLinkSheetFor({ ruleId: r.rule.id, description })}
+                          accessibilityRole="button"
+                          accessibilityLabel="Link expense to this reminder"
+                          className="px-3 py-1.5 rounded-lg"
+                          style={{ backgroundColor: accent[500] }}
+                        >
+                          <Text className="text-xs font-semibold text-white">Link</Text>
+                        </Pressable>
+                      </View>
                     )}
                   </View>
 

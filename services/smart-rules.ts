@@ -29,6 +29,8 @@ import { bumpDataVersion } from "@/services/settings";
 import { getFlag } from "@/services/feature-flags";
 import { logger } from "@/utils/logger";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { splitExistingExpense } from "@/services/expense-splits";
+import type { SplitMode } from "@/services/expense-types";
 
 // ─── Types ───
 
@@ -760,6 +762,8 @@ type RetroactiveCandidate = {
   payment_mode_id: string | null;
   category_id: string | null;
   raw_source_text: string | null;
+  status: string | null;
+  split_hisaab_entry_id: string | null;
 };
 
 async function fetchRetroactiveCandidates(
@@ -791,7 +795,7 @@ async function fetchRetroactiveCandidates(
   }
 
   return db.getAllAsync<RetroactiveCandidate>(
-    `SELECT id, amount, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text
+    `SELECT id, amount, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text, status, split_hisaab_entry_id
      FROM expenses
      WHERE ${conds.join(" AND ")};`,
     params,
@@ -818,6 +822,8 @@ function candidateToTarget(e: RetroactiveCandidate): EvaluationTarget {
 function hasNothingToAdd(app: RuleApplication, e: RetroactiveCandidate): boolean {
   if (app.category_id !== null && e.category_id === null) return false;
   if (app.payment_mode !== null && e.payment_mode_id === null) return false;
+  if (app.mark_auto && e.status === "pending_review") return false;
+  if (app.split_person_id !== null && e.split_hisaab_entry_id === null) return false;
   return true;
 }
 
@@ -884,6 +890,26 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
         rule.id,
         e.id,
       );
+
+      if (application.mark_auto && e.status === "pending_review") {
+        await db.runAsync(
+          `UPDATE expenses SET status = 'approved', updated_at = datetime('now') WHERE id = ?;`,
+          e.id,
+        );
+      }
+
+      if (application.split_person_id && e.split_hisaab_entry_id === null) {
+        try {
+          await splitExistingExpense(e.id, {
+            personId: application.split_person_id,
+            splitMode: (application.split_mode ?? "equal") as SplitMode,
+            paidBy: application.split_paid_by ?? "me",
+          }, { skipAutoApprove: true });
+        } catch (splitErr) {
+          logger.warn(`retroactive split failed for expense ${e.id}`, splitErr);
+        }
+      }
+
       applied++;
     }
   });
