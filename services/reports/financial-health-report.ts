@@ -73,14 +73,9 @@ export interface FinancialHealthReport {
 
 function scoreToGrade(score: number): string {
   if (score >= 90) return "A+";
-  if (score >= 85) return "A";
-  if (score >= 80) return "A-";
-  if (score >= 75) return "B+";
+  if (score >= 80) return "A";
   if (score >= 70) return "B";
-  if (score >= 65) return "B-";
-  if (score >= 60) return "C+";
   if (score >= 55) return "C";
-  if (score >= 50) return "C-";
   if (score >= 40) return "D";
   return "F";
 }
@@ -127,10 +122,11 @@ function scoreSpendingDiscipline(spikeCount: number): number {
 }
 
 function buildGradeSummary(grade: string, score: number): string {
-  if (score >= 85) return "Excellent financial health across all dimensions.";
-  if (score >= 70) return "Strong financial position with minor areas for improvement.";
-  if (score >= 55) return "Moderate financial health; a few dimensions need attention.";
-  if (score >= 40) return "Below average; several areas require significant improvement.";
+  if (score >= 90) return "Excellent financial health across all dimensions.";
+  if (score >= 80) return "Strong financial position with minor areas for improvement.";
+  if (score >= 70) return "Good overall health; a few dimensions have room to grow.";
+  if (score >= 55) return "Moderate financial health; several areas need attention.";
+  if (score >= 40) return "Below average; significant improvement needed across key areas.";
   return "Financial health needs urgent attention across multiple areas.";
 }
 
