@@ -1,8 +1,10 @@
 # Arth — Your Finance, Your Way
 
-**Arth** is a private, offline personal finance app for Android. It auto-reads bank SMS messages to log transactions, tracks spending across budgets and categories, manages savings accounts, credit cards, wallets, loans and EMIs, and gives you a real-time net-worth picture — entirely on your device, with no cloud, no login, and no subscription.
+**Arth** is a personal finance app for Android that keeps your data entirely on your phone — no account, no cloud, no subscription, ever.
 
-Built with React Native + Expo. No data leaves your phone.
+Most finance apps (Walnut, ET Money, MoneyControl, YNAB) auto-read your bank SMS or connect to your accounts, then upload everything to their servers. Arth does the same SMS auto-detection locally, on-device, so your transaction history, balances, and spending patterns never leave your hands.
+
+Beyond that, Arth goes deeper than typical trackers: it handles savings accounts, credit cards, wallets, loans with full amortisation schedules, EPFO/pension, and a family lending ledger (Hisaab) — all in one place. It also lets you reconcile bank statement PDFs against your logged transactions, auto-categorises expenses with Smart Rules, and tracks goals, budgets, and net worth across a proper April–March fiscal year.
 
 **Current version: v2.14.4**
 
