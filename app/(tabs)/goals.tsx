@@ -64,6 +64,7 @@ export default function GoalsScreen() {
       const liveEMI = activeLoans.reduce((s, l) => s + (emiMap.get(l.id) ?? l.emi_amount), 0);
       setTotalMonthlyEMI(liveEMI);
       setCockpitData(cockpit);
+      setSetupChecked(true);
 
       // Insurance coverage summary
       try {
@@ -76,9 +77,8 @@ export default function GoalsScreen() {
         // insurance not critical for page render
       }
     } catch {
-      // DB not ready
+      // DB not ready — leave setupChecked as-is so preloaded data stays visible
     }
-    setSetupChecked(true);
 
     // Balance sheet is heavy — fetch separately so it never blocks the page render
     try {

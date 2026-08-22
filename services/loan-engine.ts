@@ -272,7 +272,8 @@ export function computeOutstandingAt(
   );
   for (const p of applicablePrepays) {
     const net = p.amount - p.prepayment_charge - p.gst_on_charge;
-    outstanding = Math.max(outstanding - net, 0);
+    // net can be negative when charge+GST exceeds the prepayment amount; clamp to 0 so outstanding never increases
+    outstanding = Math.max(outstanding - Math.max(net, 0), 0);
   }
 
   return round2(outstanding);

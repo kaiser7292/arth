@@ -317,11 +317,11 @@ function evaluateSingleValue(
         return false;
       }
     }
-    case "greater_than":
+    case "greater_than": // inclusive ≥ (persisted string — do not rename; UI label is "is at least")
       return typeof fieldValue === "number" && typeof value === "number"
         ? fieldValue >= value
         : false;
-    case "less_than":
+    case "less_than": // inclusive ≤ (persisted string — do not rename; UI label is "is at most")
       return typeof fieldValue === "number" && typeof value === "number"
         ? fieldValue <= value
         : false;
@@ -782,7 +782,7 @@ async function fetchRetroactiveCandidates(
   scope: Pick<RetroactiveScope, "startDate" | "endDate" | "accountIds" | "sinceDaysAgo">,
 ): Promise<RetroactiveCandidate[]> {
   const db = getDatabase();
-  const conds: string[] = ["deleted_at IS NULL"];
+  const conds: string[] = ["deleted_at IS NULL", "nature = 'realized'"];
   const params: (string | number)[] = [];
 
   if (scope.startDate) {
@@ -838,6 +838,7 @@ function hasNothingToAdd(app: RuleApplication, e: RetroactiveCandidate): boolean
   if (app.is_right_spend !== null && e.is_right_spend === null) return false;
   if (app.mark_auto && e.status === "pending_review") return false;
   if (app.split_person_id !== null && e.split_hisaab_entry_id === null) return false;
+  if (app.tag_ids.length > 0) return false;
   return true;
 }
 

@@ -54,7 +54,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
       if (!userSetPaymentMode && rule.payment_mode) paymentModeId = rule.payment_mode;
       if (!userSetRightSpend && rule.is_right_spend !== null) isRightSpend = rule.is_right_spend;
       matchedRuleIds = ruleIds;
-      appliedRuleId = ruleIds[ruleIds.length - 1];
+      appliedRuleId = ruleIds[0];
       appliedRuleIdsJson = JSON.stringify(ruleIds);
       linkToBucketId = rule.rule.action_link_to_investment_bucket_id ?? null;
       ruleSplitPersonId = rule.split_person_id;
@@ -890,29 +890,36 @@ export async function approveExpense(id: string): Promise<void> {
  */
 export async function rejectExpense(id: string): Promise<void> {
   const db = getDatabase();
-  // Clean up any rule-pre-applied split hisaab entry so the other person's
-  // ledger doesn't show a debt for an expense the user rejected.
-  const splitRow = await db.getFirstAsync<{ split_hisaab_entry_id: string | null }>(
-    `SELECT split_hisaab_entry_id FROM expenses WHERE id = ?;`,
-    id,
-  );
-  if (splitRow?.split_hisaab_entry_id) {
-    await db.withTransactionAsync(async () => {
-      await db.runAsync(`DELETE FROM hisaab_entries WHERE id = ?;`, splitRow.split_hisaab_entry_id);
-      await db.runAsync(
-        `UPDATE expenses SET split_hisaab_entry_id = NULL, split_person_id = NULL,
-           split_original_amount = NULL, split_pct = NULL, split_mode = NULL,
-           split_exact_amount = NULL, status = 'rejected', updated_at = datetime('now')
-         WHERE id = ?;`,
-        id,
-      );
-    });
-  } else {
-    await db.runAsync(
-      `UPDATE expenses SET status = 'rejected', updated_at = datetime('now') WHERE id = ?;`,
+  await db.withTransactionAsync(async () => {
+    // Clean up legacy single-split hisaab entry
+    const splitRow = await db.getFirstAsync<{ split_hisaab_entry_id: string | null }>(
+      `SELECT split_hisaab_entry_id FROM expenses WHERE id = ?;`,
       id,
     );
-  }
+    if (splitRow?.split_hisaab_entry_id) {
+      await db.runAsync(`DELETE FROM hisaab_entries WHERE id = ?;`, splitRow.split_hisaab_entry_id);
+    }
+
+    // Clean up expense_splits bridge rows (multi-split, created by smart rules retroactive apply)
+    const bridgeRows = await db.getAllAsync<{ hisaab_entry_id: string | null }>(
+      `SELECT hisaab_entry_id FROM expense_splits WHERE expense_id = ?;`,
+      id,
+    );
+    const bridgeHisaabIds = bridgeRows.map((r) => r.hisaab_entry_id).filter(Boolean) as string[];
+    if (bridgeHisaabIds.length > 0) {
+      const ph = bridgeHisaabIds.map(() => "?").join(",");
+      await db.runAsync(`DELETE FROM hisaab_entries WHERE id IN (${ph});`, ...bridgeHisaabIds);
+    }
+    await db.runAsync(`DELETE FROM expense_splits WHERE expense_id = ?;`, id);
+
+    await db.runAsync(
+      `UPDATE expenses SET split_hisaab_entry_id = NULL, split_person_id = NULL,
+         split_original_amount = NULL, split_pct = NULL, split_mode = NULL,
+         split_exact_amount = NULL, status = 'rejected', updated_at = datetime('now')
+       WHERE id = ?;`,
+      id,
+    );
+  });
   bumpDataVersion();
 }
 
@@ -1000,33 +1007,39 @@ export async function rejectExpenses(ids: string[]): Promise<void> {
   const db = getDatabase();
   const placeholders = ids.map(() => "?").join(",");
 
-  // Delete any rule-pre-applied split hisaab entries so rejecting an expense
-  // doesn't leave orphaned debt rows on the other person's ledger.
-  const splitRows = await db.getAllAsync<{ split_hisaab_entry_id: string }>(
-    `SELECT split_hisaab_entry_id FROM expenses
-     WHERE id IN (${placeholders}) AND split_hisaab_entry_id IS NOT NULL;`,
-    ...ids,
-  );
-  if (splitRows.length > 0) {
-    const hisaabIds = splitRows.map((r) => r.split_hisaab_entry_id);
-    const hp = hisaabIds.map(() => "?").join(",");
-    await db.withTransactionAsync(async () => {
+  await db.withTransactionAsync(async () => {
+    // Clean up legacy single-split hisaab entries
+    const splitRows = await db.getAllAsync<{ split_hisaab_entry_id: string }>(
+      `SELECT split_hisaab_entry_id FROM expenses
+       WHERE id IN (${placeholders}) AND split_hisaab_entry_id IS NOT NULL;`,
+      ...ids,
+    );
+    if (splitRows.length > 0) {
+      const hisaabIds = splitRows.map((r) => r.split_hisaab_entry_id);
+      const hp = hisaabIds.map(() => "?").join(",");
       await db.runAsync(`DELETE FROM hisaab_entries WHERE id IN (${hp});`, ...hisaabIds);
-      await db.runAsync(
-        `UPDATE expenses SET split_hisaab_entry_id = NULL, split_person_id = NULL,
-           split_original_amount = NULL, split_pct = NULL, split_mode = NULL,
-           split_exact_amount = NULL, status = 'rejected', updated_at = datetime('now')
-         WHERE id IN (${placeholders});`,
-        ...ids,
-      );
-    });
-  } else {
+    }
+
+    // Clean up expense_splits bridge rows (multi-split, created by smart rules retroactive apply)
+    const bridgeRows = await db.getAllAsync<{ hisaab_entry_id: string | null }>(
+      `SELECT hisaab_entry_id FROM expense_splits WHERE expense_id IN (${placeholders});`,
+      ...ids,
+    );
+    const bridgeHisaabIds = bridgeRows.map((r) => r.hisaab_entry_id).filter(Boolean) as string[];
+    if (bridgeHisaabIds.length > 0) {
+      const hp = bridgeHisaabIds.map(() => "?").join(",");
+      await db.runAsync(`DELETE FROM hisaab_entries WHERE id IN (${hp});`, ...bridgeHisaabIds);
+    }
+    await db.runAsync(`DELETE FROM expense_splits WHERE expense_id IN (${placeholders});`, ...ids);
+
     await db.runAsync(
-      `UPDATE expenses SET status = 'rejected', updated_at = datetime('now')
+      `UPDATE expenses SET split_hisaab_entry_id = NULL, split_person_id = NULL,
+         split_original_amount = NULL, split_pct = NULL, split_mode = NULL,
+         split_exact_amount = NULL, status = 'rejected', updated_at = datetime('now')
        WHERE id IN (${placeholders});`,
       ...ids,
     );
-  }
+  });
   bumpDataVersion();
 }
 
@@ -1254,10 +1267,10 @@ export async function remapExpenses(
   await db.withTransactionAsync(async () => {
     for (const row of unmappedPM) {
       const parsed = parseBankSMS(row.raw_source_text);
-      if (!parsed) return;
+      if (!parsed) continue;
 
       const modeType = inferPaymentMode(parsed, row.raw_source_text);
-      if (!modeType) return;
+      if (!modeType) continue;
 
       const mode = await findPaymentModeByType(userId, modeType);
       if (mode) {
