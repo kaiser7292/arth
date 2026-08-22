@@ -81,18 +81,6 @@ A personal finance app for Android, built with React Native and Expo. Tracks exp
 - Safety checkpoints: silent auto-backup before any destructive delete — up to 10 kept, one-tap restore
 - Share any backup file directly from the settings screen
 
-### UX & Personalization
-- Swipe navigation across all tabs — Home (5 pages), Transactions (5 pages), Budget (3 pages)
-- Pull-to-refresh on all account screens
-- Contextual tab headers with live status (pending review count, backup age, budget status)
-- Biometric lock (fingerprint / face unlock)
-- Dark mode with 5 accent color themes
-- Password / secret vault (local, encrypted)
-- AI assistant (on-device, no cloud) — ask questions about your finances
-- Built-in help center with searchable articles
-- Animated FAB with backdrop
-- Bilingual branding — Arth · अर्थ
-
 ---
 
 ## Tech Stack
