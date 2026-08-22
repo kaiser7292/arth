@@ -39,13 +39,13 @@ Arth is a private finance tracker that runs entirely on your phone. No account, 
 
 Arth has **five bottom tabs**, in this order from left to right. **Swipe left or right** anywhere on screen to move between tabs — or tap them directly.
 
-- **Home** - today's picture. Month-to-date spend ring, Review Queue, Upcoming Dues, Reminders, recent expenses, and the **Your Accounts** section (Credit Cards, Bank Accounts, Wallets, Demat, Loans - each with live balances and tap-to-drill). Also the entry point to the **Insights screen** (tap the Insights card on Home).
-- **Transactions** - the full ledger. Both expenses and credits. Search, filter by date / category / account / tag, toggle between Expenses and Credits. Save your favourite filter combinations as named views (tap "Save view" in the filter panel) and set one as default. Active filter pills show at a glance what's applied.
+- **Home** - today's picture. Swipe left/right to move between five pages: **Overview** (monthly summary, Review Queue, Reminders, Your Accounts), **Insights** (spending patterns and analytics), **Queue** (full review queue for pending SMS expenses), **Vault** (password and secret vault), and **Simulator** (cash-flow scenarios). Tap the page labels at the top or swipe to switch.
+- **Transactions** - the full ledger. Swipe between five pages: **All**, **Expenses**, **Committed** (forecast / recurring), **Credits**, and **Transfers**. Search, filter by date / category / account / tag within any page. Save favourite filter combinations as named views.
 - **Budget** - monthly caps per category with progress bars. Right-spend (unavoidable) vs discretionary split. Month-End Projection widget.
 - **Goals** - savings goals, milestones, investment buckets, yearly plan, year-over-year comparison, salary calculator, balance sheet.
 - **Settings** - accounts, categories, payment modes, merchant aliases, smart rules, reminders, SMS settings, backup/restore, fiscal year, security (biometric lock), audit log.
 
-> Insights is not a bottom tab - it opens from the Insights card on Home.
+> Insights is one of the Home tab's swipe pages — swipe right from Overview or tap the "Insights" label at the top.
 
 ## Your first week (in order)
 

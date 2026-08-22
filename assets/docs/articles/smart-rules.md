@@ -38,8 +38,10 @@ You need at least one condition. Combine any.
 **Actions:**
 - **Set category** - force the expense's category
 - **Set payment mode** - force the payment mode
+- **Set description** - override the auto-generated description
 - **Add tags** - attach tags (multiple allowed)
 - **Override right-spend** - mark as unavoidable or discretionary
+- **Split with person** - automatically create a split (equal, I owe full, they owe full, by %, or by exact amount)
 - **Auto-approve from review queue** - skip Review Queue and go straight into ledger (default: OFF per user safety)
 
 ## Create a rule
@@ -51,15 +53,17 @@ You need at least one condition. Combine any.
 5. (Optional) **Retroactive apply** - see below.
 6. Tap **Save**.
 
-From now on, every new expense that satisfies the conditions has the actions applied. A small badge on the expense - "Categorized by rule: Swiggy → Food" - shows which rule fired.
+From now on, every new expense that satisfies the conditions has the actions applied. A small badge on the expense - "Processed by rule: Swiggy → Food" - shows which rule fired.
 
 ## Retroactive apply
 
 After saving a rule, you can apply it to existing expenses:
-1. On the rule detail → tap **Apply to past 90 days**.
-2. **Preview** shows: how many match, how many would be overwritten (already have a category/mode you'd clobber), how many would be skipped.
-3. Decide: **Overwrite** (applies to all matches) or **Skip already-set** (only touches blanks).
-4. Confirm. Runs in a single transaction.
+1. On the rule detail → tap **Apply to past expenses**.
+2. The default date range is the last **7 days**. Use the preset chips or the date picker to widen or narrow the window.
+3. **Preview** shows: how many match, how many would be processed (have at least one field the rule can fill), how many would be skipped (rule already fully applied), and how many would be overwritten (a field you'd clobber).
+4. Toggle **Overwrite already-processed** if you want the rule to re-apply over values it set before (useful after editing a rule).
+5. Confirm. All applicable actions are applied — category, payment mode, description, right-spend, auto-approve, and split.
+6. Runs in a single transaction.
 
 ## Rules vs learned mappings
 
@@ -69,7 +73,7 @@ Arth has two separate systems for auto-categorization. They don't conflict - sma
 
 - **How it's created** - you write it manually on the Smart Rules screen.
 - **When it fires** - immediately on the very next matching expense.
-- **What it can do** - set category, set payment mode, add tags, force is-right-spend, auto-approve from review queue.
+- **What it can do** - set category, set payment mode, set description, add tags, force is-right-spend, auto-approve from review queue, split with person.
 - **Where to see it** - Settings tab → Automation → Smart Rules. Every rule is listed, editable, and deletable.
 - **In backup** - yes, rules travel with your backup file.
 

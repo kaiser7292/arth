@@ -54,9 +54,11 @@ Arth uses this expense as the **source** - it remembers the merchant, category, 
 
 ## When a reminder is due
 
-Reminders appear on the Home card as **Due Soon** (≤ 3 days) or **Overdue**. Each has a **Link** button.
+Reminders appear on the Home card as **Due Soon** (≤ 3 days) or **Overdue**. Each has two buttons: **Skip** and **Link**.
 
-Tap **Link** → two options:
+**Skip** — you consciously chose not to pay this cycle (e.g. you paused a subscription, paid it through another channel, or it isn't relevant this month). Tapping Skip advances the due date by one cycle without recording a payment. The reminder returns next cycle.
+
+**Link** — you paid and want to record it. Tap **Link** → two options:
 
 - **Pick an existing expense.** If you already logged the payment (e.g. the SMS came in), pick that expense from the list of recent same-merchant expenses. It becomes the fulfillment, and the reminder's next due date advances.
 - **Log new expense.** Opens the Add Expense screen pre-filled with everything except the amount. You type the amount. On save, the expense is linked to the reminder and the next due date advances.

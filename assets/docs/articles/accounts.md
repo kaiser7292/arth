@@ -96,8 +96,11 @@ Open the account's ledger and scroll to the first date where the running balance
 **"Why do I have two entries for the same card?"**
 If you added the card manually AND an SMS came in that didn't match the last-4, Arth may have auto-created a second. Delete the extra from Settings tab → Master Data → Accounts.
 
+**"Close an account."**
+Settings tab → Master Data → Accounts → tap the account → **Close account**. Closing removes it from active balance tracking, hides it from home cards, charts, and the balance sheet, but keeps the full history browsable. You can reopen it at any time from the same screen. Prefer Close over Delete — Delete removes the account permanently and unlinks its expenses.
+
 **"Delete an account."**
-Settings tab → Master Data → Accounts → tap the account → **Delete** at the bottom. If it has expenses linked, those expenses will lose their account (they won't be deleted). Prefer **Deactivate** instead - it hides the account from new entry but keeps history intact.
+Settings tab → Master Data → Accounts → tap the account → **Delete** at the bottom. If it has expenses linked, those expenses will lose their account (they won't be deleted). Prefer **Close** instead - it hides the account from active views but keeps history intact.
 
 **"Change last-known balance without adding a fake expense."**
 On the account detail screen, tap **Adjust Balance**. This creates a ledger-adjustment row (visible in the ledger as "[Balance Adjustment]") without affecting budget.
