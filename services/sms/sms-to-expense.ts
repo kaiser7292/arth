@@ -394,6 +394,7 @@ export async function createExpenseFromSms(
         const allRules = await applyAllRules({
           amount: parsed.amount,
           merchant: normalizedMerchant ?? parsed.merchant ?? null,
+          raw_merchant: rawMerchantName,
           description,
           category_id: categoryId,
           account_id: accountId ?? null,

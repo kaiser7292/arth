@@ -168,6 +168,8 @@ export interface UpdateSmartRuleInput extends Partial<CreateSmartRuleInput> {}
 export interface EvaluationTarget {
   amount: number;
   merchant: string | null;
+  /** Pre-alias SMS merchant name — fallback for positive string conditions when merchant doesn't match. */
+  raw_merchant?: string | null;
   account_id: string | null;
   payment_mode_id: string | null;
   sms_body?: string | null;
@@ -331,9 +333,29 @@ function evaluateSingleValue(
   }
 }
 
+// Positive-string operators where a raw_merchant fallback is safe: when the
+// alias name doesn't match, also try the original SMS name so rules survive
+// alias remapping. NOT-operators are excluded — they must not flip to true
+// just because the alias doesn't contain a term.
+const POSITIVE_STRING_OPERATORS = new Set<ConditionOperator>([
+  "contains", "starts_with", "ends_with", "regex", "equals",
+]);
+
 function evaluateCondition(condition: RuleCondition, target: EvaluationTarget): boolean {
   const fieldValue = getFieldValue(condition.field, target);
-  return evaluateSingleValue(condition.operator, condition.value, fieldValue);
+  const result = evaluateSingleValue(condition.operator, condition.value, fieldValue);
+
+  if (
+    !result &&
+    condition.field === "merchant" &&
+    POSITIVE_STRING_OPERATORS.has(condition.operator) &&
+    target.raw_merchant != null &&
+    target.raw_merchant !== target.merchant
+  ) {
+    return evaluateSingleValue(condition.operator, condition.value, target.raw_merchant);
+  }
+
+  return result;
 }
 
 /**
@@ -796,6 +818,7 @@ function candidateToTarget(e: RetroactiveCandidate): EvaluationTarget {
   return {
     amount: e.amount,
     merchant: e.merchant_name,
+    raw_merchant: e.raw_merchant_name,
     description: e.description,
     account_id: e.account_id,
     payment_mode_id: e.payment_mode_id,

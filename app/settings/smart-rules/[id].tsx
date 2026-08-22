@@ -1280,7 +1280,7 @@ export default function SmartRuleDetailScreen() {
                 {retroPreview.matching} matching expense{retroPreview.matching === 1 ? "" : "s"}
               </Text>
               <Text className="text-xs text-text-tertiary mt-0.5">
-                {retroPreview.wouldOverwrite} will be updated · {retroPreview.wouldSkip} skipped (already categorized)
+                {retroPreview.wouldOverwrite} will be updated · {retroPreview.wouldSkip} skipped (already processed){retroPreview.wouldSkip > 0 && retroPreview.wouldOverwrite === 0 ? " — enable Overwrite to re-apply" : ""}
               </Text>
             </View>
           ) : (
