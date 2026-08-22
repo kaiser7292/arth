@@ -1,6 +1,8 @@
-# Arth · अर्थ
+# Arth — Your Finance, Your Way
 
-A personal finance app for Android, built with React Native and Expo. Tracks expenses, budgets, accounts, investments, family ledgers, loans, and more — 100% local, zero cloud dependency.
+**Arth** is a private, offline personal finance app for Android. It auto-reads bank SMS messages to log transactions, tracks spending across budgets and categories, manages savings accounts, credit cards, wallets, loans and EMIs, and gives you a real-time net-worth picture — entirely on your device, with no cloud, no login, and no subscription.
+
+Built with React Native + Expo. No data leaves your phone.
 
 **Current version: v2.14.4**
 
