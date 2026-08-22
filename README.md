@@ -6,6 +6,103 @@ A personal finance app for Android, built with React Native and Expo. Tracks exp
 
 ---
 
+## Screenshots
+
+### Home
+
+<table><tr>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.18%20PM%20(1).jpeg" width="160"/><br><sub>Overview</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.19%20PM%20(1).jpeg" width="160"/><br><sub>Reminders card</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.19%20PM.jpeg" width="160"/><br><sub>Voice expense entry</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.05%20PM.jpeg" width="160"/><br><sub>Insights tab</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.17%20PM%20(2).jpeg" width="160"/><br><sub>Spending pulse</sub></td>
+</tr></table>
+
+### Transactions & Budget
+
+<table><tr>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.13%20PM%20(1).jpeg" width="160"/><br><sub>Expenses tab</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.13%20PM.jpeg" width="160"/><br><sub>Transfers tab</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.17%20PM.jpeg" width="160"/><br><sub>Budget overview</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.12%20PM%20(1).jpeg" width="160"/><br><sub>Spending split</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.12%20PM.jpeg" width="160"/><br><sub>Monthly summary</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.03%20PM.jpeg" width="160"/><br><sub>Compare periods</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.04%20PM.jpeg" width="160"/><br><sub>Budget vs actual</sub></td>
+</tr></table>
+
+### Goals & Planning
+
+<table><tr>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.16%20PM%20(1).jpeg" width="160"/><br><sub>Goals tab</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.06%20PM%20(2).jpeg" width="160"/><br><sub>Yearly plan · income &amp; investments</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.06%20PM%20(1).jpeg" width="160"/><br><sub>Yearly plan · plan summary</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.06%20PM.jpeg" width="160"/><br><sub>Yearly plan · reality check</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.05%20PM%20(1).jpeg" width="160"/><br><sub>Year-over-year</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.15%20PM%20(1).jpeg" width="160"/><br><sub>Loans &amp; Debt</sub></td>
+</tr></table>
+
+### Reports & Insights
+
+<table><tr>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.04%20PM%20(1).jpeg" width="160"/><br><sub>Reports</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.17.56%20PM%20(1).jpeg" width="160"/><br><sub>Financial Health · Grade B</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.15%20PM%20(2).jpeg" width="160"/><br><sub>Financial Health · Grade C</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.17.56%20PM.jpeg" width="160"/><br><sub>Financial Health · monthly detail</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.17.55%20PM%20(1).jpeg" width="160"/><br><sub>Retirement readiness</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.17.55%20PM.jpeg" width="160"/><br><sub>Retirement · risk flags</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.17.57%20PM%20(1).jpeg" width="160"/><br><sub>Spending personality</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.17.57%20PM.jpeg" width="160"/><br><sub>Spending patterns</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.22%20PM%20(1).jpeg" width="160"/><br><sub>Insight drill-down</sub></td>
+</tr></table>
+
+### Accounts & Reconciliation
+
+<table><tr>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.13%20PM%20(2).jpeg" width="160"/><br><sub>Account Ledger</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.14%20PM%20(1).jpeg" width="160"/><br><sub>Credit cards · summary</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.14%20PM.jpeg" width="160"/><br><sub>Credit cards · per card</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.15%20PM.jpeg" width="160"/><br><sub>Bank accounts</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.27%20PM%20(1).jpeg" width="160"/><br><sub>Reconcile sessions</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.27%20PM.jpeg" width="160"/><br><sub>Reconciliation · matched</sub></td>
+</tr></table>
+
+### Cashflow Simulator
+
+<table><tr>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.17%20PM%20(1).jpeg" width="160"/><br><sub>Simulator</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.18%20PM.jpeg" width="160"/><br><sub>This month plan</sub></td>
+</tr></table>
+
+### Family Ledger (Hisaab)
+
+<table><tr>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.20%20PM.jpeg" width="160"/><br><sub>Family Ledger</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.19%20PM%20(2).jpeg" width="160"/><br><sub>Person ledger</sub></td>
+</tr></table>
+
+### Smart Rules & SMS
+
+<table><tr>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.25%20PM.jpeg" width="160"/><br><sub>Smart Rule editor</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.26%20PM.jpeg" width="160"/><br><sub>SMS tag builder</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.26%20PM%20(1).jpeg" width="160"/><br><sub>SMS template config</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.23%20PM.jpeg" width="160"/><br><sub>Audit log</sub></td>
+</tr></table>
+
+### Settings & AI
+
+<table><tr>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.09.16%20PM.jpeg" width="160"/><br><sub>Settings</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.22%20PM.jpeg" width="160"/><br><sub>Arth AI · model</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.21%20PM.jpeg" width="160"/><br><sub>Arth AI · data access</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.28%20PM.jpeg" width="160"/><br><sub>Backup &amp; Restore</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.27%20PM%20(2).jpeg" width="160"/><br><sub>Voice Input</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.28%20PM%20(1).jpeg" width="160"/><br><sub>Settings · preferences</sub></td>
+<td align="center"><img src="screenshots/WhatsApp%20Image%202026-08-22%20at%207.16.28%20PM%20(2).jpeg" width="160"/><br><sub>Settings · SMS detection</sub></td>
+</tr></table>
+
+---
+
 ## Features
 
 ### Expense Tracking
