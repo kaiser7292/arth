@@ -890,10 +890,29 @@ export async function approveExpense(id: string): Promise<void> {
  */
 export async function rejectExpense(id: string): Promise<void> {
   const db = getDatabase();
-  await db.runAsync(
-    `UPDATE expenses SET status = 'rejected', updated_at = datetime('now') WHERE id = ?;`,
+  // Clean up any rule-pre-applied split hisaab entry so the other person's
+  // ledger doesn't show a debt for an expense the user rejected.
+  const splitRow = await db.getFirstAsync<{ split_hisaab_entry_id: string | null }>(
+    `SELECT split_hisaab_entry_id FROM expenses WHERE id = ?;`,
     id,
   );
+  if (splitRow?.split_hisaab_entry_id) {
+    await db.withTransactionAsync(async () => {
+      await db.runAsync(`DELETE FROM hisaab_entries WHERE id = ?;`, splitRow.split_hisaab_entry_id);
+      await db.runAsync(
+        `UPDATE expenses SET split_hisaab_entry_id = NULL, split_person_id = NULL,
+           split_original_amount = NULL, split_pct = NULL, split_mode = NULL,
+           split_exact_amount = NULL, status = 'rejected', updated_at = datetime('now')
+         WHERE id = ?;`,
+        id,
+      );
+    });
+  } else {
+    await db.runAsync(
+      `UPDATE expenses SET status = 'rejected', updated_at = datetime('now') WHERE id = ?;`,
+      id,
+    );
+  }
   bumpDataVersion();
 }
 
@@ -980,11 +999,34 @@ export async function rejectExpenses(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   const db = getDatabase();
   const placeholders = ids.map(() => "?").join(",");
-  await db.runAsync(
-    `UPDATE expenses SET status = 'rejected', updated_at = datetime('now')
-     WHERE id IN (${placeholders});`,
+
+  // Delete any rule-pre-applied split hisaab entries so rejecting an expense
+  // doesn't leave orphaned debt rows on the other person's ledger.
+  const splitRows = await db.getAllAsync<{ split_hisaab_entry_id: string }>(
+    `SELECT split_hisaab_entry_id FROM expenses
+     WHERE id IN (${placeholders}) AND split_hisaab_entry_id IS NOT NULL;`,
     ...ids,
   );
+  if (splitRows.length > 0) {
+    const hisaabIds = splitRows.map((r) => r.split_hisaab_entry_id);
+    const hp = hisaabIds.map(() => "?").join(",");
+    await db.withTransactionAsync(async () => {
+      await db.runAsync(`DELETE FROM hisaab_entries WHERE id IN (${hp});`, ...hisaabIds);
+      await db.runAsync(
+        `UPDATE expenses SET split_hisaab_entry_id = NULL, split_person_id = NULL,
+           split_original_amount = NULL, split_pct = NULL, split_mode = NULL,
+           split_exact_amount = NULL, status = 'rejected', updated_at = datetime('now')
+         WHERE id IN (${placeholders});`,
+        ...ids,
+      );
+    });
+  } else {
+    await db.runAsync(
+      `UPDATE expenses SET status = 'rejected', updated_at = datetime('now')
+       WHERE id IN (${placeholders});`,
+      ...ids,
+    );
+  }
   bumpDataVersion();
 }
 

@@ -234,10 +234,15 @@ export async function splitNewExpense(
 /**
  * Split an EXISTING expense: updates the expense and creates a hisaab entry.
  * If the expense already has a split, removes the old one first.
+ *
+ * Pass `skipAutoApprove: true` when calling from an automated path (e.g. SMS
+ * rule application) where the expense should stay in pending_review so the
+ * user can confirm it in the review queue.
  */
 export async function splitExistingExpense(
   expenseId: string,
   config: SplitConfig,
+  options?: { skipAutoApprove?: boolean },
 ): Promise<void> {
   const db = getDatabase();
   const expense = await getExpenseById(expenseId);
@@ -303,12 +308,14 @@ export async function splitExistingExpense(
   });
   bumpDataVersion();
 
-  const statusRow = await db.getFirstAsync<{ status: string }>(
-    `SELECT status FROM expenses WHERE id = ?;`, expenseId,
-  );
-  if (statusRow?.status === "pending_review") {
-    const { approveExpense } = await import("@/services/expense-crud");
-    await approveExpense(expenseId);
+  if (!options?.skipAutoApprove) {
+    const statusRow = await db.getFirstAsync<{ status: string }>(
+      `SELECT status FROM expenses WHERE id = ?;`, expenseId,
+    );
+    if (statusRow?.status === "pending_review") {
+      const { approveExpense } = await import("@/services/expense-crud");
+      await approveExpense(expenseId);
+    }
   }
 }
 

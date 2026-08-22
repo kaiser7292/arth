@@ -164,6 +164,9 @@ export interface UpdateSmartRuleInput extends Partial<CreateSmartRuleInput> {}
 export interface EvaluationTarget {
   amount: number;
   merchant: string | null;
+  /** Pre-alias SMS merchant name. When set, positive string merchant conditions
+   *  also test against this value so rules survive alias creation. */
+  raw_merchant?: string | null;
   account_id: string | null;
   payment_mode_id: string | null;
   sms_body?: string | null;
@@ -269,57 +272,87 @@ function isEmptyValue(v: string | number | null): boolean {
   return v === null || v === undefined || v === "";
 }
 
-function evaluateCondition(condition: RuleCondition, target: EvaluationTarget): boolean {
-  const fieldValue = getFieldValue(condition.field, target);
-
-  switch (condition.operator) {
+/** Evaluate one condition operator against a single resolved field value. */
+function evaluateSingleValue(
+  operator: ConditionOperator,
+  value: RuleCondition["value"],
+  fieldValue: string | number | null,
+): boolean {
+  switch (operator) {
     case "is_empty":
       return isEmptyValue(fieldValue);
     case "is_not_empty":
       return !isEmptyValue(fieldValue);
     case "equals":
-      return String(fieldValue ?? "").toLowerCase() === String(condition.value ?? "").toLowerCase();
+      return String(fieldValue ?? "").toLowerCase() === String(value ?? "").toLowerCase();
     case "not_equals":
-      return String(fieldValue ?? "").toLowerCase() !== String(condition.value ?? "").toLowerCase();
+      return String(fieldValue ?? "").toLowerCase() !== String(value ?? "").toLowerCase();
     case "contains":
-      return typeof fieldValue === "string" && typeof condition.value === "string"
-        ? fieldValue.toLowerCase().includes(condition.value.toLowerCase())
+      return typeof fieldValue === "string" && typeof value === "string"
+        ? fieldValue.toLowerCase().includes(value.toLowerCase())
         : false;
     case "not_contains":
-      return typeof fieldValue === "string" && typeof condition.value === "string"
-        ? !fieldValue.toLowerCase().includes(condition.value.toLowerCase())
+      return typeof fieldValue === "string" && typeof value === "string"
+        ? !fieldValue.toLowerCase().includes(value.toLowerCase())
         : true;
     case "starts_with":
-      return typeof fieldValue === "string" && typeof condition.value === "string"
-        ? fieldValue.toLowerCase().startsWith(condition.value.toLowerCase())
+      return typeof fieldValue === "string" && typeof value === "string"
+        ? fieldValue.toLowerCase().startsWith(value.toLowerCase())
         : false;
     case "ends_with":
-      return typeof fieldValue === "string" && typeof condition.value === "string"
-        ? fieldValue.toLowerCase().endsWith(condition.value.toLowerCase())
+      return typeof fieldValue === "string" && typeof value === "string"
+        ? fieldValue.toLowerCase().endsWith(value.toLowerCase())
         : false;
     case "regex": {
-      if (typeof condition.value !== "string") return false;
+      if (typeof value !== "string") return false;
       try {
-        return new RegExp(condition.value, "i").test(String(fieldValue ?? ""));
+        return new RegExp(value, "i").test(String(fieldValue ?? ""));
       } catch {
         // Invalid regex → condition never matches (caller should flag this at CRUD)
         return false;
       }
     }
     case "greater_than":
-      return typeof fieldValue === "number" && typeof condition.value === "number"
-        ? fieldValue >= condition.value
+      return typeof fieldValue === "number" && typeof value === "number"
+        ? fieldValue >= value
         : false;
     case "less_than":
-      return typeof fieldValue === "number" && typeof condition.value === "number"
-        ? fieldValue <= condition.value
+      return typeof fieldValue === "number" && typeof value === "number"
+        ? fieldValue <= value
         : false;
     case "between": {
-      if (typeof fieldValue !== "number" || !Array.isArray(condition.value)) return false;
-      const [min, max] = condition.value;
+      if (typeof fieldValue !== "number" || !Array.isArray(value)) return false;
+      const [min, max] = value;
       return fieldValue >= min && fieldValue <= max;
     }
   }
+}
+
+// Operators where a fallback to raw_merchant makes sense: positive string
+// matches. NOT operators are intentionally excluded — they should not flip to
+// true just because the alias name doesn't contain a term.
+const POSITIVE_STRING_OPERATORS = new Set<ConditionOperator>([
+  "contains", "starts_with", "ends_with", "regex", "equals",
+]);
+
+function evaluateCondition(condition: RuleCondition, target: EvaluationTarget): boolean {
+  const fieldValue = getFieldValue(condition.field, target);
+  const result = evaluateSingleValue(condition.operator, condition.value, fieldValue);
+
+  // For merchant conditions: if the normalized (aliased) name didn't satisfy a
+  // positive string match, also try the raw pre-alias SMS name. This lets rules
+  // written before an alias was added continue to fire against the original name.
+  if (
+    !result &&
+    condition.field === "merchant" &&
+    POSITIVE_STRING_OPERATORS.has(condition.operator) &&
+    target.raw_merchant != null &&
+    target.raw_merchant !== target.merchant
+  ) {
+    return evaluateSingleValue(condition.operator, condition.value, target.raw_merchant);
+  }
+
+  return result;
 }
 
 /**
@@ -721,6 +754,7 @@ type RetroactiveCandidate = {
   id: string;
   amount: number;
   merchant_name: string | null;
+  raw_merchant_name: string | null;
   description: string | null;
   account_id: string | null;
   payment_mode_id: string | null;
@@ -757,7 +791,7 @@ async function fetchRetroactiveCandidates(
   }
 
   return db.getAllAsync<RetroactiveCandidate>(
-    `SELECT id, amount, merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text
+    `SELECT id, amount, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text
      FROM expenses
      WHERE ${conds.join(" AND ")};`,
     params,
@@ -768,6 +802,7 @@ function candidateToTarget(e: RetroactiveCandidate): EvaluationTarget {
   return {
     amount: e.amount,
     merchant: e.merchant_name,
+    raw_merchant: e.raw_merchant_name,
     description: e.description,
     account_id: e.account_id,
     payment_mode_id: e.payment_mode_id,

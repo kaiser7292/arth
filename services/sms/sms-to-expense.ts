@@ -22,6 +22,8 @@ import { cleanMerchantName, normalizeMerchantName } from "@/services/merchant-al
 import { bumpDataVersion } from "@/services/settings";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
 import { applyAllRules, stampApplication } from "@/services/smart-rules";
+import { splitExistingExpense } from "@/services/expense-splits";
+import type { SplitConfig } from "@/services/expense-types";
 import { formatLocalDate } from "@/utils/fiscal-year";
 import { logger } from "@/utils/logger";
 import { generateUUID } from "@/utils/uuid";
@@ -383,10 +385,14 @@ export async function createExpenseFromSms(
       let ruleAppliedRuleIdsJson: string | null = null;
       let matchedRuleIds: string[] = [];
       let status: "pending_review" | "approved" = "pending_review";
+      let ruleSplitPersonId: string | null = null;
+      let ruleSplitMode: string | null = null;
+      let ruleSplitPaidBy: string | null = null;
       try {
         const allRules = await applyAllRules({
           amount: parsed.amount,
           merchant: normalizedMerchant ?? parsed.merchant ?? null,
+          raw_merchant: rawMerchantName,
           description,
           category_id: categoryId,
           account_id: accountId ?? null,
@@ -398,6 +404,9 @@ export async function createExpenseFromSms(
           if (ruleApp.category_id) categoryId = ruleApp.category_id;
           if (ruleApp.payment_mode) paymentModeId = ruleApp.payment_mode;
           if (ruleApp.mark_auto) status = "approved";
+          ruleSplitPersonId = ruleApp.split_person_id;
+          ruleSplitMode = ruleApp.split_mode;
+          ruleSplitPaidBy = ruleApp.split_paid_by;
           matchedRuleIds = ruleIds;
           ruleAppliedRuleId = ruleIds[ruleIds.length - 1];
           ruleAppliedRuleIdsJson = JSON.stringify(ruleIds);
@@ -434,6 +443,21 @@ export async function createExpenseFromSms(
       }
       // Link expense to its financial account
       await linkExpenseToAccount(userId, expenseId, parsed.cardLast4, parsed.bank, parsed.accountNickname);
+
+      // Apply split from rule (if any). Uses skipAutoApprove so the expense
+      // stays in pending_review for the user to confirm in the review queue.
+      if (ruleSplitPersonId) {
+        try {
+          const splitConfig: SplitConfig = {
+            paidBy: (ruleSplitPaidBy as SplitConfig["paidBy"]) ?? "me",
+            splitMode: (ruleSplitMode as SplitConfig["splitMode"]) ?? "equal",
+            personId: ruleSplitPersonId,
+          };
+          await splitExistingExpense(expenseId, splitConfig, { skipAutoApprove: true });
+        } catch (e) {
+          logger.warn("Smart rule split application failed in SMS path (non-fatal):", e);
+        }
+      }
 
       // Check if this savings debit might be a self-transfer (IMPS P2A or net banking)
       if (accountId && (parsed.paymentMode === "net_banking" || parsed.upiSubtype === "p2a")) {
