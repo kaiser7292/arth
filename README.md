@@ -1,10 +1,16 @@
 # Arth — Your Finance, Your Way
 
-**Arth** is a personal finance app for Android that keeps your data entirely on your phone — no account, no cloud, no subscription, ever.
+**Arth** is a personal finance app for Android that keeps your data entirely on your phone. No account, no cloud, no subscription, ever. Your transactions, balances, and spending patterns stay where they belong.
 
-Most finance apps (Walnut, ET Money, MoneyControl, YNAB) auto-read your bank SMS or connect to your accounts, then upload everything to their servers. Arth does the same SMS auto-detection locally, on-device, so your transaction history, balances, and spending patterns never leave your hands.
+**Self-sustaining SMS intelligence.** Arth reads bank and payment SMS messages to log transactions automatically. What sets it apart: if your bank introduces a new SMS format, you do not need to wait for an app update. You can write your own parsing template directly inside the app, teach Arth the new pattern once, and it handles every matching message from that point on. The app adapts to your banks, not the other way around.
 
-Beyond that, Arth goes deeper than typical trackers: it handles savings accounts, credit cards, wallets, loans with full amortisation schedules, EPFO/pension, and a family lending ledger (Hisaab) — all in one place. It also lets you reconcile bank statement PDFs against your logged transactions, auto-categorises expenses with Smart Rules, and tracks goals, budgets, and net worth across a proper April–March fiscal year.
+**A complete financial picture, not just a tracker.** Arth covers every layer of your finances in one place: savings accounts, credit cards, wallets, loans with full amortisation and prepayment schedules, EPFO and pension accounts, and a family lending ledger (Hisaab) for tracking money you lend or borrow. Bank statement reconciliation lets you match PDF statements against your logged transactions to catch anything that slipped through.
+
+**Reports and insights that go beyond the basics.** Monthly spending breakdowns, budget vs. actual comparisons, category-level drill-downs, year-over-year trends, and a savings rate view tied to your fiscal year give you a clear read on where your money actually goes. Smart Rules auto-categorise recurring transactions so the data stays clean without manual effort.
+
+**Plan, simulate, and protect.** The goals section brings together your yearly savings plan, investment milestones, net worth balance sheet, and active loans in one view. The cash flow simulator lets you model future scenarios before committing to them. A built-in vault keeps sensitive credentials and notes secure and offline alongside everything else.
+
+Built with React Native and Expo. Open source. No data leaves your phone.
 
 **Current version: v2.14.4**
 
