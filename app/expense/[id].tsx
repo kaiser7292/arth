@@ -903,6 +903,8 @@ export default function ExpenseDetailScreen() {
         await linkCreditAsSettlement(expense.id, personId);
         const s = await getSettlementForCredit(expense.id);
         setLinkedSettlement(s);
+        const updated = await getExpenseById(expense.id);
+        if (updated) setExpense(updated);
       } catch (e) {
         logger.error("Link credit as settlement failed:", e);
         alert("Couldn't mark as settlement", formatError("Mark as settlement", e));
@@ -2967,10 +2969,10 @@ export default function ExpenseDetailScreen() {
                   className="mx-4 mt-3 p-3 rounded-xl flex-row items-center bg-surface-light-alt dark:bg-surface-dark-alt"
                   accessibilityRole="button"
                 >
-                  <Ionicons name="sparkles" size={18} color={colors.textSecondary} />
+                  <Ionicons name={expense.applied_rule_manually ? "flash-outline" : "sparkles"} size={18} color={colors.textSecondary} />
                   <View className="flex-1 ml-2">
                     <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
-                      Processed by rule
+                      {expense.applied_rule_manually ? "Applied manually" : "Processed by rule"}
                     </Text>
                     <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
                       {appliedRuleSummary}

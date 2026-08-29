@@ -147,6 +147,7 @@ export default function ExpensesScreen() {
   const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
   const [filterMerchantNames, setFilterMerchantNames] = useState<string[]>([]);
   const [filterRefundedStatus, setFilterRefundedStatus] = useState<"" | "refunded" | "not_refunded">("");
+  const [filterStatus, setFilterStatus] = useState<"" | "pending_review" | "approved">("");
   const [filterAvoidability, setFilterAvoidability] = useState<"" | "avoidable" | "unavoidable">("");
   const [filterNature, setFilterNature] = useState<"realized" | "committed" | "credit" | "transfers" | "all">("realized");
   const [showFilters, setShowFilters] = useState(false);
@@ -268,6 +269,7 @@ export default function ExpensesScreen() {
           refundedStatus: filterRefundedStatus || undefined,
           avoidability: filterAvoidability || undefined,
           ruleIds: filterRuleIds.length > 0 ? filterRuleIds : undefined,
+          status: filterStatus || undefined,
           sortBy,
           nature,
           segment,
@@ -309,7 +311,7 @@ export default function ExpensesScreen() {
         setLoading(false);
       }
     },
-    [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, sortBy, filterNature, summaryGroupBy, loading],
+    [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading],
   );
 
   // Load reference data once
@@ -426,6 +428,7 @@ export default function ExpensesScreen() {
     setFilterRefundedStatus("");
     setFilterAvoidability("");
     setFilterRuleIds([]);
+    setFilterStatus("");
     setFilterNature("realized");
   }, []);
 
@@ -569,7 +572,7 @@ export default function ExpensesScreen() {
     setIsVoiceSearching(false);
   }, []);
 
-  const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0;
+  const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0 || !!filterStatus;
   const activeNatureIndex = NATURE_TABS.findIndex((t) => t.key === filterNature);
   const hasActiveFilters = hasNonDateFilters || datePreset !== "this_month";
 
@@ -920,7 +923,7 @@ export default function ExpensesScreen() {
           onPress: () => router.push("/expense/review-queue"),
         } : undefined}
         rightActions={[{
-          icon: "funnel-outline",
+          icon: "swap-vertical-outline",
           color: sortBy !== "date_desc" ? accent[500] : undefined,
           onPress: () => setShowSortSheet(true),
         }]}
@@ -1140,6 +1143,9 @@ export default function ExpensesScreen() {
           { key: "tags", label: "Tags", type: "multi", options: allTags.map((t) => ({ id: t.id, label: t.name, color: t.color })), selectedIds: filterTagIds },
           { key: "merchant", label: "Merchant", type: "multi", options: allMerchantNames.map((m) => ({ id: m, label: m })), selectedIds: filterMerchantNames, searchable: true },
           ...(allRules.length > 0 ? [{ key: "rule", label: "Smart Rule", type: "multi" as const, options: allRules.map((r) => ({ id: r.id, label: r.name })), selectedIds: filterRuleIds }] : []),
+          ...(filterNature !== "transfers" ? [
+            { key: "status", label: "Status", type: "single" as const, options: [{ id: "pending_review", label: "Pending Review" }, { id: "approved", label: "Approved" }], selectedIds: filterStatus ? [filterStatus] : [] },
+          ] : []),
           ...(filterNature === "realized" ? [
             { key: "refundStatus", label: "Refund Status", type: "single" as const, options: [{ id: "refunded", label: "Refunded" }, { id: "not_refunded", label: "Not Refunded" }], selectedIds: filterRefundedStatus ? [filterRefundedStatus] : [] },
             { key: "avoidability", label: "Avoidability", type: "single" as const, options: [{ id: "unavoidable", label: "Unavoidable" }, { id: "avoidable", label: "Avoidable" }], selectedIds: filterAvoidability ? [filterAvoidability] : [] },
@@ -1152,6 +1158,7 @@ export default function ExpensesScreen() {
           setFilterTagIds(selections.tags ?? []);
           setFilterMerchantNames(selections.merchant ?? []);
           setFilterRuleIds(selections.rule ?? []);
+          setFilterStatus(((selections.status ?? [])[0] ?? "") as typeof filterStatus);
           setFilterRefundedStatus(((selections.refundStatus ?? [])[0] ?? "") as typeof filterRefundedStatus);
           setFilterAvoidability(((selections.avoidability ?? [])[0] ?? "") as typeof filterAvoidability);
         }}
@@ -1162,6 +1169,7 @@ export default function ExpensesScreen() {
           setFilterTagIds([]);
           setFilterMerchantNames([]);
           setFilterRuleIds([]);
+          setFilterStatus("");
           setFilterRefundedStatus("");
           setFilterAvoidability("");
           setActiveViewId(null);
@@ -1224,6 +1232,12 @@ export default function ExpensesScreen() {
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
+          {filterStatus !== "" && (
+            <Pressable onPress={() => setFilterStatus("")} className="flex-row items-center mr-3 mb-1">
+              <Text className="text-[10px] text-text-tertiary">{filterStatus === "pending_review" ? "Pending Review" : "Approved"}</Text>
+              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
+            </Pressable>
+          )}
           {filterAvoidability !== "" && (
             <Pressable onPress={() => setFilterAvoidability("")} className="flex-row items-center mr-3 mb-1">
               <Text className="text-[10px] text-text-tertiary">{filterAvoidability === "avoidable" ? "Avoidable" : "Unavoidable"}</Text>
@@ -1273,6 +1287,23 @@ export default function ExpensesScreen() {
                   contentContainerStyle={{ paddingBottom: 80 }}
                   refreshing={loading && transfers.length === 0}
                   onRefresh={() => loadExpenses(true)}
+                  ListHeaderComponent={
+                    transfers.length > 0 ? (
+                      <View className="mx-4 my-2 p-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt">
+                        <View className="flex-row items-center justify-between">
+                          <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+                            Total transfers
+                          </Text>
+                          <Text className="text-lg font-bold" style={{ color: TRANSFER_COLOR }}>
+                            {formatAmount(transfers.reduce((sum, t) => sum + t.amount, 0))}
+                          </Text>
+                        </View>
+                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                          {transfers.length} {transfers.length === 1 ? "transfer" : "transfers"}
+                        </Text>
+                      </View>
+                    ) : null
+                  }
                   ListEmptyComponent={
                     !loading ? (
                       <EmptyState

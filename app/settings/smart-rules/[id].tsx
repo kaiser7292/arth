@@ -123,7 +123,7 @@ function defaultConditionFor(field: ConditionField): RuleCondition {
 }
 
 export default function SmartRuleDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, initialRetro } = useLocalSearchParams<{ id: string; initialRetro?: string }>();
   const isCreate = id === "new";
   const router = useRouter();
   const alert = useAlert();
@@ -189,6 +189,16 @@ export default function SmartRuleDetailScreen() {
           return;
         }
         hydrateFromRule(r);
+        if (initialRetro === "1") {
+          // Opened after rule creation — auto-show the apply-to-past sheet
+          setRetroStart(daysAgoIso(7));
+          setRetroEnd(todayIso());
+          setRetroPreset(7);
+          setRetroAccountIds([]);
+          setRetroOverwrite(false);
+          setRetroPreview(null);
+          setShowRetroSheet(true);
+        }
       } catch (e) {
         alert("Couldn't load", getErrorMessage(e));
       } finally {
@@ -299,6 +309,16 @@ export default function SmartRuleDetailScreen() {
     return a?.bucket_id ?? null;
   }, [actions]);
 
+  const openRetroSheet = useCallback(() => {
+    setRetroStart(daysAgoIso(7));
+    setRetroEnd(todayIso());
+    setRetroPreset(7);
+    setRetroAccountIds([]);
+    setRetroOverwrite(false);
+    setRetroPreview(null);
+    setShowRetroSheet(true);
+  }, []);
+
   const onSave = useCallback(async () => {
     if (saving) return;
     setSaving(true);
@@ -313,27 +333,28 @@ export default function SmartRuleDetailScreen() {
         actions: buildActions(),
       };
       if (isCreate) {
-        await createRule(input);
+        const newId = await createRule(input);
+        setSaving(false);
+        // Navigate to the new rule's page and offer apply-to-past
+        router.replace(`/settings/smart-rules/${newId}?initialRetro=1` as never);
       } else {
         await updateRule(id, input);
+        setSaving(false);
+        setIsPendingRetroactive(true);
+        alert(
+          "Rule saved",
+          "Apply this rule to past expenses?",
+          [
+            { text: "Skip", style: "cancel", onPress: () => router.back() },
+            { text: "Apply to Past", onPress: openRetroSheet },
+          ],
+        );
       }
-      // Navigate first — don't touch state after this, the component unmounts
-      router.back();
     } catch (e) {
       setSaving(false);
       alert("Couldn't save", getErrorMessage(e));
     }
-  }, [saving, name, priority, isActive, matchMode, conditions, buildActions, buildLinkBucketId, isCreate, id, alert, router]);
-
-  const openRetroSheet = useCallback(() => {
-    setRetroStart(daysAgoIso(7));
-    setRetroEnd(todayIso());
-    setRetroPreset(7);
-    setRetroAccountIds([]);
-    setRetroOverwrite(false);
-    setRetroPreview(null);
-    setShowRetroSheet(true);
-  }, []);
+  }, [saving, name, priority, isActive, matchMode, conditions, buildActions, buildLinkBucketId, isCreate, id, alert, router, openRetroSheet]);
 
   const onRetroPreview = useCallback(async () => {
     setRetroPreviewing(true);

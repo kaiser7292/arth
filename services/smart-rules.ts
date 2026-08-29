@@ -994,6 +994,7 @@ export async function applyRuleActionsToExpense(ruleId: string, expenseId: strin
        description = COALESCE(?, description),
        is_right_spend = COALESCE(?, is_right_spend),
        applied_rule_id = ?,
+       applied_rule_manually = 1,
        updated_at = datetime('now')
      WHERE id = ?;`,
     application.category_id,

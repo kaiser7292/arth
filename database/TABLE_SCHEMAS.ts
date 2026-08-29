@@ -78,6 +78,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "linked_transfer_id", // migration 046
     "source_sms_address", // migration 048
     "applied_rule_ids", // migration 061 — JSON array of all rule IDs that fired
+    "applied_rule_manually", // migration 066 — 1 when rule was applied via ⚡ button (not auto-fired)
   ] as const,
 
   budgets: [

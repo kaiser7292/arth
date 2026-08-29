@@ -68,6 +68,8 @@ export interface Expense {
   applied_rule_id: string | null;
   /** migration 061 — JSON-encoded array of ALL rule IDs that fired, not just the first. */
   applied_rule_ids?: string | null;
+  /** migration 066 — 1 when the rule was applied manually via ⚡ button (vs auto-fired during SMS import). */
+  applied_rule_manually?: number | null;
   /**
    * v15.12.1: When set to 1, this expense/credit has been reclassified as a transfer.
    * Instead of soft-deleting, we mark it to keep it visible in the UI.
