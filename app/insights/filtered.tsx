@@ -1,10 +1,21 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { settingsStorage } from "@/services/storage";
+
+type ExpenseSortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "name_asc";
+const SORT_OPTIONS: { value: ExpenseSortBy; label: string; icon: string }[] = [
+  { value: "date_desc", label: "Date (newest first)", icon: "calendar-outline" },
+  { value: "date_asc", label: "Date (oldest first)", icon: "calendar-outline" },
+  { value: "amount_desc", label: "Amount (highest first)", icon: "trending-down-outline" },
+  { value: "amount_asc", label: "Amount (lowest first)", icon: "trending-up-outline" },
+  { value: "name_asc", label: "Alphabetical (A–Z)", icon: "text-outline" },
+];
+const INSIGHTS_SORT_KEY = "insights.filtered.sortBy";
 import { getExpensesByIds, sumRefundsByExpenseIds } from "@/services/expense";
 import type { Expense } from "@/services/expense";
 import { getCategories } from "@/services/category";
@@ -51,6 +62,10 @@ export default function InsightFilteredListScreen() {
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<ExpenseSortBy>(
+    () => (settingsStorage.getString(INSIGHTS_SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
+  );
+  const [showSortSheet, setShowSortSheet] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -160,6 +175,17 @@ export default function InsightFilteredListScreen() {
     return map;
   }, [expenses, personMap]);
 
+  const sortedExpenses = useMemo(() => {
+    const arr = [...expenses];
+    switch (sortBy) {
+      case "date_asc": return arr.sort((a, b) => a.date.localeCompare(b.date));
+      case "amount_desc": return arr.sort((a, b) => b.amount - a.amount);
+      case "amount_asc": return arr.sort((a, b) => a.amount - b.amount);
+      case "name_asc": return arr.sort((a, b) => (a.merchant_name ?? a.description ?? "").localeCompare(b.merchant_name ?? b.description ?? ""));
+      default: return arr.sort((a, b) => b.date.localeCompare(a.date));
+    }
+  }, [expenses, sortBy]);
+
   const handleItemPress = useCallback(
     (id: string) => router.push(`/expense/${id}`),
     [router],
@@ -167,7 +193,20 @@ export default function InsightFilteredListScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Transactions" }} />
+      <Stack.Screen
+        options={{
+          title: "Transactions",
+          headerRight: () => (
+            <Pressable onPress={() => setShowSortSheet(true)} style={{ marginRight: 8 }} hitSlop={8}>
+              <Ionicons
+                name="swap-vertical-outline"
+                size={22}
+                color={sortBy !== "date_desc" ? colors.blue : colors.textSecondary}
+              />
+            </Pressable>
+          ),
+        }}
+      />
       <ScreenContainer padTop={false}>
         {title && (
           <View className="px-4 pt-3 pb-2">
@@ -259,7 +298,7 @@ export default function InsightFilteredListScreen() {
           </View>
         ) : (
           <FlatList
-            data={expenses}
+            data={sortedExpenses}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <ExpenseListRow
@@ -278,6 +317,42 @@ export default function InsightFilteredListScreen() {
           />
         )}
       </ScreenContainer>
+
+      {/* Sort sheet */}
+      <Modal transparent animationType="slide" visible={showSortSheet} onRequestClose={() => setShowSortSheet(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} onPress={() => setShowSortSheet(false)} />
+        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 28 }}>
+          <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12, paddingTop: 4 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Sort by</Text>
+            <Pressable onPress={() => setShowSortSheet(false)} hitSlop={8}>
+              <Ionicons name="close" size={20} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+          {SORT_OPTIONS.map((opt) => {
+            const active = sortBy === opt.value;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => {
+                  setSortBy(opt.value);
+                  settingsStorage.set(INSIGHTS_SORT_KEY, opt.value);
+                  setShowSortSheet(false);
+                }}
+                style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14 }}
+              >
+                <Ionicons name={opt.icon as never} size={18} color={active ? colors.blue : colors.textSecondary} />
+                <Text style={{ flex: 1, fontSize: 14, marginLeft: 12, color: active ? colors.blue : colors.text, fontWeight: active ? "600" : "400" }}>
+                  {opt.label}
+                </Text>
+                {active && <Ionicons name="checkmark" size={18} color={colors.blue} />}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Modal>
     </>
   );
 }

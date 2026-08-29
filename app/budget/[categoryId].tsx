@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, Text, FlatList, Pressable, RefreshControl } from "react-native";
+import { View, Text, FlatList, Pressable, RefreshControl, Modal } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer, ProgressBar, Card, LoadingState } from "@/components/ui";
@@ -24,6 +24,17 @@ import {
   getBudgetStatusColor,
 } from "@/utils/budget-helpers";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { settingsStorage } from "@/services/storage";
+
+type ExpenseSortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "name_asc";
+const SORT_OPTIONS: { value: ExpenseSortBy; label: string; icon: string }[] = [
+  { value: "date_desc", label: "Date (newest first)", icon: "calendar-outline" },
+  { value: "date_asc", label: "Date (oldest first)", icon: "calendar-outline" },
+  { value: "amount_desc", label: "Amount (highest first)", icon: "trending-down-outline" },
+  { value: "amount_asc", label: "Amount (lowest first)", icon: "trending-up-outline" },
+  { value: "name_asc", label: "Alphabetical (A–Z)", icon: "text-outline" },
+];
+const CATEGORY_SORT_KEY = "budget.category.sortBy";
 
 export default function CategoryDetailScreen() {
   const router = useRouter();
@@ -42,6 +53,10 @@ export default function CategoryDetailScreen() {
   const [totalSpent, setTotalSpent] = useState(0);
   const [trend, setTrend] = useState<MonthlyTotal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [sortBy, setSortBy] = useState<ExpenseSortBy>(
+    () => (settingsStorage.getString(CATEGORY_SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
+  );
+  const [showSortSheet, setShowSortSheet] = useState(false);
 
   // Sync when navigating to this screen with new params
   useEffect(() => {
@@ -57,7 +72,7 @@ export default function CategoryDetailScreen() {
       getBudget(DEFAULT_USER_ID, categoryId, selectedMonth),
       getExpensesPaginated(
         DEFAULT_USER_ID,
-        { categoryIds: [categoryId], startDate, endDate },
+        { categoryIds: [categoryId], startDate, endDate, sortBy },
         200,
         0,
       ),
@@ -73,7 +88,7 @@ export default function CategoryDetailScreen() {
     setTrend(trendData);
     setPaymentModes(pms);
     setAccounts(accts);
-  }, [categoryId, selectedMonth]);
+  }, [categoryId, selectedMonth, sortBy]);
 
   useDataRefresh(loadData);
 
@@ -113,6 +128,7 @@ export default function CategoryDetailScreen() {
   );
 
   return (
+    <>
     <ScreenContainer>
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark">
@@ -137,6 +153,13 @@ export default function CategoryDetailScreen() {
             {monthLabel}
           </Text>
         </View>
+        <Pressable onPress={() => setShowSortSheet(true)} className="p-2" hitSlop={8}>
+          <Ionicons
+            name="swap-vertical-outline"
+            size={22}
+            color={sortBy !== "date_desc" ? category.color : colors.textSecondary}
+          />
+        </Pressable>
       </View>
 
       {/* Summary card */}
@@ -220,5 +243,42 @@ export default function CategoryDetailScreen() {
         }
       />
     </ScreenContainer>
+
+      {/* Sort sheet */}
+      <Modal transparent animationType="slide" visible={showSortSheet} onRequestClose={() => setShowSortSheet(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} onPress={() => setShowSortSheet(false)} />
+        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 28 }}>
+          <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12, paddingTop: 4 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Sort by</Text>
+            <Pressable onPress={() => setShowSortSheet(false)} hitSlop={8}>
+              <Ionicons name="close" size={20} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+          {SORT_OPTIONS.map((opt) => {
+            const active = sortBy === opt.value;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => {
+                  setSortBy(opt.value);
+                  settingsStorage.set(CATEGORY_SORT_KEY, opt.value);
+                  setShowSortSheet(false);
+                }}
+                style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14 }}
+              >
+                <Ionicons name={opt.icon as never} size={18} color={active ? colors.blue : colors.textSecondary} />
+                <Text style={{ flex: 1, fontSize: 14, marginLeft: 12, color: active ? colors.blue : colors.text, fontWeight: active ? "600" : "400" }}>
+                  {opt.label}
+                </Text>
+                {active && <Ionicons name="checkmark" size={18} color={colors.blue} />}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Modal>
+    </>
   );
 }

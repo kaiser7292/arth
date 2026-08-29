@@ -347,7 +347,7 @@ export default function ExpensesScreen() {
       loadExpenses(true);
       getPendingExpenseCount(DEFAULT_USER_ID).then(setPendingCount).catch(() => {});
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterNature, summaryGroupBy]),
+    }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, filterNature, summaryGroupBy, sortBy]),
   );
 
   const handleDelete = useCallback(
