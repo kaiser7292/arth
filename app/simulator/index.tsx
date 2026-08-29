@@ -31,7 +31,9 @@ import {
   getScenarioOverviewsBatch,
   deleteScenario,
   archiveScenario,
+  restoreScenario,
   duplicateScenario,
+  duplicateScenarioFullSetup,
   updateScenario,
 } from "@/services/simulator";
 import type { SimulationScenario, ScenarioOverview } from "@/services/simulator";
@@ -72,6 +74,10 @@ export default function SimulatorListScreen() {
   const [loading, setLoading] = useState(true);
   const [createSheetVisible, setCreateSheetVisible] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+
+  const [duplicatePending, setDuplicatePending] = useState<{ id: string; name: string } | null>(null);
+  const [duplicateMode, setDuplicateMode] = useState<"upcoming" | "full">("upcoming");
+  const [duplicating, setDuplicating] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,27 +154,40 @@ export default function SimulatorListScreen() {
   );
 
   const handleDuplicate = useCallback(
-    async (scenarioId: string) => {
-      try {
-        const id = await duplicateScenario(scenarioId);
-        await load();
-        router.push(`/simulator/${id}` as never);
-      } catch (e) {
-        alert("Couldn't duplicate", e instanceof Error ? e.message : String(e));
-      }
+    (scenarioId: string) => {
+      const scenario = active.find((a) => a.scenario.id === scenarioId);
+      setDuplicateMode("upcoming");
+      setDuplicatePending({ id: scenarioId, name: scenario?.scenario.name ?? "Scenario" });
     },
-    [load, alert, router],
+    [active],
   );
+
+  const executeDuplicate = useCallback(async () => {
+    if (!duplicatePending) return;
+    setDuplicating(true);
+    try {
+      const id = duplicateMode === "full"
+        ? await duplicateScenarioFullSetup(duplicatePending.id)
+        : await duplicateScenario(duplicatePending.id);
+      setDuplicatePending(null);
+      await load();
+      router.push(`/simulator/${id}` as never);
+    } catch (e) {
+      alert("Couldn't duplicate", e instanceof Error ? e.message : String(e));
+    } finally {
+      setDuplicating(false);
+    }
+  }, [duplicatePending, duplicateMode, load, alert, router]);
 
   const handleArchive = useCallback(
     (s: SimulationScenario) => {
       alert(
-        "Archive scenario?",
-        `"${s.name}" will move to the archived list. You can still view it for 90 days.`,
+        "Mark as done?",
+        `"${s.name}" will move to the Completed list. You can restore it at any time.`,
         [
           { text: "Cancel", style: "cancel" },
           {
-            text: "Archive",
+            text: "Mark done",
             onPress: async () => {
               await archiveScenario(s.id);
               await load();
@@ -388,12 +407,13 @@ export default function SimulatorListScreen() {
                     </Pressable>
                     <Pressable
                       onPress={() => handleArchive(scenario)}
-                      className="flex-1 py-2 items-center rounded-lg"
-                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-                      accessibilityLabel="Archive scenario"
+                      className="flex-1 py-2 items-center rounded-lg flex-row justify-center gap-1"
+                      style={{ backgroundColor: sc.success + "14", borderWidth: 1, borderColor: sc.success + "40" }}
+                      accessibilityLabel="Mark scenario as done"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
-                        Archive
+                      <Ionicons name="checkmark" size={13} color={sc.success} />
+                      <Text className="text-xs font-semibold" style={{ color: sc.success }}>
+                        Mark done
                       </Text>
                     </Pressable>
                     <Pressable
@@ -432,7 +452,7 @@ export default function SimulatorListScreen() {
               onPress={() => setShowArchived((v) => !v)}
               className="mx-4 flex-row items-center"
               accessibilityRole="button"
-              accessibilityLabel={showArchived ? "Hide archived" : "Show archived"}
+              accessibilityLabel={showArchived ? "Hide completed" : "Show completed"}
             >
               <Ionicons
                 name={showArchived ? "chevron-down" : "chevron-forward"}
@@ -443,20 +463,38 @@ export default function SimulatorListScreen() {
                 className="ml-1 text-xs font-semibold uppercase tracking-wider"
                 style={{ color: colors.textSecondary }}
               >
-                Archived · {archived.length}
+                Completed · {archived.length}
               </Text>
             </Pressable>
             {showArchived && archived.map((s) => (
-              <View key={s.id} style={{ opacity: 0.7 }}>
+              <View key={s.id} style={{ opacity: 0.8 }}>
                 <Card className="mx-4 mt-2">
-                  <Pressable onPress={() => handleOpenScenario(s.id)}>
-                    <Text className="text-sm font-semibold" style={{ color: colors.text }}>
-                      {s.name}
-                    </Text>
-                    <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                      Horizon · {prettyDate(s.horizon_date)}
-                    </Text>
-                  </Pressable>
+                  <View className="flex-row items-center">
+                    <View
+                      className="w-6 h-6 rounded-full items-center justify-center mr-3"
+                      style={{ backgroundColor: sc.success + "22" }}
+                    >
+                      <Ionicons name="checkmark" size={13} color={sc.success} />
+                    </View>
+                    <Pressable className="flex-1" onPress={() => handleOpenScenario(s.id)}>
+                      <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                        {s.name}
+                      </Text>
+                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                        Horizon · {prettyDate(s.horizon_date)}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={async () => { await restoreScenario(s.id); await load(); }}
+                      className="px-3 py-1.5 rounded-lg ml-2"
+                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                      accessibilityLabel="Restore scenario"
+                    >
+                      <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
+                        Restore
+                      </Text>
+                    </Pressable>
+                  </View>
                 </Card>
               </View>
             ))}
@@ -470,6 +508,84 @@ export default function SimulatorListScreen() {
         onCreate={handleCreate}
         onClose={() => setCreateSheetVisible(false)}
       />
+
+      {/* Duplicate mode picker */}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={duplicatePending !== null}
+        onRequestClose={() => setDuplicatePending(null)}
+      >
+        <Pressable className="flex-1 bg-black/40" onPress={() => setDuplicatePending(null)} />
+        <View
+          style={{
+            position: "absolute", left: 0, right: 0, bottom: 0,
+            backgroundColor: colors.surface,
+            borderTopLeftRadius: 20, borderTopRightRadius: 20,
+            paddingBottom: 28, paddingHorizontal: 20,
+          }}
+        >
+          <View className="items-center pt-3 pb-1">
+            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+          </View>
+          <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary pt-2 pb-4">
+            Duplicate "{duplicatePending?.name}"
+          </Text>
+
+          {(["upcoming", "full"] as const).map((mode) => {
+            const isActive = duplicateMode === mode;
+            return (
+              <Pressable
+                key={mode}
+                onPress={() => setDuplicateMode(mode)}
+                className="flex-row items-start p-4 rounded-xl mb-3"
+                style={{
+                  backgroundColor: isActive ? accent[500] + "12" : colors.surface,
+                  borderWidth: 1.5,
+                  borderColor: isActive ? accent[500] : colors.border,
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isActive }}
+              >
+                <View
+                  className="w-5 h-5 rounded-full border-2 items-center justify-center mt-0.5 mr-3"
+                  style={{ borderColor: isActive ? accent[500] : colors.border, backgroundColor: isActive ? accent[500] : "transparent" }}
+                >
+                  {isActive && <View className="w-2 h-2 rounded-full bg-white" />}
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold" style={{ color: isActive ? accent[500] : colors.text }}>
+                    {mode === "upcoming" ? "Upcoming only" : "Full setup"}
+                  </Text>
+                  <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                    {mode === "upcoming"
+                      ? "Copy only future entries. Dates keep as-is."
+                      : "Copy all entries and reset them to upcoming."}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+
+          <View className="flex-row gap-3 pt-1">
+            <Pressable
+              onPress={() => setDuplicatePending(null)}
+              className="flex-1 py-3 rounded-xl items-center border border-border-light dark:border-border-dark"
+              style={{ backgroundColor: colors.surface }}
+            >
+              <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+            </Pressable>
+            <Pressable
+              onPress={executeDuplicate}
+              disabled={duplicating}
+              className="flex-1 py-3 rounded-xl items-center"
+              style={{ backgroundColor: accent[500], opacity: duplicating ? 0.6 : 1 }}
+            >
+              <Text className="text-sm font-semibold text-white">{duplicating ? "Copying…" : "Duplicate"}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }

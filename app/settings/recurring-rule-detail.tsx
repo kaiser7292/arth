@@ -24,13 +24,41 @@ import { formatAmount } from "@/utils/format";
 import { getErrorMessage } from "@/utils/error-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const FREQUENCIES: RecurringFrequency[] = ["weekly", "monthly", "quarterly", "yearly"];
+const FREQUENCIES: RecurringFrequency[] = ["weekly", "monthly", "quarterly", "yearly", "last_day_of_month", "nth_weekday"];
 const FREQ_LABEL: Record<RecurringFrequency, string> = {
   weekly: "Weekly",
   monthly: "Monthly",
   quarterly: "Quarterly",
   yearly: "Yearly",
+  last_day_of_month: "Last day of month",
+  nth_weekday: "Nth weekday",
 };
+
+const ORDINAL_OPTS: { value: number; label: string }[] = [
+  { value: 1, label: "1st" },
+  { value: 2, label: "2nd" },
+  { value: 3, label: "3rd" },
+  { value: 4, label: "4th" },
+  { value: -1, label: "Last" },
+];
+const WEEKDAY_OPTS: { value: number; label: string }[] = [
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 0, label: "Sun" },
+];
+
+function ruleFrequencyLabel(frequency: RecurringFrequency, repeatOrdinal?: number | null, repeatWeekday?: number | null): string {
+  if (frequency === "nth_weekday" && repeatOrdinal != null && repeatWeekday != null) {
+    const ord = ORDINAL_OPTS.find((o) => o.value === repeatOrdinal)?.label ?? `${repeatOrdinal}th`;
+    const day = WEEKDAY_OPTS.find((w) => w.value === repeatWeekday)?.label ?? "";
+    return `${ord} ${day} monthly`;
+  }
+  return FREQ_LABEL[frequency];
+}
 
 export default function RecurringRuleDetailScreen() {
   const router = useRouter();
@@ -46,6 +74,8 @@ export default function RecurringRuleDetailScreen() {
 
   // Edit sheet state
   const [editFrequency, setEditFrequency] = useState<RecurringFrequency>("monthly");
+  const [editRepeatOrdinal, setEditRepeatOrdinal] = useState<number>(1);
+  const [editRepeatWeekday, setEditRepeatWeekday] = useState<number>(1);
   const [editNextDue, setEditNextDue] = useState("");
   const [editEndDate, setEditEndDate] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
@@ -90,6 +120,8 @@ export default function RecurringRuleDetailScreen() {
     if (!detail) return;
     const { rule } = detail;
     setEditFrequency(rule.frequency);
+    setEditRepeatOrdinal(rule.repeat_ordinal ?? 1);
+    setEditRepeatWeekday(rule.repeat_weekday ?? 1);
     setEditNextDue(rule.next_due_date ?? todayIso());
     setEditEndDate(rule.end_date ?? null);
     setEditAmount(rule.amount != null ? String(rule.amount) : "");
@@ -114,6 +146,8 @@ export default function RecurringRuleDetailScreen() {
       const amountNum = editAmount.trim() ? parseFloat(editAmount.trim()) : null;
       await updateRecurringRule(detail.rule.id, {
         frequency: editFrequency,
+        repeat_ordinal: editFrequency === "nth_weekday" ? editRepeatOrdinal : null,
+        repeat_weekday: editFrequency === "nth_weekday" ? editRepeatWeekday : null,
         next_due_date: editNextDue || null,
         end_date: editEndDate,
         amount: Number.isFinite(amountNum!) ? amountNum : null,
@@ -228,7 +262,7 @@ export default function RecurringRuleDetailScreen() {
               <View className="flex-row items-center mt-1.5 flex-wrap gap-2">
                 <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: accent[500] + "22" }}>
                   <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
-                    {rule.frequency}
+                    {ruleFrequencyLabel(rule.frequency, rule.repeat_ordinal, rule.repeat_weekday)}
                   </Text>
                 </View>
                 <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: stateColor + "22" }}>
@@ -473,6 +507,62 @@ export default function RecurringRuleDetailScreen() {
                   })}
                 </View>
               </View>
+
+              {/* nth weekday pickers — shown only when nth_weekday is selected */}
+              {editFrequency === "nth_weekday" && (
+                <>
+                  <View>
+                    <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                      Which occurrence
+                    </Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {ORDINAL_OPTS.map((o) => {
+                        const active = editRepeatOrdinal === o.value;
+                        return (
+                          <Pressable
+                            key={o.value}
+                            onPress={() => setEditRepeatOrdinal(o.value)}
+                            className="px-4 py-2 rounded-full border"
+                            style={{
+                              backgroundColor: active ? accent[500] + "18" : colors.surface,
+                              borderColor: active ? accent[500] : colors.border,
+                            }}
+                          >
+                            <Text className="text-sm font-medium" style={{ color: active ? accent[500] : colors.textSecondary }}>
+                              {o.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                  <View>
+                    <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                      Day of week
+                    </Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {WEEKDAY_OPTS.map((w) => {
+                        const active = editRepeatWeekday === w.value;
+                        return (
+                          <Pressable
+                            key={w.value}
+                            onPress={() => setEditRepeatWeekday(w.value)}
+                            className="px-4 py-2 rounded-full border"
+                            style={{
+                              backgroundColor: active ? accent[500] + "18" : colors.surface,
+                              borderColor: active ? accent[500] : colors.border,
+                            }}
+                          >
+                            <Text className="text-sm font-medium" style={{ color: active ? accent[500] : colors.textSecondary }}>
+                              {w.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </>
+              )}
 
               {/* End date */}
               <View>

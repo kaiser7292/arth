@@ -44,6 +44,10 @@ export interface RecurringRule {
   frequency: RecurringFrequency;
   start_date: string;
   end_date: string | null;
+  /** For nth_weekday: 1=first, 2=second, 3=third, 4=fourth, -1=last occurrence. */
+  repeat_ordinal: number | null;
+  /** For nth_weekday: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat. */
+  repeat_weekday: number | null;
   /** Legacy from v14.6.0; not written anymore. */
   last_materialized_date: string | null;
   /** The next reminder date. Advances when a cycle is fulfilled. */
@@ -61,6 +65,10 @@ export interface CreateRuleInput {
   frequency: RecurringFrequency;
   /** YYYY-MM-DD — the date of the first occurrence (usually the source's date). */
   start_date: string;
+  /** For nth_weekday: which occurrence (1–4 or -1 for last). */
+  repeat_ordinal?: number | null;
+  /** For nth_weekday: day of week (0=Sun … 6=Sat). */
+  repeat_weekday?: number | null;
   /** Optional last-occurrence date; rule auto-deactivates when next > end. */
   end_date?: string | null;
   notes?: string | null;
@@ -83,14 +91,39 @@ export interface ReminderFulfillment {
   fulfilled_at: string;
 }
 
+/** Returns the Nth occurrence of `weekday` in the given UTC month (0-indexed). ordinal -1 = last. */
+function nthWeekdayOfMonth(year: number, month: number, ordinal: number, weekday: number): string {
+  if (ordinal === -1) {
+    const last = new Date(Date.UTC(year, month + 1, 0));
+    while (last.getUTCDay() !== weekday) last.setUTCDate(last.getUTCDate() - 1);
+    return last.toISOString().slice(0, 10);
+  }
+  const first = new Date(Date.UTC(year, month, 1));
+  let diff = weekday - first.getUTCDay();
+  if (diff < 0) diff += 7;
+  first.setUTCDate(first.getUTCDate() + diff + (ordinal - 1) * 7);
+  if (first.getUTCMonth() !== month) {
+    // Requested ordinal doesn't exist this month (e.g. 5th Monday) — use last.
+    return nthWeekdayOfMonth(year, month, -1, weekday);
+  }
+  return first.toISOString().slice(0, 10);
+}
+
 /** Add one cycle of `frequency` to `iso` (YYYY-MM-DD). */
-function addCycle(iso: string, frequency: RecurringFrequency): string {
+function addCycle(iso: string, frequency: RecurringFrequency, repeatOrdinal?: number | null, repeatWeekday?: number | null): string {
   const [y, m, d] = iso.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));
   if (frequency === "weekly") date.setUTCDate(date.getUTCDate() + 7);
   else if (frequency === "monthly") date.setUTCMonth(date.getUTCMonth() + 1);
   else if (frequency === "quarterly") date.setUTCMonth(date.getUTCMonth() + 3);
   else if (frequency === "yearly") date.setUTCFullYear(date.getUTCFullYear() + 1);
+  else if (frequency === "last_day_of_month") {
+    // Last day of the month following the current date's month.
+    date.setUTCMonth(date.getUTCMonth() + 2, 0);
+  } else if (frequency === "nth_weekday" && repeatOrdinal != null && repeatWeekday != null) {
+    const nextMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
+    return nthWeekdayOfMonth(nextMonth.getUTCFullYear(), nextMonth.getUTCMonth(), repeatOrdinal, repeatWeekday);
+  }
   return date.toISOString().slice(0, 10);
 }
 
@@ -106,10 +139,10 @@ function assertISODate(date: string, field: string): void {
  * forward to the first future cycle so the user isn't greeted with a stale
  * "overdue" reminder the moment they turn recurring on.
  */
-function firstNextDue(startDate: string, frequency: RecurringFrequency): string {
+function firstNextDue(startDate: string, frequency: RecurringFrequency, repeatOrdinal?: number | null, repeatWeekday?: number | null): string {
   const today = todayIso();
   let due = startDate;
-  while (due < today) due = addCycle(due, frequency);
+  while (due < today) due = addCycle(due, frequency, repeatOrdinal, repeatWeekday);
   return due;
 }
 
@@ -159,7 +192,7 @@ export async function createRule(
     ? (sourceExpense.split_original_amount ?? sourceExpense.amount)
     : null;
 
-  const nextDue = firstNextDue(input.start_date, input.frequency);
+  const nextDue = firstNextDue(input.start_date, input.frequency, input.repeat_ordinal, input.repeat_weekday);
 
   if (existing) {
     if (existing.is_active === 1) {
@@ -174,6 +207,8 @@ export async function createRule(
            notes = ?,
            next_due_date = ?,
            amount = ?,
+           repeat_ordinal = ?,
+           repeat_weekday = ?,
            is_active = 1,
            updated_at = datetime('now')
        WHERE id = ?;`,
@@ -183,6 +218,8 @@ export async function createRule(
       input.notes ?? null,
       nextDue,
       snapshotAmount,
+      input.repeat_ordinal ?? null,
+      input.repeat_weekday ?? null,
       existing.id,
     );
     bumpDataVersion();
@@ -192,8 +229,8 @@ export async function createRule(
   const ruleId = generateUUID();
   await db.runAsync(
     `INSERT INTO recurring_expense_rules
-       (id, user_id, source_expense_id, frequency, start_date, end_date, notes, next_due_date, amount)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+       (id, user_id, source_expense_id, frequency, start_date, end_date, notes, next_due_date, amount, repeat_ordinal, repeat_weekday)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     ruleId,
     userId,
     input.source_expense_id,
@@ -203,6 +240,8 @@ export async function createRule(
     input.notes ?? null,
     nextDue,
     snapshotAmount,
+    input.repeat_ordinal ?? null,
+    input.repeat_weekday ?? null,
   );
 
   bumpDataVersion();
@@ -226,6 +265,8 @@ export async function updateRule(
     notes?: string | null;
     next_due_date?: string | null;
     amount?: number | null;
+    repeat_ordinal?: number | null;
+    repeat_weekday?: number | null;
   },
 ): Promise<void> {
   const db = getDatabase();
@@ -252,6 +293,14 @@ export async function updateRule(
   if (patch.notes !== undefined) {
     sets.push("notes = ?");
     values.push(patch.notes ?? null);
+  }
+  if (patch.repeat_ordinal !== undefined) {
+    sets.push("repeat_ordinal = ?");
+    values.push(patch.repeat_ordinal ?? null);
+  }
+  if (patch.repeat_weekday !== undefined) {
+    sets.push("repeat_weekday = ?");
+    values.push(patch.repeat_weekday ?? null);
   }
   if (sets.length === 0) return;
   sets.push("updated_at = datetime('now')");
@@ -509,7 +558,7 @@ export async function fulfillReminder(
       ...vals,
     );
 
-    const nextCycle = addCycle(cycleDue, rule.frequency);
+    const nextCycle = addCycle(cycleDue, rule.frequency, rule.repeat_ordinal, rule.repeat_weekday);
     if (rule.end_date && nextCycle > rule.end_date) {
       // Rule run finished.
       await db.runAsync(
@@ -657,7 +706,7 @@ export async function skipReminderCycle(ruleId: string): Promise<void> {
     ruleId,
   );
   if (!rule || !rule.next_due_date) return;
-  const nextCycle = addCycle(rule.next_due_date, rule.frequency);
+  const nextCycle = addCycle(rule.next_due_date, rule.frequency, rule.repeat_ordinal, rule.repeat_weekday);
   if (rule.end_date && nextCycle > rule.end_date) {
     await db.runAsync(
       `UPDATE recurring_expense_rules SET is_active = 0, next_due_date = NULL,

@@ -72,6 +72,18 @@ import {
 } from "@/services/saved-filter-views";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { StatusColors } from "@/constants/theme";
+import { settingsStorage } from "@/services/storage";
+import { Modal } from "react-native";
+
+type ExpenseSortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "name_asc";
+const SORT_OPTIONS: { value: ExpenseSortBy; label: string; icon: string }[] = [
+  { value: "date_desc", label: "Date (newest first)", icon: "calendar-outline" },
+  { value: "date_asc", label: "Date (oldest first)", icon: "calendar-outline" },
+  { value: "amount_desc", label: "Amount (highest first)", icon: "trending-down-outline" },
+  { value: "amount_asc", label: "Amount (lowest first)", icon: "trending-up-outline" },
+  { value: "name_asc", label: "Alphabetical (A–Z)", icon: "text-outline" },
+];
+const SORT_KEY = "expenses.sortBy";
 
 const PAGE_SIZE = 50;
 
@@ -143,6 +155,11 @@ export default function ExpensesScreen() {
   const [showViewsPicker, setShowViewsPicker] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<Set<string>>(new Set());
+
+  const [sortBy, setSortBy] = useState<ExpenseSortBy>(
+    () => (settingsStorage.getString(SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
+  );
+  const [showSortSheet, setShowSortSheet] = useState(false);
 
   // Inline credit form
   const [showAddCredit, setShowAddCredit] = useState(false);
@@ -251,6 +268,7 @@ export default function ExpensesScreen() {
           refundedStatus: filterRefundedStatus || undefined,
           avoidability: filterAvoidability || undefined,
           ruleIds: filterRuleIds.length > 0 ? filterRuleIds : undefined,
+          sortBy,
           nature,
           segment,
         };
@@ -291,7 +309,7 @@ export default function ExpensesScreen() {
         setLoading(false);
       }
     },
-    [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterNature, summaryGroupBy, loading],
+    [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, sortBy, filterNature, summaryGroupBy, loading],
   );
 
   // Load reference data once
@@ -901,6 +919,11 @@ export default function ExpensesScreen() {
           variant: "warning",
           onPress: () => router.push("/expense/review-queue"),
         } : undefined}
+        rightActions={[{
+          icon: "funnel-outline",
+          color: sortBy !== "date_desc" ? accent[500] : undefined,
+          onPress: () => setShowSortSheet(true),
+        }]}
       />
       {/* Search bar */}
       <View className="px-4 pt-3 pb-2">
@@ -1636,6 +1659,59 @@ export default function ExpensesScreen() {
           onClose={() => setPendingDematTransfer(null)}
         />
       )}
+
+      {/* Sort sheet */}
+      <Modal transparent animationType="slide" visible={showSortSheet} onRequestClose={() => setShowSortSheet(false)}>
+        <Pressable className="flex-1 bg-black/40" onPress={() => setShowSortSheet(false)} />
+        <View
+          style={{
+            position: "absolute", left: 0, right: 0, bottom: 0,
+            backgroundColor: colors.surface,
+            borderTopLeftRadius: 20, borderTopRightRadius: 20,
+            paddingBottom: 28,
+          }}
+        >
+          <View className="items-center pt-3 pb-1">
+            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+          </View>
+          <View className="flex-row items-center justify-between px-5 pb-3 pt-1">
+            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">Sort by</Text>
+            <Pressable onPress={() => setShowSortSheet(false)} hitSlop={8}>
+              <Ionicons name="close" size={20} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+          {SORT_OPTIONS.map((opt) => {
+            const active = sortBy === opt.value;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => {
+                  setSortBy(opt.value);
+                  settingsStorage.set(SORT_KEY, opt.value);
+                  setShowSortSheet(false);
+                }}
+                className="flex-row items-center px-5 py-3.5"
+                accessibilityRole="button"
+                accessibilityLabel={opt.label}
+                accessibilityState={{ selected: active }}
+              >
+                <Ionicons
+                  name={opt.icon as never}
+                  size={18}
+                  color={active ? accent[500] : colors.textSecondary}
+                />
+                <Text
+                  className="flex-1 text-sm ml-3"
+                  style={{ color: active ? accent[500] : colors.text, fontWeight: active ? "600" : "400" }}
+                >
+                  {opt.label}
+                </Text>
+                {active && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }

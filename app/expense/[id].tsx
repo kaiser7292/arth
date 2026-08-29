@@ -118,11 +118,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
     Keyboard,
     KeyboardAvoidingView,
+    Modal,
     Pressable,
     ScrollView,
     Text,
     View,
 } from "react-native";
+import { listRules, applyRuleActionsToExpense } from "@/services/smart-rules";
+import type { SmartRule } from "@/services/smart-rules";
 
 
 
@@ -137,6 +140,11 @@ export default function ExpenseDetailScreen() {
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [transfer, setTransfer] = useState<AccountTransfer | null>(null);
+
+  // Apply rule sheet
+  const [rulePickerVisible, setRulePickerVisible] = useState(false);
+  const [availableRules, setAvailableRules] = useState<SmartRule[]>([]);
+  const [applyingRuleId, setApplyingRuleId] = useState<string | null>(null);
 
   // Edit mode
   const [editing, setEditing] = useState(false);
@@ -585,6 +593,43 @@ export default function ExpenseDetailScreen() {
       setSaving(false);
     }
   }, [amount, description, merchantName, categoryId, paymentModeId, accountId, date, isRightSpend, id, expense, originalExpense, multiSplitSummary, extraLegs]);
+
+  const openRulePicker = useCallback(async () => {
+    try {
+      const rules = await listRules();
+      setAvailableRules(rules.filter((r) => r.is_active === 1));
+      setRulePickerVisible(true);
+    } catch (e) {
+      alert("Error", formatError("Load rules", e));
+    }
+  }, [alert]);
+
+  const handleApplyRule = useCallback(async (rule: SmartRule) => {
+    if (!expense) return;
+    const hasSplit = rule.actions.some((a) => a.type === "split_with_person");
+    const doApply = async () => {
+      setApplyingRuleId(rule.id);
+      try {
+        await applyRuleActionsToExpense(rule.id, expense.id);
+        setRulePickerVisible(false);
+        const updated = await getExpenseById(expense.id);
+        if (updated) setExpense(updated);
+      } catch (e) {
+        alert("Couldn't apply rule", formatError("Apply rule", e));
+      } finally {
+        setApplyingRuleId(null);
+      }
+    };
+    if (hasSplit) {
+      alert(
+        "Apply split?",
+        `"${rule.name}" will split this expense. This creates a hisaab entry. Continue?`,
+        [{ text: "Cancel", style: "cancel" }, { text: "Apply", onPress: doApply }],
+      );
+    } else {
+      await doApply();
+    }
+  }, [expense, alert]);
 
   const handleDelete = useCallback(() => {
     const isSplit = expense?.split_hisaab_entry_id != null;
@@ -1472,6 +1517,9 @@ export default function ExpenseDetailScreen() {
             </Pressable>
           ) : (
             <View className="flex-row items-center">
+              <Pressable onPress={openRulePicker} className="p-2" accessibilityLabel="Apply rule">
+                <Ionicons name="flash-outline" size={21} color={colors.textSecondary} />
+              </Pressable>
               <Pressable onPress={handleEdit} className="p-2">
                 <Ionicons name="create-outline" size={22} color={colors.blue} />
               </Pressable>
@@ -3230,6 +3278,77 @@ export default function ExpenseDetailScreen() {
           onClose={() => setRefundTargetSheetVisible(false)}
         />
       )}
+
+      {/* Rule picker sheet */}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={rulePickerVisible}
+        onRequestClose={() => setRulePickerVisible(false)}
+      >
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} onPress={() => setRulePickerVisible(false)} />
+        <View
+          style={{
+            position: "absolute", left: 0, right: 0, bottom: 0,
+            backgroundColor: colors.surface,
+            borderTopLeftRadius: 20, borderTopRightRadius: 20,
+            maxHeight: "70%", paddingBottom: 28,
+          }}
+        >
+          <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Apply rule</Text>
+            <Pressable onPress={() => setRulePickerVisible(false)} hitSlop={8}>
+              <Ionicons name="close" size={20} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+          {availableRules.length === 0 ? (
+            <View style={{ alignItems: "center", padding: 32 }}>
+              <Text style={{ fontSize: 14, color: colors.textSecondary }}>No active rules found.</Text>
+            </View>
+          ) : (
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {availableRules.map((rule) => (
+                <Pressable
+                  key={rule.id}
+                  onPress={() => handleApplyRule(rule)}
+                  disabled={applyingRuleId === rule.id}
+                  style={{
+                    flexDirection: "row", alignItems: "center",
+                    paddingHorizontal: 20, paddingVertical: 14,
+                    opacity: applyingRuleId === rule.id ? 0.5 : 1,
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Apply rule: ${rule.name}`}
+                >
+                  <View
+                    style={{
+                      width: 36, height: 36, borderRadius: 18,
+                      backgroundColor: accent[500] + "18",
+                      alignItems: "center", justifyContent: "center", marginRight: 12,
+                    }}
+                  >
+                    <Ionicons name="flash-outline" size={17} color={accent[500]} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text }}>{rule.name}</Text>
+                    <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                      {rule.actions.map((a) => a.type.replace(/_/g, " ")).join(" · ")}
+                    </Text>
+                  </View>
+                  {applyingRuleId === rule.id ? (
+                    <Text style={{ fontSize: 12, color: colors.textSecondary }}>Applying…</Text>
+                  ) : (
+                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                  )}
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
 
     </ScreenContainer>
   );

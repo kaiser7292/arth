@@ -58,6 +58,10 @@ import type { SalaryProfile } from "@/services/salary-profile";
 import { getFYStartMonth } from "@/services/settings";
 import { getVaultEntries } from "@/services/vault";
 import type { VaultEntry } from "@/services/vault";
+import { getDueReminders } from "@/services/recurring-rules";
+import type { ReminderWithSource } from "@/services/recurring-rules";
+import { findAutoMatches } from "@/services/reminder-matching";
+import type { ReminderAutoMatch } from "@/services/reminder-matching";
 
 // ---------------------------------------------------------------------------
 // Home tab
@@ -82,6 +86,8 @@ export interface HomePreloadData {
   pensionCreditTotals: Record<string, number>;
   pensionLastContributionDate: string | null;
   pensionYtdContributions: number;
+  dueReminders: ReminderWithSource[];
+  autoMatches: ReminderAutoMatch[];
 }
 
 // ---------------------------------------------------------------------------
@@ -229,7 +235,7 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
     const { startDate, endDate } = getMonthDateRange(month);
     const today = new Date().toISOString().split("T")[0];
 
-    const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dematSum] = await Promise.all([
+    const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dematSum, dueReminders, autoMatches] = await Promise.all([
       getBudgetsForMonth(DEFAULT_USER_ID, month),
       getExpenseTotal(DEFAULT_USER_ID, startDate, endDate),
       getPendingExpenseCount(DEFAULT_USER_ID),
@@ -241,6 +247,8 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
       getCcExpenseTotals(DEFAULT_USER_ID, startDate, endDate),
       getUncategorizedCount(DEFAULT_USER_ID),
       getDematSummary(DEFAULT_USER_ID),
+      getDueReminders(DEFAULT_USER_ID),
+      findAutoMatches(DEFAULT_USER_ID).catch(() => [] as ReminderAutoMatch[]),
     ]);
 
     const allIds = allAccounts.map((a) => a.id);
@@ -291,6 +299,8 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
       pensionCreditTotals: pensionCreditTotalsMap,
       pensionLastContributionDate,
       pensionYtdContributions,
+      dueReminders,
+      autoMatches,
     };
   } catch (e) {
     logger.warn("Home preload section failed:", e);

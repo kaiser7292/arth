@@ -1042,24 +1042,6 @@ export async function adjustAccountAvailable(params: {
   // Auto-seed every relevant CC for this month (opening = credit_limit).
   await autoSeedCreditCards(relevantIds, month);
 
-  // Remove any prior manual balance-adjustment entries for this month on the
-  // relevant account set — otherwise repeated Adjust operations stack.
-  const placeholders = relevantIds.map(() => "?").join(",");
-  await db.runAsync(
-    `UPDATE expenses SET deleted_at = datetime('now'), updated_at = datetime('now')
-     WHERE account_id IN (${placeholders})
-       AND deleted_at IS NULL
-       AND nature = 'ledger_adjustment'
-       AND source = 'manual'
-       AND (description LIKE ? OR description LIKE ?)
-       AND date >= ? AND date <= ?;`,
-    ...relevantIds,
-    `${AVAILABLE_ADJUSTMENT_MARKER_POS}%`,
-    `${AVAILABLE_ADJUSTMENT_MARKER_NEG}%`,
-    startDate,
-    endDate,
-  );
-
   // Compute current closing across the relevant set.
   //
   // CC pools use the batched getComputedBalances — one round-trip for all

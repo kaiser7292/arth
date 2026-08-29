@@ -98,13 +98,13 @@ export default function HomeScreen() {
   const [upcomingDues, setUpcomingDues] = useState<Expense[]>(preloaded?.upcomingDues ?? []);
   const [dueReminders, setDueReminders] = useState<
     Awaited<ReturnType<typeof getDueRecurringReminders>>
-  >([]);
+  >(preloaded?.dueReminders ?? []);
   const [linkSheetFor, setLinkSheetFor] = useState<{
     ruleId: string;
     description: string;
     preloadedCandidates?: Expense[];
   } | null>(null);
-  const [autoMatches, setAutoMatches] = useState<ReminderAutoMatch[]>([]);
+  const [autoMatches, setAutoMatches] = useState<ReminderAutoMatch[]>(preloaded?.autoMatches ?? []);
   const [hisaabSummary, setHisaabSummary] = useState(preloaded?.hisaabSummary ?? {
     totalOwedToYou: 0,
     totalYouOwe: 0,
@@ -520,7 +520,12 @@ export default function HomeScreen() {
                 >
                   {/* Row header: name + due date + action button */}
                   <View className="flex-row items-center justify-between">
-                    <View className="flex-1 mr-2">
+                    <Pressable
+                      className="flex-1 mr-2"
+                      onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${r.rule.id}` as never)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open reminder details for ${description}`}
+                    >
                       <Text
                         className="text-sm text-text-primary dark:text-text-dark-primary"
                         numberOfLines={1}
@@ -540,7 +545,7 @@ export default function HomeScreen() {
                           : `Due ${r.rule.next_due_date === new Date().toISOString().slice(0, 10) ? "today" : "tomorrow"}`}
                         {last ? ` · Last paid ${last.cycle_due_date}` : ""}
                       </Text>
-                    </View>
+                    </Pressable>
 
                     {/* State C — multiple matches → "Review" opens sheet */}
                     {hasMultipleMatches && (

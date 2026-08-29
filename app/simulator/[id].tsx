@@ -353,10 +353,10 @@ export default function ScenarioDetailScreen() {
   const handleArchive = useCallback(() => {
     if (!overview) return;
     setMenuVisible(false);
-    alert("Archive scenario?", `"${overview.scenario.name}" will move to archived.`, [
+    alert("Mark as done?", `"${overview.scenario.name}" will move to the Completed list. You can restore it at any time.`, [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Archive",
+        text: "Mark done",
         onPress: async () => {
           await archiveScenario(overview.scenario.id);
           router.back();
@@ -1402,7 +1402,7 @@ export default function ScenarioDetailScreen() {
             {/* v16.0.5 — isDefault guard dropped. The v16.0.0 auto-created
                 default scenario is now removable; there's no auto-seed
                 to re-create it. */}
-            <MenuItem icon="archive-outline" label="Archive" onPress={handleArchive} />
+            <MenuItem icon="checkmark-circle-outline" label="Mark done" onPress={handleArchive} />
             <MenuItem icon="trash-outline" label="Delete scenario" danger onPress={handleDeleteScenario} />
           </View>
         </Pressable>

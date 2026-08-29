@@ -14,7 +14,7 @@ import { normalizeMerchant } from "@/services/smart-categorizer";
 import { bumpDataVersion } from "@/services/settings";
 import { formatLocalDate } from "@/utils/fiscal-year";
 
-export type RecurringFrequency = "weekly" | "monthly" | "quarterly" | "yearly";
+export type RecurringFrequency = "weekly" | "monthly" | "quarterly" | "yearly" | "last_day_of_month" | "nth_weekday";
 
 export interface RecurringTransaction {
   id: string;

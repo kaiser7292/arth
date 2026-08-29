@@ -459,6 +459,70 @@ export async function duplicateScenario(id: string): Promise<string> {
   return newId;
 }
 
+/**
+ * Duplicate a scenario copying ALL entries (not just upcoming), resetting
+ * them all to 'upcoming'. Used for the "Full setup" duplicate mode.
+ */
+export async function duplicateScenarioFullSetup(id: string): Promise<string> {
+  const db = getDatabase();
+  const src = await getScenario(id);
+  if (!src) throw new Error("Scenario not found");
+  const newId = generateUUID();
+  await db.runAsync(
+    `INSERT INTO simulation_scenarios (id, user_id, name, horizon_date, is_default)
+     VALUES (?, ?, ?, ?, 0);`,
+    newId,
+    src.user_id,
+    `${src.name} (copy)`,
+    src.horizon_date,
+  );
+  const entries = await db.getAllAsync<SimulationEntry>(
+    `SELECT * FROM simulation_entries WHERE scenario_id = ?;`,
+    id,
+  );
+  for (const e of entries) {
+    const eid = generateUUID();
+    await db.runAsync(
+      `INSERT INTO simulation_entries
+         (id, scenario_id, direction, amount, date, originally_planned_for,
+          account_id, category_id, merchant_name, description,
+          source, seed_source_id, status, hisaab_person_id, hisaab_kind)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', NULL, 'upcoming', ?, ?);`,
+      eid,
+      newId,
+      e.direction,
+      e.amount,
+      e.date,
+      e.originally_planned_for,
+      e.account_id,
+      e.category_id,
+      e.merchant_name,
+      e.description,
+      e.hisaab_person_id,
+      e.hisaab_kind,
+    );
+  }
+  const inclusions = await db.getAllAsync<SimulationHisaabInclusion>(
+    `SELECT scenario_id, person_id, included, amount, amount_sign, created_at, updated_at
+     FROM simulation_hisaab_inclusions WHERE scenario_id = ?;`,
+    id,
+  );
+  for (const incl of inclusions) {
+    await db.runAsync(
+      `INSERT INTO simulation_hisaab_inclusions
+         (scenario_id, person_id, included, amount, amount_sign)
+       VALUES (?, ?, ?, ?, ?);`,
+      newId,
+      incl.person_id,
+      incl.included,
+      incl.amount,
+      incl.amount_sign,
+    );
+  }
+  bumpDataVersion();
+  return newId;
+}
+
 export async function archiveScenario(id: string): Promise<void> {
   const db = getDatabase();
   // v16.0.5 — dropped the is_default guard. v16.0.0 auto-created a
@@ -469,6 +533,15 @@ export async function archiveScenario(id: string): Promise<void> {
     `UPDATE simulation_scenarios
      SET archived_at = datetime('now'), updated_at = datetime('now')
      WHERE id = ?;`,
+    id,
+  );
+  bumpDataVersion();
+}
+
+export async function restoreScenario(id: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE simulation_scenarios SET archived_at = NULL, updated_at = datetime('now') WHERE id = ?;`,
     id,
   );
   bumpDataVersion();

@@ -879,6 +879,10 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
   const candidates = await fetchRetroactiveCandidates(scope);
   const application = materialize(rule);
   let applied = 0;
+  // Collect split requests to run AFTER the outer transaction — splitExistingExpense
+  // opens its own withTransactionAsync and must never nest inside an outer one
+  // (nesting causes "cannot rollback - no transaction is active" on the outer rollback).
+  const toSplit: Array<{ expenseId: string; config: Parameters<typeof splitExistingExpense>[1] }> = [];
 
   await db.withTransactionAsync(async () => {
     for (const e of candidates) {
@@ -924,22 +928,29 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
       }
 
       if (application.split_person_id && e.split_hisaab_entry_id === null) {
-        try {
-          await splitExistingExpense(e.id, {
+        toSplit.push({
+          expenseId: e.id,
+          config: {
             personId: application.split_person_id,
             splitMode: (application.split_mode ?? "equal") as SplitMode,
             paidBy: application.split_paid_by ?? "me",
             ...(application.split_percentage != null ? { percentage: application.split_percentage } : {}),
             ...(application.split_exact_amount != null ? { exactAmount: application.split_exact_amount } : {}),
-          }, { skipAutoApprove: true });
-        } catch (splitErr) {
-          logger.warn(`retroactive split failed for expense ${e.id}`, splitErr);
-        }
+          },
+        });
       }
 
       applied++;
     }
   });
+
+  for (const { expenseId, config } of toSplit) {
+    try {
+      await splitExistingExpense(expenseId, config, { skipAutoApprove: true });
+    } catch (splitErr) {
+      logger.warn(`retroactive split failed for expense ${expenseId}`, splitErr);
+    }
+  }
 
   // Always clear the pending flag — the rule is now up-to-date with past expenses
   // regardless of whether any matched, so the user doesn't need to re-run.
@@ -954,6 +965,68 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
   }
 
   return applied;
+}
+
+/**
+ * Apply the actions of a single rule to a single expense, bypassing conditions.
+ * Used by the "Apply rule…" feature in the expense detail screen.
+ */
+export async function applyRuleActionsToExpense(ruleId: string, expenseId: string): Promise<void> {
+  const db = getDatabase();
+  const rule = await getRule(ruleId);
+  if (!rule) throw new Error("Rule not found");
+  const e = await db.getFirstAsync<{
+    id: string; category_id: string | null; payment_mode_id: string | null;
+    description: string | null; is_right_spend: number | null;
+    status: string; split_hisaab_entry_id: string | null;
+  }>(
+    `SELECT id, category_id, payment_mode_id, description, is_right_spend, status, split_hisaab_entry_id
+     FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
+    expenseId,
+  );
+  if (!e) throw new Error("Expense not found");
+  const application = materialize(rule);
+
+  await db.runAsync(
+    `UPDATE expenses SET
+       category_id = COALESCE(?, category_id),
+       payment_mode_id = COALESCE(?, payment_mode_id),
+       description = COALESCE(?, description),
+       is_right_spend = COALESCE(?, is_right_spend),
+       applied_rule_id = ?,
+       updated_at = datetime('now')
+     WHERE id = ?;`,
+    application.category_id,
+    application.payment_mode,
+    application.description,
+    application.is_right_spend,
+    ruleId,
+    expenseId,
+  );
+
+  if (application.mark_auto && e.status === "pending_review") {
+    await db.runAsync(
+      `UPDATE expenses SET status = 'approved', updated_at = datetime('now') WHERE id = ?;`,
+      expenseId,
+    );
+  }
+
+  if (application.split_person_id && e.split_hisaab_entry_id === null) {
+    try {
+      await splitExistingExpense(expenseId, {
+        personId: application.split_person_id,
+        splitMode: (application.split_mode ?? "equal") as SplitMode,
+        paidBy: application.split_paid_by ?? "me",
+        ...(application.split_percentage != null ? { percentage: application.split_percentage } : {}),
+        ...(application.split_exact_amount != null ? { exactAmount: application.split_exact_amount } : {}),
+      }, { skipAutoApprove: true });
+    } catch (splitErr) {
+      logger.warn(`apply-rule split failed for expense ${expenseId}`, splitErr);
+    }
+  }
+
+  await stampApplication(ruleId);
+  await bumpDataVersion();
 }
 
 export async function duplicateRule(id: string): Promise<string> {

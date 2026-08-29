@@ -178,6 +178,14 @@ export async function getExpensesPaginated(
 
   params.push(limit, offset);
 
+  const orderBy = {
+    date_desc: "date DESC, created_at DESC",
+    date_asc: "date ASC, created_at ASC",
+    amount_desc: "amount DESC, date DESC",
+    amount_asc: "amount ASC, date DESC",
+    name_asc: "COALESCE(merchant_name, description) ASC NULLS LAST, date DESC",
+  }[filters.sortBy ?? "date_desc"] ?? "date DESC, created_at DESC";
+
   // Explicit projection (list view only needs these fields) — reduces row size ~3x vs SELECT *.
   return db.getAllAsync<Expense>(
     `SELECT
@@ -189,7 +197,7 @@ export async function getExpensesPaginated(
        deleted_at, created_at
      FROM expenses
      WHERE ${conditions.join(" AND ")}
-     ORDER BY date DESC, created_at DESC
+     ORDER BY ${orderBy}
      LIMIT ? OFFSET ?;`,
     ...params,
   );
