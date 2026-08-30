@@ -76,7 +76,7 @@ export default function TabLayout() {
           // through `constants/routes.ts` or any saved navigation state.
           title: "Transactions",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="swap-vertical-outline" size={size} color={color} />
+            <Ionicons name="receipt-outline" size={size} color={color} />
           ),
           tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
           tabBarBadgeStyle: { backgroundColor: Colors.budget.over, fontSize: 10 },

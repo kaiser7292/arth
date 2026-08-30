@@ -430,7 +430,7 @@ export default function SettingsScreen() {
             <SettingsRow icon="mic-outline" label="Voice Input" subtitle="Voice sound, speak-back questions on or off" onPress={() => router.push("/settings/voice-input" as never)} />
             <SettingsRow icon="sparkles-outline" label="Arth AI" subtitle="On-device AI assistant and smart search" onPress={() => router.push("/settings/ai-assistant" as never)} />
             <SettingsRow icon="repeat-outline" label="Reminders" subtitle="Rent, subscriptions, anything that repeats" onPress={() => router.push("/settings/recurring-rules" as never)} />
-            <SettingsRow icon="sparkles-outline" label="Smart Rules" subtitle="Auto-categorize expenses by merchant, amount, account" onPress={() => router.push("/settings/smart-rules" as never)} />
+            <SettingsRow icon="flash-outline" label="Smart Rules" subtitle="Auto-categorize expenses by merchant, amount, account" onPress={() => router.push("/settings/smart-rules" as never)} />
             <SettingsRow icon="construct-outline" label="Smart SMS Templates" subtitle="Teach Arth to read SMS from any bank" onPress={() => router.push("/settings/sms-templates" as never)} />
             <SettingsRow icon="swap-horizontal-outline" label="Merchant Aliases" subtitle="Clean up SMS merchant names" onPress={() => router.push("/settings/merchant-aliases")} />
             <SettingsRow icon="list-outline" label="Audit Log" subtitle="See every action taken on detected and manual records" onPress={() => router.push("/settings/audit-log" as never)} />
