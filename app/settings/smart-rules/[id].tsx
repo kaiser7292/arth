@@ -19,6 +19,7 @@ import {
   OPERATORS_BY_FIELD,
   FIELD_LABELS,
   OPERATOR_LABELS,
+  type AppliesTo,
   type SmartRule,
   type CreateSmartRuleInput,
   type RuleCondition,
@@ -137,6 +138,7 @@ export default function SmartRuleDetailScreen() {
   const [priority, setPriority] = useState("100");
   const [isActive, setIsActive] = useState(true);
   const [matchMode, setMatchMode] = useState<"all" | "any">("all");
+  const [appliesTo, setAppliesTo] = useState<AppliesTo>("expense");
   const [conditions, setConditions] = useState<RuleCondition[]>([defaultConditionFor("merchant")]);
 
   const [actions, setActions] = useState<UIRuleAction[]>([]);
@@ -213,6 +215,7 @@ export default function SmartRuleDetailScreen() {
     setPriority(String(r.priority));
     setIsActive(r.is_active === 1);
     setMatchMode(r.match_mode);
+    setAppliesTo(r.applies_to);
     setIsPendingRetroactive(r.pending_retroactive === 1);
     setConditions(r.conditions.length > 0 ? r.conditions : [defaultConditionFor("merchant")]);
 
@@ -327,10 +330,11 @@ export default function SmartRuleDetailScreen() {
         name,
         priority: parseInt(priority, 10) || 100,
         is_active: isActive,
-        action_link_to_investment_bucket_id: buildLinkBucketId(),
         match_mode: matchMode,
+        applies_to: appliesTo,
         conditions,
         actions: buildActions(),
+        action_link_to_investment_bucket_id: buildLinkBucketId(),
       };
       if (isCreate) {
         const newId = await createRule(input);
@@ -440,6 +444,49 @@ export default function SmartRuleDetailScreen() {
                 trackColor={{ false: colors.border, true: accentColor }}
               />
             </View>
+          </Card>
+
+          <Card className="mb-4">
+            <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-3">
+              Applies to
+            </Text>
+            <View className="flex-row mb-1">
+              {(["expense", "credit", "any"] as AppliesTo[]).map((opt, i) => {
+                const label = opt === "expense" ? "Expenses" : opt === "credit" ? "Credits" : "Both";
+                const active = appliesTo === opt;
+                const isFirst = i === 0;
+                const isLast = i === 2;
+                return (
+                  <Pressable
+                    key={opt}
+                    onPress={() => setAppliesTo(opt)}
+                    className="flex-1 py-2.5 items-center"
+                    style={{
+                      backgroundColor: active ? accentColor : "transparent",
+                      borderWidth: active ? 0 : 1,
+                      borderColor: colors.border,
+                      borderLeftWidth: isFirst || active ? (active ? 0 : 1) : 0,
+                      borderRadius: isFirst ? 8 : isLast ? 8 : 0,
+                      borderTopLeftRadius: isFirst ? 8 : 0,
+                      borderBottomLeftRadius: isFirst ? 8 : 0,
+                      borderTopRightRadius: isLast ? 8 : 0,
+                      borderBottomRightRadius: isLast ? 8 : 0,
+                    }}
+                  >
+                    <Text style={{ color: active ? "#fff" : colors.textSecondary }} className="text-sm font-medium">
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text className="text-xs text-text-tertiary mt-1">
+              {appliesTo === "expense"
+                ? "Rule fires on debits and spending."
+                : appliesTo === "credit"
+                ? "Rule fires on incoming credits (salary, refunds)."
+                : "Rule fires on all transactions."}
+            </Text>
           </Card>
 
           <Card className="mb-4">

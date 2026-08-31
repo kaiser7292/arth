@@ -509,6 +509,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "apply_count",
     "last_applied_at",
     "pending_retroactive",
+    "applies_to", // 067
     "created_at",
     "updated_at",
   ] as const,

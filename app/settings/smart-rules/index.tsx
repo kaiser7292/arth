@@ -65,13 +65,13 @@ export default function SmartRulesListScreen() {
   const handleDuplicate = useCallback(
     async (rule: SmartRule) => {
       try {
-        await duplicateRule(rule.id);
-        await load();
+        const newId = await duplicateRule(rule.id);
+        router.push(`/settings/smart-rules/${newId}` as never);
       } catch (e) {
         alert("Couldn't duplicate", getErrorMessage(e));
       }
     },
-    [load, alert],
+    [router, alert],
   );
 
   const confirmDelete = useCallback(
@@ -283,6 +283,8 @@ export default function SmartRulesListScreen() {
                       </Text>
                       <Text className="text-xs text-text-tertiary mt-0.5">
                         Priority {item.priority}
+                        {item.applies_to === "credit" && <Text> · Credits</Text>}
+                        {item.applies_to === "any" && <Text> · All transactions</Text>}
                         {!item.is_active && <Text> · Paused</Text>}
                       </Text>
                     </View>

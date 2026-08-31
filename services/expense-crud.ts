@@ -41,6 +41,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
   try {
     const allRules = await applyAllRules({
       amount: input.amount,
+      nature: input.nature ?? "realized",
       merchant: input.merchant_name ?? null,
       description: input.description ?? null,
       category_id: categoryId,

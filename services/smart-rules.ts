@@ -125,6 +125,8 @@ export interface RuleAction {
   split_exact_amount?: number;
 }
 
+export type AppliesTo = "expense" | "credit" | "any";
+
 export interface SmartRule {
   id: string;
   user_id: string;
@@ -132,6 +134,8 @@ export interface SmartRule {
   priority: number;
   is_active: number;
   match_mode: "all" | "any";
+  /** Which transaction natures this rule matches. Defaults to 'expense' (realized debits). */
+  applies_to: AppliesTo;
   conditions: RuleCondition[];
   actions: RuleAction[];
 
@@ -153,6 +157,7 @@ export interface CreateSmartRuleInput {
   priority?: number;
   is_active?: boolean;
   match_mode?: "all" | "any";
+  applies_to?: AppliesTo;
   conditions: RuleCondition[];
   actions: RuleAction[];
   action_link_to_investment_bucket_id?: string | null;
@@ -175,6 +180,8 @@ export interface EvaluationTarget {
   sms_body?: string | null;
   description?: string | null;
   category_id?: string | null;
+  /** 'realized' for expense debits, 'credit' for income/refunds. Defaults to 'realized' when absent. */
+  nature?: string;
 }
 
 export interface RuleApplication {
@@ -201,6 +208,7 @@ interface SmartRuleRow {
   priority: number;
   is_active: number;
   match_mode: string;
+  applies_to: string | null;
   conditions: string;
   actions: string;
   action_link_to_investment_bucket_id: string | null;
@@ -233,6 +241,9 @@ function safeParseActions(raw: string | null | undefined): RuleAction[] {
 }
 
 function fromRow(row: SmartRuleRow): SmartRule {
+  const applies_to = (row.applies_to === "credit" || row.applies_to === "any")
+    ? row.applies_to
+    : "expense";
   return {
     id: row.id,
     user_id: row.user_id,
@@ -240,6 +251,7 @@ function fromRow(row: SmartRuleRow): SmartRule {
     priority: row.priority,
     is_active: row.is_active,
     match_mode: row.match_mode === "any" ? "any" : "all",
+    applies_to,
     conditions: safeParseConditions(row.conditions),
     actions: safeParseActions(row.actions),
     action_link_to_investment_bucket_id: row.action_link_to_investment_bucket_id,
@@ -362,10 +374,18 @@ function evaluateCondition(condition: RuleCondition, target: EvaluationTarget): 
  * Does this rule match the target? 'all' = every condition must pass
  * (AND), 'any' = at least one must pass (OR). A rule with zero conditions
  * returns false (safety) — CRUD rejects creating one.
+ *
+ * `applies_to` filters by transaction nature: 'expense' = realized debits,
+ * 'credit' = credits/refunds, 'any' = both. If target.nature is absent,
+ * 'realized' is assumed (backward-compatible for callers that don't set it).
  */
 export function evaluateRule(rule: SmartRule, target: EvaluationTarget): boolean {
   if (!rule.is_active) return false;
   if (rule.conditions.length === 0) return false;
+
+  const targetNature = target.nature ?? "realized";
+  if (rule.applies_to === "expense" && targetNature !== "realized") return false;
+  if (rule.applies_to === "credit" && targetNature !== "credit") return false;
 
   return rule.match_mode === "any"
     ? rule.conditions.some((c) => evaluateCondition(c, target))
@@ -603,15 +623,16 @@ export async function createRule(input: CreateSmartRuleInput): Promise<string> {
   await db.runAsync(
     `INSERT INTO smart_rules (
        id, user_id, name, priority, is_active,
-       match_mode, conditions, actions,
+       match_mode, applies_to, conditions, actions,
        action_link_to_investment_bucket_id, pending_retroactive
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1);`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1);`,
     id,
     DEFAULT_USER_ID,
     input.name.trim(),
     input.priority ?? 100,
     input.is_active === false ? 0 : 1,
     input.match_mode ?? "all",
+    input.applies_to ?? "expense",
     JSON.stringify(input.conditions),
     JSON.stringify(input.actions),
     input.action_link_to_investment_bucket_id ?? null,
@@ -629,6 +650,7 @@ export async function updateRule(id: string, input: UpdateSmartRuleInput): Promi
     priority: input.priority ?? existing.priority,
     is_active: input.is_active ?? existing.is_active === 1,
     match_mode: input.match_mode ?? existing.match_mode,
+    applies_to: input.applies_to ?? existing.applies_to,
     conditions: input.conditions ?? existing.conditions,
     actions: input.actions ?? existing.actions,
     action_link_to_investment_bucket_id:
@@ -643,7 +665,7 @@ export async function updateRule(id: string, input: UpdateSmartRuleInput): Promi
   await db.runAsync(
     `UPDATE smart_rules SET
        name = ?, priority = ?, is_active = ?,
-       match_mode = ?, conditions = ?, actions = ?,
+       match_mode = ?, applies_to = ?, conditions = ?, actions = ?,
        action_link_to_investment_bucket_id = ?,
        pending_retroactive = 1,
        updated_at = datetime('now')
@@ -652,6 +674,7 @@ export async function updateRule(id: string, input: UpdateSmartRuleInput): Promi
     merged.priority ?? 100,
     merged.is_active === false ? 0 : 1,
     merged.match_mode ?? "all",
+    merged.applies_to ?? "expense",
     JSON.stringify(merged.conditions),
     JSON.stringify(merged.actions),
     merged.action_link_to_investment_bucket_id ?? null,
@@ -766,6 +789,7 @@ export interface RetroactivePreview {
 type RetroactiveCandidate = {
   id: string;
   amount: number;
+  nature: string;
   merchant_name: string | null;
   raw_merchant_name: string | null;
   description: string | null;
@@ -782,7 +806,7 @@ async function fetchRetroactiveCandidates(
   scope: Pick<RetroactiveScope, "startDate" | "endDate" | "accountIds" | "sinceDaysAgo">,
 ): Promise<RetroactiveCandidate[]> {
   const db = getDatabase();
-  const conds: string[] = ["deleted_at IS NULL", "nature = 'realized'"];
+  const conds: string[] = ["deleted_at IS NULL", "nature IN ('realized', 'credit')"];
   const params: (string | number)[] = [];
 
   if (scope.startDate) {
@@ -807,7 +831,7 @@ async function fetchRetroactiveCandidates(
   }
 
   return db.getAllAsync<RetroactiveCandidate>(
-    `SELECT id, amount, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text, status, split_hisaab_entry_id, is_right_spend
+    `SELECT id, amount, nature, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text, status, split_hisaab_entry_id, is_right_spend
      FROM expenses
      WHERE ${conds.join(" AND ")};`,
     params,
@@ -817,6 +841,7 @@ async function fetchRetroactiveCandidates(
 function candidateToTarget(e: RetroactiveCandidate): EvaluationTarget {
   return {
     amount: e.amount,
+    nature: e.nature,
     merchant: e.merchant_name,
     raw_merchant: e.raw_merchant_name,
     description: e.description,
@@ -1038,6 +1063,7 @@ export async function duplicateRule(id: string): Promise<string> {
     priority: original.priority,
     is_active: original.is_active === 1,
     match_mode: original.match_mode,
+    applies_to: original.applies_to,
     conditions: original.conditions,
     actions: original.actions,
     action_link_to_investment_bucket_id: original.action_link_to_investment_bucket_id,

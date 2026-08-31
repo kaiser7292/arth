@@ -21,6 +21,7 @@ function rule(overrides: Partial<SmartRule> = {}): SmartRule {
     priority: overrides.priority ?? 100,
     is_active: overrides.is_active ?? 1,
     match_mode: overrides.match_mode ?? "all",
+    applies_to: overrides.applies_to ?? "expense",
     conditions: overrides.conditions ?? [],
     actions: overrides.actions ?? [],
     action_link_to_investment_bucket_id: overrides.action_link_to_investment_bucket_id ?? null,

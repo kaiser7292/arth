@@ -508,13 +508,16 @@ export async function fulfillReminder(
   if (!rule.next_due_date) throw new Error("Reminder has no due date set.");
 
   // Make sure the expense isn't already linked to a rule.
-  const existingLink = await db.getFirstAsync<{ fulfills_rule_id: string | null }>(
-    "SELECT fulfills_rule_id FROM expenses WHERE id = ?;",
+  const existingLink = await db.getFirstAsync<{ fulfills_rule_id: string | null; split_hisaab_entry_id: string | null }>(
+    "SELECT fulfills_rule_id, split_hisaab_entry_id FROM expenses WHERE id = ?;",
     expenseId,
   );
   if (existingLink?.fulfills_rule_id) {
     throw new Error("This expense is already linked to a reminder.");
   }
+  // If the expense already has a user-configured split, don't clobber it
+  // by re-applying the source's split — the user intentionally set it.
+  const targetAlreadySplit = !!existingLink?.split_hisaab_entry_id;
 
   const cycleDue = rule.next_due_date;
   const fulfillmentId = generateUUID();
@@ -578,7 +581,9 @@ export async function fulfillReminder(
 
   // Apply the source's split to the matched expense (outside the transaction
   // since splitExistingExpense / applyMultiSplit manage their own transactions).
-  if (src?.split_person_id && src.split_pct != null) {
+  // Skip if the matched expense already has a user-configured split — we don't
+  // want to remove what the user intentionally set up.
+  if (!targetAlreadySplit && src?.split_person_id && src.split_pct != null) {
     try {
       // Determine paidBy from the source hisaab entry type.
       let paidBy: "me" | string = "me";
@@ -601,7 +606,7 @@ export async function fulfillReminder(
     } catch (e) {
       // Non-fatal — split apply failure shouldn't undo the fulfillment.
     }
-  } else if (src) {
+  } else if (!targetAlreadySplit && src) {
     // Check for multi-person split.
     try {
       const multiSplits = await db.getAllAsync<{
