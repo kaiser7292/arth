@@ -1,4 +1,4 @@
-import { Card, ScreenContainer, Text } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAlert } from '@/hooks/use-alert';
@@ -126,9 +126,7 @@ export default function KiteConnectScreen() {
   if (isLoading) {
     return (
       <ScreenContainer>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.textSecondary} />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }

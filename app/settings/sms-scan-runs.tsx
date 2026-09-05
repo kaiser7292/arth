@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { View, TextInput, FlatList, Pressable, ActivityIndicator, BackHandler } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, ScreenContainer, Text } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -608,9 +608,7 @@ export default function SmsScanRunsScreen() {
       {viewMode === "list" && (
         <>
           {loading ? (
-            <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color={theme.primary} />
-            </View>
+            <LoadingState />
           ) : runs.length === 0 ? (
             <View className="flex-1 items-center justify-center">
               <Ionicons name="scan-outline" size={48} color={colors.textSecondary} />

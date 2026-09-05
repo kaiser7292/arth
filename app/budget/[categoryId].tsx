@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { View, FlatList, Pressable, RefreshControl, Modal } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { TrendBarChart } from "@/components/charts/TrendBarChart";
@@ -238,11 +238,11 @@ export default function CategoryDetailScreen() {
           />
         }
         ListEmptyComponent={
-          <View className="items-center py-12">
-            <Text className="text-muted-foreground">
-              No expenses in this category for {monthLabel}
-            </Text>
-          </View>
+          <EmptyState
+            icon="receipt-outline"
+            title="Nothing here yet"
+            subtitle={`No expenses in this category for ${monthLabel}.`}
+          />
         }
       />
     </ScreenContainer>

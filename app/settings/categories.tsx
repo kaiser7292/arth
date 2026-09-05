@@ -4,7 +4,7 @@ import { View, FlatList, Pressable } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { FAB, ScreenContainer, Text } from "@/components/ui";
+import { EmptyState, FAB, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
@@ -223,11 +223,11 @@ export default function CategoriesScreen() {
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 80 }}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-muted-foreground">
-              No categories yet. Tap + to add one.
-            </Text>
-          </View>
+          <EmptyState
+            icon="pricetag-outline"
+            title="No categories yet"
+            subtitle="Categories are how spending gets grouped in Budget and Insights. Tap + to add your first."
+          />
         }
       />
       <FAB icon="add" onPress={() => router.push("/settings/category-edit")} />

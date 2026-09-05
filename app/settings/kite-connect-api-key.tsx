@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Text } from "@/components/ui";
+import { LoadingState, Text } from "@/components/ui";
 import { View, TextInput, Pressable, ActivityIndicator } from "react-native";
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -80,9 +80,7 @@ export default function KiteConnectApiKeyScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-background-light">
-        <ActivityIndicator size="large" />
-      </View>
+      <LoadingState />
     );
   }
 

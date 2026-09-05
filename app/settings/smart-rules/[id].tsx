@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator, Switch, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { DateInput, ScreenContainer, Sheet, Text } from "@/components/ui";
+import { DateInput, LoadingState, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -410,9 +410,7 @@ export default function SmartRuleDetailScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={accentColor} />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }

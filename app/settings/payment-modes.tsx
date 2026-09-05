@@ -4,7 +4,7 @@ import { View, FlatList, Pressable } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { FAB, ScreenContainer, Text } from "@/components/ui";
+import { EmptyState, FAB, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
@@ -145,11 +145,11 @@ export default function PaymentModesScreen() {
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 80 }}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-muted-foreground">
-              No payment modes yet. Tap + to add one.
-            </Text>
-          </View>
+          <EmptyState
+            icon="card-outline"
+            title="No payment modes yet"
+            subtitle="Payment modes let Arth tell UPI from card from cash. Tap + to add one."
+          />
         }
       />
       <FAB icon="add" onPress={() => router.push("/settings/payment-mode-edit")} />

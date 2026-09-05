@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { View, FlatList, ActivityIndicator } from "react-native";
 import { Stack, useLocalSearchParams, useFocusEffect } from "expo-router";
-import { ScreenContainer, Text } from "@/components/ui";
+import { LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -56,9 +56,7 @@ export default function TemplateMatchesScreen() {
       <Stack.Screen options={{ title, headerShadowVisible: false }} />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={accentColor} />
-        </View>
+        <LoadingState />
       ) : matches.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />

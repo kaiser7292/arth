@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, TextInput, ScrollView, Pressable, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Text } from "@/components/ui";
+import { LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -547,9 +547,7 @@ export default function TagSmsTemplateScreen() {
   if (!smsBody) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={accentColor} />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }

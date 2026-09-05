@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Text } from "@/components/ui";
+import { LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { settingsStorage } from "@/services/storage";
@@ -284,9 +284,7 @@ export default function InsightFilteredListScreen() {
 
         {/* ── Transaction list ──────────────────────────────────────── */}
         {loading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={colors.blue} />
-          </View>
+          <LoadingState />
         ) : expenses.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
             <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />

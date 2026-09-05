@@ -4,7 +4,7 @@ import { View, FlatList, TextInput, Pressable } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { Button, EmptyState, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
@@ -316,11 +316,11 @@ export default function BudgetConfigScreen() {
         keyExtractor={(item) => item.category.id}
         renderItem={renderItem}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-muted-foreground">
-              No categories found. Add categories first.
-            </Text>
-          </View>
+          <EmptyState
+            icon="calculator-outline"
+            title="No categories to budget"
+            subtitle="Budgets are set per category, so add a few categories first."
+          />
         }
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 120 }}

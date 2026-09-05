@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { View, FlatList, ActivityIndicator } from "react-native";
 import { Stack, useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
-import { ScreenContainer, Text } from "@/components/ui";
+import { LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getRule } from "@/services/smart-rules";
@@ -67,9 +67,7 @@ export default function RuleApplicationsScreen() {
       <Stack.Screen options={{ title, headerShadowVisible: false }} />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={theme.primary} />
-        </View>
+        <LoadingState />
       ) : expenses.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="sparkles-outline" size={48} color={colors.textSecondary} />

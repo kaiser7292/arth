@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ScreenContainer } from "@/components/ui";
+import { LoadingState, ScreenContainer } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import {
@@ -88,9 +88,7 @@ export default function EditSmsTemplateScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color={accentColor} />
-      </View>
+      <LoadingState />
     </ScreenContainer>
   );
 }

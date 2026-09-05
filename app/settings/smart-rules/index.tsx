@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { FAB, ScreenContainer, Text } from "@/components/ui";
+import { FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -257,9 +257,7 @@ export default function SmartRulesListScreen() {
         </View>
 
         {loading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={accentColor} />
-          </View>
+          <LoadingState />
         ) : rules.length === 0 ? (
           <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingBottom: 96 }}>
             <View className="flex-1 items-center justify-center py-16 px-8">
