@@ -71,7 +71,7 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
   return (
     <View>
       <Pressable
-        onPress={() => router.push("/reconciliation/wallets" as never)}
+        onPress={() => router.push("/reconciliation/wallets")}
         accessibilityLabel="View wallet account details"
         accessibilityRole="button"
       >

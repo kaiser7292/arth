@@ -184,27 +184,27 @@ export default function BalanceSheetScreen() {
 
   const handleRowPress = (meta: { group: string; accountId?: string; personId?: string }) => {
     if (meta.group === "hisaab_owed" || meta.group === "hisaab_owes") {
-      router.push("/hisaab/persons" as never);
+      router.push("/hisaab/persons");
       return;
     }
     if (meta.group === "cc") {
-      router.push("/reconciliation/credit-cards" as never);
+      router.push("/reconciliation/credit-cards");
       return;
     }
     if (meta.group === "savings") {
-      router.push("/reconciliation/bank-accounts" as never);
+      router.push("/reconciliation/bank-accounts");
       return;
     }
     if (meta.group === "wallet") {
-      router.push("/reconciliation/wallets" as never);
+      router.push("/reconciliation/wallets");
       return;
     }
     if (meta.group === "demat_portfolio" || meta.group === "demat_fund") {
-      router.push("/reconciliation/demat-portfolio" as never);
+      router.push("/reconciliation/demat-portfolio");
       return;
     }
     if (meta.group === "pension") {
-      router.push("/reconciliation/pension-accounts" as never);
+      router.push("/reconciliation/pension-accounts");
       return;
     }
     if (meta.group === "loan" && meta.accountId) {

@@ -84,7 +84,7 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
     <View>
       {/* v15.2.1: Pressable outside Card. See BankBalanceSummary for rationale. */}
       <Pressable
-        onPress={() => router.push("/reconciliation/credit-cards" as never)}
+        onPress={() => router.push("/reconciliation/credit-cards")}
         accessibilityLabel="View credit card details"
         accessibilityRole="button"
       >

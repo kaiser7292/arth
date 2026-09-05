@@ -211,7 +211,7 @@ export default function InsightDetailScreen() {
                       ? () => router.push(`/expense/${group.expenseIds[0]}`)
                       : () =>
                           router.push({
-                            pathname: "/insights/filtered" as never,
+                            pathname: "/insights/filtered",
                             params: {
                               expenseIds: group.expenseIds.join(","),
                               title: `${insight.title} → ${group.label}`,

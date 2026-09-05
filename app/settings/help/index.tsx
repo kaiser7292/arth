@@ -47,7 +47,7 @@ export default function HelpCenterScreen() {
 
   const openArticle = (slug: string) => {
     Keyboard.dismiss();
-    router.push(`/settings/help/${slug}` as never);
+    router.push(`/settings/help/${slug}`);
   };
 
   return (

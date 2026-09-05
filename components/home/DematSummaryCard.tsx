@@ -32,7 +32,7 @@ function DematSummaryCardImpl({
     <View>
       {/* v15.2.1: Pressable outside Card. See BankBalanceSummary for rationale. */}
       <Pressable
-        onPress={() => router.push("/reconciliation/demat-portfolio" as never)}
+        onPress={() => router.push("/reconciliation/demat-portfolio")}
         accessibilityLabel="View demat account details"
         accessibilityRole="button"
       >

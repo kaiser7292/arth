@@ -334,7 +334,7 @@ export default function HomeScreen() {
   const homeHeaderActions = [
     ...(isArthAIEnabled() ? [{
       icon: "sparkles-outline" as const,
-      onPress: () => router.push("/ai-chat" as never),
+      onPress: () => router.push("/ai-chat"),
       color: colors.tint,
     }] : []),
     { icon: "mic-outline" as const, onPress: () => setShowVoiceSheet(true) },
@@ -549,7 +549,7 @@ export default function HomeScreen() {
                   <View className="flex-row items-center justify-between">
                     <Pressable
                       className="flex-1 mr-2"
-                      onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${r.rule.id}` as never)}
+                      onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${r.rule.id}`)}
                       accessibilityRole="button"
                       accessibilityLabel={`Open reminder details for ${description}`}
                     >

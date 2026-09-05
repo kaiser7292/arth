@@ -573,7 +573,7 @@ export default function InvestmentDetailScreen() {
                       )}
                       {c.source === 'expense' && (
                         <Pressable
-                          onPress={() => router.push({ pathname: "/expense/[id]", params: { id: c.sourceId } } as never)}
+                          onPress={() => router.push({ pathname: "/expense/[id]", params: { id: c.sourceId } })}
                           accessibilityRole="button"
                           accessibilityLabel="View source expense"
                         >
@@ -597,7 +597,7 @@ export default function InvestmentDetailScreen() {
                           <Pressable
                             onPress={() =>
                               router.push({
-                                pathname: "/reconciliation/account-ledger" as never,
+                                pathname: "/reconciliation/account-ledger",
                                 params: {
                                   accountId: contrib.linked_transfer_account_id,
                                   month: contrib.linked_transfer_date!.slice(0, 7),

@@ -19,7 +19,7 @@ export default function HelpArticleScreen() {
   // rendered as inert plain text.
   const handleArticlePress = useCallback(
     (targetSlug: string) => {
-      router.push(`/settings/help/${targetSlug}` as never);
+      router.push(`/settings/help/${targetSlug}`);
     },
     [router],
   );

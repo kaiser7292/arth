@@ -99,7 +99,7 @@ export function InsightsPage() {
                 router.push({
                   pathname: "/insights/insight-detail",
                   params: { insightId: insight.id, title: insight.title },
-                } as never)
+                })
               }
             />
           ))}
@@ -109,7 +109,7 @@ export function InsightsPage() {
       {/* Spending Pulse */}
       <View className="px-4 mt-2">
         <SectionHeader title="Spending Pulse" />
-        <Pressable onPress={() => router.push("/insights/compare" as never)} accessibilityRole="button" android_ripple={{ color: "transparent" }}>
+        <Pressable onPress={() => router.push("/insights/compare")} accessibilityRole="button" android_ripple={{ color: "transparent" }}>
           <Card>
             <View className="flex-row items-center justify-between mb-2">
               <Text className="text-xs text-muted-foreground">
@@ -145,12 +145,12 @@ export function InsightsPage() {
       <View className="px-4 mt-4">
         <SectionHeader title="Explore" />
         <View className="flex-row flex-wrap gap-3">
-          <QuickAction icon="git-compare-outline" label="Compare" onPress={() => router.push("/insights/compare" as never)} color={theme.primary} />
-          <QuickAction icon="trending-up-outline" label="Forecast" onPress={() => router.push("/insights/forecast" as never)} color={theme.primary} />
-          <QuickAction icon="repeat-outline" label="Patterns" onPress={() => router.push("/insights/patterns" as never)} color={theme.primary} />
-          <QuickAction icon="storefront-outline" label="Merchants" onPress={() => router.push("/insights/merchants" as never)} color={theme.primary} />
-          <QuickAction icon="bar-chart-outline" label="Budget" onPress={() => router.push("/insights/budget-vs-actual" as never)} color={theme.primary} />
-          <QuickAction icon="document-text-outline" label="Reports" onPress={() => router.push("/insights/reports" as never)} color={theme.primary} />
+          <QuickAction icon="git-compare-outline" label="Compare" onPress={() => router.push("/insights/compare")} color={theme.primary} />
+          <QuickAction icon="trending-up-outline" label="Forecast" onPress={() => router.push("/insights/forecast")} color={theme.primary} />
+          <QuickAction icon="repeat-outline" label="Patterns" onPress={() => router.push("/insights/patterns")} color={theme.primary} />
+          <QuickAction icon="storefront-outline" label="Merchants" onPress={() => router.push("/insights/merchants")} color={theme.primary} />
+          <QuickAction icon="bar-chart-outline" label="Budget" onPress={() => router.push("/insights/budget-vs-actual")} color={theme.primary} />
+          <QuickAction icon="document-text-outline" label="Reports" onPress={() => router.push("/insights/reports")} color={theme.primary} />
         </View>
       </View>
 

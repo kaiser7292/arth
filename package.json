@@ -11,11 +11,15 @@
     "lint": "expo lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/regen-route-types.js && tsc --noEmit",
     "postinstall": "node scripts/apply-patches.js",
     "generate:theme": "node scripts/generate-theme.js",
     "verify:theme": "node scripts/verify-theme.js",
-    "resolve:classes": "node scripts/resolve-classes.js"
+    "resolve:classes": "node scripts/resolve-classes.js",
+    "routes:types": "node scripts/regen-route-types.js",
+    "audit:hooks": "node scripts/audit-hooks.js",
+    "audit:sheets": "node scripts/audit-sheets.js",
+    "verify": "npm run typecheck && npm run audit:hooks && npm run audit:sheets && npm run resolve:classes && npm test"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -96,4 +100,4 @@
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*|nativewind|react-native-css-interop)"
     ]
   }
-}
+}

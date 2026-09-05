@@ -123,7 +123,7 @@ export function SimulatorPage() {
 
   const handleOpenScenario = useCallback(
     (scenarioId: string) => {
-      router.push(`/simulator/${scenarioId}` as never);
+      router.push(`/simulator/${scenarioId}`);
     },
     [router],
   );
@@ -139,12 +139,12 @@ export function SimulatorPage() {
           const id = await duplicateScenario(copyFromScenarioId);
           await updateScenario(id, { name: trimmed, horizon_date: horizon });
           setCreateSheetVisible(false);
-          router.push(`/simulator/${id}` as never);
+          router.push(`/simulator/${id}`);
         } else {
           const id = await createScenario(DEFAULT_USER_ID, { name: trimmed, horizon_date: horizon });
           await seedScenarioFromReminders(id, DEFAULT_USER_ID);
           setCreateSheetVisible(false);
-          router.push(`/simulator/${id}` as never);
+          router.push(`/simulator/${id}`);
         }
       } catch (e) {
         alert("Couldn't create scenario", e instanceof Error ? e.message : String(e));
@@ -171,7 +171,7 @@ export function SimulatorPage() {
         : await duplicateScenario(duplicatePending.id);
       setDuplicatePending(null);
       await load();
-      router.push(`/simulator/${id}` as never);
+      router.push(`/simulator/${id}`);
     } catch (e) {
       alert("Couldn't duplicate", e instanceof Error ? e.message : String(e));
     } finally {

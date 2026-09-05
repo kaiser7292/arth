@@ -296,7 +296,7 @@ export default function LoanDetailScreen() {
               onPress={() => router.push({
                 pathname: "/loans/[id]/prepayment",
                 params: { id: loan.id }
-              } as never)}
+              })}
             />
           </View>
         )}
@@ -324,7 +324,7 @@ export default function LoanDetailScreen() {
               onPress={() => router.push({
                 pathname: "/loans/[id]/correction",
                 params: { id: loan.id }
-              } as never)}
+              })}
               colors={colors}
               colorScheme={colorScheme}
             />
@@ -334,7 +334,7 @@ export default function LoanDetailScreen() {
           icon="pencil-outline"
           label="Edit loan details"
           sublabel="Change rate, tenure, EMI day, fees…"
-          onPress={() => router.push({ pathname: "/loans/add", params: { loanId: loan.id } } as never)}
+          onPress={() => router.push({ pathname: "/loans/add", params: { loanId: loan.id } })}
           colors={colors}
           colorScheme={colorScheme}
         />
@@ -354,7 +354,7 @@ export default function LoanDetailScreen() {
                   onPress: async () => {
                     try {
                       await deleteLoanFully(loan.id);
-                      router.replace("/goals/loans" as never);
+                      router.replace("/goals/loans");
                     } catch (e) {
                       alert("Couldn't delete", formatError("Delete loan", e));
                     }
@@ -437,12 +437,12 @@ export default function LoanDetailScreen() {
                         router.push({
                           pathname: "/expense/[id]",
                           params: { id: p.linked_expense_id },
-                        } as never);
+                        });
                       } else {
                         router.push({
                           pathname: "/loans/[id]/prepayment",
                           params: { id: loan.id, prepaymentId: p.id }
-                        } as never);
+                        });
                       }
                     }}
                     accessibilityRole="button"
@@ -609,7 +609,7 @@ export default function LoanDetailScreen() {
                     router.push({
                       pathname: "/loans/[id]/correction",
                       params: { id: loan.id, correctionId: c.id }
-                    } as never);
+                    });
                   }}
                   accessibilityRole="button"
                   accessibilityLabel={`Edit correction on ${formatDate(c.effective_date)}`}

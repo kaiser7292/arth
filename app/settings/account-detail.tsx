@@ -624,7 +624,7 @@ export default function AccountDetailScreen() {
           {/* Demat: View Snapshots link */}
           {accountType === "demat" && (
             <Pressable
-              onPress={() => router.push({ pathname: "/demat/snapshots/[id]", params: { id: accountId } } as never)}
+              onPress={() => router.push({ pathname: "/demat/snapshots/[id]", params: { id: accountId } })}
               className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-xl bg-card"
             >
               <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: colors.border }}>
@@ -657,7 +657,7 @@ export default function AccountDetailScreen() {
                     router.push({
                       pathname: "/loans/[id]",
                       params: { id: loan.id },
-                    } as never);
+                    });
                   }
                 } catch {
                   // If we can't resolve, stay on this screen

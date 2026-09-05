@@ -16,11 +16,11 @@ export default function OnboardingDone() {
   const finish = (andAddExpense: boolean) => {
     setOnboardingCompletedVersion(getCurrentAppVersion());
     if (andAddExpense) {
-      router.replace("/(tabs)" as never);
+      router.replace("/(tabs)");
       // Defer the push slightly so the tabs layout mounts first.
-      setTimeout(() => router.push("/expense/add" as never), 50);
+      setTimeout(() => router.push("/expense/add"), 50);
     } else {
-      router.replace("/(tabs)" as never);
+      router.replace("/(tabs)");
     }
   };
 

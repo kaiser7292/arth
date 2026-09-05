@@ -27,7 +27,7 @@ export function HeaderBackHome() {
         </Pressable>
       )}
       <Pressable
-        onPress={() => router.replace("/(tabs)" as never)}
+        onPress={() => router.replace("/(tabs)")}
         hitSlop={8}
         accessibilityLabel="Go to Home"
         style={{ padding: 4 }}

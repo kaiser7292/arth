@@ -430,13 +430,13 @@ export default function SettingsScreen() {
           </Card>
 
           <Card title="Automation" className="mb-4">
-            <SettingsRow icon="mic-outline" label="Voice Input" subtitle="Voice sound, speak-back questions on or off" onPress={() => router.push("/settings/voice-input" as never)} />
-            <SettingsRow icon="sparkles-outline" label="Arth AI" subtitle="On-device AI assistant and smart search" onPress={() => router.push("/settings/ai-assistant" as never)} />
-            <SettingsRow icon="repeat-outline" label="Reminders" subtitle="Rent, subscriptions, anything that repeats" onPress={() => router.push("/settings/recurring-rules" as never)} />
-            <SettingsRow icon="flash-outline" label="Smart Rules" subtitle="Auto-categorize expenses by merchant, amount, account" onPress={() => router.push("/settings/smart-rules" as never)} />
-            <SettingsRow icon="construct-outline" label="Smart SMS Templates" subtitle="Teach Arth to read SMS from any bank" onPress={() => router.push("/settings/sms-templates" as never)} />
+            <SettingsRow icon="mic-outline" label="Voice Input" subtitle="Voice sound, speak-back questions on or off" onPress={() => router.push("/settings/voice-input")} />
+            <SettingsRow icon="sparkles-outline" label="Arth AI" subtitle="On-device AI assistant and smart search" onPress={() => router.push("/settings/ai-assistant")} />
+            <SettingsRow icon="repeat-outline" label="Reminders" subtitle="Rent, subscriptions, anything that repeats" onPress={() => router.push("/settings/recurring-rules")} />
+            <SettingsRow icon="flash-outline" label="Smart Rules" subtitle="Auto-categorize expenses by merchant, amount, account" onPress={() => router.push("/settings/smart-rules")} />
+            <SettingsRow icon="construct-outline" label="Smart SMS Templates" subtitle="Teach Arth to read SMS from any bank" onPress={() => router.push("/settings/sms-templates")} />
             <SettingsRow icon="swap-horizontal-outline" label="Merchant Aliases" subtitle="Clean up SMS merchant names" onPress={() => router.push("/settings/merchant-aliases")} />
-            <SettingsRow icon="list-outline" label="Audit Log" subtitle="See every action taken on detected and manual records" onPress={() => router.push("/settings/audit-log" as never)} />
+            <SettingsRow icon="list-outline" label="Audit Log" subtitle="See every action taken on detected and manual records" onPress={() => router.push("/settings/audit-log")} />
           </Card>
 
           <Card title="Backup & Storage" className="mb-4">
@@ -447,7 +447,7 @@ export default function SettingsScreen() {
                 icon="copy-outline"
                 label="Dismissed Duplicate Groups"
                 subtitle={`${dismissedDupCount} group${dismissedDupCount === 1 ? "" : "s"} kept as-is · tap to view`}
-                onPress={() => router.push("/settings/dismissed-duplicates" as never)}
+                onPress={() => router.push("/settings/dismissed-duplicates")}
               />
             )}
             <Pressable
@@ -702,7 +702,7 @@ export default function SettingsScreen() {
 
               {unrecognisedSmsCount > 0 && (
                 <Pressable
-                  onPress={() => router.push("/settings/sms-templates/unrecognised" as never)}
+                  onPress={() => router.push("/settings/sms-templates/unrecognised")}
                   className="flex-row items-center mt-3 pt-3 border-t border-border"
                   accessibilityRole="button"
                   accessibilityLabel={`View ${unrecognisedSmsCount} unrecognised SMS`}
@@ -721,7 +721,7 @@ export default function SettingsScreen() {
               )}
 
               <Pressable
-                onPress={() => router.push("/settings/sms-scan-runs" as never)}
+                onPress={() => router.push("/settings/sms-scan-runs")}
                 className="flex-row items-center mt-3 pt-3 border-t border-border"
               >
                 <Ionicons name="analytics-outline" size={18} color={uiTheme.primary} />
@@ -806,9 +806,9 @@ export default function SettingsScreen() {
           )}
 
           <Card title="Preferences & Security" className="mb-4">
-            <SettingsRow icon="globe-outline" label="Region" subtitle="Currency, date format, number format, fiscal year" onPress={() => router.push("/settings/region" as never)} />
+            <SettingsRow icon="globe-outline" label="Region" subtitle="Currency, date format, number format, fiscal year" onPress={() => router.push("/settings/region")} />
             <SettingsRow icon="notifications-outline" label="Notifications" subtitle="SMS scan alerts, due reminders" onPress={() => router.push("/settings/notifications")} />
-            <SettingsRow icon="grid-outline" label="Home Cards" subtitle="Show or hide any card on the Home screen" onPress={() => router.push("/settings/home-cards" as never)} />
+            <SettingsRow icon="grid-outline" label="Home Cards" subtitle="Show or hide any card on the Home screen" onPress={() => router.push("/settings/home-cards")} />
             <SettingsRow icon="lock-closed-outline" label="Security" subtitle="App lock with biometric authentication" onPress={() => router.push("/settings/security")} />
             <>
               <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground mt-4 mb-2">Theme</Text>
@@ -840,7 +840,7 @@ export default function SettingsScreen() {
                 icon="help-circle-outline"
                 label="Help Center"
                 subtitle="Ask anything in plain English"
-                onPress={() => router.push("/settings/help" as never)}
+                onPress={() => router.push("/settings/help")}
               />
             )}
             <View className="flex-row items-center justify-between py-2 border-b border-border">

@@ -384,7 +384,7 @@ export default function AIChatScreen() {
             Enable it in Settings → Arth AI to get started.
           </Text>
           <Pressable
-            onPress={() => router.push("/settings/ai-assistant" as never)}
+            onPress={() => router.push("/settings/ai-assistant")}
             className="px-5 py-3 rounded-xl"
             style={{ backgroundColor: accentColor }}
           >
@@ -401,7 +401,7 @@ export default function AIChatScreen() {
             Download the AI model (~880 MB) to start chatting. Wi-Fi recommended.
           </Text>
           <Pressable
-            onPress={() => router.push("/settings/ai-assistant" as never)}
+            onPress={() => router.push("/settings/ai-assistant")}
             className="px-5 py-3 rounded-xl"
             style={{ backgroundColor: accentColor }}
           >

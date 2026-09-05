@@ -88,7 +88,7 @@ export default function SpendingPersonalityReportScreen() {
       );
       if (txns.length === 0) return;
       router.push({
-        pathname: "/insights/filtered" as never,
+        pathname: "/insights/filtered",
         params: {
           expenseIds: txns.map((t) => t.id).join(","),
           title: categoryName,
@@ -107,7 +107,7 @@ export default function SpendingPersonalityReportScreen() {
       );
       if (txns.length === 0) return;
       router.push({
-        pathname: "/insights/filtered" as never,
+        pathname: "/insights/filtered",
         params: {
           expenseIds: txns.map((t) => t.id).join(","),
           title: merchant,

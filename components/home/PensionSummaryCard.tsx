@@ -35,7 +35,7 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
           touch responder sits outside the elevation shadow layer, eliminating
           the "first tap does nothing, scroll, then second tap works" bug. */}
       <Pressable
-        onPress={() => router.push("/reconciliation/pension-accounts" as never)}
+        onPress={() => router.push("/reconciliation/pension-accounts")}
         accessibilityLabel="View pension account details"
         accessibilityRole="button"
       >

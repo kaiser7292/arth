@@ -534,7 +534,7 @@ export default function GoalsScreen() {
           </Text>
           <Card className="mb-4">
             <Pressable
-              onPress={() => router.push("/goals/loans" as never)}
+              onPress={() => router.push("/goals/loans")}
               className="flex-row items-center py-3 border-b border-border"
             >
               <View
@@ -557,7 +557,7 @@ export default function GoalsScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => router.push("/goals/risk-coverage" as never)}
+              onPress={() => router.push("/goals/risk-coverage")}
               className="flex-row items-center py-3 border-b border-border"
             >
               <View
@@ -580,7 +580,7 @@ export default function GoalsScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => router.push("/goals/balance-sheet" as never)}
+              onPress={() => router.push("/goals/balance-sheet")}
               className="flex-row items-center py-3"
             >
               <View

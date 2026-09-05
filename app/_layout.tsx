@@ -21,7 +21,7 @@ import { settingsStorage } from "@/services/storage";
 import { logger } from "@/utils/logger";
 import * as BackgroundFetch from "expo-background-fetch";
 import * as Notifications from "expo-notifications";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as TaskManager from "expo-task-manager";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -389,7 +389,7 @@ export default function RootLayout(): React.JSX.Element {
       if (!lockEvaluated && !lockEvaluationInProgress) {
         setLockEvaluationInProgress(true);
         if (shouldShowLock() && routerRef.current) {
-          routerRef.current.replace("/(lock)/lock" as never);
+          routerRef.current.replace("/(lock)/lock");
         }
         setLockEvaluated(true);
         setLockEvaluationInProgress(false);
@@ -418,10 +418,11 @@ export default function RootLayout(): React.JSX.Element {
           // Defer this navigation until after unlock instead of bypassing the
           // lock screen entirely — see services/biometric-lock.ts.
           setPendingDeepLink(screen);
-          routerRef.current.replace("/(lock)/lock" as never);
+          routerRef.current.replace("/(lock)/lock");
           return;
         }
-        routerRef.current.push(screen as never);
+        // Deep-link target, unknown until runtime.
+        routerRef.current.push(screen as Href);
       },
     );
     return () => subscription.remove();
@@ -445,7 +446,7 @@ export default function RootLayout(): React.JSX.Element {
     if (migrationFailedRef.current) return;
     if (getOnboardingCompletedVersion()) return;
     if (!routerRef.current) return;
-    routerRef.current.replace("/(onboarding)/welcome" as never);
+    routerRef.current.replace("/(onboarding)/welcome");
   }, [dbReady, minSplashDone, lockEvaluated]);
 
   // Show error screen first if initialization failed

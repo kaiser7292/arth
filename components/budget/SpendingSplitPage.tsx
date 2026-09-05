@@ -140,7 +140,7 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
           {/* Summary metrics */}
           <View className="mx-4 mb-2 p-4 rounded-lg bg-card border border-border">
             <Pressable
-              onPress={() => router.push({ pathname: "/budget/transactions" as never, params: { filterMonth: month, filterAvoidability: "unavoidable", title: "Unavoidable Expenses" } })}
+              onPress={() => router.push({ pathname: "/budget/transactions", params: { filterMonth: month, filterAvoidability: "unavoidable", title: "Unavoidable Expenses" } })}
               className="flex-row items-center justify-between mb-3"
             >
               <View className="flex-row items-center">
@@ -159,7 +159,7 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
             </Pressable>
 
             <Pressable
-              onPress={() => router.push({ pathname: "/budget/transactions" as never, params: { filterMonth: month, filterAvoidability: "avoidable", title: "Discretionary Expenses" } })}
+              onPress={() => router.push({ pathname: "/budget/transactions", params: { filterMonth: month, filterAvoidability: "avoidable", title: "Discretionary Expenses" } })}
               className="flex-row items-center justify-between mb-3"
             >
               <View className="flex-row items-center">

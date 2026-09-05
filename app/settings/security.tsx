@@ -104,7 +104,7 @@ export default function SecuritySettingsScreen() {
         text: "Lock",
         style: "destructive",
         onPress: () => {
-          router.replace("/(lock)/lock" as never);
+          router.replace("/(lock)/lock");
         },
       },
     ]);

@@ -43,7 +43,7 @@ function MinBalanceAlertImpl({ breach, onDismiss }: MinBalanceAlertProps) {
           router.push({
             pathname: "/reconciliation/account-ledger",
             params: { accountId: account.id },
-          } as never)
+          })
         }
         className="flex-1 flex-row items-center"
         accessibilityRole="button"

@@ -48,16 +48,16 @@ export default function OnboardingAccountsPreview() {
   }, []);
 
   const handleAddManually = () => {
-    router.push("/settings/account-add" as never);
+    router.push("/settings/account-add");
   };
 
   const handleContinue = () => {
-    router.push("/(onboarding)/done" as never);
+    router.push("/(onboarding)/done");
   };
 
   const handleSkip = () => {
     setOnboardingCompletedVersion(getCurrentAppVersion());
-    router.replace("/(tabs)" as never);
+    router.replace("/(tabs)");
   };
 
   return (

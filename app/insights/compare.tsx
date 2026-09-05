@@ -94,7 +94,7 @@ export default function PeriodComparisonScreen() {
     const ids = await getComparisonExpenseIds(DEFAULT_USER_ID, rangeStart, rangeEnd, filter);
     if (ids.length === 0) return;
     router.push({
-      pathname: "/insights/filtered" as never,
+      pathname: "/insights/filtered",
       params: { expenseIds: ids.join(","), title },
     });
   }, [router]);

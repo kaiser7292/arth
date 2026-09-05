@@ -92,7 +92,7 @@ export default function PasteSmsScreen() {
     const trimmed = body.trim();
     if (trimmed.length < 10) return;
     updateDraft({ smsBody: trimmed });
-    router.push("/settings/sms-templates/tag" as never);
+    router.push("/settings/sms-templates/tag");
   }, [body, router]);
 
   const handleDiscard = useCallback(() => {
@@ -123,7 +123,7 @@ export default function PasteSmsScreen() {
                 </Text>
                 <View className="flex-row mt-2" style={{ gap: 8 }}>
                   <Pressable
-                    onPress={() => router.push("/settings/sms-templates/tag" as never)}
+                    onPress={() => router.push("/settings/sms-templates/tag")}
                     className="flex-1 items-center py-2 rounded-lg"
                     style={{ backgroundColor: colors.tint }}
                   >

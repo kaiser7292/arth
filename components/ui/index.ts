@@ -1,4 +1,6 @@
 export { AlertBanner } from "./AlertBanner";
+export { Badge } from "./Badge";
+export type { BadgeProps, BadgeVariant, BadgeTone } from "./Badge";
 export { ContextualHeader } from "./ContextualHeader";
 export type { ContextualHeaderAction, ContextualHeaderBadge } from "./ContextualHeader";
 export { Button } from "./Button";

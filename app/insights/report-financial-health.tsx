@@ -105,7 +105,7 @@ export default function FinancialHealthReportScreen() {
       );
       if (txns.length === 0) return;
       router.push({
-        pathname: "/insights/filtered" as never,
+        pathname: "/insights/filtered",
         params: {
           expenseIds: txns.map((t) => t.id).join(","),
           title: categoryName,
@@ -126,7 +126,7 @@ export default function FinancialHealthReportScreen() {
       );
       if (txns.length === 0) return;
       router.push({
-        pathname: "/insights/filtered" as never,
+        pathname: "/insights/filtered",
         params: {
           expenseIds: txns.map((t) => t.id).join(","),
           title: `${categoryName} — This Month`,
@@ -150,7 +150,7 @@ export default function FinancialHealthReportScreen() {
       );
       if (txns.length === 0) return;
       router.push({
-        pathname: "/insights/filtered" as never,
+        pathname: "/insights/filtered",
         params: {
           expenseIds: txns.map((t) => t.id).join(","),
           title: type === "fixed" ? "Fixed Expenses" : "Discretionary Expenses",

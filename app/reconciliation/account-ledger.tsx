@@ -1141,18 +1141,18 @@ const loadData = useCallback(async () => {
                       // when the link is known. Higher priority than hisaab /
                       // credit-edit so the refund → source flow wins.
                       entry.isRefund && entry.refundOfExpenseId
-                      ? () => router.push(`/expense/${entry.refundOfExpenseId}` as never)
+                      ? () => router.push(`/expense/${entry.refundOfExpenseId}`)
                       : // Manual refund rows with no link OR the row itself:
                         // still tap to open the refund row's own expense detail.
                         entry.type === "credit" && entry.isRefund && !entry.refundOfExpenseId
                         ? () => router.push(`/expense/${entry.id}`)
                         : // Transfer rows with linked expense: navigate to expense details
                         isTransfer && entry.linkedExpenseId
-                        ? () => router.push(`/expense/${entry.linkedExpenseId}` as never)
+                        ? () => router.push(`/expense/${entry.linkedExpenseId}`)
                         : entry.type === "credit" && entry.linkedHisaabPersonId
-                          ? () => router.push(`/hisaab/ledger?personId=${entry.linkedHisaabPersonId}` as never)
+                          ? () => router.push(`/hisaab/ledger?personId=${entry.linkedHisaabPersonId}`)
                           : entry.type === "credit" && entry.source === "sms_auto"
-                            ? () => router.push(`/expense/${entry.id}` as never)
+                            ? () => router.push(`/expense/${entry.id}`)
                             : entry.type === "credit" && entry.canDelete
                             ? () => handleStartEditCredit(entry)
                             : isTransfer && entry.rawSourceText

@@ -35,7 +35,7 @@ export default function OnboardingWelcome() {
 
   const handleSkip = () => {
     setOnboardingCompletedVersion(getCurrentAppVersion());
-    router.replace("/(tabs)" as never);
+    router.replace("/(tabs)");
   };
 
   return (
@@ -84,7 +84,7 @@ export default function OnboardingWelcome() {
       <View className="px-6 pb-6 pt-2">
         <Button
           title="Get started"
-          onPress={() => router.push("/(onboarding)/region" as never)}
+          onPress={() => router.push("/(onboarding)/region")}
           className="mb-3"
         />
         <Pressable onPress={handleSkip} className="py-3 items-center">

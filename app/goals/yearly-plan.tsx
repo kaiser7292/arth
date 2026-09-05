@@ -386,7 +386,7 @@ export default function YearlyPlanScreen() {
                 </Text>
               </View>
               <Pressable
-                onPress={() => router.push("/goals/loans" as never)}
+                onPress={() => router.push("/goals/loans")}
                 accessibilityRole="button"
                 accessibilityLabel="Manage loans"
                 className="flex-row items-center"
@@ -404,7 +404,7 @@ export default function YearlyPlanScreen() {
                   No active loans.
                 </Text>
                 <Pressable
-                  onPress={() => router.push("/loans/add" as never)}
+                  onPress={() => router.push("/loans/add")}
                   className="mt-3 py-2 rounded-lg items-center"
                   style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
                 >
@@ -423,7 +423,7 @@ export default function YearlyPlanScreen() {
                   return (
                     <Pressable
                       key={row.loanId}
-                      onPress={() => router.push({ pathname: "/loans/[id]", params: { id: row.loanId } } as never)}
+                      onPress={() => router.push({ pathname: "/loans/[id]", params: { id: row.loanId } })}
                       className={`py-2.5 ${
                         i < loanForecast.length - 1
                           ? "border-b border-border"
@@ -511,7 +511,7 @@ export default function YearlyPlanScreen() {
                 Expenses (Annualized)
               </Text>
               <Pressable
-                onPress={() => router.push("/settings/budget-config" as never)}
+                onPress={() => router.push("/settings/budget-config")}
                 className="flex-row items-center"
               >
                 <Ionicons name="create-outline" size={14} color={colors.blue} />

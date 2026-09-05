@@ -97,7 +97,7 @@ export default function RuleApplicationsScreen() {
               categoryMap={categoryMap}
               paymentModeMap={paymentModeMap}
               accountMap={accountMap}
-              onPress={(expenseId) => router.push(`/expense/${expenseId}` as never)}
+              onPress={(expenseId) => router.push(`/expense/${expenseId}`)}
               onLongPress={() => {}}
             />
           )}

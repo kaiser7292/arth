@@ -83,7 +83,7 @@ export default function ReportsHubScreen() {
             title="Financial health"
             description="Net worth, savings rate, debt ratio, emergency readiness, grade card"
             inputsNeeded="No user input needed"
-            onPress={() => router.push("/insights/report-financial-health" as never)}
+            onPress={() => router.push("/insights/report-financial-health")}
           />
 
           <ReportCard
@@ -93,7 +93,7 @@ export default function ReportsHubScreen() {
             title="Retirement readiness"
             description="Corpus target, SIP plan, phase roadmap, risk assessment, scenarios"
             inputsNeeded="5 inputs needed"
-            onPress={() => router.push("/insights/report-retirement" as never)}
+            onPress={() => router.push("/insights/report-retirement")}
           />
 
           <ReportCard
@@ -103,7 +103,7 @@ export default function ReportsHubScreen() {
             title="Loan payoff strategy"
             description="Avalanche vs snowball, interest saved, optimal payoff sequence"
             inputsNeeded="1 input needed"
-            onPress={() => router.push("/insights/report-loan-payoff" as never)}
+            onPress={() => router.push("/insights/report-loan-payoff")}
           />
 
           <ReportCard
@@ -113,7 +113,7 @@ export default function ReportsHubScreen() {
             title="Spending personality"
             description="Archetype, patterns, top merchants, behavioral shifts, consistency"
             inputsNeeded="No user input needed"
-            onPress={() => router.push("/insights/report-spending-personality" as never)}
+            onPress={() => router.push("/insights/report-spending-personality")}
           />
         </View>
       </ScrollView>

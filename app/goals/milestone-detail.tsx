@@ -658,7 +658,7 @@ export default function MilestoneDetailScreen() {
                       key={lb.id}
                       onPress={() =>
                         router.push({
-                          pathname: "/goals/investment-detail" as never,
+                          pathname: "/goals/investment-detail",
                           params: { bucketId: lb.id },
                         })
                       }

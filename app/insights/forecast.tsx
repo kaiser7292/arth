@@ -273,7 +273,7 @@ export default function ForecastDetailScreen() {
                   router.push({
                     pathname: "/insights/insight-detail",
                     params: { insightId: `breach_${cat.categoryId}_${forecast.month}`, title: `${categoryNames.get(cat.categoryId) ?? "Category"} Over Budget` },
-                  } as never)
+                  })
                 }
                 className="mb-2"
               >

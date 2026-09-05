@@ -182,7 +182,7 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
                   router.push({
                     pathname: "/expense/[id]",
                     params: { id: installment.linked_expense_id! },
-                  } as never);
+                  });
                 }, 220);
               }}
               className="flex-row items-center justify-center py-3 rounded-xl mb-2"

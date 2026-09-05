@@ -160,7 +160,7 @@ export default function SmartSmsTemplatesListScreen() {
               <Card className="mb-3">
                 <Pressable
                   onPress={() =>
-                    router.push("/settings/sms-templates/unrecognised" as never)
+                    router.push("/settings/sms-templates/unrecognised")
                   }
                   className="flex-row items-center"
                 >
@@ -219,7 +219,7 @@ export default function SmartSmsTemplatesListScreen() {
                 <Card className="mb-3">
                   <Pressable
                     onPress={() =>
-                      router.push(`/settings/sms-templates/${item.id}` as never)
+                      router.push(`/settings/sms-templates/${item.id}`)
                     }
                   >
                     <View className="flex-row items-center mb-1">
@@ -246,7 +246,7 @@ export default function SmartSmsTemplatesListScreen() {
                   </Pressable>
                   <View className="flex-row mt-3 pt-3 border-t border-border">
                     <Pressable
-                      onPress={() => router.push(`/settings/sms-templates/${item.id}` as never)}
+                      onPress={() => router.push(`/settings/sms-templates/${item.id}`)}
                       hitSlop={4}
                       className="flex-1 items-center py-1"
                     >
@@ -254,7 +254,7 @@ export default function SmartSmsTemplatesListScreen() {
                       <Text className="text-xs mt-0.5" style={{ color: accentColor }}>Edit</Text>
                     </Pressable>
                     <Pressable
-                      onPress={() => router.push(`/settings/sms-templates/matches/${item.id}` as never)}
+                      onPress={() => router.push(`/settings/sms-templates/matches/${item.id}`)}
                       hitSlop={4}
                       className="flex-1 items-center py-1"
                       disabled={matchCount === 0}
@@ -310,7 +310,7 @@ export default function SmartSmsTemplatesListScreen() {
 
         <FAB
           icon="add"
-          onPress={() => router.push("/settings/sms-templates/new" as never)}
+          onPress={() => router.push("/settings/sms-templates/new")}
           accessibilityLabel="Teach Arth a new SMS"
         />
       </View>

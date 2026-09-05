@@ -278,7 +278,7 @@ export default function ScenarioDetailScreen() {
           realId,
         );
         if (expRow) {
-          router.push({ pathname: "/expense/[id]", params: { id: realId } } as never);
+          router.push({ pathname: "/expense/[id]", params: { id: realId } });
           return;
         }
         // Fall back to transfer → route to its from-account ledger with highlight
@@ -296,7 +296,7 @@ export default function ScenarioDetailScreen() {
             router.push({
               pathname: "/reconciliation/account-ledger",
               params: { accountId, transferId: realId },
-            } as never);
+            });
             return;
           }
         }
@@ -1094,10 +1094,10 @@ export default function ScenarioDetailScreen() {
                 </Pressable>
                 {expandOutgoing && (
                   <>
-                    <EntryGroup label="Today" items={outgoingGrouped.today} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
-                    <EntryGroup label="Tomorrow" items={outgoingGrouped.tomorrow} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
-                    <EntryGroup label="This week" items={outgoingGrouped.thisWeek} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
-                    <EntryGroup label="Later" items={outgoingGrouped.later} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
+                    <EntryGroup label="Today" items={outgoingGrouped.today} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } }); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
+                    <EntryGroup label="Tomorrow" items={outgoingGrouped.tomorrow} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } }); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
+                    <EntryGroup label="This week" items={outgoingGrouped.thisWeek} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } }); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
+                    <EntryGroup label="Later" items={outgoingGrouped.later} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } }); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="out" />
                   </>
                 )}
               </View>
@@ -1140,10 +1140,10 @@ export default function ScenarioDetailScreen() {
                 </Pressable>
                 {expandIncoming && (
                   <>
-                    <EntryGroup label="Today" items={incomingGrouped.today} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
-                    <EntryGroup label="Tomorrow" items={incomingGrouped.tomorrow} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
-                    <EntryGroup label="This week" items={incomingGrouped.thisWeek} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
-                    <EntryGroup label="Later" items={incomingGrouped.later} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } } as never); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
+                    <EntryGroup label="Today" items={incomingGrouped.today} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } }); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
+                    <EntryGroup label="Tomorrow" items={incomingGrouped.tomorrow} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } }); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
+                    <EntryGroup label="This week" items={incomingGrouped.thisWeek} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } }); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
+                    <EntryGroup label="Later" items={incomingGrouped.later} accounts={accounts} onTap={(e) => { router.push({ pathname: "/simulator/[id]/entry", params: { id, entryId: e.id } }); }} onLongPress={handleEntryLongPress} onDuplicate={handleDuplicateEntry} personMap={hisaabPersonMap} categoryNames={categoryNameMap} direction="in" />
                   </>
                 )}
               </View>
@@ -1269,7 +1269,7 @@ export default function ScenarioDetailScreen() {
                       {details && details.length > 0 ? details.map((f) => (
                         <Pressable
                           key={f.id}
-                          onPress={() => router.push({ pathname: "/expense/[id]", params: { id: f.expense_id } } as never)}
+                          onPress={() => router.push({ pathname: "/expense/[id]", params: { id: f.expense_id } })}
                           className="flex-row items-center py-2 px-2 rounded-lg mb-1"
                           style={{ backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border }}
                         >
@@ -1322,7 +1322,7 @@ export default function ScenarioDetailScreen() {
             router.push({
               pathname: "/simulator/[id]/entry",
               params: { id }
-            } as never);
+            });
           }}
         />
       )}

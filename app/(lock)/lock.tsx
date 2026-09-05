@@ -12,7 +12,7 @@ import {
 } from "@/services/biometric-lock";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
@@ -55,7 +55,8 @@ export default function LockScreen() {
       clearAppStartTime();
       setHasLandedOnHome(false);
       const pendingScreen = consumePendingDeepLink();
-      router.replace((pendingScreen ?? "/(tabs)") as never);
+      // Arrives from a deep link at runtime, so nothing static can describe it.
+      router.replace((pendingScreen ?? "/(tabs)") as Href);
       return;
     }
 

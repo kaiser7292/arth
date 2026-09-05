@@ -23,7 +23,7 @@ function LoanSummaryCardImpl({ summary }: LoanSummaryCardProps) {
   return (
     <View>
       <Pressable
-        onPress={() => router.push("/goals/loans" as never)}
+        onPress={() => router.push("/goals/loans")}
         accessibilityLabel="View loan details"
         accessibilityRole="button"
       >

@@ -175,7 +175,7 @@ export default function TagSmsTemplateScreen() {
   // Redirect back to paste screen if draft is missing (e.g. hot reload).
   useEffect(() => {
     if (!smsBody && !savingRef.current) {
-      router.replace("/settings/sms-templates/new" as never);
+      router.replace("/settings/sms-templates/new");
     }
   }, [smsBody, router]);
 
@@ -477,7 +477,7 @@ export default function TagSmsTemplateScreen() {
             text: "Edit Existing",
             onPress: () => {
               clearDraft();
-              router.replace(`/settings/sms-templates/${duplicateFound.id}` as never);
+              router.replace(`/settings/sms-templates/${duplicateFound.id}`);
             },
           },
           { text: "Cancel", style: "cancel" },
@@ -534,7 +534,7 @@ export default function TagSmsTemplateScreen() {
         // dismisses modal presentations in Expo Router, not regular stack
         // routes. Use replace() which atomically swaps the top of the
         // stack.
-        router.replace("/settings/sms-templates" as never);
+        router.replace("/settings/sms-templates");
         clearDraft();
       } catch (e) {
         alert("Couldn't save template", e instanceof Error ? e.message : String(e));

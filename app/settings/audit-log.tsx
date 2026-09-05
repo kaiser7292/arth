@@ -301,20 +301,20 @@ export default function AuditLogScreen() {
         case "expense":
         case "credit":
         case "forecast":
-          router.push(`/expense/${entry.id}` as never);
+          router.push(`/expense/${entry.id}`);
           return;
         case "transfer": {
           // Best effort: drill into the transfer's from or to account ledger
           // with the transfer highlighted. For now we can't resolve the
           // account id without re-querying — route to Accounts list instead.
-          router.push(`/settings/account-master` as never);
+          router.push(`/settings/account-master`);
           return;
         }
         case "hisaab":
           // Hisaab settlement — jump to the person's ledger. We'd need the
           // person id here; use the settlement id is not enough. Fallback:
           // just go to the Hisaab people list.
-          router.push(`/hisaab/persons` as never);
+          router.push(`/hisaab/persons`);
           return;
       }
     },

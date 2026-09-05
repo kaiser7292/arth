@@ -38,10 +38,13 @@ export function LearnMoreChip({ contextKey, label = "Learn more", subtle = false
   const bg = tint + "14";
 
   const handlePress = () => {
-    const href = contextKey
-      ? `/settings/help?context=${encodeURIComponent(contextKey)}`
-      : "/settings/help";
-    router.push(href as never);
+    // Object form rather than a hand-built query string: it typechecks against the route
+    // map and expo-router does the encoding.
+    router.push(
+      contextKey
+        ? { pathname: "/settings/help", params: { context: contextKey } }
+        : "/settings/help",
+    );
   };
 
   if (subtle) {
@@ -85,10 +88,13 @@ export function LearnMoreRow({ contextKey, label = "Learn more" }: Props) {
   const tint = uiTheme.primary;
 
   const handlePress = () => {
-    const href = contextKey
-      ? `/settings/help?context=${encodeURIComponent(contextKey)}`
-      : "/settings/help";
-    router.push(href as never);
+    // Object form rather than a hand-built query string: it typechecks against the route
+    // map and expo-router does the encoding.
+    router.push(
+      contextKey
+        ? { pathname: "/settings/help", params: { context: contextKey } }
+        : "/settings/help",
+    );
   };
 
   return (

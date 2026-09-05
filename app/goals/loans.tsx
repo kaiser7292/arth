@@ -208,7 +208,7 @@ export default function LoansListScreen() {
               <LoanCard
                 key={loan.id}
                 loan={loan}
-                onPress={() => router.push({ pathname: "/loans/[id]", params: { id: loan.id } } as never)}
+                onPress={() => router.push({ pathname: "/loans/[id]", params: { id: loan.id } })}
               />
             ))}
           </>
@@ -230,7 +230,7 @@ export default function LoansListScreen() {
               <LoanCard
                 key={loan.id}
                 loan={loan}
-                onPress={() => router.push({ pathname: "/loans/[id]", params: { id: loan.id } } as never)}
+                onPress={() => router.push({ pathname: "/loans/[id]", params: { id: loan.id } })}
               />
             ))}
           </>
@@ -239,7 +239,7 @@ export default function LoansListScreen() {
 
       <FAB
         icon="add"
-        onPress={() => router.push("/loans/add" as never)}
+        onPress={() => router.push("/loans/add")}
         accessibilityLabel="Add loan"
       />
     </ScreenContainer>

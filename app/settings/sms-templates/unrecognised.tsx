@@ -68,7 +68,7 @@ export default function UnrecognisedSmsScreen() {
           smsId: row.id,
           senderAddress: row.address,
         },
-      } as never);
+      });
     },
     [router],
   );

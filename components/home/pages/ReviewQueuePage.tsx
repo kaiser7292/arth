@@ -671,7 +671,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
           <Pressable onPress={() => router.back()} className="p-2">
             <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
           </Pressable>
-          <Pressable onPress={() => router.replace("/(tabs)" as never)} className="p-2" hitSlop={8} accessibilityLabel="Go to Home">
+          <Pressable onPress={() => router.replace("/(tabs)")} className="p-2" hitSlop={8} accessibilityLabel="Go to Home">
             <Ionicons name="home-outline" size={20} color={colors.tint} />
           </Pressable>
         </View>

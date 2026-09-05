@@ -72,7 +72,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
   return (
     <View>
       <Pressable
-        onPress={() => router.push("/reconciliation/bank-accounts" as never)}
+        onPress={() => router.push("/reconciliation/bank-accounts")}
         accessibilityLabel="View bank account details"
         accessibilityRole="button"
       >

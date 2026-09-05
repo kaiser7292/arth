@@ -146,7 +146,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
       <Pressable
         onPress={() =>
           router.push({
-            pathname: "/budget/transactions" as never,
+            pathname: "/budget/transactions",
             params: { filterMonth: month, title: "Expenses" },
           })
         }
@@ -258,7 +258,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
           <Pressable
             onPress={() =>
               router.push({
-                pathname: "/budget/transactions" as never,
+                pathname: "/budget/transactions",
                 params: { filterMonth: month, filterAvoidability: "unavoidable", title: "Unavoidable Expenses" },
               })
             }

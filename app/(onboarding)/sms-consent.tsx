@@ -24,7 +24,7 @@ export default function OnboardingSmsConsent() {
   const theme = useTheme();
   const [requesting, setRequesting] = useState(false);
 
-  const advance = () => router.push("/(onboarding)/accounts-preview" as never);
+  const advance = () => router.push("/(onboarding)/accounts-preview");
 
   const handleGrant = async () => {
     setRequesting(true);
@@ -44,7 +44,7 @@ export default function OnboardingSmsConsent() {
 
   const handleSkipAll = () => {
     setOnboardingCompletedVersion(getCurrentAppVersion());
-    router.replace("/(tabs)" as never);
+    router.replace("/(tabs)");
   };
 
   return (

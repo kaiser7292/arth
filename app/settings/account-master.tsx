@@ -135,7 +135,7 @@ export default function AccountMasterScreen() {
           const { getLoanByFinancialAccountId } = await import("@/services/loan-accounts");
           const loan = await getLoanByFinancialAccountId(account.id);
           if (loan) {
-            router.push({ pathname: "/loans/[id]", params: { id: loan.id } } as never);
+            router.push({ pathname: "/loans/[id]", params: { id: loan.id } });
             return;
           }
         } catch {

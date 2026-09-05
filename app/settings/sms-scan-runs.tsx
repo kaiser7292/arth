@@ -489,7 +489,7 @@ export default function SmsScanRunsScreen() {
                     prefilledBody: detail.sms_body_preview!,
                     senderAddress: detail.sms_address ?? undefined,
                   },
-                } as never);
+                });
               }}
               className="flex-row items-center mt-2 pt-2 border-t border-border"
             >

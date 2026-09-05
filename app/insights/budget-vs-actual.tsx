@@ -199,7 +199,7 @@ export default function BudgetVsActualScreen() {
           expenseIds: ids.join(","),
           title: `${row.categoryName} · ${getPeriodLabel(period)}`,
         },
-      } as never);
+      });
     } catch {
       // silently ignore — DB not ready
     }

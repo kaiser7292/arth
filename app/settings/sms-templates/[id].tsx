@@ -74,7 +74,7 @@ export default function EditSmsTemplateScreen() {
           manualRegex: manualRegexValue,
           defaultPaymentModeId: t.default_payment_mode_id ?? null,
         });
-        router.replace("/settings/sms-templates/tag" as never);
+        router.replace("/settings/sms-templates/tag");
       } catch (e) {
         alert(
           "Couldn't load template",

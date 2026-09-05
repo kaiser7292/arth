@@ -1519,7 +1519,7 @@ export default function ExpenseDetailScreen() {
             <Pressable onPress={() => router.back()} className="p-2">
               <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
             </Pressable>
-            <Pressable onPress={() => router.replace("/(tabs)" as never)} className="p-2" hitSlop={8} accessibilityLabel="Go to Home">
+            <Pressable onPress={() => router.replace("/(tabs)")} className="p-2" hitSlop={8} accessibilityLabel="Go to Home">
               <Ionicons name="home-outline" size={20} color={colors.tint} />
             </Pressable>
           </View>
@@ -2780,7 +2780,7 @@ export default function ExpenseDetailScreen() {
                   </View>
                   <View className="flex-row mt-3 gap-2">
                     <Pressable
-                      onPress={() => router.push({ pathname: "/goals/investment-detail", params: { bucketId: investmentLink.investment_bucket_id } } as never)}
+                      onPress={() => router.push({ pathname: "/goals/investment-detail", params: { bucketId: investmentLink.investment_bucket_id } })}
                       className="flex-1 py-2 rounded-lg items-center"
                       style={{ backgroundColor: theme.primary }}
                       accessibilityRole="button"
@@ -2866,7 +2866,7 @@ export default function ExpenseDetailScreen() {
                   <View className="flex-row mt-3 gap-2">
                     <Pressable
                       onPress={() =>
-                        router.push({ pathname: "/loans/[id]", params: { id: loanLink.loan_account_id } } as never)
+                        router.push({ pathname: "/loans/[id]", params: { id: loanLink.loan_account_id } })
                       }
                       className="flex-1 py-2 rounded-lg items-center"
                       style={{ backgroundColor: theme.primary }}
@@ -2987,7 +2987,7 @@ export default function ExpenseDetailScreen() {
               {expense.applied_rule_id && appliedRuleSummary && (
                 <Pressable
                   onPress={() =>
-                    router.push(`/settings/smart-rules/${expense.applied_rule_id}` as never)
+                    router.push(`/settings/smart-rules/${expense.applied_rule_id}`)
                   }
                   className="mx-4 mt-3 p-3 rounded-xl flex-row items-center bg-card"
                   accessibilityRole="button"
@@ -3008,7 +3008,7 @@ export default function ExpenseDetailScreen() {
               {/* v14.7.0: Fulfilled-reminder badge + tap to detail + Undo. */}
               {expense.nature === "realized" && fulfilledRule && (
                 <Pressable
-                  onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${fulfilledRule.id}` as never)}
+                  onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${fulfilledRule.id}`)}
                   className="mx-4 mt-3 p-3 rounded-xl flex-row items-center"
                   style={{ backgroundColor: theme.success + "14" }}
                   accessibilityRole="button"

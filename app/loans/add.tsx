@@ -242,7 +242,7 @@ export default function AddLoanScreen() {
         await backfillPaidInstallments(savedLoanId, backfill);
       }
 
-      router.replace({ pathname: "/loans/[id]", params: { id: savedLoanId } } as never);
+      router.replace({ pathname: "/loans/[id]", params: { id: savedLoanId } });
     } catch (e) {
       alert(isEdit ? "Couldn't update loan" : "Couldn't save loan", formatError("Save loan", e));
       setSaving(false);

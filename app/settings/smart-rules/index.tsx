@@ -68,7 +68,7 @@ export default function SmartRulesListScreen() {
     async (rule: SmartRule) => {
       try {
         const newId = await duplicateRule(rule.id);
-        router.push(`/settings/smart-rules/${newId}` as never);
+        router.push(`/settings/smart-rules/${newId}`);
       } catch (e) {
         alert("Couldn't duplicate", getErrorMessage(e));
       }
@@ -275,7 +275,7 @@ export default function SmartRulesListScreen() {
           <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}>
             {rules.map((item) => (
               <Card key={item.id} className="mb-3">
-                <Pressable onPress={() => router.push(`/settings/smart-rules/${item.id}` as never)}>
+                <Pressable onPress={() => router.push(`/settings/smart-rules/${item.id}`)}>
                   <View className="flex-row items-center mb-2">
                     <View className="flex-1">
                       <Text className={`text-base font-semibold ${item.is_active ? "text-foreground" : "text-faint-foreground"}`}>
@@ -298,7 +298,7 @@ export default function SmartRulesListScreen() {
                 </Pressable>
                 <View className="flex-row mt-3 pt-3 border-t border-border" style={{ gap: 0 }}>
                   <Pressable
-                    onPress={() => router.push(`/settings/smart-rules/${item.id}` as never)}
+                    onPress={() => router.push(`/settings/smart-rules/${item.id}`)}
                     hitSlop={4}
                     className="flex-1 items-center py-1"
                   >
@@ -306,7 +306,7 @@ export default function SmartRulesListScreen() {
                     <Text className="text-xs mt-0.5" style={{ color: accentColor }}>Edit</Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => router.push(`/settings/smart-rules/applications/${item.id}` as never)}
+                    onPress={() => router.push(`/settings/smart-rules/applications/${item.id}`)}
                     hitSlop={4}
                     className="flex-1 items-center py-1"
                   >
@@ -340,7 +340,7 @@ export default function SmartRulesListScreen() {
 
         <FAB
           icon="add"
-          onPress={() => router.push("/settings/smart-rules/new" as never)}
+          onPress={() => router.push("/settings/smart-rules/new")}
           accessibilityLabel="Create new smart rule"
         />
       </View>

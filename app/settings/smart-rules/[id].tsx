@@ -341,7 +341,7 @@ export default function SmartRuleDetailScreen() {
         const newId = await createRule(input);
         setSaving(false);
         // Navigate to the new rule's page and offer apply-to-past
-        router.replace(`/settings/smart-rules/${newId}?initialRetro=1` as never);
+        router.replace(`/settings/smart-rules/${newId}?initialRetro=1`);
       } else {
         await updateRule(id, input);
         setSaving(false);
