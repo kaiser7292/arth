@@ -6,10 +6,10 @@
  */
 
 import { useState, useCallback } from "react";
-import { View, Text, Switch, ScrollView } from "react-native";
+import { View, Switch, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAlert } from "@/hooks/use-alert";
-import { ScreenContainer, Card } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { DEFAULT_USER_ID } from "@/constants/app";

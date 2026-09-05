@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { View, Text, Pressable, Modal } from "react-native";
+import { View, Pressable, Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useSharedValue,
@@ -9,7 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
-import { Button } from "@/components/ui";
+import { Button, Text } from "@/components/ui";
 import { formatAmount } from "@/utils/format";
 import {
   type LoanAccount,

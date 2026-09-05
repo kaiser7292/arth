@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, ProgressBar, PeriodNavigator } from "@/components/ui";
+import { PeriodNavigator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { getCategories } from "@/services/category";
 import { getBudgetsForMonth, getCurrentMonth } from "@/services/budget";

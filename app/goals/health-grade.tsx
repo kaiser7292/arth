@@ -1,7 +1,7 @@
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { ac } from "@/utils/accent";

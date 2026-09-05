@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { View, Text, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-native";
+import { View, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";

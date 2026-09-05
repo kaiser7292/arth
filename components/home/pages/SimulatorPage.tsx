@@ -1,17 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-  TextInput,
-  Modal,
-  KeyboardAvoidingView,
-} from "react-native";
+import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card } from "@/components/ui";
+import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

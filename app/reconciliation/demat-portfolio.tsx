@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { acAlpha } from "@/utils/accent";

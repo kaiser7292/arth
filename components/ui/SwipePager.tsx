@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Pressable, ScrollView, Text, View } from "react-native";
+import { Text } from "./Text";
+import { Animated, Pressable, ScrollView, View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export interface SwipePagerPage {

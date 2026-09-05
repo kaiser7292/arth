@@ -6,11 +6,11 @@
  */
 
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ScreenContainer, Card, DateInput, Button } from "@/components/ui";
+import { Button, Card, DateInput, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getDateRangeComparison, getComparisonPresets, getComparisonExpenseIds } from "@/services/comparison-insights";
 import type { ComparisonResult, ComparisonPreset, ComparisonDrillFilter } from "@/services/comparison-insights";

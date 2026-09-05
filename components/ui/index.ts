@@ -28,3 +28,5 @@ export type { SwipePagerPage } from "./SwipePager";
 export { SwipeableRow } from "./SwipeableRow";
 export { TimePickerModal } from "./TimePickerModal";
 export { WidgetCard } from "./WidgetCard";
+export { Text, Money } from "./Text";
+export type { TextProps, MoneyProps } from "./Text";

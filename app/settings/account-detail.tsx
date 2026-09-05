@@ -1,10 +1,10 @@
 import { useState, useCallback, useRef } from "react";
 import { logger } from "@/utils/logger";
-import { View, Text, ScrollView, Pressable, Keyboard, RefreshControl } from "react-native";
+import { View, ScrollView, Pressable, Keyboard, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, Button, DateInput, PeriodNavigator } from "@/components/ui";
+import { Button, Card, DateInput, Input, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { BalanceSourceCard } from "@/components/account/BalanceSourceCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";

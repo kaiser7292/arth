@@ -1,16 +1,10 @@
 import { useState, useCallback, useMemo } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  Pressable,
-} from "react-native";
+import { View, FlatList, TextInput, Pressable } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button, PeriodNavigator } from "@/components/ui";
+import { Button, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";

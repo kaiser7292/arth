@@ -1,4 +1,4 @@
-import { Card, ScreenContainer } from '@/components/ui';
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { StatusColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAlert } from '@/hooks/use-alert';
@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { WebView } from 'react-native-webview';
 
 export default function KiteConnectScreen() {

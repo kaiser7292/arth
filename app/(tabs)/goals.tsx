@@ -1,4 +1,4 @@
-import { Card, ContextualHeader, LoadingState, ScreenContainer } from "@/components/ui";
+import { Card, ContextualHeader, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -19,7 +19,7 @@ import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 
 // Consume preload once at module level (single-use, clears the cache slot)
 const preloaded = consumeGoalsPreload();

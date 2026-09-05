@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, Pressable, ScrollView, ActivityIndicator, Switch, TextInput } from "react-native";
+import { View, Pressable, ScrollView, ActivityIndicator, Switch, TextInput } from "react-native";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { DateInput, ScreenContainer } from "@/components/ui";
+import { DateInput, ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";

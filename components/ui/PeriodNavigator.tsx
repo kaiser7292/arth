@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
-import { View, Text, Pressable, Modal, FlatList } from "react-native";
+import { Text } from "./Text";
+import { View, Pressable, Modal, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";

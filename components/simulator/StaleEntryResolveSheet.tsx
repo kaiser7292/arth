@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, TextInput, Pressable, Modal, FlatList, ActivityIndicator } from "react-native";
+import { Text } from "@/components/ui";
+import { View, TextInput, Pressable, Modal, FlatList, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,

@@ -1,5 +1,5 @@
 import { Toggle } from "@/components/goals";
-import { Button, Input, ScreenContainer } from "@/components/ui";
+import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { StatusColors } from "@/constants/theme";
 import { useAlert } from "@/hooks/use-alert";
@@ -22,13 +22,7 @@ import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-    KeyboardAvoidingView,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 
 export default function PrepaymentForm() {
   const { id, prepaymentId } = useLocalSearchParams<{ id: string; prepaymentId?: string }>();

@@ -1,4 +1,4 @@
-import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ScreenContainer } from "@/components/ui";
+import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ScreenContainer, Text } from "@/components/ui";
 import { StatusColors } from "@/constants/theme";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -25,13 +25,7 @@ import { formatLocalDate } from "@/utils/fiscal-year";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import {
-    KeyboardAvoidingView,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 
 export default function InvestmentDetailScreen() {
   const router = useRouter();

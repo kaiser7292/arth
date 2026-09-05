@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import { View, FlatList, ActivityIndicator } from "react-native";
 import { Stack, useLocalSearchParams, useFocusEffect } from "expo-router";
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";

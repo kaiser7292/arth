@@ -1,14 +1,9 @@
 import { useState, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-} from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, PeriodNavigator, MetricRow, LoadingState } from "@/components/ui";
+import { Card, LoadingState, MetricRow, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   deriveYearlyPlan,

@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
-import { View, Text, FlatList, Pressable, TextInput } from "react-native";
+import { View, FlatList, Pressable, TextInput } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, FAB, Button } from "@/components/ui";
+import { Button, Card, FAB, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { DEFAULT_USER_ID } from "@/constants/app";

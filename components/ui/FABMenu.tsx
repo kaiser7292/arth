@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Pressable, View, Text, Platform } from "react-native";
+import { Text } from "./Text";
+import { Pressable, View, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";

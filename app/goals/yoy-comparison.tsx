@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, ScrollView } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, LoadingState } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { getYearlyPlans, getBucketsByFY } from "@/services/yearly-plan";
 import { getExpenseTotal } from "@/services/expense";
 import { getSavingsSnapshot } from "@/services/savings-tracker";

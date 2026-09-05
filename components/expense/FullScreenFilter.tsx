@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { View, Text, Pressable, ScrollView, TextInput, Modal } from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable, ScrollView, TextInput, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

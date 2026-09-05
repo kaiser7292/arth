@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Pressable, Text, ActivityIndicator } from "react-native";
+import { Text } from "./Text";
+import { Pressable, ActivityIndicator } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";

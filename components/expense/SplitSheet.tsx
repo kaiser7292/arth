@@ -6,17 +6,9 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import {
-  View,
-  Text,
-  Pressable,
-  Modal,
-  ScrollView,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";

@@ -1,7 +1,7 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button } from "@/components/ui";
+import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";
 import {

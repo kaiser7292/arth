@@ -1,21 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  TextInput,
-  Modal,
-  FlatList,
-  Switch,
-  Dimensions,
-  Keyboard,
-} from "react-native";
+import { View, ScrollView, Pressable, TextInput, Modal, FlatList, Switch, Dimensions, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button, Input } from "@/components/ui";
+import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";
 import { formatError } from "@/utils/error-message";

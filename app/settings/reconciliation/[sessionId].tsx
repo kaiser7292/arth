@@ -1,12 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import {
-  ActivityIndicator, Modal, Pressable,
-  Text, View, ScrollView,
-} from "react-native";
+import { ActivityIndicator, Modal, Pressable, View, ScrollView } from "react-native";
 import * as Sharing from "expo-sharing";
-import { Card, DateInput, ScreenContainer } from "@/components/ui";
+import { Card, DateInput, ScreenContainer, Text } from "@/components/ui";
 import { useAlert, type AlertButton } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";

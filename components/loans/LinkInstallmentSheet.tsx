@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Modal, Pressable, Text, TextInput, View } from "react-native";
+import { Text } from "@/components/ui";
+import { ActivityIndicator, FlatList, Modal, Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {

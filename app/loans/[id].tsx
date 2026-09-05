@@ -1,6 +1,6 @@
 import { ForeclosureQuoteSheet } from "@/components/loans/ForeclosureQuoteSheet";
 import { LinkInstallmentSheet } from "@/components/loans/LinkInstallmentSheet";
-import { Button, Card, LoadingState, MetricRow, ScreenContainer } from "@/components/ui";
+import { Button, Card, LoadingState, MetricRow, ScreenContainer, Text } from "@/components/ui";
 import { StatusColors } from "@/constants/theme";
 import { getDatabase } from "@/database";
 import { useAlert } from "@/hooks/use-alert";
@@ -28,7 +28,7 @@ import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 const STATUS_PILL_COLOR: Record<string, "success" | "danger" | "warning" | "info"> = {
   paid: "success",

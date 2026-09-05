@@ -2,8 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
-import { Card, ScreenContainer } from "@/components/ui";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {

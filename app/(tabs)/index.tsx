@@ -5,7 +5,7 @@ import { InsightsPage } from "@/components/home/pages/InsightsPage";
 import { ReviewQueuePage } from "@/components/home/pages/ReviewQueuePage";
 import { VaultPage } from "@/components/home/pages/VaultPage";
 import { SimulatorPage } from "@/components/home/pages/SimulatorPage";
-import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { ForecastActionBar } from "@/components/expense/ForecastActionBar";
@@ -18,7 +18,7 @@ import { LoanSummaryCard } from "@/components/home/LoanSummaryCard";
 import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
 import { PensionSummaryCard } from "@/components/home/PensionSummaryCard";
 import { WalletSummary } from "@/components/home/WalletSummary";
-import { Card, ContextualHeader, ProgressBar, ScreenContainer, StatusPill, SwipePager } from "@/components/ui";
+import { Card, ContextualHeader, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text } from "@/components/ui";
 import type { SwipePagerPage } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";

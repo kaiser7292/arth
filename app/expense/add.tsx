@@ -9,7 +9,7 @@ import {
 } from "@/components/expense/ExpenseFormFields";
 import { SplitSheet } from "@/components/expense/SplitSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
-import { Button, Input, ScreenContainer } from "@/components/ui";
+import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -49,14 +49,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-    Keyboard,
-    KeyboardAvoidingView,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 
 
 

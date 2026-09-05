@@ -1,8 +1,9 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Text } from "./Text";
 import { settingsStorage as storage } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from "react-native";
+import { LayoutAnimation, Platform, Pressable, UIManager, View } from "react-native";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {

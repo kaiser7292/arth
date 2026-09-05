@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, Text, FlatList, Pressable, RefreshControl, Modal } from "react-native";
+import { View, FlatList, Pressable, RefreshControl, Modal } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, ProgressBar, Card, LoadingState } from "@/components/ui";
+import { Card, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { TrendBarChart } from "@/components/charts/TrendBarChart";

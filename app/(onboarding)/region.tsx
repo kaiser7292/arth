@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { View, Text, ScrollView, Pressable, TextInput, FlatList } from "react-native";
+import { View, ScrollView, Pressable, TextInput, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button, Card } from "@/components/ui";
+import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";
 import {

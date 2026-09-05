@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Card } from "@/components/ui";
+import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/expense-validation";
 import type { SalaryCalculation } from "@/services/tax-engine";

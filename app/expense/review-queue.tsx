@@ -2,7 +2,7 @@ import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DuplicateGroupCard } from "@/components/expense/DuplicateGroupCard";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
 import { ForecastMatchCard } from "@/components/expense/ForecastMatchCard";
-import { LearnMoreChip, LoadingState, ScreenContainer } from "@/components/ui";
+import { LearnMoreChip, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useAlert } from "@/hooks/use-alert";
@@ -39,7 +39,7 @@ import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import { FlatList, Pressable, ScrollView, View } from "react-native";
 
 type SectionFilter = "all" | "auto" | "matched" | "overdue" | "upcoming" | "duplicates" | "uncategorized";
 

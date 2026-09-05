@@ -1,8 +1,8 @@
 import { useState, useRef } from "react";
-import { View, Text, ScrollView, Pressable, Keyboard } from "react-native";
+import { View, ScrollView, Pressable, Keyboard } from "react-native";
 import { useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
-import { ScreenContainer, Button, Input, DateInput } from "@/components/ui";
+import { Button, DateInput, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";
 import { formatError } from "@/utils/error-message";

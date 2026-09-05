@@ -1,13 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  Modal,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, Pressable, Modal, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
@@ -18,7 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
-import { Input } from "@/components/ui";
+import { Input, Text } from "@/components/ui";
 import { ac, acAlpha } from "@/utils/accent";
 import { formatAmount } from "@/utils/format";
 import {

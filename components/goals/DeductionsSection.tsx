@@ -1,6 +1,6 @@
-import { View, Text } from "react-native";
+import { View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Card, Input, CollapsibleSection } from "@/components/ui";
+import { Card, CollapsibleSection, Input, Text } from "@/components/ui";
 import { formatAmount } from "@/utils/expense-validation";
 import type { SalaryCalculation, CapitalGainsTaxResult, BonusTaxResult } from "@/services/tax-engine";
 import { BreakdownRow } from "./salary-helpers";

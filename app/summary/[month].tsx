@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, LoadingState, PeriodNavigator } from "@/components/ui";
+import { Card, LoadingState, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { getCategories } from "@/services/category";

@@ -1,19 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from "react-native";
+import { View, TextInput, ScrollView, Pressable, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";

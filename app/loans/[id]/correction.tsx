@@ -1,4 +1,4 @@
-import { Button, Input, ScreenContainer } from "@/components/ui";
+import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -16,14 +16,7 @@ import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 
 export default function CorrectionForm() {
   const { id, correctionId } = useLocalSearchParams<{ id: string; correctionId?: string }>();

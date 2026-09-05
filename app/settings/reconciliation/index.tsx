@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
-import { FAB, ProgressBar, ScreenContainer } from "@/components/ui";
+import { ActivityIndicator, FlatList, Pressable, View } from "react-native";
+import { FAB, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";

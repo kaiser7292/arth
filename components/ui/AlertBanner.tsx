@@ -1,4 +1,5 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
+import { Text } from "./Text";
 import { Ionicons } from "@expo/vector-icons";
 import type { AlertSeverity } from "@/utils/course-correction";
 import { useColorScheme } from "@/hooks/use-color-scheme";

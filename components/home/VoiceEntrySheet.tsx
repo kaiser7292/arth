@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Pressable, Text, View } from "react-native";
+import { Text } from "@/components/ui";
+import { Animated, Pressable, View } from "react-native";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Ionicons } from "@expo/vector-icons";
 import * as Speech from "expo-speech";

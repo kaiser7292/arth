@@ -1,4 +1,4 @@
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
@@ -11,7 +11,7 @@ import type {
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import { ScrollView, Text, View, Pressable } from "react-native";
+import { ScrollView, View, Pressable } from "react-native";
 
 const SEVERITY_COLORS = {
   critical: { border: "#EF4444", bg: "#FEF2F2", bgDark: "#3B0000", text: "#991B1B", textDark: "#FCA5A5", icon: "warning-outline" as const },

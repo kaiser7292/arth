@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui";
+import { Card, Text } from "@/components/ui";
 import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { FinancialAccount } from "@/services/financial-account";
@@ -7,7 +7,7 @@ import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { memo } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 interface PensionSummaryCardProps {
   accounts: FinancialAccount[];

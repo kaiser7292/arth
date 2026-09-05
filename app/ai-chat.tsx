@@ -1,4 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Text } from "@/components/ui";
 import {
   chatWithAI,
   initAIContext,
@@ -19,17 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  AppState,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 
 const CHAT_HISTORY_KEY = "arth_ai_chat_history";
 const MAX_STORED = 30;

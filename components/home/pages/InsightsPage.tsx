@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, RefreshControl } from "react-native";
+import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Card, SectionHeader, LoadingState, EmptyState } from "@/components/ui";
+import { Card, EmptyState, LoadingState, SectionHeader, Text } from "@/components/ui";
 import { ForecastBreakdown } from "@/components/analytics/ForecastBreakdown";
 import { InsightCard } from "@/components/analytics/InsightCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";

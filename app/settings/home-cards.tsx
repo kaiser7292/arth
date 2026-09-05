@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import { View, Text, Pressable, ScrollView, Switch } from "react-native";
-import { ScreenContainer, Card } from "@/components/ui";
+import { View, Pressable, ScrollView, Switch } from "react-native";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   HOME_CARDS,

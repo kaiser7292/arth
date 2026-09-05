@@ -1,4 +1,4 @@
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import {
     CURRENCIES,
     DATE_FORMATS,
@@ -25,7 +25,7 @@ import { formatAmountPreview } from "@/utils/format";
 import { formatDateTimeInTimezone } from "@/utils/timezone";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
 
 const FY_OPTIONS: Array<{ month: number; label: string; region: string }> = [
   { month: 1, label: "January", region: "Calendar year" },

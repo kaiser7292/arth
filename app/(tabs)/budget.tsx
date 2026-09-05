@@ -1,8 +1,8 @@
 import { useState, useCallback, useMemo, useRef } from "react";
-import { View, Text, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput } from "react-native";
+import { View, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ContextualHeader, ScreenContainer, ProgressBar, StatusPill, WidgetCard, PeriodNavigator, SwipePager } from "@/components/ui";
+import { ContextualHeader, PeriodNavigator, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text, WidgetCard } from "@/components/ui";
 import { SpendingSplitPage } from "@/components/budget/SpendingSplitPage";
 import { MonthlySummaryPage } from "@/components/budget/MonthlySummaryPage";
 import { useColorScheme } from "@/hooks/use-color-scheme";

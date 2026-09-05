@@ -6,7 +6,7 @@
  */
 
 import { ExportFormatPicker } from "@/components/hisaab/ExportFormatPicker";
-import { Button, Card, EmptyState, FAB, Input, LoadingState, ScreenContainer } from "@/components/ui";
+import { Button, Card, EmptyState, FAB, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useAlert } from "@/hooks/use-alert";
@@ -24,14 +24,7 @@ import { formatAmount } from "@/utils/expense-validation";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-    Keyboard,
-    KeyboardAvoidingView,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 
 type ViewMode = "list" | "add_person";
 

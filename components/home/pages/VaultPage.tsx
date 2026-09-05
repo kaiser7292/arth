@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, SectionList, Text, TextInput, View } from "react-native";
-import { LoadingState } from "@/components/ui";
+import { FlatList, Pressable, SectionList, TextInput, View } from "react-native";
+import { LoadingState, Text } from "@/components/ui";
 import { VaultIcon } from "@/components/ui/VaultIcon";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";

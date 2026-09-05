@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import { View, FlatList, ActivityIndicator } from "react-native";
 import { Stack, useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getRule } from "@/services/smart-rules";

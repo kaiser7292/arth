@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from "react";
-import { View, Text, Pressable, ScrollView, RefreshControl } from "react-native";
+import { View, Pressable, ScrollView, RefreshControl } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, FAB, LoadingState } from "@/components/ui";
+import { Card, FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";

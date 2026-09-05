@@ -1,6 +1,6 @@
 import { HisaabInclusionSheet } from "@/components/simulator/HisaabInclusionSheet";
 import { StaleEntryResolveSheet } from "@/components/simulator/StaleEntryResolveSheet";
-import { Card, FAB, ScreenContainer } from "@/components/ui";
+import { Card, FAB, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
@@ -43,15 +43,7 @@ import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-    ActivityIndicator,
-    Modal,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
-} from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 
 function prettyDate(ymd: string): string {
   if (!ymd) return "";

@@ -1,9 +1,10 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Text } from "./Text";
 import { getFlag } from "@/services/feature-flags";
 import { ac } from "@/utils/accent";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 /**
  * Inline chip that jumps into the help center, optionally scoped to a

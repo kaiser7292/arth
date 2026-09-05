@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import { View, ScrollView, Pressable, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { Input, DateInput } from "@/components/ui";
+import { DateInput, Input, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { ac } from "@/utils/accent";

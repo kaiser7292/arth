@@ -1,17 +1,11 @@
 import { useState, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useBackOverride } from "@/hooks/use-back-override";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  KeyboardAvoidingView,
-} from "react-native";
+import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, Button, DateInput, FAB, LoadingState } from "@/components/ui";
+import { Button, Card, DateInput, FAB, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac, acAlpha } from "@/utils/accent";
 import { StatusColors } from "@/constants/theme";

@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { View, Text, Pressable } from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";

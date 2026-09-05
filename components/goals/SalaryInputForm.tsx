@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, Input } from "@/components/ui";
+import { Card, Input, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac, acAlpha } from "@/utils/accent";
 import { Toggle, StatePicker } from "./salary-helpers";

@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, LoadingState } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { ac, acAlpha } from "@/utils/accent";

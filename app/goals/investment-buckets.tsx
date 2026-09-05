@@ -1,13 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useBackOverride } from "@/hooks/use-back-override";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  KeyboardAvoidingView,
-} from "react-native";
+import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
 import { useAlert } from "@/hooks/use-alert";
 import {
   useLocalSearchParams,
@@ -15,7 +9,7 @@ import {
   useRouter,
 } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, Button, FAB, PeriodNavigator, LoadingState } from "@/components/ui";
+import { Button, Card, FAB, Input, LoadingState, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import {
   getYearlyPlanByFY,
   getInvestmentBuckets,

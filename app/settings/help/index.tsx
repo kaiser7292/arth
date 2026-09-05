@@ -1,4 +1,4 @@
-import { Card, ScreenContainer } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
     getContextualArticles,
@@ -12,7 +12,7 @@ import { ac } from "@/utils/accent";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Keyboard, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
 
 /**
  * Help Center home. Two modes:

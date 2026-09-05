@@ -1,16 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-  BackHandler,
-} from "react-native";
+import { View, TextInput, FlatList, Pressable, ActivityIndicator, BackHandler } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, ScreenContainer } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { DEFAULT_USER_ID } from "@/constants/app";

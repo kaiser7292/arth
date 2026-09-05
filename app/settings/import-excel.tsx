@@ -1,18 +1,12 @@
 import { useState, useCallback } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-} from "react-native";
+import { View, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { ScreenContainer, Button } from "@/components/ui";
+import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";
 import { StatusColors } from "@/constants/theme";

@@ -1,7 +1,7 @@
 import { useMemo, useLayoutEffect, useCallback } from "react";
-import { Text, ScrollView } from "react-native";
+import { ScrollView } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import { SimpleMarkdown } from "@/components/ui/SimpleMarkdown";
 import { getArticleMeta } from "@/services/docs";
 import { loadArticleBody } from "@/services/docs/articles";

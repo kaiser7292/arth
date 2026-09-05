@@ -1,4 +1,5 @@
 import { StatusColors } from "@/constants/theme";
+import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Category } from "@/services/category";
 import type { Expense } from "@/services/expense";
@@ -9,7 +10,7 @@ import { ac } from "@/utils/accent";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 interface ExpenseListItemProps {
   expense: Expense;

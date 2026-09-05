@@ -1,6 +1,6 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac, acAlpha } from "@/utils/accent";
 import { StatusColors } from "@/constants/theme";

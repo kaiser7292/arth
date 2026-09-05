@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ScreenContainer, Card, SectionHeader, LoadingState } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { DrillGroupRow } from "@/components/analytics/DrillGroupRow";

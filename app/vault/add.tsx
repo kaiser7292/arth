@@ -1,15 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { Card, ScreenContainer } from "@/components/ui";
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";

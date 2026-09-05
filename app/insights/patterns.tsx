@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { ScreenContainer, Card, SectionHeader, LoadingState, AlertBanner } from "@/components/ui";
+import { AlertBanner, Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { PatternEditSheet } from "@/components/analytics/PatternEditSheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";

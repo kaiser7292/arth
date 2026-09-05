@@ -9,12 +9,12 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
-import { View, Text, Pressable, Modal, ActivityIndicator, Platform } from "react-native";
+import { View, Pressable, Modal, ActivityIndicator, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { useAlert } from "@/hooks/use-alert";
-import { DateInput } from "@/components/ui";
+import { DateInput, Text } from "@/components/ui";
 import { ac, acAlpha } from "@/utils/accent";
 import * as Sharing from "expo-sharing";
 import { generatePersonPDF } from "@/services/hisaab-export-pdf";

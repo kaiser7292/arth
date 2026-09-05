@@ -1,6 +1,6 @@
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
-import { Button, Card, DateInput, FABMenu, FilterChip, Input, PeriodNavigator, ScreenContainer } from "@/components/ui";
+import { Button, Card, DateInput, FABMenu, FilterChip, Input, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
@@ -45,7 +45,7 @@ import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
 
 interface LedgerEntry {
   id: string;

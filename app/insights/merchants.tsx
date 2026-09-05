@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
-import { View, Text, Pressable, FlatList } from "react-native";
+import { View, Pressable, FlatList } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ScreenContainer, Card, ProgressBar } from "@/components/ui";
+import { Card, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getMerchantAnalytics, getMerchantDetail } from "@/services/spending-insights";
 import { getCategories } from "@/services/category";

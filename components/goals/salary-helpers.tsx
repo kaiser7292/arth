@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { Text } from "@/components/ui";
+import { View, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";

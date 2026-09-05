@@ -1,18 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-  TextInput,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, LoadingState } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/hooks/use-alert";

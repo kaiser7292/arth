@@ -1,4 +1,4 @@
-import { Card, ContextualHeader, DateInput, LearnMoreChip, ScreenContainer } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, LearnMoreChip, ScreenContainer, Text } from "@/components/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
@@ -39,7 +39,7 @@ import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, Switch, View } from "react-native";
 
 const SMS_DATE_PRESETS = [
   { label: "Today", daysBack: 0 },

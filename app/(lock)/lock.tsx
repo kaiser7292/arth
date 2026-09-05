@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/theme";
+import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
     clearAppStartTime,
@@ -13,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 
 /**
  * v15.2.0 biometric lock screen.

@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, KeyboardAvoidingView, Platform, RefreshControl } from "react-native";
+import { View, ScrollView, Pressable, KeyboardAvoidingView, Platform, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, DateInput, PeriodNavigator, FAB } from "@/components/ui";
+import { Card, DateInput, FAB, Input, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { StatusColors } from "@/constants/theme";

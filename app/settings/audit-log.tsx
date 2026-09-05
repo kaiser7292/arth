@@ -1,4 +1,4 @@
-import { Card, FilterChip, ScreenContainer } from "@/components/ui";
+import { Card, FilterChip, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -15,7 +15,7 @@ import { formatDateTimeInTimezone } from "@/utils/timezone";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, SectionList, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, SectionList, TextInput, View } from "react-native";
 
 /**
  * Settings → Automation → Audit Log (v15.12.1 new).

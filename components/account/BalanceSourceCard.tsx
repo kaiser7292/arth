@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, Pressable, Modal, ScrollView } from "react-native";
+import { View, Pressable, Modal, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, Button } from "@/components/ui";
+import { Button, Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { formatAmount } from "@/utils/format";

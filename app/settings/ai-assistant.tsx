@@ -1,4 +1,4 @@
-import { Card, ScreenContainer } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -31,7 +31,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
 
 type Phase = "idle" | "downloading" | "cancelling";
 

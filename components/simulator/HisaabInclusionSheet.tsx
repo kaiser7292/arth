@@ -1,15 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  Modal,
-  TextInput,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable, Modal, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,

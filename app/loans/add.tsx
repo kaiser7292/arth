@@ -1,18 +1,10 @@
 import { useState, useCallback, useMemo } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  KeyboardAvoidingView,
-  Pressable,
-  Modal,
-  Platform,
-} from "react-native";
+import { View, ScrollView, KeyboardAvoidingView, Pressable, Modal, Platform } from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, Button } from "@/components/ui";
+import { Button, Card, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Toggle } from "@/components/goals";
 import { CalendarModal } from "@/components/ui/CalendarModal";

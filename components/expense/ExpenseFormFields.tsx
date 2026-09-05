@@ -1,4 +1,5 @@
 import { CalendarModal } from "@/components/ui/CalendarModal";
+import { Text } from "@/components/ui";
 import { TYPE_ICONS } from "@/constants/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Category } from "@/services/category";
@@ -10,7 +11,7 @@ import { formatDateForDisplay, formatDateForStorage } from "@/utils/expense-vali
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
 
 // ---------------------------------------------------------------------------
 // Searchable Picker List — shared helper for all pickers

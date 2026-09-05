@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { View, Text, Pressable } from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable } from "react-native";
 
 export interface DonutSegment {
   label: string;

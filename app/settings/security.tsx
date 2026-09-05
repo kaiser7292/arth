@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, Pressable, Switch, ScrollView, ActivityIndicator } from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable, Switch, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";

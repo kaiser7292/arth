@@ -1,7 +1,7 @@
 import { useCallback } from "react";
-import { View, Text } from "react-native";
+import { View } from "react-native";
 import type { TextInputProps } from "react-native";
-import { Input } from "@/components/ui";
+import { Input, Text } from "@/components/ui";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";
 import { formatAmount } from "@/utils/format";
 import { useColorScheme } from "@/hooks/use-color-scheme";

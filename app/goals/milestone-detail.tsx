@@ -1,15 +1,9 @@
 import { useState, useCallback, useMemo } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  KeyboardAvoidingView,
-} from "react-native";
+import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, Button, DateInput, FAB, MetricRow, LoadingState } from "@/components/ui";
+import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   getLifeMilestoneById,

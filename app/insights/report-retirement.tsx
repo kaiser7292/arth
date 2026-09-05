@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, TextInput } from "react-native";
+import { View, ScrollView, Pressable, Alert, TextInput } from "react-native";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ScreenContainer, Card, SectionHeader, LoadingState } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { DEFAULT_USER_ID } from "@/constants/app";

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 

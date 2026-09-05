@@ -1,7 +1,7 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button } from "@/components/ui";
+import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";
 import { setOnboardingCompletedVersion } from "@/services/settings";

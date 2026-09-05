@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { TaggedField, TaggedSpan } from "@/services/sms/template-compiler";
 

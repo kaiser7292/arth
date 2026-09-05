@@ -1,4 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Text } from "@/components/ui";
 import type { Expense } from "@/services/expense";
 import { ac } from "@/utils/accent";
 import { formatDisplayDate as formatDate } from "@/utils/date";
@@ -6,7 +7,7 @@ import { formatDateTimeInTimezone } from "@/utils/timezone";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 const SOURCE_LABELS: Record<string, string> = {
   manual: "Manual",

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
-import { View, Text, Pressable, ScrollView, RefreshControl } from "react-native";
+import { View, Pressable, ScrollView, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, FAB, LoadingState } from "@/components/ui";
+import { Card, FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { PolicySheet } from "@/components/insurance/PolicySheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";

@@ -1,4 +1,5 @@
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { Text } from "@/components/ui";
 import { ALLOWED_DEEP_LINK_SCREENS } from "@/constants/routes";
 import { initDatabase } from "@/database";
 import { AlertProvider } from "@/hooks/use-alert";
@@ -23,7 +24,7 @@ import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as TaskManager from "expo-task-manager";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Appearance, AppState, BackHandler, Easing, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Appearance, AppState, BackHandler, Easing, ScrollView, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Circle, G, Rect, Svg } from "react-native-svg";
 import "../global.css";

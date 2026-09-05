@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { View, Text, Pressable, Modal } from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,

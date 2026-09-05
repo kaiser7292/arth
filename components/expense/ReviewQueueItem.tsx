@@ -1,9 +1,9 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";
 import { StatusColors } from "@/constants/theme";
-import { SwipeableRow } from "@/components/ui";
+import { SwipeableRow, Text } from "@/components/ui";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import type { Expense } from "@/services/expense";
 

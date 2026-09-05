@@ -1,15 +1,9 @@
 import { useState, useCallback, useMemo } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  TextInput,
-} from "react-native";
+import { View, ScrollView, Pressable, TextInput } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, FAB, FilterChip } from "@/components/ui";
+import { Card, FAB, FilterChip, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getAllAccountsWithModes } from "@/services/account-master";
 import type { AccountWithModes } from "@/services/account-master";

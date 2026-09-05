@@ -224,3 +224,53 @@ describe("type scale", () => {
     expect(px(TYPE.hero) / px(TYPE.body)).toBeGreaterThanOrEqual(2);
   });
 });
+
+/**
+ * Typeface routing guard.
+ *
+ * Inter is registered natively, but React Native applies no font family by default, so a bare
+ * <Text> from react-native silently renders in the system font. Every screen therefore imports
+ * Text from components/ui, which applies font-sans. A single stray react-native import is enough
+ * to leave one screen in the wrong typeface, and nothing else would catch it.
+ */
+describe("typeface routing", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const root = path.join(__dirname, "..", "..");
+
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const f = path.join(dir, e.name);
+      if (e.isDirectory()) walk(f);
+      else if (f.endsWith(".tsx")) files.push(f);
+    }
+  };
+  for (const d of ["app", "components"]) walk(path.join(root, d));
+
+  it("imports Text from the ui primitive, never from react-native", () => {
+    const offenders = files
+      .filter((f) => !f.endsWith(path.join("components", "ui", "Text.tsx")))
+      .filter((f) => {
+        const m = fs.readFileSync(f, "utf8").match(/import\s*\{([^}]*)\}\s*from\s*"react-native"/);
+        return m && m[1].split(",").map((x: string) => x.trim()).includes("Text");
+      })
+      .map((f: string) => path.relative(root, f));
+    expect(offenders).toEqual([]);
+  });
+
+  it("registers Inter as one Android family with real weights", () => {
+    // The flat `fonts` array would create four separate families and font-semibold would fall
+    // back to the system font instead of resolving to Inter SemiBold.
+    const appJson = JSON.parse(fs.readFileSync(path.join(root, "app.json"), "utf8"));
+    const font = appJson.expo.plugins.find(
+      (p: unknown) => Array.isArray(p) && p[0] === "expo-font",
+    );
+    expect(font).toBeDefined();
+    const family = font[1].android.fonts[0];
+    expect(family.fontFamily).toBe("Inter");
+    expect(family.fontDefinitions.map((d: { weight: number }) => d.weight)).toEqual([
+      400, 500, 600, 700,
+    ]);
+  });
+});

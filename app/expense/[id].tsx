@@ -21,7 +21,7 @@ import { RefundTargetSheet } from "@/components/expense/RefundTargetSheet";
 import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
 import { SplitSheet } from "@/components/expense/SplitSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
-import { Button, Input, LoadingState, ScreenContainer } from "@/components/ui";
+import { Button, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TYPE_ICONS } from "@/constants/icons";
 import { STATUS_COLORS } from "@/constants/semantic-colors";
@@ -115,15 +115,7 @@ import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { Keyboard, KeyboardAvoidingView, Modal, Pressable, ScrollView, View } from "react-native";
 import { listRules, applyRuleActionsToExpense } from "@/services/smart-rules";
 import type { SmartRule } from "@/services/smart-rules";
 

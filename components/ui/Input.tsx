@@ -1,4 +1,5 @@
-import { TextInput, View, Text } from "react-native";
+import { TextInput, View } from "react-native";
+import { Text } from "./Text";
 import type { TextInputProps } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";

@@ -1,5 +1,5 @@
 import { SearchablePickerList } from "@/components/expense/ExpenseFormFields";
-import { Button, Input, ScreenContainer } from "@/components/ui";
+import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -24,14 +24,7 @@ import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-    KeyboardAvoidingView,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
-} from "react-native";
+import { KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from "react-native";
 
 function prettyDate(ymd: string): string {
   if (!ymd) return "";

@@ -1,9 +1,9 @@
 import { useState, useCallback, useMemo } from "react";
-import { View, Text, ScrollView, Pressable, Modal } from "react-native";
+import { View, ScrollView, Pressable, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
-import { ScreenContainer, Card, LoadingState, EmptyState } from "@/components/ui";
+import { Card, EmptyState, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { StatusColors } from "@/constants/theme";

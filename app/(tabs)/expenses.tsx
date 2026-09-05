@@ -5,10 +5,10 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
-import { View, Text, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ContextualHeader, ScreenContainer, FABMenu, DateInput, EmptyState, Input, Card, SwipePager } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, Input, ScreenContainer, SwipePager, Text } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";

@@ -1,4 +1,5 @@
-import { View, Text, Pressable, LayoutChangeEvent } from "react-native";
+import { View, Pressable, LayoutChangeEvent } from "react-native";
+import { Text } from "@/components/ui";
 import { memo, useState, useCallback } from "react";
 import Svg, { Path, Circle, Defs, LinearGradient, Stop, G, Line } from "react-native-svg";
 import type { MonthlyTotal } from "@/services/expense";

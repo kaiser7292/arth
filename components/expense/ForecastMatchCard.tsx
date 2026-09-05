@@ -1,10 +1,11 @@
 import { StatusColors } from "@/constants/theme";
+import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { ForecastMatchPair } from "@/services/expense";
 import { ac } from "@/utils/accent";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 interface ForecastMatchCardProps {
   pair: ForecastMatchPair;

@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from "react-native";
-import { ScreenContainer } from "@/components/ui";
+import { ActivityIndicator, FlatList, Pressable, TextInput, View } from "react-native";
+import { ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getDatabase } from "@/database";
 import { updateItem } from "@/services/reconciliation/reconciliation-crud";

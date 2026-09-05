@@ -1,4 +1,5 @@
-import { View, Text, Linking } from "react-native";
+import { View, Linking } from "react-native";
+import { Text } from "./Text";
 
 /**
  * Minimal markdown renderer for in-app help articles.

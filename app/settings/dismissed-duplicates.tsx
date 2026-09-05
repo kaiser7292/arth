@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
-import { View, Text, ScrollView, ActivityIndicator, Pressable } from "react-native";
+import { View, ScrollView, ActivityIndicator, Pressable } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import { DuplicateGroupCard } from "@/components/expense/DuplicateGroupCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";

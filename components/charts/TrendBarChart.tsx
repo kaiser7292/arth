@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { View, Text, Pressable } from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable } from "react-native";
 import type { MonthlyTotal } from "@/services/expense";
 import { formatAmount } from "@/utils/expense-validation";
 
