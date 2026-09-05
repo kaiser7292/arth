@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { Text } from "@/components/ui";
 import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,7 +23,7 @@ function ActionSuggestionCardBase({
   
   const theme = useTheme();
 
-  const difficultyColor = difficulty === "Easy" ? STATUS_COLORS.success : difficulty === "Medium" ? STATUS_COLORS.warning : STATUS_COLORS.error;
+  const difficultyColor = difficulty === "Easy" ? theme.success : difficulty === "Medium" ? theme.warning : theme.danger;
 
   return (
     <View

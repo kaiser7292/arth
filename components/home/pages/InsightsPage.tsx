@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { BRAND_COLOR } from "@/constants/semantic-colors";
+
 import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -143,7 +143,7 @@ export function InsightsPage() {
           <QuickAction icon="repeat-outline" label="Patterns" onPress={() => router.push("/insights/patterns" as never)} color={theme.primary} />
           <QuickAction icon="storefront-outline" label="Merchants" onPress={() => router.push("/insights/merchants" as never)} color={theme.primary} />
           <QuickAction icon="bar-chart-outline" label="Budget" onPress={() => router.push("/insights/budget-vs-actual" as never)} color={theme.primary} />
-          <QuickAction icon="document-text-outline" label="Reports" onPress={() => router.push("/insights/reports" as never)} color={BRAND_COLOR} />
+          <QuickAction icon="document-text-outline" label="Reports" onPress={() => router.push("/insights/reports" as never)} color={theme.primary} />
         </View>
       </View>
 

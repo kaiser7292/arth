@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { View, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -44,7 +44,7 @@ interface SummaryData {
 export default function MonthlySummaryScreen() {
   const { month: monthParam } = useLocalSearchParams<{ month: string }>();
   const router = useRouter();
-  const { colors } = useColorScheme();
+  
   const theme = useTheme();
   const [month, setMonth] = useState(monthParam ?? "");
   const [data, setData] = useState<SummaryData | null>(null);
@@ -312,7 +312,7 @@ export default function MonthlySummaryScreen() {
                       className="h-full rounded-full"
                       style={{
                         width: `${tc.pctOfTotal}%`,
-                        backgroundColor: tc.category?.color ?? STATUS_COLORS.neutral,
+                        backgroundColor: tc.category?.color ?? theme.mutedForeground,
                       }}
                     />
                   </View>

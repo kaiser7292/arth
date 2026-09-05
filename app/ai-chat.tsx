@@ -1,5 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { Text } from "@/components/ui";
 import {
   chatWithAI,
@@ -348,7 +348,7 @@ export default function AIChatScreen() {
           </Text>
           <Text
             className="text-xs"
-            style={{ color: loadState === "ready" ? STATUS_COLORS.success : colors.textSecondary }}
+            style={{ color: loadState === "ready" ? theme.success : colors.textSecondary }}
           >
             {loadState === "ready"
               ? "On-device · private"

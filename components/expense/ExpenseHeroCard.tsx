@@ -1,5 +1,5 @@
 
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -185,18 +185,18 @@ export default function ExpenseHeroCard({
       {categoryName && (
         <View
           className="flex-row items-center px-3 py-1.5 rounded-full mt-3"
-          style={{ backgroundColor: (categoryColor ?? STATUS_COLORS.neutral) + "14" }}
+          style={{ backgroundColor: (categoryColor ?? theme.mutedForeground) + "14" }}
         >
           {categoryIcon && (
             <Ionicons
               name={categoryIcon as keyof typeof Ionicons.glyphMap}
               size={14}
-              color={categoryColor ?? STATUS_COLORS.neutral}
+              color={categoryColor ?? theme.mutedForeground}
             />
           )}
           <Text
             className="text-xs font-semibold ml-1.5"
-            style={{ color: categoryColor ?? STATUS_COLORS.neutral }}
+            style={{ color: categoryColor ?? theme.mutedForeground }}
           >
             {categoryName}
           </Text>

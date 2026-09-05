@@ -24,7 +24,7 @@ import { TagPicker } from "@/components/expense/TagPicker";
 import { Button, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TYPE_ICONS } from "@/constants/icons";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -2232,7 +2232,7 @@ export default function ExpenseDetailScreen() {
                           <Text className="text-xs text-muted-foreground flex-1">
                             My share
                           </Text>
-                          <Text className="text-xs font-semibold" style={{ color: STATUS_COLORS.warning }}>
+                          <Text className="text-xs font-semibold" style={{ color: theme.warning }}>
                             {formatAmount(multiSplitSummary.convenienceFee)}
                           </Text>
                         </View>

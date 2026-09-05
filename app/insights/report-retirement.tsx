@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { View, ScrollView, Pressable, Alert, TextInput } from "react-native";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Ionicons } from "@expo/vector-icons";
@@ -600,7 +600,7 @@ export default function RetirementReportScreen() {
         <View className="px-4 mt-4">
           <SectionHeader title="Your Journey — Phase Plan" />
           {report.phases.map((phase, i) => {
-            const phaseColors = [STATUS_COLORS.warning, BRAND_COLOR, BRAND_COLOR, STATUS_COLORS.success];
+            const phaseColors = [theme.warning, theme.primary, theme.primary, theme.success];
             return (
               <View key={i} className="mb-3">
                 <Card>
@@ -832,7 +832,7 @@ export default function RetirementReportScreen() {
           <Pressable
             onPress={handleExportPDF}
             className="rounded-xl p-3.5 items-center flex-row justify-center gap-2"
-            style={{ backgroundColor: BRAND_COLOR }}
+            style={{ backgroundColor: theme.primary }}
             disabled={exporting}
             accessibilityRole="button"
           >
@@ -934,7 +934,7 @@ export default function RetirementReportScreen() {
                 </Text>
                 {[
                   { range: "80–100", label: "Strong", desc: "Well on track", color: theme.success },
-                  { range: "60–79", label: "Good", desc: "A few areas to strengthen", color: BRAND_COLOR },
+                  { range: "60–79", label: "Good", desc: "A few areas to strengthen", color: theme.primary },
                   { range: "40–59", label: "Needs work", desc: "Significant gaps remain", color: theme.warning },
                   { range: "0–39", label: "At risk", desc: "Urgent action needed", color: theme.danger },
                 ].map((b) => (

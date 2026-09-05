@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BORDER_COLOR, BRAND_COLOR } from "@/constants/semantic-colors";
+
 import { View, ScrollView, Pressable, Alert, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -41,7 +41,7 @@ function StrategyCard({
   colorScheme: "light" | "dark";
 }) {
   const theme = useTheme();
-  const borderColor = isRecommended ? theme.success : colorScheme === "dark" ? "#2E2E2E" : BORDER_COLOR;
+  const borderColor = isRecommended ? theme.success : colorScheme === "dark" ? "#2E2E2E" : theme.border;
 
   return (
     <Card>
@@ -331,7 +331,7 @@ export default function LoanPayoffReportScreen() {
           <Pressable
             onPress={handleExportPDF}
             className="rounded-xl p-3.5 items-center flex-row justify-center gap-2"
-            style={{ backgroundColor: BRAND_COLOR }}
+            style={{ backgroundColor: theme.primary }}
             disabled={exporting}
             accessibilityRole="button"
           >

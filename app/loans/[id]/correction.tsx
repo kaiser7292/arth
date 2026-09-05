@@ -1,5 +1,5 @@
 import { Button, Input, ScreenContainer, Text } from "@/components/ui";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -18,8 +18,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function CorrectionForm() {
+  const theme = useTheme();
   const { id, correctionId } = useLocalSearchParams<{ id: string; correctionId?: string }>();
   const router = useRouter();
   const alert = useAlert();
@@ -252,7 +254,7 @@ export default function CorrectionForm() {
               <Pressable
                 onPress={handleDeactivate}
                 className="mb-3 py-3 rounded-xl items-center"
-                style={{ backgroundColor: STATUS_COLORS.error }}
+                style={{ backgroundColor: theme.danger }}
               >
                 <Text className="text-sm font-medium text-white">Deactivate This Correction</Text>
               </Pressable>

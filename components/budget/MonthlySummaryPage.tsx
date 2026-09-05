@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -104,8 +104,8 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
   if (!data) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Ionicons name="bar-chart-outline" size={32} color={STATUS_COLORS.muted} />
-        <Text style={{ color: STATUS_COLORS.muted, marginTop: 8, fontSize: 14 }}>Loading summary…</Text>
+        <Ionicons name="bar-chart-outline" size={32} color={theme.faintForeground} />
+        <Text style={{ color: theme.faintForeground, marginTop: 8, fontSize: 14 }}>Loading summary…</Text>
       </View>
     );
   }
@@ -337,7 +337,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                     className="h-full rounded-full"
                     style={{
                       width: `${tc.pctOfTotal}%`,
-                      backgroundColor: tc.category?.color ?? STATUS_COLORS.neutral,
+                      backgroundColor: tc.category?.color ?? theme.mutedForeground,
                     }}
                   />
                 </View>

@@ -21,7 +21,7 @@ import { useTheme } from "@/hooks/use-theme";
 export default function SmartRulesListScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
   const accentColor = theme.primary;
 

@@ -6,7 +6,7 @@ import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { useTheme } from "@/hooks/use-theme";
 
 interface DematSummaryCardProps {
@@ -69,7 +69,7 @@ function DematSummaryCardImpl({
             </Text>
             <Text
               className="text-sm font-bold"
-              style={{ color: totalPortfolio > 0 ? STATUS_COLORS.success : colors.text }}
+              style={{ color: totalPortfolio > 0 ? theme.success : colors.text }}
             >
               {formatAmount(totalPortfolio)}
             </Text>

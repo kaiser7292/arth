@@ -7,7 +7,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import type { LoansSummary } from "@/services/loan-accounts";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -60,7 +60,7 @@ function LoanSummaryCardImpl({ summary }: LoanSummaryCardProps) {
             </Text>
             <Text
               className="text-sm font-bold"
-              style={{ color: STATUS_COLORS.error }}
+              style={{ color: theme.danger }}
             >
               {formatAmount(summary.totalOutstandingINR)}
             </Text>

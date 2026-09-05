@@ -1,5 +1,5 @@
 import { Pressable, View } from "react-native";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { Text } from "./Text";
 import { BottomSheet } from "./BottomSheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -65,7 +65,7 @@ export function ConfirmSheet({
           <Pressable
             onPress={handleConfirm}
             className="flex-1 py-3.5 rounded-2xl items-center"
-            style={{ backgroundColor: destructive ? STATUS_COLORS.error : theme.primary }}
+            style={{ backgroundColor: destructive ? theme.danger : theme.primary }}
           >
             <Text className="text-base font-semibold" style={{ color: theme.primaryForeground }}>
               {confirmLabel}

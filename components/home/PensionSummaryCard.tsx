@@ -1,5 +1,5 @@
 import { Card, Text } from "@/components/ui";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { FinancialAccount } from "@/services/financial-account";
 
@@ -70,7 +70,7 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
             <Text className="text-xs text-muted-foreground">Total Balance</Text>
             <Text
               className="text-sm font-bold"
-              style={{ color: totalBalance >= 0 ? STATUS_COLORS.success : STATUS_COLORS.error }}
+              style={{ color: totalBalance >= 0 ? theme.success : theme.danger }}
             >
               {formatAmount(totalBalance)}
             </Text>
@@ -87,7 +87,7 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
             <Text className="text-xs text-muted-foreground">YTD Contributions</Text>
             <Text
               className="text-sm font-semibold"
-              style={{ color: ytdContributions > 0 ? STATUS_COLORS.success : colors.text }}
+              style={{ color: ytdContributions > 0 ? theme.success : colors.text }}
             >
               {formatAmount(ytdContributions)}
             </Text>

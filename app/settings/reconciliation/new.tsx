@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -467,7 +467,7 @@ export default function NewReconciliationScreen() {
               returnKeyType="done"
               onSubmitEditing={handlePdfPasswordSubmit}
               className="border rounded-xl px-4 py-3 text-base text-foreground mb-2"
-              style={{ borderColor: pdfPasswordError ? STATUS_COLORS.error : colors.border }}
+              style={{ borderColor: pdfPasswordError ? theme.danger : colors.border }}
               autoFocus
             />
             {pdfPasswordError ? (
@@ -516,7 +516,7 @@ export default function NewReconciliationScreen() {
               returnKeyType="done"
               onSubmitEditing={handleXlsPasswordSubmit}
               className="border rounded-xl px-4 py-3 text-base text-foreground mb-2"
-              style={{ borderColor: xlsPasswordError ? STATUS_COLORS.error : colors.border }}
+              style={{ borderColor: xlsPasswordError ? theme.danger : colors.border }}
               autoFocus
             />
             {xlsPasswordError ? (
@@ -655,7 +655,7 @@ export default function NewReconciliationScreen() {
         {/* Mismatch warning */}
         {mismatchWarning && (
           <View className="mb-3 px-4 py-3 rounded-xl flex-row items-start" style={{ backgroundColor: "#F59E0B22" }}>
-            <Ionicons name="warning-outline" size={18} color={STATUS_COLORS.warning} />
+            <Ionicons name="warning-outline" size={18} color={theme.warning} />
             <Text className="text-xs text-foreground ml-2 flex-1">
               {mismatchWarning}
             </Text>

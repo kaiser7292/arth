@@ -129,7 +129,7 @@ export default function SmartRuleDetailScreen() {
   const isCreate = id === "new";
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
   const accentColor = theme.primary;
 

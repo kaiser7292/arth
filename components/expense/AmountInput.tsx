@@ -1,11 +1,12 @@
 import { useCallback } from "react";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { View } from "react-native";
 import type { TextInputProps } from "react-native";
 import { Input, Text } from "@/components/ui";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";
 import { formatAmount } from "@/utils/format";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 interface AmountInputProps {
   value: string;
@@ -42,6 +43,7 @@ export function AmountInput({
   error,
   autoFocus,
 }: AmountInputProps) {
+  const theme = useTheme();
   const { colors } = useColorScheme();
 
   const inFormula = isFormulaMode(value);
@@ -107,7 +109,7 @@ export function AmountInput({
       {inFormula && hasExpr && (
         <Text
           className="text-base font-semibold mt-1"
-          style={{ color: formulaValid ? colors.tint : STATUS_COLORS.error }}
+          style={{ color: formulaValid ? colors.tint : theme.danger }}
         >
           {formulaValid
             ? `= ${formatAmount(formulaResult!)}`

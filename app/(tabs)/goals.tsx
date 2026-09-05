@@ -1,5 +1,5 @@
 import { Card, ContextualHeader, LoadingState, ScreenContainer, Text } from "@/components/ui";
-import { STATUS_COLORS, TRANSFER_COLOR } from "@/constants/semantic-colors";
+import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -431,7 +431,7 @@ export default function GoalsScreen() {
           {!hasCockpit && setupComplete && (
             <Card className="mb-4">
               <View className="items-center py-6">
-                <Ionicons name="analytics-outline" size={48} color={colorScheme === "dark" ? STATUS_COLORS.muted : STATUS_COLORS.neutral} />
+                <Ionicons name="analytics-outline" size={48} color={colorScheme === "dark" ? theme.faintForeground : theme.mutedForeground} />
                 <Text className="text-base font-medium text-foreground mt-3">
                   Building your cockpit...
                 </Text>
@@ -616,7 +616,7 @@ export default function GoalsScreen() {
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
                 style={{ backgroundColor: "#F59E0B14" }}
               >
-                <Ionicons name="git-compare-outline" size={18} color={STATUS_COLORS.warning} />
+                <Ionicons name="git-compare-outline" size={18} color={theme.warning} />
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-medium text-foreground">

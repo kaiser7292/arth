@@ -1,5 +1,5 @@
 import { Card, ScreenContainer, Text } from "@/components/ui";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -286,8 +286,8 @@ export default function AIAssistantSettings() {
                             className="px-2 py-0.5 rounded-full flex-row items-center gap-1"
                             style={{ backgroundColor: isDark ? "#0f2a18" : "#dcfce7" }}
                           >
-                            <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: STATUS_COLORS.success }} />
-                            <Text className="text-xs font-semibold" style={{ color: STATUS_COLORS.success }}>Active</Text>
+                            <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: theme.success }} />
+                            <Text className="text-xs font-semibold" style={{ color: theme.success }}>Active</Text>
                           </View>
                         ) : state.downloaded ? (
                           <View
@@ -378,8 +378,8 @@ export default function AIAssistantSettings() {
                         {state.downloaded && isActive && (
                           <View className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5"
                             style={{ backgroundColor: isDark ? "#0f2a18" : "#dcfce7" }}>
-                            <Ionicons name="checkmark-circle" size={16} color={STATUS_COLORS.success} />
-                            <Text className="text-sm font-semibold" style={{ color: STATUS_COLORS.success }}>Currently active</Text>
+                            <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+                            <Text className="text-sm font-semibold" style={{ color: theme.success }}>Currently active</Text>
                           </View>
                         )}
 
@@ -412,7 +412,7 @@ export default function AIAssistantSettings() {
                     <Text className="text-xs text-muted-foreground mb-1">Active model path:</Text>
                     <Text
                       className="text-xs font-mono"
-                      style={{ color: initError ? "#f85149" : STATUS_COLORS.success }}
+                      style={{ color: initError ? "#f85149" : theme.success }}
                       selectable
                     >
                       {modelPath || "—"}

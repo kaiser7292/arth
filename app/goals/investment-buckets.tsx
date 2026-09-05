@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { BORDER_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useBackOverride } from "@/hooks/use-back-override";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
@@ -377,14 +377,14 @@ export default function InvestmentBucketsScreen() {
                       onPress={() => setSelectedMilestoneId(null)}
                       className="mr-2 px-3 py-2 rounded-lg border"
                       style={{
-                        borderColor: selectedMilestoneId === null ? colors.blue : BORDER_COLOR,
+                        borderColor: selectedMilestoneId === null ? colors.blue : theme.border,
                         backgroundColor: selectedMilestoneId === null ? theme.alpha("primary", 0.08) : "transparent",
                       }}
                     >
                       <Text
                         className="text-xs font-medium"
                         style={{
-                          color: selectedMilestoneId === null ? colors.blue : STATUS_COLORS.neutral,
+                          color: selectedMilestoneId === null ? colors.blue : theme.mutedForeground,
                         }}
                       >
                         None
@@ -396,14 +396,14 @@ export default function InvestmentBucketsScreen() {
                         onPress={() => setSelectedMilestoneId(ms.id)}
                         className="mr-2 px-3 py-2 rounded-lg border"
                         style={{
-                          borderColor: selectedMilestoneId === ms.id ? colors.blue : BORDER_COLOR,
+                          borderColor: selectedMilestoneId === ms.id ? colors.blue : theme.border,
                           backgroundColor: selectedMilestoneId === ms.id ? theme.alpha("primary", 0.08) : "transparent",
                         }}
                       >
                         <Text
                           className="text-xs font-medium"
                           style={{
-                            color: selectedMilestoneId === ms.id ? colors.blue : STATUS_COLORS.neutral,
+                            color: selectedMilestoneId === ms.id ? colors.blue : theme.mutedForeground,
                           }}
                           numberOfLines={1}
                         >

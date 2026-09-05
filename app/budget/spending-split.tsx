@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { View, ScrollView, Pressable } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +20,7 @@ import { getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
+import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 
 const UNAVOIDABLE_COLOR = BRAND_COLOR;
 const DISCRETIONARY_COLOR = STATUS_COLORS.warning;

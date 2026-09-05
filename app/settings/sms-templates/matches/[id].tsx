@@ -16,7 +16,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 export default function TemplateMatchesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
   const accentColor = theme.primary;
 

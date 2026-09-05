@@ -1,5 +1,5 @@
 import { Card, ContextualHeader, DateInput, LearnMoreChip, ScreenContainer, Text } from "@/components/ui";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -620,7 +620,7 @@ export default function SettingsScreen() {
                         style={customMode ? { borderColor: uiTheme.primary, backgroundColor: uiTheme.alpha("primary", 0.1) } : undefined}
                       >
                         <View className="flex-row items-center">
-                          <Ionicons name="calendar-outline" size={16} color={customMode ? colors.blue : STATUS_COLORS.neutral} />
+                          <Ionicons name="calendar-outline" size={16} color={customMode ? colors.blue : uiTheme.mutedForeground} />
                           <Text className={`text-sm ml-2 ${customMode ? "font-medium" : "text-foreground"}`} style={customMode ? { color: uiTheme.primary } : undefined}>Custom Range</Text>
                         </View>
                         <Ionicons name={customMode ? "chevron-up" : "chevron-down"} size={14} color={colors.textSecondary} />

@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { BORDER_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { View, Switch, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAlert } from "@/hooks/use-alert";
@@ -61,8 +61,8 @@ function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onTo
       <Switch
         value={enabled}
         onValueChange={(val) => onToggle(category, val)}
-        trackColor={{ false: BORDER_COLOR, true: colors.blue }}
-        thumbColor={enabled ? "#FFFFFF" : STATUS_COLORS.muted}
+        trackColor={{ false: theme.border, true: colors.blue }}
+        thumbColor={enabled ? "#FFFFFF" : theme.faintForeground}
       />
     </View>
   );
@@ -156,7 +156,7 @@ export default function NotificationPreferencesScreen() {
 
           <NotifToggle
             icon="time-outline"
-            iconColor={STATUS_COLORS.warning}
+            iconColor={theme.warning}
             title="Upcoming Dues"
             subtitle="Daily 9:10 AM digest for payments due within 2 days"
             category="upcoming_due"

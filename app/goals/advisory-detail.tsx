@@ -1,5 +1,5 @@
 import { ScreenContainer, Text } from "@/components/ui";
-import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
@@ -13,6 +13,8 @@ import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { ScrollView, View, Pressable } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
+import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 
 const SEVERITY_COLORS = {
   critical: { border: STATUS_COLORS.error, bg: "#FEF2F2", bgDark: "#3B0000", text: "#991B1B", textDark: "#FCA5A5", icon: "warning-outline" as const },
@@ -33,12 +35,13 @@ function ProgressBar({ pct, color }: { pct: number; color: string }) {
 }
 
 function StatRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  const theme = useTheme();
   return (
     <View className="flex-row items-center justify-between py-2 border-b border-border">
       <Text className="text-sm text-muted-foreground flex-1">{label}</Text>
       <Text
         className="text-sm font-semibold ml-4 text-foreground"
-        style={highlight ? { color: STATUS_COLORS.error } : undefined}
+        style={highlight ? { color: theme.danger } : undefined}
       >
         {value}
       </Text>
@@ -79,6 +82,7 @@ function SpendingDetail({
   cockpit: FinancialCockpitData;
   isDark: boolean;
 }) {
+  const theme = useTheme();
   const { tension, buckets } = cockpit;
   const behindBuckets = buckets.filter((b) => b.paceStatus === "behind");
   const router = useRouter();
@@ -132,7 +136,7 @@ function SpendingDetail({
         label="View Yearly Plan"
         icon="document-text-outline"
         onPress={() => router.push("/goals/yearly-plan")}
-        color={STATUS_COLORS.error}
+        color={theme.danger}
       />
     </>
   );
@@ -141,7 +145,8 @@ function SpendingDetail({
 // ── Investment detail ────────────────────────────────────────────────────────
 
 function BucketRow({ bucket, isDark }: { bucket: BucketStatus; isDark: boolean }) {
-  const accentColor = bucket.paceStatus === "behind" ? STATUS_COLORS.warning : STATUS_COLORS.success;
+  const theme = useTheme();
+  const accentColor = bucket.paceStatus === "behind" ? theme.warning : theme.success;
   return (
     <Card className="mb-3">
       <View className="flex-row items-center justify-between mb-1.5">
@@ -182,6 +187,7 @@ function InvestmentDetail({
   cockpit: FinancialCockpitData;
   isDark: boolean;
 }) {
+  const theme = useTheme();
   const router = useRouter();
   const behindBuckets = cockpit.buckets.filter((b) => b.paceStatus === "behind");
   const totalShortfall = behindBuckets.reduce((s, b) => s + b.remainingTarget, 0);
@@ -211,7 +217,7 @@ function InvestmentDetail({
         label="View Investment Buckets"
         icon="pie-chart-outline"
         onPress={() => router.push("/goals/investment-buckets")}
-        color={STATUS_COLORS.warning}
+        color={theme.warning}
       />
     </>
   );
@@ -226,6 +232,7 @@ function MilestoneDetail({
   advisory: Advisory;
   cockpit: FinancialCockpitData;
 }) {
+  const theme = useTheme();
   const router = useRouter();
   const { colors } = useColorScheme();
 
@@ -243,7 +250,7 @@ function MilestoneDetail({
     );
   }
 
-  const accentColor = ms.status === "completed" ? STATUS_COLORS.success : ms.slippageMonths > 6 ? STATUS_COLORS.error : STATUS_COLORS.warning;
+  const accentColor = ms.status === "completed" ? theme.success : ms.slippageMonths > 6 ? theme.danger : theme.warning;
   const remaining = Math.max(0, ms.targetAmount - ms.currentSaved);
 
   return (
@@ -342,6 +349,7 @@ function SavingsDetail({
 }: {
   cockpit: FinancialCockpitData;
 }) {
+  const theme = useTheme();
   const router = useRouter();
   const { savings } = cockpit;
   const gap = savings.targetRatePct - savings.actualRatePct;
@@ -381,7 +389,7 @@ function SavingsDetail({
         label="View Yearly Plan"
         icon="document-text-outline"
         onPress={() => router.push("/goals/yearly-plan")}
-        color={BRAND_COLOR}
+        color={theme.primary}
       />
     </>
   );
@@ -394,6 +402,7 @@ function GeneralDetail({
 }: {
   cockpit: FinancialCockpitData;
 }) {
+  const theme = useTheme();
   const router = useRouter();
   const { tension, savings, buckets } = cockpit;
 
@@ -446,7 +455,7 @@ function GeneralDetail({
         label="View Investment Buckets"
         icon="pie-chart-outline"
         onPress={() => router.push("/goals/investment-buckets")}
-        color={STATUS_COLORS.success}
+        color={theme.success}
       />
     </>
   );

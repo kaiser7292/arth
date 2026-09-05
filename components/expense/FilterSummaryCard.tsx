@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, Text } from "@/components/ui";
@@ -80,7 +80,7 @@ export function FilterSummaryCard({
                 // Expenses: higher = worse (red), lower = better (green).
                 // Credits: higher = better (green), lower = worse (red).
                 const isGood = isCredit ? isUp : !isUp;
-                const color = isGood ? STATUS_COLORS.success : STATUS_COLORS.error;
+                const color = isGood ? theme.success : theme.danger;
                 return (
                   <Text className="text-xs font-medium mt-1" style={{ color }}>
                     {isUp ? "↑" : "↓"} {absDelta.toFixed(0)}% vs previous period

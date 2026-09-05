@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, SectionList, TextInput, View } from "react-native";
@@ -89,7 +89,7 @@ export function VaultPage() {
           )}
         </View>
         {needsLink && (
-          <View className="w-2 h-2 rounded-full mr-2 shrink-0" style={{ backgroundColor: STATUS_COLORS.warning }} />
+          <View className="w-2 h-2 rounded-full mr-2 shrink-0" style={{ backgroundColor: theme.warning }} />
         )}
         <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
       </Pressable>

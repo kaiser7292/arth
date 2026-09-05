@@ -4,6 +4,7 @@ import { Text } from "@/components/ui";
 import { View, Pressable, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { TaggedField, TaggedSpan } from "@/services/sms/template-compiler";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.6.0 — Tap-to-tag SMS token widget, rebuilt for predictable behaviour.

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { View, Pressable, FlatList } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -211,7 +211,7 @@ export default function MerchantAnalyticsScreen() {
                             >
                               <View
                                 className="w-2.5 h-2.5 rounded-full mr-1"
-                                style={{ backgroundColor: catInfo?.color ?? STATUS_COLORS.neutral }}
+                                style={{ backgroundColor: catInfo?.color ?? theme.mutedForeground }}
                               />
                               <Text className="text-xs text-muted-foreground">
                                 {catInfo?.name ?? "Unknown"} ({formatAmount(c.total)})

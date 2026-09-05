@@ -6,7 +6,7 @@ import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import type { FinancialAccount } from "@/services/financial-account";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -17,9 +17,10 @@ interface CreditCardDashboardProps {
 }
 
 function getUtilColor(pct: number): string {
-  if (pct > 75) return STATUS_COLORS.error;
-  if (pct > 50) return STATUS_COLORS.warning;
-  return STATUS_COLORS.success;
+  const theme = useTheme();
+  if (pct > 75) return theme.danger;
+  if (pct > 50) return theme.warning;
+  return theme.success;
 }
 
 function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: CreditCardDashboardProps) {
@@ -75,7 +76,7 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
   const totalUtilized = Array.from(utilizedByBank.values()).reduce((sum, v) => sum + v, 0);
   const totalAvailable = totalLimit - totalUtilized;
   const overallUtil = totalLimit > 0 ? (totalUtilized / totalLimit) * 100 : null;
-  const overallUtilColor = overallUtil != null ? getUtilColor(overallUtil) : STATUS_COLORS.muted;
+  const overallUtilColor = overallUtil != null ? getUtilColor(overallUtil) : theme.faintForeground;
 
   return (
     <View>
@@ -120,13 +121,13 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
           </View>
           <View className="flex-row justify-between mb-1">
             <Text className="text-xs text-muted-foreground">Utilized</Text>
-            <Text className="text-sm font-semibold" style={{ color: totalUtilized > 0 ? STATUS_COLORS.error : colors.text }}>
+            <Text className="text-sm font-semibold" style={{ color: totalUtilized > 0 ? theme.danger : colors.text }}>
               {formatAmount(totalUtilized)}
             </Text>
           </View>
           <View className="flex-row justify-between mb-2">
             <Text className="text-xs text-muted-foreground">Remaining</Text>
-            <Text className="text-sm font-bold" style={{ color: STATUS_COLORS.success }}>
+            <Text className="text-sm font-bold" style={{ color: theme.success }}>
               {formatAmount(totalAvailable)}
             </Text>
           </View>

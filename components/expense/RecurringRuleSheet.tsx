@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { Text } from "@/components/ui";
 import { View, Pressable, Modal, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -368,7 +368,7 @@ export function RecurringRuleSheet({
                 </View>
               </Pressable>
               {!endDateValid && endDate.trim() ? (
-                <Text className="text-xs mt-1.5" style={{ color: STATUS_COLORS.error }}>
+                <Text className="text-xs mt-1.5" style={{ color: theme.danger }}>
                   End date must be after the start date.
                 </Text>
               ) : null}

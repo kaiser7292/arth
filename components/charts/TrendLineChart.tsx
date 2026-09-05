@@ -4,7 +4,8 @@ import { memo, useState, useCallback } from "react";
 import Svg, { Path, Circle, Defs, LinearGradient, Stop, G, Line } from "react-native-svg";
 import type { MonthlyTotal } from "@/services/expense";
 import { formatAmount } from "@/utils/format";
-import { CHART_COLORS, STATUS_COLORS } from "@/constants/semantic-colors";
+import { CHART_COLORS } from "@/constants/semantic-colors";
+import { useTheme } from "@/hooks/use-theme";
 
 const SHORT_MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -37,6 +38,7 @@ function formatXLabel(key: string): string {
 }
 
 function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartProps) {
+  const theme = useTheme();
   const [width, setWidth] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
@@ -139,7 +141,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
             minWidth: 104,
           }}
         >
-          <Text style={{ fontSize: 10, color: STATUS_COLORS.muted, textAlign: "center" }}>
+          <Text style={{ fontSize: 10, color: theme.faintForeground, textAlign: "center" }}>
             {formatXLabel(months[selectedIndex])}
           </Text>
           {expandedSeries.map((s, si) => {
@@ -179,7 +181,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
                 y1={PAD_TOP}
                 x2={getX(selectedIndex)}
                 y2={CHART_HEIGHT - PAD_BOTTOM}
-                stroke={STATUS_COLORS.neutral}
+                stroke={theme.mutedForeground}
                 strokeWidth={1}
                 strokeDasharray="3,3"
                 opacity={0.5}

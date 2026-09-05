@@ -27,7 +27,7 @@ export default function EditSmsTemplateScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const alert = useAlert();
-  const { colorScheme } = useColorScheme();
+  
   const theme = useTheme();
   const accentColor = theme.primary;
 

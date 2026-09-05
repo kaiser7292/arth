@@ -1,10 +1,11 @@
 import { TextInput, View } from "react-native";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { Text } from "./Text";
 import type { TextInputProps } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -31,6 +32,7 @@ export function Input({
   keyboardType,
   ...props
 }: InputProps) {
+  const theme = useTheme();
   const { colors } = useColorScheme();
 
   const inFormula = formula && typeof value === "string" && isFormulaMode(value);
@@ -73,7 +75,7 @@ export function Input({
       {inFormula && hasExpr && (
         <Text
           className="text-xs mt-1 ml-1"
-          style={{ color: formulaValid ? colors.tint : STATUS_COLORS.error }}
+          style={{ color: formulaValid ? colors.tint : theme.danger }}
         >
           {formulaValid
             ? `= ${formatAmount(formulaResult!)}`

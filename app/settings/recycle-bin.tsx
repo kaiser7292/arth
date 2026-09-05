@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { View, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
@@ -582,7 +582,7 @@ export default function RecycleBinScreen() {
                   <View className="ml-1.5 px-1.5 py-0.5 rounded-full"
                     style={{ backgroundColor: isActive ? theme.alpha("primary", 0.13) : "#6B728014" }}>
                     <Text className="text-label font-bold"
-                      style={{ color: isActive ? theme.primary : STATUS_COLORS.neutral }}>
+                      style={{ color: isActive ? theme.primary : theme.mutedForeground }}>
                       {count}
                     </Text>
                   </View>

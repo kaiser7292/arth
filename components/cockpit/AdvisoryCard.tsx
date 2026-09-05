@@ -1,9 +1,11 @@
 import { View, Pressable } from "react-native";
-import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Advisory, AdvisorySeverity } from "@/utils/financial-cockpit";
+import { useTheme } from "@/hooks/use-theme";
+import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 
 interface AdvisoryCardProps {
   advisory: Advisory;

@@ -1,5 +1,5 @@
 
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Category } from "@/services/category";
@@ -197,7 +197,7 @@ function ExpenseListItemInner({
           <>
             <Text
               className="text-sm font-bold text-foreground"
-              style={expense.nature === "credit" ? { color: STATUS_COLORS.success } : undefined}
+              style={expense.nature === "credit" ? { color: theme.success } : undefined}
             >
               {expense.nature === "credit" ? "+" : ""}{formatAmount(expense.amount)}
             </Text>

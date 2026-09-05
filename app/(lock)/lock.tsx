@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/theme";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -156,7 +156,7 @@ export default function LockScreen() {
       {lastError && (
         <Text
           style={{
-            color: STATUS_COLORS.error,
+            color: uiTheme.danger,
             fontSize: 13,
             textAlign: "center",
             marginTop: 16,

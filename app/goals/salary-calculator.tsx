@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, ScrollView, Pressable, KeyboardAvoidingView, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -680,7 +680,7 @@ export default function SalaryCalculatorScreen() {
             {/* ─── Draft Indicator ────────────────────── */}
             {isDraft && (
               <View className="flex-row items-center mb-3 px-3 py-2.5 rounded-lg bg-warning/8">
-                <Ionicons name="document-outline" size={16} color={STATUS_COLORS.warning} />
+                <Ionicons name="document-outline" size={16} color={theme.warning} />
                 <Text className="text-xs font-medium ml-2" style={{ color: theme.warning }}>
                   Draft - not yet saved to your plan
                 </Text>

@@ -1,5 +1,5 @@
 import { Card, FilterChip, ScreenContainer, Text } from "@/components/ui";
-import { BRAND_COLOR } from "@/constants/semantic-colors";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -107,7 +107,7 @@ function actionColor(a: AuditActionType, theme: Theme): string {
     case "deleted":
       return theme.danger;
     case "edited":
-      return BRAND_COLOR;
+      return theme.primary;
     case "marked_as_transfer":
     case "reclassified_by_rule":
     case "refunded":
