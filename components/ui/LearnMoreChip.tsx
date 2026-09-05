@@ -1,4 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 import { Text } from "./Text";
 import { getFlag } from "@/services/feature-flags";
 import { ac } from "@/utils/accent";
@@ -28,6 +29,7 @@ interface Props {
 export function LearnMoreChip({ contextKey, label = "Learn more", subtle = false }: Props) {
   const router = useRouter();
   const { accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   if (!getFlag("v15_help_center")) return null;
 
@@ -74,6 +76,7 @@ export function LearnMoreChip({ contextKey, label = "Learn more", subtle = false
 export function LearnMoreRow({ contextKey, label = "Learn more" }: Props) {
   const router = useRouter();
   const { accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   if (!getFlag("v15_help_center")) return null;
 
@@ -100,7 +103,7 @@ export function LearnMoreRow({ contextKey, label = "Learn more" }: Props) {
       <Text className="flex-1 text-sm font-medium" style={{ color: tint }}>
         {label}
       </Text>
-      <Ionicons name="chevron-forward" size={16} color={colorScheme === 'dark' ? '#A0A0A0' : '#6B7280'} />
+      <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
       <View />
     </Pressable>
   );

@@ -1,10 +1,8 @@
 import { View, Pressable } from "react-native";
-import { BRAND_COLOR } from "@/constants/semantic-colors";
-import { Text } from "./Text";
 import { Ionicons } from "@expo/vector-icons";
 import type { AlertSeverity } from "@/utils/course-correction";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
+import { Text } from "./Text";
 
 interface AlertBannerProps {
   severity: AlertSeverity;
@@ -12,74 +10,47 @@ interface AlertBannerProps {
   onDismiss?: () => void;
 }
 
-const SEVERITY_CONFIG_BASE = {
-  info: {
-    bg: "#EFF6FF",
-    bgDark: "#1E293B",
-    text: BRAND_COLOR,
-    textDark: "#93C5FD",
-    icon: "information-circle-outline" as const,
-  },
-  warning: {
-    bg: "#FEF9E7",
-    bgDark: "#332B00",
-    text: "#92400E",
-    icon: "alert-circle-outline" as const,
-  },
-  critical: {
-    bg: "#FEF2F2",
-    bgDark: "#3B0000",
-    text: "#991B1B",
-    textDark: "#FCA5A5",
-    icon: "warning-outline" as const,
-  },
-};
+/**
+ * Inline severity banner.
+ *
+ * Rebuilt on the token layer. The previous version carried a hand-written table of ten hex values
+ * including `bgDark` and `textDark` entries that were never read — `config.bg` always resolved to
+ * the light value, so the banner rendered a light background with dark text in dark mode. Deriving
+ * everything from one semantic role per severity removes the table and the bug together.
+ */
+const SEVERITY = {
+  info: { role: "primary", icon: "information-circle-outline" },
+  warning: { role: "warning", icon: "alert-circle-outline" },
+  critical: { role: "danger", icon: "warning-outline" },
+} as const;
 
 export function AlertBanner({ severity, message, onDismiss }: AlertBannerProps) {
-  const { colorScheme } = useColorScheme();
-
-  const severityConfig = {
-    info: {
-      ...SEVERITY_CONFIG_BASE.info,
-      border: BRAND_COLOR,
-    },
-    warning: {
-      ...SEVERITY_CONFIG_BASE.warning,
-      border: StatusColors[colorScheme].warning,
-      textDark: StatusColors[colorScheme].warning,
-    },
-    critical: {
-      ...SEVERITY_CONFIG_BASE.critical,
-      border: StatusColors[colorScheme].danger,
-    },
-  };
-
-  const config = severityConfig[severity];
+  const theme = useTheme();
+  const { role, icon } = SEVERITY[severity];
 
   return (
     <View
-      className="mx-4 mb-2 px-4 py-3 rounded-xl flex-row items-start"
+      className="mx-4 mb-2 px-4 py-3 rounded-card flex-row items-start"
       style={{
-        backgroundColor: config.bg,
+        backgroundColor: theme.alpha(role, 0.1),
         borderWidth: 1,
-        borderColor: config.border + "40",
+        borderColor: theme.alpha(role, 0.3),
       }}
+      accessibilityRole="alert"
     >
-      <Ionicons
-        name={config.icon}
-        size={18}
-        color={config.border}
-        style={{ marginTop: 1 }}
-      />
-      <Text
-        className="flex-1 text-xs ml-2"
-        style={{ color: config.text }}
-      >
+      <Ionicons name={icon} size={18} color={theme[role]} style={{ marginTop: 1 }} />
+      <Text className="flex-1 text-meta ml-2" style={{ color: theme[role] }}>
         {message}
       </Text>
       {onDismiss && (
-        <Pressable onPress={onDismiss} className="ml-2">
-          <Ionicons name="close" size={16} color={config.border} />
+        <Pressable
+          onPress={onDismiss}
+          className="ml-2"
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss alert"
+        >
+          <Ionicons name="close" size={16} color={theme[role]} />
         </Pressable>
       )}
     </View>

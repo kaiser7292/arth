@@ -5,6 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
+import { BRAND_RAMP } from "@/constants/brand";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -33,6 +35,10 @@ const FAB_SIZE = 64;
 export function FABMenu({ items, hidden = false, accessibilityLabel = "Add" }: FABMenuProps) {
   const [open, setOpen] = useState(false);
   const { accent, colors } = useColorScheme();
+  const theme = useTheme();
+  // See the note in FAB.tsx - same contrast fix.
+  const stops: [string, string] =
+    theme.scheme === "dark" ? [BRAND_RAMP[300], BRAND_RAMP[500]] : [BRAND_RAMP[600], BRAND_RAMP[800]];
 
   const progress = useSharedValue(0);
   const scale = useSharedValue(1);
@@ -166,12 +172,12 @@ export function FABMenu({ items, hidden = false, accessibilityLabel = "Add" }: F
         ]}
       >
         <LinearGradient
-          colors={[accent[400], accent[600]]}
+          colors={stops}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
-          <Ionicons name="add" size={32} color="#FFFFFF" />
+          <Ionicons name="add" size={32} color={theme.primaryForeground} />
         </LinearGradient>
       </AnimatedPressable>
     </>

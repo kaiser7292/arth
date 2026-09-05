@@ -4,6 +4,7 @@ import { View, Pressable, Modal, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 import { ac } from "@/utils/accent";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
@@ -237,6 +238,7 @@ function MonthPickerContent({
   onChange: (v: string) => void;
 }) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const [y, m] = value.split("-").map(Number);
   const [pickerYear, setPickerYear] = useState(y);
 
@@ -301,7 +303,7 @@ function MonthPickerContent({
                 }`}
                 style={
                   isSelected
-                    ? { backgroundColor: accent[500] }
+                    ? { backgroundColor: theme.primary }
                     : isCurrent
                       ? { borderColor: accent[300] }
                       : undefined
@@ -309,10 +311,9 @@ function MonthPickerContent({
               >
                 <Text
                   className={`text-sm ${
-                    isSelected
-                      ? "font-bold text-white"
-                      : "font-medium text-foreground"
+                    isSelected ? "font-bold" : "font-medium text-foreground"
                   }`}
+                  style={isSelected ? { color: theme.primaryForeground } : undefined}
                 >
                   {name}
                 </Text>
@@ -337,6 +338,7 @@ function FYPickerContent({
   onChange: (v: number) => void;
 }) {
   const { accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const fyStartMonth = getFYStartMonth();
   const currentFY = getCurrentFY(fyStartMonth);
 
@@ -366,22 +368,23 @@ function FYPickerContent({
               className={`mx-4 mb-2 py-3 px-4 rounded-xl flex-row items-center justify-between ${
                 isSelected ? "" : "bg-card"
               }`}
-              style={isSelected ? { backgroundColor: accent[500] } : undefined}
+              style={isSelected ? { backgroundColor: theme.primary } : undefined}
             >
               <Text
                 className={`text-base ${
-                  isSelected ? "font-bold text-white" : "font-medium text-foreground"
+                  isSelected ? "font-bold" : "font-medium text-foreground"
                 }`}
+                style={isSelected ? { color: theme.primaryForeground } : undefined}
               >
                 {getFYLabel(item, fyStartMonth)}
               </Text>
               {isCurrent && !isSelected && (
-                <Text className="text-xs font-medium" style={{ color: accent[500] }}>
+                <Text className="text-xs font-medium" style={{ color: theme.primary }}>
                   Current
                 </Text>
               )}
               {isSelected && (
-                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                <Ionicons name="checkmark" size={20} color={theme.primaryForeground} />
               )}
             </Pressable>
           );
