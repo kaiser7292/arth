@@ -45,6 +45,16 @@ interface MonthlySummaryPageProps {
   month: string;
 }
 
+/**
+ * The month's summary: total spent, budget compliance, top categories, unavoidable ratio.
+ *
+ * The single implementation, rendered by the Budget tab's swipe-pager and by
+ * app/summary/[month].tsx. Each previously kept its own ~340-line copy of the same computation
+ * and layout.
+ *
+ * The month is a prop because the callers source it differently - the pager inherits the Budget
+ * tab's month, the route reads a URL param and owns a PeriodNavigator.
+ */
 export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
   const router = useRouter();
   

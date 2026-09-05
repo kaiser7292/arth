@@ -30,6 +30,16 @@ interface SpendingSplitPageProps {
   month: string;
 }
 
+/**
+ * The avoidable / discretionary spending breakdown for one month.
+ *
+ * The single implementation, rendered by the Budget tab's swipe-pager and by
+ * app/budget/spending-split.tsx. Each previously carried its own copy of the same calculation and
+ * layout, ~270 and ~366 lines, so a change to how the split is presented had to be made twice.
+ *
+ * The month arrives as a prop rather than being owned here, because the two callers source it
+ * differently: the pager takes the Budget tab's current month, the route owns a PeriodNavigator.
+ */
 export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
   const router = useRouter();
   const { colors } = useColorScheme();
