@@ -1,6 +1,6 @@
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
-import { Button, Card, DateInput, FABMenu, FilterChip, Input, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, DateInput, FABMenu, FilterChip, Input, Money, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
@@ -775,22 +775,39 @@ const loadData = useCallback(async () => {
               </View>
             )}
 
-            <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-muted-foreground">
-                {isCreditCard ? "Starting utilized" : "Opening Balance"}
+            {/*
+              The number this screen exists to answer, so it leads rather than sitting last in a
+              stack of equal-weight rows. The arithmetic below is untouched - only the hierarchy
+              changed - and opening becomes the hero's caption instead of its own row.
+            */}
+            <View className="mb-3">
+              <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
+                {isCreditCard ? "Utilized" : "Closing balance"}
               </Text>
-              <Text className="text-sm font-semibold text-foreground">
-                {formatAmount(opening)}
+              <Money
+                value={closing}
+                className="text-hero font-bold mt-1"
+                style={{
+                  color: isCreditCard
+                    ? closing === 0
+                      ? theme.success
+                      : theme.danger
+                    : closing >= 0
+                      ? theme.foreground
+                      : theme.danger,
+                }}
+              />
+              <Text className="text-meta text-muted-foreground mt-1">
+                {isCreditCard ? "started at" : "opened at"} {formatAmount(opening)}
               </Text>
             </View>
+
             {totalExpenses > 0 && (
               <View className="flex-row justify-between mb-1">
                 <Text className="text-xs text-muted-foreground">
                   {isCreditCard ? "Spent this cycle" : "Expenses"}
                 </Text>
-                <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
-                  −{formatAmount(totalExpenses)}
-                </Text>
+                <Money value={-totalExpenses} className="text-body font-semibold" style={{ color: theme.danger }} />
               </View>
             )}
             {totalCredits > 0 && (
@@ -798,9 +815,7 @@ const loadData = useCallback(async () => {
                 <Text className="text-xs text-muted-foreground">
                   {isCreditCard ? "Paid back" : "Credits / Refunds"}
                 </Text>
-                <Text className="text-sm font-semibold" style={{ color: theme.success }}>
-                  +{formatAmount(totalCredits)}
-                </Text>
+                <Money value={totalCredits} signed showPlus className="text-body font-semibold" />
               </View>
             )}
             {!isCreditCard && totalTransfersOut > 0 && (
@@ -808,9 +823,7 @@ const loadData = useCallback(async () => {
                 <Text className="text-xs text-muted-foreground">
                   Transfers Out
                 </Text>
-                <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
-                  −{formatAmount(totalTransfersOut)}
-                </Text>
+                <Money value={-totalTransfersOut} className="text-body font-semibold" style={{ color: theme.danger }} />
               </View>
             )}
             {!isCreditCard && totalTransfersIn > 0 && (
@@ -818,26 +831,9 @@ const loadData = useCallback(async () => {
                 <Text className="text-xs text-muted-foreground">
                   Transfers In
                 </Text>
-                <Text className="text-sm font-semibold" style={{ color: theme.success }}>
-                  +{formatAmount(totalTransfersIn)}
-                </Text>
+                <Money value={totalTransfersIn} signed showPlus className="text-body font-semibold" />
               </View>
             )}
-            <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
-              <Text className="text-xs font-semibold text-muted-foreground">
-                {isCreditCard ? "Utilized" : "Closing Balance"}
-              </Text>
-              <Text
-                className="text-sm font-bold"
-                style={{
-                  color: isCreditCard
-                    ? (closing === 0 ? theme.success : theme.danger)
-                    : (closing >= 0 ? theme.success : theme.danger),
-                }}
-              >
-                {formatAmount(closing)}
-              </Text>
-            </View>
 
             {/* Reconcile + Vault shortcuts */}
             <View className="flex-row mt-3 pt-3 border-t border-border">
@@ -1276,12 +1272,17 @@ const loadData = useCallback(async () => {
 
                   {/* Amount */}
                   <View className="items-end shrink-0 ml-2">
-                    <Text
-                      className="text-sm font-bold"
+                    {/*
+                      Money renders a true minus (U+2212) rather than a hyphen. A hyphen is
+                      narrower than a digit, so it pulls negative rows out of alignment down the
+                      column; the minus sign is digit-width and keeps the edge straight.
+                    */}
+                    <Money
+                      value={isDebitSide ? -entry.amount : entry.amount}
+                      showPlus={!isDebitSide}
+                      className="text-body font-bold"
                       style={{ color: isTransfer ? transferColor : entryColor }}
-                    >
-                      {isDebitSide ? "−" : "+"}{formatAmount(entry.amount)}
-                    </Text>
+                    />
                     {entry.splitPersonName && (
                       <Text className="text-label text-muted-foreground mt-0.5">
                         Split w/ {entry.splitPersonName}

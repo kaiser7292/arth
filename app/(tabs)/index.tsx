@@ -18,7 +18,7 @@ import { LoanSummaryCard } from "@/components/home/LoanSummaryCard";
 import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
 import { PensionSummaryCard } from "@/components/home/PensionSummaryCard";
 import { WalletSummary } from "@/components/home/WalletSummary";
-import { Card, ContextualHeader, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text } from "@/components/ui";
+import { Card, ContextualHeader, Money, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text } from "@/components/ui";
 import type { SwipePagerPage } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -28,6 +28,7 @@ import { useForecastActions } from "@/hooks/use-forecast-actions";
 import { getComputedBalances, computeUnseededBalance } from "@/services/account-balance";
 import { getDatabase } from "@/database";
 import { getBudgetsForMonth, getCurrentMonth } from "@/services/budget";
+import { formatMonthLabel } from "@/utils/date";
 import { scanAllDuplicatesCached } from "@/services/duplicate-detection";
 import type { Expense } from "@/services/expense";
 import {
@@ -311,6 +312,25 @@ export default function HomeScreen() {
   // the account list / balance map change, so as soon as a credit pushes
   // the balance back above min, the alert disappears.
   const [dismissTick, setDismissTick] = useState(0);
+  /**
+   * Spendable cash: the closing balance of every savings and wallet account.
+   *
+   * Deliberately NOT net worth. Net worth needs credit-card utilisation and loan outstanding
+   * signed correctly, and a wrong headline figure on the first screen is worse than no headline at
+   * all - the Balance Sheet screen already computes net worth properly. This reuses
+   * getComputedBalances, the same balance engine the reconciliation screens read, so the hero can
+   * never disagree with the account cards below it.
+   */
+  const availableCash = useMemo(
+    () =>
+      [...bankAccounts, ...walletAccounts].reduce(
+        (sum, a) => sum + (computedBalanceMap[a.id] ?? 0),
+        0,
+      ),
+    [bankAccounts, walletAccounts, computedBalanceMap],
+  );
+  const cashAccountCount = bankAccounts.length + walletAccounts.length;
+
   const minBalanceBreaches = useMemo(() => {
     if (!getFlag("v15_min_balance_alert")) return [];
     const all = detectBreaches(bankAccounts, computedBalanceMap);
@@ -348,6 +368,7 @@ export default function HomeScreen() {
     <ScreenContainer>
       <ContextualHeader
         title="Arth · अर्थ"
+        subtitle={formatMonthLabel(month, "long")}
         rightActions={homeHeaderActions}
       />
       <SwipePager
@@ -370,6 +391,20 @@ export default function HomeScreen() {
             />
           }
         >
+        {/* Hero - what the screen is actually about. Leads with a figure rather than a warning. */}
+        {cashAccountCount > 0 && (
+          <View className="px-4 pt-4 pb-2">
+            <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
+              Available now
+            </Text>
+            <Money value={availableCash} className="text-hero font-bold text-foreground mt-1" />
+            <Text className="text-meta text-muted-foreground mt-1.5">
+              across {cashAccountCount} account{cashAccountCount === 1 ? "" : "s"}
+              {totalSpent > 0 ? ` · ${formatAmount(totalSpent)} spent this month` : ""}
+            </Text>
+          </View>
+        )}
+
         {/* Stale backup warning */}
         {showBackupReminder && (
           <Pressable
@@ -423,35 +458,28 @@ export default function HomeScreen() {
               accessibilityLabel={`${totalActionItems} items need action`}
               accessibilityRole="button"
             >
-              <Card className="mx-4 mt-3">
-                <View className="flex-row items-center justify-between mb-2">
-                  <View className="flex-row items-center">
-                    <View className="w-9 h-9 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                      <Ionicons name="clipboard-outline" size={18} color={theme.primary} />
-                    </View>
-                    <View>
-                      <Text className="text-sm font-semibold text-foreground">
-                        Action Required
-                      </Text>
-                      <Text className="text-xs text-muted-foreground">
-                        Tap to review and resolve
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row items-center">
-                    <StatusPill label={`${totalActionItems}`} color={theme.primary} />
-                    <Ionicons name="chevron-forward" size={16} color={theme.alpha("primary", 0.25)} style={{ marginLeft: 6 }} />
-                  </View>
+              {/* A queue, not a metric - so it reads as a strip rather than another equal-weight card. */}
+              <View
+                className="mx-4 mt-3 px-4 py-3 rounded-card flex-row items-center"
+                style={{
+                  backgroundColor: theme.alpha("primary", 0.1),
+                  borderWidth: 1,
+                  borderColor: theme.alpha("primary", 0.22),
+                }}
+              >
+                <View className="flex-1 pr-3">
+                  <Text className="text-body font-semibold text-foreground">
+                    {totalActionItems} {totalActionItems === 1 ? "thing needs" : "things need"} you
+                  </Text>
+                  <Text className="text-meta text-muted-foreground mt-0.5">
+                    {lines.map((l) => `${l.count} ${l.label}`).join(" · ")}
+                  </Text>
                 </View>
-                {lines.map((line) => (
-                  <View key={line.label} className="flex-row items-center ml-12 mb-0.5">
-                    <Ionicons name={line.icon} size={12} color={theme.primary} style={{ marginRight: 6 }} />
-                    <Text className="text-xs text-muted-foreground">
-                      {line.count} {line.label}
-                    </Text>
-                  </View>
-                ))}
-              </Card>
+                <Text className="text-meta font-semibold" style={{ color: theme.primary }}>
+                  Review
+                </Text>
+                <Ionicons name="chevron-forward" size={15} color={theme.primary} />
+              </View>
             </Pressable>
           );
         })()}
@@ -462,10 +490,17 @@ export default function HomeScreen() {
           <Card className="mx-4 mt-3">
             <View className="flex-row items-center justify-between mb-3">
               <View>
-                <Text className="text-xs text-faint-foreground">Total Spent</Text>
-                <Text className="text-2xl font-bold text-foreground">
-                  {formatAmount(totalSpent)}
+                <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
+                  Spent this month
                 </Text>
+                <View className="flex-row items-baseline mt-0.5">
+                  <Money value={totalSpent} className="text-title font-bold text-foreground" />
+                  {totalBudget > 0 && (
+                    <Text className="text-meta text-muted-foreground ml-1.5">
+                      of {formatAmount(totalBudget)}
+                    </Text>
+                  )}
+                </View>
               </View>
               <StatusPill label={healthLabel} color={statusColor} />
             </View>

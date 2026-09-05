@@ -48,7 +48,10 @@ export interface MoneyProps extends Omit<TextProps, "children"> {
   value: number;
   /** Colour by sign: positive renders success, negative renders danger. */
   signed?: boolean;
-  /** Render a leading + for positive values. Implies `signed`. */
+  /**
+   * Render a leading + for positive values. Independent of `signed`, so a caller that supplies its
+   * own colour (ledger rows tint by entry kind, not by sign) can still get the sign prefix.
+   */
   showPlus?: boolean;
 }
 
@@ -62,7 +65,7 @@ export interface MoneyProps extends Omit<TextProps, "children"> {
  */
 export function Money({ value, signed, showPlus, className = "", ...rest }: MoneyProps) {
   const tone =
-    signed || showPlus
+    signed
       ? value > 0
         ? "text-success"
         : value < 0
