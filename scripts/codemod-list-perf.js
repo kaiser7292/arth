@@ -86,8 +86,9 @@ for (const file of [...walk("app"), ...walk("components")]) {
 
   let s = src;
   // Descending so earlier insertions do not shift later offsets.
-  for (const at of points.sort((a, b) => b - a)) {
-    s = s.slice(0, at) + "\n            " + PROPS.join("\n            ") + s.slice(at);
+  for (const point of points.sort((a, b) => b.at - a.at)) {
+    const block = PROPS.map((x) => String.fromCharCode(10) + point.indent + x).join("");
+    s = s.slice(0, point.at) + block + s.slice(point.at);
     lists++;
   }
 

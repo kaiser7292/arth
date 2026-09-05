@@ -276,6 +276,9 @@ export default function ManualLinkScreen() {
         </View>
       ) : (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={filtered}
           keyExtractor={(item) => `${item.kind}-${item.id}`}
           renderItem={renderItem}

@@ -112,6 +112,9 @@ export default function RecurringRulesScreen() {
         </Text>
       </View>
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={reminders}
         keyExtractor={(item) => item.rule.id}
         renderItem={({ item }) => {

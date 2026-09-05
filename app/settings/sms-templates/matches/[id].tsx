@@ -71,6 +71,9 @@ export default function TemplateMatchesScreen() {
         </View>
       ) : (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={matches}
           keyExtractor={(_, i) => String(i)}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}

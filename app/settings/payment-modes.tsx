@@ -137,6 +137,9 @@ export default function PaymentModesScreen() {
   return (
     <ScreenContainer padTop={false}>
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={modes}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}

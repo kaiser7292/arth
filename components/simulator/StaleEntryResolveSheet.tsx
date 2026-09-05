@@ -360,6 +360,9 @@ export function StaleEntryResolveSheet({
               </Text>
             ) : (
               <FlatList
+                initialNumToRender={12}
+                maxToRenderPerBatch={10}
+                windowSize={7}
                 data={filteredCandidates}
                 keyExtractor={(item) => item.id}
                 renderItem={renderCandidate}

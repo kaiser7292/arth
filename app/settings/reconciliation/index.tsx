@@ -160,6 +160,9 @@ export default function ReconciliationHubScreen() {
         </View>
       ) : (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={sessions}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}

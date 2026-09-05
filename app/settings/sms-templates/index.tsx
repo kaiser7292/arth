@@ -150,6 +150,9 @@ export default function SmartSmsTemplatesListScreen() {
           </View>
         ) : (
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={templates}
             keyExtractor={(t) => t.id}
             ListHeaderComponent={

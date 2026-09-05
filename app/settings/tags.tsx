@@ -254,6 +254,9 @@ export default function TagsSettingsScreen() {
 
       {/* Tag list */}
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={tags}
         keyExtractor={(item) => item.id}
         renderItem={renderTag}

@@ -140,6 +140,9 @@ export function AccountPickerSheet({
           </View>
         ) : (
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={accounts}
             keyExtractor={(item) => item.id}
             scrollEnabled={accounts.length > 5}

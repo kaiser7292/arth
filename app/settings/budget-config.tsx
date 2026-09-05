@@ -309,6 +309,9 @@ export default function BudgetConfigScreen() {
 
       {/* Category budgets */}
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={rows}
         keyExtractor={(item) => item.category.id}
         renderItem={renderItem}

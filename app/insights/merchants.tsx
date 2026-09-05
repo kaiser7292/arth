@@ -118,6 +118,9 @@ export default function MerchantAnalyticsScreen() {
       )}
 
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={merchants}
         keyExtractor={(item) => item.merchant}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}

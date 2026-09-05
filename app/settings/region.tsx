@@ -304,6 +304,9 @@ export default function RegionSettingsScreen() {
           </View>
 
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={filteredCurrencies}
             keyExtractor={(item) => item.code}
             keyboardShouldPersistTaps="handled"
@@ -358,6 +361,9 @@ export default function RegionSettingsScreen() {
           </View>
 
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={COMMON_TIMEZONES}
             keyExtractor={(item) => item}
             keyboardShouldPersistTaps="handled"

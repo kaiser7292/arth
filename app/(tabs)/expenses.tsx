@@ -231,6 +231,33 @@ export default function ExpensesScreen() {
 
   const lastVersionRef = useRef<number | null>(null);
 
+  /**
+   * Signature of everything that changes WHICH rows should be shown.
+   *
+   * loadExpenses skips a reload when the data version has not moved, which is right for a refocus
+   * but wrong for a filter change: switching the nature tab to Committed, Credits or Transfers
+   * alters the query without touching the data version, so the guard swallowed the reload and the
+   * list kept showing the previous tab's rows.
+   */
+  const filterSignature = [
+    debouncedSearch,
+    filterStartDate,
+    filterEndDate,
+    filterCategoryIds.join(","),
+    filterPaymentModeIds.join(","),
+    filterAccountIds.join(","),
+    filterTagIds.join(","),
+    filterMerchantNames.join(","),
+    filterRefundedStatus,
+    filterAvoidability,
+    filterRuleIds.join(","),
+    filterStatus,
+    filterNature,
+    summaryGroupBy,
+    sortBy,
+  ].join("|");
+  const lastFilterSignatureRef = useRef<string | null>(null);
+
   const loadExpenses = useCallback(
     async (reset = true) => {
       if (reset) {
@@ -353,6 +380,11 @@ export default function ExpensesScreen() {
   // Reload expenses when screen gains focus or filters change
   useFocusEffect(
     useCallback(() => {
+      // A changed query must bypass the data-version guard; a plain refocus must not.
+      if (lastFilterSignatureRef.current !== filterSignature) {
+        lastFilterSignatureRef.current = filterSignature;
+        lastVersionRef.current = null;
+      }
       loadExpenses(true);
       getPendingExpenseCount(DEFAULT_USER_ID).then(setPendingCount).catch(() => {});
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1290,6 +1322,9 @@ export default function ExpensesScreen() {
             {activeNatureIndex === pageIdx ? (
               filterNature === "transfers" ? (
                 <FlatList
+                  initialNumToRender={12}
+                  maxToRenderPerBatch={10}
+                  windowSize={7}
                   data={transfers}
                   keyExtractor={(item) => item.id}
                   renderItem={renderTransferItem}
@@ -1325,6 +1360,9 @@ export default function ExpensesScreen() {
                 />
               ) : (
                 <FlatList
+                  initialNumToRender={12}
+                  maxToRenderPerBatch={10}
+                  windowSize={7}
                   data={groupedExpenses}
                   keyExtractor={(item) => item._type === "header" ? `header-${item.date}` : item.expense.id}
                   renderItem={renderExpenseItem}

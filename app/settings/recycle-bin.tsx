@@ -679,6 +679,9 @@ export default function RecycleBinScreen() {
         </View>
       ) : (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={section.data}
           keyExtractor={(item: any) => item.id}
           renderItem={section.renderItem}

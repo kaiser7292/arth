@@ -82,6 +82,9 @@ export default function RuleApplicationsScreen() {
         </View>
       ) : (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={expenses}
           keyExtractor={(e) => e.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}

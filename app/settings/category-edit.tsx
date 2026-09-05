@@ -375,6 +375,9 @@ export default function CategoryEditScreen() {
         title="Choose Icon"
       >
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={ICON_OPTIONS}
           keyExtractor={(item) => item}
           numColumns={6}

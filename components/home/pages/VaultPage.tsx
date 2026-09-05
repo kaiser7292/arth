@@ -145,6 +145,9 @@ export function VaultPage() {
         </View>
       ) : searching || query.length > 0 ? (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={entries}
           keyExtractor={(item) => item.id}
           renderItem={renderEntry}

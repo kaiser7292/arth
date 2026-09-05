@@ -360,6 +360,9 @@ function FYPickerContent({
         Select Financial Year
       </Text>
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={fyList}
         keyExtractor={(item) => String(item)}
         renderItem={({ item }) => {

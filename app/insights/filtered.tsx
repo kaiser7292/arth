@@ -299,6 +299,9 @@ export default function InsightFilteredListScreen() {
           </View>
         ) : (
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={sortedExpenses}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (

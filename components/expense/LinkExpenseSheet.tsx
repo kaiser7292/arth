@@ -140,6 +140,9 @@ export function LinkExpenseSheet({
             </View>
           ) : (
             <FlatList
+              initialNumToRender={12}
+              maxToRenderPerBatch={10}
+              windowSize={7}
               data={candidates}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (

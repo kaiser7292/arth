@@ -180,6 +180,9 @@ export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen
           />
 
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={filteredTags}
             keyExtractor={(item) => item.id}
             scrollEnabled={false}

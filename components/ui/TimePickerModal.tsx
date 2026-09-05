@@ -110,6 +110,9 @@ function Column({ data, selectedIndex, onSelect, formatItem }: ColumnProps) {
   return (
     <View style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS, flex: 1 }}>
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         ref={flatListRef}
         data={data as (string | number)[]}
         keyExtractor={(_, i) => String(i)}

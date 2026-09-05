@@ -215,6 +215,9 @@ export default function CategoriesScreen() {
   return (
     <ScreenContainer padTop={false}>
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={categories}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}

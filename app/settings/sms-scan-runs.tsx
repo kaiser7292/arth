@@ -250,6 +250,9 @@ export default function SmsScanRunsScreen() {
           <ActivityIndicator size="small" color={theme.primary} className="mt-4" />
         ) : (
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={categories.filter((c) => counts[c] > 0)}
             keyExtractor={(item) => item}
             renderItem={({ item: cat }) => {
@@ -371,6 +374,9 @@ export default function SmsScanRunsScreen() {
         </View>
 
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={({ item: detail }) => <SmsDetailCard detail={detail} ruleNameMap={ruleNameMap} />}
@@ -617,6 +623,9 @@ export default function SmsScanRunsScreen() {
             </View>
           ) : (
             <FlatList
+              initialNumToRender={12}
+              maxToRenderPerBatch={10}
+              windowSize={7}
               data={runs}
               keyExtractor={(item) => item.id}
               renderItem={renderRunCard}

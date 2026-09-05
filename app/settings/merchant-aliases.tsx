@@ -390,6 +390,9 @@ export default function MerchantAliasesScreen() {
       >
         {/* Grouped alias list with header inside for proper keyboard scrolling */}
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           ref={listRef}
           data={groupedAliases}
           keyExtractor={(item) => item.primaryId}

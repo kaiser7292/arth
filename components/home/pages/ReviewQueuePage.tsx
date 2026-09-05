@@ -686,6 +686,9 @@ export function ReviewQueuePage() {
 
       {/* List */}
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={listData}
         keyExtractor={(item, index) => {
           if (item.type === "expense") return item.expense.id;
@@ -973,6 +976,9 @@ export function ReviewQueuePage() {
             </Pressable>
           </View>
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={categories}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}

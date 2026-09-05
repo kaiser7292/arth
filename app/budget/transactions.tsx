@@ -223,6 +223,9 @@ export default function BudgetTransactionsScreen() {
           </View>
         ) : (
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={expenses}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (

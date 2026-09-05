@@ -442,12 +442,12 @@ export default function GoalsScreen() {
             </Card>
           )}
 
-          {/* ── PLAN section: Investment Buckets + Life Milestones ── */}
+          {/* ── PLAN section: Investment + Life Milestones ── */}
           <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
             Plan
           </Text>
           <View className="flex-row gap-3 mb-4">
-            {/* Investment Buckets */}
+            {/* Investment */}
             <Pressable
               className="flex-1"
               onPress={() => router.push({ pathname: "/goals/investment-buckets", params: { fy: String(currentFY) } })}
@@ -461,7 +461,7 @@ export default function GoalsScreen() {
                     <Ionicons name="pie-chart-outline" size={16} color={accentColor} />
                   </View>
                   <Text className="text-xs font-semibold text-muted-foreground flex-1" numberOfLines={1}>
-                    Investment Buckets
+                    Investment
                   </Text>
                 </View>
                 {fyBuckets.length > 0 ? (
