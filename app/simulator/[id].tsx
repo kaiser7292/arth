@@ -1,6 +1,6 @@
 import { HisaabInclusionSheet } from "@/components/simulator/HisaabInclusionSheet";
 import { StaleEntryResolveSheet } from "@/components/simulator/StaleEntryResolveSheet";
-import { Card, FAB, ScreenContainer, Sheet, Text } from "@/components/ui";
+import { Badge, Card, FAB, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -1079,14 +1079,7 @@ export default function ScenarioDetailScreen() {
                     >
                       Outgoing
                     </Text>
-                    <View
-                      className="ml-2 px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: colors.border }}
-                    >
-                      <Text className="text-label font-semibold" style={{ color: colors.textSecondary }}>
-                        {outgoingEntries.length}
-                      </Text>
-                    </View>
+                    <Badge label={outgoingEntries.length} color={colors.textSecondary} className="ml-2" />
                   </View>
                   <Text className="text-xs font-bold" style={{ color: theme.danger }}>
                     −{formatAmount(outgoingTotal)}
@@ -1125,14 +1118,7 @@ export default function ScenarioDetailScreen() {
                     >
                       Incoming
                     </Text>
-                    <View
-                      className="ml-2 px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: colors.border }}
-                    >
-                      <Text className="text-label font-semibold" style={{ color: colors.textSecondary }}>
-                        {incomingEntries.length}
-                      </Text>
-                    </View>
+                    <Badge label={incomingEntries.length} color={colors.textSecondary} className="ml-2" />
                   </View>
                   <Text className="text-xs font-bold" style={{ color: theme.success }}>
                     +{formatAmount(incomingTotal)}
@@ -1458,14 +1444,7 @@ function EntryGroup({
           >
             {label}
           </Text>
-          <View
-            className="ml-2 px-1.5 py-0.5 rounded-full"
-            style={{ backgroundColor: colors.border }}
-          >
-            <Text className="text-label font-semibold" style={{ color: colors.textSecondary }}>
-              {items.length}
-            </Text>
-          </View>
+          <Badge label={items.length} color={colors.textSecondary} className="ml-2" />
         </View>
         {direction && (
           <Text

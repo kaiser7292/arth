@@ -1,6 +1,6 @@
 
 
-import { Text } from "@/components/ui";
+import { Badge, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -91,45 +91,21 @@ export default function ExpenseHeroCard({
     <View className="px-4 pt-5 pb-4 items-center">
       {/* Source + Nature badges */}
       <View className="flex-row items-center mb-3">
-        <View className="px-2.5 py-1 rounded-full mr-2" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-          <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.primary }}>
-            {SOURCE_LABELS[source] ?? source}
-          </Text>
-        </View>
+        <Badge label={SOURCE_LABELS[source] ?? source} variant="primary" uppercase className="mr-2" />
         {nature === "forecast" && (
-          <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
-            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.warning }}>
-              Forecast
-            </Text>
-          </View>
+          <Badge label="Forecast" variant="warning" uppercase />
         )}
         {status === "pending_review" && (
-          <View className="px-2.5 py-1 rounded-full bg-warning/8">
-            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.warning }}>
-              Pending Review
-            </Text>
-          </View>
+          <Badge label="Pending Review" variant="warning" uppercase />
         )}
         {isFullRefund && (
-          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: theme.success + "1A" }}>
-            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.success }}>
-              Refunded
-            </Text>
-          </View>
+          <Badge label="Refunded" variant="success" uppercase className="ml-2" />
         )}
         {isPartialRefund && (
-          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: theme.warning + "1A" }}>
-            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.warning }}>
-              Partial Refund
-            </Text>
-          </View>
+          <Badge label="Partial Refund" variant="warning" uppercase className="ml-2" />
         )}
         {isTransfer && (
-          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: "#6366F11A" }}>
-            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: "#6366F1" }}>
-              Transfer
-            </Text>
-          </View>
+          <Badge label="Transfer" color={theme.data.transfer} uppercase className="ml-2" />
         )}
       </View>
 

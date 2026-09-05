@@ -2,7 +2,7 @@ import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DuplicateGroupCard } from "@/components/expense/DuplicateGroupCard";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
 import { ForecastMatchCard } from "@/components/expense/ForecastMatchCard";
-import { LearnMoreChip, LoadingState, Text } from "@/components/ui";
+import { Badge, LearnMoreChip, LoadingState, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
 import { useAlert } from "@/hooks/use-alert";
@@ -767,19 +767,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                   {opt.label}
                 </Text>
                 {count > 0 && (
-                  <View
-                    className="ml-1.5 px-1.5 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: isActive ? theme.alpha("primary", 0.13) : theme.faintForeground + "14",
-                    }}
-                  >
-                    <Text
-                      className="text-label font-bold"
-                      style={{ color: isActive ? theme.primary : theme.faintForeground }}
-                    >
-                      {count}
-                    </Text>
-                  </View>
+                  <Badge label={count} color={isActive ? theme.primary : theme.faintForeground} className="ml-1.5" />
                 )}
               </Pressable>
             );
@@ -815,9 +803,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                   <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground ml-1.5">
                     {item.title}
                   </Text>
-                  <View className="ml-1.5 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.faintForeground + "14" }}>
-                    <Text className="text-label font-bold" style={{ color: theme.faintForeground }}>{item.count}</Text>
-                  </View>
+                  <Badge label={item.count} color={theme.faintForeground} className="ml-1.5" />
                 </View>
                 <Ionicons
                   name={isOpen ? "chevron-up" : "chevron-down"}

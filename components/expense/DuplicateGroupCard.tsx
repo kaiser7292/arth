@@ -1,5 +1,5 @@
 import { View, Pressable } from "react-native";
-import { Text } from "@/components/ui";
+import { Badge, Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -60,11 +60,7 @@ export function DuplicateGroupCard({
           <Text className="text-sm font-bold text-foreground">
             Possible Duplicate
           </Text>
-          <View className="ml-auto px-2 py-0.5 rounded-full" style={{ backgroundColor: warn + "14" }}>
-            <Text className="text-label font-semibold" style={{ color: warn }}>
-              #{index + 1}
-            </Text>
-          </View>
+          <Badge label="#{index + 1}" color={warn} className="ml-auto" />
         </View>
         <Text
           className="text-xs text-muted-foreground leading-5"
@@ -140,11 +136,7 @@ export function DuplicateGroupCard({
                     </Text>
                   </View>
                   {isFirst && (
-                    <View className="ml-1.5 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: success + "14" }}>
-                      <Text className="text-label font-semibold" style={{ color: success }}>
-                        LATEST
-                      </Text>
-                    </View>
+                    <Badge label="LATEST" color={success} className="ml-1.5" />
                   )}
                 </View>
               </Pressable>

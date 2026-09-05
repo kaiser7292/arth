@@ -16,7 +16,8 @@ export type BadgeVariant =
 export type BadgeTone = "tint" | "solid" | "outline";
 
 export interface BadgeProps {
-  label: string;
+  /** number is allowed because counts are a real badge - "3", "12 pending". */
+  label: string | number;
   /** Semantic role. Resolves through the theme, so it is correct in both schemes. */
   variant?: BadgeVariant;
   tone?: BadgeTone;
@@ -29,6 +30,8 @@ export interface BadgeProps {
    * keeps working when the palette changes.
    */
   color?: string;
+  /** Uppercase with tracking, for the short status words (FORECAST, REFUNDED, SMS). */
+  uppercase?: boolean;
   className?: string;
 }
 
@@ -63,6 +66,7 @@ export function Badge({
   icon,
   size = "sm",
   color,
+  uppercase = false,
   className = "",
 }: BadgeProps) {
   const theme = useTheme();
@@ -99,7 +103,9 @@ export function Badge({
         />
       ) : null}
       <Text
-        className={`${size === "sm" ? "text-label" : "text-meta"} font-semibold`}
+        className={`${size === "sm" ? "text-label" : "text-meta"} font-semibold${
+          uppercase ? " uppercase tracking-wider" : ""
+        }`}
         style={{ color: fg }}
       >
         {label}

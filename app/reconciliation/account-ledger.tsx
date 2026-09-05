@@ -1,6 +1,6 @@
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
-import { Button, Card, DateInput, FABMenu, FilterChip, Input, Money, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { Badge, Button, Card, DateInput, FABMenu, FilterChip, Input, Money, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
@@ -1219,11 +1219,7 @@ const loadData = useCallback(async () => {
                         {entry.description}
                       </Text>
                       {isReclassified && (
-                        <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: transferColor + "20" }}>
-                          <Text className="text-label" style={{ color: transferColor }}>
-                            Transfer
-                          </Text>
-                        </View>
+                        <Badge label="Transfer" color={transferColor} className="ml-2" />
                       )}
                     </View>
                     {isTransfer && entry.counterAccountName && (
