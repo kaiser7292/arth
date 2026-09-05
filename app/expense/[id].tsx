@@ -3203,7 +3203,7 @@ export default function ExpenseDetailScreen() {
             ? "Pay from which account?"
             : "Money came from which account?"
         }
-        filterTypes={["savings", "wallet"]}
+        filterTypes={["savings", "wallet", "demat"]}
         excludeAccountId={expense?.account_id ?? undefined}
       />
 
