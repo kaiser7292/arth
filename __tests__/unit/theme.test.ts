@@ -67,3 +67,60 @@ describe("contrast", () => {
     expect(ratio(SEMANTIC.light.accent, SEMANTIC.light.card)).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+/**
+ * The migration invariant.
+ *
+ * During the sweep both the legacy colour surfaces and the new token roles are live at once. If
+ * they ever resolve to DIFFERENT values, the app renders half-old/half-new and there is no way to
+ * tell from a screenshot which commit caused it. These tests make that divergence impossible.
+ */
+describe("legacy bridge", () => {
+  const { Colors, StatusColors } = require("../../constants/theme");
+  const { STATUS_COLORS, CHART_COLORS, TRANSFER_COLOR } = require("../../constants/semantic-colors");
+  const { LIGHT, DARK, BRAND_RAMP, toHex } = require("../../constants/brand");
+  const { getTheme } = require("../../hooks/use-theme");
+
+  it("resolves Colors[scheme] to the same values as useTheme()", () => {
+    for (const scheme of ["light", "dark"] as const) {
+      const t = getTheme(scheme);
+      expect(Colors[scheme].text).toBe(t.foreground);
+      expect(Colors[scheme].textSecondary).toBe(t.mutedForeground);
+      expect(Colors[scheme].background).toBe(t.background);
+      expect(Colors[scheme].surface).toBe(t.card);
+      expect(Colors[scheme].border).toBe(t.border);
+      expect(Colors[scheme].tint).toBe(t.primary);
+      expect(Colors[scheme].tabIconSelected).toBe(t.primary);
+    }
+  });
+
+  it("resolves StatusColors[scheme] to the same values as useTheme()", () => {
+    for (const scheme of ["light", "dark"] as const) {
+      const t = getTheme(scheme);
+      expect(StatusColors[scheme].success).toBe(t.success);
+      expect(StatusColors[scheme].danger).toBe(t.danger);
+      expect(StatusColors[scheme].warning).toBe(t.warning);
+    }
+  });
+
+  it("ends the two-greens split between theme.ts and semantic-colors.ts", () => {
+    // These disagreed in production (#22C55E vs #10B981) under a comment claiming they matched.
+    expect(STATUS_COLORS.success).toBe(StatusColors.light.success);
+    expect(STATUS_COLORS.error).toBe(StatusColors.light.danger);
+    expect(STATUS_COLORS.warning).toBe(StatusColors.light.warning);
+  });
+
+  it("points the legacy accent ramp at the single brand ramp", () => {
+    expect(Colors.primary).toBe(BRAND_RAMP);
+    // The brand's darkest shade is the Android adaptive-icon background in app.json — the app and
+    // its launcher icon finally share a colour.
+    expect(BRAND_RAMP[900]).toBe("#134E4A");
+    expect(LIGHT.primary).toBe(BRAND_RAMP[700]);
+    expect(DARK.primary).toBe(BRAND_RAMP[400]);
+  });
+
+  it("derives chart and transfer colours from tokens, not literals", () => {
+    expect(CHART_COLORS.axisMuted).toBe(LIGHT.faintForeground);
+    expect(TRANSFER_COLOR).toBe(toHex(require("../../constants/design-tokens.js").DATA.transfer));
+  });
+});

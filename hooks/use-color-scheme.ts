@@ -2,7 +2,8 @@ import { useColorScheme as useNativeWindColorScheme } from "nativewind";
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { getThemePreference, getAccentTheme as getStoredAccent, setAccentTheme as setStoredAccent } from "@/services/settings";
 import { Colors } from "@/constants/theme";
-import { ACCENT_PALETTES, DEFAULT_ACCENT_THEME } from "@/constants/accent-palettes";
+import { DEFAULT_ACCENT_THEME } from "@/constants/accent-palettes";
+import { BRAND_RAMP } from "@/constants/brand";
 import type { AccentThemeId } from "@/constants/accent-palettes";
 
 /* ------------------------------------------------------------------ */
@@ -67,7 +68,12 @@ export function useColorScheme() {
   }, [setColorScheme]);
 
   const resolved = (colorScheme ?? "light") as "light" | "dark";
-  const palette = ACCENT_PALETTES[accentTheme];
+  // Single brand ramp from the design tokens. Formerly one of five user-selectable accent
+  // palettes; the picker was removed in v1.11 and setAccentTheme() has been a no-op since, so
+  // this indirection served nothing. Re-pointing it here is what moves all ~823 existing
+  // `accent[N]` / `ac()` / `acAlpha()` call sites onto the new brand without editing them.
+  // `id`/`name` retained only to satisfy the legacy AccentPalette shape; both go away with it.
+  const palette = { id: DEFAULT_ACCENT_THEME, name: "Arth", ...BRAND_RAMP };
 
   // Build color set with accent-derived overrides.
   // For Ocean (default), these match the original hardcoded values exactly.
