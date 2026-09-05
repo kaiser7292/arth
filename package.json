@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/apply-patches.js",
     "generate:theme": "node scripts/generate-theme.js",
-    "verify:theme": "node scripts/verify-theme.js"
+    "verify:theme": "node scripts/verify-theme.js",
+    "resolve:classes": "node scripts/resolve-classes.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
