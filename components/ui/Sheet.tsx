@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   AccessibilityInfo,
-  Dimensions,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
+  StyleSheet,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
@@ -21,7 +22,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/use-theme";
 import { MOTION } from "@/constants/design-tokens";
 
-const SCREEN_H = Dimensions.get("window").height;
 /** Drag far enough, or fling hard enough, and the sheet goes. */
 const DISMISS_FRACTION = 0.28;
 const DISMISS_VELOCITY = 900;
@@ -43,6 +43,22 @@ export interface SheetProps {
  * backdrop. It is now drag-dismissable, which is what makes a sheet feel like a sheet: the grabber
  * was always drawn but never did anything.
  *
+ * LAYOUT - the part that has to stay the way it is.
+ *
+ * The panel is a NORMAL-FLOW child of a full-height column with justifyContent "flex-end", and the
+ * backdrop sits behind it as an absolute fill. That is what pins the sheet to the bottom: the
+ * container's height decides where the panel goes, so the panel's own content cannot move it.
+ *
+ * An earlier version positioned the panel absolutely (bottom: 0) inside a KeyboardAvoidingView
+ * instead, and that broke two things at once. On Android a KeyboardAvoidingView with no `behavior`
+ * renders a plain View, so the panel's parent was an auto-height box with no definite height -
+ * and Yoga cannot resolve a percentage maxHeight against an indefinite parent, so it drops the cap
+ * silently. The panel then grew to its full content height, the inner ScrollView never shrank or
+ * scrolled, and where the sheet landed followed its content instead of the screen.
+ *
+ * So maxHeight is computed in PIXELS from the live window height. A percentage only works when
+ * every ancestor happens to have a definite height; pixels always work.
+ *
  * react-native-gesture-handler was already a dependency and used in exactly two places, so nothing
  * new is pulled in. The gesture root is re-declared INSIDE the Modal deliberately - on Android a
  * Modal renders in its own window, outside the root view's handler tree, so a gesture declared
@@ -62,9 +78,12 @@ export function Sheet({
 }: SheetProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const translateY = useSharedValue(SCREEN_H);
+  // Live, not module-scope Dimensions: a value captured at import time is wrong after a rotation,
+  // and wrong on any device whose window differs from the one present at startup.
+  const { height: winH } = useWindowDimensions();
+  const translateY = useSharedValue(winH);
   const dragStart = useSharedValue(0);
-  const [height, setHeight] = useState(SCREEN_H * 0.5);
+  const [height, setHeight] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
@@ -81,21 +100,25 @@ export function Sheet({
     if (visible) {
       translateY.value = reduceMotion
         ? 0
-        : withSpring(0, { damping: 22, stiffness: 260, mass: 0.7 });
+        : withSpring(0, { damping: 22, stiffness: 260, mass: 0.7, overshootClamping: true });
     } else {
-      translateY.value = SCREEN_H;
+      translateY.value = winH;
     }
-  }, [visible, reduceMotion, translateY]);
+  }, [visible, reduceMotion, translateY, winH]);
 
   const close = useCallback(() => {
     if (reduceMotion) {
       onClose();
       return;
     }
-    translateY.value = withTiming(SCREEN_H, { duration: MOTION.fast }, (done) => {
+    translateY.value = withTiming(winH, { duration: MOTION.fast }, (done) => {
       if (done) runOnJS(onClose)();
     });
-  }, [onClose, reduceMotion, translateY]);
+  }, [onClose, reduceMotion, translateY, winH]);
+
+  // Until the panel reports a layout, fall back to the window height so a drag arriving before
+  // first layout still has a sane distance to measure a dismiss against.
+  const dismissBasis = height > 0 ? height : winH;
 
   const pan = Gesture.Pan()
     .enabled(draggable && !reduceMotion)
@@ -106,14 +129,14 @@ export function Sheet({
       translateY.value = Math.max(0, dragStart.value + e.translationY);
     })
     .onEnd((e) => {
-      const far = translateY.value > height * DISMISS_FRACTION;
+      const far = translateY.value > dismissBasis * DISMISS_FRACTION;
       const flung = e.velocityY > DISMISS_VELOCITY;
       if (far || flung) {
-        translateY.value = withTiming(SCREEN_H, { duration: MOTION.fast }, (done) => {
+        translateY.value = withTiming(winH, { duration: MOTION.fast }, (done) => {
           if (done) runOnJS(onClose)();
         });
       } else {
-        translateY.value = withSpring(0, { damping: 22, stiffness: 260 });
+        translateY.value = withSpring(0, { damping: 22, stiffness: 260, overshootClamping: true });
       }
     });
 
@@ -122,36 +145,53 @@ export function Sheet({
   }));
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateY.value, [0, height], [1, 0], "clamp"),
+    opacity: interpolate(translateY.value, [0, dismissBasis], [1, 0], "clamp"),
   }));
 
   if (!visible) return null;
 
   return (
-    <Modal transparent animationType="none" visible={visible} onRequestClose={close}>
+    <Modal
+      transparent
+      animationType="none"
+      visible={visible}
+      onRequestClose={close}
+      // Without these the Modal gets its own inset-shrunk window, which no longer matches the
+      // window height the pixel maxHeight below is computed against.
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <Animated.View style={[{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)" }, backdropStyle]}>
-          <Pressable
-            style={{ flex: 1 }}
-            onPress={close}
-            accessibilityLabel="Close"
-            accessibilityRole="button"
-          />
-        </Animated.View>
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
-        >
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
           <Animated.View
-              onLayout={(e) => setHeight(e.nativeEvent.layout.height || SCREEN_H * 0.5)}
+            style={[
+              StyleSheet.absoluteFillObject,
+              { backgroundColor: "rgba(0,0,0,0.45)" },
+              backdropStyle,
+            ]}
+          >
+            <Pressable
+              style={{ flex: 1 }}
+              onPress={close}
+              accessibilityLabel="Close"
+              accessibilityRole="button"
+            />
+          </Animated.View>
+
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            // box-none so this wrapper never swallows a tap meant for the backdrop behind it.
+            pointerEvents="box-none"
+          >
+            <Animated.View
+              onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
               style={[
                 sheetStyle,
                 {
                   backgroundColor: theme.card,
                   borderTopLeftRadius: 20,
                   borderTopRightRadius: 20,
-                  maxHeight: `${maxHeightPct}%`,
+                  maxHeight: Math.round(winH * (maxHeightPct / 100)),
                   // Safe-area pad belongs on the PANEL, not on a wrapper around the children.
                   // The hand-rolled sheets did it this way, and it matters: an extra non-flex View
                   // between a height-capped panel and content that ends in a pinned action row
@@ -179,7 +219,8 @@ export function Sheet({
               </GestureDetector>
               {children}
             </Animated.View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </GestureHandlerRootView>
     </Modal>
   );
