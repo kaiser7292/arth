@@ -90,11 +90,11 @@ export default function PaymentModesScreen() {
           params: { id: item.id },
         })
       }
-      className={`flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark ${
+      className={`flex-row items-center px-4 py-3 border-b border-border ${
         item.is_active === 0 ? "opacity-40" : ""
       }`}
     >
-      <View className="w-10 h-10 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt items-center justify-center mr-3">
+      <View className="w-10 h-10 rounded-full bg-card items-center justify-center mr-3">
         <Ionicons
           name={TYPE_ICONS[item.type as PaymentModeType]}
           size={20}
@@ -102,11 +102,11 @@ export default function PaymentModesScreen() {
         />
       </View>
       <View className="flex-1">
-        <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+        <Text className="text-base font-medium text-foreground">
           {item.name}
         </Text>
         <View className="flex-row items-center">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             {PAYMENT_MODE_TYPE_LABELS[item.type as PaymentModeType]}
           </Text>
           {item.is_active === 0 && (
@@ -140,7 +140,7 @@ export default function PaymentModesScreen() {
         contentContainerStyle={{ paddingBottom: 80 }}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-muted-foreground">
               No payment modes yet. Tap + to add one.
             </Text>
           </View>

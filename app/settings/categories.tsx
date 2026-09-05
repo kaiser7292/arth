@@ -137,7 +137,7 @@ export default function CategoriesScreen() {
           params: { id: item.id },
         })
       }
-      className={`flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark ${
+      className={`flex-row items-center px-4 py-3 border-b border-border ${
         item.is_active === 0 ? "opacity-40" : ""
       }`}
     >
@@ -152,12 +152,12 @@ export default function CategoriesScreen() {
         />
       </View>
       <View className="flex-1">
-        <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+        <Text className="text-base font-medium text-foreground">
           {item.name}
         </Text>
         <View className="flex-row items-center">
           {item.is_unavoidable === 1 && (
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+            <Text className="text-xs text-muted-foreground mr-2">
               Unavoidable
             </Text>
           )}
@@ -218,7 +218,7 @@ export default function CategoriesScreen() {
         contentContainerStyle={{ paddingBottom: 80 }}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-muted-foreground">
               No categories yet. Tap + to add one.
             </Text>
           </View>

@@ -39,7 +39,7 @@ export default function HomeCardsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Card className="mb-4">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             Toggle any card off to declutter Home. Hidden cards stay reachable
             through their related tab or deep-link. Defaults match the original
             Home layout.
@@ -54,15 +54,15 @@ export default function HomeCardsScreen() {
                 key={card.id + tick}
                 className={`flex-row items-center py-3 ${
                   i < HOME_CARDS.length - 1
-                    ? "border-b border-border-light dark:border-border-dark"
+                    ? "border-b border-border"
                     : ""
                 }`}
               >
                 <View className="flex-1 mr-3">
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-semibold text-foreground">
                     {card.label}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                  <Text className="text-xs text-muted-foreground mt-0.5">
                     {card.description}
                   </Text>
                 </View>

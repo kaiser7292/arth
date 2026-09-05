@@ -229,12 +229,12 @@ export default function SmartRulesListScreen() {
             <View key={item.id} className="mb-2" style={{ opacity: 0.6 }}>
               <Card>
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-sm font-medium text-text-tertiary flex-1" numberOfLines={1}>{item.name}</Text>
+                  <Text className="text-sm font-medium text-faint-foreground flex-1" numberOfLines={1}>{item.name}</Text>
                   <Pressable onPress={() => handleRestore(item)} hitSlop={8} className="ml-3">
                     <Text className="text-xs font-semibold" style={{ color: colors.tint }}>Restore</Text>
                   </Pressable>
                 </View>
-                <Text className="text-xs text-text-tertiary mt-0.5" numberOfLines={1}>
+                <Text className="text-xs text-faint-foreground mt-0.5" numberOfLines={1}>
                   {summarizeConditions(item)}
                 </Text>
               </Card>
@@ -249,7 +249,7 @@ export default function SmartRulesListScreen() {
     <ScreenContainer padTop={false}>
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             Rules auto-apply when new expenses are added (manually or from SMS). First matching rule wins.
           </Text>
         </View>
@@ -262,10 +262,10 @@ export default function SmartRulesListScreen() {
           <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingBottom: 96 }}>
             <View className="flex-1 items-center justify-center py-16 px-8">
               <Ionicons name="sparkles-outline" size={48} color={colors.textSecondary} />
-              <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+              <Text className="text-lg font-medium text-foreground mt-4">
                 No rules yet
               </Text>
-              <Text className="text-sm text-text-tertiary text-center mt-2">
+              <Text className="text-sm text-faint-foreground text-center mt-2">
                 Create a rule to auto-categorize expenses by merchant, amount, or account.
               </Text>
             </View>
@@ -278,10 +278,10 @@ export default function SmartRulesListScreen() {
                 <Pressable onPress={() => router.push(`/settings/smart-rules/${item.id}` as never)}>
                   <View className="flex-row items-center mb-2">
                     <View className="flex-1">
-                      <Text className={`text-base font-semibold ${item.is_active ? "text-text-primary dark:text-text-dark-primary" : "text-text-tertiary"}`}>
+                      <Text className={`text-base font-semibold ${item.is_active ? "text-foreground" : "text-faint-foreground"}`}>
                         {item.name}
                       </Text>
-                      <Text className="text-xs text-text-tertiary mt-0.5">
+                      <Text className="text-xs text-faint-foreground mt-0.5">
                         Priority {item.priority}
                         {item.applies_to === "credit" && <Text> · Credits</Text>}
                         {item.applies_to === "any" && <Text> · All transactions</Text>}
@@ -289,14 +289,14 @@ export default function SmartRulesListScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-1">
+                  <Text className="text-sm text-muted-foreground mb-1">
                     WHEN: {summarizeConditions(item)}
                   </Text>
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-sm text-muted-foreground">
                     THEN: {summarizeActions(item)}
                   </Text>
                 </Pressable>
-                <View className="flex-row mt-3 pt-3 border-t border-border-light dark:border-border-dark" style={{ gap: 0 }}>
+                <View className="flex-row mt-3 pt-3 border-t border-border" style={{ gap: 0 }}>
                   <Pressable
                     onPress={() => router.push(`/settings/smart-rules/${item.id}` as never)}
                     hitSlop={4}
@@ -321,7 +321,7 @@ export default function SmartRulesListScreen() {
                     className="flex-1 items-center py-1"
                   >
                     <Ionicons name="copy-outline" size={16} color={colors.textSecondary} />
-                    <Text className="text-xs mt-0.5 text-text-tertiary">Duplicate</Text>
+                    <Text className="text-xs mt-0.5 text-faint-foreground">Duplicate</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => confirmDelete(item)}

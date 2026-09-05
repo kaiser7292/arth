@@ -172,12 +172,12 @@ export default function AccountMasterScreen() {
             </View>
             <View className="flex-1 mr-2">
               <Text
-                className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
+                className="text-sm font-semibold text-foreground"
                 numberOfLines={1}
               >
                 {displayName}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+              <Text className="text-xs text-muted-foreground mt-0.5">
                 {subtitleParts.join(" · ")}
               </Text>
             </View>
@@ -201,7 +201,7 @@ export default function AccountMasterScreen() {
             size={18}
             color={colors.textSecondary}
           />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-2 flex-1">
+          <Text className="text-xs text-muted-foreground ml-2 flex-1">
             Tap an account to view details, edit financial data, and manage
             linked payment modes.
           </Text>
@@ -227,7 +227,7 @@ export default function AccountMasterScreen() {
       </View>
 
       {/* Search bar */}
-      <View className="flex-row items-center border border-border-light dark:border-border-dark rounded-lg px-3 py-2 mb-3">
+      <View className="flex-row items-center border border-border rounded-lg px-3 py-2 mb-3">
         <Ionicons name="search-outline" size={18} color={colors.textSecondary} />
         <TextInput
           value={searchQuery}
@@ -235,7 +235,7 @@ export default function AccountMasterScreen() {
           placeholder="Search accounts..."
           placeholderTextColor={colors.textSecondary}
           maxLength={100}
-          className="flex-1 ml-2 text-base text-text-primary dark:text-text-dark-primary"
+          className="flex-1 ml-2 text-base text-foreground"
         />
         {searchQuery.length > 0 && (
           <Pressable onPress={() => setSearchQuery("")}>
@@ -245,7 +245,7 @@ export default function AccountMasterScreen() {
       </View>
 
       {/* Count */}
-      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary px-1 mb-2">
+      <Text className="text-sm text-muted-foreground px-1 mb-2">
         {filteredAccounts.length}
         {filteredAccounts.length !== accounts.length ? ` of ${accounts.length}` : ""}
         {" "}
@@ -256,10 +256,10 @@ export default function AccountMasterScreen() {
       {isEmpty ? (
         <View className="items-center py-16">
           <Ionicons name="business-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             No accounts yet
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+          <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
             Tap + to add an account. Supports savings, credit cards, loans,
             wallets, and demat accounts.
           </Text>

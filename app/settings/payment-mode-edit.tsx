@@ -94,7 +94,7 @@ export default function PaymentModeEditScreen() {
             containerClassName="mb-6"
           />
 
-          <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+          <Text className="text-sm font-medium text-muted-foreground mb-2">
             Type
           </Text>
           <View className="flex-row flex-wrap mb-8">
@@ -105,7 +105,7 @@ export default function PaymentModeEditScreen() {
                 className={`px-4 py-3 rounded-lg mr-2 mb-2 border ${
                   type === t
                     ? ""
-                    : "bg-surface-light-alt dark:bg-surface-dark-alt border-transparent"
+                    : "bg-card border-transparent"
                 }`}
                 style={type === t ? {
                   backgroundColor: ac(accent, colorScheme, 100, 700),
@@ -116,7 +116,7 @@ export default function PaymentModeEditScreen() {
                   className={`text-sm ${
                     type === t
                       ? "font-medium"
-                      : "text-text-secondary dark:text-text-dark-secondary"
+                      : "text-muted-foreground"
                   }`}
                   style={type === t ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
                 >

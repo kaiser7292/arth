@@ -121,13 +121,13 @@ export default function TagsSettingsScreen() {
 
     if (isEditing) {
       return (
-        <View className="py-3 border-b border-border-light dark:border-border-dark">
+        <View className="py-3 border-b border-border">
           <TextInput
             value={editName}
             onChangeText={setEditName}
             autoFocus
             maxLength={50}
-            className="text-base text-text-primary dark:text-text-dark-primary border rounded-lg px-3 py-2 mb-2"
+            className="text-base text-foreground border rounded-lg px-3 py-2 mb-2"
             style={{ borderColor: accent[500] }}
           />
           {/* Color picker */}
@@ -171,17 +171,17 @@ export default function TagsSettingsScreen() {
       <Pressable
         onPress={() => handleStartEdit(item)}
         onLongPress={() => handleDelete(item)}
-        className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+        className="flex-row items-center py-3 border-b border-border"
       >
         <View
           className="w-4 h-4 rounded-full mr-3"
           style={{ backgroundColor: item.color }}
         />
         <View className="flex-1">
-          <Text className="text-base text-text-primary dark:text-text-dark-primary">
+          <Text className="text-base text-foreground">
             {item.name}
           </Text>
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             {count} {count === 1 ? "expense" : "expenses"}
           </Text>
         </View>
@@ -196,7 +196,7 @@ export default function TagsSettingsScreen() {
     <ScreenContainer padTop={false} keyboardAware>
       {/* Count */}
       <View className="px-4 py-3">
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-sm text-muted-foreground">
           {tags.length} {tags.length === 1 ? "tag" : "tags"}
         </Text>
       </View>
@@ -211,7 +211,7 @@ export default function TagsSettingsScreen() {
             placeholderTextColor={colors.tabIconDefault}
             autoFocus
             maxLength={50}
-            className="text-base text-text-primary dark:text-text-dark-primary border border-border-light dark:border-border-dark rounded-lg px-3 py-2 mb-3"
+            className="text-base text-foreground border border-border rounded-lg px-3 py-2 mb-3"
           />
           {/* Color picker */}
           <View className="flex-row flex-wrap mb-3">
@@ -235,9 +235,9 @@ export default function TagsSettingsScreen() {
           <View className="flex-row gap-3">
             <Pressable
               onPress={() => { setShowAdd(false); setNewTagName(""); }}
-              className="flex-1 py-2.5 rounded-xl border border-border-light dark:border-border-dark items-center"
+              className="flex-1 py-2.5 rounded-xl border border-border items-center"
             >
-              <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+              <Text className="text-sm font-medium text-muted-foreground">Cancel</Text>
             </Pressable>
             <Pressable
               onPress={handleAdd}
@@ -259,10 +259,10 @@ export default function TagsSettingsScreen() {
         ListEmptyComponent={
           <View className="items-center py-16">
             <Ionicons name="pricetags-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               No tags yet
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
               Tags let you label expenses (e.g. "work trip", "birthday", "tax deductible"). Create one to get started.
             </Text>
           </View>

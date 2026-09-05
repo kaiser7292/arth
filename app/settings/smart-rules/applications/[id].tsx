@@ -71,10 +71,10 @@ export default function RuleApplicationsScreen() {
       ) : expenses.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="sparkles-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             No applications yet
           </Text>
-          <Text className="text-sm text-text-tertiary text-center mt-2">
+          <Text className="text-sm text-faint-foreground text-center mt-2">
             Transactions matched by this rule will appear here.
           </Text>
         </View>
@@ -84,7 +84,7 @@ export default function RuleApplicationsScreen() {
           keyExtractor={(e) => e.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}
           ListHeaderComponent={
-            <Text className="text-xs text-text-tertiary mb-3">
+            <Text className="text-xs text-faint-foreground mb-3">
               {expenses.length} transaction{expenses.length === 1 ? "" : "s"} matched by this rule
             </Text>
           }

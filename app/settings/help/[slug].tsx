@@ -33,7 +33,7 @@ export default function HelpArticleScreen() {
   if (!meta || !body) {
     return (
       <ScreenContainer safe padTop={false}>
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary p-4">
+        <Text className="text-sm text-muted-foreground p-4">
           Article not found.
         </Text>
       </ScreenContainer>
@@ -46,11 +46,11 @@ export default function HelpArticleScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mb-2">
+        <Text className="text-2xl font-bold text-foreground mb-2">
           {meta.title}
         </Text>
         {meta.summary.length > 0 && (
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary leading-5 mb-5">
+          <Text className="text-sm text-muted-foreground leading-5 mb-5">
             {meta.summary}
           </Text>
         )}

@@ -106,10 +106,10 @@ export default function DismissedDuplicatesScreen() {
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="checkmark-done-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             Nothing dismissed
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center mt-2">
+          <Text className="text-sm text-muted-foreground text-center mt-2">
             Groups you mark as "Keep Both" will appear here so you can restore them later.
           </Text>
         </View>
@@ -120,8 +120,8 @@ export default function DismissedDuplicatesScreen() {
   return (
     <ScreenContainer padTop={false}>
       {/* Summary + bulk action bar */}
-      <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border-light dark:border-border-dark">
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary flex-1 mr-2">
+      <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border">
+        <Text className="text-sm text-muted-foreground flex-1 mr-2">
           {groups.length} dismissed group{groups.length !== 1 ? "s" : ""}
         </Text>
         <Pressable
@@ -161,7 +161,7 @@ export default function DismissedDuplicatesScreen() {
             the only ways to "remove" a dismissed group are to restore it (flag again) or to delete
             one of its expenses so the group key changes. */}
         <View className="px-4 mt-2">
-          <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary">
+          <Text className="text-[11px] text-faint-foreground">
             Tip: restoring a group makes it appear in the duplicate review again. To permanently
             dismiss, use "Keep Both" during review - dismissed groups re-surface only if you restore
             them or if a new duplicate joins the cluster.

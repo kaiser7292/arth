@@ -91,10 +91,10 @@ export default function RecurringRulesScreen() {
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="repeat-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             No reminders yet
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center mt-2">
+          <Text className="text-sm text-muted-foreground text-center mt-2">
             Open an expense and tap "Set reminder" to get notified 24h before each cycle.
           </Text>
         </View>
@@ -104,8 +104,8 @@ export default function RecurringRulesScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <View className="px-4 py-2 border-b border-border-light dark:border-border-dark">
-        <Text className="text-xs text-text-tertiary">
+      <View className="px-4 py-2 border-b border-border">
+        <Text className="text-xs text-faint-foreground">
           {reminders.length} active reminder{reminders.length !== 1 ? "s" : ""}
         </Text>
       </View>
@@ -126,7 +126,7 @@ export default function RecurringRulesScreen() {
                 : { color: colors.textSecondary, label: "Upcoming" };
 
           return (
-            <View className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark">
+            <View className="flex-row items-center px-4 py-3 border-b border-border">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
                 style={{ backgroundColor: accent[500] + "1A" }}
@@ -140,30 +140,30 @@ export default function RecurringRulesScreen() {
                 accessibilityLabel={`View ${description}`}
               >
                 <Text
-                  className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
+                  className="text-sm font-semibold text-foreground"
                   numberOfLines={1}
                 >
                   {description}
                 </Text>
                 {secondary && secondary !== description && (
                   <Text
-                    className="text-xs text-text-secondary dark:text-text-dark-secondary"
+                    className="text-xs text-muted-foreground"
                     numberOfLines={1}
                   >
                     {secondary} · {item.rule.frequency}
                   </Text>
                 )}
                 {!secondary && (
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {item.rule.frequency}
                   </Text>
                 )}
                 {item.lastFulfillment ? (
-                  <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary mt-0.5">
+                  <Text className="text-[11px] text-faint-foreground mt-0.5">
                     Last paid on {formatDate(item.lastFulfillment.cycle_due_date)}
                   </Text>
                 ) : (
-                  <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary mt-0.5">
+                  <Text className="text-[11px] text-faint-foreground mt-0.5">
                     Not linked to any expense yet
                   </Text>
                 )}

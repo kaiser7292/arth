@@ -380,7 +380,7 @@ export default function AccountDetailScreen() {
         <ScreenContainer padTop={false} keyboardAware>
           <View className="items-center py-16">
             <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               Account not found
             </Text>
           </View>
@@ -445,10 +445,10 @@ export default function AccountDetailScreen() {
                 />
               </View>
               <View>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base font-bold text-foreground">
                   {account.bank_name}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   ****{account.account_identifier}
                 </Text>
               </View>
@@ -458,7 +458,7 @@ export default function AccountDetailScreen() {
                 orphan the loan_accounts row and its schedule). */}
             {account.account_type !== "loan" && (
               <>
-                <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-medium text-muted-foreground mb-2">
                   Account Type
                 </Text>
                 <View className="flex-row flex-wrap mb-4" style={{ gap: 8 }}>
@@ -525,7 +525,7 @@ export default function AccountDetailScreen() {
                       Shared limit - changes sync to all {siblingCards.length + 1} {account.bank_name} cards
                     </Text>
                     {siblingCards.map((s) => (
-                      <Text key={s.id} className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                      <Text key={s.id} className="text-xs text-muted-foreground mt-0.5">
                         ****{s.account_identifier}
                         {s.credit_limit != null ? ` · Limit ${formatAmount(s.credit_limit)}` : ""}
                       </Text>
@@ -534,28 +534,28 @@ export default function AccountDetailScreen() {
                 </View>
               )}
               {account.total_due != null && account.total_due > 0 && (
-                <View className="mt-4 pt-3 border-t border-border-light dark:border-border-dark">
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">
+                <View className="mt-4 pt-3 border-t border-border">
+                  <Text className="text-xs font-semibold text-muted-foreground mb-2">
                     Statement Dues (from SMS)
                   </Text>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-text-primary dark:text-text-dark-primary">Total Due</Text>
+                    <Text className="text-sm text-foreground">Total Due</Text>
                     <Text className="text-sm font-bold" style={{ color: sc.danger }}>
                       {formatAmount(account.total_due)}
                     </Text>
                   </View>
                   {account.min_due != null && (
                     <View className="flex-row justify-between mt-1">
-                      <Text className="text-sm text-text-primary dark:text-text-dark-primary">Minimum Due</Text>
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm text-foreground">Minimum Due</Text>
+                      <Text className="text-sm font-semibold text-foreground">
                         {formatAmount(account.min_due)}
                       </Text>
                     </View>
                   )}
                   {account.due_date && (
                     <View className="flex-row justify-between mt-1">
-                      <Text className="text-sm text-text-primary dark:text-text-dark-primary">Due Date</Text>
-                      <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm text-foreground">Due Date</Text>
+                      <Text className="text-sm text-foreground">
                         {new Date(account.due_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                       </Text>
                     </View>
@@ -579,7 +579,7 @@ export default function AccountDetailScreen() {
                 keyboardType="numeric"
                 formula
               />
-              <Text className="text-xs text-text-tertiary mt-2">
+              <Text className="text-xs text-faint-foreground mt-2">
                 Arth will show an alert on Home if this account's closing balance drops below this. Leave at 0 or blank to disable for this account.
               </Text>
             </Card>
@@ -588,31 +588,31 @@ export default function AccountDetailScreen() {
           {/* Demat: Current value summary */}
           {accountType === "demat" && (
             <Card className="mb-3">
-              <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
+              <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
                 Current Value
               </Text>
               <View className="flex-row justify-between mb-2">
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Portfolio</Text>
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-xs text-muted-foreground mb-0.5">Portfolio</Text>
+                  <Text className="text-base font-bold text-foreground">
                     {dematLatestValue != null ? formatAmount(dematLatestValue) : "—"}
                   </Text>
                 </View>
                 <View className="flex-1 items-center">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Idle Cash</Text>
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-xs text-muted-foreground mb-0.5">Idle Cash</Text>
+                  <Text className="text-base font-bold text-foreground">
                     {dematLatestFund != null ? formatAmount(dematLatestFund) : "—"}
                   </Text>
                 </View>
                 <View className="flex-1 items-end">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Total</Text>
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-xs text-muted-foreground mb-0.5">Total</Text>
+                  <Text className="text-base font-bold text-foreground">
                     {dematLatestValue != null ? formatAmount((dematLatestValue ?? 0) + (dematLatestFund ?? 0)) : "—"}
                   </Text>
                 </View>
               </View>
               {dematLatestDate && (
-                <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary">
+                <Text className="text-[10px] text-faint-foreground">
                   As of {formatSnapshotDate(dematLatestDate)}
                 </Text>
               )}
@@ -623,16 +623,16 @@ export default function AccountDetailScreen() {
           {accountType === "demat" && (
             <Pressable
               onPress={() => router.push({ pathname: "/demat/snapshots/[id]", params: { id: accountId } } as never)}
-              className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt"
+              className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-xl bg-card"
             >
               <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: colors.border }}>
                 <Ionicons name="stats-chart-outline" size={16} color={colors.textSecondary} />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-semibold text-foreground">
                   Demat Account Details
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   {dematSnapshotCount > 0 ? `${dematSnapshotCount} snapshots recorded` : "No snapshots yet"}
                 </Text>
               </View>
@@ -678,10 +678,10 @@ export default function AccountDetailScreen() {
                     />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       View loan details
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       Amortization schedule, prepayments, corrections
                     </Text>
                   </View>
@@ -703,7 +703,7 @@ export default function AccountDetailScreen() {
           {accountType !== "demat" && accountType !== "loan" && accountType !== "credit_card" && <Card className="mb-3" title="Monthly Balance Ledger">
             {!seeded ? (
               <View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+                <Text className="text-xs text-muted-foreground mb-3">
                   Set a starting balance and month to begin tracking. The chain continues automatically from there.
                 </Text>
                 <Input
@@ -733,17 +733,17 @@ export default function AccountDetailScreen() {
                 <PeriodNavigator mode="month" value={ledgerMonth} onChange={setLedgerMonth} variant="inline" />
 
                 {!ledgerSummary ? (
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-4">
+                  <Text className="text-xs text-muted-foreground text-center py-4">
                     No balance data for this month.
                   </Text>
                 ) : (
                   <View className="mt-2">
                     {/* Opening balance — editable */}
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         Opening
                         {ledgerSummary.is_manual_override && (
-                          <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary"> (override)</Text>
+                          <Text className="text-xs text-faint-foreground"> (override)</Text>
                         )}
                       </Text>
                       {editingMonth === ledgerMonth ? (
@@ -771,7 +771,7 @@ export default function AccountDetailScreen() {
                         </View>
                       ) : (
                         <View className="flex-row items-center">
-                          <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
+                          <Text className="text-xs font-medium text-foreground">
                             {formatAmount(ledgerSummary.opening_balance)}
                           </Text>
                           <Pressable
@@ -801,7 +801,7 @@ export default function AccountDetailScreen() {
                     {/* Expenses */}
                     {ledgerSummary.expenses > 0 && (
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Expenses
                         </Text>
                         <Text className="text-xs" style={{ color: sc.danger }}>
@@ -813,7 +813,7 @@ export default function AccountDetailScreen() {
                     {/* Credits */}
                     {ledgerSummary.credits > 0 && (
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Credits / Refunds
                         </Text>
                         <Text className="text-xs" style={{ color: sc.success }}>
@@ -825,7 +825,7 @@ export default function AccountDetailScreen() {
                     {/* Manual adjustments — drift indicator */}
                     {adjustmentStats.count > 0 && (
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Manual adjustments
                         </Text>
                         <Text className="text-xs" style={{ color: sc.warning }}>
@@ -835,11 +835,11 @@ export default function AccountDetailScreen() {
                     )}
 
                     {/* Closing / Current balance */}
-                    <View className="flex-row justify-between mt-2 pt-2 border-t border-border-light dark:border-border-dark">
-                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
+                    <View className="flex-row justify-between mt-2 pt-2 border-t border-border">
+                      <Text className="text-xs font-semibold text-muted-foreground">
                         {ledgerMonth === getCurrentMonth() ? "Current" : "Closing"}
                       </Text>
-                      <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs font-bold text-foreground">
                         {formatAmount(ledgerSummary.closing_balance)}
                       </Text>
                     </View>
@@ -879,20 +879,20 @@ export default function AccountDetailScreen() {
                     <Text
                       className={`text-sm ml-3 ${
                         isLinked
-                          ? "text-text-primary dark:text-text-dark-primary font-medium"
-                          : "text-text-secondary dark:text-text-dark-secondary"
+                          ? "text-foreground font-medium"
+                          : "text-muted-foreground"
                       }`}
                     >
                       {mode.name}
                     </Text>
-                    <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary ml-auto">
+                    <Text className="text-[10px] text-muted-foreground ml-auto">
                       {mode.type.replace("_", " ")}
                     </Text>
                   </Pressable>
                 );
               })
             ) : (
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-2">
+              <Text className="text-xs text-muted-foreground text-center py-2">
                 No payment modes created yet. Add them in Settings → Payment Modes.
               </Text>
             )}
@@ -918,10 +918,10 @@ export default function AccountDetailScreen() {
                 <Text className="text-sm font-medium ml-2" style={{ color: sc.danger }}>Close account</Text>
               </Pressable>
             )}
-            <View className="border-t border-border-light dark:border-border-dark mt-3 pt-3">
+            <View className="border-t border-border mt-3 pt-3">
               <Pressable onPress={handleDelete} className="flex-row items-center justify-center py-1">
                 <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
-                <Text className="text-sm ml-2 text-text-secondary dark:text-text-dark-secondary">Remove account</Text>
+                <Text className="text-sm ml-2 text-muted-foreground">Remove account</Text>
               </Pressable>
             </View>
           </Card>

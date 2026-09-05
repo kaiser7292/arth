@@ -128,13 +128,13 @@ export default function LinkExtraScreen() {
       return (
         <Pressable
           onPress={() => handlePick(item)}
-          className="flex-row items-center py-3.5 border-b border-border-light dark:border-border-dark"
+          className="flex-row items-center py-3.5 border-b border-border"
         >
           <View className="flex-1">
-            <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+            <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
               {item.stmt_narration || "(no narration)"}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {formatDate(item.stmt_date)} · {item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.stmt_amount)}
               {diff > 0 && diff <= 10 && ` · ₹${diff.toFixed(2)} diff`}
             </Text>
@@ -156,11 +156,11 @@ export default function LinkExtraScreen() {
       return (
         <Pressable
           onPress={() => handlePick(item)}
-          className="flex-row items-center py-3.5 border-b border-border-light dark:border-border-dark"
+          className="flex-row items-center py-3.5 border-b border-border"
         >
           <View className="flex-1">
             <View className="flex-row items-center">
-              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary flex-1" numberOfLines={1}>
+              <Text className="text-sm font-medium text-foreground flex-1" numberOfLines={1}>
                 {item.arth_description || "(no description)"}
               </Text>
               <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F59E0B22" }}>
@@ -169,12 +169,12 @@ export default function LinkExtraScreen() {
                 </Text>
               </View>
             </View>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {item.arth_date ? formatDate(item.arth_date) : ""} · {amountStr(arthAmt)}
               {diff > 0 && diff <= 10 && ` · ₹${diff.toFixed(2)} diff`}
             </Text>
             {meta.length > 0 && (
-              <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-0.5" numberOfLines={1}>
+              <Text className="text-xs text-faint-foreground mt-0.5" numberOfLines={1}>
                 {meta.join(" · ")}
               </Text>
             )}
@@ -200,7 +200,7 @@ export default function LinkExtraScreen() {
   return (
     <ScreenContainer padTop={false}>
       <View className="px-4 pt-3 pb-2">
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+        <Text className="text-xs text-muted-foreground mb-3">
           {headerText}
         </Text>
         <View
@@ -213,7 +213,7 @@ export default function LinkExtraScreen() {
             onChangeText={setQuery}
             placeholder={searchPlaceholder}
             placeholderTextColor={colors.textSecondary}
-            className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
+            className="flex-1 ml-2 text-sm text-foreground"
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -232,7 +232,7 @@ export default function LinkExtraScreen() {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
           ListEmptyComponent={
             <View className="items-center py-12">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 {query
                   ? `No results for "${query}"`
                   : mode === "find_missing"

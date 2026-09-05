@@ -79,7 +79,7 @@ export default function KiteConnectApiKeyScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-background-light dark:bg-background-dark">
+      <View className="flex-1 items-center justify-center bg-background-light">
         <ActivityIndicator size="large" />
       </View>
     );
@@ -87,30 +87,30 @@ export default function KiteConnectApiKeyScreen() {
 
   if (loadError) {
     return (
-      <View className="flex-1 items-center justify-center bg-background-light dark:bg-background-dark p-4">
+      <View className="flex-1 items-center justify-center bg-background-light p-4">
         <Text className="text-red-500 text-base text-center">Failed to load API key. Please restart the app.</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background-light dark:bg-background-dark p-4">
-      <Text className="text-2xl font-bold text-text-light dark:text-text-dark mb-2">
+    <View className="flex-1 bg-background-light p-4">
+      <Text className="text-2xl font-bold text-text-light mb-2">
         Kite API Key
       </Text>
-      <Text className="text-sm text-secondary-light dark:text-secondary-dark mb-6">
+      <Text className="text-sm text-secondary-light mb-6">
         Enter your Kite API key from the developer portal. Keep this secure.
       </Text>
 
       <View className="mb-4">
-        <Text className="text-sm font-medium text-text-light dark:text-text-dark mb-2">
+        <Text className="text-sm font-medium text-text-light mb-2">
           API Key
         </Text>
         <TextInput
           value={apiKey}
           onChangeText={setApiKey}
           placeholder="Enter your API key"
-          className="border border-border-light dark:border-border-dark rounded-lg p-3 text-text-light dark:text-text-dark bg-background-light dark:bg-background-dark"
+          className="border border-border rounded-lg p-3 text-text-light bg-background-light"
           autoCapitalize="none"
           autoCorrect={false}
           secureTextEntry

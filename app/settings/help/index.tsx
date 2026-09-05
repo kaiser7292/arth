@@ -56,7 +56,7 @@ export default function HelpCenterScreen() {
       >
         {/* Search input */}
         <View
-          className="flex-row items-center bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl px-3 mb-5"
+          className="flex-row items-center bg-card rounded-xl px-3 mb-5"
           style={{ height: 44 }}
         >
           <Ionicons
@@ -70,7 +70,7 @@ export default function HelpCenterScreen() {
             onChangeText={setQuery}
             placeholder="Ask anything - e.g. how do I back up"
             placeholderTextColor={colorScheme === "dark" ? "#A0A0A0" : "#9CA3AF"}
-            className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+            className="flex-1 text-sm text-foreground"
             autoCorrect={false}
             returnKeyType="search"
           />
@@ -88,12 +88,12 @@ export default function HelpCenterScreen() {
         {/* Search results */}
         {query.trim().length > 0 && (
           <>
-            <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-tertiary uppercase tracking-wider mb-3">
+            <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
               {hits.length === 0 ? "No matches" : `${hits.length} result${hits.length === 1 ? "" : "s"}`}
             </Text>
             {hits.length === 0 && (
               <Card className="mb-4">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-sm text-muted-foreground">
                   Try a different phrasing. You can also browse all articles below.
                 </Text>
               </Card>
@@ -114,7 +114,7 @@ export default function HelpCenterScreen() {
         {/* Contextual (when opened via ?context=X with no query) */}
         {query.trim().length === 0 && contextArticles.length > 0 && (
           <>
-            <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-tertiary uppercase tracking-wider mb-3">
+            <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
               Related to where you were
             </Text>
             {contextArticles.map((entry) => (
@@ -126,7 +126,7 @@ export default function HelpCenterScreen() {
                 colorScheme={colorScheme}
               />
             ))}
-            <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-tertiary uppercase tracking-wider mb-3 mt-4">
+            <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3 mt-4">
               All articles
             </Text>
           </>
@@ -147,7 +147,7 @@ export default function HelpCenterScreen() {
             .filter((g) => g.articles.length > 0);
           return visibleGroups.map((group) => (
             <View key={group.label} className="mb-3">
-              <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-tertiary uppercase tracking-wider mb-3">
+              <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
                 {group.label}
               </Text>
               {group.articles.map((entry) => (
@@ -178,10 +178,10 @@ function ArticleRow({ entry, onPress, tint, badge, colorScheme }: RowProps & { c
   return (
     <Pressable
       onPress={onPress}
-      className="bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-4 mb-2"
+      className="bg-card rounded-xl p-4 mb-2"
     >
       <View className="flex-row items-center mb-1">
-        <Text className="flex-1 text-base font-semibold text-text-primary dark:text-text-dark-primary">
+        <Text className="flex-1 text-base font-semibold text-foreground">
           {entry.title}
         </Text>
         {badge && (
@@ -202,7 +202,7 @@ function ArticleRow({ entry, onPress, tint, badge, colorScheme }: RowProps & { c
         />
       </View>
       {entry.summary.length > 0 && (
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary leading-5">
+        <Text className="text-xs text-muted-foreground leading-5">
           {entry.summary}
         </Text>
       )}

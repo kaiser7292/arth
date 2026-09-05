@@ -60,10 +60,10 @@ export default function TemplateMatchesScreen() {
       ) : matches.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             No matches yet
           </Text>
-          <Text className="text-sm text-text-tertiary text-center mt-2">
+          <Text className="text-sm text-faint-foreground text-center mt-2">
             SMS detected using this template will appear here after a scan.
           </Text>
         </View>
@@ -73,17 +73,17 @@ export default function TemplateMatchesScreen() {
           keyExtractor={(_, i) => String(i)}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}
           ListHeaderComponent={
-            <Text className="text-xs text-text-tertiary mb-3">
+            <Text className="text-xs text-faint-foreground mb-3">
               {matches.length} SMS detected using this template
             </Text>
           }
           renderItem={({ item }) => (
             <Card className="mb-3">
               <View className="flex-row items-start justify-between mb-1">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 mr-2">
+                <Text className="text-xs font-semibold text-muted-foreground flex-1 mr-2">
                   {item.sms_address ?? "Unknown sender"}
                 </Text>
-                <Text className="text-xs text-text-tertiary">
+                <Text className="text-xs text-faint-foreground">
                   {formatSmsDate(item.sms_date)}
                 </Text>
               </View>
@@ -97,14 +97,14 @@ export default function TemplateMatchesScreen() {
                   </View>
                 )}
                 {item.parsed_merchant != null && item.parsed_merchant !== "" && (
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" numberOfLines={1}>
+                  <Text className="text-xs text-muted-foreground" numberOfLines={1}>
                     {item.parsed_merchant}
                   </Text>
                 )}
               </View>
               {item.sms_body_preview != null && item.sms_body_preview !== "" && (
                 <Text
-                  className="text-xs text-text-tertiary"
+                  className="text-xs text-faint-foreground"
                   numberOfLines={2}
                 >
                   {item.sms_body_preview}

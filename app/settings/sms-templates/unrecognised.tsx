@@ -129,7 +129,7 @@ export default function UnrecognisedSmsScreen() {
     <ScreenContainer padTop={false}>
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             Bank SMS from the last 30 days that Arth couldn't read. Tap "Teach" to build a template.
           </Text>
         </View>
@@ -199,7 +199,7 @@ export default function UnrecognisedSmsScreen() {
                     size={16}
                     color={colors.textSecondary}
                   />
-                  <Text className="text-xs font-semibold ml-2 text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs font-semibold ml-2 text-muted-foreground">
                     {item.row.address}
                   </Text>
                   {item.count > 1 && (
@@ -212,12 +212,12 @@ export default function UnrecognisedSmsScreen() {
                       </Text>
                     </View>
                   )}
-                  <Text className="text-xs text-text-tertiary ml-auto">
+                  <Text className="text-xs text-faint-foreground ml-auto">
                     {formatDate(item.row.sms_date)}
                   </Text>
                 </View>
                 <Text
-                  className="text-sm text-text-primary dark:text-text-dark-primary my-2"
+                  className="text-sm text-foreground my-2"
                   numberOfLines={3}
                 >
                   {item.row.body}
@@ -246,10 +246,10 @@ export default function UnrecognisedSmsScreen() {
                   size={48}
                   color={colors.textSecondary}
                 />
-                <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+                <Text className="text-lg font-medium text-foreground mt-4">
                   {query ? "No matches" : "All SMS were recognised"}
                 </Text>
-                <Text className="text-sm text-text-tertiary text-center mt-2">
+                <Text className="text-sm text-faint-foreground text-center mt-2">
                   {query
                     ? "Try a different search term, or clear the search."
                     : "Every bank SMS from the last 30 days either became an expense or was intentionally skipped (OTPs, balance enquiries)."}

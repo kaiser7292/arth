@@ -426,10 +426,10 @@ export default function NewReconciliationScreen() {
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
           <ActivityIndicator size="large" color={accent[500]} />
-          <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary mt-5 text-center">
+          <Text className="text-base font-semibold text-foreground mt-5 text-center">
             Matching transactions…
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-2 text-center">
+          <Text className="text-sm text-muted-foreground mt-2 text-center">
             {progress}
           </Text>
         </View>
@@ -449,10 +449,10 @@ export default function NewReconciliationScreen() {
       >
         <View className="flex-1 justify-center items-center px-8" style={{ backgroundColor: "#00000066" }}>
           <View className="w-full rounded-2xl p-6" style={{ backgroundColor: colors.surface }}>
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mb-1">
+            <Text className="text-base font-bold text-foreground mb-1">
               Password-protected PDF
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-4">
+            <Text className="text-sm text-muted-foreground mb-4">
               Enter the password to unlock this statement.
             </Text>
             <TextInput
@@ -463,7 +463,7 @@ export default function NewReconciliationScreen() {
               placeholderTextColor={colors.textSecondary}
               returnKeyType="done"
               onSubmitEditing={handlePdfPasswordSubmit}
-              className="border rounded-xl px-4 py-3 text-base text-text-primary dark:text-text-dark-primary mb-2"
+              className="border rounded-xl px-4 py-3 text-base text-foreground mb-2"
               style={{ borderColor: pdfPasswordError ? "#EF4444" : colors.border }}
               autoFocus
             />
@@ -476,7 +476,7 @@ export default function NewReconciliationScreen() {
                 className="flex-1 py-3 rounded-xl items-center"
                 style={{ backgroundColor: colors.border + "55" }}
               >
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">Cancel</Text>
+                <Text className="text-sm font-medium text-foreground">Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handlePdfPasswordSubmit}
@@ -498,10 +498,10 @@ export default function NewReconciliationScreen() {
       >
         <View className="flex-1 justify-center items-center px-8" style={{ backgroundColor: "#00000066" }}>
           <View className="w-full rounded-2xl p-6" style={{ backgroundColor: colors.surface }}>
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mb-1">
+            <Text className="text-base font-bold text-foreground mb-1">
               Password-protected file
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-4">
+            <Text className="text-sm text-muted-foreground mb-4">
               Enter the password to unlock this Excel statement.
             </Text>
             <TextInput
@@ -512,7 +512,7 @@ export default function NewReconciliationScreen() {
               placeholderTextColor={colors.textSecondary}
               returnKeyType="done"
               onSubmitEditing={handleXlsPasswordSubmit}
-              className="border rounded-xl px-4 py-3 text-base text-text-primary dark:text-text-dark-primary mb-2"
+              className="border rounded-xl px-4 py-3 text-base text-foreground mb-2"
               style={{ borderColor: xlsPasswordError ? "#EF4444" : colors.border }}
               autoFocus
             />
@@ -525,7 +525,7 @@ export default function NewReconciliationScreen() {
                 className="flex-1 py-3 rounded-xl items-center"
                 style={{ backgroundColor: colors.border + "55" }}
               >
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">Cancel</Text>
+                <Text className="text-sm font-medium text-foreground">Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handleXlsPasswordSubmit}
@@ -547,13 +547,13 @@ export default function NewReconciliationScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="px-4 pt-5 pb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-1">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
             Step 1 of 2
           </Text>
-          <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-xl font-bold text-foreground">
             Which account?
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1">
+          <Text className="text-sm text-muted-foreground mt-1">
             Select the account this statement belongs to.
           </Text>
         </View>
@@ -570,14 +570,14 @@ export default function NewReconciliationScreen() {
                   setFilename(null);
                   setStep("file");
                 }}
-                className={`flex-row items-center py-3.5 ${i < accounts.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""}`}
+                className={`flex-row items-center py-3.5 ${i < accounts.length - 1 ? "border-b border-border" : ""}`}
               >
                 <View className="flex-1">
-                  <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-medium text-foreground">
                     {acc.account_label || acc.bank_name}
                   </Text>
                   {acc.account_identifier && (
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       ****{acc.account_identifier}
                     </Text>
                   )}
@@ -603,11 +603,11 @@ export default function NewReconciliationScreen() {
 
         {/* Step header + selected account */}
         <View className="pt-5 pb-4">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-1">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
             Step 2 of 2
           </Text>
           <View className="flex-row items-center justify-between">
-            <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-xl font-bold text-foreground">
               Import statement
             </Text>
             <Pressable
@@ -644,7 +644,7 @@ export default function NewReconciliationScreen() {
           <Text className="text-sm font-semibold mt-2" style={{ color: accent[500] }}>
             {filename ?? "Upload XLS, XLSX, or PDF"}
           </Text>
-          <Text className="text-xs text-text-tertiary mt-1">
+          <Text className="text-xs text-faint-foreground mt-1">
             Digital statements only — scanned images not supported
           </Text>
         </Pressable>
@@ -653,7 +653,7 @@ export default function NewReconciliationScreen() {
         {mismatchWarning && (
           <View className="mb-3 px-4 py-3 rounded-xl flex-row items-start" style={{ backgroundColor: "#F59E0B22" }}>
             <Ionicons name="warning-outline" size={18} color="#F59E0B" />
-            <Text className="text-xs text-text-primary dark:text-text-dark-primary ml-2 flex-1">
+            <Text className="text-xs text-foreground ml-2 flex-1">
               {mismatchWarning}
             </Text>
           </View>
@@ -664,24 +664,24 @@ export default function NewReconciliationScreen() {
           <Card className="mb-4">
             <View className="flex-row items-center mb-2">
               <Ionicons name="document-text-outline" size={18} color={accent[500]} />
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2 flex-1" numberOfLines={1}>
+              <Text className="text-sm font-semibold text-foreground ml-2 flex-1" numberOfLines={1}>
                 {filename}
               </Text>
             </View>
             {parsed.detectedBank && (
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Bank: {parsed.detectedBank}
                 {parsed.detectedAccountSuffix ? ` · ****${parsed.detectedAccountSuffix}` : ""}
               </Text>
             )}
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {parsed.rows.length} transactions
               {parsed.startDate && parsed.endDate
                 ? ` · ${parsed.startDate} to ${parsed.endDate}`
                 : ""}
             </Text>
             {parsed.closingBalance !== null && (
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+              <Text className="text-xs text-muted-foreground mt-0.5">
                 Closing balance: ₹{parsed.closingBalance.toLocaleString("en-IN")}
               </Text>
             )}

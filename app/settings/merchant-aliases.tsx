@@ -221,7 +221,7 @@ export default function MerchantAliasesScreen() {
               onSubmitEditing={() => handleEditSave(primaryAlias)}
               autoFocus
               maxLength={100}
-              className="text-base font-semibold text-text-primary dark:text-text-dark-primary flex-1 border-b-2 py-0 mr-2"
+              className="text-base font-semibold text-foreground flex-1 border-b-2 py-0 mr-2"
               style={{ borderColor: accent[500] }}
             />
           ) : (
@@ -232,7 +232,7 @@ export default function MerchantAliasesScreen() {
               }}
               className="flex-1 flex-row items-center"
             >
-              <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary flex-1" numberOfLines={1}>
+              <Text className="text-base font-semibold text-foreground flex-1" numberOfLines={1}>
                 {item.canonical}
               </Text>
               <Ionicons name="create-outline" size={16} color={colors.blue} style={{ marginLeft: 6 }} />
@@ -248,7 +248,7 @@ export default function MerchantAliasesScreen() {
               return (
                 <View key={a.id} className="flex-row items-center py-1.5">
                   <Ionicons name="information-circle-outline" size={10} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                  <Text className="text-xs text-text-tertiary flex-1" numberOfLines={1}>
+                  <Text className="text-xs text-faint-foreground flex-1" numberOfLines={1}>
                     No alias - tap name above to rename
                   </Text>
                 </View>
@@ -258,7 +258,7 @@ export default function MerchantAliasesScreen() {
               <View key={a.id} className="flex-row items-center justify-between py-1.5">
                 <View className="flex-row items-center flex-1 mr-2">
                   <Ionicons name="arrow-forward" size={10} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1" numberOfLines={1}>
+                  <Text className="text-xs text-muted-foreground flex-1" numberOfLines={1}>
                     {a.sms_name}
                   </Text>
                 </View>
@@ -279,7 +279,7 @@ export default function MerchantAliasesScreen() {
 
         {/* Variant count */}
         {item.aliases.length > 1 && (
-          <Text className="text-[10px] text-text-tertiary mt-1">
+          <Text className="text-[10px] text-faint-foreground mt-1">
             {item.aliases.length} SMS variants
           </Text>
         )}
@@ -303,14 +303,14 @@ export default function MerchantAliasesScreen() {
     <>
       {/* Header info */}
       <View className="px-4 pt-3 pb-2">
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
+        <Text className="text-xs text-muted-foreground mb-2">
           All merchants from your expenses. Tap any name to rename - changes apply everywhere. Renaming a merchant that has no alias yet creates one on save.
         </Text>
         <LearnMoreChip contextKey="merchant-aliases-list" label="Why are names weird?" />
       </View>
 
       {/* Search bar */}
-      <View className="flex-row items-center border border-border-light dark:border-border-dark rounded-lg px-3 py-2 mx-4 mb-2">
+      <View className="flex-row items-center border border-border rounded-lg px-3 py-2 mx-4 mb-2">
         <Ionicons name="search-outline" size={18} color={colors.textSecondary} />
         <TextInput
           value={searchQuery}
@@ -318,7 +318,7 @@ export default function MerchantAliasesScreen() {
           placeholder="Search merchants..."
           placeholderTextColor={colors.tabIconDefault}
           maxLength={100}
-          className="flex-1 ml-2 text-base text-text-primary dark:text-text-dark-primary"
+          className="flex-1 ml-2 text-base text-foreground"
         />
         {searchQuery.length > 0 && (
           <Pressable onPress={() => setSearchQuery("")}>
@@ -329,7 +329,7 @@ export default function MerchantAliasesScreen() {
 
       {/* Count badge */}
       <View className="px-4 mb-2">
-        <Text className="text-xs text-text-tertiary">
+        <Text className="text-xs text-faint-foreground">
           {uniqueMerchants} {uniqueMerchants === 1 ? "merchant" : "merchants"} · {aliases.filter((a) => !a.id.startsWith("synthetic:")).length} with aliases
         </Text>
       </View>
@@ -337,7 +337,7 @@ export default function MerchantAliasesScreen() {
       {/* Add form */}
       {showAdd && (
         <Card className="mx-4 mb-3">
-          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
+          <Text className="text-xs font-medium text-muted-foreground mb-1">
             SMS Name (as it appears in bank SMS)
           </Text>
           <TextInput
@@ -347,9 +347,9 @@ export default function MerchantAliasesScreen() {
             placeholderTextColor={colors.tabIconDefault}
             autoFocus
             maxLength={100}
-            className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2 mb-3 text-base text-text-primary dark:text-text-dark-primary"
+            className="border border-border rounded-lg px-3 py-2 mb-3 text-base text-foreground"
           />
-          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
+          <Text className="text-xs font-medium text-muted-foreground mb-1">
             Display Name (clean name you want to see)
           </Text>
           <TextInput
@@ -358,7 +358,7 @@ export default function MerchantAliasesScreen() {
             placeholder="e.g. Zomato"
             placeholderTextColor={colors.tabIconDefault}
             maxLength={100}
-            className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2 mb-3 text-base text-text-primary dark:text-text-dark-primary"
+            className="border border-border rounded-lg px-3 py-2 mb-3 text-base text-foreground"
           />
           <View className="flex-row gap-3">
             <Button
@@ -398,10 +398,10 @@ export default function MerchantAliasesScreen() {
           ListEmptyComponent={
             <View className="items-center py-16">
               <Ionicons name="swap-horizontal-outline" size={48} color={colors.textSecondary} />
-              <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+              <Text className="text-lg font-medium text-foreground mt-4">
                 No aliases yet
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+              <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
                 Aliases are auto-created when you scan SMS. You can also add them manually.
               </Text>
             </View>

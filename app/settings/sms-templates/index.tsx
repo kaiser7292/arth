@@ -137,7 +137,7 @@ export default function SmartSmsTemplatesListScreen() {
     <ScreenContainer padTop={false}>
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             Teach Arth to read SMS from any bank by pasting a sample and tapping the amount, merchant, and card number. Your templates are device-local.
           </Text>
         </View>
@@ -167,12 +167,12 @@ export default function SmartSmsTemplatesListScreen() {
                     color={accentColor}
                   />
                   <View className="flex-1 ml-3">
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       {unrecognisedCount > 0
                         ? `Browse unrecognised SMS (${unrecognisedCount})`
                         : "No unrecognised SMS"}
                     </Text>
-                    <Text className="text-xs text-text-tertiary mt-0.5">
+                    <Text className="text-xs text-faint-foreground mt-0.5">
                       {unrecognisedCount > 0
                         ? "Last 30 days of bank SMS that didn't parse. Tap any to teach Arth."
                         : "Arth has read every bank SMS from the last 30 days."}
@@ -200,7 +200,7 @@ export default function SmartSmsTemplatesListScreen() {
                         },
                       ]);
                     }}
-                    className="mt-2 pt-2 border-t border-border-light dark:border-border-dark"
+                    className="mt-2 pt-2 border-t border-border"
                   >
                     <Text className="text-xs font-medium text-center" style={{ color: StatusColors[colorScheme].danger }}>
                       Clear all unrecognised messages
@@ -220,28 +220,28 @@ export default function SmartSmsTemplatesListScreen() {
                     }
                   >
                     <View className="flex-row items-center mb-1">
-                      <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+                      <Text className="text-base font-semibold text-foreground flex-1">
                         {item.template_id ?? `${item.bank_name} template`}
                       </Text>
-                      <View className="px-2 py-0.5 bg-surface-light-alt dark:bg-surface-dark-alt rounded">
-                        <Text className="text-xs text-text-tertiary capitalize">
+                      <View className="px-2 py-0.5 bg-card rounded">
+                        <Text className="text-xs text-faint-foreground capitalize">
                           {item.tx_type}
                         </Text>
                       </View>
                     </View>
-                    <Text className="text-xs text-text-tertiary mb-2">
+                    <Text className="text-xs text-faint-foreground mb-2">
                       {item.bank_name}
                     </Text>
                     {item.sample_sms && (
                       <Text
-                        className="text-xs text-text-secondary dark:text-text-dark-secondary"
+                        className="text-xs text-muted-foreground"
                         numberOfLines={2}
                       >
                         {item.sample_sms}
                       </Text>
                     )}
                   </Pressable>
-                  <View className="flex-row mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+                  <View className="flex-row mt-3 pt-3 border-t border-border">
                     <Pressable
                       onPress={() => router.push(`/settings/sms-templates/${item.id}` as never)}
                       hitSlop={4}
@@ -279,7 +279,7 @@ export default function SmartSmsTemplatesListScreen() {
                         size={16}
                         color={diagnosingId === item.id ? colors.textSecondary : colors.textSecondary}
                       />
-                      <Text className="text-xs mt-0.5 text-text-tertiary">
+                      <Text className="text-xs mt-0.5 text-faint-foreground">
                         {diagnosingId === item.id ? "Scanning…" : "Diagnose"}
                       </Text>
                     </Pressable>
@@ -302,10 +302,10 @@ export default function SmartSmsTemplatesListScreen() {
                   size={48}
                   color={colors.textSecondary}
                 />
-                <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+                <Text className="text-lg font-medium text-foreground mt-4">
                   No templates yet
                 </Text>
-                <Text className="text-sm text-text-tertiary text-center mt-2">
+                <Text className="text-sm text-faint-foreground text-center mt-2">
                   If your bank's SMS isn't being detected, tap the button below to teach Arth how to read it.
                 </Text>
               </View>

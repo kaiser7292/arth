@@ -85,7 +85,7 @@ export default function ReconciliationHubScreen() {
     return (
       <Pressable
         onPress={() => router.push(`/settings/reconciliation/${item.id}`)}
-        className="py-3.5 border-b border-border-light dark:border-border-dark"
+        className="py-3.5 border-b border-border"
       >
         <View className="flex-row items-center">
           <View
@@ -99,10 +99,10 @@ export default function ReconciliationHubScreen() {
             />
           </View>
           <View className="flex-1 min-w-0">
-            <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+            <Text className="text-base font-medium text-foreground" numberOfLines={1}>
               {account ? (account.account_label || account.bank_name) : "Unknown account"}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {item.stmt_start_date && item.stmt_end_date
                 ? `${formatDate(item.stmt_start_date)} – ${formatDate(item.stmt_end_date)}`
                 : formatDate(item.created_at)}
@@ -113,7 +113,7 @@ export default function ReconciliationHubScreen() {
               {statusLabel(item.status)}
             </Text>
             {item.import_format && (
-              <Text className="text-[10px] text-text-tertiary uppercase mt-0.5">
+              <Text className="text-[10px] text-faint-foreground uppercase mt-0.5">
                 {item.import_format}
               </Text>
             )}
@@ -127,7 +127,7 @@ export default function ReconciliationHubScreen() {
         {matchRatio !== null && (
           <View className="mt-2 ml-12 mr-10">
             <ProgressBar value={matchRatio} height={3} animated={false} />
-            <Text className="text-[10px] text-text-tertiary dark:text-text-dark-tertiary mt-1">
+            <Text className="text-[10px] text-faint-foreground mt-1">
               {matchLabel}
             </Text>
           </View>
@@ -145,10 +145,10 @@ export default function ReconciliationHubScreen() {
       ) : sessions.length === 0 ? (
         <View className="flex-1 items-center justify-center pb-16 px-10">
           <Ionicons name="checkmark-done-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-semibold text-text-primary dark:text-text-dark-primary mt-4 text-center">
+          <Text className="text-lg font-semibold text-foreground mt-4 text-center">
             No reconciliations yet
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center">
+          <Text className="text-sm text-muted-foreground mt-1 text-center">
             Import a bank statement to match it against your Arth ledger and spot any gaps.
           </Text>
         </View>
@@ -159,7 +159,7 @@ export default function ReconciliationHubScreen() {
           renderItem={renderItem}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
           ListHeaderComponent={
-            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mt-5 mb-1">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-5 mb-1">
               {sessions.length} session{sessions.length !== 1 ? "s" : ""}
             </Text>
           }

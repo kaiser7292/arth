@@ -216,14 +216,14 @@ export default function RecycleBinScreen() {
       icon: keyof typeof Ionicons.glyphMap; title: string; subtitle?: string;
       onRestore: () => void; onDelete: () => void;
     }) => (
-      <View className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark">
+      <View className="flex-row items-center px-4 py-3 border-b border-border">
         <Ionicons name={icon} size={18} color={colors.textSecondary} />
         <View className="flex-1 ml-3">
-          <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+          <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
             {title}
           </Text>
           {subtitle ? (
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5" numberOfLines={1}>
+            <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
               {subtitle}
             </Text>
           ) : null}
@@ -250,8 +250,8 @@ export default function RecycleBinScreen() {
     }) => {
       if (count === 0) return null;
       return (
-        <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border-light dark:border-border-dark">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary flex-1 mr-2">
+        <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border">
+          <Text className="text-sm text-muted-foreground flex-1 mr-2">
             {count} {label}
           </Text>
           <View className="flex-row items-center">
@@ -293,7 +293,7 @@ export default function RecycleBinScreen() {
       onPress={() => router.push(`/expense/${item.id}`)}
       rightElement={
         <View className="flex-row items-center ml-2">
-          {item.deleted_at && <Text className="text-[10px] text-text-tertiary mr-2">{daysAgo(item.deleted_at)}</Text>}
+          {item.deleted_at && <Text className="text-[10px] text-faint-foreground mr-2">{daysAgo(item.deleted_at)}</Text>}
           <Pressable onPress={() => confirm("Restore", `Restore "${item.description || "Expense"}"?`, "Restore", false, async () => {
             await restoreExpense(item.id); setDeletedExpenses((p) => p.filter((e) => e.id !== item.id));
           })} className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-2">
@@ -479,19 +479,19 @@ export default function RecycleBinScreen() {
     const smsStyles = getSmsStatusStyle(colorScheme);
     const style = smsStyles[item.status] ?? smsStyles.pending;
     return (
-      <View className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark">
+      <View className="flex-row items-center px-4 py-3 border-b border-border">
         <View className="flex-1">
           <View className="flex-row items-center mb-1">
             <Ionicons name="chatbox-outline" size={14} color={colors.textSecondary} />
-            <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary ml-1.5 flex-1 mr-2" numberOfLines={1}>
+            <Text className="text-xs font-semibold text-foreground ml-1.5 flex-1 mr-2" numberOfLines={1}>
               {item.address}
             </Text>
             <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: style.color + "14" }}>
               <Text className="text-[10px] font-semibold" style={{ color: style.color }}>{style.label}</Text>
             </View>
-            <Text className="text-[10px] text-text-tertiary">{formatSmsDate(item.sms_date)}</Text>
+            <Text className="text-[10px] text-faint-foreground">{formatSmsDate(item.sms_date)}</Text>
           </View>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" numberOfLines={2}>
+          <Text className="text-xs text-muted-foreground" numberOfLines={2}>
             {truncate(item.body, 150)}
           </Text>
         </View>
@@ -548,15 +548,15 @@ export default function RecycleBinScreen() {
     <ScreenContainer padTop={false}>
       {/* Total summary */}
       {totalCount > 0 && (
-        <View className="px-4 py-2 border-b border-border-light dark:border-border-dark">
-          <Text className="text-xs text-text-tertiary">
+        <View className="px-4 py-2 border-b border-border">
+          <Text className="text-xs text-faint-foreground">
             {totalCount} item{totalCount !== 1 ? "s" : ""} across all sections
           </Text>
         </View>
       )}
 
       {/* Filter chips */}
-      <View className="border-b border-border-light dark:border-border-dark">
+      <View className="border-b border-border">
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
           {FILTER_OPTIONS.map((opt) => {
@@ -564,12 +564,12 @@ export default function RecycleBinScreen() {
             const count = counts[opt.key];
             return (
               <Pressable key={opt.key} onPress={() => setActiveFilter(opt.key)}
-                className={`flex-row items-center px-3 py-1.5 rounded-full ${isActive ? "border" : "bg-surface-light-alt dark:bg-surface-dark-alt"}`}
+                className={`flex-row items-center px-3 py-1.5 rounded-full ${isActive ? "border" : "bg-card"}`}
                 style={isActive ? { backgroundColor: ac(accent, colorScheme, 100, 700), borderColor: accent[500] } : undefined}>
                 <Ionicons name={opt.icon} size={14}
                   color={isActive ? ac(accent, colorScheme, 500, 200) : colors.textSecondary}
                   style={{ marginRight: 4 }} />
-                <Text className={`text-xs ${isActive ? "font-semibold" : "text-text-secondary dark:text-text-dark-secondary"}`}
+                <Text className={`text-xs ${isActive ? "font-semibold" : "text-muted-foreground"}`}
                   style={isActive ? { color: ac(accent, colorScheme, 500, 200) } : undefined}>
                   {opt.label}
                 </Text>
@@ -636,8 +636,8 @@ export default function RecycleBinScreen() {
         onPurgeAll={() => confirm("Purge All", `Permanently delete all deleted SMS templates?`, "Delete All", true, async () => { await purgeDeletedUserTemplates(); setDeletedSmsTemplates([]); })} />}
 
       {activeFilter === "sms" && smsRecords.length > 0 && (
-        <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border-light dark:border-border-dark">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1 mr-2">
+        <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border">
+          <Text className="text-xs text-muted-foreground flex-1 mr-2">
             {smsRecords.filter((s) => s.status === "processed").length} processed
             {" \u00b7 "}{smsRecords.filter((s) => s.status === "ignored").length} ignored
             {" \u00b7 "}{smsRecords.filter((s) => s.status === "pending").length} pending
@@ -665,10 +665,10 @@ export default function RecycleBinScreen() {
       {section.data.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name={section.emptyIcon} size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             {section.emptyTitle}
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center mt-2">
+          <Text className="text-sm text-muted-foreground text-center mt-2">
             {section.emptySubtitle}
           </Text>
         </View>
@@ -681,14 +681,14 @@ export default function RecycleBinScreen() {
           contentContainerStyle={{ paddingBottom: 40 }}
           ListHeaderComponent={
             (activeFilter === "deleted" || activeFilter === "rejected") && section.data.length > 0 ? (
-              <View className="mx-4 my-3 p-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">
+              <View className="mx-4 my-3 p-4 rounded-xl bg-card">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Total at Risk
                 </Text>
-                <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary mt-1">
+                <Text className="text-xl font-bold text-foreground mt-1">
                   {formatAmount(section.data.reduce((sum: number, e: any) => sum + (e.amount ?? 0), 0))}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   {section.data.length} {section.data.length === 1 ? "expense" : "expenses"}
                 </Text>
               </View>

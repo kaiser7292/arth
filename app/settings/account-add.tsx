@@ -157,7 +157,7 @@ export default function AccountAddScreen() {
       >
         <View className="px-4 py-4">
           {/* Account Type Picker */}
-          <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
+          <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
             Account Type
           </Text>
           <View className="flex-row flex-wrap mb-4">
@@ -168,7 +168,7 @@ export default function AccountAddScreen() {
                 className={`px-4 py-3 rounded-lg mr-2 mb-2 border ${
                   accountType === t
                     ? ""
-                    : "bg-surface-light-alt dark:bg-surface-dark-alt border-transparent"
+                    : "bg-card border-transparent"
                 }`}
                 style={
                   accountType === t
@@ -183,7 +183,7 @@ export default function AccountAddScreen() {
                   className={`text-sm ${
                     accountType === t
                       ? "font-medium"
-                      : "text-text-secondary dark:text-text-dark-secondary"
+                      : "text-muted-foreground"
                   }`}
                   style={
                     accountType === t

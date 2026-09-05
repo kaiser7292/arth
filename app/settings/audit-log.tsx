@@ -326,7 +326,7 @@ export default function AuditLogScreen() {
         <Pressable
           onPress={() => handleOpen(item)}
           disabled={!item.navigable}
-          className="flex-row items-center mx-4 py-3 border-b border-border-light dark:border-border-dark"
+          className="flex-row items-center mx-4 py-3 border-b border-border"
           style={{ opacity: item.navigable ? 1 : 0.7 }}
         >
           <View
@@ -337,7 +337,7 @@ export default function AuditLogScreen() {
           </View>
           <View className="flex-1">
             <Text
-              className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
+              className="text-sm font-semibold text-foreground"
               numberOfLines={1}
             >
               {item.description}
@@ -362,7 +362,7 @@ export default function AuditLogScreen() {
                 size={10}
                 color={colors.textSecondary}
               />
-              <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary ml-1">
+              <Text className="text-[10px] text-muted-foreground ml-1">
                 {item.date}
               </Text>
             </View>
@@ -371,7 +371,7 @@ export default function AuditLogScreen() {
               <View className="flex-row items-center mt-0.5 flex-wrap gap-y-0.5">
                 {item.accountLabel && (
                   <Text
-                    className="text-[10px] text-text-tertiary dark:text-text-dark-secondary mr-1.5"
+                    className="text-[10px] text-faint-foreground mr-1.5"
                     numberOfLines={1}
                     style={{ flexShrink: 1 }}
                   >
@@ -379,16 +379,16 @@ export default function AuditLogScreen() {
                   </Text>
                 )}
                 {item.actionTimestamp && (
-                  <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary">
+                  <Text className="text-[10px] text-faint-foreground">
                     {item.accountLabel ? "· " : ""}{formatActionTimestamp(item.actionTimestamp)}
                   </Text>
                 )}
               </View>
             )}
             {item.editDetails && (
-              <View className="mt-1.5 px-2 py-1.5 rounded bg-surface-light-alt dark:bg-surface-dark-alt">
-                <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary">
-                  {item.editDetails.fieldLabel}: <Text className="line-through">{item.editDetails.oldValue ?? "empty"}</Text> → <Text className="font-medium text-text-primary dark:text-text-dark-primary">{item.editDetails.newValue ?? "empty"}</Text>
+              <View className="mt-1.5 px-2 py-1.5 rounded bg-card">
+                <Text className="text-[10px] text-muted-foreground">
+                  {item.editDetails.fieldLabel}: <Text className="line-through">{item.editDetails.oldValue ?? "empty"}</Text> → <Text className="font-medium text-foreground">{item.editDetails.newValue ?? "empty"}</Text>
                 </Text>
               </View>
             )}
@@ -425,7 +425,7 @@ export default function AuditLogScreen() {
           </View>
 
           {/* Search */}
-          <View className="flex-row items-center border border-border-light dark:border-border-dark rounded-lg px-3 py-2 mb-2">
+          <View className="flex-row items-center border border-border rounded-lg px-3 py-2 mb-2">
             <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
             <TextInput
               value={searchRaw}

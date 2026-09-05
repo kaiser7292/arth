@@ -238,7 +238,7 @@ export default function BudgetConfigScreen() {
   );
 
   const renderItem = ({ item }: { item: BudgetRow }) => (
-    <View className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark">
+    <View className="flex-row items-center px-4 py-3 border-b border-border">
       <View
         className="w-9 h-9 rounded-full items-center justify-center mr-3"
         style={{ backgroundColor: item.category.color + "14" }}
@@ -251,24 +251,24 @@ export default function BudgetConfigScreen() {
       </View>
       <View className="flex-1 mr-3">
         <Text
-          className="text-sm font-medium text-text-primary dark:text-text-dark-primary"
+          className="text-sm font-medium text-foreground"
           numberOfLines={1}
         >
           {item.category.name}
         </Text>
         {item.category.is_unavoidable === 1 && (
-          <Text className="text-xs text-text-tertiary">Unavoidable</Text>
+          <Text className="text-xs text-faint-foreground">Unavoidable</Text>
         )}
       </View>
       <View className="flex-row items-center">
-        <Text className="text-sm text-text-tertiary mr-1">
+        <Text className="text-sm text-faint-foreground mr-1">
           {"\u20B9"}
         </Text>
         <TextInput
           value={item.editAmount}
           onChangeText={(text) => handleAmountChange(item.category.id, text)}
           keyboardType="numeric"
-          className="w-20 text-right text-base font-medium text-text-primary dark:text-text-dark-primary border-b border-border-light dark:border-border-dark py-1"
+          className="w-20 text-right text-base font-medium text-foreground border-b border-border py-1"
           placeholderTextColor={colors.tabIconDefault}
           selectTextOnFocus
         />
@@ -288,7 +288,7 @@ export default function BudgetConfigScreen() {
           style={{ backgroundColor: StatusColors[colorScheme].warningBg }}
         >
           <Ionicons name="information-circle-outline" size={16} color={StatusColors[colorScheme].warning} />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1 ml-2">
+          <Text className="text-xs text-muted-foreground flex-1 ml-2">
             No budget set for {monthLabel}.
           </Text>
           <Pressable onPress={copyFromPreviousMonth} className="ml-2">
@@ -300,12 +300,12 @@ export default function BudgetConfigScreen() {
       )}
 
       {/* Total */}
-      <View className="px-4 py-3 bg-surface-light-alt dark:bg-surface-dark-alt">
+      <View className="px-4 py-3 bg-card">
         <View className="flex-row items-center justify-between">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             Total Monthly Budget
           </Text>
-          <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-lg font-bold text-foreground">
             {formatAmount(totalBudget)}
           </Text>
         </View>
@@ -318,7 +318,7 @@ export default function BudgetConfigScreen() {
         renderItem={renderItem}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-muted-foreground">
               No categories found. Add categories first.
             </Text>
           </View>
@@ -328,7 +328,7 @@ export default function BudgetConfigScreen() {
       />
 
       {/* Save button */}
-      <View className="p-4 border-t border-border-light dark:border-border-dark">
+      <View className="p-4 border-t border-border">
         <Button
           title="Save"
           onPress={handleSave}
