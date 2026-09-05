@@ -132,16 +132,16 @@ export default function MonthlySummaryScreen() {
         {/* Total Spend Card */}
         <Pressable onPress={() => router.push({ pathname: "/budget/transactions" as never, params: { filterMonth: month, title: "Expenses" } })}>
           <Card className="mx-4 mt-3">
-            <Text className="text-xs text-text-tertiary mb-1">Total Spent</Text>
-            <Text className="text-3xl font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-xs text-faint-foreground mb-1">Total Spent</Text>
+            <Text className="text-3xl font-bold text-foreground">
               {formatAmount(data.totalSpent)}
             </Text>
             <View className="flex-row items-center mt-2">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 {data.transactionCount} transaction{data.transactionCount !== 1 ? "s" : ""}
               </Text>
-              <Text className="text-sm text-text-tertiary mx-2">|</Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-faint-foreground mx-2">|</Text>
+              <Text className="text-sm text-muted-foreground">
                 {formatAmount(data.avgPerDay)}/day avg
               </Text>
             </View>
@@ -150,18 +150,18 @@ export default function MonthlySummaryScreen() {
 
         {/* Budget Compliance */}
         <Card className="mx-4 mt-3">
-          <Text className="text-xs text-text-tertiary mb-2">Budget Compliance</Text>
+          <Text className="text-xs text-faint-foreground mb-2">Budget Compliance</Text>
           {data.totalBudget > 0 ? (
             <>
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-xl font-bold text-foreground">
                   {Math.round(data.budgetCompliancePct)}% used
                 </Text>
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-sm text-muted-foreground">
                   of {formatAmount(data.totalBudget)}
                 </Text>
               </View>
-              <View className="h-3 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+              <View className="h-3 rounded-full bg-border overflow-hidden">
                 <View
                   className="h-full rounded-full"
                   style={{
@@ -173,7 +173,7 @@ export default function MonthlySummaryScreen() {
                 />
               </View>
               <View className="flex-row justify-between mt-2">
-                <Text className="text-xs text-text-tertiary">
+                <Text className="text-xs text-faint-foreground">
                   {data.daysRemaining} days remaining
                 </Text>
                 <Text
@@ -189,7 +189,7 @@ export default function MonthlySummaryScreen() {
               </View>
             </>
           ) : (
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-sm text-muted-foreground">
               No budget set for this month
             </Text>
           )}
@@ -197,7 +197,7 @@ export default function MonthlySummaryScreen() {
 
         {/* Comparison to Last Month */}
         <Card className="mx-4 mt-3">
-          <Text className="text-xs text-text-tertiary mb-2">vs Last Month</Text>
+          <Text className="text-xs text-faint-foreground mb-2">vs Last Month</Text>
           {data.prevMonthSpent > 0 ? (
             <View className="flex-row items-center">
               <Ionicons
@@ -212,13 +212,13 @@ export default function MonthlySummaryScreen() {
                 >
                   {spendChangeUp ? "+" : ""}{Math.round(spendChange)}%
                 </Text>
-                <Text className="text-xs text-text-tertiary">
+                <Text className="text-xs text-faint-foreground">
                   Last month: {formatAmount(data.prevMonthSpent)}
                 </Text>
               </View>
             </View>
           ) : (
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-sm text-muted-foreground">
               No data for previous month
             </Text>
           )}
@@ -226,13 +226,13 @@ export default function MonthlySummaryScreen() {
 
         {/* Unavoidable Spend Ratio */}
         <Card className="mx-4 mt-3">
-          <Text className="text-xs text-text-tertiary mb-2">Unavoidable Spend Ratio</Text>
+          <Text className="text-xs text-faint-foreground mb-2">Unavoidable Spend Ratio</Text>
           <View className="flex-row items-center justify-between">
             <Pressable onPress={() => router.push({ pathname: "/budget/transactions" as never, params: { filterMonth: month, filterAvoidability: "unavoidable", title: "Unavoidable Expenses" } })}>
-              <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-xl font-bold text-foreground">
                 {Math.round(data.rightSpendPct)}%
               </Text>
-              <Text className="text-xs text-text-tertiary">
+              <Text className="text-xs text-faint-foreground">
                 {formatAmount(data.rightSpendTotal)} of {formatAmount(data.totalSpent)}
               </Text>
             </Pressable>
@@ -258,7 +258,7 @@ export default function MonthlySummaryScreen() {
             </View>
           </View>
           {data.totalSpent > 0 && (
-            <View className="h-2 rounded-full bg-border-light dark:bg-border-dark overflow-hidden mt-3">
+            <View className="h-2 rounded-full bg-border overflow-hidden mt-3">
               <View
                 className="h-full rounded-full"
                 style={{
@@ -274,7 +274,7 @@ export default function MonthlySummaryScreen() {
 
         {/* Top Categories */}
         <Card className="mx-4 mt-3">
-          <Text className="text-xs text-text-tertiary mb-3">Top Categories</Text>
+          <Text className="text-xs text-faint-foreground mb-3">Top Categories</Text>
           {data.topCategories.length > 0 ? (
             data.topCategories.map((tc, idx) => (
               <View key={tc.category?.id ?? `unknown-${idx}`} className="mb-3 last:mb-0">
@@ -293,18 +293,18 @@ export default function MonthlySummaryScreen() {
                       </View>
                     )}
                     <Text
-                      className="text-sm text-text-primary dark:text-text-dark-primary flex-1"
+                      className="text-sm text-foreground flex-1"
                       numberOfLines={1}
                     >
                       {tc.category?.name ?? "Unknown"}
                     </Text>
                   </View>
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2">
+                  <Text className="text-sm font-semibold text-foreground ml-2">
                     {formatAmount(tc.total)}
                   </Text>
                 </View>
                 <View className="flex-row items-center">
-                  <View className="h-2 flex-1 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+                  <View className="h-2 flex-1 rounded-full bg-border overflow-hidden">
                     <View
                       className="h-full rounded-full"
                       style={{
@@ -313,14 +313,14 @@ export default function MonthlySummaryScreen() {
                       }}
                     />
                   </View>
-                  <Text className="text-[10px] text-text-tertiary ml-2 w-10 text-right">
+                  <Text className="text-[10px] text-faint-foreground ml-2 w-10 text-right">
                     {Math.round(tc.pctOfTotal)}%
                   </Text>
                 </View>
               </View>
             ))
           ) : (
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-sm text-muted-foreground">
               No expenses this month
             </Text>
           )}
