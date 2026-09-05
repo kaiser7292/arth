@@ -74,13 +74,13 @@ export function AmountInput({
 
   return (
     <View className="items-center mb-6">
-      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-1">
+      <Text className="text-sm text-muted-foreground mb-1">
         Amount
       </Text>
       <View className="flex-row items-center">
         {/* ₹ prefix — dimmed in formula mode since user is typing an expression */}
         <Text
-          className={`text-3xl font-bold mr-1 ${inFormula ? "text-text-tertiary dark:text-text-dark-tertiary" : "text-text-tertiary dark:text-text-dark-tertiary"}`}
+          className={`text-3xl font-bold mr-1 ${inFormula ? "text-faint-foreground" : "text-faint-foreground"}`}
         >
           {"₹"}
         </Text>
@@ -116,7 +116,7 @@ export function AmountInput({
 
       {/* Hint shown as soon as "=" is typed but expression is empty */}
       {inFormula && !hasExpr && (
-        <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-1">
+        <Text className="text-xs text-faint-foreground mt-1">
           Type an expression, e.g. =5000+2500
         </Text>
       )}

@@ -142,7 +142,7 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
       >
         {/* Drag handle */}
         <View className="items-center pt-3 pb-1">
-          <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+          <View className="w-10 h-1 rounded-full bg-border" />
         </View>
 
         {/* Header */}
@@ -157,7 +157,7 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
 
         {/* Search */}
         <View
-          className="mx-5 mb-3 flex-row items-center rounded-xl px-3 bg-surface-light-alt dark:bg-surface-dark-alt"
+          className="mx-5 mb-3 flex-row items-center rounded-xl px-3 bg-card"
           style={{ borderWidth: 1, borderColor: colors.border }}
         >
           <Ionicons name="search-outline" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />

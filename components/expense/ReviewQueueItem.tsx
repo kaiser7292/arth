@@ -55,7 +55,7 @@ export function ReviewQueueItem({
     >
       <Pressable
         onPress={() => onTap(expense.id)}
-        className="flex-row items-center px-4 py-3.5 bg-white dark:bg-surface-dark-alt border-b border-border-light dark:border-border-dark"
+        className="flex-row items-center px-4 py-3.5 bg-white dark:bg-surface-dark-alt border-b border-border"
       >
         {/* Source/nature icon */}
         <View
@@ -78,7 +78,7 @@ export function ReviewQueueItem({
         {/* Left: Merchant + metadata */}
         <View className="flex-1 mr-3">
           <Text
-            className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
+            className="text-sm font-semibold text-foreground"
             numberOfLines={1}
           >
             {expense.description || expense.merchant_name || "Bank transaction"}
@@ -126,7 +126,7 @@ export function ReviewQueueItem({
               </View>
             )}
             <Text
-              className="text-xs text-text-secondary dark:text-text-dark-secondary"
+              className="text-xs text-muted-foreground"
               numberOfLines={1}
             >
               {datePrefix}{formatDateForDisplay(displayDate)}
@@ -172,7 +172,7 @@ export function ReviewQueueItem({
             className="text-sm font-bold"
             style={isCredit ? { color: creditGreen } : undefined}
           >
-            <Text className={isCredit ? "" : "text-text-primary dark:text-text-dark-primary"}>
+            <Text className={isCredit ? "" : "text-foreground"}>
               {isCredit ? "+" : ""}{formatAmount(expense.amount)}
             </Text>
           </Text>

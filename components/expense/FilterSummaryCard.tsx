@@ -57,7 +57,7 @@ export function FilterSummaryCard({
         >
           <View className="flex-row items-start justify-between">
             <View className="flex-1">
-              <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
                 Filtered Total
               </Text>
               <Text
@@ -66,7 +66,7 @@ export function FilterSummaryCard({
               >
                 {formatAmount(summary.total)}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+              <Text className="text-xs text-muted-foreground mt-0.5">
                 {summary.count} {itemLabel}
               </Text>
               {previousTotal != null && previousTotal > 0 && (() => {
@@ -94,7 +94,7 @@ export function FilterSummaryCard({
         </Pressable>
 
         {!collapsed && summary.groups.length > 0 && (
-          <View className="mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+          <View className="mt-3 pt-3 border-t border-border">
             {allowGroupByChange && onChangeGroupBy && availableGroupBys.length > 1 && (
               <View className="flex-row mb-3">
                 {availableGroupBys.map((gb) => {
@@ -105,7 +105,7 @@ export function FilterSummaryCard({
                       key={gb}
                       onPress={() => onChangeGroupBy(gb)}
                       className={`px-3 py-1 rounded-full mr-2 ${
-                        isActive ? "border" : "bg-surface-light-alt dark:bg-surface-dark-alt"
+                        isActive ? "border" : "bg-card"
                       }`}
                       style={
                         isActive
@@ -115,7 +115,7 @@ export function FilterSummaryCard({
                     >
                       <Text
                         className={`text-xs ${
-                          isActive ? "font-medium" : "text-text-secondary dark:text-text-dark-secondary"
+                          isActive ? "font-medium" : "text-muted-foreground"
                         }`}
                         style={isActive ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
                       >
@@ -127,7 +127,7 @@ export function FilterSummaryCard({
               </View>
             )}
 
-            <Text className="text-[11px] font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-2">
+            <Text className="text-[11px] font-semibold tracking-wider uppercase text-muted-foreground mb-2">
               By {groupLabelHeader}
             </Text>
 
@@ -137,17 +137,17 @@ export function FilterSummaryCard({
                 <View key={group.key ?? "__null__"} className="mb-2">
                   <View className="flex-row items-center justify-between mb-1">
                     <Text
-                      className="text-sm text-text-primary dark:text-text-dark-primary flex-1 pr-2"
+                      className="text-sm text-foreground flex-1 pr-2"
                       numberOfLines={1}
                     >
                       {resolveGroupLabel(group.key)}
                     </Text>
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       {formatAmount(group.total)}
                     </Text>
                   </View>
                   <View className="flex-row items-center">
-                    <View className="flex-1 h-1.5 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden">
+                    <View className="flex-1 h-1.5 rounded-full bg-card overflow-hidden">
                       <View
                         className="h-full rounded-full"
                         style={{
@@ -156,7 +156,7 @@ export function FilterSummaryCard({
                         }}
                       />
                     </View>
-                    <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary ml-2 w-10 text-right">
+                    <Text className="text-[11px] text-muted-foreground ml-2 w-10 text-right">
                       {pct.toFixed(0)}%
                     </Text>
                   </View>

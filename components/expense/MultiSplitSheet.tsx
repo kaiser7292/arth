@@ -203,11 +203,11 @@ export function MultiSplitSheet({
           className="bg-white dark:bg-surface-dark-alt rounded-t-3xl px-5 pt-3"
         >
           <View className="items-center mb-4">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
 
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-lg font-bold text-foreground">
               {showPersonPicker ? "Pick Person" : "Split Expense"}
             </Text>
             <Pressable onPress={handleClose} className="p-1">
@@ -222,18 +222,18 @@ export function MultiSplitSheet({
                   <Pressable
                     key={person.id}
                     onPress={() => handleSelectPerson(person.id)}
-                    className="flex-row items-center p-4 rounded-xl border border-border-light dark:border-border-dark"
+                    className="flex-row items-center p-4 rounded-xl border border-border"
                   >
-                    <View className="w-10 h-10 rounded-full bg-surface-light-alt dark:bg-surface-dark items-center justify-center mr-3">
-                      <Text className="text-base font-bold text-text-secondary dark:text-text-dark-secondary">
+                    <View className="w-10 h-10 rounded-full bg-card dark:bg-surface-dark items-center justify-center mr-3">
+                      <Text className="text-base font-bold text-muted-foreground">
                         {person.name.charAt(0).toUpperCase()}
                       </Text>
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm font-semibold text-foreground">
                         {person.name}
                       </Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         Balance: {formatAmount(Math.abs(person.balance))}{" "}
                         {person.balance > 0 ? "owes you" : person.balance < 0 ? "you owe" : "settled"}
                       </Text>
@@ -244,7 +244,7 @@ export function MultiSplitSheet({
                 {showAddPerson ? (
                   <View className="flex-row items-center gap-2">
                     <TextInput
-                      className="flex-1 border border-border-light dark:border-border-dark rounded-xl px-4 py-3 text-text-primary dark:text-text-dark-primary"
+                      className="flex-1 border border-border rounded-xl px-4 py-3 text-foreground"
                       placeholder="Person name"
                       placeholderTextColor={colors.tabIconDefault}
                       value={newPersonName}
@@ -276,7 +276,7 @@ export function MultiSplitSheet({
                   onPress={() => setShowPersonPicker(false)}
                   className="items-center py-2"
                 >
-                  <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-sm font-medium text-muted-foreground">
                     ← Back
                   </Text>
                 </Pressable>
@@ -285,14 +285,14 @@ export function MultiSplitSheet({
               <View className="gap-3">
                 {/* Total amount header */}
                 <View className="flex-row items-center justify-between px-1 mb-1">
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+                  <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Total: {formatAmount(totalAmount)}
                   </Text>
                 </View>
 
                 {/* Hint when empty */}
                 {splits.length === 0 && (
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary px-1 mb-1">
+                  <Text className="text-xs text-muted-foreground px-1 mb-1">
                     Add people and their share amounts
                   </Text>
                 )}
@@ -301,7 +301,7 @@ export function MultiSplitSheet({
                 {splits.map((split, index) => (
                   <View
                     key={index}
-                    className="rounded-xl border border-border-light dark:border-border-dark p-3"
+                    className="rounded-xl border border-border p-3"
                   >
                     <View className="flex-row items-center mb-2">
                       <View className="w-7 h-7 rounded-full items-center justify-center mr-2" style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}>
@@ -316,7 +316,7 @@ export function MultiSplitSheet({
                         }}
                         className="flex-1"
                       >
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-semibold text-foreground">
                           {getPersonName(split.personId)}
                         </Text>
                       </Pressable>
@@ -326,14 +326,14 @@ export function MultiSplitSheet({
                     </View>
                     <View className="flex-row gap-2">
                       <TextInput
-                        className="flex-1 border border-border-light dark:border-border-dark rounded-lg px-3 py-2 text-sm text-text-primary dark:text-text-dark-primary"
+                        className="flex-1 border border-border rounded-lg px-3 py-2 text-sm text-foreground"
                         placeholder="What for? (e.g. Electricity)"
                         placeholderTextColor={colors.tabIconDefault}
                         value={split.description}
                         onChangeText={(v) => handleUpdateSplitDescription(index, v)}
                       />
                       <TextInput
-                        className="w-24 border border-border-light dark:border-border-dark rounded-lg px-3 py-2 text-sm text-text-primary dark:text-text-dark-primary text-right"
+                        className="w-24 border border-border rounded-lg px-3 py-2 text-sm text-foreground text-right"
                         placeholder="₹0"
                         placeholderTextColor={colors.tabIconDefault}
                         keyboardType="decimal-pad"
@@ -358,10 +358,10 @@ export function MultiSplitSheet({
 
                 {/* Summary */}
                 {splits.length > 0 && (
-                  <View className="bg-surface-light-alt dark:bg-surface-dark rounded-2xl p-4 gap-2 mt-1">
+                  <View className="bg-card dark:bg-surface-dark rounded-2xl p-4 gap-2 mt-1">
                     <View className="flex-row justify-between">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Total splits</Text>
-                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs text-muted-foreground">Total splits</Text>
+                      <Text className="text-xs font-semibold text-foreground">
                         {formatAmount(totalSplitAmount)}
                       </Text>
                     </View>
@@ -369,7 +369,7 @@ export function MultiSplitSheet({
                     {convenienceFee > 0 && (
                       <>
                         <View className="flex-row justify-between">
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">My share</Text>
+                          <Text className="text-xs text-muted-foreground">My share</Text>
                           <Text className="text-xs font-semibold" style={{ color: StatusColors[colorScheme].warning }}>
                             {formatAmount(convenienceFee)}
                           </Text>
@@ -410,10 +410,10 @@ export function MultiSplitSheet({
                       </>
                     )}
 
-                    <View className="h-px bg-border-light dark:bg-border-dark" />
+                    <View className="h-px bg-border" />
 
                     <View className="flex-row justify-between">
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">My budget</Text>
+                      <Text className="text-sm font-semibold text-foreground">My budget</Text>
                       <Text className="text-sm font-bold" style={{ color: ac(accent, colorScheme, 600, 300) }}>
                         {formatAmount(myShare)}
                       </Text>

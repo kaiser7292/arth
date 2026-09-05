@@ -67,7 +67,7 @@ export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }:
           >
             <Pressable onPress={(e) => e.stopPropagation()}>
               <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
-                <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base font-semibold text-foreground">
                   Where did the refund land?
                 </Text>
                 <Pressable onPress={close} hitSlop={12}>
@@ -90,11 +90,11 @@ export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }:
                       <Ionicons name="return-up-back-outline" size={20} color={tint} />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm font-semibold text-foreground">
                         Same account
                       </Text>
                       <Text
-                        className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+                        className="text-xs text-muted-foreground mt-0.5"
                         numberOfLines={1}
                       >
                         Credited back to {sourceAccount.account_label ?? `****${sourceAccount.account_identifier.slice(-4)}`}
@@ -107,16 +107,16 @@ export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }:
                 {/* Different account */}
                 <Pressable
                   onPress={() => setShowPicker(true)}
-                  className="flex-row items-center p-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt"
+                  className="flex-row items-center p-4 rounded-xl bg-card"
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3 bg-surface-light dark:bg-surface-dark">
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3 bg-background">
                     <Ionicons name="swap-horizontal-outline" size={20} color={colors.textSecondary} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       Different account
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       Refund came into another account or wallet
                     </Text>
                   </View>
@@ -124,7 +124,7 @@ export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }:
                 </Pressable>
 
                 {!sourceAccount && sourceAccountId && (
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-3">
+                  <Text className="text-xs text-muted-foreground mt-3">
                     The original account is no longer active - pick a destination.
                   </Text>
                 )}

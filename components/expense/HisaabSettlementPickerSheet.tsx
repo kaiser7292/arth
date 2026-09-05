@@ -102,7 +102,7 @@ export function HisaabSettlementPickerSheet({
       >
         {/* Drag handle */}
         <View className="items-center pt-3 pb-1">
-          <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+          <View className="w-10 h-1 rounded-full bg-border" />
         </View>
 
         {/* Header */}

@@ -66,7 +66,7 @@ function ExpenseListItemInner({
     <Pressable
       onPress={onPress}
       onLongPress={onLongPress}
-      className="flex-row items-center px-4 py-3.5 border-b border-border-light dark:border-border-dark"
+      className="flex-row items-center px-4 py-3.5 border-b border-border"
     >
       {/* Category icon */}
       <View
@@ -90,7 +90,7 @@ function ExpenseListItemInner({
       <View className="flex-1 mr-3">
         <View className="flex-row items-center">
           <Text
-            className="text-sm font-semibold text-text-primary dark:text-text-dark-primary shrink"
+            className="text-sm font-semibold text-foreground shrink"
             numberOfLines={1}
           >
             {expense.description || expense.merchant_name || "No description"}
@@ -145,7 +145,7 @@ function ExpenseListItemInner({
         </View>
         {subtitleParts.length > 0 && (
           <Text
-            className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+            className="text-xs text-muted-foreground mt-0.5"
             numberOfLines={1}
           >
             {subtitleParts.join(" · ")}
@@ -169,35 +169,35 @@ function ExpenseListItemInner({
         {isFullRefund ? (
           <>
             <Text
-              className="text-sm font-bold text-text-tertiary dark:text-text-dark-tertiary line-through"
+              className="text-sm font-bold text-faint-foreground line-through"
             >
               {formatAmount(expense.amount)}
             </Text>
-            <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-[11px] text-muted-foreground mt-0.5">
               {formatDateForDisplay(expense.date)}
             </Text>
           </>
         ) : isPartialRefund ? (
           <>
-            <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-sm font-bold text-foreground">
               {formatAmount(effectiveDisplayAmount)}
             </Text>
-            <Text className="text-[10px] text-text-tertiary dark:text-text-dark-tertiary line-through">
+            <Text className="text-[10px] text-faint-foreground line-through">
               {formatAmount(expense.amount)}
             </Text>
-            <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-[11px] text-muted-foreground mt-0.5">
               {formatDateForDisplay(expense.date)}
             </Text>
           </>
         ) : (
           <>
             <Text
-              className="text-sm font-bold text-text-primary dark:text-text-dark-primary"
+              className="text-sm font-bold text-foreground"
               style={expense.nature === "credit" ? { color: "#10B981" } : undefined}
             >
               {expense.nature === "credit" ? "+" : ""}{formatAmount(expense.amount)}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {expense.nature === "forecast" && expense.due_date
                 ? `Due ${formatDateForDisplay(expense.due_date)}`
                 : formatDateForDisplay(expense.date)}

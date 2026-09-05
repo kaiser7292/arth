@@ -501,11 +501,11 @@ export default function AddExpenseScreen() {
         className="flex-1"
       >
         {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-border-light dark:border-border-dark">
+        <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
           <Pressable onPress={() => router.back()} className="p-2 -ml-2">
             <Ionicons name="close" size={24} color={colors.textSecondary} />
           </Pressable>
-          <Text className="text-lg font-semibold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-lg font-semibold text-foreground">
             {isRefund ? (linkedExpenseId ? "Add Linked Refund" : "Add Refund") : "Add Expense"}
           </Text>
           <View className="w-10" />
@@ -554,22 +554,22 @@ export default function AddExpenseScreen() {
                     </Pressable>
                   </View>
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       My budget: {"\u20B9"}{splitPreview.myBudgetAmount.toLocaleString("en-IN")}
                     </Text>
                     <Text className="text-xs text-orange-600 dark:text-orange-300">
                       {splitPreview.hisaabType === "debit" ? "They owe" : "I owe"}: {"\u20B9"}{splitPreview.hisaabAmount.toLocaleString("en-IN")}
                     </Text>
                   </View>
-                  <Text className="text-[10px] text-text-tertiary mt-1">Tap to change</Text>
+                  <Text className="text-[10px] text-faint-foreground mt-1">Tap to change</Text>
                 </Pressable>
               ) : (
                 <Pressable
                   onPress={() => setShowSplitSheet(true)}
-                  className="flex-row items-center rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt px-4 py-3"
+                  className="flex-row items-center rounded-lg border border-border bg-white dark:bg-surface-dark-alt px-4 py-3"
                 >
                   <Ionicons name="people-outline" size={20} color={colors.textSecondary} />
-                  <Text className="ml-3 text-base font-medium text-text-primary dark:text-text-dark-primary">
+                  <Text className="ml-3 text-base font-medium text-foreground">
                     Split with someone?
                   </Text>
                   <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} style={{ marginLeft: "auto" }} />
@@ -589,14 +589,14 @@ export default function AddExpenseScreen() {
 
             {/* Other person's refund share — only for exact-amount splits */}
             {isRefund && linkedExpenseSplitMode === 'exact' && (
-              <View className="mb-4 p-4 rounded-xl border border-border-light dark:border-border-dark bg-surface-light-alt dark:bg-surface-dark-alt">
+              <View className="mb-4 p-4 rounded-xl border border-border bg-card">
                 <View className="flex-row items-center mb-3">
                   <Ionicons name="people-outline" size={16} color={colors.textSecondary} />
-                  <Text className="ml-2 text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="ml-2 text-sm font-semibold text-foreground">
                     Split refund
                   </Text>
                 </View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+                <Text className="text-xs text-muted-foreground mb-3">
                   This expense was split by exact amount. How much of this refund goes back to the other person?
                 </Text>
                 <Input
@@ -606,7 +606,7 @@ export default function AddExpenseScreen() {
                   placeholder="0.00"
                   keyboardType="decimal-pad"
                 />
-                <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary mt-1">
+                <Text className="text-[11px] text-faint-foreground mt-1">
                   Leave at 0 if the other person doesn't get any of this refund.
                 </Text>
               </View>
@@ -662,7 +662,7 @@ export default function AddExpenseScreen() {
                   return (
                     <View
                       key={leg.key}
-                      className="rounded-xl border border-border-light dark:border-border-dark p-3 mb-2"
+                      className="rounded-xl border border-border p-3 mb-2"
                       style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
                     >
                       <View className="flex-row items-center justify-between mb-2">
@@ -763,12 +763,12 @@ export default function AddExpenseScreen() {
                 })}
 
                 {extraLegs.length > 0 && (
-                  <View className="p-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt mb-2 flex-row items-center">
+                  <View className="p-3 rounded-xl bg-card mb-2 flex-row items-center">
                     <Ionicons name="calculator-outline" size={16} color={colors.textSecondary} />
-                    <Text className="ml-2 text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+                    <Text className="ml-2 text-xs text-muted-foreground flex-1">
                       Purchase total
                     </Text>
-                    <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-bold text-foreground">
                       {"₹"}
                       {(
                         (parseAmount(amount) ?? 0) +
@@ -793,7 +793,7 @@ export default function AddExpenseScreen() {
                         },
                       ])
                     }
-                    className="flex-row items-center justify-center py-3 rounded-xl border border-dashed border-border-light dark:border-border-dark"
+                    className="flex-row items-center justify-center py-3 rounded-xl border border-dashed border-border"
                     accessibilityRole="button"
                     accessibilityLabel="Add another payment source"
                   >
@@ -811,7 +811,7 @@ export default function AddExpenseScreen() {
                   </Pressable>
                 )}
                 {extraLegs.length > 0 && (
-                  <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary mt-2">
+                  <Text className="text-[11px] text-faint-foreground mt-2">
                     Legs share the same merchant, date, and category. Up to {MAX_PURCHASE_GROUP_LEGS} payment sources per purchase.
                   </Text>
                 )}
@@ -872,7 +872,7 @@ export default function AddExpenseScreen() {
 
             {/* Tags */}
             <View className="mb-4">
-              <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+              <Text className="text-xs font-medium text-muted-foreground mb-2">
                 Tags (optional)
               </Text>
               <TagPicker

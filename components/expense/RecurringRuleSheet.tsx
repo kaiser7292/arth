@@ -230,7 +230,7 @@ export function RecurringRuleSheet({
         >
           {/* Drag handle */}
           <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
 
           {/* Header */}
@@ -316,7 +316,7 @@ export function RecurringRuleSheet({
                 </Text>
                 <Pressable
                   onPress={() => setStartPickerVisible(true)}
-                  className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+                  className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
                   accessibilityRole="button"
                   accessibilityLabel={`Starts on ${prettyDate(startDate)}. Tap to change.`}
                 >
@@ -343,7 +343,7 @@ export function RecurringRuleSheet({
               </Text>
               <Pressable
                 onPress={() => setEndPickerVisible(true)}
-                className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
                 accessibilityRole="button"
                 accessibilityLabel={
                   endDate ? `Ends on ${prettyDate(endDate)}. Tap to change.` : "No end date. Tap to pick one."
@@ -392,7 +392,7 @@ export function RecurringRuleSheet({
                 onChangeText={setNotes}
                 placeholder="e.g., Flat rent, split 50/50 with flatmate"
                 placeholderTextColor={colors.textSecondary}
-                className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 text-sm"
+                className="border border-border rounded-lg px-3 py-2.5 text-sm"
                 style={{ color: colors.text, minHeight: 60 }}
                 multiline
               />

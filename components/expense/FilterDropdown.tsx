@@ -65,9 +65,9 @@ export function FilterDropdown({
     <>
       <Pressable
         onPress={() => { setOpen(true); setSearch(""); }}
-        className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt mb-1.5"
+        className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card mb-1.5"
       >
-        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+        <Text className="text-sm font-medium text-foreground">
           {label}
         </Text>
         <View className="flex-row items-center">
@@ -91,7 +91,7 @@ export function FilterDropdown({
           >
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm font-semibold text-foreground">
                 {label}
               </Text>
               <View className="flex-row items-center">
@@ -108,14 +108,14 @@ export function FilterDropdown({
 
             {/* Search */}
             {searchable && options.length > 6 && (
-              <View className="mx-4 mb-2 flex-row items-center rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt px-3 py-2">
+              <View className="mx-4 mb-2 flex-row items-center rounded-lg bg-card px-3 py-2">
                 <Ionicons name="search" size={14} color={colors.textSecondary} />
                 <TextInput
                   value={search}
                   onChangeText={setSearch}
                   placeholder={`Search ${label.toLowerCase()}...`}
                   placeholderTextColor={colors.tabIconDefault}
-                  className="flex-1 ml-2 text-xs text-text-primary dark:text-text-dark-primary"
+                  className="flex-1 ml-2 text-xs text-foreground"
                   autoFocus={false}
                 />
               </View>
@@ -129,7 +129,7 @@ export function FilterDropdown({
                   <Pressable
                     key={option.id}
                     onPress={() => toggle(option.id)}
-                    className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+                    className="flex-row items-center py-3 border-b border-border"
                   >
                     <View
                       className="w-5 h-5 rounded items-center justify-center mr-3"
@@ -144,14 +144,14 @@ export function FilterDropdown({
                     {option.color && (
                       <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: option.color }} />
                     )}
-                    <Text className="text-sm text-text-primary dark:text-text-dark-primary flex-1">
+                    <Text className="text-sm text-foreground flex-1">
                       {option.label}
                     </Text>
                   </Pressable>
                 );
               })}
               {filtered.length === 0 && (
-                <Text className="text-xs text-text-tertiary text-center py-4">No matches</Text>
+                <Text className="text-xs text-faint-foreground text-center py-4">No matches</Text>
               )}
             </ScrollView>
           </View>

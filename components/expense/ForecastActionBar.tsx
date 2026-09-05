@@ -141,7 +141,7 @@ export function ForecastActionBar({
   }
 
   return (
-    <View className="flex-row items-center justify-around py-2 border-t border-border-light dark:border-border-dark mt-2">
+    <View className="flex-row items-center justify-around py-2 border-t border-border mt-2">
       <Pressable
         onPress={handleMarkAsPaid}
         accessibilityLabel={isRepayment ? "Pay bill" : "Mark as paid"}
@@ -153,7 +153,7 @@ export function ForecastActionBar({
           {isRepayment ? "Pay Bill" : "Mark as Paid"}
         </Text>
       </Pressable>
-      <View className="w-px h-8 bg-border-light dark:bg-border-dark" />
+      <View className="w-px h-8 bg-border" />
       {isRepayment ? (
         <Pressable
           onPress={handlePaidExternally}
@@ -179,7 +179,7 @@ export function ForecastActionBar({
           </Text>
         </Pressable>
       )}
-      <View className="w-px h-8 bg-border-light dark:bg-border-dark" />
+      <View className="w-px h-8 bg-border" />
       <Pressable
         onPress={handleDelete}
         accessibilityLabel="Delete forecast"

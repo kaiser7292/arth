@@ -23,7 +23,7 @@ export function ForecastMatchCard({
   const { forecast, realized } = pair;
 
   return (
-    <View className="mx-4 my-2 rounded-xl bg-white dark:bg-surface-dark-alt border border-border-light dark:border-border-dark overflow-hidden">
+    <View className="mx-4 my-2 rounded-xl bg-white dark:bg-surface-dark-alt border border-border overflow-hidden">
       {/* Header */}
       <View className="flex-row items-center px-3 py-2 bg-[#F59E0B14]">
         <Ionicons name="git-compare-outline" size={14} color={StatusColors[colorScheme].warning} />
@@ -33,22 +33,22 @@ export function ForecastMatchCard({
       </View>
 
       {/* Forecast card */}
-      <View className="px-3 py-2.5 border-b border-border-light dark:border-border-dark">
+      <View className="px-3 py-2.5 border-b border-border">
         <View className="flex-row items-center mb-1">
           <View className="px-1.5 py-0.5 rounded bg-[#F59E0B14] mr-2">
             <Text className="text-[10px] font-bold" style={{ color: StatusColors[colorScheme].warning }}>FORECAST</Text>
           </View>
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             Due {formatDateForDisplay(forecast.due_date ?? forecast.date)}
           </Text>
         </View>
         <Text
-          className="text-sm text-text-primary dark:text-text-dark-primary"
+          className="text-sm text-foreground"
           numberOfLines={1}
         >
           {forecast.description || forecast.merchant_name || "Forecast expense"}
         </Text>
-        <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mt-0.5">
+        <Text className="text-base font-bold text-foreground mt-0.5">
           {formatAmount(forecast.amount)}
         </Text>
       </View>
@@ -59,22 +59,22 @@ export function ForecastMatchCard({
       </View>
 
       {/* Realized card */}
-      <View className="px-3 py-2.5 border-b border-border-light dark:border-border-dark">
+      <View className="px-3 py-2.5 border-b border-border">
         <View className="flex-row items-center mb-1">
           <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: accent[500] + '14' }}>
             <Text className="text-[10px] font-bold" style={{ color: ac(accent, colorScheme, 600, 300) }}>ACTUAL</Text>
           </View>
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             {formatDateForDisplay(realized.date)}
           </Text>
         </View>
         <Text
-          className="text-sm text-text-primary dark:text-text-dark-primary"
+          className="text-sm text-foreground"
           numberOfLines={1}
         >
           {realized.description || realized.merchant_name || "Bank transaction"}
         </Text>
-        <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mt-0.5">
+        <Text className="text-base font-bold text-foreground mt-0.5">
           {formatAmount(realized.amount)}
         </Text>
       </View>

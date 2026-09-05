@@ -372,7 +372,7 @@ export function LoanPaymentPickerSheet({
         ]}
       >
         <View className="items-center pt-3 pb-1">
-          <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+          <View className="w-10 h-1 rounded-full bg-border" />
         </View>
 
         <View className="px-5 pb-3">
@@ -724,14 +724,14 @@ export function LoanPaymentPickerSheet({
                     value={impact.gst > 0 ? `− ${formatAmount(impact.gst)}` : "-"}
                     colors={colors}
                   />
-                  <View className="border-t border-border-light dark:border-border-dark my-2" />
+                  <View className="border-t border-border my-2" />
                   <PreviewRow
                     label="Net applied to principal"
                     value={formatAmount(impact.netApplied)}
                     bold
                     colors={colors}
                   />
-                  <View className="border-t border-border-light dark:border-border-dark my-2" />
+                  <View className="border-t border-border my-2" />
                   <PreviewRow
                     label="Interest saved"
                     value={formatAmount(impact.interestSavedTotal)}

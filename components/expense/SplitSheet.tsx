@@ -194,12 +194,12 @@ export function SplitSheet({
         >
           {/* Handle */}
           <View className="items-center mb-4">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
 
           {/* Header */}
           <View className="flex-row items-center justify-between mb-5">
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-lg font-bold text-foreground">
               {step === "paidBy" && "Who paid?"}
               {step === "mode" && "How to split?"}
               {step === "person" && "With whom?"}
@@ -223,7 +223,7 @@ export function SplitSheet({
                   className={`flex-row items-center p-4 rounded-xl border ${
                     paidBy === "me"
                       ? ""
-                      : "border-border-light dark:border-border-dark"
+                      : "border-border"
                   }`}
                   style={paidBy === "me" ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 900) } : undefined}
                 >
@@ -231,10 +231,10 @@ export function SplitSheet({
                     <Ionicons name="person" size={20} color={accent[500]} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-base font-semibold text-foreground">
                       I paid
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       I paid {formatAmount(totalAmount)} and want to split
                     </Text>
                   </View>
@@ -249,18 +249,18 @@ export function SplitSheet({
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setStep("mode");
                     }}
-                    className="flex-row items-center p-4 rounded-xl border border-border-light dark:border-border-dark"
+                    className="flex-row items-center p-4 rounded-xl border border-border"
                   >
-                    <View className="w-10 h-10 rounded-full bg-surface-light-alt dark:bg-surface-dark items-center justify-center mr-3">
-                      <Text className="text-base font-bold text-text-secondary dark:text-text-dark-secondary">
+                    <View className="w-10 h-10 rounded-full bg-card dark:bg-surface-dark items-center justify-center mr-3">
+                      <Text className="text-base font-bold text-muted-foreground">
                         {person.name.charAt(0).toUpperCase()}
                       </Text>
                     </View>
                     <View className="flex-1">
-                      <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-base font-semibold text-foreground">
                         {person.name} paid
                       </Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         {person.name} paid and I owe my share
                       </Text>
                     </View>
@@ -294,11 +294,11 @@ export function SplitSheet({
                     className={`flex-row items-center p-4 rounded-xl border ${
                       splitMode === item.mode
                         ? ""
-                        : "border-border-light dark:border-border-dark"
+                        : "border-border"
                     }`}
                     style={splitMode === item.mode ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 900) } : undefined}
                   >
-                    <View className="w-9 h-9 rounded-lg bg-surface-light-alt dark:bg-surface-dark items-center justify-center mr-3">
+                    <View className="w-9 h-9 rounded-lg bg-card dark:bg-surface-dark items-center justify-center mr-3">
                       <Ionicons
                         name={item.icon as keyof typeof Ionicons.glyphMap}
                         size={18}
@@ -306,10 +306,10 @@ export function SplitSheet({
                       />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm font-semibold text-foreground">
                         {item.label}
                       </Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         {item.description}
                       </Text>
                     </View>
@@ -324,7 +324,7 @@ export function SplitSheet({
                 {persons.length === 0 && !showAddPerson && (
                   <View className="items-center py-6">
                     <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
-                    <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-2 text-center">
+                    <Text className="text-sm text-muted-foreground mt-2 text-center">
                       No people in your family ledger yet.
                     </Text>
                   </View>
@@ -339,20 +339,20 @@ export function SplitSheet({
                       className={`flex-row items-center p-4 rounded-xl border ${
                         selectedPersonId === person.id
                           ? ""
-                          : "border-border-light dark:border-border-dark"
+                          : "border-border"
                       }`}
                       style={selectedPersonId === person.id ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 900) } : undefined}
                     >
-                      <View className="w-10 h-10 rounded-full bg-surface-light-alt dark:bg-surface-dark items-center justify-center mr-3">
-                        <Text className="text-base font-bold text-text-secondary dark:text-text-dark-secondary">
+                      <View className="w-10 h-10 rounded-full bg-card dark:bg-surface-dark items-center justify-center mr-3">
+                        <Text className="text-base font-bold text-muted-foreground">
                           {person.name.charAt(0).toUpperCase()}
                         </Text>
                       </View>
                       <View className="flex-1">
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-semibold text-foreground">
                           {person.name}
                         </Text>
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Balance: {formatAmount(Math.abs(person.balance))}{" "}
                           {person.balance > 0 ? "owes you" : person.balance < 0 ? "you owe" : "settled"}
                         </Text>
@@ -364,7 +364,7 @@ export function SplitSheet({
                 {showAddPerson ? (
                   <View className="flex-row items-center gap-2">
                     <TextInput
-                      className="flex-1 border border-border-light dark:border-border-dark rounded-xl px-4 py-3 text-text-primary dark:text-text-dark-primary"
+                      className="flex-1 border border-border rounded-xl px-4 py-3 text-foreground"
                       placeholder="Person name"
                       placeholderTextColor={colors.tabIconDefault}
                       value={newPersonName}
@@ -400,11 +400,11 @@ export function SplitSheet({
                 {/* Exact amount / percentage input */}
                 {splitMode === "exact" && (
                   <View>
-                    <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
+                    <Text className="text-xs font-medium text-muted-foreground mb-1">
                       {paidBy === "me" ? "How much do they owe?" : "How much do you owe?"}
                     </Text>
                     <TextInput
-                      className="border border-border-light dark:border-border-dark rounded-xl px-4 py-3 text-text-primary dark:text-text-dark-primary text-lg"
+                      className="border border-border rounded-xl px-4 py-3 text-foreground text-lg"
                       placeholder="0"
                       placeholderTextColor={colors.tabIconDefault}
                       keyboardType="decimal-pad"
@@ -415,7 +415,7 @@ export function SplitSheet({
                 )}
                 {splitMode === "percentage" && (
                   <View>
-                    <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
+                    <Text className="text-xs font-medium text-muted-foreground mb-1">
                       {paidBy === "me" ? "Their share %" : "Your share %"}
                     </Text>
                     <View className="flex-row items-center gap-2">
@@ -426,7 +426,7 @@ export function SplitSheet({
                           className={`flex-1 items-center py-2 rounded-lg ${
                             percentage === pct
                               ? ""
-                              : "bg-surface-light-alt dark:bg-surface-dark"
+                              : "bg-card dark:bg-surface-dark"
                           }`}
                           style={percentage === pct ? { backgroundColor: accent[500] } : undefined}
                         >
@@ -434,7 +434,7 @@ export function SplitSheet({
                             className={`text-sm font-semibold ${
                               percentage === pct
                                 ? "text-white"
-                                : "text-text-primary dark:text-text-dark-primary"
+                                : "text-foreground"
                             }`}
                           >
                             {pct}%
@@ -442,7 +442,7 @@ export function SplitSheet({
                         </Pressable>
                       ))}
                       <TextInput
-                        className="flex-1 border border-border-light dark:border-border-dark rounded-lg px-3 py-2 text-center text-text-primary dark:text-text-dark-primary"
+                        className="flex-1 border border-border rounded-lg px-3 py-2 text-center text-foreground"
                         placeholder="%"
                         placeholderTextColor={colors.tabIconDefault}
                         keyboardType="number-pad"
@@ -459,28 +459,28 @@ export function SplitSheet({
                 )}
 
                 {/* Summary card */}
-                <View className="bg-surface-light-alt dark:bg-surface-dark rounded-2xl p-4 gap-3">
-                  <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary">
+                <View className="bg-card dark:bg-surface-dark rounded-2xl p-4 gap-3">
+                  <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
                     Split Summary
                   </Text>
 
                   <View className="flex-row justify-between items-center">
-                    <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-sm text-muted-foreground">
                       Total
                     </Text>
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       {formatAmount(totalAmount)}
                     </Text>
                   </View>
 
-                  <View className="h-px bg-border-light dark:bg-border-dark" />
+                  <View className="h-px bg-border" />
 
                   <View className="flex-row justify-between items-center">
                     <View className="flex-row items-center">
                       <View className="w-6 h-6 rounded-full items-center justify-center mr-2" style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}>
                         <Ionicons name="person" size={12} color={accent[500]} />
                       </View>
-                      <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm text-foreground">
                         My budget
                       </Text>
                     </View>
@@ -494,7 +494,7 @@ export function SplitSheet({
                       <View className="w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900 items-center justify-center mr-2">
                         <Ionicons name="people" size={12} color={StatusColors[colorScheme].warning} />
                       </View>
-                      <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm text-foreground">
                         {selectedPerson?.name ?? "Person"}
                         {preview.hisaabType === "debit" ? " owes you" : " - you owe"}
                       </Text>
@@ -509,25 +509,25 @@ export function SplitSheet({
                 <View className="flex-row gap-2">
                   <Pressable
                     onPress={() => setStep("paidBy")}
-                    className="flex-1 items-center py-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark"
+                    className="flex-1 items-center py-2 rounded-lg bg-card dark:bg-surface-dark"
                   >
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {paidBy === "me" ? "I paid" : `${selectedPerson?.name} paid`}
                     </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => setStep("mode")}
-                    className="flex-1 items-center py-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark"
+                    className="flex-1 items-center py-2 rounded-lg bg-card dark:bg-surface-dark"
                   >
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {SPLIT_MODES.find((m) => m.mode === splitMode)?.label}
                     </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => setStep("person")}
-                    className="flex-1 items-center py-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark"
+                    className="flex-1 items-center py-2 rounded-lg bg-card dark:bg-surface-dark"
                   >
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {selectedPerson?.name ?? "Pick person"}
                     </Text>
                   </Pressable>
@@ -565,7 +565,7 @@ export function SplitSheet({
               }}
               className="mt-2 items-center py-2"
             >
-              <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm font-medium text-muted-foreground">
                 ← Back
               </Text>
             </Pressable>

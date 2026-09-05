@@ -131,7 +131,7 @@ export default function ExpenseHeroCard({
 
       {/* Merchant / Title */}
       <Text
-        className="text-xl font-bold text-text-primary dark:text-text-dark-primary text-center"
+        className="text-xl font-bold text-foreground text-center"
         numberOfLines={2}
       >
         {title}
@@ -140,7 +140,7 @@ export default function ExpenseHeroCard({
       {/* Subtitle (description when merchant exists) */}
       {subtitle && (
         <Text
-          className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center"
+          className="text-sm text-muted-foreground mt-1 text-center"
           numberOfLines={1}
         >
           {subtitle}
@@ -156,7 +156,7 @@ export default function ExpenseHeroCard({
           color={nature === "credit" ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger}
         />
         <Text
-          className="text-3xl font-bold text-text-primary dark:text-text-dark-primary ml-1"
+          className="text-3xl font-bold text-foreground ml-1"
           style={isFullRefund || isPartialRefund ? { textDecorationLine: "line-through", opacity: 0.5 } : undefined}
         >
           {"\u20B9"}{formatNumber(amount)}
@@ -165,13 +165,13 @@ export default function ExpenseHeroCard({
 
       {(isFullRefund || isPartialRefund) && (
         <View className="mt-2 items-center">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             {isFullRefund ? "Fully refunded \u00B7 effective cost" : "Net cost after refund"}
           </Text>
-          <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary mt-0.5">
+          <Text className="text-xl font-bold text-foreground mt-0.5">
             {"\u20B9"}{formatNumber(effectiveAmount)}
           </Text>
-          <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-[11px] text-muted-foreground mt-0.5">
             Refunded {"\u20B9"}{formatNumber(refundedAmount)}
           </Text>
         </View>
@@ -200,7 +200,7 @@ export default function ExpenseHeroCard({
       )}
 
       {/* Date + Time */}
-      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-2">
+      <Text className="text-sm text-muted-foreground mt-2">
         {nature === "forecast" && dueDate
           ? `Due ${formatDisplayDate(dueDate)}`
           : formatDisplayDate(date)}
