@@ -1,32 +1,32 @@
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { Text } from "@/components/ui";
 import { DuplicateGroupCard } from "@/components/expense/DuplicateGroupCard";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
 import { ForecastMatchCard } from "@/components/expense/ForecastMatchCard";
+import { LearnMoreChip, LoadingState, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useDataRefresh } from "@/hooks/use-data-refresh";
+import { useSmsScan } from "@/hooks/use-sms-scan";
 import type { Category } from "@/services/category";
 import { getCategories } from "@/services/category";
 import type { DuplicateGroup } from "@/services/duplicate-detection";
 import { dismissDuplicateGroup, scanAllDuplicatesCached } from "@/services/duplicate-detection";
 import type { Expense, ForecastMatchPair } from "@/services/expense";
 import {
-  approveCcRepaymentCredit,
-  approveExpense,
-  approveExpenses,
-  bulkAssignCategory,
-  dismissOverdueForecasts,
-  getMatchedForecastPairs,
-  getPendingExpensesForReview,
-  getUncategorizedExpenses,
-  rejectExpense,
-  rejectExpenses,
-  resolveMatchAlreadyCaptured,
-  resolveMatchBothDifferent,
-  resolveMatchRealize,
+    approveCcRepaymentCredit,
+    approveExpense,
+    approveExpenses,
+    bulkAssignCategory,
+    dismissOverdueForecasts,
+    getMatchedForecastPairs,
+    getPendingExpensesForReview,
+    getUncategorizedExpenses,
+    rejectExpense,
+    rejectExpenses,
+    resolveMatchAlreadyCaptured,
+    resolveMatchBothDifferent,
+    resolveMatchRealize,
 } from "@/services/expense";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts } from "@/services/financial-account";
@@ -37,7 +37,7 @@ import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/expense-validation";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
@@ -54,13 +54,30 @@ const FILTER_OPTIONS: { key: SectionFilter; label: string; icon: keyof typeof Io
   { key: "uncategorized", label: "Uncategorized", icon: "help-circle-outline" },
 ];
 
+/**
+ * The unified review queue: pending SMS detections, duplicates, uncategorised and overdue dues.
+ *
+ * The single implementation, rendered by the Home swipe-pager and by app/expense/review-queue.tsx.
+ *
+ * This body came from the ROUTE, which had become the superset: it reads a `filter` URL param to
+ * open straight into a section, offers "Scan now" through useSmsScan, and guards its first load.
+ * The pager copy had none of that.
+ *
+ * Top padding is deliberately NOT applied here. The route sits in a headerless stack and supplies
+ * a ScreenContainer that pads for the status bar; the pager sits under Home's own header and must
+ * not pad again.
+ */
 export function ReviewQueuePage() {
   const alert = useAlert();
   const router = useRouter();
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
+  const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
 
-  const [activeFilter, setActiveFilter] = useState<SectionFilter>("all");
+  const [activeFilter, setActiveFilter] = useState<SectionFilter>(
+    (initialFilter as SectionFilter) || "all",
+  );
+  const { scanning, scanNow } = useSmsScan();
 
   // Core review data
   const [items, setItems] = useState<Expense[]>([]);
@@ -82,7 +99,8 @@ export function ReviewQueuePage() {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  // CC repayment credit picker
+  // CC repayment credit — when user taps Approve on a credit linked to a
+  // repayment forecast, show an account picker to select the source.
   const [ccRepaymentPickerFor, setCcRepaymentPickerFor] = useState<string | null>(null);
 
   // Load reference data once
@@ -108,6 +126,7 @@ export function ReviewQueuePage() {
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
   const loadItems = useCallback(async () => {
+    setLoading(true);
     try {
       const [pending, pairs, dupScan, uncat] = await Promise.all([
         getPendingExpensesForReview(DEFAULT_USER_ID),
@@ -115,6 +134,7 @@ export function ReviewQueuePage() {
         scanAllDuplicatesCached(DEFAULT_USER_ID),
         getUncategorizedExpenses(DEFAULT_USER_ID),
       ]);
+      // Exclude matched realized expenses from the regular list
       const matchedRealizedIds = new Set(pairs.map((p) => p.realized.id));
       setItems(pending.filter((i) => !matchedRealizedIds.has(i.id)));
       setMatchedPairs(pairs);
@@ -127,23 +147,31 @@ export function ReviewQueuePage() {
     }
   }, []);
 
-  useDataRefresh(useCallback(() => {
-    loadItems();
-    setSelectedUncat(new Set());
-    setShowCategoryPicker(false);
-  }, [loadItems]));
+  useFocusEffect(
+    useCallback(() => {
+      loadItems();
+      setSelectedUncat(new Set());
+      setShowCategoryPicker(false);
+    }, [loadItems]),
+  );
 
   // Derived lists
   const today = new Date().toISOString().split("T")[0];
   const overdueForecasts = items.filter(
     (i) => i.nature === "forecast" && i.due_date != null && i.due_date < today,
   );
+  // Matches Home's Upcoming Dues: forecasts with a due_date today or later.
+  // Forecasts with no due_date are treated as "auto-detected" items rather
+  // than upcoming, so counts stay consistent across screens.
   const activeForecasts = items.filter(
     (i) => i.nature === "forecast" && i.due_date != null && i.due_date >= today,
   );
+  // "realized" section now includes credits (nature='credit') — both are
+  // auto-detected transactions awaiting review. The ReviewQueueItem renders
+  // credits with a green amount + "Credit received" badge.
   const realized = items.filter((i) => i.nature === "realized" || i.nature === "credit");
 
-  // Counts per section
+  // Counts per section (for filter chips)
   const counts: Record<SectionFilter, number> = {
     all: realized.length + matchedPairs.length + overdueForecasts.length + activeForecasts.length + duplicateGroups.length + uncategorizedItems.length,
     auto: realized.length,
@@ -157,6 +185,8 @@ export function ReviewQueuePage() {
   // ── Handlers ──
 
   const handleApprove = useCallback(async (id: string) => {
+    // Intercept CC-repayment credits: route through source-account picker so
+    // the Pay flow (savings → CC transfer) runs instead of a plain approval.
     const item = items.find((i) => i.id === id);
     if (item && item.nature === "credit" && item.matched_forecast_id) {
       setCcRepaymentPickerFor(id);
@@ -214,6 +244,7 @@ export function ReviewQueuePage() {
     router.push(`/expense/${id}`);
   }, [router]);
 
+  // Matched pair handlers
   const handleMatchRealize = useCallback(async (forecastId: string, realizedId: string) => {
     try {
       const pair = matchedPairs.find(
@@ -327,6 +358,7 @@ export function ReviewQueuePage() {
     );
   }, [overdueForecasts, loadItems, today]);
 
+  // Duplicate handlers
   const handleRejectDuplicate = useCallback(async (expenseId: string) => {
     alert(
       "Reject Duplicate",
@@ -355,6 +387,7 @@ export function ReviewQueuePage() {
     );
     const toReject = sorted.slice(1);
     if (toReject.length === 0) return;
+
     alert(
       "Keep Latest, Reject Others",
       `Keep "${sorted[0].merchant_name ?? "Unknown"}" (most recent) and reject ${toReject.length} duplicate${toReject.length > 1 ? "s" : ""}?`,
@@ -401,7 +434,7 @@ export function ReviewQueuePage() {
     if (duplicateGroups.length === 0) return;
     alert(
       "Keep Both - All Groups",
-      `Mark all ${duplicateGroups.length} duplicate group${duplicateGroups.length !== 1 ? "s" : ""} as not duplicates?`,
+      `Mark all ${duplicateGroups.length} duplicate group${duplicateGroups.length !== 1 ? "s" : ""} as not duplicates? They'll stay as-is and won't be flagged again.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -425,6 +458,7 @@ export function ReviewQueuePage() {
       );
       return sum + sorted.slice(1).length;
     }, 0);
+
     alert(
       "Resolve All Duplicates",
       `Keep the oldest in each group and reject ${totalToReject} duplicate${totalToReject !== 1 ? "s" : ""} across ${duplicateGroups.length} group${duplicateGroups.length !== 1 ? "s" : ""}?`,
@@ -454,6 +488,7 @@ export function ReviewQueuePage() {
     );
   }, [duplicateGroups, loadItems]);
 
+  // Uncategorized handlers
   const toggleUncatSelect = useCallback((id: string) => {
     setSelectedUncat((prev) => {
       const next = new Set(prev);
@@ -489,45 +524,6 @@ export function ReviewQueuePage() {
     }
   }, [selectedUncat, categories, loadItems]);
 
-  // ── Render expense actions ──
-
-  const renderExpenseActions = useCallback(
-    (expense: Expense) => {
-      const isForecast = expense.nature === "forecast";
-      const isOverdue = isForecast && expense.due_date != null && expense.due_date < today;
-
-      return (
-        <View className="flex-row items-center ml-2">
-          {isForecast && (
-            <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: isOverdue ? theme.alpha("danger", 0.08) : theme.alpha("warning", 0.08) }}>
-              <Text
-                className="text-label font-semibold"
-                style={{ color: isOverdue ? theme.danger : theme.warning }}
-              >
-                {isOverdue ? "OVERDUE" : "FORECAST"}
-              </Text>
-            </View>
-          )}
-          <Pressable
-            onPress={() => handleApprove(expense.id)}
-            className="w-9 h-9 rounded-full items-center justify-center mr-2"
-            style={{ backgroundColor: theme.alpha("success", 0.08) }}
-          >
-            <Ionicons name="checkmark" size={18} color={theme.success} />
-          </Pressable>
-          <Pressable
-            onPress={() => handleReject(expense.id)}
-            className="w-9 h-9 rounded-full items-center justify-center"
-            style={{ backgroundColor: theme.alpha("danger", 0.08) }}
-          >
-            <Ionicons name="close" size={18} color={theme.danger} />
-          </Pressable>
-        </View>
-      );
-    },
-    [handleApprove, handleReject, colorScheme, today],
-  );
-
   // ── Build list data ──
 
   type ListItem =
@@ -544,6 +540,8 @@ export function ReviewQueuePage() {
 
   const listData: ListItem[] = [];
   const isAll = activeFilter === "all";
+
+  // Helper to check if section is visible
   const showSection = (key: SectionFilter) => isAll || activeFilter === key;
 
   if (showSection("matched") && matchedPairs.length > 0) {
@@ -610,11 +608,108 @@ export function ReviewQueuePage() {
     }
   }
 
+  const renderExpenseActions = useCallback(
+    (expense: Expense) => {
+      const isForecast = expense.nature === "forecast";
+      const isOverdue = isForecast && expense.due_date != null && expense.due_date < today;
+
+      return (
+        <View className="flex-row items-center ml-2">
+          {isForecast && (
+            <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: isOverdue ? theme.alpha("danger", 0.08) : theme.alpha("warning", 0.08) }}>
+              <Text
+                className="text-label font-semibold"
+                style={{ color: isOverdue ? theme.danger : theme.warning }}
+              >
+                {isOverdue ? "OVERDUE" : "FORECAST"}
+              </Text>
+            </View>
+          )}
+          <Pressable
+            onPress={() => handleApprove(expense.id)}
+            className="w-9 h-9 rounded-full items-center justify-center mr-2"
+            style={{ backgroundColor: theme.alpha("success", 0.08) }}
+          >
+            <Ionicons name="checkmark" size={18} color={theme.success} />
+          </Pressable>
+          <Pressable
+            onPress={() => handleReject(expense.id)}
+            className="w-9 h-9 rounded-full items-center justify-center"
+            style={{ backgroundColor: theme.alpha("danger", 0.08) }}
+          >
+            <Ionicons name="close" size={18} color={theme.danger} />
+          </Pressable>
+        </View>
+      );
+    },
+    [handleApprove, handleReject, colorScheme, today],
+  );
+
   const totalItems = counts.all;
   const hasBottomBar = selectedUncat.size > 0;
 
+  if (loading && items.length === 0) {
+    return (
+      <View style={{ flex: 1 }}>
+        <LoadingState message="Loading review queue…" icon="clipboard-outline" />
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1 }}>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+        <View className="flex-row items-center -ml-2">
+          <Pressable onPress={() => router.back()} className="p-2">
+            <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
+          </Pressable>
+          <Pressable onPress={() => router.replace("/(tabs)" as never)} className="p-2" hitSlop={8} accessibilityLabel="Go to Home">
+            <Ionicons name="home-outline" size={20} color={colors.tint} />
+          </Pressable>
+        </View>
+        <Text className="text-lg font-semibold text-foreground">
+          Review Queue
+        </Text>
+        <Pressable
+          onPress={async () => {
+            const outcome = await scanNow();
+            await loadItems();
+            if (outcome.reason === "sms_disabled") {
+              alert("SMS Disabled", "Turn on SMS detection in Settings to scan for new transactions.");
+            } else if (outcome.reason === "no_permission") {
+              alert("Permission Needed", "Grant SMS permission in device settings to scan.");
+            } else if (outcome.ran && outcome.created === 0 && outcome.credits === 0 && outcome.totalScanned === 0) {
+              alert("Scan Complete", "No new bank SMS found.");
+            }
+          }}
+          disabled={scanning}
+          className="p-2 -mr-2"
+          accessibilityLabel="Scan SMS now"
+        >
+          <Ionicons
+            name={scanning ? "sync" : "refresh-outline"}
+            size={22}
+            color={scanning ? colors.textSecondary : colors.blue}
+          />
+        </Pressable>
+      </View>
+
+      {/* Context help chip */}
+      <View className="px-4 py-3">
+        <LearnMoreChip contextKey="review-queue" label="How reviews work" />
+      </View>
+
+      {/* Scan loader banner */}
+      {scanning && (
+        <View className="flex-row items-center px-4 py-2" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+          <Ionicons name="sync" size={14} color={colors.blue} />
+          <Text className="text-xs ml-2" style={{ color: colors.blue }}>
+            Scanning SMS for new transactions...
+          </Text>
+        </View>
+      )}
+
       {/* Summary banner */}
       {totalItems > 0 && (
         <View className="px-4 py-2.5" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
@@ -627,7 +722,7 @@ export function ReviewQueuePage() {
         </View>
       )}
 
-      {/* Filter chips */}
+      {/* Filter chips — horizontal scroll */}
       <View className="border-b border-border">
         <ScrollView
           horizontal
@@ -699,6 +794,7 @@ export function ReviewQueuePage() {
           return `${item.type}-${index}`;
         }}
         renderItem={({ item }) => {
+          // Section header (all view only)
           if (item.type === "header") {
             const isOpen = openSections[item.key] ?? false;
             return (
@@ -724,6 +820,7 @@ export function ReviewQueuePage() {
             );
           }
 
+          // Forecast match card
           if (item.type === "match_pair") {
             return (
               <ForecastMatchCard
@@ -735,6 +832,7 @@ export function ReviewQueuePage() {
             );
           }
 
+          // Dismiss overdue button
           if (item.type === "dismiss_overdue") {
             return (
               <Pressable
@@ -750,6 +848,7 @@ export function ReviewQueuePage() {
             );
           }
 
+          // Approve/Reject auto-detected buttons
           if (item.type === "approve_auto_detected") {
             return (
               <View className="flex-row mx-4 my-2 gap-2">
@@ -777,6 +876,7 @@ export function ReviewQueuePage() {
             );
           }
 
+          // Duplicate bulk actions — Keep All + Resolve All side by side
           if (item.type === "duplicate_bulk_actions") {
             return (
               <View className="flex-row mx-4 my-2 gap-2">
@@ -804,6 +904,7 @@ export function ReviewQueuePage() {
             );
           }
 
+          // Duplicate group card
           if (item.type === "duplicate_group") {
             return (
               <DuplicateGroupCard
@@ -817,6 +918,7 @@ export function ReviewQueuePage() {
             );
           }
 
+          // Uncategorized select-all bar
           if (item.type === "uncat_select_all") {
             return (
               <View className="flex-row items-center justify-between px-4 py-2">
@@ -838,10 +940,12 @@ export function ReviewQueuePage() {
             );
           }
 
+          // Uncategorized expense row (with checkbox)
           if (item.type === "uncat_expense") {
             const exp = item.expense;
             const isSelected = selectedUncat.has(exp.id);
             const pm = exp.payment_mode_id ? paymentModeMap.get(exp.payment_mode_id) : null;
+
             return (
               <Pressable
                 onPress={() => {
@@ -865,9 +969,11 @@ export function ReviewQueuePage() {
                     {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
                   </View>
                 </Pressable>
+
                 <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.faintForeground + "14" }}>
                   <Ionicons name="help-circle-outline" size={20} color={theme.faintForeground} />
                 </View>
+
                 <View className="flex-1 mr-3">
                   <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
                     {exp.description || exp.merchant_name || "No description"}
@@ -878,6 +984,7 @@ export function ReviewQueuePage() {
                     </Text>
                   )}
                 </View>
+
                 <View className="items-end shrink-0">
                   <Text className="text-sm font-bold text-foreground">
                     {formatAmount(exp.amount)}
@@ -890,6 +997,7 @@ export function ReviewQueuePage() {
             );
           }
 
+          // Regular expense item (pending review)
           if (item.type !== "expense") return null;
           const exp = item.expense;
           const category = exp.category_id ? categoryMap.get(exp.category_id) : null;
@@ -933,7 +1041,7 @@ export function ReviewQueuePage() {
         onRefresh={loadItems}
       />
 
-      {/* CC repayment account picker */}
+      {/* Source account picker for CC repayment credits */}
       <AccountPickerSheet
         visible={ccRepaymentPickerFor !== null}
         onSelect={handleCcRepaymentSourceSelected}
@@ -942,7 +1050,7 @@ export function ReviewQueuePage() {
         filterTypes={["savings", "wallet"]}
       />
 
-      {/* Bottom bar for uncategorized */}
+      {/* Bottom action bar for uncategorized — assign category */}
       {selectedUncat.size > 0 && !showCategoryPicker && (
         <View
           className="absolute bottom-0 left-0 right-0 px-4 py-3 border-t border-border"
