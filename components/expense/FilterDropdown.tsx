@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { Text } from "@/components/ui";
-import { View, Pressable, TextInput, ScrollView, Modal } from "react-native";
+import { Sheet, Text } from "@/components/ui";
+import { View, Pressable, TextInput, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -85,13 +85,7 @@ export function FilterDropdown({
         </View>
       </Pressable>
 
-      <Modal visible={open} animationType="slide" transparent>
-        <View className="flex-1 justify-end">
-          <Pressable className="flex-1" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} onPress={() => { setOpen(false); onDismiss?.(); }} />
-          <View
-            className="rounded-t-2xl max-h-[70%]"
-            style={{ backgroundColor: colors.background }}
-          >
+      <Sheet visible={open} onClose={() => { setOpen(false); onDismiss?.(); }} maxHeightPct={70}>
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
               <Text className="text-sm font-semibold text-foreground">
@@ -157,9 +151,7 @@ export function FilterDropdown({
                 <Text className="text-xs text-faint-foreground text-center py-4">No matches</Text>
               )}
             </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      </Sheet>
     </>
   );
 }

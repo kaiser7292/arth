@@ -9,12 +9,12 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
-import { View, Pressable, Modal, ActivityIndicator, Platform } from "react-native";
+import { View, Pressable, ActivityIndicator, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useAlert } from "@/hooks/use-alert";
-import { DateInput, Text } from "@/components/ui";
+import { DateInput, Sheet, Text } from "@/components/ui";
 
 import * as Sharing from "expo-sharing";
 import { generatePersonPDF } from "@/services/hisaab-export-pdf";
@@ -244,25 +244,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
   }, [target, dateRange, handleClose, alert]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
-      <Pressable
-        onPress={handleClose}
-        className="flex-1 bg-black/40 justify-end"
-      >
-        <Pressable
-          onPress={() => {}}
-          className="bg-background rounded-t-2xl"
-        >
-          {/* Handle bar */}
-          <View className="items-center pt-3 pb-2">
-            <View className="w-10 h-1 rounded-full bg-border" />
-          </View>
-
+    <Sheet visible={visible} onClose={handleClose}>
           {step === "range" ? (
             /* ─── Step 1: Date Range ─── */
             <View>
@@ -465,8 +447,6 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
               </Pressable>
             </View>
           )}
-        </Pressable>
-      </Pressable>
-    </Modal>
+    </Sheet>
   );
 }

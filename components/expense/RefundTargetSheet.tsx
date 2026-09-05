@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
-import { Text } from "@/components/ui";
-import { View, Pressable, Modal } from "react-native";
+import { Sheet, Text } from "@/components/ui";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { getAccountById } from "@/services/financial-account";
@@ -36,11 +30,9 @@ export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }:
   const theme = useTheme();
   const [sourceAccount, setSourceAccount] = useState<FinancialAccount | null>(null);
   const [showPicker, setShowPicker] = useState(false);
-  const slide = useSharedValue(300);
 
   useEffect(() => {
     if (!visible) return;
-    slide.value = withTiming(0, { duration: 250 });
     if (sourceAccountId) {
       getAccountById(sourceAccountId)
         .then((a) => setSourceAccount(a && a.is_active ? a : null))
@@ -48,27 +40,15 @@ export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }:
     } else {
       setSourceAccount(null);
     }
-  }, [visible, sourceAccountId, slide]);
+  }, [visible, sourceAccountId]);
 
-  const style = useAnimatedStyle(() => ({ transform: [{ translateY: slide.value }] }));
-
-  const close = () => {
-    slide.value = withTiming(300, { duration: 200 }, (done) => {
-      if (done) runOnJS(onClose)();
-    });
-  };
+  const close = onClose;
 
   const tint = theme.primary;
 
   return (
     <>
-      <Modal visible={visible && !showPicker} transparent animationType="fade" onRequestClose={close}>
-        <Pressable onPress={close} className="flex-1 bg-black/50 justify-end">
-          <Animated.View
-            style={[{ backgroundColor: colors.background }, style]}
-            className="rounded-t-2xl"
-          >
-            <Pressable onPress={(e) => e.stopPropagation()}>
+      <Sheet visible={visible && !showPicker} onClose={close}>
               <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
                 <Text className="text-base font-semibold text-foreground">
                   Where did the refund land?
@@ -132,10 +112,7 @@ export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }:
                   </Text>
                 )}
               </View>
-            </Pressable>
-          </Animated.View>
-        </Pressable>
-      </Modal>
+      </Sheet>
 
       <AccountPickerSheet
         visible={showPicker}

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { SelectSheet } from "@/components/ui";
+import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { View, FlatList, Pressable, RefreshControl, Modal } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,14 +28,6 @@ import {
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { settingsStorage } from "@/services/storage";
 
-type ExpenseSortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "name_asc";
-const SORT_OPTIONS: { value: ExpenseSortBy; label: string; icon: string }[] = [
-  { value: "date_desc", label: "Date (newest first)", icon: "calendar-outline" },
-  { value: "date_asc", label: "Date (oldest first)", icon: "calendar-outline" },
-  { value: "amount_desc", label: "Amount (highest first)", icon: "trending-down-outline" },
-  { value: "amount_asc", label: "Amount (lowest first)", icon: "trending-up-outline" },
-  { value: "name_asc", label: "Alphabetical (A–Z)", icon: "text-outline" },
-];
 const CATEGORY_SORT_KEY = "budget.category.sortBy";
 
 export default function CategoryDetailScreen() {
@@ -248,40 +242,17 @@ export default function CategoryDetailScreen() {
     </ScreenContainer>
 
       {/* Sort sheet */}
-      <Modal transparent animationType="slide" visible={showSortSheet} onRequestClose={() => setShowSortSheet(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} onPress={() => setShowSortSheet(false)} />
-        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 28 }}>
-          <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}>
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12, paddingTop: 4 }}>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Sort by</Text>
-            <Pressable onPress={() => setShowSortSheet(false)} hitSlop={8}>
-              <Ionicons name="close" size={20} color={colors.textSecondary} />
-            </Pressable>
-          </View>
-          {SORT_OPTIONS.map((opt) => {
-            const active = sortBy === opt.value;
-            return (
-              <Pressable
-                key={opt.value}
-                onPress={() => {
-                  setSortBy(opt.value);
-                  settingsStorage.set(CATEGORY_SORT_KEY, opt.value);
-                  setShowSortSheet(false);
-                }}
-                style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14 }}
-              >
-                <Ionicons name={opt.icon as never} size={18} color={active ? colors.blue : colors.textSecondary} />
-                <Text style={{ flex: 1, fontSize: 14, marginLeft: 12, color: active ? colors.blue : colors.text, fontWeight: active ? "600" : "400" }}>
-                  {opt.label}
-                </Text>
-                {active && <Ionicons name="checkmark" size={18} color={colors.blue} />}
-              </Pressable>
-            );
-          })}
-        </View>
-      </Modal>
+      <SelectSheet
+        visible={showSortSheet}
+        title="Sort by"
+        options={EXPENSE_SORT_OPTIONS}
+        value={sortBy}
+        onChange={(v) => {
+          setSortBy(v);
+          settingsStorage.set(CATEGORY_SORT_KEY, v);
+        }}
+        onClose={() => setShowSortSheet(false)}
+      />
     </>
   );
 }

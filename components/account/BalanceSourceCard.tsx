@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Pressable, Modal, ScrollView } from "react-native";
+import { View, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, Card, Text } from "@/components/ui";
+import { Button, Card, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
@@ -248,20 +248,8 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
       )}
 
       {/* Info bottom sheet */}
-      <Modal
-        visible={infoSheetOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setInfoSheetOpen(false)}
-      >
-        <Pressable
-          className="flex-1 bg-black/50 justify-end"
-          onPress={() => setInfoSheetOpen(false)}
-        >
-          <Pressable
-            className="rounded-t-2xl bg-card p-5"
-            onPress={() => { /* swallow taps so inner taps don't dismiss */ }}
-          >
+      <Sheet visible={infoSheetOpen} onClose={() => setInfoSheetOpen(false)}>
+        <View className="px-5 pb-2">
             <View className="flex-row items-center justify-between mb-3">
               <Text className="text-base font-bold text-foreground">
                 About This Balance
@@ -306,9 +294,8 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
               </Text>
             </ScrollView>
             <Button title="Got it" onPress={() => setInfoSheetOpen(false)} className="mt-4" />
-          </Pressable>
-        </Pressable>
-      </Modal>
+        </View>
+      </Sheet>
     </Card>
   );
 }
