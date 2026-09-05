@@ -164,7 +164,7 @@ export default function LinkExtraScreen() {
                 {item.arth_description || "(no description)"}
               </Text>
               <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F59E0B22" }}>
-                <Text className="text-[10px] font-semibold uppercase" style={{ color: "#F59E0B" }}>
+                <Text className="text-label font-semibold uppercase" style={{ color: "#F59E0B" }}>
                   {item.matched_transfer_id ? "Transfer" : "Expense"}
                 </Text>
               </View>

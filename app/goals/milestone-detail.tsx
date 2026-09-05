@@ -552,17 +552,17 @@ export default function MilestoneDetailScreen() {
                           </Text>
                           {row.isCurrent && (
                             <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: acAlpha(accent, 500, 0.1) }}>
-                              <Text className="text-[10px] font-semibold" style={{ color: accent[500] }}>NOW</Text>
+                              <Text className="text-label font-semibold" style={{ color: accent[500] }}>NOW</Text>
                             </View>
                           )}
                           {isOverachieved && (
                             <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
-                              <Text className="text-[10px] font-semibold" style={{ color: StatusColors[colorScheme].success }}>Overachieved</Text>
+                              <Text className="text-label font-semibold" style={{ color: StatusColors[colorScheme].success }}>Overachieved</Text>
                             </View>
                           )}
                           {isFullyCovered && (
                             <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
-                              <Text className="text-[10px] font-semibold" style={{ color: StatusColors[colorScheme].success }}>Covered</Text>
+                              <Text className="text-label font-semibold" style={{ color: StatusColors[colorScheme].success }}>Covered</Text>
                             </View>
                           )}
                         </View>
@@ -597,19 +597,19 @@ export default function MilestoneDetailScreen() {
                       {/* Bar footer */}
                       <View className="flex-row items-center justify-between mt-1">
                         {isOverachieved ? (
-                          <Text className="text-[10px]" style={{ color: StatusColors[colorScheme].success }}>
+                          <Text className="text-label" style={{ color: StatusColors[colorScheme].success }}>
                             +{formatAmount(surplus)} ahead of original plan
                           </Text>
                         ) : isFullyCovered ? (
-                          <Text className="text-[10px]" style={{ color: StatusColors[colorScheme].success }}>
+                          <Text className="text-label" style={{ color: StatusColors[colorScheme].success }}>
                             Fully covered by surplus from earlier FYs
                           </Text>
                         ) : (
-                          <Text className="text-[10px] text-faint-foreground">
+                          <Text className="text-label text-faint-foreground">
                             {row.planned > row.actual ? `${formatAmount(row.planned - row.actual)} left` : ""}
                           </Text>
                         )}
-                        <Text className="text-[10px] text-faint-foreground">
+                        <Text className="text-label text-faint-foreground">
                           {(pctFY * 100).toFixed(0)}%
                         </Text>
                       </View>
@@ -625,7 +625,7 @@ export default function MilestoneDetailScreen() {
                           }}
                         >
                           <Ionicons name="information-circle-outline" size={13} color={accent[500]} style={{ marginTop: 1, marginRight: 6 }} />
-                          <Text className="text-[11px] flex-1" style={{ color: accent[500], lineHeight: 16 }}>
+                          <Text className="text-label flex-1" style={{ color: accent[500], lineHeight: 16 }}>
                             Target adjusted to {formatAmount(row.planned)} — originally {formatAmount(row.originalPlanned)}, reduced by the {formatAmount(row.surplusCarriedIn)} surplus saved ahead of plan in earlier FYs.
                           </Text>
                         </View>
@@ -638,7 +638,7 @@ export default function MilestoneDetailScreen() {
                 {fyBreakdown.some((r) => !r.isPast && r.surplusCarriedIn > 0) && (
                   <View className="mt-2 pt-2 border-t border-border flex-row items-start">
                     <Ionicons name="lock-closed-outline" size={11} color={colors.textSecondary} style={{ marginTop: 2, marginRight: 5 }} />
-                    <Text className="text-[10px] text-faint-foreground flex-1" style={{ lineHeight: 15 }}>
+                    <Text className="text-label text-faint-foreground flex-1" style={{ lineHeight: 15 }}>
                       Past FY targets are fixed at the original plan. The current FY target reflects what's actually remaining.
                     </Text>
                   </View>
@@ -735,7 +735,7 @@ export default function MilestoneDetailScreen() {
                         </Text>
                         {fyGroup.isCurrent && (
                           <View className="ml-1.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: acAlpha(accent, 500, 0.1) }}>
-                            <Text className="text-[9px] font-semibold" style={{ color: accent[500] }}>NOW</Text>
+                            <Text className="text-label font-semibold" style={{ color: accent[500] }}>NOW</Text>
                           </View>
                         )}
                       </View>

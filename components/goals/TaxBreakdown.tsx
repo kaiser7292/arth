@@ -159,7 +159,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
             </Text>
             {calculation.selectedRegime === "new" && (
               <View className="mt-1 px-2 py-0.5 rounded-full bg-[#22C55E14]">
-                <Text className="text-[10px] font-medium text-success">
+                <Text className="text-label font-medium text-success">
                   BETTER
                 </Text>
               </View>
@@ -178,7 +178,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
             </Text>
             {calculation.selectedRegime === "old" && (
               <View className="mt-1 px-2 py-0.5 rounded-full bg-[#22C55E14]">
-                <Text className="text-[10px] font-medium text-success">
+                <Text className="text-label font-medium text-success">
                   BETTER
                 </Text>
               </View>

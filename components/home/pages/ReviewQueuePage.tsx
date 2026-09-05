@@ -498,7 +498,7 @@ export function ReviewQueuePage() {
           {isForecast && (
             <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: isOverdue ? StatusColors[colorScheme].dangerBg : StatusColors[colorScheme].warningBg }}>
               <Text
-                className="text-[10px] font-semibold"
+                className="text-label font-semibold"
                 style={{ color: isOverdue ? StatusColors[colorScheme].danger : StatusColors[colorScheme].warning }}
               >
                 {isOverdue ? "OVERDUE" : "FORECAST"}
@@ -668,7 +668,7 @@ export function ReviewQueuePage() {
                     }}
                   >
                     <Text
-                      className="text-[10px] font-bold"
+                      className="text-label font-bold"
                       style={{ color: isActive ? ac(accent, colorScheme, 500, 200) : StatusColors[colorScheme].muted }}
                     >
                       {count}
@@ -706,7 +706,7 @@ export function ReviewQueuePage() {
                     {item.title}
                   </Text>
                   <View className="ml-1.5 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: StatusColors[colorScheme].muted + "14" }}>
-                    <Text className="text-[10px] font-bold" style={{ color: StatusColors[colorScheme].muted }}>{item.count}</Text>
+                    <Text className="text-label font-bold" style={{ color: StatusColors[colorScheme].muted }}>{item.count}</Text>
                   </View>
                 </View>
                 <Ionicons

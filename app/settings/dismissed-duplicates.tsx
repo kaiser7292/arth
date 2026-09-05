@@ -161,7 +161,7 @@ export default function DismissedDuplicatesScreen() {
             the only ways to "remove" a dismissed group are to restore it (flag again) or to delete
             one of its expenses so the group key changes. */}
         <View className="px-4 mt-2">
-          <Text className="text-[11px] text-faint-foreground">
+          <Text className="text-label text-faint-foreground">
             Tip: restoring a group makes it appear in the duplicate review again. To permanently
             dismiss, use "Keep Both" during review - dismissed groups re-surface only if you restore
             them or if a new duplicate joins the cluster.

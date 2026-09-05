@@ -343,7 +343,7 @@ export default function ImportExcelScreen() {
                     );
                   })}
                 </View>
-                <Text className="text-[10px] text-faint-foreground mt-1">
+                <Text className="text-label text-faint-foreground mt-1">
                   {importMode === "hisaab"
                     ? "* Required. Types: debit, credit, settlement, initial_balance. Date optional for initial_balance."
                     : "* Required fields. Supports dates like 2025-05-15 or 15/05/2025."}

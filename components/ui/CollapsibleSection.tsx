@@ -73,7 +73,7 @@ export function CollapsibleSection({
           </Text>
           {badge !== undefined && badge > 0 && (
             <View className="ml-2 px-1.5 py-0.5 rounded-full bg-muted-light/10">
-              <Text className="text-[10px] font-bold text-secondary-light">
+              <Text className="text-label font-bold text-secondary-light">
                 {badge}
               </Text>
             </View>

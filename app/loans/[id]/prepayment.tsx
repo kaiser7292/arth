@@ -359,7 +359,7 @@ export default function PrepaymentForm() {
                       placeholder={String(Math.round(impact.gst))}
                     />
                     <Text
-                      className="text-[11px] mt-1"
+                      className="text-label mt-1"
                       style={{ color: colors.textSecondary }}
                     >
                       Your values override the auto-computed ones. Leave blank to use the auto figures.

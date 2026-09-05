@@ -166,7 +166,7 @@ export function SalaryInputForm({
                   style={{ backgroundColor: acAlpha(accent, 500, 0.12) }}
                 >
                   <Text
-                    className="text-[10px] font-semibold"
+                    className="text-label font-semibold"
                     style={{ color: ac(accent, colorScheme, 500, 200) }}
                   >
                     {overrideCount} customized
@@ -188,7 +188,7 @@ export function SalaryInputForm({
 
           {showMonthWise && (
             <View className="mt-1">
-              <Text className="text-[10px] text-faint-foreground mb-2">
+              <Text className="text-label text-faint-foreground mb-2">
                 Override specific months. Empty = uses default above.
               </Text>
               {monthLabels.map((label, index) => {

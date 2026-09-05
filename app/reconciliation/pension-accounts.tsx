@@ -186,10 +186,10 @@ export default function PensionAccountsScreen() {
               Proxy for how much course-correction was needed — higher = less trust in auto-detected balances. */}
           {adjustmentStats.count > 0 && (
             <View className="mt-2 pt-2 border-t border-border flex-row justify-between">
-              <Text className="text-[11px] text-faint-foreground">
+              <Text className="text-label text-faint-foreground">
                 Manual ledger adjustments
               </Text>
-              <Text className="text-[11px]" style={{ color: sc.warning }}>
+              <Text className="text-label" style={{ color: sc.warning }}>
                 {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
               </Text>
             </View>
@@ -215,7 +215,7 @@ export default function PensionAccountsScreen() {
                     {account.bank_name} ••••{account.account_identifier}
                   </Text>
                   {account.account_label && (
-                    <Text className="text-[10px] text-muted-foreground">
+                    <Text className="text-label text-muted-foreground">
                       {account.account_label}
                     </Text>
                   )}
@@ -230,7 +230,7 @@ export default function PensionAccountsScreen() {
                   style={{ backgroundColor: sc.warning + "14" }}
                 >
                   <Ionicons name="alert-circle" size={14} color={sc.warning} />
-                  <Text className="text-[10px] font-medium ml-2" style={{ color: sc.warning }}>
+                  <Text className="text-label font-medium ml-2" style={{ color: sc.warning }}>
                     No opening balance set - showing from ₹0
                   </Text>
                 </View>
@@ -293,7 +293,7 @@ export default function PensionAccountsScreen() {
 
               {/* Last updated */}
               {account.last_balance_date && (
-                <Text className="text-[10px] text-faint-foreground mt-1.5">
+                <Text className="text-label text-faint-foreground mt-1.5">
                   SMS balance updated {new Date(account.last_balance_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                 </Text>
               )}
@@ -340,7 +340,7 @@ export default function PensionAccountsScreen() {
                         {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
                       </Text>
                       <View className="bg-danger/10 px-1.5 py-0.5 rounded">
-                        <Text className="text-[10px] font-semibold text-danger">Closed</Text>
+                        <Text className="text-label font-semibold text-danger">Closed</Text>
                       </View>
                     </View>
                     <Text className="text-xs text-faint-foreground">{acct.bank_name}</Text>

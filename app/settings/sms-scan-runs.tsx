@@ -440,7 +440,7 @@ export default function SmsScanRunsScreen() {
           {/* Parsed fields table */}
           {hasParsedData && (
             <View className="border-t border-border pt-2">
-              <Text className="text-[10px] font-semibold text-faint-foreground uppercase tracking-wider mb-1.5">
+              <Text className="text-label font-semibold text-faint-foreground uppercase tracking-wider mb-1.5">
                 Parsed Values
               </Text>
               {detail.parsed_amount != null && (
@@ -468,7 +468,7 @@ export default function SmsScanRunsScreen() {
             if (ruleIds.length === 0) return null;
             return (
               <View className="border-t border-border pt-2 mt-1">
-                <Text className="text-[10px] font-semibold text-faint-foreground uppercase tracking-wider mb-1.5">
+                <Text className="text-label font-semibold text-faint-foreground uppercase tracking-wider mb-1.5">
                   Rules Applied
                 </Text>
                 {ruleIds.map((id) => (
@@ -545,7 +545,7 @@ export default function SmsScanRunsScreen() {
         className="rounded-full px-2 py-0.5"
         style={{ backgroundColor: pillColor + "18" }}
       >
-        <Text className="text-[10px] font-medium" style={{ color: pillColor }}>
+        <Text className="text-label font-medium" style={{ color: pillColor }}>
           {label}
         </Text>
       </View>

@@ -113,7 +113,7 @@ export default function ReconciliationHubScreen() {
               {statusLabel(item.status)}
             </Text>
             {item.import_format && (
-              <Text className="text-[10px] text-faint-foreground uppercase mt-0.5">
+              <Text className="text-label text-faint-foreground uppercase mt-0.5">
                 {item.import_format}
               </Text>
             )}
@@ -127,7 +127,7 @@ export default function ReconciliationHubScreen() {
         {matchRatio !== null && (
           <View className="mt-2 ml-12 mr-10">
             <ProgressBar value={matchRatio} height={3} animated={false} />
-            <Text className="text-[10px] text-faint-foreground mt-1">
+            <Text className="text-label text-faint-foreground mt-1">
               {matchLabel}
             </Text>
           </View>

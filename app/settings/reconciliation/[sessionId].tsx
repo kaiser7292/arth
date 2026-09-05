@@ -350,13 +350,13 @@ export default function ReconciliationSessionScreen() {
                 className="ml-2 px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: accent[500] + "22" }}
               >
-                <Text className="text-[10px] font-semibold uppercase" style={{ color: accent[600] }}>
+                <Text className="text-label font-semibold uppercase" style={{ color: accent[600] }}>
                   {item.match_confidence ?? "manual"}
                 </Text>
               </View>
               {item.matched_transfer_id && (
                 <View className="ml-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#8B5CF622" }}>
-                  <Text className="text-[10px] font-semibold uppercase" style={{ color: "#8B5CF6" }}>Transfer</Text>
+                  <Text className="text-label font-semibold uppercase" style={{ color: "#8B5CF6" }}>Transfer</Text>
                 </View>
               )}
             </View>
@@ -382,7 +382,7 @@ export default function ReconciliationSessionScreen() {
               )}
             </View>
             {arthMeta.length > 0 && (
-              <Text className="text-[11px] text-muted-foreground mt-0.5" numberOfLines={1}>
+              <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
                 {arthMeta.join(" · ")}
               </Text>
             )}
@@ -721,7 +721,7 @@ export default function ReconciliationSessionScreen() {
                         )}
                       </View>
                       <View className="ml-3 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F59E0B22" }}>
-                        <Text className="text-[10px] font-semibold uppercase" style={{ color: "#F59E0B" }}>
+                        <Text className="text-label font-semibold uppercase" style={{ color: "#F59E0B" }}>
                           {item.matched_transfer_id ? "Transfer" : "Expense"}
                         </Text>
                       </View>

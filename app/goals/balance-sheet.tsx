@@ -245,7 +245,7 @@ export default function BalanceSheetScreen() {
                 style={{ backgroundColor: accent[500] + "1A" }}
               >
                 <ActivityIndicator size="small" color={accent[500]} />
-                <Text className="text-[10px] font-semibold ml-1.5" style={{ color: accent[500] }}>
+                <Text className="text-label font-semibold ml-1.5" style={{ color: accent[500] }}>
                   Updating…
                 </Text>
               </View>
@@ -298,7 +298,7 @@ export default function BalanceSheetScreen() {
                     className="flex-row items-center justify-end"
                   >
                     <Text
-                      className="text-[10px] font-semibold uppercase tracking-wider"
+                      className="text-label font-semibold uppercase tracking-wider"
                       style={{ color: col.isLive ? ac(accent, colorScheme, 600, 200) : colors.textSecondary }}
                       numberOfLines={1}
                     >
@@ -518,7 +518,7 @@ export default function BalanceSheetScreen() {
           <View className="flex-row items-start">
             <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} style={{ marginTop: 2 }} />
             <View className="flex-1 ml-2">
-              <Text className="text-[11px] text-muted-foreground leading-4">
+              <Text className="text-label text-muted-foreground leading-4">
                 A "-" means no data for that row in that period. For demat, it means no portfolio or fund snapshot was recorded within that fiscal year. Italic values fall back to the last SMS balance when the ledger opening isn't seeded - seed openings to make those authoritative.
               </Text>
             </View>

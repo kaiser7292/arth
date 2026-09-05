@@ -124,7 +124,7 @@ export function FullScreenFilter({
                   style={isActive ? { borderLeftColor: accent[500], backgroundColor: colors.background } : { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#F5F5F5" }}
                 >
                   <Text
-                    className={`text-[10px] ${isActive ? "font-semibold" : "text-muted-foreground"}`}
+                    className={`text-label ${isActive ? "font-semibold" : "text-muted-foreground"}`}
                     style={isActive ? { color: accent[500] } : undefined}
                     numberOfLines={2}
                   >
@@ -135,7 +135,7 @@ export function FullScreenFilter({
                       className="absolute top-1.5 right-1 w-4 h-4 rounded-full items-center justify-center"
                       style={{ backgroundColor: accent[500] }}
                     >
-                      <Text className="text-[9px] font-bold text-white">{count}</Text>
+                      <Text className="text-label font-bold text-white">{count}</Text>
                     </View>
                   )}
                 </Pressable>

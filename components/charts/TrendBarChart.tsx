@@ -57,7 +57,7 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
               {/* Amount label above bar */}
               {item.total > 0 && (
                 <Text
-                  className={`text-[9px] mb-1 ${
+                  className={`text-label mb-1 ${
                     isSelected
                       ? "font-semibold text-foreground"
                       : "text-muted-foreground"
@@ -78,7 +78,7 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
               />
               {/* Month label */}
               <Text
-                className={`text-[10px] mt-1 ${
+                className={`text-label mt-1 ${
                   isSelected
                     ? "font-semibold text-foreground"
                     : "text-faint-foreground"
@@ -98,7 +98,7 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
             className="h-[1px] flex-1"
             style={{ backgroundColor: "#9CA3AF" }}
           />
-          <Text className="text-[9px] text-faint-foreground ml-2">
+          <Text className="text-label text-faint-foreground ml-2">
             Budget: {formatAmount(budgetAmount)}
           </Text>
         </View>

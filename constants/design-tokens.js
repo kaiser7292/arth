@@ -78,12 +78,33 @@ const SEMANTIC = {
  * including 6 at 8px.
  */
 const TYPE = {
-  hero: ["36px", { lineHeight: "40px", letterSpacing: "-0.03em", fontWeight: "700" }],
-  title: ["22px", { lineHeight: "28px", letterSpacing: "-0.02em", fontWeight: "650" }],
-  heading: ["17px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "600" }],
+  hero: ["36px", { lineHeight: "40px", letterSpacing: "-0.03em" }],
+  display: ["28px", { lineHeight: "34px", letterSpacing: "-0.025em" }],
+  title: ["22px", { lineHeight: "28px", letterSpacing: "-0.02em" }],
+  heading: ["17px", { lineHeight: "24px", letterSpacing: "-0.01em" }],
   body: ["15px", { lineHeight: "22px" }],
   meta: ["13px", { lineHeight: "18px" }],
-  label: ["11.5px", { lineHeight: "16px", letterSpacing: "0.13em" }],
+  label: ["11.5px", { lineHeight: "16px" }],
+};
+
+/**
+ * Overrides for Tailwind's own scale.
+ *
+ * `text-xs` and `text-sm` account for 2,723 of the app's text sites — 89% of all text is 14px or
+ * smaller, which is why Arth reads as dense and flat. Redefining these two steps moves every one of
+ * those sites at once, with no call-site churn and a one-line revert if the device shows clipping
+ * against the fixed heights used throughout (h-9, h-14, maxHeight: 320).
+ *
+ * The alternative — rewriting 2,723 class names — would produce an enormous diff, carry the same
+ * clipping risk, and still not create hierarchy. Hierarchy comes from making the few important
+ * things large, which is per-screen work, not a find-and-replace.
+ *
+ * After the override, `text-xs` and `text-meta` are the same size, as are `text-sm` and `text-body`.
+ * New code should prefer the semantic names.
+ */
+const SCALE_OVERRIDES = {
+  xs: ["13px", { lineHeight: "18px" }], // was 12px x 1591 uses
+  sm: ["15px", { lineHeight: "22px" }], // was 14px x 1132 uses
 };
 
 /** Card surfaces get `card`; controls and chips get `control`. Resolves the lg/xl/2xl free-for-all. */
@@ -115,4 +136,4 @@ const DATA = {
   series: ["15 118 110", "180 83 9", "139 92 246", "37 99 235", "219 39 119", "5 150 105"],
 };
 
-module.exports = { teal, SEMANTIC, TYPE, RADIUS, MOTION, DATA };
+module.exports = { teal, SEMANTIC, TYPE, SCALE_OVERRIDES, RADIUS, MOTION, DATA };

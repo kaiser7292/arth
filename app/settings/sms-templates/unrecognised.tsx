@@ -207,7 +207,7 @@ export default function UnrecognisedSmsScreen() {
                       className="ml-2 px-2 py-0.5 rounded-full"
                       style={{ backgroundColor: accentColor + "18" }}
                     >
-                      <Text className="text-[10px] font-bold" style={{ color: accentColor }}>
+                      <Text className="text-label font-bold" style={{ color: accentColor }}>
                         ×{item.count}
                       </Text>
                     </View>

@@ -58,7 +58,7 @@ export function DuplicateGroupCard({
             Possible Duplicate
           </Text>
           <View className="ml-auto px-2 py-0.5 rounded-full" style={{ backgroundColor: warn + "14" }}>
-            <Text className="text-[11px] font-semibold" style={{ color: warn }}>
+            <Text className="text-label font-semibold" style={{ color: warn }}>
               #{index + 1}
             </Text>
           </View>
@@ -132,13 +132,13 @@ export function DuplicateGroupCard({
                     className="px-1.5 py-0.5 rounded-full"
                     style={{ backgroundColor: `${statusColor}14` }}
                   >
-                    <Text className="text-[10px] font-semibold" style={{ color: statusColor }}>
+                    <Text className="text-label font-semibold" style={{ color: statusColor }}>
                       {statusLabel}
                     </Text>
                   </View>
                   {isFirst && (
                     <View className="ml-1.5 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: success + "14" }}>
-                      <Text className="text-[10px] font-semibold" style={{ color: success }}>
+                      <Text className="text-label font-semibold" style={{ color: success }}>
                         LATEST
                       </Text>
                     </View>
@@ -211,7 +211,7 @@ export function DuplicateGroupCard({
 
       {/* ── Footnote ───────────────────────────────────────────────── */}
       <View className="px-4 pb-3 -mt-1">
-        <Text className="text-[11px] text-faint-foreground">
+        <Text className="text-label text-faint-foreground">
           {readOnly
             ? "You marked this group as 'not duplicates'. Restore to flag it again on the next scan."
             : "Auto-Resolve keeps the latest and rejects the rest. Use the trash icons to manually keep whichever entry you prefer. Keep Both marks them as not duplicates."}

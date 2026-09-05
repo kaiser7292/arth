@@ -285,7 +285,7 @@ export default function CreditCardsScreen() {
                       style={{ width: `${Math.min(overallUtil, 100)}%`, backgroundColor: overallUtilColor }}
                     />
                   </View>
-                  <Text className="text-[10px] font-medium" style={{ color: overallUtilColor }}>
+                  <Text className="text-label font-medium" style={{ color: overallUtilColor }}>
                     {Math.round(overallUtil)}% used
                   </Text>
                 </View>
@@ -320,10 +320,10 @@ export default function CreditCardsScreen() {
               place in auto-detected balances. */}
           {adjustmentStats.count > 0 && (
             <View className="mt-2 pt-2 border-t border-border flex-row justify-between">
-              <Text className="text-[11px] text-faint-foreground">
+              <Text className="text-label text-faint-foreground">
                 Manual ledger adjustments
               </Text>
-              <Text className="text-[11px]" style={{ color: sc.warning }}>
+              <Text className="text-label" style={{ color: sc.warning }}>
                 {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
               </Text>
             </View>
@@ -352,7 +352,7 @@ export default function CreditCardsScreen() {
                   <Text className="text-base font-bold text-foreground">
                     {group.bankName}
                   </Text>
-                  <Text className="text-[10px] text-muted-foreground">
+                  <Text className="text-label text-muted-foreground">
                     {group.accounts.length} card{group.accounts.length !== 1 ? "s" : ""}
                     {isShared ? " · Shared limit" : ""}
                   </Text>
@@ -414,7 +414,7 @@ export default function CreditCardsScreen() {
                           style={{ width: `${Math.min(bankUtil, 100)}%`, backgroundColor: bankUtilColor }}
                         />
                       </View>
-                      <Text className="text-[10px] font-medium" style={{ color: bankUtilColor }}>
+                      <Text className="text-label font-medium" style={{ color: bankUtilColor }}>
                         {Math.round(bankUtil)}% used
                       </Text>
                     </View>
@@ -514,16 +514,16 @@ export default function CreditCardsScreen() {
                       <View className="flex-row items-center justify-between mt-2">
                         <View className="flex-row items-center flex-1">
                           <Ionicons name="time-outline" size={10} color={sc.danger} />
-                          <Text className="text-[10px] font-bold ml-1" style={{ color: sc.danger }}>
+                          <Text className="text-label font-bold ml-1" style={{ color: sc.danger }}>
                             Due: {formatAmount(account.total_due!)}
                           </Text>
                           {dueLabel && (
-                            <Text className="text-[10px] text-muted-foreground ml-1">
+                            <Text className="text-label text-muted-foreground ml-1">
                               · {dueLabel}
                             </Text>
                           )}
                           {account.min_due != null && (
-                            <Text className="text-[10px] text-muted-foreground ml-1">
+                            <Text className="text-label text-muted-foreground ml-1">
                               · min {formatAmount(account.min_due)}
                             </Text>
                           )}
@@ -599,7 +599,7 @@ export default function CreditCardsScreen() {
                         {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
                       </Text>
                       <View className="bg-danger/10 px-1.5 py-0.5 rounded">
-                        <Text className="text-[10px] font-semibold text-danger">Closed</Text>
+                        <Text className="text-label font-semibold text-danger">Closed</Text>
                       </View>
                     </View>
                     <Text className="text-xs text-faint-foreground">{acct.bank_name}</Text>

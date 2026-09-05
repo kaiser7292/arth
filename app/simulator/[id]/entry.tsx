@@ -355,7 +355,7 @@ export default function SimulatorEntryForm() {
                 />
               )}
               {!selectedPerson && (
-                <Text className="text-[10px] mt-1" style={{ color: colors.textSecondary }}>
+                <Text className="text-label mt-1" style={{ color: colors.textSecondary }}>
                   {flavor === "collect"
                     ? "Who's paying you back?"
                     : "Who are you paying back?"}

@@ -293,7 +293,7 @@ export default function RecycleBinScreen() {
       onPress={() => router.push(`/expense/${item.id}`)}
       rightElement={
         <View className="flex-row items-center ml-2">
-          {item.deleted_at && <Text className="text-[10px] text-faint-foreground mr-2">{daysAgo(item.deleted_at)}</Text>}
+          {item.deleted_at && <Text className="text-label text-faint-foreground mr-2">{daysAgo(item.deleted_at)}</Text>}
           <Pressable onPress={() => confirm("Restore", `Restore "${item.description || "Expense"}"?`, "Restore", false, async () => {
             await restoreExpense(item.id); setDeletedExpenses((p) => p.filter((e) => e.id !== item.id));
           })} className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-2">
@@ -319,7 +319,7 @@ export default function RecycleBinScreen() {
       rightElement={
         <View className="flex-row items-center ml-2">
           <View className="px-1.5 py-0.5 rounded mr-2 bg-[#EF444414]">
-            <Text className="text-[10px] font-semibold" style={{ color: StatusColors[colorScheme].danger }}>REJECTED</Text>
+            <Text className="text-label font-semibold" style={{ color: StatusColors[colorScheme].danger }}>REJECTED</Text>
           </View>
           <Pressable onPress={() => confirm("Re-approve", `Approve "${item.description || item.merchant_name || "Expense"}"?`, "Approve", false, async () => {
             await approveExpense(item.id); setRejectedExpenses((p) => p.filter((e) => e.id !== item.id));
@@ -487,9 +487,9 @@ export default function RecycleBinScreen() {
               {item.address}
             </Text>
             <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: style.color + "14" }}>
-              <Text className="text-[10px] font-semibold" style={{ color: style.color }}>{style.label}</Text>
+              <Text className="text-label font-semibold" style={{ color: style.color }}>{style.label}</Text>
             </View>
-            <Text className="text-[10px] text-faint-foreground">{formatSmsDate(item.sms_date)}</Text>
+            <Text className="text-label text-faint-foreground">{formatSmsDate(item.sms_date)}</Text>
           </View>
           <Text className="text-xs text-muted-foreground" numberOfLines={2}>
             {truncate(item.body, 150)}
@@ -576,7 +576,7 @@ export default function RecycleBinScreen() {
                 {count > 0 && (
                   <View className="ml-1.5 px-1.5 py-0.5 rounded-full"
                     style={{ backgroundColor: isActive ? accent[500] + "20" : "#6B728014" }}>
-                    <Text className="text-[10px] font-bold"
+                    <Text className="text-label font-bold"
                       style={{ color: isActive ? ac(accent, colorScheme, 500, 200) : "#6B7280" }}>
                       {count}
                     </Text>

@@ -253,7 +253,7 @@ export default function DematSnapshotsScreen() {
               </View>
             </View>
             {latestDate && (
-              <Text className="text-[10px] text-faint-foreground mt-1 mb-3">
+              <Text className="text-label text-faint-foreground mt-1 mb-3">
                 As of {formatSnapshotDate(latestDate)}
               </Text>
             )}
@@ -354,13 +354,13 @@ export default function DematSnapshotsScreen() {
 
             {/* Table header */}
             <View className="flex-row items-center pt-3 pb-1.5 border-b border-border">
-              <Text className="flex-1 text-[10px] font-semibold text-faint-foreground uppercase tracking-wider">
+              <Text className="flex-1 text-label font-semibold text-faint-foreground uppercase tracking-wider">
                 Date
               </Text>
-              <Text className="w-28 text-right text-[10px] font-semibold text-faint-foreground uppercase tracking-wider">
+              <Text className="w-28 text-right text-label font-semibold text-faint-foreground uppercase tracking-wider">
                 Portfolio
               </Text>
-              <Text className="w-24 text-right text-[10px] font-semibold text-faint-foreground uppercase tracking-wider">
+              <Text className="w-24 text-right text-label font-semibold text-faint-foreground uppercase tracking-wider">
                 Fund
               </Text>
               <View className="w-16" />

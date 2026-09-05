@@ -119,7 +119,7 @@ export default function TransferDetailScreen() {
               </Text>
               <View className="flex-row items-center">
                 <View className="flex-1">
-                  <Text className="text-[10px] text-faint-foreground uppercase tracking-wider mb-0.5">
+                  <Text className="text-label text-faint-foreground uppercase tracking-wider mb-0.5">
                     From
                   </Text>
                   <Text className="text-sm font-semibold text-foreground">
@@ -133,7 +133,7 @@ export default function TransferDetailScreen() {
                 </View>
                 <Ionicons name="arrow-forward" size={20} color={colors.textSecondary} style={{ marginHorizontal: 12 }} />
                 <View className="flex-1">
-                  <Text className="text-[10px] text-faint-foreground uppercase tracking-wider mb-0.5">
+                  <Text className="text-label text-faint-foreground uppercase tracking-wider mb-0.5">
                     To
                   </Text>
                   <Text className="text-sm font-semibold text-foreground">

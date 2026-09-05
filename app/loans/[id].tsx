@@ -498,7 +498,7 @@ export default function LoanDetailScreen() {
                             style={{ backgroundColor: accent[500] + "1A" }}
                           >
                             <Text
-                              className="text-[9px] font-bold uppercase"
+                              className="text-label font-bold uppercase"
                               style={{ color: ac(accent, colorScheme, 600, 300) }}
                             >
                               {strategyLabel}
@@ -532,7 +532,7 @@ export default function LoanDetailScreen() {
                       >
                         {formatMoney(p.amount)}
                       </Text>
-                      <Text className="text-[11px] text-muted-foreground mt-0.5">
+                      <Text className="text-label text-muted-foreground mt-0.5">
                         {formatDate(p.prepayment_date)}
                       </Text>
                     </View>
@@ -656,7 +656,7 @@ export default function LoanDetailScreen() {
                     >
                       {formatMoney(Math.round(c.outstanding_principal))}
                     </Text>
-                    <Text className="text-[11px] text-muted-foreground mt-0.5">
+                    <Text className="text-label text-muted-foreground mt-0.5">
                       {formatDate(c.effective_date)}
                     </Text>
                   </View>

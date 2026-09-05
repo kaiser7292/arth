@@ -784,7 +784,7 @@ export default function ExpensesScreen() {
             <Text className="text-xs text-muted-foreground">
               {accountName} → {toAccountName}
             </Text>
-            <Text className="text-[10px] text-faint-foreground">{item.date}</Text>
+            <Text className="text-label text-faint-foreground">{item.date}</Text>
           </View>
           <View className="items-end">
             <Text className="text-sm font-bold" style={{ color: accent[500] }}>
@@ -1193,7 +1193,7 @@ export default function ExpensesScreen() {
             if (!cat) return null;
             return (
               <Pressable key={`cat-${id}`} onPress={() => setFilterCategoryIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-faint-foreground">{cat.name}</Text>
+                <Text className="text-label text-faint-foreground">{cat.name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
@@ -1203,7 +1203,7 @@ export default function ExpensesScreen() {
             if (!pm) return null;
             return (
               <Pressable key={`pm-${id}`} onPress={() => setFilterPaymentModeIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-faint-foreground">{pm.name}</Text>
+                <Text className="text-label text-faint-foreground">{pm.name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
@@ -1213,14 +1213,14 @@ export default function ExpensesScreen() {
             if (!acct) return null;
             return (
               <Pressable key={`acct-${id}`} onPress={() => setFilterAccountIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-faint-foreground">{acct.bank_name}</Text>
+                <Text className="text-label text-faint-foreground">{acct.bank_name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
           })}
           {filterMerchantNames.map((name) => (
             <Pressable key={`merchant-${name}`} onPress={() => setFilterMerchantNames((prev) => prev.filter((x) => x !== name))} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-faint-foreground">{name}</Text>
+              <Text className="text-label text-faint-foreground">{name}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           ))}
@@ -1229,37 +1229,37 @@ export default function ExpensesScreen() {
             if (!rule) return null;
             return (
               <Pressable key={`rule-${rid}`} onPress={() => setFilterRuleIds((prev) => prev.filter((x) => x !== rid))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-faint-foreground">Rule: {rule.name}</Text>
+                <Text className="text-label text-faint-foreground">Rule: {rule.name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
           })}
           {filterRefundedStatus !== "" && (
             <Pressable onPress={() => setFilterRefundedStatus("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-faint-foreground">{filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded"}</Text>
+              <Text className="text-label text-faint-foreground">{filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded"}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           {filterStatus !== "" && (
             <Pressable onPress={() => setFilterStatus("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-faint-foreground">{filterStatus === "pending_review" ? "Pending Review" : "Approved"}</Text>
+              <Text className="text-label text-faint-foreground">{filterStatus === "pending_review" ? "Pending Review" : "Approved"}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           {filterAvoidability !== "" && (
             <Pressable onPress={() => setFilterAvoidability("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-faint-foreground">{filterAvoidability === "avoidable" ? "Avoidable" : "Unavoidable"}</Text>
+              <Text className="text-label text-faint-foreground">{filterAvoidability === "avoidable" ? "Avoidable" : "Unavoidable"}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           {search !== "" && (
             <Pressable onPress={() => setSearch("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-faint-foreground">"{search}"</Text>
+              <Text className="text-label text-faint-foreground">"{search}"</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           <Pressable onPress={() => { clearFilters(); setActiveViewId(null); }} className="flex-row items-center mb-1">
-            <Text className="text-[10px] font-medium" style={{ color: accent[500] }}>Clear all</Text>
+            <Text className="text-label font-medium" style={{ color: accent[500] }}>Clear all</Text>
           </Pressable>
         </View>
       )}

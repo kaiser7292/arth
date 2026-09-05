@@ -88,41 +88,41 @@ export default function ExpenseHeroCard({
       {/* Source + Nature badges */}
       <View className="flex-row items-center mb-3">
         <View className="px-2.5 py-1 rounded-full mr-2" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
-          <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+          <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: ac(accent, colorScheme, 500, 200) }}>
             {SOURCE_LABELS[source] ?? source}
           </Text>
         </View>
         {nature === "forecast" && (
           <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: StatusColors[colorScheme].warningBg }}>
-            <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
               Forecast
             </Text>
           </View>
         )}
         {status === "pending_review" && (
           <View className="px-2.5 py-1 rounded-full bg-[#F59E0B14]">
-            <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
               Pending Review
             </Text>
           </View>
         )}
         {isFullRefund && (
           <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: StatusColors[colorScheme].success + "1A" }}>
-            <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].success }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].success }}>
               Refunded
             </Text>
           </View>
         )}
         {isPartialRefund && (
           <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: StatusColors[colorScheme].warning + "1A" }}>
-            <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
               Partial Refund
             </Text>
           </View>
         )}
         {isTransfer && (
           <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: "#6366F11A" }}>
-            <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#6366F1" }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: "#6366F1" }}>
               Transfer
             </Text>
           </View>
@@ -171,7 +171,7 @@ export default function ExpenseHeroCard({
           <Text className="text-xl font-bold text-foreground mt-0.5">
             {"\u20B9"}{formatNumber(effectiveAmount)}
           </Text>
-          <Text className="text-[11px] text-muted-foreground mt-0.5">
+          <Text className="text-label text-muted-foreground mt-0.5">
             Refunded {"\u20B9"}{formatNumber(refundedAmount)}
           </Text>
         </View>

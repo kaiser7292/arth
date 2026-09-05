@@ -279,7 +279,7 @@ export default function MerchantAliasesScreen() {
 
         {/* Variant count */}
         {item.aliases.length > 1 && (
-          <Text className="text-[10px] text-faint-foreground mt-1">
+          <Text className="text-label text-faint-foreground mt-1">
             {item.aliases.length} SMS variants
           </Text>
         )}

@@ -813,7 +813,7 @@ export function LoanPaymentPickerSheet({
                         containerClassName="mb-1"
                       />
                       <Text
-                        className="text-[11px] mt-1"
+                        className="text-label mt-1"
                         style={{ color: colors.textSecondary }}
                       >
                         Your values override the auto-computed ones. Leave blank to use the auto figures.
@@ -1016,7 +1016,7 @@ function StrategyTile({
                 style={{ backgroundColor: acAlpha(accent, 500, 0.12) }}
               >
                 <Text
-                  className="text-[10px] font-semibold uppercase"
+                  className="text-label font-semibold uppercase"
                   style={{ color: ac(accent, colorScheme, 700, 200) }}
                 >
                   Recommended

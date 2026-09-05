@@ -648,7 +648,7 @@ export default function LedgerScreen() {
                   }
                 >
                   <Text
-                    className="text-[10px] font-semibold"
+                    className="text-label font-semibold"
                     style={{ color: sortBy === opt.key ? accent[500] : colors.textSecondary }}
                   >
                     {opt.label}
@@ -733,7 +733,7 @@ export default function LedgerScreen() {
             return (
               <Card className="mb-3">
                 <Text
-                  className="text-[10px] font-semibold uppercase tracking-wider mb-2"
+                  className="text-label font-semibold uppercase tracking-wider mb-2"
                   style={{ color: colors.textSecondary }}
                 >
                   {filterFrom} → {filterTo}
@@ -805,7 +805,7 @@ export default function LedgerScreen() {
                     {formatAmount(closingBalance)}
                   </Text>
                 </View>
-                <Text className="text-[10px] mt-1" style={{ color: colors.textSecondary }}>
+                <Text className="text-label mt-1" style={{ color: colors.textSecondary }}>
                   {closeIsPositive
                     ? "They owe you as of filter end."
                     : closingBalance < 0
@@ -962,7 +962,7 @@ function EntryCard({
               {entry.description || label}
             </Text>
             {(entry.category_id || entry.merchant_name || accountMap?.get(entry.id)) && (
-              <Text className="text-[10px] text-faint-foreground" numberOfLines={1}>
+              <Text className="text-label text-faint-foreground" numberOfLines={1}>
                 {[entry.category_id ? categoryMap?.get(entry.category_id) : null, entry.merchant_name, accountMap?.get(entry.id)].filter(Boolean).join(" · ")}
               </Text>
             )}
@@ -984,7 +984,7 @@ function EntryCard({
                   hitSlop={4}
                 >
                   <Ionicons name="receipt-outline" size={10} color={colors.blue} />
-                  <Text className="text-[10px] font-medium ml-0.5" style={{ color: accent[500] }}>
+                  <Text className="text-label font-medium ml-0.5" style={{ color: accent[500] }}>
                     Expense
                   </Text>
                 </Pressable>

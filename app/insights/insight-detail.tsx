@@ -127,7 +127,7 @@ export default function InsightDetailScreen() {
               <View className="mt-3">
                 <View className="flex-row">
                   <View className="flex-1 pr-2">
-                    <Text className="text-[10px] font-semibold uppercase tracking-wider text-faint-foreground">
+                    <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
                       {yoyComparison.currentLabel}
                     </Text>
                     <Text
@@ -138,7 +138,7 @@ export default function InsightDetailScreen() {
                     </Text>
                   </View>
                   <View className="flex-1 pl-2 border-l border-border">
-                    <Text className="text-[10px] font-semibold uppercase tracking-wider text-faint-foreground">
+                    <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
                       {yoyComparison.previousLabel}
                     </Text>
                     <Text className="text-lg font-bold text-muted-foreground mt-0.5">
@@ -198,7 +198,7 @@ export default function InsightDetailScreen() {
             />
             <Card>
               {isCreepDrill && (
-                <Text className="text-[11px] text-muted-foreground mb-2">
+                <Text className="text-label text-muted-foreground mb-2">
                   Sorted by largest absolute increase. Bars share the same scale so you can compare sizes.
                 </Text>
               )}

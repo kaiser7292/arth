@@ -351,7 +351,7 @@ export default function TagSmsTemplateScreen() {
             >
               {help.format}
             </Text>
-            <Text className="text-[11px]" style={{ color: colors.textSecondary, fontFamily: "monospace" }}>
+            <Text className="text-label" style={{ color: colors.textSecondary, fontFamily: "monospace" }}>
               {help.examples}
             </Text>
           </View>
@@ -686,7 +686,7 @@ export default function TagSmsTemplateScreen() {
           <Text className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
             2. The SMS
           </Text>
-          <Text className="text-[11px] text-faint-foreground mb-3">
+          <Text className="text-label text-faint-foreground mb-3">
             Tap a word to tag. Tap a tagged word to untag it. Long-press to pick just part of a word (e.g. "1,500" out of "Rs.1,500").
           </Text>
           <TokenTagger
@@ -739,7 +739,7 @@ export default function TagSmsTemplateScreen() {
             placeholder="e.g. VM-MYTNEU-S"
             autoCapitalize="characters"
           />
-          <Text className="text-[11px] text-faint-foreground mt-1 mb-2">
+          <Text className="text-label text-faint-foreground mt-1 mb-2">
             Copy the sender shown above the SMS in your messages app. Arth will
             match future SMSes from the same sender.
           </Text>
@@ -779,7 +779,7 @@ export default function TagSmsTemplateScreen() {
               className="mb-3 p-2.5 rounded-lg"
               style={{ backgroundColor: accentColor + "14" }}
             >
-              <Text className="text-[11px]" style={{ color: colors.text }}>
+              <Text className="text-label" style={{ color: colors.text }}>
                 {senderMatchMode === "code" &&
                   `Will match any sender with code "${effectiveSenderPattern}" (e.g. VM-${effectiveSenderPattern}-S, AD-${effectiveSenderPattern}-T).`}
                 {senderMatchMode === "exact" &&
@@ -856,7 +856,7 @@ export default function TagSmsTemplateScreen() {
           />
 
           <Text className="text-xs text-faint-foreground mt-3 mb-1.5">Default payment mode (optional)</Text>
-          <Text className="text-[11px] text-faint-foreground mb-2">
+          <Text className="text-label text-faint-foreground mb-2">
             Applied when the SMS doesn't carry payment mode info. Smart Rules override this.
           </Text>
           {/* Payment mode dropdown */}
@@ -1014,7 +1014,7 @@ export default function TagSmsTemplateScreen() {
           <Text className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
             Test the template (optional)
           </Text>
-          <Text className="text-[11px] text-faint-foreground mb-2">
+          <Text className="text-label text-faint-foreground mb-2">
             Paste another SMS from the same bank to verify the template matches it too.
           </Text>
           <TextInput
@@ -1099,7 +1099,7 @@ export default function TagSmsTemplateScreen() {
                   {unrecResult.samples.map((s, i) => (
                     <Text
                       key={i}
-                      className="text-[11px] mt-0.5 ml-5"
+                      className="text-label mt-0.5 ml-5"
                       style={{ color: colors.textSecondary }}
                       numberOfLines={1}
                     >

@@ -561,7 +561,7 @@ export default function AddExpenseScreen() {
                       {splitPreview.hisaabType === "debit" ? "They owe" : "I owe"}: {"\u20B9"}{splitPreview.hisaabAmount.toLocaleString("en-IN")}
                     </Text>
                   </View>
-                  <Text className="text-[10px] text-faint-foreground mt-1">Tap to change</Text>
+                  <Text className="text-label text-faint-foreground mt-1">Tap to change</Text>
                 </Pressable>
               ) : (
                 <Pressable
@@ -606,7 +606,7 @@ export default function AddExpenseScreen() {
                   placeholder="0.00"
                   keyboardType="decimal-pad"
                 />
-                <Text className="text-[11px] text-faint-foreground mt-1">
+                <Text className="text-label text-faint-foreground mt-1">
                   Leave at 0 if the other person doesn't get any of this refund.
                 </Text>
               </View>
@@ -811,7 +811,7 @@ export default function AddExpenseScreen() {
                   </Pressable>
                 )}
                 {extraLegs.length > 0 && (
-                  <Text className="text-[11px] text-faint-foreground mt-2">
+                  <Text className="text-label text-faint-foreground mt-2">
                     Legs share the same merchant, date, and category. Up to {MAX_PURCHASE_GROUP_LEGS} payment sources per purchase.
                   </Text>
                 )}

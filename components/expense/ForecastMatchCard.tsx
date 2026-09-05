@@ -36,7 +36,7 @@ export function ForecastMatchCard({
       <View className="px-3 py-2.5 border-b border-border">
         <View className="flex-row items-center mb-1">
           <View className="px-1.5 py-0.5 rounded bg-[#F59E0B14] mr-2">
-            <Text className="text-[10px] font-bold" style={{ color: StatusColors[colorScheme].warning }}>FORECAST</Text>
+            <Text className="text-label font-bold" style={{ color: StatusColors[colorScheme].warning }}>FORECAST</Text>
           </View>
           <Text className="text-xs text-faint-foreground">
             Due {formatDateForDisplay(forecast.due_date ?? forecast.date)}
@@ -62,7 +62,7 @@ export function ForecastMatchCard({
       <View className="px-3 py-2.5 border-b border-border">
         <View className="flex-row items-center mb-1">
           <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: accent[500] + '14' }}>
-            <Text className="text-[10px] font-bold" style={{ color: ac(accent, colorScheme, 600, 300) }}>ACTUAL</Text>
+            <Text className="text-label font-bold" style={{ color: ac(accent, colorScheme, 600, 300) }}>ACTUAL</Text>
           </View>
           <Text className="text-xs text-faint-foreground">
             {formatDateForDisplay(realized.date)}

@@ -57,7 +57,7 @@ export function BulkActionBar({
             className="items-center px-2 py-1.5"
           >
             <Ionicons name={action.icon} size={18} color={accent[500]} />
-            <Text className="text-[10px] mt-1 text-muted-foreground">
+            <Text className="text-label mt-1 text-muted-foreground">
               {action.label}
             </Text>
           </Pressable>

@@ -95,7 +95,7 @@ export function ForecastActionBar({
           className="flex-row items-center mr-3 py-1"
         >
           <Ionicons name="checkmark-circle-outline" size={14} color={StatusColors[colorScheme].success} />
-          <Text className="text-[11px] font-medium text-success ml-0.5">
+          <Text className="text-label font-medium text-success ml-0.5">
             {isRepayment ? "Pay" : "Paid"}
           </Text>
         </Pressable>
@@ -107,7 +107,7 @@ export function ForecastActionBar({
             className="flex-row items-center mr-3 py-1"
           >
             <Ionicons name="arrow-forward-circle-outline" size={14} color={colors.blue} />
-            <Text className="text-[11px] font-medium ml-0.5" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+            <Text className="text-label font-medium ml-0.5" style={{ color: ac(accent, colorScheme, 500, 200) }}>
               Realise
             </Text>
           </Pressable>
@@ -120,7 +120,7 @@ export function ForecastActionBar({
             className="flex-row items-center mr-3 py-1"
           >
             <Ionicons name="exit-outline" size={14} color={colors.textSecondary} />
-            <Text className="text-[11px] font-medium ml-0.5" style={{ color: colors.textSecondary }}>
+            <Text className="text-label font-medium ml-0.5" style={{ color: colors.textSecondary }}>
               External
             </Text>
           </Pressable>
@@ -132,7 +132,7 @@ export function ForecastActionBar({
           className="flex-row items-center py-1"
         >
           <Ionicons name="trash-outline" size={13} color={StatusColors[colorScheme].danger} />
-          <Text className="text-[11px] font-medium text-danger ml-0.5">
+          <Text className="text-label font-medium text-danger ml-0.5">
             Delete
           </Text>
         </Pressable>

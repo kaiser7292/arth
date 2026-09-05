@@ -338,7 +338,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                     }}
                   />
                 </View>
-                <Text className="text-[10px] text-faint-foreground ml-2 w-10 text-right">
+                <Text className="text-label text-faint-foreground ml-2 w-10 text-right">
                   {Math.round(tc.pctOfTotal)}%
                 </Text>
               </View>

@@ -107,7 +107,7 @@ export default function HealthGradeScreen() {
                 <Text className="text-lg font-bold" style={{ color: mainColor }}>
                   {Math.round(healthScore)}
                 </Text>
-                <Text className="text-[9px] text-faint-foreground">/ 100</Text>
+                <Text className="text-label text-faint-foreground">/ 100</Text>
               </View>
             </View>
 
@@ -159,7 +159,7 @@ export default function HealthGradeScreen() {
                         <Text className="text-sm font-medium text-foreground">
                           {f.name}
                         </Text>
-                        <Text className="text-[10px] text-faint-foreground">
+                        <Text className="text-label text-faint-foreground">
                           {Math.round(f.weight * 100)}% wt
                         </Text>
                       </View>
@@ -173,7 +173,7 @@ export default function HealthGradeScreen() {
                         style={{ width: `${Math.max(2, f.score)}%`, backgroundColor: fColor }}
                       />
                     </View>
-                    <Text className="text-[10px] text-faint-foreground">{f.detail}</Text>
+                    <Text className="text-label text-faint-foreground">{f.detail}</Text>
                   </View>
                 );
               })}

@@ -101,7 +101,7 @@ function ExpenseListItemInner({
               style={{ backgroundColor: StatusColors[colorScheme].warning + "1A" }}
             >
               <Text
-                className="text-[9px] font-bold uppercase"
+                className="text-label font-bold uppercase"
                 style={{ color: StatusColors[colorScheme].warning }}
               >
                 Pending
@@ -114,7 +114,7 @@ function ExpenseListItemInner({
               style={{ backgroundColor: accent[500] + "1A" }}
             >
               <Text
-                className="text-[9px] font-bold uppercase"
+                className="text-label font-bold uppercase"
                 style={{ color: ac(accent, colorScheme, 600, 300) }}
               >
                 Split
@@ -131,7 +131,7 @@ function ExpenseListItemInner({
               }}
             >
               <Text
-                className="text-[9px] font-bold uppercase"
+                className="text-label font-bold uppercase"
                 style={{
                   color: isFullRefund
                     ? StatusColors[colorScheme].success
@@ -153,7 +153,7 @@ function ExpenseListItemInner({
         )}
         {splitNote ? (
           <Text
-            className="text-[11px] mt-0.5"
+            className="text-label mt-0.5"
             numberOfLines={1}
             style={{ color: StatusColors[colorScheme].warning }}
           >
@@ -173,7 +173,7 @@ function ExpenseListItemInner({
             >
               {formatAmount(expense.amount)}
             </Text>
-            <Text className="text-[11px] text-muted-foreground mt-0.5">
+            <Text className="text-label text-muted-foreground mt-0.5">
               {formatDateForDisplay(expense.date)}
             </Text>
           </>
@@ -182,10 +182,10 @@ function ExpenseListItemInner({
             <Text className="text-sm font-bold text-foreground">
               {formatAmount(effectiveDisplayAmount)}
             </Text>
-            <Text className="text-[10px] text-faint-foreground line-through">
+            <Text className="text-label text-faint-foreground line-through">
               {formatAmount(expense.amount)}
             </Text>
-            <Text className="text-[11px] text-muted-foreground mt-0.5">
+            <Text className="text-label text-muted-foreground mt-0.5">
               {formatDateForDisplay(expense.date)}
             </Text>
           </>

@@ -51,6 +51,10 @@ const FORBIDDEN = [
   "border-border-light",
   "rounded-button",
   "text-micro",
+  "text-[8px]",
+  "text-[9px]",
+  "text-[10px]",
+  "text-[11px]",
 ];
 
 function scanForbidden() {

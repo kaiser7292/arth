@@ -119,7 +119,7 @@ function DonutChartBase({
             </Text>
           )}
           {centerLabel && (
-            <Text className="text-[10px] text-faint-foreground">{centerLabel}</Text>
+            <Text className="text-label text-faint-foreground">{centerLabel}</Text>
           )}
         </View>
       </View>

@@ -768,7 +768,7 @@ const loadData = useCallback(async () => {
                 style={{ backgroundColor: sc.warning + "14" }}
               >
                 <Ionicons name="alert-circle" size={14} color={sc.warning} />
-                <Text className="text-[10px] font-medium ml-2" style={{ color: sc.warning }}>
+                <Text className="text-label font-medium ml-2" style={{ color: sc.warning }}>
                   No opening balance set - computed from ₹0
                 </Text>
               </View>
@@ -963,7 +963,7 @@ const loadData = useCallback(async () => {
               </View>
 
               {/* Account picker */}
-              <Text className="text-[10px] font-medium text-muted-foreground mb-1">
+              <Text className="text-label font-medium text-muted-foreground mb-1">
                 {transferDirection === "in" ? "From Account" : "To Account"}
               </Text>
               <Pressable
@@ -1230,42 +1230,42 @@ const loadData = useCallback(async () => {
                       )}
                     </View>
                     {isTransfer && entry.counterAccountName && (
-                      <Text className="text-[10px] mt-0.5" style={{ color: transferColor }}>
+                      <Text className="text-label mt-0.5" style={{ color: transferColor }}>
                         {entry.type === "transfer_in" ? "From" : "To"} {entry.counterAccountName}
                       </Text>
                     )}
                     <View className="flex-row items-center mt-0.5">
-                      <Text className="text-[10px] text-muted-foreground">
+                      <Text className="text-label text-muted-foreground">
                         {formatEntryDate(entry.date)}
                       </Text>
                       {poolSiblings.length > 1 && entry.cardLast4 && (
-                        <Text className="text-[10px] text-faint-foreground ml-1.5">
+                        <Text className="text-label text-faint-foreground ml-1.5">
                           · {"••••"} {entry.cardLast4}
                         </Text>
                       )}
                       {(entry.source === "sms_auto" || (isTransfer && !!entry.rawSourceText)) && (
                         <View className="ml-1.5 px-1 py-0.5 rounded bg-primary/15">
-                          <Text className="text-[8px] font-semibold text-primary">SMS</Text>
+                          <Text className="text-label font-semibold text-primary">SMS</Text>
                         </View>
                       )}
                       {entry.isRefund && (
                         <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: sc.success + "14" }}>
-                          <Text className="text-[8px] font-semibold" style={{ color: sc.success }}>REFUND</Text>
+                          <Text className="text-label font-semibold" style={{ color: sc.success }}>REFUND</Text>
                         </View>
                       )}
                       {isTransfer && (
                         <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: transferColor + "14" }}>
-                          <Text className="text-[8px] font-semibold" style={{ color: transferColor }}>TRANSFER</Text>
+                          <Text className="text-label font-semibold" style={{ color: transferColor }}>TRANSFER</Text>
                         </View>
                       )}
                       {isTransfer && entry.linkedExpenseId && (
                         <View className="ml-1.5 px-1 py-0.5 rounded bg-warning/15">
-                          <Text className="text-[8px] font-semibold text-warning">RECLASSIFIED</Text>
+                          <Text className="text-label font-semibold text-warning">RECLASSIFIED</Text>
                         </View>
                       )}
                       {entry.type === "credit" && entry.linkedHisaabPersonName && (
                         <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: accent[500] + "1A" }}>
-                          <Text className="text-[8px] font-semibold" style={{ color: accent[500] }} numberOfLines={1}>
+                          <Text className="text-label font-semibold" style={{ color: accent[500] }} numberOfLines={1}>
                             HISAAB · {entry.linkedHisaabPersonName.toUpperCase()}
                           </Text>
                         </View>
@@ -1282,7 +1282,7 @@ const loadData = useCallback(async () => {
                       {isDebitSide ? "−" : "+"}{formatAmount(entry.amount)}
                     </Text>
                     {entry.splitPersonName && (
-                      <Text className="text-[9px] text-muted-foreground mt-0.5">
+                      <Text className="text-label text-muted-foreground mt-0.5">
                         Split w/ {entry.splitPersonName}
                       </Text>
                     )}
@@ -1475,7 +1475,7 @@ const loadData = useCallback(async () => {
 
               {sourceSmsModal.address && (
                 <View className="mb-3">
-                  <Text className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
                     Sender
                   </Text>
                   <Text className="text-xs" style={{ color: colors.text }}>
@@ -1484,7 +1484,7 @@ const loadData = useCallback(async () => {
                 </View>
               )}
 
-              <Text className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
+              <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
                 Body
               </Text>
               <ScrollView
@@ -1504,7 +1504,7 @@ const loadData = useCallback(async () => {
                 </Text>
               </ScrollView>
 
-              <Text className="text-[10px] mt-3" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mt-3" style={{ color: colors.textSecondary }}>
                 This SMS originally came in as a credit or expense and was reclassified as a transfer.
               </Text>
             </Pressable>

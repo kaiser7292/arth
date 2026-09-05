@@ -203,7 +203,7 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
               <Text className="text-xs text-muted-foreground leading-5">
                 {autoApply.candidateSms.body}
               </Text>
-              <Text className="text-[10px] text-faint-foreground mt-2">
+              <Text className="text-label text-faint-foreground mt-2">
                 {autoApply.candidateSms.address}
               </Text>
             </View>
@@ -228,7 +228,7 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
               color={colors.textSecondary}
               style={{ marginLeft: 4 }}
             />
-            <Text className="text-[10px] text-faint-foreground ml-auto">
+            <Text className="text-label text-faint-foreground ml-auto">
               {formatSmsTimestamp(sourceSms.sms_date)}
             </Text>
           </Pressable>
@@ -237,7 +237,7 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
               <Text className="text-xs text-muted-foreground leading-5">
                 {sourceSms.body}
               </Text>
-              <Text className="text-[10px] text-faint-foreground mt-2">
+              <Text className="text-label text-faint-foreground mt-2">
                 {sourceSms.address}
               </Text>
             </View>

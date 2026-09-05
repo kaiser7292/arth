@@ -159,16 +159,16 @@ export default function RecurringRulesScreen() {
                   </Text>
                 )}
                 {item.lastFulfillment ? (
-                  <Text className="text-[11px] text-faint-foreground mt-0.5">
+                  <Text className="text-label text-faint-foreground mt-0.5">
                     Last paid on {formatDate(item.lastFulfillment.cycle_due_date)}
                   </Text>
                 ) : (
-                  <Text className="text-[11px] text-faint-foreground mt-0.5">
+                  <Text className="text-label text-faint-foreground mt-0.5">
                     Not linked to any expense yet
                   </Text>
                 )}
                 <Text
-                  className="text-[11px] font-semibold mt-0.5"
+                  className="text-label font-semibold mt-0.5"
                   style={{ color: stateStyle.color }}
                 >
                   {stateStyle.label}

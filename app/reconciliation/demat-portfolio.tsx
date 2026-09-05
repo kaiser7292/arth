@@ -333,7 +333,7 @@ export default function DematPortfolioScreen() {
                         {acct.account_label || acct.bank_name}
                       </Text>
                       <View className="bg-danger/10 px-1.5 py-0.5 rounded">
-                        <Text className="text-[10px] font-semibold text-danger">Closed</Text>
+                        <Text className="text-label font-semibold text-danger">Closed</Text>
                       </View>
                     </View>
                     {acct.account_number && (

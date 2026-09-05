@@ -199,7 +199,7 @@ export default function YearlyPlanScreen() {
                 </Text>
                 {profile?.status === "draft" && (
                   <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: StatusColors[colorScheme].warningBg }}>
-                    <Text className="text-[10px] font-bold" style={{ color: StatusColors[colorScheme].warning }}>DRAFT</Text>
+                    <Text className="text-label font-bold" style={{ color: StatusColors[colorScheme].warning }}>DRAFT</Text>
                   </View>
                 )}
               </View>
@@ -755,7 +755,7 @@ export default function YearlyPlanScreen() {
                           {label}
                         </Text>
                         <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: statusBg }}>
-                          <Text className="text-[10px] font-bold" style={{ color: statusColor }}>
+                          <Text className="text-label font-bold" style={{ color: statusColor }}>
                             {gapLabel}
                           </Text>
                         </View>
@@ -782,7 +782,7 @@ export default function YearlyPlanScreen() {
                           style={{ backgroundColor: colors.surface }}
                         >
                           <View className="flex-row items-center justify-between">
-                            <Text className="text-[10px] text-faint-foreground">Year-end projection</Text>
+                            <Text className="text-label text-faint-foreground">Year-end projection</Text>
                             <Text
                               className="text-xs font-semibold"
                               style={{
@@ -797,7 +797,7 @@ export default function YearlyPlanScreen() {
                             </Text>
                           </View>
                           <View className="items-end mt-0.5">
-                            <Text className="text-[10px] text-faint-foreground">{fmtFull(planned)} planned</Text>
+                            <Text className="text-label text-faint-foreground">{fmtFull(planned)} planned</Text>
                           </View>
                         </View>
                       )}
@@ -874,7 +874,7 @@ export default function YearlyPlanScreen() {
                         }}
                       >
                         {fmtFull(netSurplusProj)}
-                        <Text className="text-[10px] font-normal text-faint-foreground">
+                        <Text className="text-label font-normal text-faint-foreground">
                           {" "}(plan: {fmtFull(netSurplusPlanned)})
                         </Text>
                       </Text>
@@ -895,7 +895,7 @@ export default function YearlyPlanScreen() {
                 >
                   {realityCheck.summaryLines.map((line, i) => (
                     <View key={i} className="flex-row items-center mb-0.5">
-                      <Text className="text-[10px] mr-1.5">
+                      <Text className="text-label mr-1.5">
                         {line.startsWith("Cut") || line.startsWith("Add") ? "→" : "✓"}
                       </Text>
                       <Text className="text-xs text-muted-foreground">

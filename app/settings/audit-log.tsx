@@ -348,13 +348,13 @@ export default function AuditLogScreen() {
                 className="px-1.5 py-0.5 rounded mr-1.5"
                 style={{ backgroundColor: color + "14" }}
               >
-                <Text className="text-[9px] font-semibold" style={{ color }}>
+                <Text className="text-label font-semibold" style={{ color }}>
                   {actionLabel(item.actionType).toUpperCase()}
                 </Text>
               </View>
               {item.sourceType === "sms" && (
                 <View className="px-1 py-0.5 rounded bg-primary/15 mr-1.5">
-                  <Text className="text-[8px] font-semibold text-primary">SMS</Text>
+                  <Text className="text-label font-semibold text-primary">SMS</Text>
                 </View>
               )}
               <Ionicons
@@ -362,7 +362,7 @@ export default function AuditLogScreen() {
                 size={10}
                 color={colors.textSecondary}
               />
-              <Text className="text-[10px] text-muted-foreground ml-1">
+              <Text className="text-label text-muted-foreground ml-1">
                 {item.date}
               </Text>
             </View>
@@ -371,7 +371,7 @@ export default function AuditLogScreen() {
               <View className="flex-row items-center mt-0.5 flex-wrap gap-y-0.5">
                 {item.accountLabel && (
                   <Text
-                    className="text-[10px] text-faint-foreground mr-1.5"
+                    className="text-label text-faint-foreground mr-1.5"
                     numberOfLines={1}
                     style={{ flexShrink: 1 }}
                   >
@@ -379,7 +379,7 @@ export default function AuditLogScreen() {
                   </Text>
                 )}
                 {item.actionTimestamp && (
-                  <Text className="text-[10px] text-faint-foreground">
+                  <Text className="text-label text-faint-foreground">
                     {item.accountLabel ? "· " : ""}{formatActionTimestamp(item.actionTimestamp)}
                   </Text>
                 )}
@@ -387,7 +387,7 @@ export default function AuditLogScreen() {
             )}
             {item.editDetails && (
               <View className="mt-1.5 px-2 py-1.5 rounded bg-card">
-                <Text className="text-[10px] text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   {item.editDetails.fieldLabel}: <Text className="line-through">{item.editDetails.oldValue ?? "empty"}</Text> → <Text className="font-medium text-foreground">{item.editDetails.newValue ?? "empty"}</Text>
                 </Text>
               </View>
@@ -471,7 +471,7 @@ export default function AuditLogScreen() {
           {expanded && (
             <View className="mt-3">
               <Text
-                className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                className="text-label font-semibold uppercase tracking-wider mb-1.5"
                 style={{ color: colors.textSecondary }}
               >
                 Source
@@ -488,7 +488,7 @@ export default function AuditLogScreen() {
               </View>
 
               <Text
-                className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                className="text-label font-semibold uppercase tracking-wider mb-1.5"
                 style={{ color: colors.textSecondary }}
               >
                 Type
@@ -505,7 +505,7 @@ export default function AuditLogScreen() {
               </View>
 
               <Text
-                className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                className="text-label font-semibold uppercase tracking-wider mb-1.5"
                 style={{ color: colors.textSecondary }}
               >
                 Action
@@ -571,13 +571,13 @@ export default function AuditLogScreen() {
                   style={{ marginRight: 4 }}
                 />
                 <Text
-                  className="text-[10px] font-semibold uppercase"
+                  className="text-label font-semibold uppercase"
                   style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
                   numberOfLines={1}
                 >
                   {section.title}
                 </Text>
-                <Text className="text-[10px] ml-1.5" style={{ color: colors.textSecondary }}>
+                <Text className="text-label ml-1.5" style={{ color: colors.textSecondary }}>
                   ({count})
                 </Text>
                 <View className="flex-1 h-px ml-2" style={{ backgroundColor: colors.border }} />

@@ -376,7 +376,7 @@ export function HisaabInclusionSheet({
                     {r.included && (
                       <View className="mt-3 flex-row items-center gap-2">
                         <View className="flex-1">
-                          <Text className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
+                          <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
                             Percent
                           </Text>
                           <View
@@ -396,7 +396,7 @@ export function HisaabInclusionSheet({
                           </View>
                         </View>
                         <View className="flex-1">
-                          <Text className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
+                          <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
                             Amount (₹)
                           </Text>
                           <View

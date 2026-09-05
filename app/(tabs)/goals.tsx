@@ -278,7 +278,7 @@ export default function GoalsScreen() {
                         className="flex-row items-center gap-1 px-2 py-0.5 rounded-full"
                         style={{ backgroundColor: gradeBgVal }}
                       >
-                        <Text className="text-[10px] font-bold" style={{ color: gradeColorVal }}>
+                        <Text className="text-label font-bold" style={{ color: gradeColorVal }}>
                           Grade {cockpitData.healthGrade}
                         </Text>
                         <Ionicons name="information-circle-outline" size={10} color={gradeColorVal} />
@@ -366,7 +366,7 @@ export default function GoalsScreen() {
                       }
                     />
                     <Text
-                      className="text-[11px] font-medium"
+                      className="text-label font-medium"
                       style={{
                         color: cockpitData.savings.isOnTrack
                           ? StatusColors[colorScheme].success

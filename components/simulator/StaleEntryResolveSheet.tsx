@@ -199,7 +199,7 @@ export function StaleEntryResolveSheet({
               {c.merchant || c.description || "Transaction"}
             </Text>
             <View className="rounded-full px-1.5 py-0.5 ml-1" style={{ backgroundColor: badge.color + "18" }}>
-              <Text className="text-[9px] font-semibold" style={{ color: badge.color }}>
+              <Text className="text-label font-semibold" style={{ color: badge.color }}>
                 {badge.label}
               </Text>
             </View>
@@ -339,7 +339,7 @@ export function StaleEntryResolveSheet({
               )}
             </View>
 
-            <Text className="text-[10px] mb-1.5" style={{ color: colors.textSecondary }}>
+            <Text className="text-label mb-1.5" style={{ color: colors.textSecondary }}>
               Showing transactions from last 30 days ({filteredCandidates.length}{query ? ` of ${candidates.length}` : ""})
             </Text>
 

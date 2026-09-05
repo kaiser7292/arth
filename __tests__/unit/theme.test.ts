@@ -169,3 +169,58 @@ describe("class sweep", () => {
     expect(files.length).toBeGreaterThan(200);
   });
 });
+
+/**
+ * Type scale guards.
+ *
+ * The audit measured 89% of the app's text at 14px or smaller, with 221 sites below 12px and six
+ * at 8px. Two mechanisms fixed that: the arbitrary `text-[Npx]` values were retired onto the scale,
+ * and Tailwind's own `xs`/`sm` steps were redefined (12->13, 14->15) so 2,723 call sites moved
+ * without being edited. These tests stop either from silently regressing.
+ */
+describe("type scale", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const { TYPE, SCALE_OVERRIDES } = require("../../constants/design-tokens.js");
+
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const f = path.join(dir, e.name);
+      if (e.isDirectory()) walk(f);
+      else if (f.endsWith(".tsx")) files.push(f);
+    }
+  };
+  for (const d of ["app", "components"]) walk(path.join(__dirname, "..", "..", d));
+
+  const px = (step: [string, object]) => parseFloat(step[0]);
+
+  it("has no arbitrary text sizes left in source", () => {
+    const hits = files
+      .map((f) => ({ f, m: (fs.readFileSync(f, "utf8").match(/text-\[[0-9.]+px\]/g) || []) }))
+      .filter((x: { m: string[] }) => x.m.length)
+      .map((x: { f: string; m: string[] }) => x.f + ": " + x.m.join(", "));
+    expect(hits).toEqual([]);
+  });
+
+  it("keeps every scale step at or above the 11.5px legibility floor", () => {
+    for (const [name, step] of Object.entries({ ...TYPE, ...SCALE_OVERRIDES })) {
+      expect({ name, px: px(step as [string, object]) }).toEqual({
+        name,
+        px: expect.any(Number),
+      });
+      expect(px(step as [string, object])).toBeGreaterThanOrEqual(11.5);
+    }
+  });
+
+  it("keeps the redefined xs/sm steps above Tailwind's defaults", () => {
+    // Reverting these two lines reverts the app-wide size change; that is deliberate.
+    expect(px(SCALE_OVERRIDES.xs)).toBeGreaterThan(12);
+    expect(px(SCALE_OVERRIDES.sm)).toBeGreaterThan(14);
+  });
+
+  it("gives the scale real hierarchy, not a flat range", () => {
+    // The original failure was that nothing was big: only 63 sites in 223 files exceeded 18px.
+    expect(px(TYPE.hero) / px(TYPE.body)).toBeGreaterThanOrEqual(2);
+  });
+});

@@ -262,7 +262,7 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
                 </Pressable>
               )}
             </View>
-            <Text className="text-[10px] mb-1.5" style={{ color: colors.textSecondary }}>
+            <Text className="text-label mb-1.5" style={{ color: colors.textSecondary }}>
               Showing realized expenses ±60 days from due date, not linked to any loan ({filtered.length}{query ? ` of ${candidates.length}` : ""})
             </Text>
 

@@ -556,7 +556,7 @@ export default function HomeScreen() {
                         {description}
                       </Text>
                       <Text
-                        className="text-[11px] mt-0.5"
+                        className="text-label mt-0.5"
                         style={{
                           color: isOverdue
                             ? StatusColors[colorScheme].danger
@@ -632,7 +632,7 @@ export default function HomeScreen() {
                         <Text className="text-xs font-medium text-foreground" numberOfLines={1}>
                           {matchedExpense.merchant_name ?? matchedExpense.description ?? "Expense"} · {matchedExpense.date}
                         </Text>
-                        <Text className="text-[11px]" style={{ color: StatusColors[colorScheme].success }}>
+                        <Text className="text-label" style={{ color: StatusColors[colorScheme].success }}>
                           {formatAmount(matchedExpense.amount)}
                         </Text>
                       </View>

@@ -89,7 +89,7 @@ export function ReviewQueueItem({
                 className="px-1.5 py-0.5 rounded mr-1.5"
                 style={{ backgroundColor: creditGreenBg }}
               >
-                <Text className="text-[10px] font-semibold" style={{ color: creditGreen }}>
+                <Text className="text-label font-semibold" style={{ color: creditGreen }}>
                   CREDIT
                 </Text>
               </View>
@@ -107,7 +107,7 @@ export function ReviewQueueItem({
                 }}
               >
                 <Text
-                  className="text-[10px] font-semibold"
+                  className="text-label font-semibold"
                   style={{
                     color:
                       expense.forecast_type === "repayment"

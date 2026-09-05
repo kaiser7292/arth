@@ -36,7 +36,7 @@ function RateCard({ rate }: { rate: CapitalGainsRate }) {
       {/* Rates row */}
       <View className="flex-row mb-2">
         <View className="flex-1 items-center py-2 mr-1 rounded-lg" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
-          <Text className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground mb-0.5">
+          <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-0.5">
             LTCG
           </Text>
           <Text className="text-sm font-bold text-success">
@@ -44,7 +44,7 @@ function RateCard({ rate }: { rate: CapitalGainsRate }) {
           </Text>
         </View>
         <View className="flex-1 items-center py-2 ml-1 rounded-lg" style={{ backgroundColor: StatusColors[colorScheme].dangerBg }}>
-          <Text className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground mb-0.5">
+          <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-0.5">
             STCG
           </Text>
           <Text className="text-sm font-bold text-danger">

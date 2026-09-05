@@ -612,7 +612,7 @@ export default function AccountDetailScreen() {
                 </View>
               </View>
               {dematLatestDate && (
-                <Text className="text-[10px] text-faint-foreground">
+                <Text className="text-label text-faint-foreground">
                   As of {formatSnapshotDate(dematLatestDate)}
                 </Text>
               )}
@@ -885,7 +885,7 @@ export default function AccountDetailScreen() {
                     >
                       {mode.name}
                     </Text>
-                    <Text className="text-[10px] text-muted-foreground ml-auto">
+                    <Text className="text-label text-muted-foreground ml-auto">
                       {mode.type.replace("_", " ")}
                     </Text>
                   </Pressable>

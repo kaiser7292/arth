@@ -90,7 +90,7 @@ export function SearchablePickerList({
             )}
             <View className="flex-1">
               <Text className="text-sm text-foreground">{item.label}</Text>
-              {item.subtitle && <Text className="text-[10px] text-muted-foreground">{item.subtitle}</Text>}
+              {item.subtitle && <Text className="text-label text-muted-foreground">{item.subtitle}</Text>}
             </View>
             {selectedId === item.id && (
               <Ionicons name="checkmark" size={16} color={colors.blue} />

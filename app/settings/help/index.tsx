@@ -189,7 +189,7 @@ function ArticleRow({ entry, onPress, tint, badge, colorScheme }: RowProps & { c
             className="rounded-full px-2 py-0.5 ml-2"
             style={{ backgroundColor: tint + "1F" }}
           >
-            <Text className="text-[10px] font-medium" style={{ color: tint }}>
+            <Text className="text-label font-medium" style={{ color: tint }}>
               {badge}
             </Text>
           </View>

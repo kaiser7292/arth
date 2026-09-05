@@ -452,7 +452,7 @@ export default function VaultEntryScreen() {
           </View>
         )}
 
-        <Text className="text-[10px] text-faint-foreground text-center mt-6">
+        <Text className="text-label text-faint-foreground text-center mt-6">
           Added {new Date(entry.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
           {entry.updated_at ? ` · Updated ${new Date(entry.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : ""}
         </Text>

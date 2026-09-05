@@ -1867,7 +1867,7 @@ export default function ExpenseDetailScreen() {
                   )}
 
                   {extraLegs.length > 0 && (
-                    <Text className="text-[11px] text-faint-foreground mt-2">
+                    <Text className="text-label text-faint-foreground mt-2">
                       New legs inherit the merchant, date, category, and description of this expense. Up to {MAX_PURCHASE_GROUP_LEGS} payment sources per purchase.
                     </Text>
                   )}
@@ -2220,7 +2220,7 @@ export default function ExpenseDetailScreen() {
                               {split.person_name}
                             </Text>
                             {split.description && (
-                              <Text className="text-[10px] text-muted-foreground" numberOfLines={1}>
+                              <Text className="text-label text-muted-foreground" numberOfLines={1}>
                                 {split.description}
                               </Text>
                             )}
@@ -2260,7 +2260,7 @@ export default function ExpenseDetailScreen() {
                         onPress={() => setShowMultiSplitSheet(true)}
                         className="py-2 px-3 rounded-lg"
                       >
-                        <Text className="text-[10px] font-medium" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                        <Text className="text-label font-medium" style={{ color: ac(accent, colorScheme, 500, 300) }}>
                           Change Split
                         </Text>
                       </Pressable>
@@ -2268,7 +2268,7 @@ export default function ExpenseDetailScreen() {
                         onPress={handleRemoveMultiSplit}
                         className="py-2 px-3 rounded-lg"
                       >
-                        <Text className="text-[10px] font-medium" style={{ color: StatusColors[colorScheme].danger }}>
+                        <Text className="text-label font-medium" style={{ color: StatusColors[colorScheme].danger }}>
                           Remove Split
                         </Text>
                       </Pressable>
@@ -2310,7 +2310,7 @@ export default function ExpenseDetailScreen() {
                           <Text className="text-xs font-medium text-foreground" numberOfLines={1}>
                             {splitPersonName ?? "Unknown"}
                           </Text>
-                          <Text className="text-[10px] text-muted-foreground">
+                          <Text className="text-label text-muted-foreground">
                             {(() => {
                               const orig = expense.split_original_amount ?? expense.amount;
                               const pct = expense.split_pct ?? 100;
@@ -2332,7 +2332,7 @@ export default function ExpenseDetailScreen() {
                         onPress={() => setShowMultiSplitSheet(true)}
                         className="py-2 px-3 rounded-lg"
                       >
-                        <Text className="text-[10px] font-medium" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                        <Text className="text-label font-medium" style={{ color: ac(accent, colorScheme, 500, 300) }}>
                           Change Split
                         </Text>
                       </Pressable>
@@ -2340,7 +2340,7 @@ export default function ExpenseDetailScreen() {
                         onPress={handleRemoveSplit}
                         className="py-2 px-3 rounded-lg"
                       >
-                        <Text className="text-[10px] font-medium" style={{ color: StatusColors[colorScheme].danger }}>
+                        <Text className="text-label font-medium" style={{ color: StatusColors[colorScheme].danger }}>
                           Remove Split
                         </Text>
                       </Pressable>

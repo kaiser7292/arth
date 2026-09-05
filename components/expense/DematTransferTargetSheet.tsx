@@ -322,7 +322,7 @@ export function DematTransferTargetSheet({
 
         {/* Sub-hint under actions — tells the user Skip isn't destructive. */}
         <Text
-          className="text-[11px] text-center mt-2 px-5"
+          className="text-label text-center mt-2 px-5"
           style={{ color: colors.textSecondary }}
         >
           Skip leaves the transfer uncategorized - you can edit it later.

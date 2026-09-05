@@ -472,7 +472,7 @@ export default function ScenarioDetailScreen() {
         <Card className="mx-4 mt-3">
           <View className="flex-row items-center justify-between">
             <Text
-              className="text-[10px] font-semibold uppercase tracking-wider"
+              className="text-label font-semibold uppercase tracking-wider"
               style={{ color: colors.textSecondary }}
             >
               Projected balance · {prettyDate(scenario.horizon_date)}
@@ -483,7 +483,7 @@ export default function ScenarioDetailScreen() {
                 style={{ backgroundColor: accent[500] + "1A" }}
               >
                 <ActivityIndicator size="small" color={accent[500]} />
-                <Text className="text-[10px] font-semibold ml-1.5" style={{ color: accent[500] }}>
+                <Text className="text-label font-semibold ml-1.5" style={{ color: accent[500] }}>
                   Updating…
                 </Text>
               </View>
@@ -500,7 +500,7 @@ export default function ScenarioDetailScreen() {
               style={{ backgroundColor: deltaColor + "14" }}
             >
               <Ionicons name={delta >= 0 ? "arrow-up" : "arrow-down"} size={10} color={deltaColor} />
-              <Text className="text-[10px] font-semibold ml-1" style={{ color: deltaColor }}>
+              <Text className="text-label font-semibold ml-1" style={{ color: deltaColor }}>
                 {delta >= 0 ? "+" : ""}
                 {formatAmount(Math.round(delta))}
               </Text>
@@ -515,7 +515,7 @@ export default function ScenarioDetailScreen() {
           {/* Warnings strip — overdraft, min balance breach, CC over limit */}
           {simulation.warnings.length > 0 && (
             <View className="mt-3 pt-3 border-t border-border">
-              <Text className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: sc.danger }}>
+              <Text className="text-label font-semibold uppercase tracking-wider mb-2" style={{ color: sc.danger }}>
                 Warnings
               </Text>
               {simulation.warnings.map((warning) => {
@@ -537,14 +537,14 @@ export default function ScenarioDetailScreen() {
                         {warning.accountLabel}
                       </Text>
                     </View>
-                    <Text className="text-[10px] mb-1" style={{ color: colors.textSecondary }}>
+                    <Text className="text-label mb-1" style={{ color: colors.textSecondary }}>
                       {isOverdraft && `Account overdrawn by ${formatAmount(Math.abs(warning.amount))} on ${prettyDate(warning.firstTriggerDate)}`}
                       {isMinBreach && `Below minimum balance by ${formatAmount(Math.abs(warning.amount))} on ${prettyDate(warning.firstTriggerDate)}`}
                       {isCCOverLimit && `Credit card over limit by ${formatAmount(warning.amount)} on ${prettyDate(warning.firstTriggerDate)}`}
                     </Text>
                     {isOverdraft && topSavingsAccount && (
                       <View className="mt-1 pt-1 border-t border-border">
-                        <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                        <Text className="text-label" style={{ color: colors.textSecondary }}>
                           Recommendation: Transfer from <Text className="font-semibold" style={{ color: colors.text }}>{topSavingsAccount.label}</Text>
                         </Text>
                       </View>
@@ -572,7 +572,7 @@ export default function ScenarioDetailScreen() {
                 size={14}
                 color={colors.textSecondary}
               />
-              <Text className="ml-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+              <Text className="ml-1 text-label font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
                 Starting balance · Today
               </Text>
             </View>
@@ -610,7 +610,7 @@ export default function ScenarioDetailScreen() {
                   <View className="mt-1 mb-2">
                     <View className="flex-row items-center justify-between mb-1">
                       <Text
-                        className="text-[10px] font-semibold uppercase tracking-wider"
+                        className="text-label font-semibold uppercase tracking-wider"
                         style={{ color: sc.success }}
                       >
                         Money available
@@ -638,7 +638,7 @@ export default function ScenarioDetailScreen() {
                             <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
                               {a.label}
                             </Text>
-                            <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                            <Text className="text-label" style={{ color: colors.textSecondary }}>
                               {sublabel}
                             </Text>
                           </View>
@@ -656,7 +656,7 @@ export default function ScenarioDetailScreen() {
                             <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
                               {person?.name ?? "Hisaab person"}
                             </Text>
-                            <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                            <Text className="text-label" style={{ color: colors.textSecondary }}>
                               Hisaab · they owe you
                             </Text>
                           </View>
@@ -684,7 +684,7 @@ export default function ScenarioDetailScreen() {
                   <View className="mt-2 mb-1 pt-2 border-t border-border">
                     <View className="flex-row items-center justify-between mb-1">
                       <Text
-                        className="text-[10px] font-semibold uppercase tracking-wider"
+                        className="text-label font-semibold uppercase tracking-wider"
                         style={{ color: sc.danger }}
                       >
                         Money owed
@@ -699,7 +699,7 @@ export default function ScenarioDetailScreen() {
                           <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
                             {a.label}
                           </Text>
-                          <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                          <Text className="text-label" style={{ color: colors.textSecondary }}>
                             Credit card · utilized
                           </Text>
                         </View>
@@ -716,7 +716,7 @@ export default function ScenarioDetailScreen() {
                             <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
                               {person?.name ?? "Hisaab person"}
                             </Text>
-                            <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                            <Text className="text-label" style={{ color: colors.textSecondary }}>
                               Hisaab · you owe
                             </Text>
                           </View>
@@ -756,7 +756,7 @@ export default function ScenarioDetailScreen() {
                     {formatAmount(adjustedNetStart)}
                   </Text>
                 </View>
-                <Text className="text-[10px] mt-2" style={{ color: colors.textSecondary }}>
+                <Text className="text-label mt-2" style={{ color: colors.textSecondary }}>
                   Net = money available − money owed. Demat, pension, and loans are out of scope.
                 </Text>
               </View>
@@ -781,7 +781,7 @@ export default function ScenarioDetailScreen() {
                 size={14}
                 color={colors.textSecondary}
               />
-              <Text className="ml-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+              <Text className="ml-1 text-label font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
                 Remaining balance · {prettyDate(scenario.horizon_date)}
               </Text>
             </View>
@@ -822,7 +822,7 @@ export default function ScenarioDetailScreen() {
                     <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
                       {a.label}
                     </Text>
-                    <Text className="text-[10px] mt-0.5" style={{ color: rowDeltaColor }}>
+                    <Text className="text-label mt-0.5" style={{ color: rowDeltaColor }}>
                       {accountDelta >= 0 ? "+" : ""}{formatAmount(Math.round(accountDelta))}
                     </Text>
                   </View>
@@ -844,7 +844,7 @@ export default function ScenarioDetailScreen() {
                   <View className="mt-1 mb-2">
                     <View className="flex-row items-center justify-between mb-1">
                       <Text
-                        className="text-[10px] font-semibold uppercase tracking-wider"
+                        className="text-label font-semibold uppercase tracking-wider"
                         style={{ color: sc.success }}
                       >
                         Money available
@@ -865,7 +865,7 @@ export default function ScenarioDetailScreen() {
                   >
                     <View className="flex-row items-center justify-between mb-1">
                       <Text
-                        className="text-[10px] font-semibold uppercase tracking-wider"
+                        className="text-label font-semibold uppercase tracking-wider"
                         style={{ color: sc.danger }}
                       >
                         Money owed · Credit cards
@@ -1011,7 +1011,7 @@ export default function ScenarioDetailScreen() {
                         className="mt-1 px-1.5 py-0.5 rounded self-start"
                         style={{ backgroundColor: colors.border }}
                       >
-                        <Text className="text-[10px] font-semibold" style={{ color: colors.textSecondary }}>
+                        <Text className="text-label font-semibold" style={{ color: colors.textSecondary }}>
                           {m.kind === "highest_utilized" ? "Fullest" : "Lowest"} · {prettyDate(m.date)}
                         </Text>
                       </View>
@@ -1090,7 +1090,7 @@ export default function ScenarioDetailScreen() {
                       className="ml-2 px-1.5 py-0.5 rounded-full"
                       style={{ backgroundColor: colors.border }}
                     >
-                      <Text className="text-[10px] font-semibold" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label font-semibold" style={{ color: colors.textSecondary }}>
                         {outgoingEntries.length}
                       </Text>
                     </View>
@@ -1136,7 +1136,7 @@ export default function ScenarioDetailScreen() {
                       className="ml-2 px-1.5 py-0.5 rounded-full"
                       style={{ backgroundColor: colors.border }}
                     >
-                      <Text className="text-[10px] font-semibold" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label font-semibold" style={{ color: colors.textSecondary }}>
                         {incomingEntries.length}
                       </Text>
                     </View>
@@ -1166,15 +1166,15 @@ export default function ScenarioDetailScreen() {
             </Text>
             <View className="flex-row justify-between">
               <View>
-                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>Planned</Text>
+                <Text className="text-label" style={{ color: colors.textSecondary }}>Planned</Text>
                 <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(fulfilledSummary.totalPlanned)}</Text>
               </View>
               <View className="items-center">
-                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>Actual</Text>
+                <Text className="text-label" style={{ color: colors.textSecondary }}>Actual</Text>
                 <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(fulfilledSummary.totalActual)}</Text>
               </View>
               <View className="items-end">
-                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>Variance</Text>
+                <Text className="text-label" style={{ color: colors.textSecondary }}>Variance</Text>
                 <Text className="text-sm font-bold" style={{ color: fulfilledSummary.variance > 0 ? sc.danger : fulfilledSummary.variance < 0 ? sc.success : colors.textSecondary }}>
                   {fulfilledSummary.variance > 0 ? "+" : ""}{formatAmount(fulfilledSummary.variance)}
                 </Text>
@@ -1192,9 +1192,9 @@ export default function ScenarioDetailScreen() {
                     <Text className="text-xs flex-1" style={{ color: colors.text }} numberOfLines={1}>
                       {item.description || item.merchant_name || "Entry"}
                     </Text>
-                    <Text className="text-[10px] w-14 text-right" style={{ color: colors.textSecondary }}>{formatAmount(item.planned)}</Text>
-                    <Text className="text-[10px] w-14 text-right" style={{ color: colors.text }}>{formatAmount(item.actual)}</Text>
-                    <Text className="text-[10px] w-14 text-right" style={{ color: item.variance > 0 ? sc.danger : item.variance < 0 ? sc.success : colors.textSecondary }}>
+                    <Text className="text-label w-14 text-right" style={{ color: colors.textSecondary }}>{formatAmount(item.planned)}</Text>
+                    <Text className="text-label w-14 text-right" style={{ color: colors.text }}>{formatAmount(item.actual)}</Text>
+                    <Text className="text-label w-14 text-right" style={{ color: item.variance > 0 ? sc.danger : item.variance < 0 ? sc.success : colors.textSecondary }}>
                       {item.variance > 0 ? "+" : ""}{formatAmount(item.variance)}
                     </Text>
                   </View>
@@ -1285,7 +1285,7 @@ export default function ScenarioDetailScreen() {
                             <Text className="text-xs" style={{ color: colors.text }} numberOfLines={1}>
                               {f.merchant_name || f.description || "Transaction"}
                             </Text>
-                            <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                            <Text className="text-label" style={{ color: colors.textSecondary }}>
                               {prettyDate(f.date)}
                             </Text>
                           </View>
@@ -1487,7 +1487,7 @@ function EntryGroup({
             className="ml-2 px-1.5 py-0.5 rounded-full"
             style={{ backgroundColor: colors.border }}
           >
-            <Text className="text-[10px] font-semibold" style={{ color: colors.textSecondary }}>
+            <Text className="text-label font-semibold" style={{ color: colors.textSecondary }}>
               {items.length}
             </Text>
           </View>
@@ -1569,15 +1569,15 @@ function EntryGroup({
               {/* Sublabel priority: hisaab → account + date. */}
               <View className="flex-row items-center mt-0.5 flex-wrap">
                 {hisaabLabel && titleOverride == null ? (
-                  <Text className="text-[10px]" style={{ color: accent[500] }} numberOfLines={1}>
+                  <Text className="text-label" style={{ color: accent[500] }} numberOfLines={1}>
                     {hisaabLabel}
                   </Text>
                 ) : acctLabel ? (
-                  <Text className="text-[10px]" style={{ color: colors.textSecondary }} numberOfLines={1}>
+                  <Text className="text-label" style={{ color: colors.textSecondary }} numberOfLines={1}>
                     {acctLabel}
                   </Text>
                 ) : null}
-                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                <Text className="text-label" style={{ color: colors.textSecondary }}>
                   {(hisaabLabel || acctLabel) ? "  ·  " : ""}{prettyDate(e.date)}
                 </Text>
               </View>

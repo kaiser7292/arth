@@ -330,13 +330,13 @@ function CategoryCard({
       {/* Column headers */}
       <View className="flex-row mb-1.5">
         <View className="flex-1" />
-        <Text className="w-20 text-[10px] font-semibold text-faint-foreground text-right">
+        <Text className="w-20 text-label font-semibold text-faint-foreground text-right">
           {prevLabel}
         </Text>
-        <Text className="w-20 text-[10px] font-semibold text-faint-foreground text-right">
+        <Text className="w-20 text-label font-semibold text-faint-foreground text-right">
           {currLabel}
         </Text>
-        <Text className="w-16 text-[10px] font-semibold text-faint-foreground text-right">
+        <Text className="w-16 text-label font-semibold text-faint-foreground text-right">
           Change
         </Text>
       </View>
@@ -379,11 +379,11 @@ function CategoryCard({
               : StatusColors[colorScheme].dangerBg,
           }}
         >
-          <Text className="text-[10px] text-muted-foreground">
+          <Text className="text-label text-muted-foreground">
             Plan vs Actual ({currLabel})
           </Text>
           <Text
-            className="text-[10px] font-bold"
+            className="text-label font-bold"
             style={{
               color: currGap.isGood
                 ? StatusColors[colorScheme].success
@@ -413,7 +413,7 @@ function ChangeBadge({ value, lowerIsBetter }: { value: number; lowerIsBetter: b
         style={{ backgroundColor: color + "14" }}
       >
         <Ionicons name={value > 0 ? "arrow-up" : "arrow-down"} size={8} color={color} />
-        <Text className="text-[10px] font-medium ml-0.5" style={{ color }}>
+        <Text className="text-label font-medium ml-0.5" style={{ color }}>
           {Math.abs(value)}%
         </Text>
       </View>

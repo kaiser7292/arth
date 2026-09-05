@@ -271,7 +271,7 @@ export function SimulatorPage() {
                           className="ml-2 px-2 py-0.5 rounded-full"
                           style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}
                         >
-                          <Text className="text-[9px] font-semibold" style={{ color: accent[500] }}>
+                          <Text className="text-label font-semibold" style={{ color: accent[500] }}>
                             DEFAULT
                           </Text>
                         </View>
@@ -294,7 +294,7 @@ export function SimulatorPage() {
                           style={{ backgroundColor: sc.danger + "14" }}
                         >
                           <Ionicons name="warning-outline" size={10} color={sc.danger} />
-                          <Text className="text-[9px] font-semibold ml-1" style={{ color: sc.danger }}>
+                          <Text className="text-label font-semibold ml-1" style={{ color: sc.danger }}>
                             {warnings.length} {warnings.length === 1 ? "issue" : "issues"}
                           </Text>
                         </View>
@@ -304,7 +304,7 @@ export function SimulatorPage() {
                     <View className="mt-4 flex-row items-end justify-between">
                       <View className="flex-1">
                         <Text
-                          className="text-[10px] font-semibold uppercase"
+                          className="text-label font-semibold uppercase"
                           style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
                           numberOfLines={1}
                         >
@@ -317,7 +317,7 @@ export function SimulatorPage() {
                       <Ionicons name="arrow-forward" size={14} color={colors.textSecondary} style={{ marginBottom: 2, marginHorizontal: 6 }} />
                       <View className="flex-1 items-end">
                         <Text
-                          className="text-[10px] font-semibold uppercase"
+                          className="text-label font-semibold uppercase"
                           style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
                           numberOfLines={1}
                         >
@@ -338,7 +338,7 @@ export function SimulatorPage() {
                           size={10}
                           color={deltaColor}
                         />
-                        <Text className="text-[10px] font-semibold ml-1" style={{ color: deltaColor }}>
+                        <Text className="text-label font-semibold ml-1" style={{ color: deltaColor }}>
                           {delta >= 0 ? "+" : ""}
                           {formatAmount(Math.round(delta))}
                         </Text>

@@ -22,7 +22,7 @@ function loadTokens() {
   throw new Error("tailwind.config.js: cannot locate constants/design-tokens.js from " + __dirname);
 }
 
-const { SEMANTIC, TYPE, RADIUS } = loadTokens();
+const { SEMANTIC, TYPE, SCALE_OVERRIDES, RADIUS } = loadTokens();
 
 /**
  * Maps a semantic role to a Tailwind colour backed by its CSS variable.
@@ -46,7 +46,8 @@ module.exports = {
         sheet: RADIUS.sheet,
       },
 
-      fontSize: TYPE,
+      // SCALE_OVERRIDES last: it deliberately redefines Tailwind's own xs/sm steps.
+      fontSize: { ...TYPE, ...SCALE_OVERRIDES },
 
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

@@ -71,7 +71,7 @@ export function YoYComparisonRow({
               className="ml-2 rounded-full px-2 py-0.5"
               style={{ backgroundColor: statusColors.warning + "22" }}
             >
-              <Text className="text-[10px] font-semibold" style={{ color: statusColors.warning }}>
+              <Text className="text-label font-semibold" style={{ color: statusColors.warning }}>
                 NEW THIS YEAR
               </Text>
             </View>
@@ -105,7 +105,7 @@ export function YoYComparisonRow({
       <View className="gap-1.5">
         {/* This year */}
         <View className="flex-row items-center">
-          <Text className="text-[10px] font-medium text-faint-foreground w-16">
+          <Text className="text-label font-medium text-faint-foreground w-16">
             This yr
           </Text>
           <View className="flex-1 h-4 rounded-md bg-card overflow-hidden mr-2">
@@ -124,7 +124,7 @@ export function YoYComparisonRow({
 
         {/* Last year */}
         <View className="flex-row items-center">
-          <Text className="text-[10px] font-medium text-faint-foreground w-16">
+          <Text className="text-label font-medium text-faint-foreground w-16">
             Last yr
           </Text>
           <View className="flex-1 h-4 rounded-md bg-card overflow-hidden mr-2">
@@ -144,11 +144,11 @@ export function YoYComparisonRow({
 
       {/* Footer: delta ₹ + transaction count */}
       <View className="flex-row items-center justify-between mt-1.5 ml-16">
-        <Text className="text-[11px] text-faint-foreground">
+        <Text className="text-label text-faint-foreground">
           {count} {count === 1 ? "transaction" : "transactions"} this year
         </Text>
         {!isNew && (
-          <Text className="text-[11px] font-semibold" style={{ color: deltaColor }}>
+          <Text className="text-label font-semibold" style={{ color: deltaColor }}>
             {grew ? "+" : "−"}
             {formatAmount(Math.abs(deltaAmount))} vs last yr
           </Text>

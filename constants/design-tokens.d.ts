@@ -25,6 +25,7 @@ export type Scheme = "light" | "dark";
 export declare const teal: Ramp;
 export declare const SEMANTIC: Record<Scheme, Record<SemanticRole, Channels>>;
 export declare const TYPE: Record<string, [string, Record<string, string>]>;
+export declare const SCALE_OVERRIDES: Record<string, [string, Record<string, string>]>;
 export declare const RADIUS: { control: string; card: string; sheet: string };
 export declare const MOTION: { fast: number; base: number; slow: number; easing: string };
 export declare const DATA: {

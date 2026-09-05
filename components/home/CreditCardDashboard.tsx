@@ -141,7 +141,7 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
                   }}
                 />
               </View>
-              <Text className="text-[10px] mt-0.5" style={{ color: overallUtilColor }}>
+              <Text className="text-label mt-0.5" style={{ color: overallUtilColor }}>
                 {Math.round(overallUtil)}% used
               </Text>
             </View>

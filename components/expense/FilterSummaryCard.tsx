@@ -127,7 +127,7 @@ export function FilterSummaryCard({
               </View>
             )}
 
-            <Text className="text-[11px] font-semibold tracking-wider uppercase text-muted-foreground mb-2">
+            <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-2">
               By {groupLabelHeader}
             </Text>
 
@@ -156,7 +156,7 @@ export function FilterSummaryCard({
                         }}
                       />
                     </View>
-                    <Text className="text-[11px] text-muted-foreground ml-2 w-10 text-right">
+                    <Text className="text-label text-muted-foreground ml-2 w-10 text-right">
                       {pct.toFixed(0)}%
                     </Text>
                   </View>
