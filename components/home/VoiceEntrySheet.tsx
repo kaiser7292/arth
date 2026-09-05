@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Text } from "@/components/ui";
+import { Sheet, Text } from "@/components/ui";
 import { Animated, Pressable, View } from "react-native";
-import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Ionicons } from "@expo/vector-icons";
 import * as Speech from "expo-speech";
 import * as Haptics from "expo-haptics";
@@ -607,7 +606,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   // Transfer success screen
   if (transferDone) {
     return (
-      <BottomSheet visible={visible} onClose={handleCancel} maxHeightPct={40}>
+      <Sheet visible={visible} onClose={handleCancel} maxHeightPct={40}>
         <View className="flex-1 items-center justify-center px-6 py-12">
           <Ionicons name="checkmark-circle" size={56} color={accentColor} />
           <Text className="text-lg font-bold text-foreground mt-4">Transfer saved</Text>
@@ -617,12 +616,12 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
             </Text>
           )}
         </View>
-      </BottomSheet>
+      </Sheet>
     );
   }
 
   return (
-    <BottomSheet visible={visible} onClose={handleCancel} maxHeightPct={70}>
+    <Sheet visible={visible} onClose={handleCancel} maxHeightPct={70}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pt-5 pb-3">
         <Text className="text-lg font-bold text-foreground">
@@ -761,6 +760,6 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
           </Text>
         </Pressable>
       </View>
-    </BottomSheet>
+    </Sheet>
   );
 }

@@ -1,3 +1,4 @@
+import { restoreExpense } from "@/services/expense-crud";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { isNLSearchEnabled } from "@/services/ai-assistant";
 import { parseNLQuery } from "@/utils/nl-search";
@@ -8,7 +9,7 @@ import {
 import { View, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, Input, ScreenContainer, SwipePager, Text } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, Input, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -102,6 +103,7 @@ export default function ExpensesScreen() {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
+  const toast = useToast();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
@@ -421,6 +423,22 @@ export default function ExpensesScreen() {
                     }
                   : prev,
               );
+
+              // The delete is soft, so it is recoverable - but until now the only way back was to
+              // find the Recycle Bin in Settings. A split expense is excluded: restoring one has to
+              // put the hisaab entry back too, which restoreExpense does not do.
+              if (!isSplit) {
+                toast(`Deleted "${desc}"`, {
+                  actionLabel: "Undo",
+                  onAction: async () => {
+                    await restoreExpense(expense.id);
+                    lastVersionRef.current = null;
+                    await loadExpenses(true);
+                  },
+                });
+              } else {
+                toast(`Deleted "${desc}"`);
+              }
             },
           },
         ],
@@ -1349,13 +1367,15 @@ export default function ExpensesScreen() {
                     ) : null
                   }
                   ListEmptyComponent={
-                    !loading ? (
+                    loading ? (
+                      <SkeletonList rows={5} />
+                    ) : (
                       <EmptyState
                         icon="swap-horizontal-outline"
                         title="No transfers yet"
                         subtitle="Transfers between accounts will appear here"
                       />
-                    ) : null
+                    )
                   }
                 />
               ) : (
@@ -1407,7 +1427,7 @@ export default function ExpensesScreen() {
                     ) : null
                   }
                   ListEmptyComponent={
-                    !loading ? (() => {
+                    loading ? <SkeletonList rows={7} /> : (() => {
                       const isCreditView = filterNature === "credit";
                       const emptyIcon = isCreditView ? "arrow-down-circle-outline" : "receipt-outline";
                       const emptyTitle = hasActiveFilters
@@ -1419,14 +1439,13 @@ export default function ExpensesScreen() {
                           ? "Credits appear here when an incoming SMS is parsed"
                           : "Tap + to add your first expense";
                       return <EmptyState icon={emptyIcon} title={emptyTitle} subtitle={emptySubtitle} />;
-                    })() : null
+                    })()
                   }
                   ListFooterComponent={
-                    loading ? (
-                      <View className="py-4 items-center">
-                        <Text className="text-sm text-muted-foreground">
-                          Loading expenses...
-                        </Text>
+                    // Only while paginating: the empty state already covers the first load.
+                    loading && expenses.length > 0 ? (
+                      <View className="px-4 py-2">
+                        <SkeletonList rows={2} />
                       </View>
                     ) : null
                   }

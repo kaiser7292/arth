@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 
 import { Text } from "./Text";
-import { BottomSheet } from "./BottomSheet";
+import { Sheet } from "./Sheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -37,7 +37,7 @@ export function ConfirmSheet({
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} maxHeightPct={45}>
+    <Sheet visible={visible} onClose={onClose} maxHeightPct={45}>
       <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 }}>
         <Text className="text-lg font-bold text-foreground mb-1">
           {title}
@@ -73,6 +73,6 @@ export function ConfirmSheet({
           </Pressable>
         </View>
       </View>
-    </BottomSheet>
+    </Sheet>
   );
 }

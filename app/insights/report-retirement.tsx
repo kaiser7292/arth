@@ -1,10 +1,9 @@
 import { useState } from "react";
 
 import { View, ScrollView, Pressable, Alert, TextInput } from "react-native";
-import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, SectionHeader, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -896,7 +895,7 @@ export default function RetirementReportScreen() {
         ];
 
         return (
-          <BottomSheet visible={showScoreInfo} onClose={() => setShowScoreInfo(false)}>
+          <Sheet visible={showScoreInfo} onClose={() => setShowScoreInfo(false)}>
             <View className="px-5 pb-4">
               <Text className="text-base font-bold text-foreground mb-1">
                 Readiness Score Breakdown
@@ -950,7 +949,7 @@ export default function RetirementReportScreen() {
                 ))}
               </View>
             </View>
-          </BottomSheet>
+          </Sheet>
         );
       })()}
     </ScreenContainer>

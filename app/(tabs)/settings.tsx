@@ -1,6 +1,5 @@
-import { Card, ContextualHeader, DateInput, LearnMoreChip, ScreenContainer, Text } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, LearnMoreChip, ScreenContainer, Sheet, Text } from "@/components/ui";
 
-import { BottomSheet } from "@/components/ui/BottomSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
 import { useAlert } from "@/hooks/use-alert";
@@ -866,7 +865,7 @@ export default function SettingsScreen() {
       </ScrollView>
 
       {/* Account Picker Bottom Sheet */}
-      <BottomSheet visible={showAccountPicker} onClose={() => setShowAccountPicker(false)}>
+      <Sheet visible={showAccountPicker} onClose={() => setShowAccountPicker(false)}>
         <View className="px-4 pb-4">
           <View className="flex-row items-center justify-between mb-4">
             <Text className="text-lg font-semibold text-foreground">
@@ -950,7 +949,7 @@ export default function SettingsScreen() {
             <Text className="text-sm font-medium text-primary-foreground">Done</Text>
           </Pressable>
         </View>
-      </BottomSheet>
+      </Sheet>
     </ScreenContainer>
   );
 }

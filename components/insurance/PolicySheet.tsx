@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView, Pressable, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomSheet } from "@/components/ui/BottomSheet";
-import { DateInput, Input, Text } from "@/components/ui";
+import { DateInput, Input, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 
@@ -145,7 +144,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pb-2">
         <Text className="text-base font-bold text-foreground">
@@ -322,6 +321,6 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
           </Text>
         </Pressable>
       </View>
-    </BottomSheet>
+    </Sheet>
   );
 }

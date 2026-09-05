@@ -4,6 +4,7 @@ import { Text } from "@/components/ui";
 import { ALLOWED_DEEP_LINK_SCREENS } from "@/constants/routes";
 import { initDatabase } from "@/database";
 import { AlertProvider } from "@/hooks/use-alert";
+import { ToastProvider } from "@/components/ui";
 import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
 import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
@@ -487,6 +488,7 @@ export default function RootLayout(): React.JSX.Element {
     <ErrorBoundary>
     <AlertProvider>
     <GestureHandlerRootView style={{ flex: 1 }}>
+    <ToastProvider>
     <>
       <StatusBar style="auto" />
       <Stack>
@@ -555,6 +557,7 @@ export default function RootLayout(): React.JSX.Element {
         />
       </Stack>
     </>
+    </ToastProvider>
     </GestureHandlerRootView>
     </AlertProvider>
     </ErrorBoundary>

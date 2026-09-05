@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator, Switch, TextInput } from "react-native";
-import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { DateInput, ScreenContainer, Text } from "@/components/ui";
+import { DateInput, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -1225,7 +1224,7 @@ export default function SmartRuleDetailScreen() {
         </View>
       </ScrollView>
       {/* Retroactive apply sheet */}
-      <BottomSheet visible={showRetroSheet} onClose={() => setShowRetroSheet(false)}>
+      <Sheet visible={showRetroSheet} onClose={() => setShowRetroSheet(false)}>
         <View className="px-4 pb-6">
           <View className="flex-row items-center justify-between mb-4">
             <Text className="text-lg font-semibold text-foreground">
@@ -1393,7 +1392,7 @@ export default function SmartRuleDetailScreen() {
             </View>
           )}
         </View>
-      </BottomSheet>
+      </Sheet>
     </ScreenContainer>
   );
 }
