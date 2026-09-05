@@ -3,7 +3,7 @@ import { View, FlatList, Pressable, TextInput } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, Card, FAB, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, EmptyState, FAB, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -262,15 +262,11 @@ export default function TagsSettingsScreen() {
         renderItem={renderTag}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
         ListEmptyComponent={
-          <View className="items-center py-16">
-            <Ionicons name="pricetags-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-foreground mt-4">
-              No tags yet
-            </Text>
-            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
-              Tags let you label expenses (e.g. "work trip", "birthday", "tax deductible"). Create one to get started.
-            </Text>
-          </View>
+          <EmptyState
+            icon="pricetags-outline"
+            title={"No tags yet"}
+            subtitle={"Tags let you label expenses (e.g. \"work trip\", \"birthday\", \"tax deductible\"). Create one to get started."}
+          />
         }
       />
 

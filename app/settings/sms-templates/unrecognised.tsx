@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, TextInput } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { EmptyState, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -236,21 +236,15 @@ export default function UnrecognisedSmsScreen() {
               </Card>
             )}
             ListEmptyComponent={
-              <View className="items-center justify-center mt-16 px-8">
-                <Ionicons
-                  name={query ? "search-outline" : "checkmark-done-circle-outline"}
-                  size={48}
-                  color={colors.textSecondary}
-                />
-                <Text className="text-lg font-medium text-foreground mt-4">
-                  {query ? "No matches" : "All SMS were recognised"}
-                </Text>
-                <Text className="text-sm text-faint-foreground text-center mt-2">
-                  {query
+              <EmptyState
+                icon={query ? "search-outline" : "checkmark-done-circle-outline"}
+                title={query ? "No matches" : "All SMS were recognised"}
+                subtitle={
+                  query
                     ? "Try a different search term, or clear the search."
-                    : "Every bank SMS from the last 30 days either became an expense or was intentionally skipped (OTPs, balance enquiries)."}
-                </Text>
-              </View>
+                    : "Every bank SMS from the last 30 days either became an expense or was intentionally skipped (OTPs, balance enquiries)."
+                }
+              />
             }
           />
         )}

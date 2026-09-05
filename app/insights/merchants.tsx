@@ -4,7 +4,7 @@ import { View, Pressable, FlatList } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Card, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getMerchantAnalytics, getMerchantDetail } from "@/services/spending-insights";
 import { getCategories } from "@/services/category";
@@ -258,15 +258,11 @@ export default function MerchantAnalyticsScreen() {
           );
         }}
         ListEmptyComponent={
-          <View className="items-center py-16">
-            <Ionicons name="storefront-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-foreground mt-4">
-              No merchant data
-            </Text>
-            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
-              Add expenses with descriptions to see merchant analytics.
-            </Text>
-          </View>
+          <EmptyState
+            icon="storefront-outline"
+            title={"No merchant data"}
+            subtitle={"Add expenses with descriptions to see merchant analytics."}
+          />
         }
       />
     </ScreenContainer>

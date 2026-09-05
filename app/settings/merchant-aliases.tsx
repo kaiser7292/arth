@@ -3,7 +3,7 @@ import { View, FlatList, Pressable, TextInput, KeyboardAvoidingView, Keyboard } 
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, Card, FAB, LearnMoreChip, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, EmptyState, FAB, LearnMoreChip, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -401,15 +401,11 @@ export default function MerchantAliasesScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: showAdd ? 320 : 80 }}
           ListEmptyComponent={
-            <View className="items-center py-16">
-              <Ionicons name="swap-horizontal-outline" size={48} color={colors.textSecondary} />
-              <Text className="text-lg font-medium text-foreground mt-4">
-                No aliases yet
-              </Text>
-              <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
-                Aliases are auto-created when you scan SMS. You can also add them manually.
-              </Text>
-            </View>
+            <EmptyState
+              icon="swap-horizontal-outline"
+              title={"No aliases yet"}
+              subtitle={"Aliases are auto-created when you scan SMS. You can also add them manually."}
+            />
           }
         />
 

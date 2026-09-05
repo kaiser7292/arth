@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { View, Pressable, FlatList, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { EmptyState, FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -299,19 +299,11 @@ export default function SmartSmsTemplatesListScreen() {
               );
             }}
             ListEmptyComponent={
-              <View className="items-center justify-center mt-16 px-8">
-                <Ionicons
-                  name="construct-outline"
-                  size={48}
-                  color={colors.textSecondary}
-                />
-                <Text className="text-lg font-medium text-foreground mt-4">
-                  No templates yet
-                </Text>
-                <Text className="text-sm text-faint-foreground text-center mt-2">
-                  If your bank's SMS isn't being detected, tap the button below to teach Arth how to read it.
-                </Text>
-              </View>
+              <EmptyState
+                icon="construct-outline"
+                title={"No templates yet"}
+                subtitle={"If your bank's SMS isn't being detected, tap the button below to teach Arth how to read it."}
+              />
             }
           />
         )}
