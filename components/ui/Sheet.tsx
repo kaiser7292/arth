@@ -156,6 +156,11 @@ export function Sheet({
                   borderTopLeftRadius: 20,
                   borderTopRightRadius: 20,
                   maxHeight: `${maxHeightPct}%`,
+                  // Safe-area pad belongs on the PANEL, not on a wrapper around the children.
+                  // The hand-rolled sheets did it this way, and it matters: an extra non-flex View
+                  // between a height-capped panel and content that ends in a pinned action row
+                  // lets that row overflow past the panel and get clipped.
+                  paddingBottom: insets.bottom + 4,
                 },
               ]}
             >
@@ -165,7 +170,7 @@ export function Sheet({
                   style={{ backgroundColor: theme.border }}
                 />
               </View>
-              <View style={{ paddingBottom: insets.bottom + 4 }}>{children}</View>
+              {children}
             </Animated.View>
           </GestureDetector>
         </KeyboardAvoidingView>
