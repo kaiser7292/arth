@@ -6,25 +6,18 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { Text } from "@/components/ui";
+import { Sheet, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { View, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Pressable,  ScrollView, TextInput,  Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
 import { getPersonsWithBalances, createPerson } from "@/services/hisaab";
 import { computeSplitAmounts } from "@/services/expense";
 import type { HisaabPersonWithBalance } from "@/services/hisaab";
 import type { SplitConfig, SplitMode } from "@/services/expense";
 import { formatAmount } from "@/utils/format";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-
 
 import { useTheme } from "@/hooks/use-theme";
 
@@ -68,25 +61,13 @@ export function SplitSheet({
 
   const { colors } = useColorScheme();
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
 
   // Animation
-  const slideAnim = useSharedValue(0);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: (1 - slideAnim.value) * 600 }],
-    opacity: slideAnim.value,
-  }));
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: slideAnim.value * 0.5,
-  }));
 
   // Load persons + reset state on open
   useEffect(() => {
     if (visible) {
       getPersonsWithBalances(DEFAULT_USER_ID).then(setPersons);
-      slideAnim.value = withTiming(1, { duration: 250 });
 
       // Skip steps if locked mode or preselected person
       if (lockedMode) {
@@ -104,16 +85,12 @@ export function SplitSheet({
       setPercentage("50");
       setShowAddPerson(false);
       setNewPersonName("");
-    } else {
-      slideAnim.value = withTiming(0, { duration: 200 });
     }
-  }, [visible, lockedMode, preselectedPersonId, slideAnim]);
+  }, [visible, lockedMode, preselectedPersonId]);
 
   const handleClose = useCallback(() => {
-    slideAnim.value = withTiming(0, { duration: 200 }, (finished) => {
-      if (finished) runOnJS(onClose)();
-    });
-  }, [slideAnim, onClose]);
+    onClose();
+  }, [onClose]);
 
   const handleConfirm = useCallback(() => {
     if (!selectedPersonId) return;
@@ -166,406 +143,386 @@ export function SplitSheet({
       })
     : null;
 
-
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        {/* Backdrop */}
-        <Pressable onPress={handleClose} className="flex-1">
-          <Animated.View
-            style={backdropStyle}
-            className="flex-1 bg-black"
-          />
+    <Sheet visible={visible} onClose={handleClose}>
+      {/* Handle */}
+      <View className="items-center mb-4">
+        <View className="w-10 h-1 rounded-full bg-border" />
+      </View>
+
+      {/* Header */}
+      <View className="flex-row items-center justify-between mb-5">
+        <Text className="text-lg font-bold text-foreground">
+          {step === "paidBy" && "Who paid?"}
+          {step === "mode" && "How to split?"}
+          {step === "person" && "With whom?"}
+          {step === "preview" && "Split Preview"}
+        </Text>
+        <Pressable onPress={handleClose} className="p-1">
+          <Ionicons name="close" size={22} color={colors.textSecondary} />
         </Pressable>
+      </View>
 
-        {/* Sheet */}
-        <Animated.View
-          style={[animatedStyle, { paddingBottom: Math.max(insets.bottom, 8) }]}
-          className="bg-card rounded-t-3xl px-5 pt-3"
-        >
-          {/* Handle */}
-          <View className="items-center mb-4">
-            <View className="w-10 h-1 rounded-full bg-border" />
-          </View>
-
-          {/* Header */}
-          <View className="flex-row items-center justify-between mb-5">
-            <Text className="text-lg font-bold text-foreground">
-              {step === "paidBy" && "Who paid?"}
-              {step === "mode" && "How to split?"}
-              {step === "person" && "With whom?"}
-              {step === "preview" && "Split Preview"}
-            </Text>
-            <Pressable onPress={handleClose} className="p-1">
-              <Ionicons name="close" size={22} color={colors.textSecondary} />
+      <ScrollView showsVerticalScrollIndicator={false} className="max-h-96">
+        {/* ──── Step 1: Who Paid? ──── */}
+        {step === "paidBy" && (
+          <View className="gap-3">
+            <Pressable
+              onPress={() => {
+                setPaidBy("me");
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setStep("mode");
+              }}
+              className={`flex-row items-center p-4 rounded-xl border ${
+                paidBy === "me"
+                  ? ""
+                  : "border-border"
+              }`}
+              style={paidBy === "me" ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
+            >
+              <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                <Ionicons name="person" size={20} color={theme.primary} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-base font-semibold text-foreground">
+                  I paid
+                </Text>
+                <Text className="text-xs text-muted-foreground">
+                  I paid {formatAmount(totalAmount)} and want to split
+                </Text>
+              </View>
             </Pressable>
-          </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} className="max-h-96">
-            {/* ──── Step 1: Who Paid? ──── */}
-            {step === "paidBy" && (
-              <View className="gap-3">
+            {persons.map((person) => (
+              <Pressable
+                key={person.id}
+                onPress={() => {
+                  setPaidBy(person.id);
+                  setSelectedPersonId(person.id);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setStep("mode");
+                }}
+                className="flex-row items-center p-4 rounded-xl border border-border"
+              >
+                <View className="w-10 h-10 rounded-full bg-background items-center justify-center mr-3">
+                  <Text className="text-base font-bold text-muted-foreground">
+                    {person.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-semibold text-foreground">
+                    {person.name} paid
+                  </Text>
+                  <Text className="text-xs text-muted-foreground">
+                    {person.name} paid and I owe my share
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* ──── Step 2: How to Split? ──── */}
+        {step === "mode" && (
+          <View className="gap-2">
+            {SPLIT_MODES.filter((m) => {
+              // Hide irrelevant modes based on who paid
+              if (paidBy === "me") return m.mode !== "i_owe_full";
+              return m.mode !== "they_owe_full";
+            }).map((item) => (
+              <Pressable
+                key={item.mode}
+                onPress={() => {
+                  setSplitMode(item.mode);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (item.mode === "exact" || item.mode === "percentage") {
+                    // Need amount input — stay on mode step with input
+                  }
+                  if (selectedPersonId) {
+                    setStep("preview");
+                  } else {
+                    setStep("person");
+                  }
+                }}
+                className={`flex-row items-center p-4 rounded-xl border ${
+                  splitMode === item.mode
+                    ? ""
+                    : "border-border"
+                }`}
+                style={splitMode === item.mode ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
+              >
+                <View className="w-9 h-9 rounded-lg bg-background items-center justify-center mr-3">
+                  <Ionicons
+                    name={item.icon as keyof typeof Ionicons.glyphMap}
+                    size={18}
+                    color={colors.textSecondary}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-foreground">
+                    {item.label}
+                  </Text>
+                  <Text className="text-xs text-muted-foreground">
+                    {item.description}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* ──── Step 3: Pick Person ──── */}
+        {step === "person" && (
+          <View className="gap-3">
+            {persons.length === 0 && !showAddPerson && (
+              <View className="items-center py-6">
+                <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
+                <Text className="text-sm text-muted-foreground mt-2 text-center">
+                  No people in your family ledger yet.
+                </Text>
+              </View>
+            )}
+
+            {persons
+              .filter((p) => paidBy !== p.id) // Don't show the payer as a split option
+              .map((person) => (
                 <Pressable
-                  onPress={() => {
-                    setPaidBy("me");
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setStep("mode");
-                  }}
+                  key={person.id}
+                  onPress={() => selectPerson(person.id)}
                   className={`flex-row items-center p-4 rounded-xl border ${
-                    paidBy === "me"
+                    selectedPersonId === person.id
                       ? ""
                       : "border-border"
                   }`}
-                  style={paidBy === "me" ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
+                  style={selectedPersonId === person.id ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="person" size={20} color={theme.primary} />
+                  <View className="w-10 h-10 rounded-full bg-background items-center justify-center mr-3">
+                    <Text className="text-base font-bold text-muted-foreground">
+                      {person.name.charAt(0).toUpperCase()}
+                    </Text>
                   </View>
                   <View className="flex-1">
-                    <Text className="text-base font-semibold text-foreground">
-                      I paid
+                    <Text className="text-sm font-semibold text-foreground">
+                      {person.name}
                     </Text>
                     <Text className="text-xs text-muted-foreground">
-                      I paid {formatAmount(totalAmount)} and want to split
+                      Balance: {formatAmount(Math.abs(person.balance))}{" "}
+                      {person.balance > 0 ? "owes you" : person.balance < 0 ? "you owe" : "settled"}
                     </Text>
                   </View>
                 </Pressable>
+              ))}
 
-                {persons.map((person) => (
-                  <Pressable
-                    key={person.id}
-                    onPress={() => {
-                      setPaidBy(person.id);
-                      setSelectedPersonId(person.id);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setStep("mode");
-                    }}
-                    className="flex-row items-center p-4 rounded-xl border border-border"
-                  >
-                    <View className="w-10 h-10 rounded-full bg-background items-center justify-center mr-3">
-                      <Text className="text-base font-bold text-muted-foreground">
-                        {person.name.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-base font-semibold text-foreground">
-                        {person.name} paid
-                      </Text>
-                      <Text className="text-xs text-muted-foreground">
-                        {person.name} paid and I owe my share
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
+            {/* Add new person */}
+            {showAddPerson ? (
+              <View className="flex-row items-center gap-2">
+                <TextInput
+                  className="flex-1 border border-border rounded-xl px-4 py-3 text-foreground"
+                  placeholder="Person name"
+                  placeholderTextColor={colors.tabIconDefault}
+                  value={newPersonName}
+                  onChangeText={setNewPersonName}
+                  autoFocus
+                />
+                <Pressable
+                  onPress={handleAddPerson}
+                  className="rounded-xl px-4 py-3"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  <Text className="text-primary-foreground font-semibold">Add</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => setShowAddPerson(true)}
+                className="flex-row items-center p-4 rounded-xl border border-dashed"
+                style={{ borderColor: theme.alpha("primary", 0.25) }}
+              >
+                <Ionicons name="add-circle-outline" size={20} color={theme.primary} />
+                <Text className="text-sm font-medium ml-2" style={{ color: theme.primary }}>
+                  Add new person
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {/* ──── Step 4: Preview ──── */}
+        {step === "preview" && preview && (
+          <View className="gap-4">
+            {/* Exact amount / percentage input */}
+            {splitMode === "exact" && (
+              <View>
+                <Text className="text-xs font-medium text-muted-foreground mb-1">
+                  {paidBy === "me" ? "How much do they owe?" : "How much do you owe?"}
+                </Text>
+                <TextInput
+                  className="border border-border rounded-xl px-4 py-3 text-foreground text-lg"
+                  placeholder="0"
+                  placeholderTextColor={colors.tabIconDefault}
+                  keyboardType="decimal-pad"
+                  value={exactAmount}
+                  onChangeText={setExactAmount}
+                />
               </View>
             )}
-
-            {/* ──── Step 2: How to Split? ──── */}
-            {step === "mode" && (
-              <View className="gap-2">
-                {SPLIT_MODES.filter((m) => {
-                  // Hide irrelevant modes based on who paid
-                  if (paidBy === "me") return m.mode !== "i_owe_full";
-                  return m.mode !== "they_owe_full";
-                }).map((item) => (
-                  <Pressable
-                    key={item.mode}
-                    onPress={() => {
-                      setSplitMode(item.mode);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      if (item.mode === "exact" || item.mode === "percentage") {
-                        // Need amount input — stay on mode step with input
-                      }
-                      if (selectedPersonId) {
-                        setStep("preview");
-                      } else {
-                        setStep("person");
-                      }
-                    }}
-                    className={`flex-row items-center p-4 rounded-xl border ${
-                      splitMode === item.mode
-                        ? ""
-                        : "border-border"
-                    }`}
-                    style={splitMode === item.mode ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
-                  >
-                    <View className="w-9 h-9 rounded-lg bg-background items-center justify-center mr-3">
-                      <Ionicons
-                        name={item.icon as keyof typeof Ionicons.glyphMap}
-                        size={18}
-                        color={colors.textSecondary}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-sm font-semibold text-foreground">
-                        {item.label}
-                      </Text>
-                      <Text className="text-xs text-muted-foreground">
-                        {item.description}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-
-            {/* ──── Step 3: Pick Person ──── */}
-            {step === "person" && (
-              <View className="gap-3">
-                {persons.length === 0 && !showAddPerson && (
-                  <View className="items-center py-6">
-                    <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
-                    <Text className="text-sm text-muted-foreground mt-2 text-center">
-                      No people in your family ledger yet.
-                    </Text>
-                  </View>
-                )}
-
-                {persons
-                  .filter((p) => paidBy !== p.id) // Don't show the payer as a split option
-                  .map((person) => (
+            {splitMode === "percentage" && (
+              <View>
+                <Text className="text-xs font-medium text-muted-foreground mb-1">
+                  {paidBy === "me" ? "Their share %" : "Your share %"}
+                </Text>
+                <View className="flex-row items-center gap-2">
+                  {["25", "50", "75"].map((pct) => (
                     <Pressable
-                      key={person.id}
-                      onPress={() => selectPerson(person.id)}
-                      className={`flex-row items-center p-4 rounded-xl border ${
-                        selectedPersonId === person.id
+                      key={pct}
+                      onPress={() => setPercentage(pct)}
+                      className={`flex-1 items-center py-2 rounded-lg ${
+                        percentage === pct
                           ? ""
-                          : "border-border"
+                          : "bg-background"
                       }`}
-                      style={selectedPersonId === person.id ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
+                      style={percentage === pct ? { backgroundColor: theme.primary } : undefined}
                     >
-                      <View className="w-10 h-10 rounded-full bg-background items-center justify-center mr-3">
-                        <Text className="text-base font-bold text-muted-foreground">
-                          {person.name.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-sm font-semibold text-foreground">
-                          {person.name}
-                        </Text>
-                        <Text className="text-xs text-muted-foreground">
-                          Balance: {formatAmount(Math.abs(person.balance))}{" "}
-                          {person.balance > 0 ? "owes you" : person.balance < 0 ? "you owe" : "settled"}
-                        </Text>
-                      </View>
+                      <Text
+                        className={`text-sm font-semibold ${
+                          percentage === pct
+                            ? "text-primary-foreground"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {pct}%
+                      </Text>
                     </Pressable>
                   ))}
-
-                {/* Add new person */}
-                {showAddPerson ? (
-                  <View className="flex-row items-center gap-2">
-                    <TextInput
-                      className="flex-1 border border-border rounded-xl px-4 py-3 text-foreground"
-                      placeholder="Person name"
-                      placeholderTextColor={colors.tabIconDefault}
-                      value={newPersonName}
-                      onChangeText={setNewPersonName}
-                      autoFocus
-                    />
-                    <Pressable
-                      onPress={handleAddPerson}
-                      className="rounded-xl px-4 py-3"
-                      style={{ backgroundColor: theme.primary }}
-                    >
-                      <Text className="text-primary-foreground font-semibold">Add</Text>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <Pressable
-                    onPress={() => setShowAddPerson(true)}
-                    className="flex-row items-center p-4 rounded-xl border border-dashed"
-                    style={{ borderColor: theme.alpha("primary", 0.25) }}
-                  >
-                    <Ionicons name="add-circle-outline" size={20} color={theme.primary} />
-                    <Text className="text-sm font-medium ml-2" style={{ color: theme.primary }}>
-                      Add new person
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-            )}
-
-            {/* ──── Step 4: Preview ──── */}
-            {step === "preview" && preview && (
-              <View className="gap-4">
-                {/* Exact amount / percentage input */}
-                {splitMode === "exact" && (
-                  <View>
-                    <Text className="text-xs font-medium text-muted-foreground mb-1">
-                      {paidBy === "me" ? "How much do they owe?" : "How much do you owe?"}
-                    </Text>
-                    <TextInput
-                      className="border border-border rounded-xl px-4 py-3 text-foreground text-lg"
-                      placeholder="0"
-                      placeholderTextColor={colors.tabIconDefault}
-                      keyboardType="decimal-pad"
-                      value={exactAmount}
-                      onChangeText={setExactAmount}
-                    />
-                  </View>
-                )}
-                {splitMode === "percentage" && (
-                  <View>
-                    <Text className="text-xs font-medium text-muted-foreground mb-1">
-                      {paidBy === "me" ? "Their share %" : "Your share %"}
-                    </Text>
-                    <View className="flex-row items-center gap-2">
-                      {["25", "50", "75"].map((pct) => (
-                        <Pressable
-                          key={pct}
-                          onPress={() => setPercentage(pct)}
-                          className={`flex-1 items-center py-2 rounded-lg ${
-                            percentage === pct
-                              ? ""
-                              : "bg-background"
-                          }`}
-                          style={percentage === pct ? { backgroundColor: theme.primary } : undefined}
-                        >
-                          <Text
-                            className={`text-sm font-semibold ${
-                              percentage === pct
-                                ? "text-primary-foreground"
-                                : "text-foreground"
-                            }`}
-                          >
-                            {pct}%
-                          </Text>
-                        </Pressable>
-                      ))}
-                      <TextInput
-                        className="flex-1 border border-border rounded-lg px-3 py-2 text-center text-foreground"
-                        placeholder="%"
-                        placeholderTextColor={colors.tabIconDefault}
-                        keyboardType="number-pad"
-                        value={percentage}
-                        onChangeText={(v) => {
-                          const num = parseInt(v, 10);
-                          if (!v) setPercentage("");
-                          else if (num >= 0 && num <= 100) setPercentage(String(num));
-                        }}
-                        maxLength={3}
-                      />
-                    </View>
-                  </View>
-                )}
-
-                {/* Summary card */}
-                <View className="bg-background rounded-2xl p-4 gap-3">
-                  <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
-                    Split Summary
-                  </Text>
-
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-sm text-muted-foreground">
-                      Total
-                    </Text>
-                    <Text className="text-sm font-semibold text-foreground">
-                      {formatAmount(totalAmount)}
-                    </Text>
-                  </View>
-
-                  <View className="h-px bg-border" />
-
-                  <View className="flex-row justify-between items-center">
-                    <View className="flex-row items-center">
-                      <View className="w-6 h-6 rounded-full items-center justify-center mr-2" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                        <Ionicons name="person" size={12} color={theme.primary} />
-                      </View>
-                      <Text className="text-sm text-foreground">
-                        My budget
-                      </Text>
-                    </View>
-                    <Text className="text-base font-bold" style={{ color: theme.primary }}>
-                      {formatAmount(preview.myBudgetAmount)}
-                    </Text>
-                  </View>
-
-                  <View className="flex-row justify-between items-center">
-                    <View className="flex-row items-center">
-                      <View className="w-6 h-6 rounded-full bg-warning/15 items-center justify-center mr-2">
-                        <Ionicons name="people" size={12} color={theme.warning} />
-                      </View>
-                      <Text className="text-sm text-foreground">
-                        {selectedPerson?.name ?? "Person"}
-                        {preview.hisaabType === "debit" ? " owes you" : " - you owe"}
-                      </Text>
-                    </View>
-                    <Text className="text-base font-bold text-warning">
-                      {formatAmount(preview.hisaabAmount)}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Change selections */}
-                <View className="flex-row gap-2">
-                  <Pressable
-                    onPress={() => setStep("paidBy")}
-                    className="flex-1 items-center py-2 rounded-lg bg-background"
-                  >
-                    <Text className="text-xs text-muted-foreground">
-                      {paidBy === "me" ? "I paid" : `${selectedPerson?.name} paid`}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setStep("mode")}
-                    className="flex-1 items-center py-2 rounded-lg bg-background"
-                  >
-                    <Text className="text-xs text-muted-foreground">
-                      {SPLIT_MODES.find((m) => m.mode === splitMode)?.label}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setStep("person")}
-                    className="flex-1 items-center py-2 rounded-lg bg-background"
-                  >
-                    <Text className="text-xs text-muted-foreground">
-                      {selectedPerson?.name ?? "Pick person"}
-                    </Text>
-                  </Pressable>
+                  <TextInput
+                    className="flex-1 border border-border rounded-lg px-3 py-2 text-center text-foreground"
+                    placeholder="%"
+                    placeholderTextColor={colors.tabIconDefault}
+                    keyboardType="number-pad"
+                    value={percentage}
+                    onChangeText={(v) => {
+                      const num = parseInt(v, 10);
+                      if (!v) setPercentage("");
+                      else if (num >= 0 && num <= 100) setPercentage(String(num));
+                    }}
+                    maxLength={3}
+                  />
                 </View>
               </View>
             )}
-          </ScrollView>
 
-          {/* Confirm button (only on preview step) */}
-          {step === "preview" && (
-            <Pressable
-              onPress={handleConfirm}
-              disabled={!selectedPersonId || (splitMode === "exact" && !exactAmount)}
-              className={`mt-4 items-center py-4 rounded-2xl ${
-                !selectedPersonId || (splitMode === "exact" && !exactAmount)
-                  ? "bg-border"
-                  : ""
-              }`}
-              style={!selectedPersonId || (splitMode === "exact" && !exactAmount) ? undefined : { backgroundColor: theme.primary }}
-            >
-              <Text className="text-base font-bold text-primary-foreground">Confirm Split</Text>
-            </Pressable>
-          )}
-
-          {/* Back button (on non-first steps) */}
-          {step !== "paidBy" && !lockedMode && (
-            <Pressable
-              onPress={() => {
-                if (step === "mode") setStep("paidBy");
-                else if (step === "person") setStep("mode");
-                else if (step === "preview") {
-                  if (splitMode === "exact" || splitMode === "percentage") setStep("preview");
-                  else setStep(selectedPersonId ? "mode" : "person");
-                }
-              }}
-              className="mt-2 items-center py-2"
-            >
-              <Text className="text-sm font-medium text-muted-foreground">
-                ← Back
+            {/* Summary card */}
+            <View className="bg-background rounded-2xl p-4 gap-3">
+              <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
+                Split Summary
               </Text>
-            </Pressable>
-          )}
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </Modal>
+
+              <View className="flex-row justify-between items-center">
+                <Text className="text-sm text-muted-foreground">
+                  Total
+                </Text>
+                <Text className="text-sm font-semibold text-foreground">
+                  {formatAmount(totalAmount)}
+                </Text>
+              </View>
+
+              <View className="h-px bg-border" />
+
+              <View className="flex-row justify-between items-center">
+                <View className="flex-row items-center">
+                  <View className="w-6 h-6 rounded-full items-center justify-center mr-2" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                    <Ionicons name="person" size={12} color={theme.primary} />
+                  </View>
+                  <Text className="text-sm text-foreground">
+                    My budget
+                  </Text>
+                </View>
+                <Text className="text-base font-bold" style={{ color: theme.primary }}>
+                  {formatAmount(preview.myBudgetAmount)}
+                </Text>
+              </View>
+
+              <View className="flex-row justify-between items-center">
+                <View className="flex-row items-center">
+                  <View className="w-6 h-6 rounded-full bg-warning/15 items-center justify-center mr-2">
+                    <Ionicons name="people" size={12} color={theme.warning} />
+                  </View>
+                  <Text className="text-sm text-foreground">
+                    {selectedPerson?.name ?? "Person"}
+                    {preview.hisaabType === "debit" ? " owes you" : " - you owe"}
+                  </Text>
+                </View>
+                <Text className="text-base font-bold text-warning">
+                  {formatAmount(preview.hisaabAmount)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Change selections */}
+            <View className="flex-row gap-2">
+              <Pressable
+                onPress={() => setStep("paidBy")}
+                className="flex-1 items-center py-2 rounded-lg bg-background"
+              >
+                <Text className="text-xs text-muted-foreground">
+                  {paidBy === "me" ? "I paid" : `${selectedPerson?.name} paid`}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setStep("mode")}
+                className="flex-1 items-center py-2 rounded-lg bg-background"
+              >
+                <Text className="text-xs text-muted-foreground">
+                  {SPLIT_MODES.find((m) => m.mode === splitMode)?.label}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setStep("person")}
+                className="flex-1 items-center py-2 rounded-lg bg-background"
+              >
+                <Text className="text-xs text-muted-foreground">
+                  {selectedPerson?.name ?? "Pick person"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Confirm button (only on preview step) */}
+      {step === "preview" && (
+        <Pressable
+          onPress={handleConfirm}
+          disabled={!selectedPersonId || (splitMode === "exact" && !exactAmount)}
+          className={`mt-4 items-center py-4 rounded-2xl ${
+            !selectedPersonId || (splitMode === "exact" && !exactAmount)
+              ? "bg-border"
+              : ""
+          }`}
+          style={!selectedPersonId || (splitMode === "exact" && !exactAmount) ? undefined : { backgroundColor: theme.primary }}
+        >
+          <Text className="text-base font-bold text-primary-foreground">Confirm Split</Text>
+        </Pressable>
+      )}
+
+      {/* Back button (on non-first steps) */}
+      {step !== "paidBy" && !lockedMode && (
+        <Pressable
+          onPress={() => {
+            if (step === "mode") setStep("paidBy");
+            else if (step === "person") setStep("mode");
+            else if (step === "preview") {
+              if (splitMode === "exact" || splitMode === "percentage") setStep("preview");
+              else setStep(selectedPersonId ? "mode" : "person");
+            }
+          }}
+          className="mt-2 items-center py-2"
+        >
+          <Text className="text-sm font-medium text-muted-foreground">
+            ← Back
+          </Text>
+        </Pressable>
+      )}
+    </Sheet>
   );
 }

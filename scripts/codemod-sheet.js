@@ -67,7 +67,12 @@ for (const file of only) {
 
   const animated = find(modal, (n) => n.type === "JSXElement" && jsxName(n.openingElement) === "Animated.View");
   if (!animated.length) { results.push([file, "no Animated.View - skipped"]); continue; }
-  const shell = animated[0];
+  // Some sheets animate the BACKDROP as well as the panel, and the backdrop comes first in the
+  // tree. Pick the one that actually holds the sheet: it contains the grabber pill, or failing
+  // that has the most children.
+  const shell =
+    animated.find((n) => /w-10 h-1 rounded-full/.test(src.slice(n.start, n.end))) ||
+    animated.slice().sort((a, b) => (b.children || []).length - (a.children || []).length)[0];
 
   // Everything inside the animated shell, minus the leading grabber block.
   const kids = shell.children.filter((c) => !(c.type === "JSXText" && !c.value.trim()));
