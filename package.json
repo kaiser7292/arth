@@ -12,7 +12,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "typecheck": "tsc --noEmit",
-    "postinstall": "node scripts/apply-patches.js"
+    "postinstall": "node scripts/apply-patches.js",
+    "generate:theme": "node scripts/generate-theme.js",
+    "verify:theme": "node scripts/verify-theme.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
