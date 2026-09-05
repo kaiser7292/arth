@@ -9,7 +9,7 @@ import {
 import { View, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, Input, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, Input, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -875,7 +875,7 @@ export default function ExpensesScreen() {
   // sentinel or an expense item. useMemo keeps it O(n) and only reruns when
   // the expenses array reference changes.
   type DateGroupRow =
-    | { _type: "header"; date: string; label: string }
+    | { _type: "header"; date: string; label: string; total: number }
     | { _type: "item"; expense: Expense };
 
   const groupedExpenses = useMemo<DateGroupRow[]>(() => {
@@ -909,13 +909,21 @@ export default function ExpensesScreen() {
 
     const rows: DateGroupRow[] = [];
     let lastDate = "";
+    let currentHeader: Extract<DateGroupRow, { _type: "header" }> | null = null;
     for (const expense of expenses) {
       const expDate = expense.date?.slice(0, 10) ?? "";
       if (expDate !== lastDate) {
-        rows.push({ _type: "header", date: expDate, label: dateLabel(expDate) });
+        currentHeader = { _type: "header", date: expDate, label: dateLabel(expDate), total: 0 };
+        rows.push(currentHeader);
         lastDate = expDate;
       }
       rows.push({ _type: "item", expense });
+
+      // Signed by each row's OWN nature, not by the active tab, so the day total stays correct on
+      // All where credits and debits are interleaved.
+      if (currentHeader) {
+        currentHeader.total += expense.nature === "credit" ? expense.amount : -expense.amount;
+      }
     }
     return rows;
   }, [expenses]);
@@ -924,13 +932,23 @@ export default function ExpensesScreen() {
     ({ item }: { item: DateGroupRow }) => {
       if (item._type === "header") {
         return (
-          <View className="px-4 pt-4 pb-1.5">
+          // The day's net sits beside its date, so scanning down the list answers "what did that
+          // day cost me" without adding the rows up by eye.
+          <View className="px-4 pt-4 pb-1.5 flex-row items-baseline justify-between">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              className="text-label font-semibold uppercase tracking-wider text-muted-foreground"
               style={{ letterSpacing: 0.6 }}
             >
               {item.label}
             </Text>
+            {item.total !== 0 && (
+              <Money
+                value={item.total}
+                signed
+                showPlus
+                className="text-label font-semibold"
+              />
+            )}
           </View>
         );
       }

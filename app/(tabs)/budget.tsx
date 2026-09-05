@@ -482,6 +482,42 @@ export default function BudgetScreen() {
                 {/* V2 Realistic Forecast for current month */}
                 {v2Forecast ? (
                   <>
+                    {/*
+                      The conclusion, stated. This card previously opened with nine label/value
+                      pairs and left the reader to work out whether that was good news; the
+                      figures below are now the evidence for a sentence rather than a substitute
+                      for one.
+                    */}
+                    {(() => {
+                      const room = v2Forecast.breathingRoom ?? 0;
+                      const over = room < 0;
+                      return (
+                        <View
+                          className="mt-2 px-3 py-2.5 rounded-card"
+                          style={{
+                            backgroundColor: theme.alpha(over ? "danger" : "success", 0.1),
+                            borderWidth: 1,
+                            borderColor: theme.alpha(over ? "danger" : "success", 0.22),
+                          }}
+                        >
+                          <Text
+                            className="text-body font-semibold"
+                            style={{ color: over ? theme.danger : theme.success }}
+                          >
+                            {over
+                              ? `You'll finish about ${formatAmount(Math.abs(Math.round(room)))} over.`
+                              : `On track to finish about ${formatAmount(Math.round(room))} under.`}
+                          </Text>
+                          <Text className="text-meta text-muted-foreground mt-1">
+                            At {formatAmount(Math.round(v2Forecast.variable.dailyPace))}/day you land near{" "}
+                            {formatAmount(Math.round(v2Forecast.projectedTotal))} of {formatAmount(totalBudget)}
+                            {" · "}{v2Forecast.variable.daysLeft} days left
+                            {" · "}{v2Forecast.confidence} confidence
+                          </Text>
+                        </View>
+                      );
+                    })()}
+
                     <View className="flex-row justify-between mb-2 mt-2">
                       <View>
                         <Text className="text-xs text-faint-foreground">Projected Spend</Text>
@@ -536,27 +572,6 @@ export default function BudgetScreen() {
                       </View>
                     </View>
 
-                    {/* Days info */}
-                    <View className="flex-row justify-between mt-2">
-                      <View>
-                        <Text className="text-xs text-faint-foreground">Days Elapsed</Text>
-                        <Text className="text-sm font-semibold text-foreground">
-                          {v2Forecast.variable.daysElapsed}
-                        </Text>
-                      </View>
-                      <View className="items-center">
-                        <Text className="text-xs text-faint-foreground">Days Left</Text>
-                        <Text className="text-sm font-semibold text-foreground">
-                          {v2Forecast.variable.daysLeft}
-                        </Text>
-                      </View>
-                      <View className="items-end">
-                        <Text className="text-xs text-faint-foreground">Confidence</Text>
-                        <Text className="text-sm font-semibold text-foreground capitalize">
-                          {v2Forecast.confidence}
-                        </Text>
-                      </View>
-                    </View>
                   </>
                 ) : compliance ? (
                   <>
