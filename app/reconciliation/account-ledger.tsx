@@ -165,6 +165,8 @@ export default function AccountLedgerScreen() {
   const [showConvertPicker, setShowConvertPicker] = useState(false);
   const [convertingCreditId, setConvertingCreditId] = useState<string | null>(null);
   const [convertingCreditUpdatedAt, setConvertingCreditUpdatedAt] = useState<string | null>(null);
+  const [convertingCreditAmount, setConvertingCreditAmount] = useState<number | null>(null);
+  const [convertingCreditDate, setConvertingCreditDate] = useState<string | null>(null);
 
   // v15.12.1: Source SMS viewer — shown when the user taps a transfer row that
   // was reclassified from an SMS-sourced credit/debit.
@@ -643,9 +645,11 @@ const loadData = useCallback(async () => {
   );
 
   const handleConvertCreditToTransfer = useCallback(
-    (creditId: string, updatedAt: string) => {
+    (creditId: string, updatedAt: string, amount: number, date: string) => {
       setConvertingCreditId(creditId);
       setConvertingCreditUpdatedAt(updatedAt);
+      setConvertingCreditAmount(amount);
+      setConvertingCreditDate(date);
       setShowConvertPicker(true);
     },
     [],
@@ -656,7 +660,16 @@ const loadData = useCallback(async () => {
       if (!convertingCreditId) return;
       setShowConvertPicker(false);
       try {
-        await reclassifyCreditAsTransfer(convertingCreditId, fromAccountId, convertingCreditUpdatedAt ?? undefined);
+        const transferId = await reclassifyCreditAsTransfer(convertingCreditId, fromAccountId, convertingCreditUpdatedAt ?? undefined);
+        // If the source account is demat (fund redemption → savings), subtract from fund snapshot automatically.
+        const fromAccount = allAccountsState.find((a) => a.id === fromAccountId);
+        if (fromAccount?.account_type === "demat" && convertingCreditAmount != null && convertingCreditDate) {
+          try {
+            await handleDematWithdrawalSideEffects(transferId, fromAccount.id, convertingCreditAmount, convertingCreditDate);
+          } catch (e) {
+            alert("Warning", `Transfer saved but fund snapshot could not be updated: ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }
       } catch (e) {
         logger.error("reclassifyCreditAsTransfer failed", e);
         alert(
@@ -666,8 +679,10 @@ const loadData = useCallback(async () => {
       }
       setConvertingCreditId(null);
       setConvertingCreditUpdatedAt(null);
+      setConvertingCreditAmount(null);
+      setConvertingCreditDate(null);
     },
-    [convertingCreditId, convertingCreditUpdatedAt],
+    [convertingCreditId, convertingCreditUpdatedAt, convertingCreditAmount, convertingCreditDate, allAccountsState, alert],
   );
 
   const handleTransferAccountSelected = useCallback(
@@ -1159,7 +1174,7 @@ const loadData = useCallback(async () => {
                             { text: "Cancel", style: "cancel" },
                             {
                               text: "Convert to Transfer",
-                              onPress: () => handleConvertCreditToTransfer(entry.id, entry.updatedAt || ""),
+                              onPress: () => handleConvertCreditToTransfer(entry.id, entry.updatedAt || "", entry.amount, entry.date),
                             },
                             {
                               text: "Delete",
@@ -1396,7 +1411,7 @@ const loadData = useCallback(async () => {
         onSelect={handleConvertConfirm}
         onClose={() => { setShowConvertPicker(false); setConvertingCreditId(null); }}
         title="Money came from..."
-        filterTypes={["savings"]}
+        filterTypes={["savings", "wallet", "demat"]}
         excludeAccountId={accountId}
       />
 

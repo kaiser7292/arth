@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useBackOverride } from "@/hooks/use-back-override";
 import {
@@ -27,7 +27,7 @@ import {
 } from "@/services/life-milestone";
 import type { LifeMilestone } from "@/services/life-milestone";
 import { getCurrentFY, getFYRange, getFYLabel, formatLocalDate } from "@/utils/fiscal-year";
-import { getFYStartMonth } from "@/services/settings";
+import { getFYStartMonth, getDataVersion } from "@/services/settings";
 import { formatCompact } from "@/utils/format";
 import { formatAmount } from "@/utils/expense-validation";
 import { getFinancialCockpit } from "@/services/financial-cockpit";
@@ -63,8 +63,12 @@ export default function MilestonesScreen() {
   const [formDurationYears, setFormDurationYears] = useState("1");
   const [formDurationMonths, setFormDurationMonths] = useState("0");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const lastVersionRef = useRef<number | null>(null);
 
   const loadData = useCallback(async () => {
+    const currentVersion = getDataVersion();
+    if (lastVersionRef.current === currentVersion) return;
+    lastVersionRef.current = currentVersion;
     try {
       const preload = consumeGoalsPreload();
       const usePreload = preload && preload.fy === String(currentFY);

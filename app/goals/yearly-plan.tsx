@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   View,
@@ -21,7 +21,7 @@ import type { SavingsSnapshot } from "@/utils/savings-calculations";
 import { getMilestoneContributionForFY, getMilestoneTotalMonths } from "@/services/life-milestone";
 import type { LifeMilestone } from "@/services/life-milestone";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
-import { getFYStartMonth } from "@/services/settings";
+import { getFYStartMonth, getDataVersion } from "@/services/settings";
 import { formatAmount } from "@/utils/expense-validation";
 import { formatCompact, formatAmount as fmtFull } from "@/utils/format";
 import { StatusColors } from "@/constants/theme";
@@ -66,11 +66,15 @@ export default function YearlyPlanScreen() {
   const [realityCheck, setRealityCheck] = useState<RealityCheckData | null>(null);
   const [savings, setSavings] = useState<SavingsSnapshot | null>(null);
   const [loanForecast, setLoanForecast] = useState<LoanForecastRow[]>([]);
+  const lastVersionRef = useRef<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       (async () => {
+        const currentVersion = getDataVersion();
+        if (lastVersionRef.current === currentVersion) return;
+        lastVersionRef.current = currentVersion;
         try {
           // Use preloaded data on first open (current FY only).
           const preload = consumeYearlyPlanPreload();

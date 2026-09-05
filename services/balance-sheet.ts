@@ -19,9 +19,10 @@
  */
 
 import { getDatabase } from "@/database";
-import { computeUnseededBalance, getClosingBalance, getMonthBalanceSummary } from "@/services/account-balance";
+import { computeClosing, computeUnseededBalance } from "@/services/account-balance";
 import { V15_FLAGS } from "@/services/feature-flags";
 import { getLoanOutstandingsByFA } from "@/services/loan-accounts";
+import { getMonthDateRange } from "@/utils/budget-helpers";
 
 export interface BalanceSheetRow {
   /** Short label for the row, e.g. "HDFC ••••1234" or "Credit cards utilized". */
@@ -213,44 +214,139 @@ async function batchHisaabAsOf(
 }
 
 /**
- * Compute closing balance for a specific account on the month that contains
- * `asOfDate`. Returns `null` when no authoritative data exists — historic
- * columns must NOT fall back to `last_known_balance` (today's SMS value), or
- * the same value leaks into every past FY. Live column is allowed to fall
- * back: SMS is the right signal for "right now" when the ledger isn't seeded.
+ * Batch-compute closing balances for all balance-eligible accounts in one pass.
+ *
+ * Replaces the per-account `getAccountClosingForDate` loop. Instead of 7 serial
+ * DB round-trips per account, we do 6 parallel queries covering all accounts at
+ * once, then compute each closing in JS using the same `computeClosing` formula.
+ *
+ * Accounts with no opening-balance row in `account_month_balances` for the
+ * target month are handled via their type-specific fallback:
+ *  - pension (unseeded): `computeUnseededBalance` called individually (rare, typically 1 account)
+ *  - savings/wallet/cc (live only): falls back to `last_known_balance` (isFallback=true)
+ *  - savings/wallet/cc (historic): omitted from result — no authoritative data
+ *
+ * The self-heal write (`getOrCreateMonthBalance` may update a stale opening) is
+ * intentionally skipped here; it happens lazily when the user visits the account
+ * ledger. This is acceptable for the balance sheet overview.
  */
-async function getAccountClosingForDate(
-  accountId: string,
-  asOfDate: string,
+async function batchBalanceSheetClosings(
+  accounts: AccountRow[],
+  month: string,
   isLive: boolean,
-  lastKnownBalance: number | null,
-  accountType: string,
-): Promise<{ value: number; isFallback: boolean } | null> {
-  const month = yyyymm(asOfDate);
-  if (isLive) {
-    const summary = await getMonthBalanceSummary(accountId, month);
-    if (summary) return { value: summary.closing_balance, isFallback: false };
-    // Pension accounts are typically unseeded — fall back to chained
-    // computation from earliest activity month so they show as authoritative
-    // (not italic/grey "fallback") in the balance sheet.
-    if (accountType === "pension") {
-      const unseeded = await computeUnseededBalance(accountId, month);
-      if (unseeded.closing !== 0 || unseeded.credits !== 0 || unseeded.expenses !== 0) {
-        return { value: unseeded.closing, isFallback: false };
+): Promise<Map<string, { value: number; isFallback: boolean }>> {
+  const result = new Map<string, { value: number; isFallback: boolean }>();
+  if (accounts.length === 0) return result;
+
+  const db = getDatabase();
+  const { startDate, endDate } = getMonthDateRange(month);
+  const ids = accounts.map((a) => a.id);
+  const ph = ids.map(() => "?").join(",");
+
+  const [openingRows, expenseRows, creditRows, tOutRows, tInRows, adjRows] = await Promise.all([
+    db.getAllAsync<{ account_id: string; opening_balance: number }>(
+      `SELECT account_id, opening_balance FROM account_month_balances
+       WHERE account_id IN (${ph}) AND month = ?;`,
+      ...ids, month,
+    ),
+    db.getAllAsync<{ account_id: string; total: number }>(
+      `SELECT account_id, COALESCE(SUM(COALESCE(split_original_amount, amount)), 0) AS total
+       FROM expenses
+       WHERE account_id IN (${ph}) AND deleted_at IS NULL
+         AND nature = 'realized' AND status = 'approved'
+         AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
+         AND date >= ? AND date <= ?
+       GROUP BY account_id;`,
+      ...ids, startDate, endDate,
+    ),
+    db.getAllAsync<{ account_id: string; total: number }>(
+      `SELECT account_id, COALESCE(SUM(amount), 0) AS total
+       FROM expenses
+       WHERE account_id IN (${ph}) AND deleted_at IS NULL
+         AND nature = 'credit' AND status = 'approved'
+         AND date >= ? AND date <= ?
+       GROUP BY account_id;`,
+      ...ids, startDate, endDate,
+    ),
+    db.getAllAsync<{ account_id: string; total: number }>(
+      `SELECT from_account_id AS account_id, COALESCE(SUM(amount), 0) AS total
+       FROM account_transfers
+       WHERE from_account_id IN (${ph}) AND deleted_at IS NULL
+         AND date >= ? AND date <= ?
+       GROUP BY from_account_id;`,
+      ...ids, startDate, endDate,
+    ),
+    db.getAllAsync<{ account_id: string; total: number }>(
+      `SELECT to_account_id AS account_id, COALESCE(SUM(amount), 0) AS total
+       FROM account_transfers
+       WHERE to_account_id IN (${ph}) AND deleted_at IS NULL
+         AND date >= ? AND date <= ?
+       GROUP BY to_account_id;`,
+      ...ids, startDate, endDate,
+    ),
+    db.getAllAsync<{ account_id: string; net: number }>(
+      `SELECT account_id,
+              COALESCE(SUM(CASE WHEN description LIKE '% -]' THEN -amount ELSE amount END), 0) AS net
+       FROM expenses
+       WHERE account_id IN (${ph}) AND deleted_at IS NULL
+         AND nature = 'ledger_adjustment' AND status = 'approved'
+         AND date >= ? AND date <= ?
+       GROUP BY account_id;`,
+      ...ids, startDate, endDate,
+    ),
+  ]);
+
+  const openingMap = new Map<string, number>();
+  for (const r of openingRows) openingMap.set(r.account_id, r.opening_balance);
+  const expMap = new Map<string, number>();
+  for (const r of expenseRows) expMap.set(r.account_id, r.total);
+  const credMap = new Map<string, number>();
+  for (const r of creditRows) credMap.set(r.account_id, r.total);
+  const tOutMap = new Map<string, number>();
+  for (const r of tOutRows) tOutMap.set(r.account_id, r.total);
+  const tInMap = new Map<string, number>();
+  for (const r of tInRows) tInMap.set(r.account_id, r.total);
+  const adjMap = new Map<string, number>();
+  for (const r of adjRows) adjMap.set(r.account_id, r.net);
+
+  const pensionUnseeded: AccountRow[] = [];
+
+  for (const a of accounts) {
+    const opening = openingMap.get(a.id);
+    const isCC = a.account_type === "credit_card";
+
+    if (opening == null) {
+      if (a.account_type === "pension") {
+        pensionUnseeded.push(a);
+      } else if (isLive && a.last_known_balance != null) {
+        result.set(a.id, { value: a.last_known_balance, isFallback: true });
       }
+      continue;
     }
-    if (lastKnownBalance != null) return { value: lastKnownBalance, isFallback: true };
-    return null;
+
+    const closing = computeClosing({
+      opening,
+      expenses: expMap.get(a.id) ?? 0,
+      credits: credMap.get(a.id) ?? 0,
+      transfersOut: tOutMap.get(a.id) ?? 0,
+      transfersIn: tInMap.get(a.id) ?? 0,
+      adjustmentNet: adjMap.get(a.id) ?? 0,
+      isCC,
+    });
+    result.set(a.id, { value: closing, isFallback: false });
   }
-  const closing = await getClosingBalance(accountId, month);
-  if (closing != null) return { value: closing, isFallback: false };
-  if (accountType === "pension") {
-    const unseeded = await computeUnseededBalance(accountId, month);
+
+  // Pension accounts are typically unseeded — handle individually (rare case)
+  for (const a of pensionUnseeded) {
+    const unseeded = await computeUnseededBalance(a.id, month);
     if (unseeded.closing !== 0 || unseeded.credits !== 0 || unseeded.expenses !== 0) {
-      return { value: unseeded.closing, isFallback: false };
+      result.set(a.id, { value: unseeded.closing, isFallback: false });
+    } else if (isLive && a.last_known_balance != null) {
+      result.set(a.id, { value: a.last_known_balance, isFallback: true });
     }
   }
-  return null;
+
+  return result;
 }
 
 export interface ColumnRequest {
@@ -290,32 +386,17 @@ export async function getBalanceSheetColumn(
     (a) => a.account_type === "savings" || a.account_type === "wallet" || a.account_type === "credit_card" || a.account_type === "pension",
   );
 
-  // Fire everything in parallel. Promise.all gives us across-account concurrency.
   const loanOutstandingsPromise = V15_FLAGS.v17_loans_v1
     ? getLoanOutstandingsByFA(userId, asOfDate)
     : Promise.resolve(new Map<string, number>());
 
-  const [portfolioMap, fundMap, hisaab, loanOutstandings, ...balanceResults] = await Promise.all([
+  const [portfolioMap, fundMap, hisaab, loanOutstandings, balanceMap] = await Promise.all([
     batchSnapshotAsOf("demat_portfolio_snapshots", "portfolio_value", dematIds, asOfDate, minDate),
     batchSnapshotAsOf("demat_fund_snapshots", "fund_value", dematIds, asOfDate, minDate),
     batchHisaabAsOf(userId, isLive ? null : asOfDate),
     loanOutstandingsPromise,
-    ...balanceEligible.map((a) =>
-      getAccountClosingForDate(
-        a.id,
-        asOfDate,
-        isLive,
-        a.account_type === "credit_card" ? null : a.last_known_balance,
-        a.account_type,
-      ),
-    ),
+    batchBalanceSheetClosings(balanceEligible, yyyymm(asOfDate), isLive),
   ]);
-
-  const balanceMap = new Map<string, { value: number; isFallback: boolean }>();
-  balanceEligible.forEach((a, i) => {
-    const r = balanceResults[i];
-    if (r) balanceMap.set(a.id, r);
-  });
 
   const assets: BalanceSheetRow[] = [];
   const liabilities: BalanceSheetRow[] = [];

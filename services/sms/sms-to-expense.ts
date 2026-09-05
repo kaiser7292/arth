@@ -299,9 +299,9 @@ export async function createExpenseFromSms(
         }
       }
     }
-    // Fall back to the template's default payment mode when the parsed
-    // SMS carried no payment mode info (e.g. wallet SMSes don't say "UPI").
-    if (!paymentModeId && parsed._matchedTemplateId) {
+    // Override with the template's default payment mode when a user template matched.
+    // User-set preference wins over whatever the parser auto-detected.
+    if (parsed._matchedTemplateId) {
       try {
         const row = await db.getFirstAsync<{ default_payment_mode_id: string | null }>(
           `SELECT default_payment_mode_id FROM sms_template_patterns WHERE id = ?;`,

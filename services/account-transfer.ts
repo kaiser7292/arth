@@ -551,9 +551,10 @@ export async function reclassifyCreditAsTransfer(
     split_person_id: string | null;
     fulfills_rule_id: string | null;
     updated_at: string;
+    status: string;
   }>(
     `SELECT id, account_id, user_id, amount, description, date, matched_forecast_id, raw_source_text, source,
-            split_mode, split_person_id, fulfills_rule_id, updated_at
+            split_mode, split_person_id, fulfills_rule_id, updated_at, status
      FROM expenses WHERE id = ? AND nature = 'credit' AND deleted_at IS NULL;`,
     creditId,
   );
@@ -659,6 +660,13 @@ export async function reclassifyCreditAsTransfer(
   }
 
   await bumpDataVersion();
+
+  // Auto-approve: user explicitly acted on this credit, so move it out of the review queue.
+  if (credit.status === "pending_review") {
+    const { approveExpense } = await import("@/services/expense-crud");
+    await approveExpense(creditId);
+  }
+
   return transferId;
 }
 

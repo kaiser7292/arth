@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useBackOverride } from "@/hooks/use-back-override";
 import {
@@ -29,7 +29,7 @@ import type { YearlyPlan, InvestmentBucket } from "@/services/yearly-plan";
 import { getLifeMilestones } from "@/services/life-milestone";
 import type { LifeMilestone } from "@/services/life-milestone";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
-import { getFYStartMonth } from "@/services/settings";
+import { getFYStartMonth, getDataVersion } from "@/services/settings";
 import { formatAmount } from "@/utils/expense-validation";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { acAlpha } from "@/utils/accent";
@@ -60,6 +60,7 @@ export default function InvestmentBucketsScreen() {
   useBackOverride(viewMode !== "buckets", backToList);
 
   const [cockpit, setCockpit] = useState<FinancialCockpitData | null>(null);
+  const lastVersionRef = useRef<number | null>(null);
 
   // Copy-forward state
   const [prevYearBuckets, setPrevYearBuckets] = useState<InvestmentBucket[]>([]);
@@ -75,6 +76,9 @@ export default function InvestmentBucketsScreen() {
   const [editingBucketId, setEditingBucketId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
+    const currentVersion = getDataVersion();
+    if (lastVersionRef.current === currentVersion) return;
+    lastVersionRef.current = currentVersion;
     try {
       // Use preloaded data on first open (current FY only), then fall back to live fetch.
       const preload = consumeGoalsPreload();

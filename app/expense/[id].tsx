@@ -33,7 +33,7 @@ import { reclassifyCreditAsTransfer, reclassifyExpenseAsTransfer, undoTransfer, 
 import type { Category } from "@/services/category";
 import { getCategories } from "@/services/category";
 import type { DematTarget } from "@/services/demat-transfer";
-import { handleDematTransferSideEffects } from "@/services/demat-transfer";
+import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
 import type { Expense, RecurringFrequency, RecurringRule, SplitConfig } from "@/services/expense";
 import {
     addLegToExistingGroup,
@@ -1350,6 +1350,16 @@ export default function ExpenseDetailScreen() {
         });
         return;
       }
+      // If the source account is demat (e.g. a fund redemption arriving as a savings credit),
+      // automatically subtract from the fund snapshot — matches the pattern used in manual transfers.
+      const fromAccount = accounts.find((a) => a.id === fromAccountId);
+      if (fromAccount?.account_type === "demat" && expense) {
+        try {
+          await handleDematWithdrawalSideEffects(transferId, fromAccount.id, expense.amount, expense.date);
+        } catch (e) {
+          alert("Warning", `Transfer saved but fund snapshot could not be updated: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
       // Cross-link to the resulting transfer so the user can see the payment
       // land. For CC bill payments, land on the CC account's ledger (the
       // destination account — "where did my bill payment go?"). For plain
@@ -1368,7 +1378,7 @@ export default function ExpenseDetailScreen() {
       logger.error("Reclassify credit as transfer failed:", e);
       alert("Error", formatError("Mark as transfer", e));
     }
-  }, [id, router, expenseAccount, expense]);
+  }, [id, router, expenseAccount, expense, accounts]);
 
   // Undo transfer reclassification
   const handleUndoTransfer = useCallback(async () => {
