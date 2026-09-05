@@ -33,13 +33,13 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
   return (
     <Card className="mb-4">
       <View className="items-center py-2">
-        <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-1">
+        <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-1">
           Monthly In-Hand
         </Text>
         <Text className="text-3xl font-bold text-success">
           {formatAmount(effectiveMonthlyInHand)}
         </Text>
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-0.5">
+        <Text className="text-sm text-muted-foreground mt-0.5">
           {formatAmount(effectiveAnnualInHand)} / year
         </Text>
         <View className="mt-2 px-3 py-1 rounded-full" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
@@ -67,7 +67,7 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
           <View className="mt-3 w-full">
             {hasManualCorrection && (
               <View className="flex-row items-center justify-center mb-2">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Calculated: {formatAmount(calculation.monthlyInHand)}
                 </Text>
                 <Text
@@ -104,7 +104,7 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
               </Pressable>
             ) : (
               <Pressable onPress={() => setShowCorrectionInput(false)} className="mt-1">
-                <Text className="text-xs text-center text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-center text-muted-foreground">
                   Cancel
                 </Text>
               </Pressable>
@@ -130,10 +130,10 @@ export function SalarySummary({ calculation }: { calculation: SalaryCalculation 
               color={colors.blue}
             />
           </View>
-          <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary mb-1">
+          <Text className="text-base font-medium text-foreground mb-1">
             Enter your CTC
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center px-4">
+          <Text className="text-sm text-muted-foreground text-center px-4">
             Input your annual CTC above to see a full salary
             breakdown with tax calculations for both regimes.
           </Text>
@@ -151,7 +151,7 @@ export function SalarySummary({ calculation }: { calculation: SalaryCalculation 
           annual={calculation.ctcBreakdown.annualCTC}
           highlight
         />
-        <View className="border-t border-border-light dark:border-border-dark my-1" />
+        <View className="border-t border-border my-1" />
         <BreakdownRow
           label="Basic"
           annual={calculation.ctcBreakdown.basic}
@@ -177,7 +177,7 @@ export function SalarySummary({ calculation }: { calculation: SalaryCalculation 
           annual={calculation.ctcBreakdown.gratuity}
           monthly={calculation.ctcBreakdown.gratuity / 12}
         />
-        <View className="border-t border-border-light dark:border-border-dark my-1" />
+        <View className="border-t border-border my-1" />
         <BreakdownRow
           label="Gross Salary"
           annual={calculation.ctcBreakdown.grossSalary}
@@ -208,7 +208,7 @@ export function SalarySummary({ calculation }: { calculation: SalaryCalculation 
             monthly={calculation.epf.vpf / 12}
           />
         )}
-        <View className="border-t border-border-light dark:border-border-dark my-1" />
+        <View className="border-t border-border my-1" />
         <BreakdownRow
           label="Total Deducted"
           annual={calculation.epf.totalDeducted}
@@ -266,7 +266,7 @@ export function SalaryFooter({
       {totalIncome > 0 && hasSalaryData && (
         <Card className="mb-4">
           <View className="items-center py-2">
-            <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-1">
+            <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-1">
               Total Annual Income
             </Text>
             <Text className="text-3xl font-bold text-success">
@@ -274,14 +274,14 @@ export function SalaryFooter({
             </Text>
             <View className="mt-2">
               <View className="flex-row items-center justify-center">
-                <Text className="text-xs text-text-tertiary">
+                <Text className="text-xs text-faint-foreground">
                   Salary:{" "}
                   {formatAmount(effectiveAnnualSalary)}
                 </Text>
               </View>
               {(bonusTaxResult ? bonusTaxResult.netBonus : (parseFloat(expectedBonus) || 0)) > 0 && (
                 <View className="flex-row items-center justify-center mt-0.5">
-                  <Text className="text-xs text-text-tertiary">
+                  <Text className="text-xs text-faint-foreground">
                     + Bonus:{" "}
                     {formatAmount(
                       bonusTaxResult ? bonusTaxResult.netBonus : (parseFloat(expectedBonus) || 0),
@@ -292,7 +292,7 @@ export function SalaryFooter({
               )}
               {capitalGainsTaxResult && capitalGainsTaxResult.totalNet > 0 && (
                 <View className="flex-row items-center justify-center mt-0.5">
-                  <Text className="text-xs text-text-tertiary">
+                  <Text className="text-xs text-faint-foreground">
                     + Capital Gains: {formatAmount(capitalGainsTaxResult.totalNet)} (net)
                   </Text>
                 </View>
@@ -321,10 +321,10 @@ export function SalaryFooter({
                 />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-medium text-foreground">
                   Capital Gains Reference
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Tax rates by asset class, holding period & FY
                 </Text>
               </View>

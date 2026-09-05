@@ -90,13 +90,13 @@ export default function MerchantAnalyticsScreen() {
             accessibilityLabel={`Show ${r.label}`}
             accessibilityRole="button"
             className={`flex-1 py-2 rounded-lg items-center mx-1 ${
-              range === r.key ? "" : "bg-surface-light-alt dark:bg-surface-dark-alt"
+              range === r.key ? "" : "bg-card"
             }`}
             style={range === r.key ? { backgroundColor: accent[500] } : undefined}
           >
             <Text
               className={`text-xs font-semibold ${
-                range === r.key ? "text-white" : "text-text-secondary dark:text-text-dark-secondary"
+                range === r.key ? "text-white" : "text-muted-foreground"
               }`}
             >
               {r.label}
@@ -108,7 +108,7 @@ export default function MerchantAnalyticsScreen() {
       {/* Summary */}
       {merchants.length > 0 && (
         <View className="px-4 pb-2">
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             {merchants.length} merchants · Total {formatAmount(grandTotal)}
           </Text>
         </View>
@@ -129,26 +129,26 @@ export default function MerchantAnalyticsScreen() {
                 onPress={() => handleSelectMerchant(item)}
                 accessibilityLabel={`${item.merchant}, ${formatAmount(item.totalSpent)}`}
                 accessibilityRole="button"
-                className="py-3 border-b border-border-light dark:border-border-dark"
+                className="py-3 border-b border-border"
               >
                 <View className="flex-row items-center justify-between mb-1">
                   <View className="flex-row items-center flex-1">
-                    <Text className="text-xs font-bold text-text-tertiary w-6">{index + 1}</Text>
+                    <Text className="text-xs font-bold text-faint-foreground w-6">{index + 1}</Text>
                     <View className="flex-1">
-                      <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary capitalize" numberOfLines={1}>
+                      <Text className="text-sm font-medium text-foreground capitalize" numberOfLines={1}>
                         {item.merchant}
                       </Text>
-                      <Text className="text-xs text-text-tertiary">
+                      <Text className="text-xs text-faint-foreground">
                         {item.transactionCount} txn{item.transactionCount !== 1 ? "s" : ""} · avg {formatAmount(item.avgAmount)}
                         {cat ? ` · ${cat.name}` : ""}
                       </Text>
                     </View>
                   </View>
                   <View className="items-end ml-2">
-                    <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-bold text-foreground">
                       {formatAmount(item.totalSpent)}
                     </Text>
-                    <Text className="text-micro text-text-tertiary">
+                    <Text className="text-micro text-faint-foreground">
                       {grandTotal > 0 ? `${((item.totalSpent / grandTotal) * 100).toFixed(1)}%` : ""}
                     </Text>
                   </View>
@@ -167,14 +167,14 @@ export default function MerchantAnalyticsScreen() {
                   {/* Monthly trend */}
                   {detail.monthlyTotals.length > 1 && (
                     <View className="mb-3">
-                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">
+                      <Text className="text-xs font-semibold text-muted-foreground mb-2">
                         Monthly Trend
                       </Text>
                       {detail.monthlyTotals.map((mt) => {
                         const maxMonthly = Math.max(...detail.monthlyTotals.map((m) => m.total));
                         return (
                           <View key={mt.month} className="flex-row items-center mb-1">
-                            <Text className="text-xs text-text-tertiary w-16">{mt.month}</Text>
+                            <Text className="text-xs text-faint-foreground w-16">{mt.month}</Text>
                             <View className="flex-1 mr-2">
                               <ProgressBar
                                 value={maxMonthly > 0 ? mt.total / maxMonthly : 0}
@@ -183,7 +183,7 @@ export default function MerchantAnalyticsScreen() {
                                 animated={false}
                               />
                             </View>
-                            <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary w-20 text-right">
+                            <Text className="text-xs font-medium text-foreground w-20 text-right">
                               {formatAmount(mt.total)}
                             </Text>
                           </View>
@@ -195,7 +195,7 @@ export default function MerchantAnalyticsScreen() {
                   {/* Categories used */}
                   {detail.categories.length > 0 && (
                     <View className="mb-3">
-                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">
+                      <Text className="text-xs font-semibold text-muted-foreground mb-1">
                         Categories
                       </Text>
                       <View className="flex-row flex-wrap">
@@ -210,7 +210,7 @@ export default function MerchantAnalyticsScreen() {
                                 className="w-2.5 h-2.5 rounded-full mr-1"
                                 style={{ backgroundColor: catInfo?.color ?? "#6B7280" }}
                               />
-                              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                              <Text className="text-xs text-muted-foreground">
                                 {catInfo?.name ?? "Unknown"} ({formatAmount(c.total)})
                               </Text>
                             </View>
@@ -221,7 +221,7 @@ export default function MerchantAnalyticsScreen() {
                   )}
 
                   {/* Recent transactions */}
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">
+                  <Text className="text-xs font-semibold text-muted-foreground mb-1">
                     Recent Transactions ({detail.transactionCount})
                   </Text>
                   {detail.transactions.slice(0, 5).map((t) => (
@@ -232,11 +232,11 @@ export default function MerchantAnalyticsScreen() {
                       accessibilityRole="button"
                       className="flex-row items-center py-1.5"
                     >
-                      <Text className="text-xs text-text-tertiary w-20">{formatDateForDisplay(t.date)}</Text>
-                      <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1" numberOfLines={1}>
+                      <Text className="text-xs text-faint-foreground w-20">{formatDateForDisplay(t.date)}</Text>
+                      <Text className="text-xs text-foreground flex-1" numberOfLines={1}>
                         {t.description ?? "-"}
                       </Text>
-                      <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs font-medium text-foreground">
                         {formatAmount(t.amount)}
                       </Text>
                     </Pressable>
@@ -254,10 +254,10 @@ export default function MerchantAnalyticsScreen() {
         ListEmptyComponent={
           <View className="items-center py-16">
             <Ionicons name="storefront-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               No merchant data
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
               Add expenses with descriptions to see merchant analytics.
             </Text>
           </View>

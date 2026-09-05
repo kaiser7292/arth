@@ -32,10 +32,10 @@ function gradeColor(grade: string, colorScheme: "light" | "dark") {
 
 function StatBox({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <View className="bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark flex-1">
-      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">{label}</Text>
+    <View className="bg-card rounded-xl p-3 border border-border flex-1">
+      <Text className="text-xs text-muted-foreground mb-1">{label}</Text>
       <Text
-        className="text-base font-bold text-text-primary dark:text-text-dark-primary"
+        className="text-base font-bold text-foreground"
         style={color ? { color } : undefined}
         numberOfLines={1}
       >
@@ -168,10 +168,10 @@ export default function FinancialHealthReportScreen() {
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="analytics-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             Not enough data
           </Text>
-          <Text className="text-sm text-center text-text-secondary dark:text-text-dark-secondary mt-2">
+          <Text className="text-sm text-center text-muted-foreground mt-2">
             Add expenses and set up your income profile to generate the Financial Health report.
           </Text>
         </View>
@@ -190,7 +190,7 @@ export default function FinancialHealthReportScreen() {
       >
         {/* Generated timestamp */}
         <View className="px-4 pt-2 pb-1">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary opacity-60">
+          <Text className="text-xs text-muted-foreground opacity-60">
             Generated {new Date(report.generatedAt).toLocaleDateString()}
           </Text>
         </View>
@@ -212,10 +212,10 @@ export default function FinancialHealthReportScreen() {
                   {report.overallGrade}
                 </Text>
               </View>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm font-semibold text-foreground">
                 Score: {report.overallScore}/100
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center mt-1 px-4">
+              <Text className="text-xs text-muted-foreground text-center mt-1 px-4">
                 {report.gradeSummary}
               </Text>
             </View>
@@ -243,10 +243,10 @@ export default function FinancialHealthReportScreen() {
                     <Ionicons name={iconName as any} size={14} color={dc} />
                     <Text className="text-xs font-bold" style={{ color: dc }}>{d.grade}</Text>
                   </View>
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                  <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
                     {d.name}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5" numberOfLines={2} style={{ fontSize: 10 }}>
+                  <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={2} style={{ fontSize: 10 }}>
                     {d.description}
                   </Text>
                 </View>
@@ -264,7 +264,7 @@ export default function FinancialHealthReportScreen() {
           </View>
           <Card>
             <View className="flex-row items-center justify-between">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Net financial worth
               </Text>
               <Text
@@ -281,7 +281,7 @@ export default function FinancialHealthReportScreen() {
         {report.monthlySavingsRates.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Savings Rate Trend" />
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2 -mt-1 opacity-70">
+            <Text className="text-xs text-muted-foreground mb-2 -mt-1 opacity-70">
               Based on income from your salary profile
             </Text>
             <Card>
@@ -312,7 +312,7 @@ export default function FinancialHealthReportScreen() {
                 {report.monthlySavingsRates.map((m) => (
                   <Text
                     key={m.month}
-                    className="flex-1 text-center text-text-secondary dark:text-text-dark-secondary"
+                    className="flex-1 text-center text-muted-foreground"
                     style={{ fontSize: 9 }}
                   >
                     {m.month}
@@ -324,21 +324,21 @@ export default function FinancialHealthReportScreen() {
             {/* Monthly detail table */}
             <View className="mt-3">
               <Card>
-                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary mb-2">
+                <Text className="text-xs font-semibold text-foreground mb-2">
                   Monthly breakdown
                 </Text>
                 {/* Header */}
-                <View className="flex-row items-center pb-1.5 mb-1 border-b border-border-light dark:border-border-dark">
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10">Month</Text>
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Income</Text>
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Spent</Text>
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1 text-right">Saved</Text>
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary w-10 text-right">Rate</Text>
+                <View className="flex-row items-center pb-1.5 mb-1 border-b border-border">
+                  <Text className="text-xs font-semibold text-muted-foreground w-10">Month</Text>
+                  <Text className="text-xs font-semibold text-muted-foreground flex-1 text-right">Income</Text>
+                  <Text className="text-xs font-semibold text-muted-foreground flex-1 text-right">Spent</Text>
+                  <Text className="text-xs font-semibold text-muted-foreground flex-1 text-right">Saved</Text>
+                  <Text className="text-xs font-semibold text-muted-foreground w-10 text-right">Rate</Text>
                 </View>
                 {report.monthlySavingsRates.map((m) => (
-                  <View key={m.month} className="flex-row items-center py-1.5 border-b border-border-light dark:border-border-dark">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-10">{m.month}</Text>
-                    <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatAmount(m.income)}</Text>
+                  <View key={m.month} className="flex-row items-center py-1.5 border-b border-border">
+                    <Text className="text-xs text-muted-foreground w-10">{m.month}</Text>
+                    <Text className="text-xs text-foreground flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatAmount(m.income)}</Text>
                     <Text className="text-xs flex-1 text-right" style={{ color: status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatAmount(m.expenses)}</Text>
                     <Text className="text-xs font-medium flex-1 text-right" style={{ color: m.saved >= 0 ? status.success : status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                       {formatAmount(m.saved)}
@@ -350,8 +350,8 @@ export default function FinancialHealthReportScreen() {
                 ))}
                 {/* Average row */}
                 <View className="flex-row items-center pt-2 mt-1">
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary w-10">Avg</Text>
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                  <Text className="text-xs font-semibold text-foreground w-10">Avg</Text>
+                  <Text className="text-xs font-semibold text-foreground flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                     {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.income, 0) / report.monthlySavingsRates.length)}
                   </Text>
                   <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
@@ -409,7 +409,7 @@ export default function FinancialHealthReportScreen() {
                     Emergency fund gap
                   </Text>
                 </View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   You need {formatAmount(report.emergencyTarget)} (6 months expenses).
                   Current liquid buffer: {formatAmount(report.liquidAssets)}.
                   Gap: {formatAmount(report.emergencyGap)}.
@@ -450,17 +450,17 @@ export default function FinancialHealthReportScreen() {
                         className="w-2 h-2 rounded-full"
                         style={{ backgroundColor: barColors[i % barColors.length] }}
                       />
-                      <Text className="text-xs text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs text-foreground">
                         {c.categoryName}
                       </Text>
                       <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />
                     </View>
                     <View className="flex-row items-center gap-3">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         {Math.round(c.percentage)}%
                       </Text>
                       <Text
-                        className="text-xs font-semibold text-text-primary dark:text-text-dark-primary text-right"
+                        className="text-xs font-semibold text-foreground text-right"
                         style={{ minWidth: 72 }}
                         numberOfLines={1}
                         adjustsFontSizeToFit
@@ -487,21 +487,21 @@ export default function FinancialHealthReportScreen() {
               </View>
               <Pressable
                 onPress={() => drillFixedOrDiscretionary("fixed")}
-                className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark"
+                className="flex-row items-center justify-between py-2 border-b border-border"
               >
                 <View className="flex-row items-center gap-2">
                   <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#6B7280" }} />
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-xs font-semibold text-foreground">
                     Fixed / Essential
                   </Text>
                   <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />
                 </View>
                 <View className="flex-row items-center gap-2">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {Math.round(report.fixedVsDiscretionary.fixedPct)}%
                   </Text>
                   <Text
-                    className="text-xs font-semibold text-text-primary dark:text-text-dark-primary text-right"
+                    className="text-xs font-semibold text-foreground text-right"
                     style={{ minWidth: 72 }}
                     numberOfLines={1}
                     adjustsFontSizeToFit
@@ -517,17 +517,17 @@ export default function FinancialHealthReportScreen() {
               >
                 <View className="flex-row items-center gap-2">
                   <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tint }} />
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-xs font-semibold text-foreground">
                     Discretionary
                   </Text>
                   <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />
                 </View>
                 <View className="flex-row items-center gap-2">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {Math.round(report.fixedVsDiscretionary.discretionaryPct)}%
                   </Text>
                   <Text
-                    className="text-xs font-semibold text-text-primary dark:text-text-dark-primary text-right"
+                    className="text-xs font-semibold text-foreground text-right"
                     style={{ minWidth: 72 }}
                     numberOfLines={1}
                     adjustsFontSizeToFit
@@ -550,12 +550,12 @@ export default function FinancialHealthReportScreen() {
                 <Card>
                   <View className="flex-row items-center gap-2 mb-1">
                     <Ionicons name="trending-up" size={14} color={status.warning} />
-                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+                    <Text className="text-xs font-semibold text-foreground flex-1">
                       {s.categoryName}
                     </Text>
                     <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} />
                   </View>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {formatAmount(s.currentMonth)} this month — {s.spikeMultiple.toFixed(1)}x your 3-month average of{" "}
                     {formatAmount(s.avgPrevious)}
                   </Text>

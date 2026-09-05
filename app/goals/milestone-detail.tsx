@@ -331,7 +331,7 @@ export default function MilestoneDetailScreen() {
     return (
       <ScreenContainer centered padTop={false}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-        <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary mt-4">
+        <Text className="text-base font-medium text-foreground mt-4">
           Milestone not found
         </Text>
       </ScreenContainer>
@@ -380,11 +380,11 @@ export default function MilestoneDetailScreen() {
                     color={isComplete ? StatusColors[colorScheme].success : colors.blue}
                   />
                 </View>
-                <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-lg font-bold text-foreground">
                   {milestone.name}
                 </Text>
                 {milestone.target_date && (
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
+                  <Text className="text-xs text-muted-foreground mt-1">
                     Target date: {milestone.target_date}
                   </Text>
                 )}
@@ -400,7 +400,7 @@ export default function MilestoneDetailScreen() {
               {/* Saved / Target / Left */}
               <View className="flex-row mt-3">
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center">
+                  <Text className="text-xs text-muted-foreground text-center">
                     Saved
                   </Text>
                   <Text className="text-base font-bold text-success text-center">
@@ -408,15 +408,15 @@ export default function MilestoneDetailScreen() {
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center">
+                  <Text className="text-xs text-muted-foreground text-center">
                     Target
                   </Text>
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary text-center">
+                  <Text className="text-base font-bold text-foreground text-center">
                     {formatAmount(milestone.target_amount)}
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center">
+                  <Text className="text-xs text-muted-foreground text-center">
                     Left
                   </Text>
                   <Text className="text-base font-bold text-danger text-center">
@@ -426,7 +426,7 @@ export default function MilestoneDetailScreen() {
               </View>
 
               {/* Progress bar */}
-              <View className="mt-3 h-3 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+              <View className="mt-3 h-3 rounded-full bg-border overflow-hidden">
                 <View
                   className="h-3 rounded-full"
                   style={{
@@ -435,7 +435,7 @@ export default function MilestoneDetailScreen() {
                   }}
                 />
               </View>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1 text-right">
+              <Text className="text-xs text-muted-foreground mt-1 text-right">
                 {pct.toFixed(1)}% complete
               </Text>
             </Card>
@@ -466,7 +466,7 @@ export default function MilestoneDetailScreen() {
                 {projection.monthsToTarget != null &&
                   projection.monthsToTarget > 0 && (
                     <>
-                      <View className="h-px bg-border-light dark:bg-border-dark my-1.5" />
+                      <View className="h-px bg-border my-1.5" />
                       <MetricRow
                         label="Months to Target Date"
                         value={String(projection.monthsToTarget)}
@@ -542,12 +542,12 @@ export default function MilestoneDetailScreen() {
                   return (
                     <View
                       key={row.fy}
-                      className={`py-2.5 ${i < fyBreakdown.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""}`}
+                      className={`py-2.5 ${i < fyBreakdown.length - 1 ? "border-b border-border" : ""}`}
                     >
                       {/* Row header */}
                       <View className="flex-row items-center justify-between mb-1.5">
                         <View className="flex-row items-center gap-x-2">
-                          <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                          <Text className="text-sm font-medium text-foreground">
                             {row.label}
                           </Text>
                           {row.isCurrent && (
@@ -566,8 +566,8 @@ export default function MilestoneDetailScreen() {
                             </View>
                           )}
                         </View>
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                          <Text className="font-medium text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs text-muted-foreground">
+                          <Text className="font-medium text-foreground">
                             {formatAmount(row.actual)}
                           </Text>
                           {" / "}
@@ -580,7 +580,7 @@ export default function MilestoneDetailScreen() {
                       </View>
 
                       {/* Progress bar */}
-                      <View className="h-2 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+                      <View className="h-2 rounded-full bg-border overflow-hidden">
                         <View
                           className="h-2 rounded-full"
                           style={{
@@ -605,11 +605,11 @@ export default function MilestoneDetailScreen() {
                             Fully covered by surplus from earlier FYs
                           </Text>
                         ) : (
-                          <Text className="text-[10px] text-text-tertiary">
+                          <Text className="text-[10px] text-faint-foreground">
                             {row.planned > row.actual ? `${formatAmount(row.planned - row.actual)} left` : ""}
                           </Text>
                         )}
-                        <Text className="text-[10px] text-text-tertiary">
+                        <Text className="text-[10px] text-faint-foreground">
                           {(pctFY * 100).toFixed(0)}%
                         </Text>
                       </View>
@@ -636,9 +636,9 @@ export default function MilestoneDetailScreen() {
 
                 {/* Footer rule */}
                 {fyBreakdown.some((r) => !r.isPast && r.surplusCarriedIn > 0) && (
-                  <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark flex-row items-start">
+                  <View className="mt-2 pt-2 border-t border-border flex-row items-start">
                     <Ionicons name="lock-closed-outline" size={11} color={colors.textSecondary} style={{ marginTop: 2, marginRight: 5 }} />
-                    <Text className="text-[10px] text-text-tertiary flex-1" style={{ lineHeight: 15 }}>
+                    <Text className="text-[10px] text-faint-foreground flex-1" style={{ lineHeight: 15 }}>
                       Past FY targets are fixed at the original plan. The current FY target reflects what's actually remaining.
                     </Text>
                   </View>
@@ -670,7 +670,7 @@ export default function MilestoneDetailScreen() {
                       accessibilityLabel={`Open investment bucket ${lb.name}`}
                       className={`py-2.5 ${
                         i < linkedBuckets.length - 1
-                          ? "border-b border-border-light dark:border-border-dark"
+                          ? "border-b border-border"
                           : ""
                       }`}
                     >
@@ -681,7 +681,7 @@ export default function MilestoneDetailScreen() {
                             size={14}
                             color={colors.blue}
                           />
-                          <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary ml-1.5" numberOfLines={1}>
+                          <Text className="text-sm font-medium text-foreground ml-1.5" numberOfLines={1}>
                             {lb.name}
                           </Text>
                         </View>
@@ -696,7 +696,7 @@ export default function MilestoneDetailScreen() {
                           />
                         </View>
                       </View>
-                      <View className="h-1.5 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+                      <View className="h-1.5 rounded-full bg-border overflow-hidden">
                         <View
                           className="h-1.5 rounded-full"
                           style={{ width: `${bucketPct}%`, backgroundColor: accent[500] }}
@@ -705,9 +705,9 @@ export default function MilestoneDetailScreen() {
                     </Pressable>
                   );
                 })}
-                <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark">
+                <View className="mt-2 pt-2 border-t border-border">
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       Total from linked buckets
                     </Text>
                     <Text className="text-sm font-bold" style={{ color: ac(accent, colorScheme, 500, 200) }}>
@@ -726,11 +726,11 @@ export default function MilestoneDetailScreen() {
                     {/* FY header */}
                     <View
                       className={`flex-row items-center justify-between py-2 ${
-                        gi > 0 ? "mt-1 border-t border-border-light dark:border-border-dark" : ""
+                        gi > 0 ? "mt-1 border-t border-border" : ""
                       }`}
                     >
                       <View className="flex-row items-center">
-                        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+                        <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           {fyGroup.label}
                         </Text>
                         {fyGroup.isCurrent && (
@@ -749,19 +749,19 @@ export default function MilestoneDetailScreen() {
                         key={m.month}
                         className={`flex-row items-center justify-between py-2 pl-3 ${
                           mi < fyGroup.months.length - 1
-                            ? "border-b border-border-light/50 dark:border-border-dark/50"
+                            ? "border-b border-border/50"
                             : ""
                         }`}
                       >
-                        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-medium text-foreground">
                           {m.label}
                         </Text>
                         <View className="items-end">
-                          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                          <Text className="text-sm font-semibold text-foreground">
                             {formatAmount(m.total)}
                           </Text>
                           {m.count > 1 && (
-                            <Text className="text-xs text-text-tertiary">
+                            <Text className="text-xs text-faint-foreground">
                               {m.count} entries
                             </Text>
                           )}
@@ -836,19 +836,19 @@ export default function MilestoneDetailScreen() {
                     onLongPress={() => handleContributionLongPress(c)}
                     className={`flex-row items-center justify-between py-2.5 ${
                       i < contributions.length - 1
-                        ? "border-b border-border-light dark:border-border-dark"
+                        ? "border-b border-border"
                         : ""
                     }`}
                   >
-                    <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-medium text-foreground">
                       {formatAmount(c.amount)}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {c.date}
                     </Text>
                   </Pressable>
                 ))}
-                <Text className="text-xs text-text-tertiary mt-2 text-center">
+                <Text className="text-xs text-faint-foreground mt-2 text-center">
                   Long-press to edit or delete
                 </Text>
               </Card>

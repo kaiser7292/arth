@@ -40,7 +40,7 @@ export function InsightCard({
   return (
     <Pressable
       onPress={onPress}
-      className="rounded-2xl bg-surface-light-alt dark:bg-surface-dark-alt p-4 mb-3"
+      className="rounded-2xl bg-card p-4 mb-3"
       style={Shadows.card}
       accessibilityLabel={`${severity}: ${title}. ${detail}. Tap for details`}
       accessibilityRole="button"
@@ -54,10 +54,10 @@ export function InsightCard({
             <Ionicons name={SEVERITY_ICONS[severity]} size={16} color={severityColor} />
           </View>
           <View className="flex-1">
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+            <Text className="text-sm font-semibold text-foreground mb-1">
               {title}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" numberOfLines={2}>
+            <Text className="text-xs text-muted-foreground" numberOfLines={2}>
               {detail}
             </Text>
           </View>

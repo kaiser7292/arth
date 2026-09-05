@@ -22,7 +22,7 @@ const SEVERITY_COLORS = {
 
 function ProgressBar({ pct, color }: { pct: number; color: string }) {
   return (
-    <View className="h-1.5 rounded-full bg-border-light dark:bg-border-dark overflow-hidden mt-1.5">
+    <View className="h-1.5 rounded-full bg-border overflow-hidden mt-1.5">
       <View
         className="h-full rounded-full"
         style={{ width: `${Math.min(100, Math.max(0, pct))}%`, backgroundColor: color }}
@@ -33,10 +33,10 @@ function ProgressBar({ pct, color }: { pct: number; color: string }) {
 
 function StatRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
-      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary flex-1">{label}</Text>
+    <View className="flex-row items-center justify-between py-2 border-b border-border">
+      <Text className="text-sm text-muted-foreground flex-1">{label}</Text>
       <Text
-        className="text-sm font-semibold ml-4 text-text-primary dark:text-text-dark-primary"
+        className="text-sm font-semibold ml-4 text-foreground"
         style={highlight ? { color: "#EF4444" } : undefined}
       >
         {value}
@@ -47,7 +47,7 @@ function StatRow({ label, value, highlight }: { label: string; value: string; hi
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-2 mt-4">
+    <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2 mt-4">
       {title}
     </Text>
   );
@@ -114,13 +114,13 @@ function SpendingDetail({
         <>
           <SectionHeader title="Course Correction" />
           <Card className="mb-4">
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-2">
+            <Text className="text-sm text-muted-foreground mb-2">
               To protect your investment goals for the rest of this FY, reduce monthly discretionary spending by:
             </Text>
             <Text className="text-2xl font-bold text-danger">
               -{formatAmount(tension.discretionaryCutNeeded)}/mo
             </Text>
-            <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-1">
+            <Text className="text-xs text-faint-foreground mt-1">
               Discretionary spend YTD: {formatAmount(tension.discretionarySpendYTD)}
             </Text>
           </Card>
@@ -144,7 +144,7 @@ function BucketRow({ bucket, isDark }: { bucket: BucketStatus; isDark: boolean }
   return (
     <Card className="mb-3">
       <View className="flex-row items-center justify-between mb-1.5">
-        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1 mr-2" numberOfLines={1}>
+        <Text className="text-sm font-semibold text-foreground flex-1 mr-2" numberOfLines={1}>
           {bucket.name}
         </Text>
         <Text className="text-xs font-medium" style={{ color: accentColor }}>
@@ -153,18 +153,18 @@ function BucketRow({ bucket, isDark }: { bucket: BucketStatus; isDark: boolean }
       </View>
       <ProgressBar pct={bucket.progressPct} color={accentColor} />
       <View className="flex-row justify-between mt-2">
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-xs text-muted-foreground">
           {formatCompact(bucket.contributed)} saved
         </Text>
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-xs text-muted-foreground">
           {formatCompact(bucket.annualTarget)} target
         </Text>
       </View>
       {bucket.paceStatus === "behind" && bucket.monthlyRequired > 0 && (
-        <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <View className="mt-2 pt-2 border-t border-border">
+          <Text className="text-xs text-muted-foreground">
             Top-up needed:{" "}
-            <Text className="font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="font-semibold text-foreground">
               {formatAmount(bucket.monthlyRequired)}/mo
             </Text>
           </Text>
@@ -235,7 +235,7 @@ function MilestoneDetail({
   if (!ms) {
     return (
       <Card className="mb-4">
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-sm text-muted-foreground">
           Milestone details not available.
         </Text>
       </Card>
@@ -250,7 +250,7 @@ function MilestoneDetail({
       <SectionHeader title="Milestone Status" />
       <Card className="mb-4">
         <View className="flex-row items-center justify-between mb-1.5">
-          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1 mr-2">
+          <Text className="text-sm font-semibold text-foreground flex-1 mr-2">
             {ms.name}
           </Text>
           <Text className="text-sm font-bold" style={{ color: accentColor }}>
@@ -259,10 +259,10 @@ function MilestoneDetail({
         </View>
         <ProgressBar pct={ms.progressPct} color={accentColor} />
         <View className="flex-row justify-between mt-2 mb-3">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             {formatCompact(ms.currentSaved)} saved
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             {formatCompact(ms.targetAmount)} goal
           </Text>
         </View>
@@ -295,8 +295,8 @@ function MilestoneDetail({
           highlight={ms.monthlyPlanned > ms.monthlyRealistic}
         />
         {ms.monthlyPlanned > ms.monthlyRealistic && (
-          <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <View className="mt-2 pt-2 border-t border-border">
+            <Text className="text-xs text-muted-foreground">
               Increase by{" "}
               <Text className="font-semibold text-danger">
                 {formatAmount(ms.monthlyPlanned - ms.monthlyRealistic)}/mo
@@ -314,10 +314,10 @@ function MilestoneDetail({
             {ms.linkedBucketNames.map((name, i) => (
               <View
                 key={i}
-                className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark"
+                className="flex-row items-center py-2 border-b border-border"
               >
                 <Ionicons name="link-outline" size={14} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                <Text className="text-sm text-text-primary dark:text-text-dark-primary">{name}</Text>
+                <Text className="text-sm text-foreground">{name}</Text>
               </View>
             ))}
           </Card>
@@ -364,8 +364,8 @@ function SavingsDetail({
         <StatRow label="Total saved YTD" value={formatAmount(savings.totalSaved)} />
         <StatRow label="Target savings for FY" value={formatAmount(savings.targetSavings)} />
         {monthlyGap > 0 && (
-          <View className="mt-3 pt-2 border-t border-border-light dark:border-border-dark">
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <View className="mt-3 pt-2 border-t border-border">
+            <Text className="text-sm text-muted-foreground">
               To close the gap, save an additional{" "}
               <Text className="font-semibold text-danger">
                 {formatAmount(monthlyGap)}/mo
@@ -434,9 +434,9 @@ function GeneralDetail({
           "Build an emergency fund buffer",
           "Make a loan prepayment to save on interest",
         ].map((idea, i) => (
-          <View key={i} className="flex-row items-start py-2 border-b border-border-light dark:border-border-dark">
+          <View key={i} className="flex-row items-start py-2 border-b border-border">
             <Text className="text-success mr-2 mt-0.5">-</Text>
-            <Text className="text-sm text-text-primary dark:text-text-dark-primary flex-1">{idea}</Text>
+            <Text className="text-sm text-foreground flex-1">{idea}</Text>
           </View>
         ))}
       </Card>
@@ -471,7 +471,7 @@ export default function AdvisoryDetailScreen() {
       <ScreenContainer padTop={false}>
         <Stack.Screen options={{ title: "Advisory" }} />
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-base text-text-secondary dark:text-text-dark-secondary text-center">
+          <Text className="text-base text-muted-foreground text-center">
             Advisory data not available.
           </Text>
         </View>
@@ -528,7 +528,7 @@ export default function AdvisoryDetailScreen() {
         {/* Detail body */}
         {!cockpitData && (
           <View className="items-center py-8">
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-sm text-muted-foreground">
               Details not available.
             </Text>
           </View>

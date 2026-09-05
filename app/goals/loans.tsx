@@ -187,10 +187,10 @@ export default function LoansListScreen() {
               >
                 <Ionicons name="cash-outline" size={28} color={colors.blue} />
               </View>
-              <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+              <Text className="text-base font-semibold text-foreground mb-1">
                 No loans yet
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center px-6">
+              <Text className="text-sm text-muted-foreground text-center px-6">
                 Add a loan to track amortization, outstanding principal, and plan prepayments.
               </Text>
             </View>
@@ -199,7 +199,7 @@ export default function LoansListScreen() {
 
         {activeLoans.length > 0 && (
           <>
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Active
             </Text>
             {activeLoans.map((loan) => (
@@ -219,7 +219,7 @@ export default function LoansListScreen() {
               className="flex-row items-center mt-4 mb-2"
             >
               <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider flex-1">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1">
                 {closedLoans.length} settled / closed {closedLoans.length === 1 ? "loan" : "loans"}
               </Text>
               <Ionicons name={closedLoansExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
@@ -267,15 +267,15 @@ function LoanCard({
             <Ionicons name="cash-outline" size={20} color={colors.blue} />
           </View>
           <View className="flex-1">
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-bold text-foreground">
               {loan.bank_name} · {LOAN_TYPE_LABEL[loan.loan_type] ?? loan.loan_type}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {loan.tenure_months}mo @ {loan.interest_rate_pa}% · EMI {formatAmount(Math.round(loan.current_emi))}
             </Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               Outstanding
             </Text>
             <Text className="text-sm font-bold text-danger">
@@ -300,7 +300,7 @@ function LoanCard({
             }}
           />
         </View>
-        <Text className="text-xs text-text-tertiary mt-1">
+        <Text className="text-xs text-faint-foreground mt-1">
           {progress.toFixed(0)}% paid{loan.remaining_months != null ? ` · ${loan.remaining_months > 0 ? `${loan.remaining_months}mo remaining` : "Fully paid"}` : ""} · Disbursed {formatDate(loan.disbursement_date)}
         </Text>
       </Card>

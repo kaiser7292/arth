@@ -127,13 +127,13 @@ export default function PeriodComparisonScreen() {
               accessibilityLabel={p.label}
               accessibilityRole="button"
               className={`px-3 py-2 rounded-lg ${
-                selectedPreset === p.label ? "" : "bg-surface-light-alt dark:bg-surface-dark-alt"
+                selectedPreset === p.label ? "" : "bg-card"
               }`}
               style={selectedPreset === p.label ? { backgroundColor: accent[500] } : undefined}
             >
               <Text
                 className={`text-xs font-semibold ${
-                  selectedPreset === p.label ? "text-white" : "text-text-secondary dark:text-text-dark-secondary"
+                  selectedPreset === p.label ? "text-white" : "text-muted-foreground"
                 }`}
               >
                 {p.label}
@@ -145,13 +145,13 @@ export default function PeriodComparisonScreen() {
             accessibilityLabel="Custom date range"
             accessibilityRole="button"
             className={`px-3 py-2 rounded-lg ${
-              selectedPreset === "Custom" ? "" : "bg-surface-light-alt dark:bg-surface-dark-alt"
+              selectedPreset === "Custom" ? "" : "bg-card"
             }`}
             style={selectedPreset === "Custom" ? { backgroundColor: accent[500] } : undefined}
           >
             <Text
               className={`text-xs font-semibold ${
-                selectedPreset === "Custom" ? "text-white" : "text-text-secondary dark:text-text-dark-secondary"
+                selectedPreset === "Custom" ? "text-white" : "text-muted-foreground"
               }`}
             >
               Custom
@@ -162,7 +162,7 @@ export default function PeriodComparisonScreen() {
         {/* Custom Date Inputs */}
         {showCustom && (
           <Card className="mx-4 mb-3">
-            <Text className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-3">
+            <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
               Range 1 (Baseline)
             </Text>
             <View className="flex-row mb-3">
@@ -182,7 +182,7 @@ export default function PeriodComparisonScreen() {
               />
             </View>
 
-            <Text className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-3">
+            <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
               Range 2 (Compare)
             </Text>
             <View className="flex-row mb-3">
@@ -223,7 +223,7 @@ export default function PeriodComparisonScreen() {
             {/* Total Comparison Card */}
             <Card className="mx-4 mt-1">
               <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-semibold text-foreground">
                   Total Spending
                 </Text>
                 <View className="flex-row items-center">
@@ -243,13 +243,13 @@ export default function PeriodComparisonScreen() {
                   className="flex-1 mr-2"
                   onPress={() => drillInto(data.range1.start, data.range1.end, { type: "total" }, `All · ${formatDateShort(data.range1.start)}–${formatDateShort(data.range1.end)}`)}
                 >
-                  <Text className="text-xs text-text-tertiary mb-1">
+                  <Text className="text-xs text-faint-foreground mb-1">
                     {formatDateShort(data.range1.start)} – {formatDateShort(data.range1.end)}
                   </Text>
                   <Text className="text-lg font-bold" style={{ color: accent[500] }}>
                     {formatAmount(data.range1.summary.totalSpent)}
                   </Text>
-                  <Text className="text-xs text-text-tertiary mt-0.5">
+                  <Text className="text-xs text-faint-foreground mt-0.5">
                     {data.range1.summary.transactionCount} txns · tap to view
                   </Text>
                 </Pressable>
@@ -260,30 +260,30 @@ export default function PeriodComparisonScreen() {
                   className="flex-1 ml-2"
                   onPress={() => drillInto(data.range2.start, data.range2.end, { type: "total" }, `All · ${formatDateShort(data.range2.start)}–${formatDateShort(data.range2.end)}`)}
                 >
-                  <Text className="text-xs text-text-tertiary mb-1">
+                  <Text className="text-xs text-faint-foreground mb-1">
                     {formatDateShort(data.range2.start)} – {formatDateShort(data.range2.end)}
                   </Text>
                   <Text className="text-lg font-bold" style={{ color: accent[500] }}>
                     {formatAmount(data.range2.summary.totalSpent)}
                   </Text>
-                  <Text className="text-xs text-text-tertiary mt-0.5">
+                  <Text className="text-xs text-faint-foreground mt-0.5">
                     {data.range2.summary.transactionCount} txns · tap to view
                   </Text>
                 </Pressable>
               </View>
 
-              <View className="flex-row items-center justify-center mt-3 pt-3 border-t border-border-light dark:border-border-dark">
-                <Text className="text-xs text-text-tertiary mr-1">Delta:</Text>
+              <View className="flex-row items-center justify-center mt-3 pt-3 border-t border-border">
+                <Text className="text-xs text-faint-foreground mr-1">Delta:</Text>
                 <Text className="text-sm font-bold" style={{ color: changePctColor(data.delta.totalDeltaPct) }}>
                   {data.delta.totalDelta > 0 ? "+" : "-"}{formatAmount(Math.abs(data.delta.totalDelta))}
                 </Text>
-                <Text className="text-xs text-text-tertiary ml-2">
+                <Text className="text-xs text-faint-foreground ml-2">
                   ({data.delta.countDelta > 0 ? "+" : ""}{data.delta.countDelta} txns)
                 </Text>
               </View>
               <View className="flex-row items-center justify-center mt-2">
                 <Ionicons name="information-circle-outline" size={11} color={colors.textSecondary} />
-                <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary ml-1">
+                <Text className="text-xs text-faint-foreground ml-1">
                   Excludes transfers, investments & loan payments
                 </Text>
               </View>
@@ -293,23 +293,23 @@ export default function PeriodComparisonScreen() {
             {data.byCategory.length > 0 && (
               <>
                 <View className="px-4 mt-4">
-                  <Text className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-3">
+                  <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
                     By Category
                   </Text>
                 </View>
                 <Card className="mx-4">
-                  <View className="flex-row items-center pb-2 border-b border-border-light dark:border-border-dark mb-1">
-                    <Text className="flex-1 text-xs font-semibold text-text-tertiary">Category</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-text-tertiary text-right ml-1">R1</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-text-tertiary text-right ml-1">R2</Text>
-                    <Text className="w-14 text-xs font-semibold text-text-tertiary text-right">Chg</Text>
+                  <View className="flex-row items-center pb-2 border-b border-border mb-1">
+                    <Text className="flex-1 text-xs font-semibold text-faint-foreground">Category</Text>
+                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R1</Text>
+                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R2</Text>
+                    <Text className="w-14 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
                   </View>
                   {data.byCategory.map((c) => (
                     <View
                       key={c.categoryId}
-                      className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark"
+                      className="flex-row items-center py-2 border-b border-border"
                     >
-                      <Text className="flex-1 text-xs text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                      <Text className="flex-1 text-xs text-foreground" numberOfLines={1}>
                         {c.categoryName}
                       </Text>
                       <Pressable
@@ -344,23 +344,23 @@ export default function PeriodComparisonScreen() {
             {data.byMerchant.length > 0 && (
               <>
                 <View className="px-4 mt-4">
-                  <Text className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-3">
+                  <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
                     By Merchant
                   </Text>
                 </View>
                 <Card className="mx-4">
-                  <View className="flex-row items-center pb-2 border-b border-border-light dark:border-border-dark mb-1">
-                    <Text className="flex-1 text-xs font-semibold text-text-tertiary">Merchant</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-text-tertiary text-right ml-1">R1</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-text-tertiary text-right ml-1">R2</Text>
-                    <Text className="w-14 text-xs font-semibold text-text-tertiary text-right">Chg</Text>
+                  <View className="flex-row items-center pb-2 border-b border-border mb-1">
+                    <Text className="flex-1 text-xs font-semibold text-faint-foreground">Merchant</Text>
+                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R1</Text>
+                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R2</Text>
+                    <Text className="w-14 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
                   </View>
                   {(showAllMerchants ? data.byMerchant : data.byMerchant.slice(0, 10)).map((m) => (
                     <View
                       key={m.merchantName}
-                      className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark"
+                      className="flex-row items-center py-2 border-b border-border"
                     >
-                      <Text className="flex-1 text-xs text-text-primary dark:text-text-dark-primary capitalize" numberOfLines={1}>
+                      <Text className="flex-1 text-xs text-foreground capitalize" numberOfLines={1}>
                         {m.merchantName}
                       </Text>
                       <Pressable
@@ -405,23 +405,23 @@ export default function PeriodComparisonScreen() {
             {data.byPaymentMode.length > 0 && (
               <>
                 <View className="px-4 mt-4">
-                  <Text className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-3">
+                  <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
                     By Payment Method
                   </Text>
                 </View>
                 <Card className="mx-4">
-                  <View className="flex-row items-center pb-2 border-b border-border-light dark:border-border-dark mb-1">
-                    <Text className="flex-1 text-xs font-semibold text-text-tertiary">Method</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-text-tertiary text-right ml-1">R1</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-text-tertiary text-right ml-1">R2</Text>
-                    <Text className="w-14 text-xs font-semibold text-text-tertiary text-right">Chg</Text>
+                  <View className="flex-row items-center pb-2 border-b border-border mb-1">
+                    <Text className="flex-1 text-xs font-semibold text-faint-foreground">Method</Text>
+                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R1</Text>
+                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R2</Text>
+                    <Text className="w-14 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
                   </View>
                   {data.byPaymentMode.map((pm) => (
                     <View
                       key={pm.paymentModeId}
-                      className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark"
+                      className="flex-row items-center py-2 border-b border-border"
                     >
-                      <Text className="flex-1 text-xs text-text-primary dark:text-text-dark-primary">
+                      <Text className="flex-1 text-xs text-foreground">
                         {pm.paymentModeName}
                       </Text>
                       <Pressable
@@ -458,10 +458,10 @@ export default function PeriodComparisonScreen() {
         {!data && !loading && !showCustom && (
           <View className="items-center py-16 px-8">
             <Ionicons name="git-compare-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               Compare Periods
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center">
+            <Text className="text-sm text-muted-foreground mt-1 text-center">
               Select a preset or enter custom dates to compare spending across two periods.
             </Text>
           </View>

@@ -194,7 +194,7 @@ export default function YearlyPlanScreen() {
           <Card className="mb-4">
             <View className="flex-row items-center justify-between mb-3">
               <View className="flex-row items-center">
-                <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base font-semibold text-foreground">
                   Income
                 </Text>
                 {profile?.status === "draft" && (
@@ -233,7 +233,7 @@ export default function YearlyPlanScreen() {
               value={formatAmount(derived?.expected_capital_gains ?? 0)}
               icon="trending-up-outline"
             />
-            <View className="h-px bg-border-light dark:bg-border-dark my-2" />
+            <View className="h-px bg-border my-2" />
             <MetricRow
               label="Total Income"
               value={formatAmount(derived?.total_income ?? 0)}
@@ -245,7 +245,7 @@ export default function YearlyPlanScreen() {
           {/* Investments Card */}
           <Card className="mb-4">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-base font-semibold text-foreground">
                 Investments
               </Text>
               <Pressable
@@ -279,11 +279,11 @@ export default function YearlyPlanScreen() {
                 );
               })
             ) : (
-              <Text className="text-xs text-text-tertiary py-2">
+              <Text className="text-xs text-faint-foreground py-2">
                 No investment buckets for this FY
               </Text>
             )}
-            <View className="h-px bg-border-light dark:bg-border-dark my-2" />
+            <View className="h-px bg-border my-2" />
             <MetricRow
               label="Total Investments"
               value={formatAmount(derived?.total_planned_investments ?? 0)}
@@ -295,7 +295,7 @@ export default function YearlyPlanScreen() {
           {/* Milestones Card */}
           <Card className="mb-4">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-base font-semibold text-foreground">
                 Milestones
               </Text>
               <Pressable
@@ -336,11 +336,11 @@ export default function YearlyPlanScreen() {
                 );
               })
             ) : (
-              <Text className="text-xs text-text-tertiary py-2">
+              <Text className="text-xs text-faint-foreground py-2">
                 No active milestones for this FY
               </Text>
             )}
-            <View className="h-px bg-border-light dark:bg-border-dark my-2" />
+            <View className="h-px bg-border my-2" />
             {(() => {
               const totalMilestoneNeed = milestones.reduce(
                 (s, m) => s + getMilestoneContributionForFY(m, targetFY), 0,
@@ -384,7 +384,7 @@ export default function YearlyPlanScreen() {
                 >
                   <Ionicons name="cash-outline" size={18} color={colors.blue} />
                 </View>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base font-bold text-foreground">
                   Loans & Debt
                 </Text>
               </View>
@@ -403,7 +403,7 @@ export default function YearlyPlanScreen() {
 
             {loanForecast.length === 0 ? (
               <View className="py-3">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-sm text-muted-foreground">
                   No active loans.
                 </Text>
                 <Pressable
@@ -429,44 +429,44 @@ export default function YearlyPlanScreen() {
                       onPress={() => router.push({ pathname: "/loans/[id]", params: { id: row.loanId } } as never)}
                       className={`py-2.5 ${
                         i < loanForecast.length - 1
-                          ? "border-b border-border-light dark:border-border-dark"
+                          ? "border-b border-border"
                           : ""
                       }`}
                     >
                       <View className="flex-row items-center justify-between mb-1">
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+                        <Text className="text-sm font-semibold text-foreground flex-1">
                           {row.bankName} · {row.loanType}
                         </Text>
                         <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
                       </View>
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Monthly EMI
                         </Text>
-                        <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs font-medium text-foreground">
                           {fmt(row.currentEMI)}
                         </Text>
                       </View>
                       <View className="flex-row justify-between mt-0.5">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           EMI outflow this FY
                         </Text>
-                        <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs font-medium text-foreground">
                           {fmt(row.annualEmiTotal)}
                         </Text>
                       </View>
                       {row.annualPrepaymentTotal > 0 && (
                         <View className="flex-row justify-between mt-0.5">
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                          <Text className="text-xs text-muted-foreground">
                             Prepayments this FY
                           </Text>
-                          <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
+                          <Text className="text-xs font-medium text-foreground">
                             {fmt(row.annualPrepaymentTotal)}
                           </Text>
                         </View>
                       )}
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs font-semibold text-foreground">
                           Total annual outflow
                         </Text>
                         <Text className="text-xs font-bold" style={{ color: StatusColors[colorScheme].danger }}>
@@ -486,9 +486,9 @@ export default function YearlyPlanScreen() {
                       ? Math.round((grandTotal / derived.total_income) * 100)
                       : 0;
                   return (
-                    <View className="mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+                    <View className="mt-3 pt-3 border-t border-border">
                       <View className="flex-row justify-between">
-                        <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-bold text-foreground">
                           Debt servicing this year
                         </Text>
                         <Text className="text-sm font-bold" style={{ color: StatusColors[colorScheme].danger }}>
@@ -496,7 +496,7 @@ export default function YearlyPlanScreen() {
                         </Text>
                       </View>
                       {asPctOfIncome > 0 && (
-                        <Text className="text-xs text-text-tertiary mt-1">
+                        <Text className="text-xs text-faint-foreground mt-1">
                           {asPctOfIncome}% of your annual income goes to EMIs + prepayments
                         </Text>
                       )}
@@ -510,7 +510,7 @@ export default function YearlyPlanScreen() {
           {/* Expenses Card */}
           <Card className="mb-4">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-base font-semibold text-foreground">
                 Expenses (Annualized)
               </Text>
               <Pressable
@@ -529,7 +529,7 @@ export default function YearlyPlanScreen() {
               icon="receipt-outline"
               color={StatusColors[colorScheme].danger}
             />
-            <Text className="text-xs text-text-tertiary mt-1">
+            <Text className="text-xs text-faint-foreground mt-1">
               Based on your monthly budget averages
             </Text>
           </Card>
@@ -552,7 +552,7 @@ export default function YearlyPlanScreen() {
                     icon="arrow-down-circle-outline"
                     color={StatusColors[colorScheme].success}
                   />
-                  <View className="h-px bg-border-light dark:bg-border-dark my-2" />
+                  <View className="h-px bg-border my-2" />
                   <MetricRow
                     label="Expenses"
                     value={formatAmount(derived?.total_planned_expenses ?? 0)}
@@ -580,7 +580,7 @@ export default function YearlyPlanScreen() {
                       }
                     />
                   )}
-                  <View className="h-px bg-border-light dark:bg-border-dark my-2" />
+                  <View className="h-px bg-border my-2" />
                   <MetricRow
                     label="Total Outflow"
                     value={formatAmount(outflowWithDebt)}
@@ -588,7 +588,7 @@ export default function YearlyPlanScreen() {
                     color={StatusColors[colorScheme].danger}
                     bold
                   />
-                  <View className="h-px bg-border-light dark:bg-border-dark my-2" />
+                  <View className="h-px bg-border my-2" />
                   <MetricRow
                     label="Surplus / Deficit"
                     value={`${surplusWithDebt < 0 ? "-" : ""}${formatAmount(Math.abs(surplusWithDebt))}`}
@@ -603,7 +603,7 @@ export default function YearlyPlanScreen() {
                 </>
               );
             })()}
-            <View className="h-px bg-border-light dark:bg-border-dark my-2" />
+            <View className="h-px bg-border my-2" />
             <MetricRow
               label="Planned Savings Rate"
               value={`${derived?.savings_rate ?? 0}%`}
@@ -692,7 +692,7 @@ export default function YearlyPlanScreen() {
                       : "Course correction needed"}
                 </Text>
                 {!realityCheck.isPastFY && (
-                  <Text className="text-xs text-text-tertiary ml-auto">
+                  <Text className="text-xs text-faint-foreground ml-auto">
                     Month {realityCheck.monthsElapsed}/12
                   </Text>
                 )}
@@ -747,11 +747,11 @@ export default function YearlyPlanScreen() {
                   return (
                     <View
                       key={label}
-                      className={`py-3${borderBottom ? " border-b border-border-light dark:border-border-dark" : ""}`}
+                      className={`py-3${borderBottom ? " border-b border-border" : ""}`}
                     >
                       {/* Section header */}
                       <View className="flex-row items-center justify-between mb-2">
-                        <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                           {label}
                         </Text>
                         <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: statusBg }}>
@@ -762,16 +762,16 @@ export default function YearlyPlanScreen() {
                       </View>
                       {/* Expected vs Actual */}
                       <View className="flex-row items-center justify-between mb-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           {realityCheck.isPastFY ? "Planned" : "Expected so far"}
                         </Text>
-                        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-sm text-muted-foreground">
                           {fmtFull(realityCheck.isPastFY ? planned : proratedTarget)}
                         </Text>
                       </View>
                       <View className="flex-row items-center justify-between mb-2">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Actual</Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs text-muted-foreground">Actual</Text>
+                        <Text className="text-sm font-semibold text-foreground">
                           {fmtFull(actualYTD)}
                         </Text>
                       </View>
@@ -782,7 +782,7 @@ export default function YearlyPlanScreen() {
                           style={{ backgroundColor: colors.surface }}
                         >
                           <View className="flex-row items-center justify-between">
-                            <Text className="text-[10px] text-text-tertiary">Year-end projection</Text>
+                            <Text className="text-[10px] text-faint-foreground">Year-end projection</Text>
                             <Text
                               className="text-xs font-semibold"
                               style={{
@@ -797,7 +797,7 @@ export default function YearlyPlanScreen() {
                             </Text>
                           </View>
                           <View className="items-end mt-0.5">
-                            <Text className="text-[10px] text-text-tertiary">{fmtFull(planned)} planned</Text>
+                            <Text className="text-[10px] text-faint-foreground">{fmtFull(planned)} planned</Text>
                           </View>
                         </View>
                       )}
@@ -861,8 +861,8 @@ export default function YearlyPlanScreen() {
                     {rcRows}
                     {debtBlock}
                     {/* Net surplus */}
-                    <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-border-light dark:border-border-dark">
-                      <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary">
+                    <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-border">
+                      <Text className="text-xs font-bold text-foreground">
                         {realityCheck.isPastFY ? "Actual Surplus" : "Projected Surplus"}
                       </Text>
                       <Text
@@ -874,7 +874,7 @@ export default function YearlyPlanScreen() {
                         }}
                       >
                         {fmtFull(netSurplusProj)}
-                        <Text className="text-[10px] font-normal text-text-tertiary">
+                        <Text className="text-[10px] font-normal text-faint-foreground">
                           {" "}(plan: {fmtFull(netSurplusPlanned)})
                         </Text>
                       </Text>
@@ -898,7 +898,7 @@ export default function YearlyPlanScreen() {
                       <Text className="text-[10px] mr-1.5">
                         {line.startsWith("Cut") || line.startsWith("Add") ? "→" : "✓"}
                       </Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         {line}
                       </Text>
                     </View>
@@ -911,11 +911,11 @@ export default function YearlyPlanScreen() {
           {/* Data sources */}
           {derived && derived.sources.length > 0 && (
             <View className="px-2 mb-4">
-              <Text className="text-xs font-medium text-text-tertiary mb-1">
+              <Text className="text-xs font-medium text-faint-foreground mb-1">
                 Data sources:
               </Text>
               {derived.sources.map((s, i) => (
-                <Text key={i} className="text-xs text-text-tertiary">
+                <Text key={i} className="text-xs text-faint-foreground">
                   {s}
                 </Text>
               ))}

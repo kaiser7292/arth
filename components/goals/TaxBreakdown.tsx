@@ -25,7 +25,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
       {/* Tax Comparison */}
       <Card title="Tax Comparison" className="mb-4">
         {/* Regime tabs */}
-        <View className="flex-row rounded-lg border border-border-light dark:border-border-dark overflow-hidden mb-3">
+        <View className="flex-row rounded-lg border border-border overflow-hidden mb-3">
           <Pressable
             onPress={() => setCompareTab("new")}
             className={`flex-1 py-2 items-center ${
@@ -39,7 +39,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
               className={`text-sm font-medium ${
                 compareTab === "new"
                   ? "text-white"
-                  : "text-text-secondary dark:text-text-dark-secondary"
+                  : "text-muted-foreground"
               }`}
             >
               New Regime
@@ -58,7 +58,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
               className={`text-sm font-medium ${
                 compareTab === "old"
                   ? "text-white"
-                  : "text-text-secondary dark:text-text-dark-secondary"
+                  : "text-muted-foreground"
               }`}
             >
               Old Regime
@@ -128,7 +128,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
                 label="Health & Edu Cess (4%)"
                 value={formatAmount(tax.cess)}
               />
-              <View className="border-t border-border-light dark:border-border-dark my-1" />
+              <View className="border-t border-border my-1" />
               <TaxRow
                 label="Total Tax"
                 value={formatAmount(tax.totalTax)}
@@ -148,13 +148,13 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
       <Card title="Regime Summary" className="mb-4">
         <View className="flex-row">
           <View className="flex-1 items-center py-2">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">
+            <Text className="text-xs text-muted-foreground mb-1">
               New Regime
             </Text>
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-bold text-foreground">
               {formatAmount(calculation.newRegimeTax.totalTax)}
             </Text>
-            <Text className="text-xs text-text-tertiary">
+            <Text className="text-xs text-faint-foreground">
               {calculation.newRegimeTax.effectiveRate}% eff.
             </Text>
             {calculation.selectedRegime === "new" && (
@@ -165,15 +165,15 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
               </View>
             )}
           </View>
-          <View className="w-px bg-border-light dark:bg-border-dark" />
+          <View className="w-px bg-border" />
           <View className="flex-1 items-center py-2">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">
+            <Text className="text-xs text-muted-foreground mb-1">
               Old Regime
             </Text>
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-bold text-foreground">
               {formatAmount(calculation.oldRegimeTax.totalTax)}
             </Text>
-            <Text className="text-xs text-text-tertiary">
+            <Text className="text-xs text-faint-foreground">
               {calculation.oldRegimeTax.effectiveRate}% eff.
             </Text>
             {calculation.selectedRegime === "old" && (

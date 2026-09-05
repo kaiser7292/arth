@@ -326,13 +326,13 @@ export default function MilestonesScreen() {
 
                 {/* Start FY Picker */}
                 <View className="mb-3">
-                  <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1.5">
+                  <Text className="text-xs font-medium text-muted-foreground mb-1.5">
                     Start Financial Year
                   </Text>
                   <View className="flex-row items-center">
                     <Pressable
                       onPress={() => setFormStartFY(String(parseInt(formStartFY, 10) - 1))}
-                      className="p-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+                      className="p-2 rounded-lg bg-card"
                     >
                       <Ionicons name="chevron-back" size={16} color={colors.textSecondary} />
                     </Pressable>
@@ -343,7 +343,7 @@ export default function MilestonesScreen() {
                     </View>
                     <Pressable
                       onPress={() => setFormStartFY(String(parseInt(formStartFY, 10) + 1))}
-                      className="p-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+                      className="p-2 rounded-lg bg-card"
                     >
                       <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                     </Pressable>
@@ -352,12 +352,12 @@ export default function MilestonesScreen() {
 
                 {/* Duration */}
                 <View className="mb-3">
-                  <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1.5">
+                  <Text className="text-xs font-medium text-muted-foreground mb-1.5">
                     Duration
                   </Text>
 
                   {/* Unit toggle */}
-                  <View className="flex-row mb-2 rounded-lg overflow-hidden border border-border-light dark:border-border-dark">
+                  <View className="flex-row mb-2 rounded-lg overflow-hidden border border-border">
                     {(["years", "months"] as DurationUnit[]).map((unit) => (
                       <Pressable
                         key={unit}
@@ -456,7 +456,7 @@ export default function MilestonesScreen() {
                       ? `${yrs}yr ${mos}mo`
                       : yrs > 0 ? `${yrs}yr` : `${mos}mo`;
                     return (
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
+                      <Text className="text-xs text-muted-foreground mt-1">
                         {label} → {formatAmount(monthly)}/month
                       </Text>
                     );
@@ -501,15 +501,15 @@ export default function MilestonesScreen() {
             <Card className="mb-4">
               <View className="flex-row mb-3">
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Total Goal
                   </Text>
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-base font-bold text-foreground">
                     {formatAmount(totalTarget)}
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Saved
                   </Text>
                   <Text className="text-base font-bold text-success">
@@ -517,7 +517,7 @@ export default function MilestonesScreen() {
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Remaining
                   </Text>
                   <Text className="text-base font-bold text-danger">
@@ -525,13 +525,13 @@ export default function MilestonesScreen() {
                   </Text>
                 </View>
               </View>
-              <View className="h-3 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+              <View className="h-3 rounded-full bg-border overflow-hidden">
                 <View
                   className="h-3 rounded-full"
                   style={{ width: `${overallPct}%`, backgroundColor: accent[500] }}
                 />
               </View>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1 text-right">
+              <Text className="text-xs text-muted-foreground mt-1 text-right">
                 {overallPct.toFixed(1)}% overall progress
               </Text>
             </Card>
@@ -542,10 +542,10 @@ export default function MilestonesScreen() {
             <Card className="mb-4">
               <View className="items-center py-4">
                 <Ionicons name="flag-outline" size={48} color={colors.textSecondary} />
-                <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary mt-2">
+                <Text className="text-base font-medium text-foreground mt-2">
                   No milestones yet
                 </Text>
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-4">
+                <Text className="text-sm text-muted-foreground mt-1 text-center px-4">
                   Add your first life goal to start tracking
                 </Text>
               </View>
@@ -580,7 +580,7 @@ export default function MilestonesScreen() {
           {/* Completed Milestones */}
           {completedMilestones.length > 0 && (
             <>
-              <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary mt-4 mb-2">
+              <Text className="text-sm font-semibold text-muted-foreground mt-4 mb-2">
                 Completed ({completedMilestones.length})
               </Text>
               {completedMilestones.map((m) => (
@@ -603,7 +603,7 @@ export default function MilestonesScreen() {
           )}
 
           {milestones.length > 0 && (
-            <Text className="text-xs text-text-tertiary text-center mt-2 mb-4">
+            <Text className="text-xs text-faint-foreground text-center mt-2 mb-4">
               Tap to view details. Long-press for reset/delete options.
             </Text>
           )}
@@ -689,7 +689,7 @@ function MilestoneCard({
             </Pressable>
             <View className="flex-1">
               <Text
-                className="text-sm font-medium text-text-primary dark:text-text-dark-primary"
+                className="text-sm font-medium text-foreground"
                 numberOfLines={1}
                 style={isComplete ? { textDecorationLine: "line-through" } : {}}
               >
@@ -697,7 +697,7 @@ function MilestoneCard({
               </Text>
               <View className="flex-row items-center flex-wrap">
                 {milestone.start_financial_year && (
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+                  <Text className="text-xs text-muted-foreground mr-2">
                     FY {milestone.start_financial_year}
                     {(() => {
                       const yrs = milestone.duration_years || 0;
@@ -710,7 +710,7 @@ function MilestoneCard({
                   </Text>
                 )}
                 {milestone.target_date && (
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Due: {milestone.target_date}
                   </Text>
                 )}
@@ -735,7 +735,7 @@ function MilestoneCard({
         {/* Saved / Target / Left */}
         <View className="flex-row mb-2">
           <View className="flex-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               Saved
             </Text>
             <Text className="text-sm font-semibold text-success">
@@ -743,15 +743,15 @@ function MilestoneCard({
             </Text>
           </View>
           <View className="flex-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               Target
             </Text>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-sm font-semibold text-foreground">
               {formatAmount(milestone.target_amount)}
             </Text>
           </View>
           <View className="flex-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               Left
             </Text>
             <Text className="text-sm font-semibold text-danger">
@@ -761,7 +761,7 @@ function MilestoneCard({
         </View>
 
         {/* Progress bar */}
-        <View className="h-2 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+        <View className="h-2 rounded-full bg-border overflow-hidden">
           <View
             className="h-2 rounded-full"
             style={{
@@ -773,9 +773,9 @@ function MilestoneCard({
 
         {/* Footer: % + monthly needed */}
         <View className="flex-row items-center justify-between mt-1">
-          <Text className="text-xs text-text-tertiary">{pct.toFixed(0)}%</Text>
+          <Text className="text-xs text-faint-foreground">{pct.toFixed(0)}%</Text>
           {monthlyNeeded != null && !isComplete && (
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               Need {formatAmount(monthlyNeeded)}/mo
             </Text>
           )}
@@ -784,9 +784,9 @@ function MilestoneCard({
         {/* Current FY progress */}
         {fyLabel && fyPlanned != null && fyPlanned > 0 && !isComplete && (
           <View
-            className="mt-2 pt-2 border-t border-border-light dark:border-border-dark flex-row items-center justify-between"
+            className="mt-2 pt-2 border-t border-border flex-row items-center justify-between"
           >
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               {fyLabel}
             </Text>
             <Text className="text-xs font-medium" style={{ color: accent[500] }}>
@@ -797,16 +797,16 @@ function MilestoneCard({
 
         {/* Realistic projection (from cockpit) */}
         {realityStatus && !isComplete && realityStatus.monthlyRealistic > 0 && (
-          <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark">
+          <View className="mt-2 pt-2 border-t border-border">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center">
                 <Ionicons name="calendar-outline" size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Plan: {formatAmount(realityStatus.monthlyPlanned)}/mo
                 </Text>
               </View>
               {realityStatus.plannedCompletionDate && (
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   → {realityStatus.plannedCompletionDate}
                 </Text>
               )}
@@ -851,7 +851,7 @@ function MilestoneCard({
             {realityStatus.linkedBucketNames.length > 0 && (
               <View className="flex-row items-center mt-1.5">
                 <Ionicons name="link-outline" size={10} color={colors.textSecondary} style={{ marginRight: 4 }} />
-                <Text className="text-xs text-text-tertiary" numberOfLines={1}>
+                <Text className="text-xs text-faint-foreground" numberOfLines={1}>
                   Fed by: {realityStatus.linkedBucketNames.join(", ")}
                 </Text>
               </View>

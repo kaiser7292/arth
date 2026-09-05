@@ -35,7 +35,7 @@ export function ConfidenceDots({ level, showLabel = true }: ConfidenceDotsProps)
       accessibilityLabel={`Confidence: ${config.label}, ${config.dots} out of 5`}
     >
       {showLabel && (
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-1">
+        <Text className="text-xs text-muted-foreground mr-1">
           Confidence: {config.label}
         </Text>
       )}

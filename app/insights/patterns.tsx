@@ -138,7 +138,7 @@ export default function PatternLibraryScreen() {
           <Pressable
             onPress={handleRescan}
             disabled={rescanning}
-            className="flex-row items-center px-3 py-2 rounded-full border border-border-light dark:border-border-dark"
+            className="flex-row items-center px-3 py-2 rounded-full border border-border"
             style={{ opacity: rescanning ? 0.5 : 1 }}
           >
             <Ionicons
@@ -164,8 +164,8 @@ export default function PatternLibraryScreen() {
 
         {/* Last scan summary (shown after a manual re-scan) */}
         {lastSummary && (
-          <View className="mx-4 mt-2 px-3 py-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <View className="mx-4 mt-2 px-3 py-2 rounded-lg bg-card">
+            <Text className="text-xs text-muted-foreground">
               Last scan: {lastSummary.scannedExpenses} expenses · {lastSummary.uniqueMerchants} merchants · {lastSummary.detected} patterns · {lastSummary.skipped.length} skipped
             </Text>
           </View>
@@ -196,16 +196,16 @@ export default function PatternLibraryScreen() {
         {patterns.length === 0 && (
           <View className="items-center py-16 px-8">
             <Ionicons name="bulb-outline" size={48} color={statusColors.muted} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               No patterns detected yet
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center">
+            <Text className="text-sm text-muted-foreground mt-1 text-center">
               Keep tracking expenses for 2-3 months and recurring costs will be identified automatically.
             </Text>
             <Pressable
               onPress={handleRescan}
               disabled={rescanning}
-              className="mt-4 px-4 py-2.5 rounded-full border border-border-light dark:border-border-dark"
+              className="mt-4 px-4 py-2.5 rounded-full border border-border"
               style={{ opacity: rescanning ? 0.5 : 1 }}
             >
               <Text className="text-sm font-medium" style={{ color: colors.tint }}>
@@ -257,16 +257,16 @@ function PatternRow({
   return (
     <Pressable
       onPress={onEdit}
-      className={`py-3 ${!isLast ? "border-b border-border-light dark:border-border-dark" : ""}`}
+      className={`py-3 ${!isLast ? "border-b border-border" : ""}`}
       accessibilityLabel={`${pattern.merchant_normalized}, ${formatAmount(pattern.amount)} ${pattern.frequency}. Confidence: ${confidence}%. Double tap to edit.`}
       accessibilityHint="Double tap to edit pattern"
     >
       <View className="flex-row items-start justify-between">
         <View className="flex-1 mr-3">
-          <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary capitalize">
+          <Text className="text-sm font-medium text-foreground capitalize">
             {pattern.merchant_normalized}
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-xs text-muted-foreground mt-0.5">
             {formatAmount(pattern.amount)} · {capitalizeFirst(pattern.frequency)} · ~Day {expectedDay}
           </Text>
           <View className="flex-row items-center gap-2 mt-1">
@@ -275,7 +275,7 @@ function PatternRow({
               color={isConfirmed ? statusColors.success : statusColors.muted}
               icon={isConfirmed ? "checkmark-circle" : "scan-outline"}
             />
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               {confidence}%
             </Text>
           </View>

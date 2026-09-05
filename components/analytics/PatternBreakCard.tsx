@@ -36,16 +36,16 @@ export function PatternBreakCard({
     >
       <View className="flex-row items-start mb-2">
         <Ionicons name="clipboard-outline" size={16} color={statusColors.warning} style={{ marginRight: 8, marginTop: 1 }} />
-        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+        <Text className="text-sm font-medium text-foreground">
           Expected but missing:
         </Text>
       </View>
 
       <View className="ml-6 mb-3">
-        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary capitalize">
+        <Text className="text-sm font-semibold text-foreground capitalize">
           {formatAmount(amount)}  {merchant}
         </Text>
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+        <Text className="text-xs text-muted-foreground mt-0.5">
           Usually arrives by {ordinal(expectedDay)} ({daysLate} days late)
         </Text>
       </View>
@@ -72,11 +72,11 @@ function ActionPill({ label, onPress }: { label: string; onPress: () => void }) 
   return (
     <Pressable
       onPress={onPress}
-      className="px-3 py-1.5 rounded-full border border-border-light dark:border-border-dark"
+      className="px-3 py-1.5 rounded-full border border-border"
       accessibilityLabel={label}
       accessibilityRole="button"
     >
-      <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+      <Text className="text-xs font-medium text-muted-foreground">
         {label}
       </Text>
     </Pressable>

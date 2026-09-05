@@ -116,7 +116,7 @@ export default function RiskCoverageScreen() {
             <Card>
               <View className="flex-row items-center justify-between mb-3">
                 <View>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-0.5">
+                  <Text className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">
                     Coverage Score
                   </Text>
                   <Text
@@ -134,10 +134,10 @@ export default function RiskCoverageScreen() {
                   </Text>
                 </View>
                 <View className="items-end">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Total annual premium
                   </Text>
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-semibold text-foreground">
                     {formatAmount(totalPremium)}
                   </Text>
                 </View>
@@ -168,11 +168,11 @@ export default function RiskCoverageScreen() {
 
               {/* Gaps */}
               {adequacy.gaps.length > 0 && (
-                <View className="mt-3 pt-2 border-t border-border-light dark:border-border-dark">
+                <View className="mt-3 pt-2 border-t border-border">
                   {adequacy.gaps.map((g) => (
                     <View key={g} className="flex-row items-start gap-1.5 mb-1">
                       <Ionicons name="alert-circle" size={13} color={status.warning} style={{ marginTop: 1 }} />
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+                      <Text className="text-xs text-muted-foreground flex-1">
                         {g}
                       </Text>
                     </View>
@@ -187,10 +187,10 @@ export default function RiskCoverageScreen() {
         {policies.length === 0 ? (
           <View className="items-center justify-center py-16 px-8">
             <Ionicons name="shield-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center mt-3">
+            <Text className="text-sm text-muted-foreground text-center mt-3">
               No insurance policies added yet
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center mt-1 opacity-60">
+            <Text className="text-xs text-muted-foreground text-center mt-1 opacity-60">
               Track your policies to get better retirement and health assessments
             </Text>
           </View>
@@ -205,10 +205,10 @@ export default function RiskCoverageScreen() {
                 <View key={type} className="px-4 mb-3">
                   <View className="flex-row items-center gap-2 mb-1.5">
                     <Ionicons name={meta.icon} size={14} color={colors.textSecondary} />
-                    <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider flex-1">
+                    <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1">
                       {meta.label}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {formatAmount(groupSum)} cover
                     </Text>
                   </View>
@@ -218,14 +218,14 @@ export default function RiskCoverageScreen() {
                         key={p.id}
                         onPress={() => handleEdit(p)}
                         className={`flex-row items-center py-2.5 ${
-                          i < group.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""
+                          i < group.length - 1 ? "border-b border-border" : ""
                         }`}
                       >
                         <View className="flex-1">
-                          <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                          <Text className="text-sm font-medium text-foreground">
                             {p.provider_name}
                           </Text>
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                          <Text className="text-xs text-muted-foreground mt-0.5">
                             {formatAmount(p.sum_insured)} cover
                             {p.annual_premium > 0 ? ` · ${formatAmount(p.annual_premium)}/yr` : ""}
                             {p.expiry_date ? ` · Exp ${formatShortDate(p.expiry_date)}` : ""}

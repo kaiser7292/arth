@@ -267,24 +267,24 @@ export default function BudgetVsActualScreen() {
         {/* ── Custom range selectors ────────────────── */}
         {period === "custom" && (
           <View className="flex-row items-center px-4 pb-2 gap-2">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">From</Text>
+            <Text className="text-xs text-muted-foreground">From</Text>
             <Pressable
               onPress={() => setShowMonthPicker("start")}
               className="flex-row items-center px-3 py-1.5 rounded-lg border"
               style={{ borderColor: colors.border }}
             >
-              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary mr-1">
+              <Text className="text-sm font-medium text-foreground mr-1">
                 {`${MONTH_SHORT[parseInt(customStartMonth.split("-")[1], 10) - 1]} ${customStartMonth.split("-")[0]}`}
               </Text>
               <Ionicons name="chevron-down" size={13} color={colors.textSecondary} />
             </Pressable>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">to</Text>
+            <Text className="text-xs text-muted-foreground">to</Text>
             <Pressable
               onPress={() => setShowMonthPicker("end")}
               className="flex-row items-center px-3 py-1.5 rounded-lg border"
               style={{ borderColor: colors.border }}
             >
-              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary mr-1">
+              <Text className="text-sm font-medium text-foreground mr-1">
                 {`${MONTH_SHORT[parseInt(customEndMonth.split("-")[1], 10) - 1]} ${customEndMonth.split("-")[0]}`}
               </Text>
               <Ionicons name="chevron-down" size={13} color={colors.textSecondary} />
@@ -338,34 +338,34 @@ export default function BudgetVsActualScreen() {
             <View className="px-4 mb-3">
               <Card>
                 {isCurrentMonth && result && result.totalBudget > 0 && (
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
+                  <Text className="text-xs text-muted-foreground mb-2">
                     {`Day ${new Date().getDate()} of ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} — prorated budget`}
                   </Text>
                 )}
                 <View className="flex-row justify-between mb-3">
                   <View className="flex-1">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">
+                    <Text className="text-xs text-muted-foreground mb-0.5">
                       {isCurrentMonth ? "Expected to date" : "Total Budget"}
                     </Text>
-                    <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-lg font-bold text-foreground">
                       {formatAmount(budgetForSummary)}
                     </Text>
                     {isCurrentMonth && result && result.totalBudget > 0 && (
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         Full month: {formatAmount(result.totalBudget)}
                       </Text>
                     )}
                   </View>
                   <View className="flex-1 items-center">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">
+                    <Text className="text-xs text-muted-foreground mb-0.5">
                       Spent
                     </Text>
-                    <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-lg font-bold text-foreground">
                       {formatAmount(result?.totalActual ?? 0)}
                     </Text>
                   </View>
                   <View className="flex-1 items-end">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">
+                    <Text className="text-xs text-muted-foreground mb-0.5">
                       {isOver ? "Over by" : "Under by"}
                     </Text>
                     <Text
@@ -392,7 +392,7 @@ export default function BudgetVsActualScreen() {
                         }}
                       />
                     </View>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1 text-right">
+                    <Text className="text-xs text-muted-foreground mt-1 text-right">
                       {result.totalBudget > 0
                         ? `${Math.round((result.totalActual / budgetForSummary) * 100)}% of ${isCurrentMonth ? "prorated " : ""}budget`
                         : ""}
@@ -406,7 +406,7 @@ export default function BudgetVsActualScreen() {
             {result && result.monthly.length > 1 && (
               <View className="px-4 mb-3">
                 <Card>
-                  <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-3">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                     Month by Month
                   </Text>
                   {result.monthly.map((mo) => {
@@ -415,7 +415,7 @@ export default function BudgetVsActualScreen() {
                     return (
                       <View key={mo.month} className="mb-3">
                         <View className="flex-row items-center justify-between mb-1">
-                          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary w-8">
+                          <Text className="text-xs font-medium text-muted-foreground w-8">
                             {shortMonth(mo.month)}
                           </Text>
                           <View className="flex-1 mx-2">
@@ -449,7 +449,7 @@ export default function BudgetVsActualScreen() {
                             >
                               {formatAmount(mo.actual)}
                             </Text>
-                            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                            <Text className="text-xs text-muted-foreground">
                               / {formatAmount(mo.budget)}
                             </Text>
                           </View>
@@ -460,11 +460,11 @@ export default function BudgetVsActualScreen() {
                   <View className="flex-row items-center gap-3 mt-1">
                     <View className="flex-row items-center gap-1.5">
                       <View className="w-4 h-1.5 rounded-full" style={{ backgroundColor: colors.border }} />
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Budget</Text>
+                      <Text className="text-xs text-muted-foreground">Budget</Text>
                     </View>
                     <View className="flex-row items-center gap-1.5">
                       <View className="w-4 h-2 rounded-full" style={{ backgroundColor: accent[500] }} />
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Actual</Text>
+                      <Text className="text-xs text-muted-foreground">Actual</Text>
                     </View>
                   </View>
                 </Card>
@@ -474,7 +474,7 @@ export default function BudgetVsActualScreen() {
             {/* ── Sort controls ─────────────────────────── */}
             {result && result.rows.length > 1 && (
               <View className="px-4 mb-2 flex-row items-center gap-2">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Sort:</Text>
+                <Text className="text-xs text-muted-foreground">Sort:</Text>
                 {(Object.keys(SORT_LABELS) as SortOrder[]).map((s) => {
                   const selected = sortOrder === s;
                   return (
@@ -502,7 +502,7 @@ export default function BudgetVsActualScreen() {
             {/* ── Category rows ─────────────────────────── */}
             {result && sortedRows.length > 0 && (
               <View className="px-4 mb-2">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   By Category
                 </Text>
                 {sortedRows.map((row) => (
@@ -522,7 +522,7 @@ export default function BudgetVsActualScreen() {
             {/* ── Unbudgeted spend ──────────────────────── */}
             {result && result.unbudgetedRows.length > 0 && (
               <View className="px-4 mb-2">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   No Budget Set
                 </Text>
                 {result.unbudgetedRows
@@ -541,7 +541,7 @@ export default function BudgetVsActualScreen() {
                               color={row.categoryColor}
                             />
                           </View>
-                          <Text className="flex-1 text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                          <Text className="flex-1 text-sm font-medium text-foreground">
                             {row.categoryName}
                           </Text>
                           <Text className="text-sm font-semibold mr-2" style={{ color: sc.danger }}>
@@ -597,7 +597,7 @@ function CategoryRow({
         >
           <Ionicons name={row.categoryIcon as any} size={15} color={row.categoryColor} />
         </View>
-        <Text className="flex-1 text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+        <Text className="flex-1 text-sm font-medium text-foreground" numberOfLines={1}>
           {row.categoryName}
         </Text>
         <Text
@@ -626,10 +626,10 @@ function CategoryRow({
 
       {/* Amounts */}
       <View className="flex-row items-center justify-between">
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-xs text-muted-foreground">
           {formatAmount(row.totalActual)} spent
         </Text>
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-xs text-muted-foreground">
           {isCurrentMonth && prorated !== row.totalBudget
             ? `${formatAmount(prorated)} exp. · ${formatAmount(row.totalBudget)} budget`
             : `${formatAmount(row.totalBudget)} budget`}
@@ -670,7 +670,7 @@ function MiniMonthPicker({
 
   return (
     <View className="px-4 pt-5 pb-4">
-      <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mb-4">{label}</Text>
+      <Text className="text-base font-bold text-foreground mb-4">{label}</Text>
 
       {/* Year navigation */}
       <View className="flex-row items-center justify-between mb-4">
@@ -682,7 +682,7 @@ function MiniMonthPicker({
         >
           <Ionicons name="chevron-back" size={22} color={colors.textSecondary} />
         </Pressable>
-        <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">{pickerYear}</Text>
+        <Text className="text-lg font-bold text-foreground">{pickerYear}</Text>
         <Pressable
           onPress={() => setPickerYear((v) => v + 1)}
           disabled={maxYear !== undefined && pickerYear >= maxYear}
@@ -735,9 +735,9 @@ function MiniMonthPicker({
 
       <Pressable
         onPress={onCancel}
-        className="py-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark items-center"
+        className="py-3 rounded-xl bg-card dark:bg-surface-dark items-center"
       >
-        <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+        <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
       </Pressable>
     </View>
   );

@@ -98,16 +98,16 @@ export default function AnalyticsDashboardScreen() {
           <Pressable onPress={() => router.push("/insights/compare" as never)} accessibilityRole="button" android_ripple={{ color: "transparent" }}>
             <Card>
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   This month vs Last month
                 </Text>
                 <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
               </View>
               <View className="flex-row items-baseline gap-2 mb-1">
-                <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-lg font-bold text-foreground">
                   {formatAmount(thisMonthTotal)}
                 </Text>
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-sm text-muted-foreground">
                   vs {formatAmount(lastMonthTotal)}
                 </Text>
               </View>
@@ -177,12 +177,12 @@ function QuickAction({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-2 px-4 py-2.5 rounded-full border border-border-light dark:border-border-dark"
+      className="flex-row items-center gap-2 px-4 py-2.5 rounded-full border border-border"
       accessibilityLabel={label}
       accessibilityRole="button"
     >
       <Ionicons name={icon} size={16} color={color} />
-      <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+      <Text className="text-sm font-medium text-foreground">
         {label}
       </Text>
     </Pressable>

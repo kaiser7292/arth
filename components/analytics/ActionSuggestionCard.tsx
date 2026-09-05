@@ -30,11 +30,11 @@ function ActionSuggestionCardBase({
       <View className="flex-row items-start">
         <Ionicons name="bulb" size={18} color={accent[600]} style={{ marginRight: 8, marginTop: 1 }} />
         <View className="flex-1">
-          <Text className="text-sm text-text-primary dark:text-text-dark-primary leading-5">
+          <Text className="text-sm text-foreground leading-5">
             {suggestion}
           </Text>
           {savingsAmount > 0 && (
-            <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary mt-1">
+            <Text className="text-sm font-bold text-foreground mt-1">
               Save {formatAmount(savingsAmount)}/month
             </Text>
           )}

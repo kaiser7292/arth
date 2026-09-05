@@ -39,28 +39,28 @@ export function MonthlyReviewCard({
     <Card className="mb-4">
       <View className="flex-row items-center mb-3">
         <Ionicons name="bulb-outline" size={18} color={accent[500]} style={{ marginRight: 8 }} />
-        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+        <Text className="text-sm font-semibold text-foreground">
           Quick check (takes 30 seconds)
         </Text>
       </View>
 
-      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+      <Text className="text-xs text-muted-foreground mb-3">
         I noticed these might be regular:
       </Text>
 
-      <View className="rounded-xl border border-border-light dark:border-border-dark overflow-hidden">
+      <View className="rounded-xl border border-border overflow-hidden">
         {items.map((item, idx) => (
           <View
             key={item.id}
             className={`flex-row items-center justify-between px-3 py-2.5 ${
-              idx < items.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""
+              idx < items.length - 1 ? "border-b border-border" : ""
             }`}
           >
             <View className="flex-1 mr-3">
-              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary capitalize">
+              <Text className="text-sm font-medium text-foreground capitalize">
                 {formatAmount(item.amount)}  {item.merchant}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 {capitalizeFirst(item.frequency)}?
               </Text>
             </View>
@@ -95,7 +95,7 @@ export function MonthlyReviewCard({
       <View className="flex-row items-center justify-between mt-4">
         <Button title="Confirm All" onPress={onConfirmAll} />
         <Pressable onPress={onSkip}>
-          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs font-medium text-muted-foreground">
             Skip for Now
           </Text>
         </Pressable>

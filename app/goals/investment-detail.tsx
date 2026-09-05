@@ -278,7 +278,7 @@ export default function InvestmentDetailScreen() {
     return (
       <ScreenContainer centered padTop={false}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-        <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary mt-4">
+        <Text className="text-base font-medium text-foreground mt-4">
           Bucket not found
         </Text>
       </ScreenContainer>
@@ -327,7 +327,7 @@ export default function InvestmentDetailScreen() {
                     color={isComplete ? StatusColors[colorScheme].success : colors.blue}
                   />
                 </View>
-                <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-lg font-bold text-foreground">
                   {bucket.name}
                 </Text>
                 {linkedMilestoneName && (
@@ -350,15 +350,15 @@ export default function InvestmentDetailScreen() {
               {/* Goal / Done / Left */}
               <View className="flex-row mt-3">
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center">
+                  <Text className="text-xs text-muted-foreground text-center">
                     Goal
                   </Text>
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary text-center">
+                  <Text className="text-base font-bold text-foreground text-center">
                     {formatAmount(bucket.annual_target)}
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center">
+                  <Text className="text-xs text-muted-foreground text-center">
                     Done
                   </Text>
                   <Text className="text-base font-bold text-success text-center">
@@ -366,7 +366,7 @@ export default function InvestmentDetailScreen() {
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center">
+                  <Text className="text-xs text-muted-foreground text-center">
                     Left
                   </Text>
                   <Text className="text-base font-bold text-danger text-center">
@@ -376,7 +376,7 @@ export default function InvestmentDetailScreen() {
               </View>
 
               {/* Progress bar */}
-              <View className="mt-3 h-3 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+              <View className="mt-3 h-3 rounded-full bg-border overflow-hidden">
                 <View
                   className="h-3 rounded-full"
                   style={{
@@ -385,7 +385,7 @@ export default function InvestmentDetailScreen() {
                   }}
                 />
               </View>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1 text-right">
+              <Text className="text-xs text-muted-foreground mt-1 text-right">
                 {pct.toFixed(1)}% complete
               </Text>
             </Card>
@@ -429,14 +429,14 @@ export default function InvestmentDetailScreen() {
                               : StatusColors[colorScheme].dangerBg,
                         }}
                       >
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           At current pace: {formatAmount(projection.avgMonthly)}/month
                         </Text>
                       </View>
                     )}
                   </>
                 ) : (
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary py-2">
+                  <Text className="text-sm text-muted-foreground py-2">
                     Add contributions to see projection
                   </Text>
                 )}
@@ -460,26 +460,26 @@ export default function InvestmentDetailScreen() {
                       key={m.month}
                       className={`py-2.5 ${
                         i < monthlyHistory.length - 1
-                          ? "border-b border-border-light dark:border-border-dark"
+                          ? "border-b border-border"
                           : ""
                       }`}
                     >
                       <View className="flex-row items-center justify-between mb-1">
-                        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-medium text-foreground">
                           {m.label}
                         </Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-semibold text-foreground">
                           {formatAmount(m.total)}
                         </Text>
                       </View>
-                      <View className="h-2 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+                      <View className="h-2 rounded-full bg-border overflow-hidden">
                         <View
                           className="h-2 rounded-full"
                           style={{ width: `${barPct}%`, backgroundColor: accent[500] }}
                         />
                       </View>
                       {m.count > 1 && (
-                        <Text className="text-xs text-text-tertiary mt-0.5">
+                        <Text className="text-xs text-faint-foreground mt-0.5">
                           {m.count} contributions
                         </Text>
                       )}
@@ -562,16 +562,16 @@ export default function InvestmentDetailScreen() {
                     onLongPress={c.source === 'manual' ? () => handleContributionLongPress(contributions.find(contr => contr.id === c.id)!) : undefined}
                     className={`flex-row items-center py-2.5 ${
                       i < allContributions.length - 1
-                        ? "border-b border-border-light dark:border-border-dark"
+                        ? "border-b border-border"
                         : ""
                     }`}
                   >
                     <View className="flex-1">
-                      <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm font-medium text-foreground">
                         {formatAmount(c.amount)}
                       </Text>
                       {c.notes && (
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           {c.notes}
                         </Text>
                       )}
@@ -622,12 +622,12 @@ export default function InvestmentDetailScreen() {
                         ) : null;
                       })()}
                     </View>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {c.date}
                     </Text>
                   </Pressable>
                 ))}
-                <Text className="text-xs text-text-tertiary mt-2 text-center">
+                <Text className="text-xs text-faint-foreground mt-2 text-center">
                   Long-press to edit or delete manual contributions
                 </Text>
               </Card>

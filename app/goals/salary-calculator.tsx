@@ -560,7 +560,7 @@ export default function SalaryCalculatorScreen() {
               <Pressable
                 onPress={() => setSelectedFY(String(selectedFYNum - 1))}
                 disabled={loadingFY}
-                className="p-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+                className="p-2 rounded-lg bg-card"
               >
                 <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
               </Pressable>
@@ -572,7 +572,7 @@ export default function SalaryCalculatorScreen() {
               <Pressable
                 onPress={() => setSelectedFY(String(selectedFYNum + 1))}
                 disabled={loadingFY}
-                className="p-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+                className="p-2 rounded-lg bg-card"
               >
                 <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
               </Pressable>
@@ -586,10 +586,10 @@ export default function SalaryCalculatorScreen() {
                     <Ionicons name="copy-outline" size={18} color={colors.blue} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       No income data for {fyLabel}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       You have data from{" "}
                       {getFYLabel(selectedFYNum - 1, startMonth)}
                       {prevYearProfile.input_mode === "ctc" && prevYearProfile.annual_ctc
@@ -640,7 +640,7 @@ export default function SalaryCalculatorScreen() {
                       const isCtcMode = prevYearProfile.input_mode === "ctc";
                       return prevAmount > 0 ? (
                         <View className="flex-row justify-between mb-3 px-1">
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                          <Text className="text-xs text-muted-foreground">
                             Previous {isCtcMode ? "CTC" : "Annual"}:{" "}
                             {formatAmount(prevAmount)}
                           </Text>
@@ -709,7 +709,7 @@ export default function SalaryCalculatorScreen() {
               <>
               <View className="flex-row items-center px-3 py-2.5 rounded-lg mb-3 bg-[#3B82F614]">
                 <Ionicons name="information-circle-outline" size={16} color={colors.blue} />
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-2 flex-1">
+                <Text className="text-xs text-muted-foreground ml-2 flex-1">
                   All amounts here are considered post-tax. No tax rates will be applied.
                 </Text>
               </View>
@@ -880,7 +880,7 @@ export default function SalaryCalculatorScreen() {
                   keyboardType="number-pad"
                   maxLength={2}
                 />
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2">
+                <Text className="text-xs text-muted-foreground mt-2">
                   Used for on-track checks. Until this date, the current month isn't counted as
                   "elapsed" for investment/milestone warnings - avoids false alarms when you're
                   paid later in the month.

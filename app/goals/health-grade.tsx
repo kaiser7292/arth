@@ -90,13 +90,13 @@ export default function HealthGradeScreen() {
           <Card className="mb-4">
             <View className="flex-row items-start justify-between mb-4">
               <View className="flex-1 pr-4">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Financial Health Grade
                 </Text>
                 <Text className="text-5xl font-bold mb-1" style={{ color: mainColor }}>
                   {healthGrade}
                 </Text>
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-sm text-muted-foreground">
                   {GRADE_DESC[healthGrade]}
                 </Text>
               </View>
@@ -107,13 +107,13 @@ export default function HealthGradeScreen() {
                 <Text className="text-lg font-bold" style={{ color: mainColor }}>
                   {Math.round(healthScore)}
                 </Text>
-                <Text className="text-[9px] text-text-tertiary">/ 100</Text>
+                <Text className="text-[9px] text-faint-foreground">/ 100</Text>
               </View>
             </View>
 
             {/* Score bar */}
             <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-xs text-text-tertiary">Score</Text>
+              <Text className="text-xs text-faint-foreground">Score</Text>
               <Text className="text-xs font-semibold" style={{ color: mainColor }}>
                 {Math.round(healthScore)} / 100
               </Text>
@@ -129,7 +129,7 @@ export default function HealthGradeScreen() {
           {/* Factors breakdown */}
           {factors.length > 0 && (
             <Card className="mb-4">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-3">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 What's driving this grade
               </Text>
               {factors.map((f, i) => {
@@ -141,7 +141,7 @@ export default function HealthGradeScreen() {
                 return (
                   <View
                     key={f.name}
-                    className={`py-3${i < factors.length - 1 ? " border-b border-border-light dark:border-border-dark" : ""}`}
+                    className={`py-3${i < factors.length - 1 ? " border-b border-border" : ""}`}
                   >
                     <View className="flex-row items-center justify-between mb-2">
                       <View className="flex-row items-center gap-2">
@@ -156,10 +156,10 @@ export default function HealthGradeScreen() {
                           size={15}
                           color={fColor}
                         />
-                        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-medium text-foreground">
                           {f.name}
                         </Text>
-                        <Text className="text-[10px] text-text-tertiary">
+                        <Text className="text-[10px] text-faint-foreground">
                           {Math.round(f.weight * 100)}% wt
                         </Text>
                       </View>
@@ -173,7 +173,7 @@ export default function HealthGradeScreen() {
                         style={{ width: `${Math.max(2, f.score)}%`, backgroundColor: fColor }}
                       />
                     </View>
-                    <Text className="text-[10px] text-text-tertiary">{f.detail}</Text>
+                    <Text className="text-[10px] text-faint-foreground">{f.detail}</Text>
                   </View>
                 );
               })}
@@ -183,7 +183,7 @@ export default function HealthGradeScreen() {
           {/* Tips to reach next grade */}
           {nextG && weakFactors.length > 0 && (
             <Card className="mb-4">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-3">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 To reach Grade {nextG}
               </Text>
               {weakFactors.map((f, i) => (
@@ -197,7 +197,7 @@ export default function HealthGradeScreen() {
                     color={accentColor}
                     style={{ marginTop: 1 }}
                   />
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary flex-1">
+                  <Text className="text-sm text-foreground flex-1">
                     {FACTOR_TIPS[f.name] ?? "Improve this area"}
                   </Text>
                 </View>
@@ -207,7 +207,7 @@ export default function HealthGradeScreen() {
 
           {/* Grade scale reference */}
           <Card>
-            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Grade scale
             </Text>
             {GRADE_RANGES.map(([g, range, label]) => {
@@ -224,9 +224,9 @@ export default function HealthGradeScreen() {
                   >
                     {g}
                   </Text>
-                  <Text className="text-xs text-text-tertiary w-16">{range}</Text>
+                  <Text className="text-xs text-faint-foreground w-16">{range}</Text>
                   <Text
-                    className={`text-xs flex-1 ${isCurrent ? "font-semibold text-text-primary dark:text-text-dark-primary" : "text-text-secondary dark:text-text-dark-secondary"}`}
+                    className={`text-xs flex-1 ${isCurrent ? "font-semibold text-foreground" : "text-muted-foreground"}`}
                   >
                     {label}
                   </Text>

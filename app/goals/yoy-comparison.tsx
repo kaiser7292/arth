@@ -202,10 +202,10 @@ export default function YoYComparisonScreen() {
         {noData ? (
           <View className="flex-1 items-center justify-center py-20">
             <Ionicons name="git-compare-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               Not enough data
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
               Year-over-year comparison requires plans for at least 2 financial years.
             </Text>
           </View>
@@ -242,14 +242,14 @@ export default function YoYComparisonScreen() {
                   }
                 />
                 <View className="ml-3">
-                  <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-lg font-bold text-foreground">
                     {comparison.overallTrend === "improved"
                       ? "Financial Progress"
                       : comparison.overallTrend === "declined"
                         ? "Areas Need Attention"
                         : "Mixed Results"}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {previousFYLabel} vs {currentFYLabel}
                   </Text>
                 </View>
@@ -322,7 +322,7 @@ function CategoryCard({
       {/* Category header */}
       <View className="flex-row items-center mb-3">
         <Ionicons name={icon} size={16} color={StatusColors[colorScheme].muted} style={{ marginRight: 6 }} />
-        <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+        <Text className="text-sm font-bold text-foreground">
           {c.label}
         </Text>
       </View>
@@ -330,26 +330,26 @@ function CategoryCard({
       {/* Column headers */}
       <View className="flex-row mb-1.5">
         <View className="flex-1" />
-        <Text className="w-20 text-[10px] font-semibold text-text-tertiary text-right">
+        <Text className="w-20 text-[10px] font-semibold text-faint-foreground text-right">
           {prevLabel}
         </Text>
-        <Text className="w-20 text-[10px] font-semibold text-text-tertiary text-right">
+        <Text className="w-20 text-[10px] font-semibold text-faint-foreground text-right">
           {currLabel}
         </Text>
-        <Text className="w-16 text-[10px] font-semibold text-text-tertiary text-right">
+        <Text className="w-16 text-[10px] font-semibold text-faint-foreground text-right">
           Change
         </Text>
       </View>
 
       {/* Planned row */}
-      <View className="flex-row items-center py-1.5 border-b border-border-light dark:border-border-dark">
-        <Text className="flex-1 text-xs text-text-secondary dark:text-text-dark-secondary">
+      <View className="flex-row items-center py-1.5 border-b border-border">
+        <Text className="flex-1 text-xs text-muted-foreground">
           Planned
         </Text>
-        <Text className="w-20 text-xs text-text-secondary dark:text-text-dark-secondary text-right">
+        <Text className="w-20 text-xs text-muted-foreground text-right">
           {fmt(c.prevPlanned)}
         </Text>
-        <Text className="w-20 text-xs font-medium text-text-primary dark:text-text-dark-primary text-right">
+        <Text className="w-20 text-xs font-medium text-foreground text-right">
           {fmt(c.currPlanned)}
         </Text>
         <ChangeBadge value={plannedChangePct} lowerIsBetter={c.lowerIsBetter} />
@@ -357,13 +357,13 @@ function CategoryCard({
 
       {/* Actual row */}
       <View className="flex-row items-center py-1.5">
-        <Text className="flex-1 text-xs font-medium text-text-primary dark:text-text-dark-primary">
+        <Text className="flex-1 text-xs font-medium text-foreground">
           Actual
         </Text>
-        <Text className="w-20 text-xs text-text-secondary dark:text-text-dark-secondary text-right">
+        <Text className="w-20 text-xs text-muted-foreground text-right">
           {fmt(c.prevActual)}
         </Text>
-        <Text className="w-20 text-xs font-bold text-text-primary dark:text-text-dark-primary text-right">
+        <Text className="w-20 text-xs font-bold text-foreground text-right">
           {fmt(c.currActual)}
         </Text>
         <ChangeBadge value={actualChangePct} lowerIsBetter={c.lowerIsBetter} />
@@ -379,7 +379,7 @@ function CategoryCard({
               : StatusColors[colorScheme].dangerBg,
           }}
         >
-          <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-[10px] text-muted-foreground">
             Plan vs Actual ({currLabel})
           </Text>
           <Text

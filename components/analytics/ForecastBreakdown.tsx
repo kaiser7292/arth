@@ -26,15 +26,15 @@ export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
 
   return (
     <View
-      className="rounded-2xl bg-surface-light-alt dark:bg-surface-dark-alt p-5 mb-4"
+      className="rounded-2xl bg-card p-5 mb-4"
       style={Shadows.card}
     >
       {/* Month so far */}
       <View className="flex-row justify-between items-center mb-4">
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-sm text-muted-foreground">
           Month so far
         </Text>
-        <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+        <Text className="text-base font-bold text-foreground">
           {formatAmount(forecast.monthSoFar)}
         </Text>
       </View>
@@ -42,16 +42,16 @@ export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
       {/* Fixed Done */}
       <View className="mb-3">
         <View className="flex-row justify-between items-center mb-1.5">
-          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs font-medium text-muted-foreground">
             Fixed (done)
           </Text>
-          <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-xs font-bold text-foreground">
             {formatAmount(fixedDone.total)}
           </Text>
         </View>
         <ProgressBar value={fixedDonePct} color={statusColors.success} height={6} />
         {fixedDone.items.length > 0 && (
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1" numberOfLines={1}>
+          <Text className="text-xs text-muted-foreground mt-1" numberOfLines={1}>
             {fixedDone.items.slice(0, 3).map((i) => `${capitalize(i.merchant)} ${formatCompact(i.actualAmount ?? i.amount)}`).join(" · ")}
           </Text>
         )}
@@ -60,10 +60,10 @@ export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
       {/* Fixed Pending */}
       <View className="mb-3">
         <View className="flex-row justify-between items-center mb-1.5">
-          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs font-medium text-muted-foreground">
             Fixed (pending)
           </Text>
-          <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-xs font-bold text-foreground">
             {formatAmount(fixedPending.total)}
           </Text>
         </View>
@@ -73,7 +73,7 @@ export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
             All fixed expenses arrived {"\u2713"}
           </Text>
         ) : (
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1" numberOfLines={1}>
+          <Text className="text-xs text-muted-foreground mt-1" numberOfLines={1}>
             {fixedPending.items.slice(0, 3).map((i) => `${capitalize(i.merchant)} ~Day ${i.expectedDay}`).join(" · ")}
           </Text>
         )}
@@ -82,29 +82,29 @@ export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
       {/* Variable */}
       <View className="mb-4">
         <View className="flex-row justify-between items-center mb-1.5">
-          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs font-medium text-muted-foreground">
             Variable (projected)
           </Text>
-          <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-xs font-bold text-foreground">
             {formatAmount(variable.projected)}
           </Text>
         </View>
         <ProgressBar value={variablePct} height={6} />
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
+        <Text className="text-xs text-muted-foreground mt-1">
           {formatAmount(variable.dailyPace)}/day pace · {variable.daysLeft} days left
         </Text>
       </View>
 
       {/* Divider */}
-      <View className="border-t border-border-light dark:border-border-dark mb-3" />
+      <View className="border-t border-border mb-3" />
 
       {/* Summary */}
       <View className="gap-1.5">
         <View className="flex-row justify-between">
-          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-sm font-semibold text-foreground">
             Projected total
           </Text>
-          <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-sm font-bold text-foreground">
             {formatAmount(projectedTotal)}
           </Text>
         </View>
@@ -112,15 +112,15 @@ export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
         {budget != null && (
           <>
             <View className="flex-row justify-between">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 Budget
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 {formatAmount(budget)}
               </Text>
             </View>
             <View className="flex-row justify-between items-center">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 Breathing room
               </Text>
               <Text
@@ -137,7 +137,7 @@ export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
       {/* Confidence */}
       <View className="mt-3">
         <ConfidenceDots level={confidence} />
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
+        <Text className="text-xs text-muted-foreground mt-1">
           Based on {dataMonths} month{dataMonths !== 1 ? "s" : ""} of data
         </Text>
       </View>

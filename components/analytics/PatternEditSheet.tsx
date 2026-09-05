@@ -71,44 +71,44 @@ export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheet
         style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
       >
       <View
-        className="bg-surface-light-alt dark:bg-surface-dark-alt rounded-t-3xl px-5 pt-4"
+        className="bg-card rounded-t-3xl px-5 pt-4"
         style={{ maxHeight: "92%", paddingBottom: Math.max(insets.bottom, 8) }}
       >
         {/* Handle */}
-        <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark self-center mb-4" />
+        <View className="w-10 h-1 rounded-full bg-border self-center mb-4" />
 
-        <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary mb-4">
+        <Text className="text-lg font-bold text-foreground mb-4">
           Edit Pattern
         </Text>
 
         {/* Current Pattern Summary */}
-        <View className="bg-surface-light dark:bg-surface-dark rounded-xl p-3 mb-5">
-          <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary capitalize">
+        <View className="bg-background rounded-xl p-3 mb-5">
+          <Text className="text-sm font-medium text-foreground capitalize">
             {pattern.merchant_normalized}
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-xs text-muted-foreground mt-0.5">
             {formatAmount(pattern.amount)} · {capitalizeFirst(pattern.frequency)} · ~Day {new Date(pattern.last_seen_date).getDate()}
           </Text>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Amount */}
-          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+          <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Amount
           </Text>
-          <View className="flex-row items-center bg-surface-light dark:bg-surface-dark rounded-xl px-3 py-2.5 mb-4">
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mr-1">{"\u20B9"}</Text>
+          <View className="flex-row items-center bg-background rounded-xl px-3 py-2.5 mb-4">
+            <Text className="text-sm text-muted-foreground mr-1">{"\u20B9"}</Text>
             <TextInput
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
-              className="flex-1 text-sm text-text-primary dark:text-text-dark-primary"
+              className="flex-1 text-sm text-foreground"
               accessibilityLabel="Amount"
             />
           </View>
 
           {/* Frequency */}
-          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+          <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Frequency
           </Text>
           <View className="flex-row flex-wrap gap-2 mb-4">
@@ -119,7 +119,7 @@ export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheet
                 className={`px-3.5 py-2 rounded-full border ${
                   frequency === f.value
                     ? "border-transparent"
-                    : "border-border-light dark:border-border-dark"
+                    : "border-border"
                 }`}
                 style={frequency === f.value ? { backgroundColor: accent[500] + "20" } : undefined}
                 accessibilityLabel={f.label}
@@ -136,26 +136,26 @@ export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheet
           </View>
 
           {/* Expected Day */}
-          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+          <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Expected Day
           </Text>
-          <View className="flex-row items-center bg-surface-light dark:bg-surface-dark rounded-xl px-3 py-2.5 mb-5">
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mr-1">Day</Text>
+          <View className="flex-row items-center bg-background rounded-xl px-3 py-2.5 mb-5">
+            <Text className="text-sm text-muted-foreground mr-1">Day</Text>
             <TextInput
               value={expectedDay}
               onChangeText={setExpectedDay}
               keyboardType="numeric"
-              className="w-12 text-sm text-text-primary dark:text-text-dark-primary"
+              className="w-12 text-sm text-foreground"
               accessibilityLabel="Expected day of month"
             />
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary ml-1">
+            <Text className="text-sm text-muted-foreground ml-1">
               of each {frequency === "weekly" ? "week" : frequency === "yearly" ? "year" : "month"}
             </Text>
           </View>
         </ScrollView>
 
         {/* Actions */}
-        <View className="border-t border-border-light dark:border-border-dark pt-4 mt-2">
+        <View className="border-t border-border pt-4 mt-2">
           <View className="flex-row justify-between">
             <Pressable onPress={handleDelete} className="py-2">
               <Text className="text-sm font-medium" style={{ color: statusColors.danger }}>

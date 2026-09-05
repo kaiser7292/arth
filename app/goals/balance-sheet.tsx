@@ -236,7 +236,7 @@ export default function BalanceSheetScreen() {
         {/* Hero: current net worth + delta */}
         <Card className="mx-4 mt-3 mb-2">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Net Worth · Today
             </Text>
             {recomputing && (
@@ -269,7 +269,7 @@ export default function BalanceSheetScreen() {
               <Text className="text-xs font-medium ml-1" style={{ color: deltaColor }}>
                 {deltaAbs >= 0 ? "+" : ""}{formatCompact(deltaAbs)}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-1">
+              <Text className="text-xs text-muted-foreground ml-1">
                 ({deltaAbs >= 0 ? "+" : ""}{deltaPct.toFixed(1)}%) since {earliestHistoric.label}
               </Text>
             </View>
@@ -280,7 +280,7 @@ export default function BalanceSheetScreen() {
             Plain View (not Card) so the scroller can extend to the table edges
             without inherited padding. */}
         <View
-          className="mx-4 mb-2 rounded-2xl bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden"
+          className="mx-4 mb-2 rounded-2xl bg-card overflow-hidden"
           style={{ opacity: recomputing ? 0.55 : 1 }}
         >
           <ScrollView
@@ -289,7 +289,7 @@ export default function BalanceSheetScreen() {
           >
             <View>
               {/* Header row */}
-              <View className="flex-row items-center border-b border-border-light dark:border-border-dark px-3 py-2">
+              <View className="flex-row items-center border-b border-border px-3 py-2">
                 <View style={{ width: LABEL_COL_WIDTH }} />
                 {columns.map((col) => (
                   <View
@@ -342,7 +342,7 @@ export default function BalanceSheetScreen() {
               {/* Assets section */}
               <Pressable
                 onPress={() => setShowAssets(!showAssets)}
-                className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark"
+                className="flex-row items-center px-3 py-2 border-b border-border"
                 style={{ backgroundColor: acAlpha(accent, 500, 0.04) }}
               >
                 <Ionicons
@@ -350,7 +350,7 @@ export default function BalanceSheetScreen() {
                   size={12}
                   color={colors.textSecondary}
                 />
-                <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary ml-1 flex-1">
+                <Text className="text-xs font-bold text-foreground ml-1 flex-1">
                   Assets
                 </Text>
               </Pressable>
@@ -359,10 +359,10 @@ export default function BalanceSheetScreen() {
                 <Pressable
                   key={`a-${row.label}`}
                   onPress={() => handleRowPress(row)}
-                  className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark"
+                  className="flex-row items-center px-3 py-2 border-b border-border"
                 >
                   <Text
-                    className="text-xs text-text-primary dark:text-text-dark-primary"
+                    className="text-xs text-foreground"
                     numberOfLines={1}
                     style={{ width: LABEL_COL_WIDTH }}
                   >
@@ -395,9 +395,9 @@ export default function BalanceSheetScreen() {
 
               {/* Total Assets */}
               {showAssets && (
-                <View className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark">
+                <View className="flex-row items-center px-3 py-2 border-b border-border">
                   <Text
-                    className="text-xs font-bold text-text-primary dark:text-text-dark-primary"
+                    className="text-xs font-bold text-foreground"
                     style={{ width: LABEL_COL_WIDTH }}
                   >
                     Total Assets
@@ -415,7 +415,7 @@ export default function BalanceSheetScreen() {
               {/* Liabilities section */}
               <Pressable
                 onPress={() => setShowLiabilities(!showLiabilities)}
-                className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark"
+                className="flex-row items-center px-3 py-2 border-b border-border"
                 style={{ backgroundColor: sc.danger + "0A" }}
               >
                 <Ionicons
@@ -423,7 +423,7 @@ export default function BalanceSheetScreen() {
                   size={12}
                   color={colors.textSecondary}
                 />
-                <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary ml-1 flex-1">
+                <Text className="text-xs font-bold text-foreground ml-1 flex-1">
                   Liabilities
                 </Text>
               </Pressable>
@@ -432,10 +432,10 @@ export default function BalanceSheetScreen() {
                 <Pressable
                   key={`l-${row.label}`}
                   onPress={() => handleRowPress(row)}
-                  className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark"
+                  className="flex-row items-center px-3 py-2 border-b border-border"
                 >
                   <Text
-                    className="text-xs text-text-primary dark:text-text-dark-primary"
+                    className="text-xs text-foreground"
                     numberOfLines={1}
                     style={{ width: LABEL_COL_WIDTH }}
                   >
@@ -468,9 +468,9 @@ export default function BalanceSheetScreen() {
 
               {/* Total Liabilities */}
               {showLiabilities && (
-                <View className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark">
+                <View className="flex-row items-center px-3 py-2 border-b border-border">
                   <Text
-                    className="text-xs font-bold text-text-primary dark:text-text-dark-primary"
+                    className="text-xs font-bold text-foreground"
                     style={{ width: LABEL_COL_WIDTH }}
                   >
                     Total Liabilities
@@ -491,7 +491,7 @@ export default function BalanceSheetScreen() {
                 style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
               >
                 <Text
-                  className="text-xs font-bold text-text-primary dark:text-text-dark-primary"
+                  className="text-xs font-bold text-foreground"
                   style={{ width: LABEL_COL_WIDTH }}
                 >
                   Net Worth
@@ -518,7 +518,7 @@ export default function BalanceSheetScreen() {
           <View className="flex-row items-start">
             <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} style={{ marginTop: 2 }} />
             <View className="flex-1 ml-2">
-              <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary leading-4">
+              <Text className="text-[11px] text-muted-foreground leading-4">
                 A "-" means no data for that row in that period. For demat, it means no portfolio or fund snapshot was recorded within that fiscal year. Italic values fall back to the last SMS balance when the ledger opening isn't seeded - seed openings to make those authoritative.
               </Text>
             </View>

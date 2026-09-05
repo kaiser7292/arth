@@ -20,7 +20,7 @@ function ReportCard({ icon, iconColor, iconBg, title, description, inputsNeeded,
   return (
     <Pressable
       onPress={onPress}
-      className="bg-surface-light-alt dark:bg-surface-dark-alt rounded-2xl p-4 mb-3 border border-border-light dark:border-border-dark"
+      className="bg-card rounded-2xl p-4 mb-3 border border-border"
       accessibilityRole="button"
       accessibilityLabel={title}
     >
@@ -32,16 +32,16 @@ function ReportCard({ icon, iconColor, iconBg, title, description, inputsNeeded,
           <Ionicons name={icon} size={20} color={iconColor} />
         </View>
         <View className="flex-1">
-          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-sm font-semibold text-foreground">
             {title}
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-xs text-muted-foreground mt-0.5">
             {description}
           </Text>
         </View>
       </View>
-      <View className="flex-row items-center justify-between mt-3 pt-2 border-t border-border-light dark:border-border-dark">
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary opacity-60">
+      <View className="flex-row items-center justify-between mt-3 pt-2 border-t border-border">
+        <Text className="text-xs text-muted-foreground opacity-60">
           {inputsNeeded}
         </Text>
         <View className="flex-row items-center gap-1">
@@ -68,7 +68,7 @@ export default function ReportsHubScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         <View className="px-4 pt-2 pb-4">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary leading-5">
+          <Text className="text-xs text-muted-foreground leading-5">
             Personalized reports generated from your actual financial data
           </Text>
         </View>

@@ -25,16 +25,16 @@ function PersonalityBadge({ archetype, colorScheme }: { archetype: SpendingPerso
     <Card>
       <View className="items-center py-2">
         <Text style={{ fontSize: 40 }}>{archetype.emoji}</Text>
-        <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary mt-2">
+        <Text className="text-lg font-bold text-foreground mt-2">
           {archetype.name}
         </Text>
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center mt-1 px-4">
+        <Text className="text-xs text-muted-foreground text-center mt-1 px-4">
           {archetype.description}
         </Text>
         <View className="flex-row flex-wrap justify-center gap-1.5 mt-3">
           {archetype.traits.map((trait) => (
-            <View key={trait} className="px-2.5 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt border border-border-light dark:border-border-dark">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{trait}</Text>
+            <View key={trait} className="px-2.5 py-1 rounded-full bg-card border border-border">
+              <Text className="text-xs text-muted-foreground">{trait}</Text>
             </View>
           ))}
         </View>
@@ -139,10 +139,10 @@ export default function SpendingPersonalityReportScreen() {
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="person-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             Not enough data
           </Text>
-          <Text className="text-sm text-center text-text-secondary dark:text-text-dark-secondary mt-2">
+          <Text className="text-sm text-center text-muted-foreground mt-2">
             We need at least 2 months of spending data to identify your personality.
           </Text>
         </View>
@@ -160,7 +160,7 @@ export default function SpendingPersonalityReportScreen() {
         contentContainerStyle={{ paddingBottom: 80 }}
       >
         <View className="px-4 pt-2 pb-1">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary opacity-60">
+          <Text className="text-xs text-muted-foreground opacity-60">
             Based on {report.monthsAnalyzed} months of data
           </Text>
         </View>
@@ -175,8 +175,8 @@ export default function SpendingPersonalityReportScreen() {
           <Card>
             <View className="flex-row items-center justify-between">
               <View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Consistency score</Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground">Consistency score</Text>
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   How predictable your spending is month-to-month
                 </Text>
               </View>
@@ -184,7 +184,7 @@ export default function SpendingPersonalityReportScreen() {
                 {Math.round(report.consistencyScore)}
               </Text>
             </View>
-            <View className="h-1.5 bg-border-light dark:bg-border-dark rounded-full overflow-hidden mt-2">
+            <View className="h-1.5 bg-border rounded-full overflow-hidden mt-2">
               <View
                 className="h-full rounded-full"
                 style={{
@@ -209,13 +209,13 @@ export default function SpendingPersonalityReportScreen() {
                 >
                   <View className="flex-row items-center justify-between mb-1">
                     <View className="flex-row items-center gap-1 flex-1">
-                      <Text className="text-xs text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs text-foreground">
                         {cat.categoryName}
                       </Text>
                       <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />
                     </View>
                     <View className="flex-row items-center gap-2">
-                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs font-semibold text-foreground">
                         {formatAmount(cat.totalSpent)}
                       </Text>
                       {cat.trend !== "stable" && (
@@ -228,11 +228,11 @@ export default function SpendingPersonalityReportScreen() {
                     </View>
                   </View>
                   <View className="flex-row items-center gap-2 mb-1">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {Math.round(cat.percentage)}% of total · avg {formatAmount(cat.avgMonthly)}/mo
                     </Text>
                   </View>
-                  <View className="h-1.5 bg-border-light dark:bg-border-dark rounded-full overflow-hidden">
+                  <View className="h-1.5 bg-border rounded-full overflow-hidden">
                     <View
                       className="h-full rounded-full"
                       style={{
@@ -257,19 +257,19 @@ export default function SpendingPersonalityReportScreen() {
                 <Pressable
                   key={i}
                   onPress={() => drillMerchant(m.merchant)}
-                  className="flex-row items-center justify-between py-2.5 border-b border-border-light dark:border-border-dark"
+                  className="flex-row items-center justify-between py-2.5 border-b border-border"
                 >
                   <View className="flex-row items-center gap-2 flex-1">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-4">{i + 1}</Text>
+                    <Text className="text-xs text-muted-foreground w-4">{i + 1}</Text>
                     <View className="flex-1">
-                      <Text className="text-xs text-text-primary dark:text-text-dark-primary">{m.merchant}</Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" style={{ fontSize: 10 }}>
+                      <Text className="text-xs text-foreground">{m.merchant}</Text>
+                      <Text className="text-xs text-muted-foreground" style={{ fontSize: 10 }}>
                         {m.transactionCount} txns · avg {formatAmount(m.avgTransaction)}/txn
                       </Text>
                     </View>
                   </View>
                   <View className="flex-row items-center gap-1">
-                    <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">{formatAmount(m.totalSpent)}</Text>
+                    <Text className="text-xs font-semibold text-foreground">{formatAmount(m.totalSpent)}</Text>
                     <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} />
                   </View>
                 </Pressable>
@@ -308,7 +308,7 @@ export default function SpendingPersonalityReportScreen() {
               {report.dayOfWeekPattern.map((d) => (
                 <Text
                   key={d.day}
-                  className="flex-1 text-center text-text-secondary dark:text-text-dark-secondary"
+                  className="flex-1 text-center text-muted-foreground"
                   style={{ fontSize: 9 }}
                 >
                   {d.day.slice(0, 3)}
@@ -323,19 +323,19 @@ export default function SpendingPersonalityReportScreen() {
           <Card>
             <View className="flex-row items-center justify-between">
               <View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Weekday avg</Text>
-                <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatAmount(report.weekdayAvgDaily)}/day</Text>
+                <Text className="text-xs text-muted-foreground">Weekday avg</Text>
+                <Text className="text-sm font-bold text-foreground">{formatAmount(report.weekdayAvgDaily)}/day</Text>
               </View>
               <View className="items-center px-3">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">vs</Text>
+                <Text className="text-xs text-muted-foreground">vs</Text>
               </View>
               <View className="items-end">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Weekend avg</Text>
-                <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatAmount(report.weekendAvgDaily)}/day</Text>
+                <Text className="text-xs text-muted-foreground">Weekend avg</Text>
+                <Text className="text-sm font-bold text-foreground">{formatAmount(report.weekendAvgDaily)}/day</Text>
               </View>
             </View>
             {report.weekendMultiple > 1.1 && (
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center mt-2">
+              <Text className="text-xs text-muted-foreground text-center mt-2">
                 You spend {report.weekendMultiple.toFixed(1)}x more on weekends
               </Text>
             )}
@@ -352,14 +352,14 @@ export default function SpendingPersonalityReportScreen() {
                 const pct = (m.total / maxMonth) * 100;
                 return (
                   <View key={m.month} className="flex-row items-center gap-2 mb-2">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary w-12">
+                    <Text className="text-xs text-muted-foreground w-12">
                       {new Date(m.month + "-01").toLocaleString("en-IN", { month: "short" })}
                     </Text>
-                    <View className="flex-1 h-2 bg-border-light dark:bg-border-dark rounded-full overflow-hidden">
+                    <View className="flex-1 h-2 bg-border rounded-full overflow-hidden">
                       <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: tint }} />
                     </View>
                     <Text
-                      className="text-xs font-semibold text-text-primary dark:text-text-dark-primary text-right"
+                      className="text-xs font-semibold text-foreground text-right"
                       style={{ minWidth: 72 }}
                       numberOfLines={1}
                       adjustsFontSizeToFit
@@ -370,11 +370,11 @@ export default function SpendingPersonalityReportScreen() {
                   </View>
                 );
               })}
-              <View className="flex-row justify-between mt-2 pt-2 border-t border-border-light dark:border-border-dark">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <View className="flex-row justify-between mt-2 pt-2 border-t border-border">
+                <Text className="text-xs text-muted-foreground">
                   Monthly avg: {formatAmount(report.monthlyAvg)}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Volatility: {Math.round(report.monthlyVolatility)}%
                 </Text>
               </View>
@@ -386,17 +386,17 @@ export default function SpendingPersonalityReportScreen() {
         {report.highestSpendMonth.month && (
           <View className="px-4 mt-4">
             <View className="flex-row gap-3">
-              <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Highest month</Text>
+              <View className="flex-1 bg-card rounded-xl p-3 border border-border">
+                <Text className="text-xs text-muted-foreground">Highest month</Text>
                 <Text className="text-sm font-bold" style={{ color: status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatAmount(report.highestSpendMonth.total)}</Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {new Date(report.highestSpendMonth.month + "-01").toLocaleString("en-IN", { month: "short", year: "numeric" })}
                 </Text>
               </View>
-              <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Lowest month</Text>
+              <View className="flex-1 bg-card rounded-xl p-3 border border-border">
+                <Text className="text-xs text-muted-foreground">Lowest month</Text>
                 <Text className="text-sm font-bold" style={{ color: status.success }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatAmount(report.lowestSpendMonth.total)}</Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {new Date(report.lowestSpendMonth.month + "-01").toLocaleString("en-IN", { month: "short", year: "numeric" })}
                 </Text>
               </View>
@@ -429,10 +429,10 @@ export default function SpendingPersonalityReportScreen() {
                       />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary mb-0.5">
+                      <Text className="text-xs font-semibold text-foreground mb-0.5">
                         {insight.title}
                       </Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary leading-4">
+                      <Text className="text-xs text-muted-foreground leading-4">
                         {insight.detail}
                       </Text>
                     </View>

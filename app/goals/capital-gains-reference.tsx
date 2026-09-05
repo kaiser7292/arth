@@ -24,10 +24,10 @@ function RateCard({ rate }: { rate: CapitalGainsRate }) {
           />
         </View>
         <View className="flex-1">
-          <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-sm font-bold text-foreground">
             {rate.assetClass}
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             Holding period for LTCG: {rate.holdingPeriod}
           </Text>
         </View>
@@ -36,7 +36,7 @@ function RateCard({ rate }: { rate: CapitalGainsRate }) {
       {/* Rates row */}
       <View className="flex-row mb-2">
         <View className="flex-1 items-center py-2 mr-1 rounded-lg" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
-          <Text className="text-[10px] font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-0.5">
+          <Text className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground mb-0.5">
             LTCG
           </Text>
           <Text className="text-sm font-bold text-success">
@@ -44,7 +44,7 @@ function RateCard({ rate }: { rate: CapitalGainsRate }) {
           </Text>
         </View>
         <View className="flex-1 items-center py-2 ml-1 rounded-lg" style={{ backgroundColor: StatusColors[colorScheme].dangerBg }}>
-          <Text className="text-[10px] font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-0.5">
+          <Text className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground mb-0.5">
             STCG
           </Text>
           <Text className="text-sm font-bold text-danger">
@@ -62,14 +62,14 @@ function RateCard({ rate }: { rate: CapitalGainsRate }) {
             color={StatusColors[colorScheme].warning}
             style={{ marginTop: 1 }}
           />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-1.5 flex-1">
+          <Text className="text-xs text-muted-foreground ml-1.5 flex-1">
             {rate.exemption}
           </Text>
         </View>
       )}
 
       {/* Notes */}
-      <Text className="text-xs text-text-tertiary leading-4">{rate.notes}</Text>
+      <Text className="text-xs text-faint-foreground leading-4">{rate.notes}</Text>
     </Card>
   );
 }
@@ -93,7 +93,7 @@ export default function CapitalGainsReferenceScreen() {
                 color={colors.blue}
               />
             </View>
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-lg font-bold text-foreground">
               Capital Gains Tax Rates
             </Text>
             <View className="mt-1 px-3 py-1 rounded-full" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
@@ -104,14 +104,14 @@ export default function CapitalGainsReferenceScreen() {
           </View>
 
           {/* Disclaimer */}
-          <View className="flex-row items-start mb-4 px-3 py-2.5 rounded-lg border border-border-light dark:border-border-dark" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+          <View className="flex-row items-start mb-4 px-3 py-2.5 rounded-lg border border-border" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
             <Ionicons
               name="information-circle-outline"
               size={16}
               color={colors.textSecondary}
               style={{ marginTop: 1 }}
             />
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-2 flex-1 leading-4">
+            <Text className="text-xs text-muted-foreground ml-2 flex-1 leading-4">
               This is a quick reference guide. Rates are as per Union Budget
               2024 and applicable for FY {CAPITAL_GAINS_FY}. Surcharge and cess
               apply on top. Consult a CA for specific tax advice.
@@ -165,7 +165,7 @@ function TermRow({
       <Text className="text-xs font-bold w-20" style={{ color: ac(accent, colorScheme, 500, 200) }}>
         {term}
       </Text>
-      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+      <Text className="text-xs text-muted-foreground flex-1">
         {definition}
       </Text>
     </View>
