@@ -84,34 +84,29 @@ const TYPE = {
   heading: ["17px", { lineHeight: "24px", letterSpacing: "-0.01em" }],
   body: ["15px", { lineHeight: "21px" }],
   meta: ["13px", { lineHeight: "17px" }],
-  label: ["11.5px", { lineHeight: "14px" }],
+  label: ["11px", { lineHeight: "14px" }],
 };
 
 /**
- * Overrides for Tailwind's own scale.
+ * NO overrides of Tailwind's own scale.
  *
- * `text-xs` and `text-sm` account for 2,723 of the app's text sites — 89% of all text is 14px or
- * smaller, which is why Arth reads as dense and flat. Redefining these two steps moves every one of
- * those sites at once, with no call-site churn and a one-line revert if the device shows clipping
- * against the fixed heights used throughout (h-9, h-14, maxHeight: 320).
+ * `text-xs` and `text-sm` were briefly redefined to 13px and 15px, to fix the finding that 89% of
+ * Arth's text was 14px or smaller. That was the wrong instrument for this app and is reverted.
  *
- * The alternative — rewriting 2,723 class names — would produce an enormous diff, carry the same
- * clipping risk, and still not create hierarchy. Hierarchy comes from making the few important
- * things large, which is per-screen work, not a find-and-replace.
+ * Arth is information-dense: thousands of side-by-side label/value rows, fixed-width numeric
+ * columns, chips and badges. Widening every glyph by 7-8% tipped those rows into wrapping onto two
+ * lines, and the vertical growth pushed whole screens down. Two rounds of layout fixes later, the
+ * damage clearly outweighed the legibility gain.
  *
- * After the override, `text-xs` and `text-meta` are the same size, as are `text-sm` and `text-body`.
- * New code should prefer the semantic names.
+ * The original argument still stands, and is where the work went instead: hierarchy comes from
+ * making the FEW important things large, not from nudging everything up a point. That is what the
+ * TYPE scale above is for - hero at 36px on Home and the ledger - and it costs the dense screens
+ * nothing.
+ *
+ * What IS kept from that pass: the 269 arbitrary text-[Npx] values are gone, and nothing renders
+ * below 11px any more. Six sites were at 8px.
  */
-const SCALE_OVERRIDES = {
-  // Leading is held near Tailwind's original (16px / 20px) on purpose.
-  //
-  // The first version raised line-height along with font size - xs 16->18, sm 20->22 - and the
-  // leading grew MORE than the glyphs did, 13% and 10%. Across 2,723 text elements that is what
-  // pushed whole screens down, not the letters themselves. sm now consumes exactly the vertical
-  // space it always did while rendering a point larger; xs takes one extra pixel.
-  xs: ["13px", { lineHeight: "17px" }], // was 12px/16px x 1591 uses
-  sm: ["15px", { lineHeight: "20px" }], // was 14px/20px x 1132 uses
-};
+const SCALE_OVERRIDES = {};
 
 /** Card surfaces get `card`; controls and chips get `control`. Resolves the lg/xl/2xl free-for-all. */
 const RADIUS = { control: "10px", card: "14px", sheet: "20px" };

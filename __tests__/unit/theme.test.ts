@@ -206,20 +206,23 @@ describe("type scale", () => {
     expect(hits).toEqual([]);
   });
 
-  it("keeps every scale step at or above the 11.5px legibility floor", () => {
+  it("keeps every scale step at or above the 11px legibility floor", () => {
     for (const [name, step] of Object.entries({ ...TYPE, ...SCALE_OVERRIDES })) {
       expect({ name, px: px(step as [string, object]) }).toEqual({
         name,
         px: expect.any(Number),
       });
-      expect(px(step as [string, object])).toBeGreaterThanOrEqual(11.5);
+      expect(px(step as [string, object])).toBeGreaterThanOrEqual(11);
     }
   });
 
-  it("keeps the redefined xs/sm steps above Tailwind's defaults", () => {
-    // Reverting these two lines reverts the app-wide size change; that is deliberate.
-    expect(px(SCALE_OVERRIDES.xs)).toBeGreaterThan(12);
-    expect(px(SCALE_OVERRIDES.sm)).toBeGreaterThan(14);
+  it("does not override Tailwind's own scale", () => {
+    // text-xs and text-sm were briefly redefined to 13px and 15px. Arth is information-dense -
+    // thousands of side-by-side label/value rows and fixed-width numeric columns - and widening
+    // every glyph by 7-8% tipped those rows into wrapping. Hierarchy comes from the TYPE steps
+    // below instead, which cost the dense screens nothing. Re-adding an override here means
+    // re-fixing layouts across the app, so it should be a deliberate decision, not a drive-by.
+    expect(SCALE_OVERRIDES).toEqual({});
   });
 
   it("gives the scale real hierarchy, not a flat range", () => {
