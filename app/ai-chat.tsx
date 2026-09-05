@@ -388,7 +388,7 @@ export default function AIChatScreen() {
             className="px-5 py-3 rounded-xl"
             style={{ backgroundColor: accentColor }}
           >
-            <Text className="text-sm font-semibold text-white">Go to Settings</Text>
+            <Text className="text-sm font-semibold text-primary-foreground">Go to Settings</Text>
           </Pressable>
         </View>
       ) : loadState === "no_model" ? (
@@ -405,7 +405,7 @@ export default function AIChatScreen() {
             className="px-5 py-3 rounded-xl"
             style={{ backgroundColor: accentColor }}
           >
-            <Text className="text-sm font-semibold text-white">Download model</Text>
+            <Text className="text-sm font-semibold text-primary-foreground">Download model</Text>
           </Pressable>
         </View>
       ) : (

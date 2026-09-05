@@ -23,7 +23,7 @@ export default function SmartRulesListScreen() {
   const alert = useAlert();
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
-  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
+  const accentColor = theme.primary;
 
   const [rules, setRules] = useState<SmartRule[]>([]);
   const [deletedRules, setDeletedRules] = useState<SmartRule[]>([]);

@@ -967,7 +967,7 @@ export default function ExpensesScreen() {
               className="ml-2 px-2 py-1 rounded-md"
               style={{ backgroundColor: theme.primary }}
             >
-              <Text className="text-xs font-semibold text-white">Apply</Text>
+              <Text className="text-xs font-semibold text-primary-foreground">Apply</Text>
             </Pressable>
           )}
           {/* Voice search mic */}
@@ -1013,7 +1013,7 @@ export default function ExpensesScreen() {
             className="flex-1 text-sm text-foreground bg-card rounded-lg px-3 py-2 mr-2"
           />
           <Pressable onPress={confirmSaveView} className="px-3 py-2 rounded-lg" style={{ backgroundColor: theme.primary }}>
-            <Text className="text-xs font-medium text-white">Save</Text>
+            <Text className="text-xs font-medium text-primary-foreground">Save</Text>
           </Pressable>
           <Pressable onPress={() => setShowSaveViewInput(false)} className="ml-2">
             <Ionicons name="close" size={18} color={colors.textSecondary} />

@@ -2607,7 +2607,7 @@ export default function ExpenseDetailScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={`View ${linkedSettlement.personName}'s hisaab ledger`}
                     >
-                      <Text className="text-sm font-semibold text-white">View ledger</Text>
+                      <Text className="text-sm font-semibold text-primary-foreground">View ledger</Text>
                     </Pressable>
                     <Pressable
                       onPress={handleUnlinkSettlement}
@@ -2687,7 +2687,7 @@ export default function ExpenseDetailScreen() {
                       accessibilityRole="button"
                       accessibilityLabel="Open the linked expense"
                     >
-                      <Text className="text-sm font-semibold text-white">View expense</Text>
+                      <Text className="text-sm font-semibold text-primary-foreground">View expense</Text>
                     </Pressable>
                     <Pressable
                       onPress={handleUnlinkCreditAsRefund}
@@ -2767,7 +2767,7 @@ export default function ExpenseDetailScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={`View ${investmentBucketName} bucket`}
                     >
-                      <Text className="text-sm font-semibold text-white">View bucket</Text>
+                      <Text className="text-sm font-semibold text-primary-foreground">View bucket</Text>
                     </Pressable>
                     <Pressable
                       onPress={handleUnlinkInvestment}
@@ -2854,7 +2854,7 @@ export default function ExpenseDetailScreen() {
                       accessibilityRole="button"
                       accessibilityLabel="View loan"
                     >
-                      <Text className="text-sm font-semibold text-white">View loan</Text>
+                      <Text className="text-sm font-semibold text-primary-foreground">View loan</Text>
                     </Pressable>
                     <Pressable
                       onPress={handleUnlinkLoan}
@@ -2946,7 +2946,7 @@ export default function ExpenseDetailScreen() {
                           accessibilityRole="button"
                           accessibilityLabel="Link this expense to the reminder"
                         >
-                          <Text className="text-xs font-semibold text-white">Link</Text>
+                          <Text className="text-xs font-semibold text-primary-foreground">Link</Text>
                         </Pressable>
                         <Pressable
                           onPress={() => setSuggestedReminder(null)}

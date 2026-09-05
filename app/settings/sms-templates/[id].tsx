@@ -29,7 +29,7 @@ export default function EditSmsTemplateScreen() {
   const alert = useAlert();
   const { colorScheme } = useColorScheme();
   const theme = useTheme();
-  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
+  const accentColor = theme.primary;
 
   const [, setTemplate] = useState<UserSmsTemplate | null>(null);
 

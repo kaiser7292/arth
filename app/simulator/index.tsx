@@ -251,7 +251,7 @@ export default function SimulatorListScreen() {
               accessibilityLabel="Create your first scenario"
             >
               <Ionicons name="add" size={18} color="#fff" />
-              <Text className="text-sm font-semibold text-white ml-1.5">
+              <Text className="text-sm font-semibold text-primary-foreground ml-1.5">
                 New scenario
               </Text>
             </Pressable>
@@ -430,7 +430,7 @@ export default function SimulatorListScreen() {
               accessibilityLabel="Create new scenario"
             >
               <Ionicons name="add" size={18} color="#fff" />
-              <Text className="text-sm font-semibold text-white ml-1.5">
+              <Text className="text-sm font-semibold text-primary-foreground ml-1.5">
                 New scenario
               </Text>
             </Pressable>
@@ -572,7 +572,7 @@ export default function SimulatorListScreen() {
               className="flex-1 py-3 rounded-xl items-center"
               style={{ backgroundColor: theme.primary, opacity: duplicating ? 0.6 : 1 }}
             >
-              <Text className="text-sm font-semibold text-white">{duplicating ? "Copying…" : "Duplicate"}</Text>
+              <Text className="text-sm font-semibold text-primary-foreground">{duplicating ? "Copying…" : "Duplicate"}</Text>
             </Pressable>
           </View>
         </View>
@@ -760,7 +760,7 @@ function NewScenarioSheet({
               className="flex-1 py-3 rounded-xl items-center"
               style={{ backgroundColor: theme.primary, opacity: canSave ? 1 : 0.5 }}
             >
-              <Text className="text-sm font-semibold text-white">Create</Text>
+              <Text className="text-sm font-semibold text-primary-foreground">Create</Text>
             </Pressable>
           </View>
         </View>

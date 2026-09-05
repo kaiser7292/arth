@@ -34,7 +34,7 @@ export default function SmartSmsTemplatesListScreen() {
   const alert = useAlert();
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
-  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
+  const accentColor = theme.primary;
 
   const [templates, setTemplates] = useState<UserSmsTemplate[]>([]);
   const [matchCounts, setMatchCounts] = useState<Record<string, number>>({});

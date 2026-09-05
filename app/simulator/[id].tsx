@@ -1648,7 +1648,7 @@ function RenameScenarioModal({
               className="flex-1 py-2.5 rounded-lg items-center"
               style={{ backgroundColor: theme.primary, opacity: name.trim() ? 1 : 0.5 }}
             >
-              <Text className="text-sm font-semibold text-white">Save</Text>
+              <Text className="text-sm font-semibold text-primary-foreground">Save</Text>
             </Pressable>
           </View>
         </Pressable>

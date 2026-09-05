@@ -354,7 +354,7 @@ export default function AIAssistantSettings() {
                             style={{ backgroundColor: theme.primary }}
                           >
                             <Ionicons name="download-outline" size={16} color="#FFFFFF" />
-                            <Text className="text-sm font-semibold text-white">
+                            <Text className="text-sm font-semibold text-primary-foreground">
                               Download (~{model.sizeMB >= 1000
                                 ? `${(model.sizeMB / 1024).toFixed(1)} GB`
                                 : `${model.sizeMB} MB`})
@@ -370,7 +370,7 @@ export default function AIAssistantSettings() {
                             style={{ backgroundColor: theme.primary }}
                           >
                             <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
-                            <Text className="text-sm font-semibold text-white">Use this model</Text>
+                            <Text className="text-sm font-semibold text-primary-foreground">Use this model</Text>
                           </Pressable>
                         )}
 

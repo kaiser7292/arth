@@ -418,7 +418,7 @@ export function RecurringRuleSheet({
                 opacity: endDateValid ? 1 : 0.5,
               }}
             >
-              <Text className="text-sm font-semibold text-white">
+              <Text className="text-sm font-semibold text-primary-foreground">
                 {initial ? "Save changes" : "Save reminder"}
               </Text>
             </Pressable>

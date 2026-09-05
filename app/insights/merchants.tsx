@@ -99,7 +99,7 @@ export default function MerchantAnalyticsScreen() {
           >
             <Text
               className={`text-xs font-semibold ${
-                range === r.key ? "text-white" : "text-muted-foreground"
+                range === r.key ? "text-primary-foreground" : "text-muted-foreground"
               }`}
             >
               {r.label}

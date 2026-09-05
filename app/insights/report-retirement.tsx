@@ -285,7 +285,7 @@ export default function RetirementReportScreen() {
               style={{ backgroundColor: tint }}
               accessibilityRole="button"
             >
-              <Text className="text-sm font-semibold text-white">Generate Report</Text>
+              <Text className="text-sm font-semibold text-primary-foreground">Generate Report</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -806,7 +806,7 @@ export default function RetirementReportScreen() {
             {report.actions.map((action) => (
               <View key={action.priority} className="flex-row gap-3 items-start mb-3">
                 <View className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: tint }}>
-                  <Text className="text-xs font-bold text-white">{action.priority}</Text>
+                  <Text className="text-xs font-bold text-primary-foreground">{action.priority}</Text>
                 </View>
                 <View className="flex-1">
                   <Text className="text-xs font-semibold text-foreground">{action.title}</Text>

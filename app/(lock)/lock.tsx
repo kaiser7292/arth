@@ -35,7 +35,7 @@ export default function LockScreen() {
   const { colorScheme } = useColorScheme();
   const uiTheme = useTheme();
   const theme = Colors[colorScheme];
-  const accentColor = colorScheme === "dark" ? uiTheme.primary : uiTheme.primary;
+  const accentColor = uiTheme.primary;
 
   const [biometricLabel, setBiometricLabel] = useState<string>("Biometric");
   const [inFlight, setInFlight] = useState(false);

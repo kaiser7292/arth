@@ -144,7 +144,7 @@ export default function KiteConnectApiKeyScreen() {
           ) : (
             <>
               <Ionicons name="checkmark" size={20} color="white" />
-              <Text className="text-white font-semibold text-base ml-2">
+              <Text className="text-primary-foreground font-semibold text-base ml-2">
                 Save
               </Text>
             </>

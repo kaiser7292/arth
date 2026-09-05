@@ -922,7 +922,7 @@ const loadData = useCallback(async () => {
                   className="flex-1 py-2.5 rounded-lg items-center"
                   style={{ backgroundColor: theme.primary }}
                 >
-                  <Text className="text-sm font-semibold text-white">{editingCreditId ? "Save" : "Add Credit"}</Text>
+                  <Text className="text-sm font-semibold text-primary-foreground">{editingCreditId ? "Save" : "Add Credit"}</Text>
                 </Pressable>
               </View>
             </Card>
@@ -1016,7 +1016,7 @@ const loadData = useCallback(async () => {
                   style={{ backgroundColor: transferAccountId ? theme.primary : colors.textSecondary + "40" }}
                   disabled={!transferAccountId}
                 >
-                  <Text className="text-sm font-semibold text-white">Add Transfer</Text>
+                  <Text className="text-sm font-semibold text-primary-foreground">Add Transfer</Text>
                 </Pressable>
               </View>
             </Card>

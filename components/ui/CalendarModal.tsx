@@ -421,7 +421,7 @@ export function CalendarModal({
                             <Text
                               className={`text-sm ${
                                 isSelected
-                                  ? "font-bold text-white"
+                                  ? "font-bold text-primary-foreground"
                                   : isDisabled
                                     ? "text-faint-foreground/40"
                                     : isToday
@@ -476,7 +476,7 @@ export function CalendarModal({
                           <Text
                             className={`text-sm ${
                               isSelected
-                                ? "font-bold text-white"
+                                ? "font-bold text-primary-foreground"
                                 : isDisabled
                                   ? "text-faint-foreground/40"
                                   : isCurrentMonth
@@ -528,7 +528,7 @@ export function CalendarModal({
                           <Text
                             className={`text-sm ${
                               isSelected
-                                ? "font-bold text-white"
+                                ? "font-bold text-primary-foreground"
                                 : isDisabled
                                   ? "text-faint-foreground/40"
                                   : isCurrentYear

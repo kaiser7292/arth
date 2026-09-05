@@ -40,7 +40,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
             <Text
               className={`text-sm font-medium ${
                 compareTab === "new"
-                  ? "text-white"
+                  ? "text-primary-foreground"
                   : "text-muted-foreground"
               }`}
             >
@@ -59,7 +59,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
             <Text
               className={`text-sm font-medium ${
                 compareTab === "old"
-                  ? "text-white"
+                  ? "text-primary-foreground"
                   : "text-muted-foreground"
               }`}
             >

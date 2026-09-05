@@ -191,7 +191,7 @@ export default function KiteConnectScreen() {
             className="rounded-lg p-4 mt-4 flex-row items-center justify-between"
             style={{ backgroundColor: colors.tint }}
           >
-            <Text className="text-white font-semibold text-base">
+            <Text className="text-primary-foreground font-semibold text-base">
               {isAuthenticated ? 'Reconnect to Kite' : 'Connect to Kite'}
             </Text>
             <Ionicons name="chevron-forward" size={20} color="white" />
@@ -205,7 +205,7 @@ export default function KiteConnectScreen() {
             >
               <View className="flex-row items-center">
                 <Ionicons name="log-out" size={20} color="white" />
-                <Text className="text-white font-semibold text-base ml-2">
+                <Text className="text-primary-foreground font-semibold text-base ml-2">
                   Disconnect
                 </Text>
               </View>

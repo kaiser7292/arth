@@ -131,7 +131,7 @@ export default function SmartRuleDetailScreen() {
   const alert = useAlert();
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
-  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
+  const accentColor = theme.primary;
 
   const [loading, setLoading] = useState(!isCreate);
   const [saving, setSaving] = useState(false);
@@ -502,7 +502,7 @@ export default function SmartRuleDetailScreen() {
                 className="flex-1 py-2.5 rounded-l-lg items-center"
                 style={{ backgroundColor: matchMode === "all" ? accentColor : "transparent", borderWidth: matchMode === "all" ? 0 : 1, borderColor: colors.border }}
               >
-                <Text className={matchMode === "all" ? "text-white font-semibold" : "text-muted-foreground"}>
+                <Text className={matchMode === "all" ? "text-primary-foreground font-semibold" : "text-muted-foreground"}>
                   Match ALL
                 </Text>
               </Pressable>
@@ -511,7 +511,7 @@ export default function SmartRuleDetailScreen() {
                 className="flex-1 py-2.5 rounded-r-lg items-center"
                 style={{ backgroundColor: matchMode === "any" ? accentColor : "transparent", borderWidth: matchMode === "any" ? 0 : 1, borderColor: colors.border, borderLeftWidth: 0 }}
               >
-                <Text className={matchMode === "any" ? "text-white font-semibold" : "text-muted-foreground"}>
+                <Text className={matchMode === "any" ? "text-primary-foreground font-semibold" : "text-muted-foreground"}>
                   Match ANY
                 </Text>
               </Pressable>
@@ -956,7 +956,7 @@ export default function SmartRuleDetailScreen() {
                                 className="px-3 py-1.5 rounded-full border"
                                 style={{ backgroundColor: selected ? accentColor : "transparent", borderColor: selected ? accentColor : colors.border }}
                               >
-                                <Text className={selected ? "text-white text-xs font-medium" : "text-muted-foreground text-xs"}>
+                                <Text className={selected ? "text-primary-foreground text-xs font-medium" : "text-muted-foreground text-xs"}>
                                   {t.name}
                                 </Text>
                               </Pressable>
@@ -1386,8 +1386,8 @@ export default function SmartRuleDetailScreen() {
                 style={{ backgroundColor: retroPreview.wouldOverwrite === 0 ? colors.border : accentColor }}
               >
                 {retroApplying
-                  ? <ActivityIndicator size="small" color="white" />
-                  : <Text className="text-sm font-semibold text-white">Apply ({retroPreview.wouldOverwrite})</Text>
+                  ? <ActivityIndicator size="small" color={theme.primaryForeground} />
+                  : <Text className="text-sm font-semibold text-primary-foreground">Apply ({retroPreview.wouldOverwrite})</Text>
                 }
               </Pressable>
             </View>

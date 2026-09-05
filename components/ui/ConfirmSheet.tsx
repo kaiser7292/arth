@@ -67,7 +67,7 @@ export function ConfirmSheet({
             className="flex-1 py-3.5 rounded-2xl items-center"
             style={{ backgroundColor: destructive ? STATUS_COLORS.error : theme.primary }}
           >
-            <Text className="text-base font-semibold text-white">
+            <Text className="text-base font-semibold" style={{ color: theme.primaryForeground }}>
               {confirmLabel}
             </Text>
           </Pressable>

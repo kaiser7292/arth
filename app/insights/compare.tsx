@@ -135,7 +135,7 @@ export default function PeriodComparisonScreen() {
             >
               <Text
                 className={`text-xs font-semibold ${
-                  selectedPreset === p.label ? "text-white" : "text-muted-foreground"
+                  selectedPreset === p.label ? "text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
                 {p.label}
@@ -153,7 +153,7 @@ export default function PeriodComparisonScreen() {
           >
             <Text
               className={`text-xs font-semibold ${
-                selectedPreset === "Custom" ? "text-white" : "text-muted-foreground"
+                selectedPreset === "Custom" ? "text-primary-foreground" : "text-muted-foreground"
               }`}
             >
               Custom

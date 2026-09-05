@@ -435,7 +435,7 @@ export function HisaabInclusionSheet({
               accessibilityRole="button"
               accessibilityLabel="Save hisaab inclusion"
             >
-              <Text className="text-sm font-semibold text-white">
+              <Text className="text-sm font-semibold text-primary-foreground">
                 {saving ? "Saving…" : "Save"}
               </Text>
             </Pressable>

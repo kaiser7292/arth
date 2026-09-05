@@ -184,7 +184,7 @@ export default function LoanPayoffReportScreen() {
             style={{ backgroundColor: tint }}
             accessibilityRole="button"
           >
-            <Text className="text-sm font-semibold text-white">Generate report</Text>
+            <Text className="text-sm font-semibold text-primary-foreground">Generate report</Text>
           </Pressable>
         </View>
       </ScreenContainer>

@@ -181,7 +181,7 @@ export function LinkExpenseSheet({
             style={{ backgroundColor: theme.primary }}
           >
             <Ionicons name="add-outline" size={18} color="#fff" />
-            <Text className="text-sm font-semibold text-white ml-1">
+            <Text className="text-sm font-semibold text-primary-foreground ml-1">
               Log new expense
             </Text>
           </Pressable>

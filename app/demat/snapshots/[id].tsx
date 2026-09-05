@@ -332,7 +332,7 @@ export default function DematSnapshotsScreen() {
                   className="flex-1 py-2.5 rounded-lg items-center"
                   style={{ backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }}
                 >
-                  <Text className="text-sm font-semibold text-white">
+                  <Text className="text-sm font-semibold text-primary-foreground">
                     {saving ? "Saving…" : "Save Snapshot"}
                   </Text>
                 </Pressable>

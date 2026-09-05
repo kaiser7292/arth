@@ -632,7 +632,7 @@ export default function RecurringRuleDetailScreen() {
                 className="flex-1 py-3 rounded-xl items-center"
                 style={{ backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }}
               >
-                <Text className="text-sm font-semibold text-white">{saving ? "Saving…" : "Save"}</Text>
+                <Text className="text-sm font-semibold text-primary-foreground">{saving ? "Saving…" : "Save"}</Text>
               </Pressable>
             </View>
           </View>

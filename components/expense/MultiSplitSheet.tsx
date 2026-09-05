@@ -250,7 +250,7 @@ export function MultiSplitSheet({
                       className="rounded-xl px-4 py-3"
                       style={{ backgroundColor: theme.primary }}
                     >
-                      <Text className="text-white font-semibold">Add</Text>
+                      <Text className="text-primary-foreground font-semibold">Add</Text>
                     </Pressable>
                   </View>
                 ) : (
@@ -426,7 +426,7 @@ export function MultiSplitSheet({
               className={`mt-4 items-center py-4 rounded-2xl ${!canConfirm ? "bg-border" : ""}`}
               style={canConfirm ? { backgroundColor: theme.primary } : undefined}
             >
-              <Text className="text-base font-bold text-white">Confirm Split</Text>
+              <Text className="text-base font-bold text-primary-foreground">Confirm Split</Text>
             </Pressable>
           )}
         </Animated.View>

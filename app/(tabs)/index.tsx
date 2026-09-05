@@ -617,7 +617,7 @@ export default function HomeScreen() {
                           className="px-3 py-1.5 rounded-lg"
                           style={{ backgroundColor: theme.primary }}
                         >
-                          <Text className="text-xs font-semibold text-white">Link</Text>
+                          <Text className="text-xs font-semibold text-primary-foreground">Link</Text>
                         </Pressable>
                       </View>
                     )}

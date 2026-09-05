@@ -370,7 +370,7 @@ export function SplitSheet({
                       className="rounded-xl px-4 py-3"
                       style={{ backgroundColor: theme.primary }}
                     >
-                      <Text className="text-white font-semibold">Add</Text>
+                      <Text className="text-primary-foreground font-semibold">Add</Text>
                     </Pressable>
                   </View>
                 ) : (
@@ -427,7 +427,7 @@ export function SplitSheet({
                           <Text
                             className={`text-sm font-semibold ${
                               percentage === pct
-                                ? "text-white"
+                                ? "text-primary-foreground"
                                 : "text-foreground"
                             }`}
                           >
@@ -542,7 +542,7 @@ export function SplitSheet({
               }`}
               style={!selectedPersonId || (splitMode === "exact" && !exactAmount) ? undefined : { backgroundColor: theme.primary }}
             >
-              <Text className="text-base font-bold text-white">Confirm Split</Text>
+              <Text className="text-base font-bold text-primary-foreground">Confirm Split</Text>
             </Pressable>
           )}
 

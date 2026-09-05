@@ -26,7 +26,7 @@ export default function SecuritySettingsScreen() {
   const { colorScheme } = useColorScheme();
   const uiTheme = useTheme();
   const theme = Colors[colorScheme];
-  const accentColor = colorScheme === "dark" ? uiTheme.primary : uiTheme.primary;
+  const accentColor = uiTheme.primary;
   const router = useRouter();
   const alert = useAlert();
 

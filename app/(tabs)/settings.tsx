@@ -633,7 +633,7 @@ export default function SettingsScreen() {
                           </View>
                           {customDateError && <Text className="text-xs text-danger mb-2">{customDateError}</Text>}
                           <Pressable onPress={handleCustomDateApply} className="py-2 rounded-lg items-center mb-1" style={{ backgroundColor: uiTheme.primary }}>
-                            <Text className="text-sm font-medium text-white">Apply Range</Text>
+                            <Text className="text-sm font-medium text-primary-foreground">Apply Range</Text>
                           </Pressable>
                         </View>
                       )}
@@ -678,7 +678,7 @@ export default function SettingsScreen() {
                     ) : (
                       <>
                         <Ionicons name="scan-outline" size={18} color="#FFFFFF" />
-                        <Text className="text-sm font-medium text-white ml-2">Scan Now</Text>
+                        <Text className="text-sm font-medium text-primary-foreground ml-2">Scan Now</Text>
                       </>
                     )}
                   </Pressable>
@@ -745,7 +745,7 @@ export default function SettingsScreen() {
                   ) : (
                     <>
                       <Ionicons name="copy-outline" size={18} color="#FFFFFF" />
-                      <Text className="text-sm font-medium text-white ml-2">Scan for Duplicates</Text>
+                      <Text className="text-sm font-medium text-primary-foreground ml-2">Scan for Duplicates</Text>
                     </>
                   )}
                 </Pressable>
@@ -782,7 +782,7 @@ export default function SettingsScreen() {
                 ) : (
                   <>
                     <Ionicons name="copy-outline" size={18} color="#FFFFFF" />
-                    <Text className="text-sm font-medium text-white ml-2">Scan for Duplicates</Text>
+                    <Text className="text-sm font-medium text-primary-foreground ml-2">Scan for Duplicates</Text>
                   </>
                 )}
               </Pressable>
@@ -947,7 +947,7 @@ export default function SettingsScreen() {
             className="flex-row items-center justify-center py-3 mt-4 rounded-lg"
             style={{ backgroundColor: uiTheme.primary }}
           >
-            <Text className="text-sm font-medium text-white">Done</Text>
+            <Text className="text-sm font-medium text-primary-foreground">Done</Text>
           </Pressable>
         </View>
       </BottomSheet>

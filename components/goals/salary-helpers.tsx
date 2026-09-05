@@ -43,7 +43,7 @@ export function Toggle({
             <Text
               className={`text-sm font-medium ${
                 value === opt.value
-                  ? "text-white"
+                  ? "text-primary-foreground"
                   : "text-muted-foreground"
               }`}
             >

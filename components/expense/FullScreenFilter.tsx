@@ -138,7 +138,7 @@ export function FullScreenFilter({
                       className="absolute top-1.5 right-1 w-4 h-4 rounded-full items-center justify-center"
                       style={{ backgroundColor: theme.primary }}
                     >
-                      <Text className="text-label font-bold text-white">{count}</Text>
+                      <Text className="text-label font-bold text-primary-foreground">{count}</Text>
                     </View>
                   )}
                 </Pressable>
@@ -218,7 +218,7 @@ export function FullScreenFilter({
             className="px-5 py-2.5 rounded-lg"
             style={{ backgroundColor: theme.primary }}
           >
-            <Text className="text-sm font-semibold text-white">Apply</Text>
+            <Text className="text-sm font-semibold text-primary-foreground">Apply</Text>
           </Pressable>
         </View>
       </View>

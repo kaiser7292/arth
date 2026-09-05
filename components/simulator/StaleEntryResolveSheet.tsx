@@ -407,7 +407,7 @@ export function StaleEntryResolveSheet({
                 style={{ backgroundColor: theme.primary }}
                 accessibilityRole="button"
               >
-                <Text className="text-sm font-bold text-white">
+                <Text className="text-sm font-bold text-primary-foreground">
                   Link Selected ({selectedIds.size})
                 </Text>
               </Pressable>

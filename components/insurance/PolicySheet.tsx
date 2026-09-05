@@ -317,7 +317,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
           className="py-3 rounded-xl items-center"
           style={{ backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }}
         >
-          <Text className="text-sm font-bold text-white">
+          <Text className="text-sm font-bold text-primary-foreground">
             {saving ? "Saving…" : isEdit ? "Update Policy" : "Add Policy"}
           </Text>
         </Pressable>

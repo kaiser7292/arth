@@ -246,7 +246,7 @@ export default function TagsSettingsScreen() {
               className="flex-1 py-2.5 rounded-xl items-center"
               style={{ backgroundColor: theme.primary }}
             >
-              <Text className="text-sm font-semibold text-white">Create Tag</Text>
+              <Text className="text-sm font-semibold text-primary-foreground">Create Tag</Text>
             </Pressable>
           </View>
         </Card>

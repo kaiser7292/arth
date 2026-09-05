@@ -848,7 +848,7 @@ export default function VaultAddScreen() {
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-base font-semibold text-white">
+            <Text className="text-base font-semibold text-primary-foreground">
               {editId ? "Save Changes" : "Save to Vault"}
             </Text>
           )}

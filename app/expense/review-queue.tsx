@@ -1046,7 +1046,7 @@ export default function ReviewQueueScreen() {
             style={{ backgroundColor: theme.primary }}
           >
             <Ionicons name="pricetag-outline" size={18} color="#FFFFFF" />
-            <Text className="text-sm font-semibold text-white ml-2">
+            <Text className="text-sm font-semibold text-primary-foreground ml-2">
               Assign Category to {selectedUncat.size} Expense{selectedUncat.size !== 1 ? "s" : ""}
             </Text>
           </Pressable>

@@ -31,7 +31,7 @@ export default function UnrecognisedSmsScreen() {
   const alert = useAlert();
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
-  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
+  const accentColor = theme.primary;
 
   const [rows, setRows] = useState<UnrecognisedSmsRow[]>([]);
   const [loading, setLoading] = useState(true);

@@ -212,7 +212,7 @@ export function SimulatorPage() {
               accessibilityLabel="Create your first scenario"
             >
               <Ionicons name="add" size={18} color="#fff" />
-              <Text className="text-sm font-semibold text-white ml-1.5">
+              <Text className="text-sm font-semibold text-primary-foreground ml-1.5">
                 New scenario
               </Text>
             </Pressable>
@@ -381,7 +381,7 @@ export function SimulatorPage() {
               accessibilityLabel="Create new scenario"
             >
               <Ionicons name="add" size={18} color="#fff" />
-              <Text className="text-sm font-semibold text-white ml-1.5">
+              <Text className="text-sm font-semibold text-primary-foreground ml-1.5">
                 New scenario
               </Text>
             </Pressable>
@@ -611,7 +611,7 @@ function NewScenarioSheet({
               className="flex-1 py-3 rounded-xl items-center"
               style={{ backgroundColor: theme.primary, opacity: canSave ? 1 : 0.5 }}
             >
-              <Text className="text-sm font-semibold text-white">Create</Text>
+              <Text className="text-sm font-semibold text-primary-foreground">Create</Text>
             </Pressable>
           </View>
         </View>

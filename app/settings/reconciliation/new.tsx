@@ -486,7 +486,7 @@ export default function NewReconciliationScreen() {
                 className="flex-1 py-3 rounded-xl items-center"
                 style={{ backgroundColor: theme.primary }}
               >
-                <Text className="text-sm font-semibold text-white">Unlock</Text>
+                <Text className="text-sm font-semibold text-primary-foreground">Unlock</Text>
               </Pressable>
             </View>
           </View>
@@ -535,7 +535,7 @@ export default function NewReconciliationScreen() {
                 className="flex-1 py-3 rounded-xl items-center"
                 style={{ backgroundColor: theme.primary }}
               >
-                <Text className="text-sm font-semibold text-white">Unlock</Text>
+                <Text className="text-sm font-semibold text-primary-foreground">Unlock</Text>
               </Pressable>
             </View>
           </View>

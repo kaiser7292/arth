@@ -18,7 +18,7 @@ export default function TemplateMatchesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
-  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
+  const accentColor = theme.primary;
 
   const [template, setTemplate] = useState<UserSmsTemplate | null>(null);
   const [matches, setMatches] = useState<TemplateMatchRow[]>([]);
