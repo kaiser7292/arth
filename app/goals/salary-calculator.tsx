@@ -32,15 +32,17 @@ import { SalaryInputForm, type MonthlyOverrides } from "@/components/goals/Salar
 import { OldRegimeDeductions, AnnualDeductions, AdditionalIncome } from "@/components/goals/DeductionsSection";
 import { TaxBreakdown } from "@/components/goals/TaxBreakdown";
 import { MonthlyInHandHero, SalarySummary, SalaryFooter } from "@/components/goals/SalarySummary";
-import { ac } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── Main Screen ──────────────────────────────────────────
 
 export default function SalaryCalculatorScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const { planId, fy } = useLocalSearchParams<{ planId?: string; fy?: string }>();
   const startMonth = getFYStartMonth();
@@ -558,8 +560,8 @@ export default function SalaryCalculatorScreen() {
               >
                 <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
               </Pressable>
-              <View className="px-4 py-2 rounded-lg" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
-                <Text className="text-sm font-bold" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+              <View className="px-4 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                <Text className="text-sm font-bold" style={{ color: theme.primary }}>
                   {fyLabel}
                 </Text>
               </View>
@@ -576,7 +578,7 @@ export default function SalaryCalculatorScreen() {
             {showCopyPrompt && prevYearProfile && !existingProfile && (
               <Card className="mb-4">
                 <View className="flex-row items-center mb-3">
-                  <View className="w-9 h-9 rounded-full items-center justify-center mr-3" style={{ backgroundColor: accent[500] + "14" }}>
+                  <View className="w-9 h-9 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
                     <Ionicons name="copy-outline" size={18} color={colors.blue} />
                   </View>
                   <View className="flex-1">
@@ -679,7 +681,7 @@ export default function SalaryCalculatorScreen() {
             {isDraft && (
               <View className="flex-row items-center mb-3 px-3 py-2.5 rounded-lg bg-warning/8">
                 <Ionicons name="document-outline" size={16} color={STATUS_COLORS.warning} />
-                <Text className="text-xs font-medium ml-2" style={{ color: StatusColors[colorScheme].warning }}>
+                <Text className="text-xs font-medium ml-2" style={{ color: theme.warning }}>
                   Draft - not yet saved to your plan
                 </Text>
               </View>

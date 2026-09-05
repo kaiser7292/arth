@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import { settingsStorage } from "@/services/storage";
@@ -20,6 +20,7 @@ import {
   exportRetirementPDF,
   sharePDF,
 } from "@/services/reports/report-pdf-export";
+import { useTheme } from "@/hooks/use-theme";
 
 const INPUTS_KEY = "report_retirement_inputs";
 
@@ -130,7 +131,7 @@ function MetricBox({ label, value, color }: { label: string; value: string; colo
 
 export default function RetirementReportScreen() {
   const { colorScheme, colors } = useColorScheme();
-  const status = StatusColors[colorScheme];
+  const theme = useTheme();
   const tint = colors.tint;
 
   const [inputs, setInputs] = useState<RetirementInputs>(loadSavedInputs);
@@ -316,9 +317,9 @@ export default function RetirementReportScreen() {
     );
   }
 
-  const scoreColor = report.readinessScore >= 70 ? status.success
-    : report.readinessScore >= 40 ? status.warning
-    : status.danger;
+  const scoreColor = report.readinessScore >= 70 ? theme.success
+    : report.readinessScore >= 40 ? theme.warning
+    : theme.danger;
 
   return (
     <ScreenContainer padTop={false}>
@@ -383,15 +384,15 @@ export default function RetirementReportScreen() {
           <SectionHeader title="Where You Stand Today" />
           <View className="flex-row gap-3 mb-3">
             <MetricBox label="Monthly income" value={formatAmount(report.currentMonthlyInHand)} />
-            <MetricBox label="Monthly expenses" value={formatAmount(report.currentMonthlyExpenses)} color={status.danger} />
+            <MetricBox label="Monthly expenses" value={formatAmount(report.currentMonthlyExpenses)} color={theme.danger} />
           </View>
           <View className="flex-row gap-3 mb-3">
-            <MetricBox label="Savings rate" value={`${Math.round(report.currentSavingsRate)}%`} color={status.success} />
-            <MetricBox label="Monthly surplus" value={formatAmount(report.currentMonthlySurplus)} color={status.success} />
+            <MetricBox label="Savings rate" value={`${Math.round(report.currentSavingsRate)}%`} color={theme.success} />
+            <MetricBox label="Monthly surplus" value={formatAmount(report.currentMonthlySurplus)} color={theme.success} />
           </View>
           <View className="flex-row gap-3">
-            <MetricBox label="Net worth" value={formatAmount(report.netWorth)} color={report.netWorth >= 0 ? status.success : status.danger} />
-            <MetricBox label="Monthly EMI" value={report.monthlyEMI > 0 ? formatAmount(report.monthlyEMI) : "None"} color={report.monthlyEMI > 0 ? status.warning : status.success} />
+            <MetricBox label="Net worth" value={formatAmount(report.netWorth)} color={report.netWorth >= 0 ? theme.success : theme.danger} />
+            <MetricBox label="Monthly EMI" value={report.monthlyEMI > 0 ? formatAmount(report.monthlyEMI) : "None"} color={report.monthlyEMI > 0 ? theme.warning : theme.success} />
           </View>
         </View>
 
@@ -404,11 +405,11 @@ export default function RetirementReportScreen() {
             </Text>
             {[
               { label: "Monthly expenses today (excl. EMI)", value: formatAmount(report.retirementMonthlyExpenseToday) },
-              { label: `At retirement (${report.inputs.inflationPct}% inflation × ${report.inputs.postRetirementExpensePct}%)`, value: formatAmount(report.retirementMonthlyExpenseInflated), color: status.warning },
+              { label: `At retirement (${report.inputs.inflationPct}% inflation × ${report.inputs.postRetirementExpensePct}%)`, value: formatAmount(report.retirementMonthlyExpenseInflated), color: theme.warning },
               { label: "Annual expense (future)", value: formatAmount(report.retirementAnnualExpense) },
               { label: "Target corpus (28× annual)", value: fmtCompact(report.targetCorpus), color: tint },
-              { label: `Existing assets at retirement (${report.inputs.expectedReturnPct}%)`, value: fmtCompact(report.existingAssetsAtRetirement), color: status.success },
-              { label: "Gap to fill via SIP", value: fmtCompact(report.gapToFill), color: report.gapToFill > 0 ? status.danger : status.success },
+              { label: `Existing assets at retirement (${report.inputs.expectedReturnPct}%)`, value: fmtCompact(report.existingAssetsAtRetirement), color: theme.success },
+              { label: "Gap to fill via SIP", value: fmtCompact(report.gapToFill), color: report.gapToFill > 0 ? theme.danger : theme.success },
             ].map((row) => (
               <View key={row.label} className="flex-row justify-between items-center py-2 border-b border-border">
                 <Text className="text-xs text-muted-foreground flex-1 mr-3">{row.label}</Text>
@@ -429,7 +430,7 @@ export default function RetirementReportScreen() {
           <SectionHeader title="How To Get There" />
           <Card>
             <View className="items-center py-2">
-              <Text className="text-3xl font-bold" style={{ color: status.success }}>
+              <Text className="text-3xl font-bold" style={{ color: theme.success }}>
                 {formatAmount(report.requiredMonthlySIP)}/mo
               </Text>
               <Text className="text-xs text-muted-foreground mt-1">
@@ -466,7 +467,7 @@ export default function RetirementReportScreen() {
                     </Text>
                     <Text
                       className="text-xs font-semibold flex-1 text-right"
-                      style={{ color: isLast ? status.success : tint }}
+                      style={{ color: isLast ? theme.success : tint }}
                       numberOfLines={1}
                     >
                       {fmtCompact(cm.corpusAccumulated)}
@@ -494,10 +495,10 @@ export default function RetirementReportScreen() {
                   <Text className="text-xs text-muted-foreground">{s.returnPct}% returns</Text>
                 </View>
                 <View className="items-end">
-                  <Text className="text-sm font-bold" style={{ color: s.isAchievable ? status.success : status.danger }} numberOfLines={1}>
+                  <Text className="text-sm font-bold" style={{ color: s.isAchievable ? theme.success : theme.danger }} numberOfLines={1}>
                     {fmtCompact(s.projectedCorpus)}
                   </Text>
-                  <Text className="text-xs" style={{ color: s.isAchievable ? status.success : status.danger }}>
+                  <Text className="text-xs" style={{ color: s.isAchievable ? theme.success : theme.danger }}>
                     {s.isAchievable ? "On track" : "Falls short"}
                   </Text>
                 </View>
@@ -531,7 +532,7 @@ export default function RetirementReportScreen() {
                   <Text className="text-xs font-semibold flex-1 text-right" style={{ color: tint }} numberOfLines={1}>
                     {fmtCompact(w.requiredSIP)}
                   </Text>
-                  <Text className="text-xs font-bold w-14 text-right" style={{ color: w.feasible ? status.success : status.danger }}>
+                  <Text className="text-xs font-bold w-14 text-right" style={{ color: w.feasible ? theme.success : theme.danger }}>
                     {w.feasible ? "Yes" : "No"}
                   </Text>
                 </View>
@@ -567,7 +568,7 @@ export default function RetirementReportScreen() {
                     </View>
                     <View className="flex-1">
                       <Text className="text-xs text-muted-foreground">Inflated cost</Text>
-                      <Text className="text-xs font-semibold" style={{ color: status.warning }} numberOfLines={1}>
+                      <Text className="text-xs font-semibold" style={{ color: theme.warning }} numberOfLines={1}>
                         {fmtCompact(m.inflatedCost)}
                       </Text>
                     </View>
@@ -575,7 +576,7 @@ export default function RetirementReportScreen() {
                   <View className="h-1.5 bg-border rounded-full overflow-hidden mb-1.5">
                     <View
                       className="h-full rounded-full"
-                      style={{ width: `${m.progressPct}%`, backgroundColor: m.progressPct >= 50 ? status.success : status.warning }}
+                      style={{ width: `${m.progressPct}%`, backgroundColor: m.progressPct >= 50 ? theme.success : theme.warning }}
                     />
                   </View>
                   <View className="flex-row items-center justify-between">
@@ -672,11 +673,11 @@ export default function RetirementReportScreen() {
                       <View className="items-end">
                         <Text
                           className="text-sm font-bold"
-                          style={{ color: d.sustainable ? status.success : status.danger }}
+                          style={{ color: d.sustainable ? theme.success : theme.danger }}
                         >
                           {d.corpusLastsYears >= 60 ? "60+" : d.corpusLastsYears} yrs
                         </Text>
-                        <Text className="text-xs" style={{ color: d.sustainable ? status.success : status.danger }}>
+                        <Text className="text-xs" style={{ color: d.sustainable ? theme.success : theme.danger }}>
                           {d.sustainable ? "Sustainable" : "Runs out"}
                         </Text>
                       </View>
@@ -704,12 +705,12 @@ export default function RetirementReportScreen() {
                           <Text className="text-xs text-foreground flex-1 text-right" numberOfLines={1}>
                             {fmtCompact(yy.corpusStart)}
                           </Text>
-                          <Text className="text-xs flex-1 text-right" style={{ color: status.danger }} numberOfLines={1}>
+                          <Text className="text-xs flex-1 text-right" style={{ color: theme.danger }} numberOfLines={1}>
                             {fmtCompact(yy.withdrawal)}
                           </Text>
                           <Text
                             className="text-xs font-semibold flex-1 text-right"
-                            style={{ color: yy.corpusEnd > 0 ? status.success : status.danger }}
+                            style={{ color: yy.corpusEnd > 0 ? theme.success : theme.danger }}
                             numberOfLines={1}
                           >
                             {fmtCompact(yy.corpusEnd)}
@@ -737,10 +738,10 @@ export default function RetirementReportScreen() {
               {report.insuranceCoverage.term && (
                 <View className="flex-row items-center justify-between py-2 border-b border-border">
                   <View className="flex-row items-center gap-2">
-                    <Ionicons name="shield-checkmark-outline" size={14} color={report.insuranceCoverage.term.isAdequate ? status.success : status.warning} />
+                    <Ionicons name="shield-checkmark-outline" size={14} color={report.insuranceCoverage.term.isAdequate ? theme.success : theme.warning} />
                     <Text className="text-xs text-foreground">Term Life</Text>
                   </View>
-                  <Text className="text-xs font-medium" style={{ color: report.insuranceCoverage.term.isAdequate ? status.success : status.warning }}>
+                  <Text className="text-xs font-medium" style={{ color: report.insuranceCoverage.term.isAdequate ? theme.success : theme.warning }}>
                     {fmtCompact(report.insuranceCoverage.term.sumInsured)} ({Math.round(report.insuranceCoverage.term.ratio)}× income)
                   </Text>
                 </View>
@@ -748,10 +749,10 @@ export default function RetirementReportScreen() {
               {report.insuranceCoverage.health && (
                 <View className="flex-row items-center justify-between py-2 border-b border-border">
                   <View className="flex-row items-center gap-2">
-                    <Ionicons name="medkit-outline" size={14} color={report.insuranceCoverage.health.isAdequate ? status.success : status.warning} />
+                    <Ionicons name="medkit-outline" size={14} color={report.insuranceCoverage.health.isAdequate ? theme.success : theme.warning} />
                     <Text className="text-xs text-foreground">Health</Text>
                   </View>
-                  <Text className="text-xs font-medium" style={{ color: report.insuranceCoverage.health.isAdequate ? status.success : status.warning }}>
+                  <Text className="text-xs font-medium" style={{ color: report.insuranceCoverage.health.isAdequate ? theme.success : theme.warning }}>
                     {fmtCompact(report.insuranceCoverage.health.sumInsured)} ({report.insuranceCoverage.health.familySize} members)
                   </Text>
                 </View>
@@ -759,10 +760,10 @@ export default function RetirementReportScreen() {
               {report.insuranceCoverage.car.hasActive && (
                 <View className="flex-row items-center justify-between py-2">
                   <View className="flex-row items-center gap-2">
-                    <Ionicons name="car-outline" size={14} color={status.success} />
+                    <Ionicons name="car-outline" size={14} color={theme.success} />
                     <Text className="text-xs text-foreground">Car</Text>
                   </View>
-                  <Text className="text-xs font-medium" style={{ color: status.success }}>Active</Text>
+                  <Text className="text-xs font-medium" style={{ color: theme.success }}>Active</Text>
                 </View>
               )}
             </Card>
@@ -774,7 +775,7 @@ export default function RetirementReportScreen() {
           <View className="px-4 mt-4">
             <SectionHeader title="Risk Flags" />
             {report.risks.map((risk, i) => {
-              const riskColor = risk.severity === "critical" ? status.danger : risk.severity === "high" ? status.warning : tint;
+              const riskColor = risk.severity === "critical" ? theme.danger : risk.severity === "high" ? theme.warning : tint;
               return (
                 <View
                   key={i}
@@ -818,8 +819,8 @@ export default function RetirementReportScreen() {
 
         {/* ── DISCLAIMER ── */}
         <View className="px-4 mt-4">
-          <View className="rounded-lg p-3" style={{ backgroundColor: status.warningBg }}>
-            <Text className="text-xs" style={{ color: status.warning }}>
+          <View className="rounded-lg p-3" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
+            <Text className="text-xs" style={{ color: theme.warning }}>
               Projections use {report.inputs.expectedReturnPct}% return, {report.inputs.inflationPct}% inflation, {report.inputs.healthcareInflationPct}% healthcare inflation, {report.inputs.salaryGrowthPct}% salary growth, life expectancy {report.inputs.lifeExpectancy} yrs, post-retirement expenses at {report.inputs.postRetirementExpensePct}% of current, portfolio yield {report.inputs.retirementPortfolioYieldPct}%.
               These are estimates, not financial advice.
             </Text>
@@ -866,7 +867,7 @@ export default function RetirementReportScreen() {
             score: corpusScore,
             max: 40,
             detail: `Projected ${Math.round(corpusPct)}% of target corpus`,
-            color: corpusScore >= 30 ? status.success : corpusScore >= 16 ? status.warning : status.danger,
+            color: corpusScore >= 30 ? theme.success : corpusScore >= 16 ? theme.warning : theme.danger,
           },
           {
             label: "Savings Rate",
@@ -874,7 +875,7 @@ export default function RetirementReportScreen() {
             score: savingsScore,
             max: 25,
             detail: `${Math.round(sr)}% of income saved`,
-            color: savingsScore >= 20 ? status.success : savingsScore >= 12 ? status.warning : status.danger,
+            color: savingsScore >= 20 ? theme.success : savingsScore >= 12 ? theme.warning : theme.danger,
           },
           {
             label: "Emergency Fund",
@@ -882,7 +883,7 @@ export default function RetirementReportScreen() {
             score: emergencyScore,
             max: 15,
             detail: `${Math.round(emergencyMonths * 10) / 10} months of expenses covered`,
-            color: emergencyScore >= 10 ? status.success : emergencyScore >= 6 ? status.warning : status.danger,
+            color: emergencyScore >= 10 ? theme.success : emergencyScore >= 6 ? theme.warning : theme.danger,
           },
           {
             label: "Debt Load",
@@ -890,7 +891,7 @@ export default function RetirementReportScreen() {
             score: debtScore,
             max: 20,
             detail: dti === 0 ? "No EMI obligations" : `${Math.round(dti)}% of income goes to EMIs`,
-            color: debtScore >= 15 ? status.success : debtScore >= 8 ? status.warning : status.danger,
+            color: debtScore >= 15 ? theme.success : debtScore >= 8 ? theme.warning : theme.danger,
           },
         ];
 
@@ -932,10 +933,10 @@ export default function RetirementReportScreen() {
                   Score Bands
                 </Text>
                 {[
-                  { range: "80–100", label: "Strong", desc: "Well on track", color: status.success },
+                  { range: "80–100", label: "Strong", desc: "Well on track", color: theme.success },
                   { range: "60–79", label: "Good", desc: "A few areas to strengthen", color: BRAND_COLOR },
-                  { range: "40–59", label: "Needs work", desc: "Significant gaps remain", color: status.warning },
-                  { range: "0–39", label: "At risk", desc: "Urgent action needed", color: status.danger },
+                  { range: "40–59", label: "Needs work", desc: "Significant gaps remain", color: theme.warning },
+                  { range: "0–39", label: "At risk", desc: "Urgent action needed", color: theme.danger },
                 ].map((b) => (
                   <View key={b.range} className="flex-row items-center gap-2 mb-1.5">
                     <View className="w-2 h-2 rounded-full" style={{ backgroundColor: b.color }} />

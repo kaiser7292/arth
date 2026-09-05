@@ -4,7 +4,8 @@ import { View, Animated } from "react-native";
 import { Swipeable, RectButton } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface SwipeableRowProps {
   children: React.ReactNode;
@@ -31,9 +32,10 @@ export function SwipeableRow({
   rightIcon = "close-circle",
   enabled = true,
 }: SwipeableRowProps) {
-  const { colorScheme } = useColorScheme();
-  const leftColor = leftColorProp ?? StatusColors[colorScheme].success;
-  const rightColor = rightColorProp ?? StatusColors[colorScheme].danger;
+  
+  const theme = useTheme();
+  const leftColor = leftColorProp ?? theme.success;
+  const rightColor = rightColorProp ?? theme.danger;
   const swipeableRef = useRef<Swipeable>(null);
 
   const renderLeftActions = (

@@ -2,9 +2,10 @@ import { View, Pressable } from "react-native";
 import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import type { DuplicateGroup } from "@/services/duplicate-detection";
+import { useTheme } from "@/hooks/use-theme";
 
 interface DuplicateGroupCardProps {
   group: DuplicateGroup;
@@ -32,7 +33,8 @@ export function DuplicateGroupCard({
   readOnly,
   onRestore,
 }: DuplicateGroupCardProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   // Sort: latest first (the one to keep on auto-resolve)
   const sorted = [...group.expenses].sort(
@@ -40,9 +42,9 @@ export function DuplicateGroupCard({
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
-  const warn = StatusColors[colorScheme].warning;
-  const success = StatusColors[colorScheme].success;
-  const danger = StatusColors[colorScheme].danger;
+  const warn = theme.warning;
+  const success = theme.success;
+  const danger = theme.danger;
 
   return (
     <View className="mx-4 my-2.5 rounded-2xl bg-card border border-border overflow-hidden">

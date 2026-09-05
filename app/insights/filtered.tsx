@@ -28,7 +28,8 @@ import { getPersonsByIds } from "@/services/hisaab";
 import type { HisaabPerson } from "@/services/hisaab";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Insight drill-down list.
@@ -47,8 +48,8 @@ export default function InsightFilteredListScreen() {
     expenseIds?: string;
     title?: string;
   }>();
-  const { colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const ids = useMemo(
     () => (expenseIds ? expenseIds.split(",").filter((s) => s.length > 0) : []),
@@ -245,10 +246,10 @@ export default function InsightFilteredListScreen() {
               {/* Split deduction */}
               {splitDeduction > 0 && (
                 <View className="flex-row items-center justify-between mb-1">
-                  <Text className="text-xs" style={{ color: sc.warning }}>
+                  <Text className="text-xs" style={{ color: theme.warning }}>
                     🤝 Others' share (split)
                   </Text>
-                  <Text className="text-xs font-medium" style={{ color: sc.warning }}>
+                  <Text className="text-xs font-medium" style={{ color: theme.warning }}>
                     −{formatAmount(splitDeduction)}
                   </Text>
                 </View>
@@ -256,10 +257,10 @@ export default function InsightFilteredListScreen() {
               {/* Refund deduction */}
               {refundDeduction > 0 && (
                 <View className="flex-row items-center justify-between mb-1">
-                  <Text className="text-xs" style={{ color: sc.success }}>
+                  <Text className="text-xs" style={{ color: theme.success }}>
                     ↩ Refunds
                   </Text>
-                  <Text className="text-xs font-medium" style={{ color: sc.success }}>
+                  <Text className="text-xs font-medium" style={{ color: theme.success }}>
                     −{formatAmount(refundDeduction)}
                   </Text>
                 </View>

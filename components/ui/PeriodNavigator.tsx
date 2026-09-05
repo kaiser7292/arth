@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTheme } from "@/hooks/use-theme";
-import { ac } from "@/utils/accent";
+
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 
@@ -55,6 +55,7 @@ const MONTH_NAMES_SHORT = [
 
 export function PeriodNavigator(props: PeriodNavigatorProps) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const uiTheme = useTheme();
   const [showPicker, setShowPicker] = useState(false);
 
   const isMonth = props.mode === "month";
@@ -135,18 +136,18 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
           accessibilityLabel={`Select ${isMonth ? "month" : "financial year"}`}
           accessibilityRole="button"
           className="flex-row items-center px-3 py-1.5 rounded-lg"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 800) }}
+          style={{ backgroundColor: uiTheme.alpha("primary", 0.1) }}
         >
           <Text
             className="text-base font-semibold"
-            style={{ color: ac(accent, colorScheme, 600, 200) }}
+            style={{ color: uiTheme.primary }}
           >
             {label}
           </Text>
           <Ionicons
             name="caret-down"
             size={14}
-            color={ac(accent, colorScheme, 400, 400)}
+            color={uiTheme.primary}
             style={{ marginLeft: 4 }}
           />
         </Pressable>
@@ -238,6 +239,7 @@ function MonthPickerContent({
   onChange: (v: string) => void;
 }) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const uiTheme = useTheme();
   const theme = useTheme();
   const [y, m] = value.split("-").map(Number);
   const [pickerYear, setPickerYear] = useState(y);
@@ -305,7 +307,7 @@ function MonthPickerContent({
                   isSelected
                     ? { backgroundColor: theme.primary }
                     : isCurrent
-                      ? { borderColor: accent[300] }
+                      ? { borderColor: uiTheme.alpha("primary", 0.25) }
                       : undefined
                 }
               >
@@ -338,6 +340,7 @@ function FYPickerContent({
   onChange: (v: number) => void;
 }) {
   const { accent, colorScheme } = useColorScheme();
+  const uiTheme = useTheme();
   const theme = useTheme();
   const fyStartMonth = getFYStartMonth();
   const currentFY = getCurrentFY(fyStartMonth);

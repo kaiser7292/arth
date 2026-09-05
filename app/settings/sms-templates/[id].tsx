@@ -10,6 +10,7 @@ import {
 } from "@/services/sms/user-sms-templates";
 import { startDraft } from "@/services/sms/template-draft-store";
 import { compileTemplate, deriveSpansFromRegex } from "@/services/sms/template-compiler";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.6.0 — Edit an existing user SMS template.
@@ -26,8 +27,9 @@ export default function EditSmsTemplateScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const alert = useAlert();
-  const { accent, colorScheme } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const { colorScheme } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
 
   const [, setTemplate] = useState<UserSmsTemplate | null>(null);
 

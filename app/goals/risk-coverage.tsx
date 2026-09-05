@@ -6,7 +6,7 @@ import { PolicySheet } from "@/components/insurance/PolicySheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import {
   getAllPolicies,
   getInsuranceAdequacy,
@@ -16,7 +16,8 @@ import {
 } from "@/services/insurance-policy";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { formatAmount } from "@/utils/format";
-import { ac } from "@/utils/accent";
+
+import { useTheme } from "@/hooks/use-theme";
 
 const TYPE_META: Record<PolicyType, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
   term: { icon: "shield-checkmark-outline", label: "Term Life" },
@@ -34,8 +35,8 @@ function getCurrentFY(): string {
 }
 
 export default function RiskCoverageScreen() {
-  const { colors, accent, colorScheme } = useColorScheme();
-  const status = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [policies, setPolicies] = useState<InsurancePolicy[]>([]);
   const [adequacy, setAdequacy] = useState<InsuranceAdequacy | null>(null);
@@ -108,7 +109,7 @@ export default function RiskCoverageScreen() {
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ac(accent, colorScheme, 500, 400)} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
       >
         {/* Summary card */}
         {adequacy && (
@@ -124,10 +125,10 @@ export default function RiskCoverageScreen() {
                     style={{
                       color:
                         adequacy.coveredCount >= adequacy.totalRelevant
-                          ? status.success
+                          ? theme.success
                           : adequacy.coveredCount > 0
-                            ? status.warning
-                            : status.danger,
+                            ? theme.warning
+                            : theme.danger,
                     }}
                   >
                     {adequacy.coveredCount}/{adequacy.totalRelevant}
@@ -149,21 +150,19 @@ export default function RiskCoverageScreen() {
                   <Badge
                     label={`Term ${adequacy.term.isAdequate ? "✓" : `${Math.round(adequacy.term.ratio)}×`}`}
                     ok={adequacy.term.isAdequate}
-                    status={status}
                   />
                 ) : (
-                  <Badge label="Term ✗" ok={false} status={status} />
+                  <Badge label="Term ✗" ok={false} />
                 )}
                 {adequacy.health ? (
                   <Badge
                     label={`Health ${adequacy.health.isAdequate ? "✓" : "Low"}`}
                     ok={adequacy.health.isAdequate}
-                    status={status}
                   />
                 ) : (
-                  <Badge label="Health ✗" ok={false} status={status} />
+                  <Badge label="Health ✗" ok={false} />
                 )}
-                <Badge label={`Car ${adequacy.car.hasActive ? "✓" : "✗"}`} ok={adequacy.car.hasActive} status={status} />
+                <Badge label={`Car ${adequacy.car.hasActive ? "✓" : "✗"}`} ok={adequacy.car.hasActive} />
               </View>
 
               {/* Gaps */}
@@ -171,7 +170,7 @@ export default function RiskCoverageScreen() {
                 <View className="mt-3 pt-2 border-t border-border">
                   {adequacy.gaps.map((g) => (
                     <View key={g} className="flex-row items-start gap-1.5 mb-1">
-                      <Ionicons name="alert-circle" size={13} color={status.warning} style={{ marginTop: 1 }} />
+                      <Ionicons name="alert-circle" size={13} color={theme.warning} style={{ marginTop: 1 }} />
                       <Text className="text-xs text-muted-foreground flex-1">
                         {g}
                       </Text>
@@ -233,8 +232,8 @@ export default function RiskCoverageScreen() {
                         </View>
                         <View className="flex-row items-center gap-1.5">
                           {!p.is_active && (
-                            <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: status.dangerBg }}>
-                              <Text className="text-xs" style={{ color: status.danger }}>Lapsed</Text>
+                            <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.alpha("danger", 0.08) }}>
+                              <Text className="text-xs" style={{ color: theme.danger }}>Lapsed</Text>
                             </View>
                           )}
                           <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
@@ -264,13 +263,14 @@ export default function RiskCoverageScreen() {
 // Small helpers
 // ---------------------------------------------------------------------------
 
-function Badge({ label, ok, status }: { label: string; ok: boolean; status: { success: string; successBg: string; danger: string; dangerBg: string } }) {
+function Badge({ label, ok }: { label: string; ok: boolean }) {
+  const theme = useTheme();
   return (
     <View
       className="px-2.5 py-1 rounded-full"
-      style={{ backgroundColor: ok ? status.successBg : status.dangerBg }}
+      style={{ backgroundColor: ok ? theme.alpha("success", 0.08) : theme.alpha("danger", 0.08) }}
     >
-      <Text className="text-xs font-medium" style={{ color: ok ? status.success : status.danger }}>
+      <Text className="text-xs font-medium" style={{ color: ok ? theme.success : theme.danger }}>
         {label}
       </Text>
     </View>

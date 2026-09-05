@@ -10,10 +10,11 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
 import { getDatabase } from "@/database";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ExpenseRow {
   id: string;
@@ -55,7 +56,8 @@ interface Props {
  * Shows recent realized expenses with search, single-select.
  */
 export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClose }: Props) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState("");
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
@@ -117,7 +119,7 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
     transform: [{ translateY: slideAnim.value }],
   }));
 
-  const tint = ac(accent, colorScheme, 600, 200);
+  const tint = theme.primary;
 
   if (!visible) return null;
 
@@ -216,7 +218,7 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
                 >
                   <View
                     className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}
+                    style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                   >
                     <Ionicons name="receipt-outline" size={17} color={tint} />
                   </View>

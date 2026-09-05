@@ -7,12 +7,13 @@ import type { Category } from "@/services/category";
 import type { FinancialAccount } from "@/services/financial-account";
 import type { PaymentMode, PaymentModeType } from "@/services/payment-mode";
 import { PAYMENT_MODE_TYPE_LABELS } from "@/services/payment-mode";
-import { ac } from "@/utils/accent";
+
 import { formatDateForDisplay, formatDateForStorage } from "@/utils/expense-validation";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 // ---------------------------------------------------------------------------
 // Searchable Picker List — shared helper for all pickers
@@ -41,6 +42,7 @@ export function SearchablePickerList({
 }) {
   const [query, setQuery] = useState("");
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items;
@@ -72,7 +74,7 @@ export function SearchablePickerList({
           <Pressable
             onPress={() => onSelect(null)}
             className="flex-row items-center px-4 py-3 border-b border-border"
-            style={selectedId === null ? { backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+            style={selectedId === null ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
           >
             <Ionicons name="remove-circle-outline" size={18} color={colors.textSecondary} />
             <Text className="ml-3 text-sm text-faint-foreground">None</Text>
@@ -83,7 +85,7 @@ export function SearchablePickerList({
             key={item.id}
             onPress={() => onSelect(item.id)}
             className="flex-row items-center px-4 py-3 border-b border-border"
-            style={selectedId === item.id ? { backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+            style={selectedId === item.id ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
           >
             {item.color && (
               <View className="w-6 h-6 rounded-full items-center justify-center mr-2" style={{ backgroundColor: item.color + "14" }}>
@@ -129,11 +131,12 @@ export function AccountPicker({
   onSelect,
 }: AccountPickerProps) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const router = useRouter();
 
   const accentStyles = useMemo(() => ({
-    selectedBorder: { borderColor: ac(accent, colorScheme, 400, 800), backgroundColor: ac(accent, colorScheme, 50, 700) },
-    highlightBg: { backgroundColor: ac(accent, colorScheme, 50, 700) },
+    selectedBorder: { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) },
+    highlightBg: { backgroundColor: theme.alpha("primary", 0.1) },
   }), [accent, colorScheme]);
 
   return (
@@ -228,6 +231,7 @@ export function DateSelector({
   dateError,
 }: DateSelectorProps) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const [showCalendar, setShowCalendar] = useState(false);
 
   return (
@@ -262,7 +266,7 @@ export function DateSelector({
         <Pressable
           onPress={() => setShowCalendar(true)}
           className="ml-2 w-10 h-10 rounded-lg items-center justify-center border"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 900), borderColor: ac(accent, colorScheme, 200, 700) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.alpha("primary", 0.25) }}
         >
           <Ionicons name="calendar-outline" size={20} color={colors.blue} />
         </Pressable>
@@ -280,7 +284,7 @@ export function DateSelector({
                 ? ""
                 : "bg-card"
             }`}
-            style={date === formatDateForStorage(new Date()) ? { backgroundColor: ac(accent, colorScheme, 100, 700) } : undefined}
+            style={date === formatDateForStorage(new Date()) ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
           >
             <Text className="text-sm font-medium text-muted-foreground">
               Today
@@ -342,6 +346,7 @@ export function CategoryPicker({
   allowNone = false,
 }: CategoryPickerProps) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   return (
     <View className="mb-4">
@@ -355,7 +360,7 @@ export function CategoryPicker({
             ? ""
             : "border-border bg-card"
         }`}
-        style={selectedCategory ? { borderColor: ac(accent, colorScheme, 400, 800), backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+        style={selectedCategory ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
       >
         {selectedCategory ? (
           <>
@@ -430,6 +435,7 @@ export function PaymentModePicker({
   allowNone = false,
 }: PaymentModePickerProps) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   return (
     <View className="mb-4">
@@ -443,7 +449,7 @@ export function PaymentModePicker({
             ? ""
             : "border-border bg-card"
         }`}
-        style={selectedPaymentMode ? { borderColor: ac(accent, colorScheme, 400, 800), backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+        style={selectedPaymentMode ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
       >
         {selectedPaymentMode ? (
           <>
@@ -513,6 +519,7 @@ export function MerchantPicker({
   onCloseSuggestions,
 }: MerchantPickerProps) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   // Filter suggestions based on current input
   const filtered = value.trim().length > 0
@@ -567,7 +574,7 @@ export function MerchantPicker({
                   onCloseSuggestions();
                 }}
                 className="flex-row items-center px-4 py-3 border-b border-border"
-                style={value.toLowerCase() === name.toLowerCase() ? { backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+                style={value.toLowerCase() === name.toLowerCase() ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
               >
                 <Ionicons name="storefront-outline" size={16} color={colors.textSecondary} />
                 <Text

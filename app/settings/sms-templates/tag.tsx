@@ -36,6 +36,7 @@ import {
 } from "@/services/sms/user-sms-templates";
 import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.6.0 — SMS template tagger screen.
@@ -128,8 +129,9 @@ const BANK_SUGGESTIONS = [
 export default function TagSmsTemplateScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme, accent } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
 
   const draft = getDraft();
 
@@ -927,10 +929,10 @@ export default function TagSmsTemplateScreen() {
                       Alert.alert("Copied", "Regex copied to clipboard");
                     }}
                     className="flex-row items-center px-2 py-1 rounded"
-                    style={{ backgroundColor: accent[500] + "20" }}
+                    style={{ backgroundColor: theme.alpha("primary", 0.13) }}
                   >
-                    <Ionicons name="copy-outline" size={14} color={accent[500]} />
-                    <Text className="text-xs ml-1" style={{ color: accent[500] }}>Copy</Text>
+                    <Ionicons name="copy-outline" size={14} color={theme.primary} />
+                    <Text className="text-xs ml-1" style={{ color: theme.primary }}>Copy</Text>
                   </Pressable>
                   <View className="flex-1" />
                   <Pressable
@@ -941,14 +943,14 @@ export default function TagSmsTemplateScreen() {
                       }
                     }}
                     className="flex-row items-center px-2 py-1 rounded"
-                    style={{ backgroundColor: useManualRegex ? accent[500] + "20" : colors.border }}
+                    style={{ backgroundColor: useManualRegex ? theme.alpha("primary", 0.13) : colors.border }}
                   >
                     <Ionicons 
                       name={useManualRegex ? "checkmark-circle" : "radio-button-off"} 
                       size={14} 
-                      color={useManualRegex ? accent[500] : colors.textSecondary} 
+                      color={useManualRegex ? theme.primary : colors.textSecondary} 
                     />
-                    <Text className="text-xs ml-1" style={{ color: useManualRegex ? accent[500] : colors.textSecondary }}>
+                    <Text className="text-xs ml-1" style={{ color: useManualRegex ? theme.primary : colors.textSecondary }}>
                       Manual Edit
                     </Text>
                   </Pressable>

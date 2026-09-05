@@ -8,8 +8,8 @@ import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Card, DateInput, FAB, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac, acAlpha } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
 import {
   getLifeMilestones,
   createLifeMilestone,
@@ -28,6 +28,7 @@ import { formatAmount } from "@/utils/expense-validation";
 import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { MilestoneStatus } from "@/utils/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
+import { useTheme } from "@/hooks/use-theme";
 
 type ViewMode = "list" | "add_milestone";
 type DurationUnit = "years" | "months";
@@ -36,6 +37,7 @@ export default function MilestonesScreen() {
   const router = useRouter();
   const alert = useAlert();
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const [milestones, setMilestones] = useState<LifeMilestone[]>([]);
   const [milestoneStatuses, setMilestoneStatuses] = useState<MilestoneStatus[]>([]);
   const [fyActuals, setFyActuals] = useState<Map<string, number>>(new Map());
@@ -331,8 +333,8 @@ export default function MilestonesScreen() {
                     >
                       <Ionicons name="chevron-back" size={16} color={colors.textSecondary} />
                     </Pressable>
-                    <View className="flex-1 items-center mx-2 py-2 rounded-lg" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
-                      <Text className="text-sm font-semibold" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+                    <View className="flex-1 items-center mx-2 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                      <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
                         {getFYLabel(parseInt(formStartFY, 10), startMonth)}
                       </Text>
                     </View>
@@ -368,7 +370,7 @@ export default function MilestonesScreen() {
                         }}
                         className="flex-1 py-2 items-center"
                         style={{
-                          backgroundColor: formDurationUnit === unit ? acAlpha(accent, 500, 0.12) : "transparent",
+                          backgroundColor: formDurationUnit === unit ? theme.alpha("primary", 0.12) : "transparent",
                         }}
                       >
                         <Text
@@ -391,7 +393,7 @@ export default function MilestonesScreen() {
                           className="mr-2 px-4 py-2 rounded-lg border"
                           style={{
                             borderColor: formDurationYears === d && formDurationMonths === "0" ? colors.blue : BORDER_COLOR,
-                            backgroundColor: formDurationYears === d && formDurationMonths === "0" ? acAlpha(accent, 500, 0.08) : "transparent",
+                            backgroundColor: formDurationYears === d && formDurationMonths === "0" ? theme.alpha("primary", 0.08) : "transparent",
                           }}
                         >
                           <Text
@@ -419,7 +421,7 @@ export default function MilestonesScreen() {
                           className="mr-2 px-4 py-2 rounded-lg border"
                           style={{
                             borderColor: formDurationMonths === d && formDurationYears === "0" ? colors.blue : BORDER_COLOR,
-                            backgroundColor: formDurationMonths === d && formDurationYears === "0" ? acAlpha(accent, 500, 0.08) : "transparent",
+                            backgroundColor: formDurationMonths === d && formDurationYears === "0" ? theme.alpha("primary", 0.08) : "transparent",
                           }}
                         >
                           <Text
@@ -523,7 +525,7 @@ export default function MilestonesScreen() {
               <View className="h-3 rounded-full bg-border overflow-hidden">
                 <View
                   className="h-3 rounded-full"
-                  style={{ width: `${overallPct}%`, backgroundColor: accent[500] }}
+                  style={{ width: `${overallPct}%`, backgroundColor: theme.primary }}
                 />
               </View>
               <Text className="text-xs text-muted-foreground mt-1 text-right">
@@ -635,6 +637,7 @@ function MilestoneCard({
   onToggleComplete: () => void;
 }) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const remaining = Math.max(
     milestone.target_amount - milestone.current_saved,
     0,
@@ -671,14 +674,14 @@ function MilestoneCard({
                 className="w-7 h-7 rounded-full items-center justify-center mr-2"
                 style={{
                   backgroundColor: isComplete
-                    ? StatusColors[colorScheme].successBg
-                    : acAlpha(accent, 500, 0.08),
+                    ? theme.alpha("success", 0.08)
+                    : theme.alpha("primary", 0.08),
                 }}
               >
                 <Ionicons
                   name={isComplete ? "checkmark-circle" : "flag-outline"}
                   size={16}
-                  color={isComplete ? StatusColors[colorScheme].success : colors.blue}
+                  color={isComplete ? theme.success : colors.blue}
                 />
               </View>
             </Pressable>
@@ -715,7 +718,7 @@ function MilestoneCard({
                 if (totalMo <= 1) return null;
                 const monthly = milestone.target_amount / totalMo;
                 return (
-                  <Text className="text-xs" style={{ color: accent[500] }}>
+                  <Text className="text-xs" style={{ color: theme.primary }}>
                     {formatAmount(monthly)}/month
                   </Text>
                 );
@@ -761,7 +764,7 @@ function MilestoneCard({
             className="h-2 rounded-full"
             style={{
               width: `${pct}%`,
-              backgroundColor: isComplete ? StatusColors[colorScheme].success : colors.blue,
+              backgroundColor: isComplete ? theme.success : colors.blue,
             }}
           />
         </View>
@@ -784,7 +787,7 @@ function MilestoneCard({
             <Text className="text-xs text-muted-foreground">
               {fyLabel}
             </Text>
-            <Text className="text-xs font-medium" style={{ color: accent[500] }}>
+            <Text className="text-xs font-medium" style={{ color: theme.primary }}>
               {formatCompact(fyActual ?? 0)} of {formatCompact(fyPlanned)}
             </Text>
           </View>
@@ -811,15 +814,15 @@ function MilestoneCard({
                 <Ionicons
                   name="pulse-outline"
                   size={12}
-                  color={realityStatus.slippageMonths > 2 ? StatusColors[colorScheme].warning : StatusColors[colorScheme].success}
+                  color={realityStatus.slippageMonths > 2 ? theme.warning : theme.success}
                   style={{ marginRight: 4 }}
                 />
                 <Text
                   className="text-xs font-medium"
                   style={{
                     color: realityStatus.slippageMonths > 2
-                      ? StatusColors[colorScheme].warning
-                      : StatusColors[colorScheme].success,
+                      ? theme.warning
+                      : theme.success,
                   }}
                 >
                   Reality: {formatAmount(realityStatus.monthlyRealistic)}/mo
@@ -830,8 +833,8 @@ function MilestoneCard({
                   className="text-xs font-medium"
                   style={{
                     color: realityStatus.slippageMonths > 2
-                      ? StatusColors[colorScheme].warning
-                      : StatusColors[colorScheme].success,
+                      ? theme.warning
+                      : theme.success,
                   }}
                 >
                   → {realityStatus.realisticCompletionDate}

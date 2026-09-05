@@ -10,7 +10,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { getBucketsByFY } from "@/services/yearly-plan";
@@ -18,6 +18,7 @@ import type { InvestmentBucket } from "@/services/yearly-plan";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import type { DematTarget } from "@/services/demat-transfer";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Follow-up sheet shown after a transfer *lands* in a demat account. Lets the
@@ -49,7 +50,8 @@ export function DematTransferTargetSheet({
   onConfirm,
   onClose,
 }: DematTransferTargetSheetProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [target, setTarget] = useState<DematTarget>("fund");
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
@@ -164,20 +166,20 @@ export function DematTransferTargetSheet({
                 className="flex-row items-center py-3.5 px-4 rounded-xl mb-2.5"
                 style={{
                   backgroundColor: active
-                    ? ac(accent, colorScheme, 500, 300) + "26"
+                    ? theme.primary + "26"
                     : colors.surface === colors.background
                       ? undefined
                       : colors.surface,
                   borderWidth: active ? 2 : 1,
                   borderColor: active
-                    ? ac(accent, colorScheme, 500, 300)
+                    ? theme.primary
                     : colors.border,
                 }}
               >
                 <Ionicons
                   name={opt.icon}
                   size={22}
-                  color={active ? ac(accent, colorScheme, 600, 200) : colors.textSecondary}
+                  color={active ? theme.primary : colors.textSecondary}
                 />
                 <View className="flex-1 ml-3">
                   <Text
@@ -194,7 +196,7 @@ export function DematTransferTargetSheet({
                   <Ionicons
                     name="checkmark-circle"
                     size={20}
-                    color={ac(accent, colorScheme, 600, 200)}
+                    color={theme.primary}
                   />
                 )}
               </Pressable>
@@ -221,13 +223,13 @@ export function DematTransferTargetSheet({
               className="flex-row items-center py-2 px-2 rounded-md"
               style={{
                 backgroundColor:
-                  bucketId === null ? ac(accent, colorScheme, 500, 300) + "1A" : "transparent",
+                  bucketId === null ? theme.primary + "1A" : "transparent",
               }}
             >
               <Ionicons
                 name="close-circle-outline"
                 size={16}
-                color={bucketId === null ? ac(accent, colorScheme, 600, 200) : colors.textSecondary}
+                color={bucketId === null ? theme.primary : colors.textSecondary}
               />
               <Text
                 className="flex-1 ml-2 text-sm"
@@ -242,7 +244,7 @@ export function DematTransferTargetSheet({
                 <Ionicons
                   name="checkmark"
                   size={16}
-                  color={ac(accent, colorScheme, 600, 200)}
+                  color={theme.primary}
                 />
               )}
             </Pressable>
@@ -262,14 +264,14 @@ export function DematTransferTargetSheet({
                     className="flex-row items-center py-2 px-2 rounded-md"
                     style={{
                       backgroundColor: active
-                        ? ac(accent, colorScheme, 500, 300) + "1A"
+                        ? theme.primary + "1A"
                         : "transparent",
                     }}
                   >
                     <Ionicons
                       name="bookmark-outline"
                       size={16}
-                      color={active ? ac(accent, colorScheme, 600, 200) : colors.textSecondary}
+                      color={active ? theme.primary : colors.textSecondary}
                     />
                     <Text
                       className="flex-1 ml-2 text-sm"
@@ -315,7 +317,7 @@ export function DematTransferTargetSheet({
             accessibilityRole="button"
             accessibilityLabel="Apply"
             className="flex-1 py-3 rounded-xl items-center"
-            style={{ backgroundColor: accent[500] }}
+            style={{ backgroundColor: theme.primary }}
           >
             <Text className="text-sm font-semibold text-white">Apply</Text>
           </Pressable>

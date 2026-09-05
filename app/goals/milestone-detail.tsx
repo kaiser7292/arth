@@ -28,14 +28,16 @@ import type { InvestmentBucket } from "@/services/yearly-plan";
 import { formatAmount } from "@/utils/expense-validation";
 import { getCurrentFY, getFYRange, getFYLabel, formatLocalDate } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
-import { ac, acAlpha } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
+import { useTheme } from "@/hooks/use-theme";
 
 export default function MilestoneDetailScreen() {
   const router = useRouter();
   const { milestoneId } = useLocalSearchParams<{ milestoneId: string }>();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const startMonth = getFYStartMonth();
   const currentFY = getCurrentFY(startMonth);
@@ -364,14 +366,14 @@ export default function MilestoneDetailScreen() {
                   className="w-14 h-14 rounded-full items-center justify-center mb-2"
                   style={{
                     backgroundColor: isComplete
-                      ? StatusColors[colorScheme].successBg
-                      : acAlpha(accent, 500, 0.08),
+                      ? theme.alpha("success", 0.08)
+                      : theme.alpha("primary", 0.08),
                   }}
                 >
                   <Ionicons
                     name={isComplete ? "checkmark-circle" : "flag-outline"}
                     size={28}
-                    color={isComplete ? StatusColors[colorScheme].success : colors.blue}
+                    color={isComplete ? theme.success : colors.blue}
                   />
                 </View>
                 <Text className="text-lg font-bold text-foreground">
@@ -383,7 +385,7 @@ export default function MilestoneDetailScreen() {
                   </Text>
                 )}
                 {isComplete && (
-                  <View className="mt-2 px-3 py-1 rounded-full" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
+                  <View className="mt-2 px-3 py-1 rounded-full" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
                     <Text className="text-xs font-medium text-success">
                       Completed!
                     </Text>
@@ -425,7 +427,7 @@ export default function MilestoneDetailScreen() {
                   className="h-3 rounded-full"
                   style={{
                     width: `${pct}%`,
-                    backgroundColor: isComplete ? StatusColors[colorScheme].success : colors.blue,
+                    backgroundColor: isComplete ? theme.success : colors.blue,
                   }}
                 />
               </View>
@@ -470,8 +472,8 @@ export default function MilestoneDetailScreen() {
                         value={formatAmount(projection.monthlyNeeded)}
                         color={
                           projection.avgMonthly >= projection.monthlyNeeded
-                            ? StatusColors[colorScheme].success
-                            : StatusColors[colorScheme].danger
+                            ? theme.success
+                            : theme.danger
                         }
                       />
                     </>
@@ -486,8 +488,8 @@ export default function MilestoneDetailScreen() {
                       style={{
                         backgroundColor:
                           projection.avgMonthly >= projection.monthlyNeeded
-                            ? StatusColors[colorScheme].successBg
-                            : StatusColors[colorScheme].dangerBg,
+                            ? theme.alpha("success", 0.08)
+                            : theme.alpha("danger", 0.08),
                       }}
                     >
                       <Ionicons
@@ -499,8 +501,8 @@ export default function MilestoneDetailScreen() {
                         size={14}
                         color={
                           projection.avgMonthly >= projection.monthlyNeeded
-                            ? StatusColors[colorScheme].success
-                            : StatusColors[colorScheme].danger
+                            ? theme.success
+                            : theme.danger
                         }
                       />
                       <Text
@@ -508,8 +510,8 @@ export default function MilestoneDetailScreen() {
                         style={{
                           color:
                             projection.avgMonthly >= projection.monthlyNeeded
-                              ? StatusColors[colorScheme].success
-                              : StatusColors[colorScheme].danger,
+                              ? theme.success
+                              : theme.danger,
                         }}
                       >
                         {projection.avgMonthly >= projection.monthlyNeeded
@@ -545,18 +547,18 @@ export default function MilestoneDetailScreen() {
                             {row.label}
                           </Text>
                           {row.isCurrent && (
-                            <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: acAlpha(accent, 500, 0.1) }}>
-                              <Text className="text-label font-semibold" style={{ color: accent[500] }}>NOW</Text>
+                            <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                              <Text className="text-label font-semibold" style={{ color: theme.primary }}>NOW</Text>
                             </View>
                           )}
                           {isOverachieved && (
-                            <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
-                              <Text className="text-label font-semibold" style={{ color: StatusColors[colorScheme].success }}>Overachieved</Text>
+                            <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
+                              <Text className="text-label font-semibold" style={{ color: theme.success }}>Overachieved</Text>
                             </View>
                           )}
                           {isFullyCovered && (
-                            <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
-                              <Text className="text-label font-semibold" style={{ color: StatusColors[colorScheme].success }}>Covered</Text>
+                            <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
+                              <Text className="text-label font-semibold" style={{ color: theme.success }}>Covered</Text>
                             </View>
                           )}
                         </View>
@@ -566,7 +568,7 @@ export default function MilestoneDetailScreen() {
                           </Text>
                           {" / "}
                           {isAdjusted || isFullyCovered ? (
-                            <Text style={{ color: accent[500] }}>
+                            <Text style={{ color: theme.primary }}>
                               {formatAmount(row.planned)}
                             </Text>
                           ) : formatAmount(row.originalPlanned)}
@@ -580,9 +582,9 @@ export default function MilestoneDetailScreen() {
                           style={{
                             width: `${pctFY * 100}%`,
                             backgroundColor: isOverachieved || isFullyCovered
-                              ? StatusColors[colorScheme].success
+                              ? theme.success
                               : row.isCurrent
-                              ? accent[500]
+                              ? theme.primary
                               : colors.textSecondary,
                           }}
                         />
@@ -591,11 +593,11 @@ export default function MilestoneDetailScreen() {
                       {/* Bar footer */}
                       <View className="flex-row items-center justify-between mt-1">
                         {isOverachieved ? (
-                          <Text className="text-label" style={{ color: StatusColors[colorScheme].success }}>
+                          <Text className="text-label" style={{ color: theme.success }}>
                             +{formatAmount(surplus)} ahead of original plan
                           </Text>
                         ) : isFullyCovered ? (
-                          <Text className="text-label" style={{ color: StatusColors[colorScheme].success }}>
+                          <Text className="text-label" style={{ color: theme.success }}>
                             Fully covered by surplus from earlier FYs
                           </Text>
                         ) : (
@@ -613,13 +615,13 @@ export default function MilestoneDetailScreen() {
                         <View
                           className="mt-2 px-3 py-2 flex-row items-start"
                           style={{
-                            backgroundColor: acAlpha(accent, 500, 0.06),
+                            backgroundColor: theme.alpha("primary", 0.06),
                             borderLeftWidth: 2,
-                            borderLeftColor: accent[500],
+                            borderLeftColor: theme.primary,
                           }}
                         >
-                          <Ionicons name="information-circle-outline" size={13} color={accent[500]} style={{ marginTop: 1, marginRight: 6 }} />
-                          <Text className="text-label flex-1" style={{ color: accent[500], lineHeight: 16 }}>
+                          <Ionicons name="information-circle-outline" size={13} color={theme.primary} style={{ marginTop: 1, marginRight: 6 }} />
+                          <Text className="text-label flex-1" style={{ color: theme.primary, lineHeight: 16 }}>
                             Target adjusted to {formatAmount(row.planned)} — originally {formatAmount(row.originalPlanned)}, reduced by the {formatAmount(row.surplusCarriedIn)} surplus saved ahead of plan in earlier FYs.
                           </Text>
                         </View>
@@ -693,7 +695,7 @@ export default function MilestoneDetailScreen() {
                       <View className="h-1.5 rounded-full bg-border overflow-hidden">
                         <View
                           className="h-1.5 rounded-full"
-                          style={{ width: `${bucketPct}%`, backgroundColor: accent[500] }}
+                          style={{ width: `${bucketPct}%`, backgroundColor: theme.primary }}
                         />
                       </View>
                     </Pressable>
@@ -704,7 +706,7 @@ export default function MilestoneDetailScreen() {
                     <Text className="text-xs text-muted-foreground">
                       Total from linked buckets
                     </Text>
-                    <Text className="text-sm font-bold" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+                    <Text className="text-sm font-bold" style={{ color: theme.primary }}>
                       {formatAmount(linkedBucketTotal)}
                     </Text>
                   </View>
@@ -728,12 +730,12 @@ export default function MilestoneDetailScreen() {
                           {fyGroup.label}
                         </Text>
                         {fyGroup.isCurrent && (
-                          <View className="ml-1.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: acAlpha(accent, 500, 0.1) }}>
-                            <Text className="text-label font-semibold" style={{ color: accent[500] }}>NOW</Text>
+                          <View className="ml-1.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                            <Text className="text-label font-semibold" style={{ color: theme.primary }}>NOW</Text>
                           </View>
                         )}
                       </View>
-                      <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
+                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
                         {formatAmount(fyGroup.total)}
                       </Text>
                     </View>
@@ -805,14 +807,14 @@ export default function MilestoneDetailScreen() {
               <Pressable
                 onPress={() => setShowAddForm(true)}
                 className="flex-row items-center justify-center py-3 mb-4 rounded-lg border border-dashed"
-                style={{ borderColor: ac(accent, colorScheme, 600, 300) }}
+                style={{ borderColor: theme.primary }}
               >
                 <Ionicons
                   name="add-circle-outline"
                   size={18}
                   color={colors.blue}
                 />
-                <Text className="text-sm font-medium ml-1" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+                <Text className="text-sm font-medium ml-1" style={{ color: theme.primary }}>
                   Add Contribution
                 </Text>
               </Pressable>

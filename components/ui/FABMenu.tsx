@@ -34,7 +34,7 @@ const FAB_SIZE = 64;
 
 export function FABMenu({ items, hidden = false, accessibilityLabel = "Add" }: FABMenuProps) {
   const [open, setOpen] = useState(false);
-  const { accent, colors } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
   // See the note in FAB.tsx - same contrast fix.
   const stops: [string, string] =

@@ -1,8 +1,8 @@
-import { StatusColors } from "@/constants/theme";
+
 import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { Ionicons } from "@expo/vector-icons";
 import { View } from "react-native";
 
@@ -53,6 +53,7 @@ function formatTime12h(time: string): string | null {
 }
 
 import { formatNumber } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function ExpenseHeroCard({
   merchantName,
@@ -71,7 +72,8 @@ export default function ExpenseHeroCard({
   splitOriginalAmount,
   isTransfer = false,
 }: ExpenseHeroCardProps) {
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const title = description || merchantName || "Expense";
   const subtitle = description && merchantName ? merchantName : null;
 
@@ -89,35 +91,35 @@ export default function ExpenseHeroCard({
     <View className="px-4 pt-5 pb-4 items-center">
       {/* Source + Nature badges */}
       <View className="flex-row items-center mb-3">
-        <View className="px-2.5 py-1 rounded-full mr-2" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
-          <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+        <View className="px-2.5 py-1 rounded-full mr-2" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+          <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.primary }}>
             {SOURCE_LABELS[source] ?? source}
           </Text>
         </View>
         {nature === "forecast" && (
-          <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: StatusColors[colorScheme].warningBg }}>
-            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
+          <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.warning }}>
               Forecast
             </Text>
           </View>
         )}
         {status === "pending_review" && (
           <View className="px-2.5 py-1 rounded-full bg-warning/8">
-            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.warning }}>
               Pending Review
             </Text>
           </View>
         )}
         {isFullRefund && (
-          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: StatusColors[colorScheme].success + "1A" }}>
-            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].success }}>
+          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: theme.success + "1A" }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.success }}>
               Refunded
             </Text>
           </View>
         )}
         {isPartialRefund && (
-          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: StatusColors[colorScheme].warning + "1A" }}>
-            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
+          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: theme.warning + "1A" }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.warning }}>
               Partial Refund
             </Text>
           </View>
@@ -155,7 +157,7 @@ export default function ExpenseHeroCard({
         <Ionicons
           name={nature === "credit" ? "arrow-up" : "arrow-down"}
           size={18}
-          color={nature === "credit" ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger}
+          color={nature === "credit" ? theme.success : theme.danger}
         />
         <Text
           className="text-3xl font-bold text-foreground ml-1"

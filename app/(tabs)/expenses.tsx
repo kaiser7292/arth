@@ -13,7 +13,7 @@ import type { FABMenuItem, SwipePagerPage } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { ac } from "@/utils/accent";
+
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
 import { addCredit } from "@/services/account-credit";
@@ -72,9 +72,10 @@ import {
   type DatePreset,
 } from "@/services/saved-filter-views";
 import { STATUS_COLORS, TRANSFER_COLOR } from "@/constants/semantic-colors";
-import { StatusColors } from "@/constants/theme";
+
 import { settingsStorage } from "@/services/storage";
 import { Modal } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 type ExpenseSortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "name_asc";
 const SORT_OPTIONS: { value: ExpenseSortBy; label: string; icon: string }[] = [
@@ -99,8 +100,8 @@ const NATURE_TABS: SwipePagerPage[] = [
 export default function ExpensesScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors, accent } = useColorScheme();
+  const theme = useTheme();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
@@ -787,7 +788,7 @@ export default function ExpensesScreen() {
             <Text className="text-label text-faint-foreground">{item.date}</Text>
           </View>
           <View className="items-end">
-            <Text className="text-sm font-bold" style={{ color: accent[500] }}>
+            <Text className="text-sm font-bold" style={{ color: theme.primary }}>
               {formatAmount(item.amount)}
             </Text>
             <Pressable
@@ -894,9 +895,9 @@ export default function ExpensesScreen() {
               <View
                 className="w-5 h-5 rounded items-center justify-center"
                 style={{
-                  backgroundColor: selectedExpenseIds.has(expense.id) ? accent[500] : "transparent",
+                  backgroundColor: selectedExpenseIds.has(expense.id) ? theme.primary : "transparent",
                   borderWidth: selectedExpenseIds.has(expense.id) ? 0 : 1.5,
-                  borderColor: selectedExpenseIds.has(expense.id) ? accent[500] : colors.border,
+                  borderColor: selectedExpenseIds.has(expense.id) ? theme.primary : colors.border,
                 }}
               >
                 {selectedExpenseIds.has(expense.id) && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
@@ -932,7 +933,7 @@ export default function ExpensesScreen() {
         } : undefined}
         rightActions={[{
           icon: "swap-vertical-outline",
-          color: sortBy !== "date_desc" ? accent[500] : undefined,
+          color: sortBy !== "date_desc" ? theme.primary : undefined,
           onPress: () => setShowSortSheet(true),
         }]}
       />
@@ -964,7 +965,7 @@ export default function ExpensesScreen() {
               accessibilityLabel="Apply smart search"
               accessibilityRole="button"
               className="ml-2 px-2 py-1 rounded-md"
-              style={{ backgroundColor: accent[500] }}
+              style={{ backgroundColor: theme.primary }}
             >
               <Text className="text-xs font-semibold text-white">Apply</Text>
             </Pressable>
@@ -1011,7 +1012,7 @@ export default function ExpensesScreen() {
             returnKeyType="done"
             className="flex-1 text-sm text-foreground bg-card rounded-lg px-3 py-2 mr-2"
           />
-          <Pressable onPress={confirmSaveView} className="px-3 py-2 rounded-lg" style={{ backgroundColor: accent[500] }}>
+          <Pressable onPress={confirmSaveView} className="px-3 py-2 rounded-lg" style={{ backgroundColor: theme.primary }}>
             <Text className="text-xs font-medium text-white">Save</Text>
           </Pressable>
           <Pressable onPress={() => setShowSaveViewInput(false)} className="ml-2">
@@ -1028,8 +1029,8 @@ export default function ExpensesScreen() {
             className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card"
           >
             <View className="flex-row items-center">
-              <Ionicons name="bookmark-outline" size={14} color={accent[500]} style={{ marginRight: 6 }} />
-              <Text className="text-sm font-medium" style={{ color: activeViewId ? accent[500] : colors.textSecondary }}>
+              <Ionicons name="bookmark-outline" size={14} color={theme.primary} style={{ marginRight: 6 }} />
+              <Text className="text-sm font-medium" style={{ color: activeViewId ? theme.primary : colors.textSecondary }}>
                 {activeViewId ? savedViews.find((v) => v.id === activeViewId)?.name ?? "Saved Views" : "Saved Views"}
               </Text>
             </View>
@@ -1048,10 +1049,10 @@ export default function ExpensesScreen() {
                       className="flex-1 flex-row items-center px-3 py-2.5"
                     >
                       {isDefault && <Ionicons name="star" size={11} color={STATUS_COLORS.warning} style={{ marginRight: 5 }} />}
-                      <Text className={`text-sm flex-1 ${isActive ? "font-semibold" : "text-foreground"}`} style={isActive ? { color: accent[500] } : undefined}>
+                      <Text className={`text-sm flex-1 ${isActive ? "font-semibold" : "text-foreground"}`} style={isActive ? { color: theme.primary } : undefined}>
                         {view.name}
                       </Text>
-                      {isActive && <Ionicons name="checkmark" size={14} color={accent[500]} />}
+                      {isActive && <Ionicons name="checkmark" size={14} color={theme.primary} />}
                     </Pressable>
                     <Pressable
                       onPress={() => handleSetDefault(view.id)}
@@ -1080,8 +1081,8 @@ export default function ExpensesScreen() {
           className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card"
         >
           <View className="flex-row items-center">
-            <Ionicons name="calendar-outline" size={14} color={accent[500]} style={{ marginRight: 6 }} />
-            <Text className="text-sm font-medium" style={{ color: accent[500] }}>
+            <Ionicons name="calendar-outline" size={14} color={theme.primary} style={{ marginRight: 6 }} />
+            <Text className="text-sm font-medium" style={{ color: theme.primary }}>
               {DATE_PRESET_LABELS[datePreset]}
             </Text>
           </View>
@@ -1108,11 +1109,11 @@ export default function ExpensesScreen() {
                 >
                   <Text
                     className="text-sm text-foreground"
-                    style={isSelected ? { color: accent[500], fontWeight: "600" } : undefined}
+                    style={isSelected ? { color: theme.primary, fontWeight: "600" } : undefined}
                   >
                     {DATE_PRESET_LABELS[preset]}
                   </Text>
-                  {isSelected && <Ionicons name="checkmark" size={16} color={accent[500]} />}
+                  {isSelected && <Ionicons name="checkmark" size={16} color={theme.primary} />}
                 </Pressable>
               );
             })}
@@ -1259,7 +1260,7 @@ export default function ExpensesScreen() {
             </Pressable>
           )}
           <Pressable onPress={() => { clearFilters(); setActiveViewId(null); }} className="flex-row items-center mb-1">
-            <Text className="text-label font-medium" style={{ color: accent[500] }}>Clear all</Text>
+            <Text className="text-label font-medium" style={{ color: theme.primary }}>Clear all</Text>
           </Pressable>
         </View>
       )}
@@ -1273,7 +1274,7 @@ export default function ExpensesScreen() {
           <View className="flex-row items-center">
             {hasActiveFilters && (
               <Pressable onPress={handleSaveView} className="mr-3">
-                <Ionicons name="bookmark-outline" size={16} color={accent[500]} />
+                <Ionicons name="bookmark-outline" size={16} color={theme.primary} />
               </Pressable>
             )}
             {activeViewId && (
@@ -1406,13 +1407,13 @@ export default function ExpensesScreen() {
           {
             icon: "receipt-outline",
             label: "Add Expense",
-            color: sc.danger,
+            color: theme.danger,
             onPress: () => router.push("/expense/add"),
           },
           {
             icon: "arrow-down-outline",
             label: "Add Credit",
-            color: sc.success,
+            color: theme.success,
             onPress: () => {
               setCreditDate(new Date().toISOString().split("T")[0]);
               setShowAddCredit(true);
@@ -1502,7 +1503,7 @@ export default function ExpensesScreen() {
               maximumDate={null}
             />
             <Pressable onPress={() => setBulkPickerType(null)} className="mt-3">
-              <Text className="text-xs text-center" style={{ color: accent[500] }}>Cancel</Text>
+              <Text className="text-xs text-center" style={{ color: theme.primary }}>Cancel</Text>
             </Pressable>
           </View>
         </View>
@@ -1516,8 +1517,8 @@ export default function ExpensesScreen() {
           <Pressable style={{ flex: 1 }} onPress={handleCancelCredit} />
           <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 }}>
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", marginRight: 10, backgroundColor: sc.success + "20" }}>
-                <Ionicons name="arrow-down-outline" size={16} color={sc.success} />
+              <View style={{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", marginRight: 10, backgroundColor: theme.success + "20" }}>
+                <Ionicons name="arrow-down-outline" size={16} color={theme.success} />
               </View>
               <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>Add Credit</Text>
             </View>
@@ -1526,7 +1527,7 @@ export default function ExpensesScreen() {
               onPress={() => setShowCreditAccountPicker(true)}
               style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}
             >
-              <Ionicons name="wallet-outline" size={16} color={creditAccountId ? sc.success : colors.textSecondary} />
+              <Ionicons name="wallet-outline" size={16} color={creditAccountId ? theme.success : colors.textSecondary} />
               <Text style={{ flex: 1, fontSize: 14, marginLeft: 8, color: creditAccountId ? colors.text : colors.textSecondary }}>
                 {creditAccountLabel || "Select account"}
               </Text>
@@ -1562,7 +1563,7 @@ export default function ExpensesScreen() {
               </Pressable>
               <Pressable
                 onPress={handleSaveCredit}
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: sc.success }}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: theme.success }}
               >
                 <Text style={{ fontSize: 14, fontWeight: "600", color: "#fff" }}>Add Credit</Text>
               </Pressable>
@@ -1737,15 +1738,15 @@ export default function ExpensesScreen() {
                 <Ionicons
                   name={opt.icon as never}
                   size={18}
-                  color={active ? accent[500] : colors.textSecondary}
+                  color={active ? theme.primary : colors.textSecondary}
                 />
                 <Text
                   className="flex-1 text-sm ml-3"
-                  style={{ color: active ? accent[500] : colors.text, fontWeight: active ? "600" : "400" }}
+                  style={{ color: active ? theme.primary : colors.text, fontWeight: active ? "600" : "400" }}
                 >
                   {opt.label}
                 </Text>
-                {active && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+                {active && <Ionicons name="checkmark" size={18} color={theme.primary} />}
               </Pressable>
             );
           })}

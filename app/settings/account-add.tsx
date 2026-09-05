@@ -4,13 +4,14 @@ import { useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Button, DateInput, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import { createManualAccount, addOrUpdateSnapshot } from "@/services/financial-account";
 import type { AccountType } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import type { AlertButton } from "@/hooks/use-alert";
+import { useTheme } from "@/hooks/use-theme";
 
 const TYPE_OPTIONS: AccountType[] = [
   "savings",
@@ -33,7 +34,8 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 export default function AccountAddScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
 
   const [accountType, setAccountType] = useState<AccountType>("savings");
@@ -173,8 +175,8 @@ export default function AccountAddScreen() {
                 style={
                   accountType === t
                     ? {
-                        backgroundColor: ac(accent, colorScheme, 100, 700),
-                        borderColor: ac(accent, colorScheme, 600, 300),
+                        backgroundColor: theme.alpha("primary", 0.1),
+                        borderColor: theme.primary,
                       }
                     : undefined
                 }
@@ -187,7 +189,7 @@ export default function AccountAddScreen() {
                   }`}
                   style={
                     accountType === t
-                      ? { color: ac(accent, colorScheme, 500, 200) }
+                      ? { color: theme.primary }
                       : undefined
                   }
                 >

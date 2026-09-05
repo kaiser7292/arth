@@ -3,11 +3,12 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import {
   setOnboardingCompletedVersion,
 } from "@/services/settings";
 import { getCurrentAppVersion } from "@/services/onboarding";
+import { useTheme } from "@/hooks/use-theme";
 
 const BULLETS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body: string }> = [
   {
@@ -29,7 +30,8 @@ const BULLETS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body
 
 export default function OnboardingWelcome() {
   const router = useRouter();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
 
   const handleSkip = () => {
     setOnboardingCompletedVersion(getCurrentAppVersion());
@@ -44,7 +46,7 @@ export default function OnboardingWelcome() {
       >
         <Text
           className="text-3xl font-bold text-foreground mb-2"
-          style={{ color: ac(accent, colorScheme, 500, 200) }}
+          style={{ color: theme.primary }}
         >
           अर्थ
         </Text>
@@ -59,12 +61,12 @@ export default function OnboardingWelcome() {
           <View key={b.title} className="mb-5 flex-row">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3 mt-0.5"
-              style={{ backgroundColor: ac(accent, colorScheme, 500, 200) + "1F" }}
+              style={{ backgroundColor: theme.primary + "1F" }}
             >
               <Ionicons
                 name={b.icon}
                 size={20}
-                color={ac(accent, colorScheme, 500, 200)}
+                color={theme.primary}
               />
             </View>
             <View className="flex-1">

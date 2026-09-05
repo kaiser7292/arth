@@ -9,11 +9,12 @@ import { useAlert } from "@/hooks/use-alert";
 import { getReminderDetail, stopRecurringRule, updateRecurringRule } from "@/services/expense";
 import type { ReminderDetail } from "@/services/expense";
 import type { RecurringFrequency } from "@/services/recurring-rules";
-import { StatusColors } from "@/constants/theme";
+
 import { formatDate, todayIso } from "@/utils/date";
 import { formatAmount } from "@/utils/format";
 import { getErrorMessage } from "@/utils/error-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/hooks/use-theme";
 
 const FREQUENCIES: RecurringFrequency[] = ["weekly", "monthly", "quarterly", "yearly", "last_day_of_month", "nth_weekday"];
 const FREQ_LABEL: Record<RecurringFrequency, string> = {
@@ -55,7 +56,8 @@ export default function RecurringRuleDetailScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { ruleId } = useLocalSearchParams<{ ruleId: string }>();
 
@@ -209,10 +211,10 @@ export default function RecurringRuleDetailScreen() {
   const stateColor = !rule.is_active
     ? colors.textSecondary
     : isOverdue
-      ? StatusColors[colorScheme].danger
+      ? theme.danger
       : isDueSoon
-        ? StatusColors[colorScheme].warning
-        : StatusColors[colorScheme].success;
+        ? theme.warning
+        : theme.success;
 
   const stateLabel = !rule.is_active
     ? "Stopped"
@@ -229,14 +231,14 @@ export default function RecurringRuleDetailScreen() {
         {/* Hero */}
         <View
           className="mx-4 mt-4 p-4 rounded-2xl"
-          style={{ backgroundColor: accent[500] + "14" }}
+          style={{ backgroundColor: theme.alpha("primary", 0.08) }}
         >
           <View className="flex-row items-start">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: accent[500] + "28" }}
+              style={{ backgroundColor: theme.alpha("primary", 0.16) }}
             >
-              <Ionicons name="repeat-outline" size={20} color={accent[500]} />
+              <Ionicons name="repeat-outline" size={20} color={theme.primary} />
             </View>
             <View className="flex-1">
               <Text
@@ -251,8 +253,8 @@ export default function RecurringRuleDetailScreen() {
                 </Text>
               )}
               <View className="flex-row items-center mt-1.5 flex-wrap gap-2">
-                <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: accent[500] + "22" }}>
-                  <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
+                <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.alpha("primary", 0.13) }}>
+                  <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
                     {ruleFrequencyLabel(rule.frequency, rule.repeat_ordinal, rule.repeat_weekday)}
                   </Text>
                 </View>
@@ -375,9 +377,9 @@ export default function RecurringRuleDetailScreen() {
                 >
                   <View
                     className="w-8 h-8 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: StatusColors[colorScheme].success + "18" }}
+                    style={{ backgroundColor: theme.success + "18" }}
                   >
-                    <Ionicons name="checkmark" size={16} color={StatusColors[colorScheme].success} />
+                    <Ionicons name="checkmark" size={16} color={theme.success} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
@@ -417,12 +419,12 @@ export default function RecurringRuleDetailScreen() {
             <Pressable
               onPress={handleStop}
               className="flex-row items-center justify-center py-3.5 rounded-xl"
-              style={{ backgroundColor: StatusColors[colorScheme].danger + "14" }}
+              style={{ backgroundColor: theme.danger + "14" }}
               accessibilityRole="button"
               accessibilityLabel="Stop this reminder"
             >
-              <Ionicons name="pause-outline" size={18} color={StatusColors[colorScheme].danger} />
-              <Text className="text-sm font-semibold ml-2" style={{ color: StatusColors[colorScheme].danger }}>
+              <Ionicons name="pause-outline" size={18} color={theme.danger} />
+              <Text className="text-sm font-semibold ml-2" style={{ color: theme.danger }}>
                 Stop reminder
               </Text>
             </Pressable>
@@ -486,11 +488,11 @@ export default function RecurringRuleDetailScreen() {
                         onPress={() => setEditFrequency(f)}
                         className="px-4 py-2 rounded-full border"
                         style={{
-                          backgroundColor: active ? accent[500] + "18" : colors.surface,
-                          borderColor: active ? accent[500] : colors.border,
+                          backgroundColor: active ? theme.alpha("primary", 0.09) : colors.surface,
+                          borderColor: active ? theme.primary : colors.border,
                         }}
                       >
-                        <Text className="text-sm font-medium" style={{ color: active ? accent[500] : colors.textSecondary }}>
+                        <Text className="text-sm font-medium" style={{ color: active ? theme.primary : colors.textSecondary }}>
                           {FREQ_LABEL[f]}
                         </Text>
                       </Pressable>
@@ -515,11 +517,11 @@ export default function RecurringRuleDetailScreen() {
                             onPress={() => setEditRepeatOrdinal(o.value)}
                             className="px-4 py-2 rounded-full border"
                             style={{
-                              backgroundColor: active ? accent[500] + "18" : colors.surface,
-                              borderColor: active ? accent[500] : colors.border,
+                              backgroundColor: active ? theme.alpha("primary", 0.09) : colors.surface,
+                              borderColor: active ? theme.primary : colors.border,
                             }}
                           >
-                            <Text className="text-sm font-medium" style={{ color: active ? accent[500] : colors.textSecondary }}>
+                            <Text className="text-sm font-medium" style={{ color: active ? theme.primary : colors.textSecondary }}>
                               {o.label}
                             </Text>
                           </Pressable>
@@ -540,11 +542,11 @@ export default function RecurringRuleDetailScreen() {
                             onPress={() => setEditRepeatWeekday(w.value)}
                             className="px-4 py-2 rounded-full border"
                             style={{
-                              backgroundColor: active ? accent[500] + "18" : colors.surface,
-                              borderColor: active ? accent[500] : colors.border,
+                              backgroundColor: active ? theme.alpha("primary", 0.09) : colors.surface,
+                              borderColor: active ? theme.primary : colors.border,
                             }}
                           >
-                            <Text className="text-sm font-medium" style={{ color: active ? accent[500] : colors.textSecondary }}>
+                            <Text className="text-sm font-medium" style={{ color: active ? theme.primary : colors.textSecondary }}>
                               {w.label}
                             </Text>
                           </Pressable>
@@ -628,7 +630,7 @@ export default function RecurringRuleDetailScreen() {
                 onPress={handleSave}
                 disabled={saving}
                 className="flex-1 py-3 rounded-xl items-center"
-                style={{ backgroundColor: accent[500], opacity: saving ? 0.6 : 1 }}
+                style={{ backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }}
               >
                 <Text className="text-sm font-semibold text-white">{saving ? "Saving…" : "Save"}</Text>
               </Pressable>

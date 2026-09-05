@@ -6,7 +6,7 @@ import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import {
@@ -14,6 +14,7 @@ import {
   createCategory,
   updateCategory,
 } from "@/services/category";
+import { useTheme } from "@/hooks/use-theme";
 
 const ICON_OPTIONS = [
   // Transport & Travel
@@ -152,6 +153,7 @@ interface PickerDrawerProps {
 
 function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) {
   const { colors } = useColorScheme();
+  const theme = useTheme();
 
   return (
     <Modal
@@ -194,6 +196,7 @@ export default function CategoryEditScreen() {
   const router = useRouter();
   const alert = useAlert();
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
   const scrollRef = useRef<ScrollView>(null);
@@ -270,8 +273,8 @@ export default function CategoryEditScreen() {
           : "bg-card"
       }`}
       style={icon === iconName ? {
-        backgroundColor: ac(accent, colorScheme, 100, 700),
-        borderColor: ac(accent, colorScheme, 600, 300),
+        backgroundColor: theme.alpha("primary", 0.1),
+        borderColor: theme.primary,
       } : undefined}
     >
       <Ionicons

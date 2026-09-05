@@ -4,11 +4,12 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { enableSmsDetection } from "@/services/sms/sms-permissions";
 import { setOnboardingCompletedVersion } from "@/services/settings";
 import { getCurrentAppVersion } from "@/services/onboarding";
 import { logger } from "@/utils/logger";
+import { useTheme } from "@/hooks/use-theme";
 
 const POINTS: Array<{ icon: keyof typeof Ionicons.glyphMap; text: string }> = [
   { icon: "eye-off-outline", text: "Only bank/UPI SMS are read. Personal messages are ignored." },
@@ -19,7 +20,8 @@ const POINTS: Array<{ icon: keyof typeof Ionicons.glyphMap; text: string }> = [
 
 export default function OnboardingSmsConsent() {
   const router = useRouter();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const [requesting, setRequesting] = useState(false);
 
   const advance = () => router.push("/(onboarding)/accounts-preview" as never);
@@ -53,12 +55,12 @@ export default function OnboardingSmsConsent() {
       >
         <View
           className="w-12 h-12 rounded-full items-center justify-center mb-4"
-          style={{ backgroundColor: ac(accent, colorScheme, 500, 200) + "1F" }}
+          style={{ backgroundColor: theme.primary + "1F" }}
         >
           <Ionicons
             name="mail-unread-outline"
             size={24}
-            color={ac(accent, colorScheme, 500, 200)}
+            color={theme.primary}
           />
         </View>
 
@@ -76,7 +78,7 @@ export default function OnboardingSmsConsent() {
             <Ionicons
               name={p.icon}
               size={18}
-              color={ac(accent, colorScheme, 500, 200)}
+              color={theme.primary}
               style={{ marginTop: 2, marginRight: 12 }}
             />
             <Text className="flex-1 text-sm text-foreground leading-5">

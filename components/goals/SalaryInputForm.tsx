@@ -3,10 +3,11 @@ import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, Input, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { Toggle, StatePicker } from "./salary-helpers";
 import { formatAmount } from "@/utils/expense-validation";
 import { getFYMonthLabels } from "@/utils/fiscal-year";
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -105,7 +106,8 @@ export function SalaryInputForm({
   onMonthlyOverridesChange,
   fyStartMonth = 4,
 }: SalaryInputFormProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [showMonthWise, setShowMonthWise] = useState(false);
 
   if (inputMode === "direct") {
@@ -118,7 +120,7 @@ export function SalaryInputForm({
       <>
         <Card className="mb-4">
           <View className="flex-row items-center mb-3">
-            <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+            <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
               <Ionicons
                 name="wallet-outline"
                 size={20}
@@ -152,22 +154,22 @@ export function SalaryInputForm({
               <Ionicons
                 name={showMonthWise ? "chevron-up" : "chevron-down"}
                 size={16}
-                color={ac(accent, colorScheme, 500, 200)}
+                color={theme.primary}
               />
               <Text
                 className="text-xs font-medium ml-1"
-                style={{ color: ac(accent, colorScheme, 500, 200) }}
+                style={{ color: theme.primary }}
               >
                 Customize by Month
               </Text>
               {hasAnyOverride && !showMonthWise && (
                 <View
                   className="ml-2 px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: acAlpha(accent, 500, 0.12) }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.12) }}
                 >
                   <Text
                     className="text-label font-semibold"
-                    style={{ color: ac(accent, colorScheme, 500, 200) }}
+                    style={{ color: theme.primary }}
                   >
                     {overrideCount} customized
                   </Text>
@@ -206,7 +208,7 @@ export function SalaryInputForm({
                           ? ""
                           : "text-muted-foreground"
                       }`}
-                      style={isOverridden ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
+                      style={isOverridden ? { color: theme.primary } : undefined}
                     >
                       {label}
                     </Text>
@@ -277,7 +279,7 @@ export function SalaryInputForm({
         {directAnnual <= 0 && (
           <Card className="mb-4">
             <View className="items-center py-6">
-              <View className="w-14 h-14 rounded-full items-center justify-center mb-3" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+              <View className="w-14 h-14 rounded-full items-center justify-center mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
                 <Ionicons
                   name="wallet-outline"
                   size={28}
@@ -304,7 +306,7 @@ export function SalaryInputForm({
       {/* CTC Input */}
       <Card className="mb-4">
         <View className="flex-row items-center mb-3">
-          <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+          <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
             <Ionicons
               name="cash-outline"
               size={20}

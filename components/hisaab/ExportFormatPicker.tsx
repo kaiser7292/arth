@@ -12,14 +12,15 @@ import { useState, useCallback, useMemo } from "react";
 import { View, Pressable, Modal, ActivityIndicator, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { useAlert } from "@/hooks/use-alert";
 import { DateInput, Text } from "@/components/ui";
-import { ac, acAlpha } from "@/utils/accent";
+
 import * as Sharing from "expo-sharing";
 import { generatePersonPDF } from "@/services/hisaab-export-pdf";
 import { generatePersonExcel } from "@/services/hisaab-export-excel";
 import { saveToPhone } from "@/services/save-to-phone";
+import { useTheme } from "@/hooks/use-theme";
 
 export type ExportTarget =
   | { type: "person"; personId: string; userId: string };
@@ -111,7 +112,8 @@ function getPresetRange(key: PresetKey): { startDate: string; endDate: string; l
 }
 
 export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPickerProps) {
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const alert = useAlert();
 
   // Step state: "range" -> "format"
@@ -127,7 +129,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
   // Compute format options with theme-aware status colors
   const FORMAT_OPTIONS: FormatOption[] = FORMAT_OPTIONS_BASE.map((opt) => ({
     ...opt,
-    iconColor: opt.key === "pdf" ? StatusColors[colorScheme].danger : StatusColors[colorScheme].success,
+    iconColor: opt.key === "pdf" ? theme.danger : theme.success,
   }));
 
   // Reset state when modal opens/closes
@@ -287,18 +289,18 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                           accessibilityRole="button"
                           className="flex-row items-center py-2 px-3 rounded-full border"
                           style={isSelected
-                            ? { borderColor: accent[500], backgroundColor: acAlpha(accent, 500, 0.08) }
+                            ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.08) }
                             : { borderColor: colors.border }
                           }
                         >
                           <Ionicons
                             name={preset.icon}
                             size={14}
-                            color={isSelected ? accent[500] : colors.textSecondary}
+                            color={isSelected ? theme.primary : colors.textSecondary}
                           />
                           <Text
                             className="text-xs font-semibold ml-1.5"
-                            style={{ color: isSelected ? accent[500] : colors.textSecondary }}
+                            style={{ color: isSelected ? theme.primary : colors.textSecondary }}
                           >
                             {preset.label}
                           </Text>
@@ -355,7 +357,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                 style={{
                   backgroundColor: (selectedPreset === "custom" && !customValid)
                     ? colors.border
-                    : accent[500],
+                    : theme.primary,
                 }}
               >
                 <Text
@@ -391,9 +393,9 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                   accessibilityLabel="Go back to date range"
                   accessibilityRole="button"
                   className="mr-2 w-9 h-9 rounded-full items-center justify-center"
-                  style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                 >
-                  <Ionicons name="chevron-back" size={18} color={accent[500]} />
+                  <Ionicons name="chevron-back" size={18} color={theme.primary} />
                 </Pressable>
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-foreground">
@@ -425,7 +427,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                             ? ""
                             : "border-border"
                       }`}
-                      style={isActive ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 900) } : undefined}
+                      style={isActive ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
                     >
                       <View
                         className="w-10 h-10 rounded-full items-center justify-center mr-3"

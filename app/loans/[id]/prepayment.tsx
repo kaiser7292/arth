@@ -1,7 +1,7 @@
 import { Toggle } from "@/components/goals";
 import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
-import { StatusColors } from "@/constants/theme";
+
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -23,12 +23,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function PrepaymentForm() {
   const { id, prepaymentId } = useLocalSearchParams<{ id: string; prepaymentId?: string }>();
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme, accent } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const [loan, setLoan] = useState<LoanAccount | null>(null);
   const [schedule, setSchedule] = useState<LoanScheduleEntry[]>([]);
@@ -410,11 +412,12 @@ function ImpactRow({
   bold?: boolean;
 }) {
   const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const valueColor =
     color === "success"
-      ? StatusColors[colorScheme].success
+      ? theme.success
       : color === "danger"
-        ? StatusColors[colorScheme].danger
+        ? theme.danger
         : colors.text;
   return (
     <View className="flex-row items-center justify-between py-1">

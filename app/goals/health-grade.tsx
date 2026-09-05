@@ -3,9 +3,9 @@ import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
-import { ac } from "@/utils/accent";
+
 import type { HealthGrade, HealthFactor } from "@/utils/financial-cockpit";
+import { useTheme } from "@/hooks/use-theme";
 
 const GRADE_RANGES: [HealthGrade, string, string][] = [
   ["A+", "90–100", "Excellent"],
@@ -43,8 +43,9 @@ export default function HealthGradeScreen() {
     score: string;
     factorsJson: string;
   }>();
-  const { colors, accent, colorScheme } = useColorScheme();
-  const accentColor = ac(accent, colorScheme, 500, 400);
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = theme.primary;
 
   const healthGrade = (grade ?? "B") as HealthGrade;
   const healthScore = parseFloat(score ?? "0");
@@ -56,20 +57,20 @@ export default function HealthGradeScreen() {
   const isWarn = healthGrade === "C";
 
   const mainColor = isGood
-    ? StatusColors[colorScheme].success
+    ? theme.success
     : isOK
       ? accentColor
       : isWarn
-        ? StatusColors[colorScheme].warning
-        : StatusColors[colorScheme].danger;
+        ? theme.warning
+        : theme.danger;
 
   const mainBg = isGood
-    ? StatusColors[colorScheme].successBg
+    ? theme.alpha("success", 0.08)
     : isOK
       ? accentColor + "14"
       : isWarn
-        ? StatusColors[colorScheme].warningBg
-        : StatusColors[colorScheme].dangerBg;
+        ? theme.alpha("warning", 0.08)
+        : theme.alpha("danger", 0.08);
 
   const nextG = NEXT_GRADE[healthGrade];
   const weakFactors = [...factors]
@@ -134,10 +135,10 @@ export default function HealthGradeScreen() {
               </Text>
               {factors.map((f, i) => {
                 const fColor = f.status === "positive"
-                  ? StatusColors[colorScheme].success
+                  ? theme.success
                   : f.status === "neutral"
                     ? colors.textSecondary
-                    : StatusColors[colorScheme].warning;
+                    : theme.warning;
                 return (
                   <View
                     key={f.name}

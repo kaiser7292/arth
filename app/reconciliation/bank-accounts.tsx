@@ -5,9 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { Card, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getActiveAccounts, getClosedAccounts, getAccountLatestStaleCheckDates } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
@@ -22,6 +22,7 @@ import { consumeBankAccountsPreload } from "@/services/home-preload";
 
 const preloaded = consumeBankAccountsPreload();
 import { getMonthDateRange } from "@/utils/budget-helpers";
+import { useTheme } from "@/hooks/use-theme";
 
 interface AccountSummary {
   account: FinancialAccount;
@@ -38,8 +39,8 @@ interface AccountSummary {
 
 export default function BankAccountsScreen() {
   const router = useRouter();
-  const { accent, colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [summaries, setSummaries] = useState<AccountSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [closedAccounts, setClosedAccounts] = useState<FinancialAccount[]>([]);
@@ -140,21 +141,21 @@ export default function BankAccountsScreen() {
             <Text className="text-xs text-muted-foreground">Closing Balance</Text>
             <Text
               className="text-sm font-bold"
-              style={{ color: totalBalance >= 0 ? sc.success : sc.danger }}
+              style={{ color: totalBalance >= 0 ? theme.success : theme.danger }}
             >
               {formatAmount(totalBalance)}
             </Text>
           </View>
           <View className="flex-row justify-between mb-1">
             <Text className="text-xs text-muted-foreground">Expenses this month</Text>
-            <Text className="text-sm font-semibold" style={{ color: totalExpenses > 0 ? sc.danger : colors.text }}>
+            <Text className="text-sm font-semibold" style={{ color: totalExpenses > 0 ? theme.danger : colors.text }}>
               {formatAmount(totalExpenses)}
             </Text>
           </View>
           {totalCredits > 0 && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Credits this month</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                 {formatAmount(totalCredits)}
               </Text>
             </View>
@@ -162,7 +163,7 @@ export default function BankAccountsScreen() {
           {totalTransfersOut > 0 && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Transfers Out</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                 −{formatAmount(totalTransfersOut)}
               </Text>
             </View>
@@ -170,7 +171,7 @@ export default function BankAccountsScreen() {
           {totalTransfersIn > 0 && (
             <View className="flex-row justify-between">
               <Text className="text-xs text-muted-foreground">Transfers In</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                 +{formatAmount(totalTransfersIn)}
               </Text>
             </View>
@@ -183,7 +184,7 @@ export default function BankAccountsScreen() {
               <Text className="text-label text-faint-foreground">
                 Manual ledger adjustments
               </Text>
-              <Text className="text-label" style={{ color: sc.warning }}>
+              <Text className="text-label" style={{ color: theme.warning }}>
                 {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
               </Text>
             </View>
@@ -206,9 +207,9 @@ export default function BankAccountsScreen() {
                 <View className="flex-row items-center mb-3">
                   <View
                     className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                    style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                   >
-                    <Ionicons name="wallet-outline" size={18} color={accent[500]} />
+                    <Ionicons name="wallet-outline" size={18} color={theme.primary} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-base font-bold text-foreground">
@@ -227,10 +228,10 @@ export default function BankAccountsScreen() {
                 {!seeded && (
                   <View
                     className="flex-row items-center px-3 py-2 rounded-lg mb-3"
-                    style={{ backgroundColor: sc.warning + "14" }}
+                    style={{ backgroundColor: theme.warning + "14" }}
                   >
-                    <Ionicons name="alert-circle" size={14} color={sc.warning} />
-                    <Text className="text-label font-medium ml-2" style={{ color: sc.warning }}>
+                    <Ionicons name="alert-circle" size={14} color={theme.warning} />
+                    <Text className="text-label font-medium ml-2" style={{ color: theme.warning }}>
                       No opening balance set - showing from ₹0
                     </Text>
                   </View>
@@ -246,7 +247,7 @@ export default function BankAccountsScreen() {
                 {expenses > 0 && (
                   <View className="flex-row justify-between mb-1">
                     <Text className="text-xs text-muted-foreground">Expenses</Text>
-                    <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                    <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                       −{formatAmount(expenses)}
                     </Text>
                   </View>
@@ -254,7 +255,7 @@ export default function BankAccountsScreen() {
                 {credits > 0 && (
                   <View className="flex-row justify-between mb-1">
                     <Text className="text-xs text-muted-foreground">Credits / Refunds</Text>
-                    <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                    <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                       +{formatAmount(credits)}
                     </Text>
                   </View>
@@ -262,7 +263,7 @@ export default function BankAccountsScreen() {
                 {transfersOut > 0 && (
                   <View className="flex-row justify-between mb-1">
                     <Text className="text-xs text-muted-foreground">Transfers Out</Text>
-                    <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                    <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                       −{formatAmount(transfersOut)}
                     </Text>
                   </View>
@@ -270,7 +271,7 @@ export default function BankAccountsScreen() {
                 {transfersIn > 0 && (
                   <View className="flex-row justify-between mb-1">
                     <Text className="text-xs text-muted-foreground">Transfers In</Text>
-                    <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                    <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                       +{formatAmount(transfersIn)}
                     </Text>
                   </View>
@@ -283,7 +284,7 @@ export default function BankAccountsScreen() {
                   </Text>
                   <Text
                     className="text-sm font-bold"
-                    style={{ color: current >= 0 ? sc.success : sc.danger }}
+                    style={{ color: current >= 0 ? theme.success : theme.danger }}
                   >
                     {formatAmount(current)}
                   </Text>
@@ -305,7 +306,7 @@ export default function BankAccountsScreen() {
                       </Text>
                     </Text>
                     {smsDelta != null && smsDelta > 0 && (
-                      <Text className="text-label font-medium" style={{ color: sc.warning }}>
+                      <Text className="text-label font-medium" style={{ color: theme.warning }}>
                         Δ {formatAmount(smsDelta)}
                       </Text>
                     )}

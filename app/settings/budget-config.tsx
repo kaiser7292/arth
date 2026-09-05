@@ -17,7 +17,8 @@ import {
 import type { Category } from "@/services/category";
 import type { Budget } from "@/services/budget";
 import { formatAmount } from "@/utils/expense-validation";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface BudgetRow {
   category: Category;
@@ -27,7 +28,8 @@ interface BudgetRow {
 
 export default function BudgetConfigScreen() {
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [month, setMonth] = useState(getCurrentMonth());
   const [rows, setRows] = useState<BudgetRow[]>([]);
   const [saving, setSaving] = useState(false);
@@ -279,14 +281,14 @@ export default function BudgetConfigScreen() {
       {hasNoBudget && (
         <View
           className="mx-4 mt-2 mb-1 px-3 py-2.5 rounded-lg flex-row items-center"
-          style={{ backgroundColor: StatusColors[colorScheme].warningBg }}
+          style={{ backgroundColor: theme.alpha("warning", 0.08) }}
         >
-          <Ionicons name="information-circle-outline" size={16} color={StatusColors[colorScheme].warning} />
+          <Ionicons name="information-circle-outline" size={16} color={theme.warning} />
           <Text className="text-xs text-muted-foreground flex-1 ml-2">
             No budget set for {monthLabel}.
           </Text>
           <Pressable onPress={copyFromPreviousMonth} className="ml-2">
-            <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
+            <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
               Copy from {previousMonthLabel}
             </Text>
           </Pressable>

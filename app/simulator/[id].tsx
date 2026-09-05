@@ -3,7 +3,7 @@ import { StaleEntryResolveSheet } from "@/components/simulator/StaleEntryResolve
 import { Card, FAB, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { getDatabase } from "@/database";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -37,13 +37,14 @@ import {
     updateEntry,
     updateScenario
 } from "@/services/simulator";
-import { ac } from "@/utils/accent";
+
 import { todayIso } from "@/utils/date";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 function prettyDate(ymd: string): string {
   if (!ymd) return "";
@@ -91,7 +92,7 @@ export default function ScenarioDetailScreen() {
   const alert = useAlert();
   const navigation = useNavigation();
   const { colors, accent, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const theme = useTheme();
 
   const [overview, setOverview] = useState<ScenarioOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -415,7 +416,7 @@ export default function ScenarioDetailScreen() {
   const adjustedNetStart = simulation.netWorthStart + hisaabNet;
   const adjustedNetEnd = simulation.netWorthEnd + hisaabNet;
   const delta = adjustedNetEnd - adjustedNetStart;
-  const deltaColor = delta >= 0 ? sc.success : sc.danger;
+  const deltaColor = delta >= 0 ? theme.success : theme.danger;
 
   // Per-account affected set — only show trajectory cards for accounts that
   // actually see movement. Unaffected accounts clutter the view.
@@ -436,12 +437,12 @@ export default function ScenarioDetailScreen() {
           <Pressable
             onPress={() => setHorizonPickerVisible(true)}
             className="flex-row items-center py-1.5 px-3 rounded-full"
-            style={{ backgroundColor: ac(accent, colorScheme, 50, 900), borderWidth: 1, borderColor: ac(accent, colorScheme, 200, 700) }}
+            style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.25) }}
             accessibilityRole="button"
             accessibilityLabel="Change horizon date"
           >
-            <Ionicons name="calendar-outline" size={14} color={accent[500]} />
-            <Text className="text-xs font-semibold ml-1.5" style={{ color: accent[500] }}>
+            <Ionicons name="calendar-outline" size={14} color={theme.primary} />
+            <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.primary }}>
               Until {prettyDate(scenario.horizon_date)}
             </Text>
           </Pressable>
@@ -472,10 +473,10 @@ export default function ScenarioDetailScreen() {
             {recomputing && (
               <View
                 className="flex-row items-center px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: accent[500] + "1A" }}
+                style={{ backgroundColor: theme.alpha("primary", 0.1) }}
               >
-                <ActivityIndicator size="small" color={accent[500]} />
-                <Text className="text-label font-semibold ml-1.5" style={{ color: accent[500] }}>
+                <ActivityIndicator size="small" color={theme.primary} />
+                <Text className="text-label font-semibold ml-1.5" style={{ color: theme.primary }}>
                   Updating…
                 </Text>
               </View>
@@ -507,7 +508,7 @@ export default function ScenarioDetailScreen() {
           {/* Warnings strip — overdraft, min balance breach, CC over limit */}
           {simulation.warnings.length > 0 && (
             <View className="mt-3 pt-3 border-t border-border">
-              <Text className="text-label font-semibold uppercase tracking-wider mb-2" style={{ color: sc.danger }}>
+              <Text className="text-label font-semibold uppercase tracking-wider mb-2" style={{ color: theme.danger }}>
                 Warnings
               </Text>
               {simulation.warnings.map((warning) => {
@@ -522,10 +523,10 @@ export default function ScenarioDetailScreen() {
                 const topSavingsAccount = savingsAccounts.length > 0 ? savingsAccounts[0] : null;
                 
                 return (
-                  <View key={`${warning.accountId}-${warning.kind}`} className="mb-2 p-3 rounded-lg" style={{ backgroundColor: sc.danger + "10" }}>
+                  <View key={`${warning.accountId}-${warning.kind}`} className="mb-2 p-3 rounded-lg" style={{ backgroundColor: theme.danger + "10" }}>
                     <View className="flex-row items-start mb-1">
-                      <Ionicons name="alert-circle" size={14} color={sc.danger} />
-                      <Text className="ml-2 text-xs font-semibold flex-1" style={{ color: sc.danger }}>
+                      <Ionicons name="alert-circle" size={14} color={theme.danger} />
+                      <Text className="ml-2 text-xs font-semibold flex-1" style={{ color: theme.danger }}>
                         {warning.accountLabel}
                       </Text>
                     </View>
@@ -603,11 +604,11 @@ export default function ScenarioDetailScreen() {
                     <View className="flex-row items-center justify-between mb-1">
                       <Text
                         className="text-label font-semibold uppercase tracking-wider"
-                        style={{ color: sc.success }}
+                        style={{ color: theme.success }}
                       >
                         Money available
                       </Text>
-                      <Text className="text-xs font-bold" style={{ color: sc.success }}>
+                      <Text className="text-xs font-bold" style={{ color: theme.success }}>
                         {formatAmount(haveTotal)}
                       </Text>
                     </View>
@@ -677,11 +678,11 @@ export default function ScenarioDetailScreen() {
                     <View className="flex-row items-center justify-between mb-1">
                       <Text
                         className="text-label font-semibold uppercase tracking-wider"
-                        style={{ color: sc.danger }}
+                        style={{ color: theme.danger }}
                       >
                         Money owed
                       </Text>
-                      <Text className="text-xs font-bold" style={{ color: sc.danger }}>
+                      <Text className="text-xs font-bold" style={{ color: theme.danger }}>
                         {formatAmount(oweTotal)}
                       </Text>
                     </View>
@@ -695,7 +696,7 @@ export default function ScenarioDetailScreen() {
                             Credit card · utilized
                           </Text>
                         </View>
-                        <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                        <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                           {formatAmount(a.balance)}
                         </Text>
                       </View>
@@ -712,7 +713,7 @@ export default function ScenarioDetailScreen() {
                               Hisaab · you owe
                             </Text>
                           </View>
-                          <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                          <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                             {formatAmount(h.amount)}
                           </Text>
                         </View>
@@ -729,14 +730,14 @@ export default function ScenarioDetailScreen() {
                   accessibilityLabel="Include hisaab balances in this scenario"
                 >
                   <View className="flex-row items-center flex-1">
-                    <Ionicons name="people-outline" size={14} color={accent[500]} />
-                    <Text className="ml-1.5 text-xs font-semibold" style={{ color: accent[500] }}>
+                    <Ionicons name="people-outline" size={14} color={theme.primary} />
+                    <Text className="ml-1.5 text-xs font-semibold" style={{ color: theme.primary }}>
                       {hisaabIncluded.length > 0
                         ? `Hisaab included · ${hisaabIncluded.length} ${hisaabIncluded.length === 1 ? "person" : "people"}`
                         : "Include hisaab balances"}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={14} color={accent[500]} />
+                  <Ionicons name="chevron-forward" size={14} color={theme.primary} />
                 </Pressable>
 
                 {/* Net reconciliation */}
@@ -799,8 +800,8 @@ export default function ScenarioDetailScreen() {
               const rowDeltaColor = accountDelta === 0
                 ? colors.textSecondary
                 : isGood
-                  ? sc.success
-                  : sc.danger;
+                  ? theme.success
+                  : theme.danger;
               const zebra = idx % 2 === 1
                 ? { backgroundColor: colors.border + "33" }
                 : undefined;
@@ -837,11 +838,11 @@ export default function ScenarioDetailScreen() {
                     <View className="flex-row items-center justify-between mb-1">
                       <Text
                         className="text-label font-semibold uppercase tracking-wider"
-                        style={{ color: sc.success }}
+                        style={{ color: theme.success }}
                       >
                         Money available
                       </Text>
-                      <Text className="text-xs font-bold" style={{ color: sc.success }}>
+                      <Text className="text-xs font-bold" style={{ color: theme.success }}>
                         {formatAmount(availRows.reduce((s, a) => {
                           const endVal = simulation.endBalances[a.id] ?? a.balance;
                           return s + (a.type === "credit_card" ? -endVal : endVal);
@@ -858,11 +859,11 @@ export default function ScenarioDetailScreen() {
                     <View className="flex-row items-center justify-between mb-1">
                       <Text
                         className="text-label font-semibold uppercase tracking-wider"
-                        style={{ color: sc.danger }}
+                        style={{ color: theme.danger }}
                       >
                         Money owed · Credit cards
                       </Text>
-                      <Text className="text-xs font-bold" style={{ color: sc.danger }}>
+                      <Text className="text-xs font-bold" style={{ color: theme.danger }}>
                         {formatAmount(owedRows.reduce((s, a) => s + (simulation.endBalances[a.id] ?? a.balance), 0))}
                       </Text>
                     </View>
@@ -879,7 +880,7 @@ export default function ScenarioDetailScreen() {
         {entries.stale.length > 0 && (
           <Card className="mx-4 mt-5">
             <View className="flex-row items-center mb-2">
-              <Ionicons name="alert-circle-outline" size={18} color={sc.warning} />
+              <Ionicons name="alert-circle-outline" size={18} color={theme.warning} />
               <Text
                 className="ml-2 text-sm font-semibold"
                 style={{ color: colors.text }}
@@ -909,7 +910,7 @@ export default function ScenarioDetailScreen() {
                 </View>
                 <Text
                   className="text-sm font-bold mx-2"
-                  style={{ color: e.direction === "out" ? sc.danger : sc.success }}
+                  style={{ color: e.direction === "out" ? theme.danger : theme.success }}
                 >
                   {e.direction === "out" ? "−" : "+"}
                   {formatAmount(e.amount)}
@@ -986,13 +987,13 @@ export default function ScenarioDetailScreen() {
                     <View
                       className="w-7 h-7 rounded-full items-center justify-center mr-2.5"
                       style={{
-                        backgroundColor: m.kind === "highest_utilized" ? sc.danger + "14" : sc.warning + "14",
+                        backgroundColor: m.kind === "highest_utilized" ? theme.danger + "14" : theme.warning + "14",
                       }}
                     >
                       <Ionicons
                         name={m.kind === "highest_utilized" ? "trending-up-outline" : "trending-down-outline"}
                         size={14}
-                        color={m.kind === "highest_utilized" ? sc.danger : sc.warning}
+                        color={m.kind === "highest_utilized" ? theme.danger : theme.warning}
                       />
                     </View>
                     <View className="flex-1 mr-2">
@@ -1010,7 +1011,7 @@ export default function ScenarioDetailScreen() {
                     </View>
                     <Text
                       className="text-xl font-bold"
-                      style={{ color: m.kind === "highest_utilized" ? sc.danger : colors.text }}
+                      style={{ color: m.kind === "highest_utilized" ? theme.danger : colors.text }}
                     >
                       {m.kind === "highest_utilized" ? "−" : ""}
                       {formatAmount(m.amount)}
@@ -1039,9 +1040,9 @@ export default function ScenarioDetailScreen() {
             <View className="items-center justify-center px-6 mt-4 mb-3">
               <View
                 className="w-14 h-14 rounded-full items-center justify-center mb-3"
-                style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.1) }}
               >
-                <Ionicons name="calendar-outline" size={26} color={accent[500]} />
+                <Ionicons name="calendar-outline" size={26} color={theme.primary} />
               </View>
               <Text className="text-sm font-semibold text-center" style={{ color: colors.text }}>
                 Nothing planned yet
@@ -1068,9 +1069,9 @@ export default function ScenarioDetailScreen() {
                     <Ionicons name={expandOutgoing ? "chevron-down" : "chevron-forward"} size={14} color={colors.textSecondary} />
                     <View
                       className="w-6 h-6 rounded-full items-center justify-center ml-2"
-                      style={{ backgroundColor: sc.danger + "14" }}
+                      style={{ backgroundColor: theme.danger + "14" }}
                     >
-                      <Ionicons name="arrow-up" size={12} color={sc.danger} />
+                      <Ionicons name="arrow-up" size={12} color={theme.danger} />
                     </View>
                     <Text
                       className="ml-2 text-xs font-bold uppercase tracking-wider"
@@ -1087,7 +1088,7 @@ export default function ScenarioDetailScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Text className="text-xs font-bold" style={{ color: sc.danger }}>
+                  <Text className="text-xs font-bold" style={{ color: theme.danger }}>
                     −{formatAmount(outgoingTotal)}
                   </Text>
                 </Pressable>
@@ -1114,9 +1115,9 @@ export default function ScenarioDetailScreen() {
                     <Ionicons name={expandIncoming ? "chevron-down" : "chevron-forward"} size={14} color={colors.textSecondary} />
                     <View
                       className="w-6 h-6 rounded-full items-center justify-center ml-2"
-                      style={{ backgroundColor: sc.success + "14" }}
+                      style={{ backgroundColor: theme.success + "14" }}
                     >
-                      <Ionicons name="arrow-down" size={12} color={sc.success} />
+                      <Ionicons name="arrow-down" size={12} color={theme.success} />
                     </View>
                     <Text
                       className="ml-2 text-xs font-bold uppercase tracking-wider"
@@ -1133,7 +1134,7 @@ export default function ScenarioDetailScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Text className="text-xs font-bold" style={{ color: sc.success }}>
+                  <Text className="text-xs font-bold" style={{ color: theme.success }}>
                     +{formatAmount(incomingTotal)}
                   </Text>
                 </Pressable>
@@ -1167,13 +1168,13 @@ export default function ScenarioDetailScreen() {
               </View>
               <View className="items-end">
                 <Text className="text-label" style={{ color: colors.textSecondary }}>Variance</Text>
-                <Text className="text-sm font-bold" style={{ color: fulfilledSummary.variance > 0 ? sc.danger : fulfilledSummary.variance < 0 ? sc.success : colors.textSecondary }}>
+                <Text className="text-sm font-bold" style={{ color: fulfilledSummary.variance > 0 ? theme.danger : fulfilledSummary.variance < 0 ? theme.success : colors.textSecondary }}>
                   {fulfilledSummary.variance > 0 ? "+" : ""}{formatAmount(fulfilledSummary.variance)}
                 </Text>
               </View>
             </View>
             <Pressable onPress={() => setExpandSummary(!expandSummary)} className="mt-2 pt-2 border-t border-border items-center">
-              <Text className="text-xs font-medium" style={{ color: accent[500] }}>
+              <Text className="text-xs font-medium" style={{ color: theme.primary }}>
                 {expandSummary ? "Hide breakdown" : "Show breakdown"}
               </Text>
             </Pressable>
@@ -1186,7 +1187,7 @@ export default function ScenarioDetailScreen() {
                     </Text>
                     <Text className="text-label w-14 text-right" style={{ color: colors.textSecondary }}>{formatAmount(item.planned)}</Text>
                     <Text className="text-label w-14 text-right" style={{ color: colors.text }}>{formatAmount(item.actual)}</Text>
-                    <Text className="text-label w-14 text-right" style={{ color: item.variance > 0 ? sc.danger : item.variance < 0 ? sc.success : colors.textSecondary }}>
+                    <Text className="text-label w-14 text-right" style={{ color: item.variance > 0 ? theme.danger : item.variance < 0 ? theme.success : colors.textSecondary }}>
                       {item.variance > 0 ? "+" : ""}{formatAmount(item.variance)}
                     </Text>
                   </View>
@@ -1229,12 +1230,12 @@ export default function ScenarioDetailScreen() {
                     style={{
                       backgroundColor: colors.surface,
                       borderWidth: 1,
-                      borderColor: isExpanded ? accent[500] + "55" : colors.border,
+                      borderColor: isExpanded ? theme.alpha("primary", 0.33) : colors.border,
                       opacity: isExpanded ? 1 : 0.75,
                     }}
                     accessibilityRole="button"
                   >
-                    <Ionicons name="checkmark-circle" size={16} color={sc.success} />
+                    <Ionicons name="checkmark-circle" size={16} color={theme.success} />
                     <View className="flex-1 ml-2">
                       <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
                         {e.description || e.merchant_name || (e.category_id && categoryNameMap[e.category_id]) || "Planned entry"}
@@ -1244,7 +1245,7 @@ export default function ScenarioDetailScreen() {
                           Planned: {formatAmount(e.amount)}
                         </Text>
                         {entryVariance !== null && entryVariance !== 0 && (
-                          <Text className="text-xs ml-2" style={{ color: entryVariance > 0 ? sc.danger : sc.success }}>
+                          <Text className="text-xs ml-2" style={{ color: entryVariance > 0 ? theme.danger : theme.success }}>
                             {entryVariance > 0 ? "+" : ""}{formatAmount(entryVariance)}
                           </Text>
                         )}
@@ -1294,10 +1295,10 @@ export default function ScenarioDetailScreen() {
                       <Pressable
                         onPress={() => setStaleSheetEntry(e)}
                         className="flex-row items-center justify-center py-2 mt-1 rounded-lg"
-                        style={{ borderWidth: 1, borderColor: accent[500] + "44", borderStyle: "dashed" }}
+                        style={{ borderWidth: 1, borderColor: theme.alpha("primary", 0.27), borderStyle: "dashed" }}
                       >
-                        <Ionicons name="add-circle-outline" size={14} color={accent[500]} />
-                        <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+                        <Ionicons name="add-circle-outline" size={14} color={theme.primary} />
+                        <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
                           {details && details.length > 0 ? "Link more transactions" : "Link transactions"}
                         </Text>
                       </Pressable>
@@ -1418,15 +1419,14 @@ function MenuItem({
   onPress: () => void;
   danger?: boolean;
 }) {
-  const { colors } = useColorScheme();
-  const { colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   return (
     <Pressable onPress={onPress} className="flex-row items-center px-5 py-3">
-      <Ionicons name={icon} size={18} color={danger ? sc.danger : colors.textSecondary} />
+      <Ionicons name={icon} size={18} color={danger ? theme.danger : colors.textSecondary} />
       <Text
         className="ml-3 text-sm"
-        style={{ color: danger ? sc.danger : colors.text }}
+        style={{ color: danger ? theme.danger : colors.text }}
       >
         {label}
       </Text>
@@ -1458,10 +1458,10 @@ function EntryGroup({
   direction?: "out" | "in";
 }) {
   const { colors, accent, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const theme = useTheme();
   if (items.length === 0) return null;
   const groupTotal = total ?? items.reduce((s, e) => s + e.amount, 0);
-  const totalColor = direction === "out" ? sc.danger : direction === "in" ? sc.success : colors.text;
+  const totalColor = direction === "out" ? theme.danger : direction === "in" ? theme.success : colors.text;
   const totalPrefix = direction === "out" ? "−" : direction === "in" ? "+" : "";
   return (
     <View className="mt-3">
@@ -1516,9 +1516,9 @@ function EntryGroup({
         // common case. Null = no dot, skipped below.
         const sourceColor =
           e.source === "seeded_reminder"
-            ? accent[500]
+            ? theme.primary
             : e.source === "seeded_forecast"
-              ? sc.warning
+              ? theme.warning
               : null;
         return (
           <Pressable
@@ -1544,13 +1544,13 @@ function EntryGroup({
                 className="w-7 h-7 rounded-full items-center justify-center"
                 style={{
                   backgroundColor:
-                    e.direction === "out" ? sc.danger + "14" : sc.success + "14",
+                    e.direction === "out" ? theme.danger + "14" : theme.success + "14",
                 }}
               >
                 <Ionicons
                   name={e.direction === "out" ? "arrow-up" : "arrow-down"}
                   size={12}
-                  color={e.direction === "out" ? sc.danger : sc.success}
+                  color={e.direction === "out" ? theme.danger : theme.success}
                 />
               </View>
             </View>
@@ -1561,7 +1561,7 @@ function EntryGroup({
               {/* Sublabel priority: hisaab → account + date. */}
               <View className="flex-row items-center mt-0.5 flex-wrap">
                 {hisaabLabel && titleOverride == null ? (
-                  <Text className="text-label" style={{ color: accent[500] }} numberOfLines={1}>
+                  <Text className="text-label" style={{ color: theme.primary }} numberOfLines={1}>
                     {hisaabLabel}
                   </Text>
                 ) : acctLabel ? (
@@ -1576,7 +1576,7 @@ function EntryGroup({
             </View>
             <Text
               className="text-sm font-semibold ml-2"
-              style={{ color: e.direction === "out" ? sc.danger : sc.success }}
+              style={{ color: e.direction === "out" ? theme.danger : theme.success }}
             >
               {e.direction === "out" ? "−" : "+"}
               {formatAmount(e.amount)}
@@ -1600,6 +1600,7 @@ function RenameScenarioModal({
   onClose: () => void;
 }) {
   const { colors, accent } = useColorScheme();
+  const theme = useTheme();
   const [name, setName] = useState(initialName);
   useEffect(() => {
     if (visible) setName(initialName);
@@ -1645,7 +1646,7 @@ function RenameScenarioModal({
               onPress={() => onSave(name.trim())}
               disabled={!name.trim()}
               className="flex-1 py-2.5 rounded-lg items-center"
-              style={{ backgroundColor: accent[500], opacity: name.trim() ? 1 : 0.5 }}
+              style={{ backgroundColor: theme.primary, opacity: name.trim() ? 1 : 0.5 }}
             >
               <Text className="text-sm font-semibold text-white">Save</Text>
             </Pressable>

@@ -4,6 +4,7 @@ import { View, Pressable, ScrollView, TextInput, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/hooks/use-theme";
 
 interface FilterSection {
   key: string;
@@ -29,7 +30,8 @@ export function FullScreenFilter({
   onReset,
   onClose,
 }: FullScreenFilterProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
 
   const [activeSection, setActiveSection] = useState(sections[0]?.key ?? "");
@@ -103,7 +105,7 @@ export function FullScreenFilter({
             Filters
           </Text>
           <Pressable onPress={handleReset}>
-            <Text className="text-sm" style={{ color: accent[500] }}>Reset</Text>
+            <Text className="text-sm" style={{ color: theme.primary }}>Reset</Text>
           </Pressable>
         </View>
 
@@ -122,11 +124,11 @@ export function FullScreenFilter({
                   key={section.key}
                   onPress={() => { setActiveSection(section.key); setSearchQuery(""); }}
                   className={`px-2 py-3.5 border-b border-border ${isActive ? "border-l-2" : ""}`}
-                  style={isActive ? { borderLeftColor: accent[500], backgroundColor: colors.background } : { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#F5F5F5" }}
+                  style={isActive ? { borderLeftColor: theme.primary, backgroundColor: colors.background } : { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#F5F5F5" }}
                 >
                   <Text
                     className={`text-label ${isActive ? "font-semibold" : "text-muted-foreground"}`}
-                    style={isActive ? { color: accent[500] } : undefined}
+                    style={isActive ? { color: theme.primary } : undefined}
                     numberOfLines={2}
                   >
                     {section.label}
@@ -134,7 +136,7 @@ export function FullScreenFilter({
                   {count > 0 && (
                     <View
                       className="absolute top-1.5 right-1 w-4 h-4 rounded-full items-center justify-center"
-                      style={{ backgroundColor: accent[500] }}
+                      style={{ backgroundColor: theme.primary }}
                     >
                       <Text className="text-label font-bold text-white">{count}</Text>
                     </View>
@@ -179,9 +181,9 @@ export function FullScreenFilter({
                     <View
                       className="w-5 h-5 rounded items-center justify-center mr-3"
                       style={{
-                        backgroundColor: isSelected ? accent[500] : "transparent",
+                        backgroundColor: isSelected ? theme.primary : "transparent",
                         borderWidth: isSelected ? 0 : 1.5,
-                        borderColor: isSelected ? accent[500] : colors.border,
+                        borderColor: isSelected ? theme.primary : colors.border,
                       }}
                     >
                       {isSelected && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
@@ -214,7 +216,7 @@ export function FullScreenFilter({
           <Pressable
             onPress={handleApply}
             className="px-5 py-2.5 rounded-lg"
-            style={{ backgroundColor: accent[500] }}
+            style={{ backgroundColor: theme.primary }}
           >
             <Text className="text-sm font-semibold text-white">Apply</Text>
           </Pressable>

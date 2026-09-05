@@ -1,7 +1,8 @@
 import { Pressable } from "react-native";
 import { Text } from "./Text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface FilterChipProps {
   label: string;
@@ -16,12 +17,13 @@ interface FilterChipProps {
  * Used across the Accounts list, the account-ledger per-card filter, and
  * anywhere else a single-select or toggleable filter affordance appears.
  *
- * Active treatment uses the accent palette (`ac(accent, colorScheme, 100, 700)`)
+ * Active treatment uses the accent palette (`theme.alpha("primary", 0.1)`)
  * and keeps inactive chips on the subtle surface-alt background so the group
  * reads as a single control.
  */
 export function FilterChip({ label, active = false, onPress, spacing = "md" }: FilterChipProps) {
-  const { accent, colorScheme } = useColorScheme();
+  const { accent } = useColorScheme();
+  const theme = useTheme();
   const mr = spacing === "sm" ? "mr-1.5" : "mr-2";
   return (
     <Pressable
@@ -29,7 +31,7 @@ export function FilterChip({ label, active = false, onPress, spacing = "md" }: F
       className={`px-3 py-1.5 rounded-full ${mr} ${active ? "border" : "bg-card"}`}
       style={
         active
-          ? { backgroundColor: ac(accent, colorScheme, 100, 700), borderColor: accent[500] }
+          ? { backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.primary }
           : undefined
       }
       accessibilityRole="button"
@@ -37,7 +39,7 @@ export function FilterChip({ label, active = false, onPress, spacing = "md" }: F
     >
       <Text
         className={`text-xs ${active ? "font-medium" : "text-muted-foreground"}`}
-        style={active ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
+        style={active ? { color: theme.primary } : undefined}
       >
         {label}
       </Text>

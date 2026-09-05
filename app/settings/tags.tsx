@@ -5,7 +5,7 @@ import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Card, FAB, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getTags,
@@ -17,10 +17,12 @@ import {
 } from "@/services/tags";
 import type { Tag } from "@/services/tags";
 import { getErrorMessage } from "@/utils/error-message";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function TagsSettingsScreen() {
   const alert = useAlert();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [tags, setTags] = useState<Tag[]>([]);
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
   const [showAdd, setShowAdd] = useState(false);
@@ -128,7 +130,7 @@ export default function TagsSettingsScreen() {
             autoFocus
             maxLength={50}
             className="text-base text-foreground border rounded-lg px-3 py-2 mb-2"
-            style={{ borderColor: accent[500] }}
+            style={{ borderColor: theme.primary }}
           />
           {/* Color picker */}
           <View className="flex-row flex-wrap mb-2">
@@ -186,7 +188,7 @@ export default function TagsSettingsScreen() {
           </Text>
         </View>
         <Pressable onPress={() => handleDelete(item)} className="p-2">
-          <Ionicons name="trash-outline" size={18} color={StatusColors[colorScheme].danger} />
+          <Ionicons name="trash-outline" size={18} color={theme.danger} />
         </Pressable>
       </Pressable>
     );
@@ -242,7 +244,7 @@ export default function TagsSettingsScreen() {
             <Pressable
               onPress={handleAdd}
               className="flex-1 py-2.5 rounded-xl items-center"
-              style={{ backgroundColor: accent[500] }}
+              style={{ backgroundColor: theme.primary }}
             >
               <Text className="text-sm font-semibold text-white">Create Tag</Text>
             </Pressable>

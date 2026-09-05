@@ -20,6 +20,7 @@ import {
   findOrCreateTag,
 } from "@/services/tags";
 import type { Tag } from "@/services/tags";
+import { useTheme } from "@/hooks/use-theme";
 
 interface TagPickerProps {
   /** Expense ID — if provided, loads/saves tags to this expense */
@@ -35,7 +36,8 @@ interface TagPickerProps {
 }
 
 export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen, onClose }: TagPickerProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [activeTags, setActiveTags] = useState<Tag[]>([]);
   const [showPicker, setShowPicker] = useState(false);
@@ -210,7 +212,7 @@ export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen
               className="flex-row items-center py-2 border-t border-border mt-1"
             >
               <Ionicons name="add-circle-outline" size={16} color={colors.blue} />
-              <Text className="text-sm font-medium ml-2" style={{ color: accent[500] }}>
+              <Text className="text-sm font-medium ml-2" style={{ color: theme.primary }}>
                 Create "{searchText.trim()}"
               </Text>
             </Pressable>

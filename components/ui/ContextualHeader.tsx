@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Text";
 import { Pressable, View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 export interface ContextualHeaderAction {
   icon: keyof typeof Ionicons.glyphMap;
@@ -25,13 +26,14 @@ interface Props {
 }
 
 export function ContextualHeader({ title, subtitle, badge, rightActions }: Props) {
-  const { colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const badgeColors = badge
     ? {
-        warning: { bg: StatusColors[colorScheme].warning + "1A", text: StatusColors[colorScheme].warning },
-        success: { bg: StatusColors[colorScheme].success + "1A", text: StatusColors[colorScheme].success },
-        danger:  { bg: StatusColors[colorScheme].danger  + "1A", text: StatusColors[colorScheme].danger  },
+        warning: { bg: theme.warning + "1A", text: theme.warning },
+        success: { bg: theme.success + "1A", text: theme.success },
+        danger:  { bg: theme.danger  + "1A", text: theme.danger  },
       }[badge.variant]
     : null;
 

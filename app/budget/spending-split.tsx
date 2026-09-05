@@ -12,20 +12,22 @@ import { getSpendClassificationTotals } from "@/services/spend-classification";
 import { getYearlyPlanByFY } from "@/services/yearly-plan";
 import { formatAmount } from "@/utils/expense-validation";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { calculateSplit } from "@/utils/unavoidable-split";
 import type { SplitSnapshot } from "@/utils/unavoidable-split";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 const UNAVOIDABLE_COLOR = BRAND_COLOR;
 const DISCRETIONARY_COLOR = STATUS_COLORS.warning;
 
 export default function SpendingSplitScreen() {
   const router = useRouter();
-  const { colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const { month: monthParam } = useLocalSearchParams<{ month?: string }>();
   const [month, setMonth] = useState(monthParam ?? getCurrentMonth());
   const [split, setSplit] = useState<SplitSnapshot | null>(null);
@@ -227,8 +229,8 @@ export default function SpendingSplitScreen() {
                       color:
                         split.discretionaryBudget - split.discretionarySpent >=
                         0
-                          ? StatusColors[colorScheme].success
-                          : StatusColors[colorScheme].danger,
+                          ? theme.success
+                          : theme.danger,
                     }}
                   >
                     {formatAmount(

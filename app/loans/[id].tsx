@@ -2,7 +2,7 @@ import { ForeclosureQuoteSheet } from "@/components/loans/ForeclosureQuoteSheet"
 import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { LinkInstallmentSheet } from "@/components/loans/LinkInstallmentSheet";
 import { Button, Card, LoadingState, MetricRow, ScreenContainer, Text } from "@/components/ui";
-import { StatusColors } from "@/constants/theme";
+
 import { getDatabase } from "@/database";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -22,7 +22,7 @@ import {
     type LoanScheduleEntry
 } from "@/services/loan-accounts";
 import { clearEmiReminderOnLoan } from "@/services/loan-emi-reminder";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatDate } from "@/utils/date";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
@@ -30,6 +30,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 const STATUS_PILL_COLOR: Record<string, "success" | "danger" | "warning" | "info"> = {
   paid: "success",
@@ -44,6 +45,7 @@ export default function LoanDetailScreen() {
   const router = useRouter();
   const alert = useAlert();
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const [loan, setLoan] = useState<LoanAccount | null>(null);
   const [schedule, setSchedule] = useState<LoanScheduleEntry[]>([]);
@@ -208,7 +210,7 @@ export default function LoanDetailScreen() {
               style={{
                 height: 6,
                 width: `${progressPct}%`,
-                backgroundColor: StatusColors[colorScheme].success,
+                backgroundColor: theme.success,
               }}
             />
           </View>
@@ -219,7 +221,7 @@ export default function LoanDetailScreen() {
           {loan.currency !== "INR" && (
             <View
               className="mt-3 flex-row items-center px-2 py-1.5 rounded-lg"
-              style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
               <Ionicons name="information-circle-outline" size={14} color={colors.blue} />
               <Text className="text-xs ml-1" style={{ color: colors.textSecondary }}>
@@ -239,19 +241,19 @@ export default function LoanDetailScreen() {
           loan.last_sms_reminder_due_date >= new Date().toISOString().split("T")[0] && (
             <View
               className="mb-3 rounded-xl px-4 py-3"
-              style={{ backgroundColor: acAlpha(accent, 500, 0.1) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.1) }}
             >
               <View className="flex-row items-start">
                 <Ionicons
                   name="notifications-outline"
                   size={18}
-                  color={ac(accent, colorScheme, 600, 300)}
+                  color={theme.primary}
                   style={{ marginRight: 10, marginTop: 1 }}
                 />
                 <View className="flex-1">
                   <Text
                     className="text-sm font-semibold"
-                    style={{ color: ac(accent, colorScheme, 700, 200) }}
+                    style={{ color: theme.primary }}
                   >
                     {bankName} reminder
                   </Text>
@@ -465,8 +467,8 @@ export default function LoanDetailScreen() {
                       style={{
                         backgroundColor:
                           p.kind === "foreclosure"
-                            ? StatusColors[colorScheme].warning + "14"
-                            : acAlpha(accent, 500, 0.08),
+                            ? theme.warning + "14"
+                            : theme.alpha("primary", 0.08),
                       }}
                     >
                       <Ionicons
@@ -478,8 +480,8 @@ export default function LoanDetailScreen() {
                         size={20}
                         color={
                           p.kind === "foreclosure"
-                            ? StatusColors[colorScheme].warning
-                            : ac(accent, colorScheme, 600, 300)
+                            ? theme.warning
+                            : theme.primary
                         }
                       />
                     </View>
@@ -496,11 +498,11 @@ export default function LoanDetailScreen() {
                         {strategyLabel && (
                           <View
                             className="ml-1.5 px-1.5 py-0.5 rounded"
-                            style={{ backgroundColor: accent[500] + "1A" }}
+                            style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                           >
                             <Text
                               className="text-label font-bold uppercase"
-                              style={{ color: ac(accent, colorScheme, 600, 300) }}
+                              style={{ color: theme.primary }}
                             >
                               {strategyLabel}
                             </Text>
@@ -529,7 +531,7 @@ export default function LoanDetailScreen() {
                     <View className="items-end shrink-0">
                       <Text
                         className="text-sm font-bold"
-                        style={{ color: StatusColors[colorScheme].success }}
+                        style={{ color: theme.success }}
                       >
                         {formatMoney(p.amount)}
                       </Text>
@@ -620,12 +622,12 @@ export default function LoanDetailScreen() {
                 >
                   <View
                     className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                    style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                   >
                     <Ionicons
                       name="construct-outline"
                       size={20}
-                      color={ac(accent, colorScheme, 600, 300)}
+                      color={theme.primary}
                     />
                   </View>
                   <View className="flex-1 mr-3">
@@ -738,9 +740,9 @@ export default function LoanDetailScreen() {
                   style={{
                     color:
                       STATUS_PILL_COLOR[e.status] === "success"
-                        ? StatusColors[colorScheme].success
+                        ? theme.success
                         : STATUS_PILL_COLOR[e.status] === "danger"
-                          ? StatusColors[colorScheme].danger
+                          ? theme.danger
                           : colors.textSecondary,
                   }}
                 >
@@ -844,8 +846,9 @@ function ActionTile({
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
   danger?: boolean;
 }) {
-  const circleBg = danger ? "#DC262616" : acAlpha(accent, 500, 0.08);
-  const iconColor = danger ? STATUS_COLORS.error : ac(accent, colorScheme, 600, 300);
+  const theme = useTheme();
+  const circleBg = danger ? "#DC262616" : theme.alpha("primary", 0.08);
+  const iconColor = danger ? STATUS_COLORS.error : theme.primary;
   const labelColor = danger ? STATUS_COLORS.error : colors.text;
   return (
     <Pressable

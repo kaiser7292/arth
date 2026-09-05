@@ -9,10 +9,11 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { getAccountById } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
 import { AccountPickerSheet } from "./AccountPickerSheet";
+import { useTheme } from "@/hooks/use-theme";
 
 interface Props {
   visible: boolean;
@@ -31,7 +32,8 @@ interface Props {
  * auto-skip to the "Different" picker so the user can still proceed.
  */
 export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }: Props) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [sourceAccount, setSourceAccount] = useState<FinancialAccount | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const slide = useSharedValue(300);
@@ -56,7 +58,7 @@ export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }:
     });
   };
 
-  const tint = ac(accent, colorScheme, 500, 200);
+  const tint = theme.primary;
 
   return (
     <>
@@ -82,11 +84,11 @@ export function RefundTargetSheet({ visible, sourceAccountId, onPick, onClose }:
                   <Pressable
                     onPress={() => onPick(sourceAccount.id)}
                     className="flex-row items-center p-4 mb-3 rounded-xl border"
-                    style={{ borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 700) }}
+                    style={{ borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) }}
                   >
                     <View
                       className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: accent[500] + "22" }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.13) }}
                     >
                       <Ionicons name="return-up-back-outline" size={20} color={tint} />
                     </View>

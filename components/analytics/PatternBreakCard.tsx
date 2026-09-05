@@ -4,8 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 interface PatternBreakCardProps {
   merchant: string;
@@ -26,17 +27,17 @@ export function PatternBreakCard({
   onLate,
   onDateChanged,
 }: PatternBreakCardProps) {
-  const { colorScheme } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   return (
     <View
       className="rounded-2xl p-4 mb-3 border"
-      style={{ borderColor: statusColors.warning + "40", backgroundColor: statusColors.warning + "08" }}
+      style={{ borderColor: theme.warning + "40", backgroundColor: theme.warning + "08" }}
       accessibilityLabel={`Expected payment missing: ${merchant}, ${formatAmount(amount)}, usually by day ${expectedDay}, ${daysLate} days late`}
     >
       <View className="flex-row items-start mb-2">
-        <Ionicons name="clipboard-outline" size={16} color={statusColors.warning} style={{ marginRight: 8, marginTop: 1 }} />
+        <Ionicons name="clipboard-outline" size={16} color={theme.warning} style={{ marginRight: 8, marginTop: 1 }} />
         <Text className="text-sm font-medium text-foreground">
           Expected but missing:
         </Text>

@@ -14,14 +14,16 @@ import { getCategories, type Category } from "@/services/category";
 import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { getErrorMessage } from "@/utils/error-message";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function SmartRulesListScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme, accent } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
 
   const [rules, setRules] = useState<SmartRule[]>([]);
   const [deletedRules, setDeletedRules] = useState<SmartRule[]>([]);
@@ -221,8 +223,8 @@ export default function SmartRulesListScreen() {
             <Pressable onPress={confirmRestoreAll} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: colors.tint + "20" }}>
               <Text className="text-xs font-semibold" style={{ color: colors.tint }}>Restore All</Text>
             </Pressable>
-            <Pressable onPress={confirmPurge} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: StatusColors[colorScheme].danger + "14" }}>
-              <Text className="text-xs font-semibold" style={{ color: StatusColors[colorScheme].danger }}>Delete Forever</Text>
+            <Pressable onPress={confirmPurge} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: theme.danger + "14" }}>
+              <Text className="text-xs font-semibold" style={{ color: theme.danger }}>Delete Forever</Text>
             </Pressable>
           </View>
           {deletedRules.map((item) => (
@@ -328,8 +330,8 @@ export default function SmartRulesListScreen() {
                     hitSlop={4}
                     className="flex-1 items-center py-1"
                   >
-                    <Ionicons name="trash-outline" size={16} color={StatusColors[colorScheme].danger} />
-                    <Text className="text-xs mt-0.5" style={{ color: StatusColors[colorScheme].danger }}>Delete</Text>
+                    <Ionicons name="trash-outline" size={16} color={theme.danger} />
+                    <Text className="text-xs mt-0.5" style={{ color: theme.danger }}>Delete</Text>
                   </Pressable>
                 </View>
               </Card>

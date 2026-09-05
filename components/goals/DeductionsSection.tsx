@@ -4,6 +4,7 @@ import { Card, CollapsibleSection, Input, Text } from "@/components/ui";
 import { formatAmount } from "@/utils/expense-validation";
 import type { SalaryCalculation, CapitalGainsTaxResult, BonusTaxResult } from "@/services/tax-engine";
 import { BreakdownRow } from "./salary-helpers";
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── Old Regime Deductions (CTC mode only) ────────────────
 
@@ -172,7 +173,8 @@ export function AdditionalIncome({
   capitalGainsTaxResult,
   additionalIncomeNet,
 }: AdditionalIncomeProps) {
-  const { accent } = useColorScheme();
+  
+  const theme = useTheme();
   return (
     <Card className="mb-4">
       <CollapsibleSection
@@ -199,7 +201,7 @@ export function AdditionalIncome({
             containerClassName="mb-1"
           />
           {bonusTaxResult && bonusTaxResult.grossBonus > 0 && (
-            <View className="mb-3 px-2 py-2 rounded-lg" style={{ backgroundColor: accent[500] + "14" }}>
+            <View className="mb-3 px-2 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
               <Text className="text-xs text-muted-foreground">
                 {formatAmount(bonusTaxResult.grossBonus)} gross{" "}
                 <Text className="text-danger">
@@ -272,7 +274,7 @@ export function AdditionalIncome({
 
           {/* CG Tax Summary */}
           {capitalGainsTaxResult && capitalGainsTaxResult.items.length > 0 && (
-            <View className="mt-2 px-2 py-2 rounded-lg" style={{ backgroundColor: accent[500] + "14" }}>
+            <View className="mt-2 px-2 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
               {capitalGainsTaxResult.items.map((item) => (
                 <View key={item.label} className="flex-row items-center justify-between py-1">
                   <Text className="text-xs text-muted-foreground flex-1">

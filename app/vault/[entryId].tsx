@@ -17,6 +17,7 @@ import {
   deleteVaultEntry,
   getVaultEntry,
 } from "@/services/vault";
+import { useTheme } from "@/hooks/use-theme";
 
 const CLIPBOARD_TTL_MS = 30_000;
 
@@ -24,7 +25,8 @@ export default function VaultEntryScreen() {
   const { entryId } = useLocalSearchParams<{ entryId: string }>();
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, accent } = useColorScheme();
+  const theme = useTheme();
 
   const [entry, setEntry] = useState<VaultEntry | null>(null);
   const [loading, setLoading] = useState(true);
@@ -145,9 +147,9 @@ export default function VaultEntryScreen() {
       {copiedField && (
         <View
           className="mx-4 mt-3 px-4 py-2.5 rounded-xl flex-row items-center justify-between"
-          style={{ backgroundColor: accent[500] + "22" }}
+          style={{ backgroundColor: theme.alpha("primary", 0.13) }}
         >
-          <Text className="text-sm font-medium" style={{ color: accent[700] }}>
+          <Text className="text-sm font-medium" style={{ color: theme.primary }}>
             {copiedField} copied — clears in {clipboardSecsLeft}s
           </Text>
           <Pressable
@@ -158,7 +160,7 @@ export default function VaultEntryScreen() {
             }}
             hitSlop={8}
           >
-            <Ionicons name="close" size={16} color={accent[700]} />
+            <Ionicons name="close" size={16} color={theme.primary} />
           </Pressable>
         </View>
       )}
@@ -169,12 +171,12 @@ export default function VaultEntryScreen() {
           <View className="flex-row items-center mb-3">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: accent[500] + "22" }}
+              style={{ backgroundColor: theme.alpha("primary", 0.13) }}
             >
               <Ionicons
                 name={VAULT_CATEGORY_ICONS[entry.category as keyof typeof VAULT_CATEGORY_ICONS] as any}
                 size={20}
-                color={accent[500]}
+                color={theme.primary}
               />
             </View>
             <View className="flex-1">
@@ -441,7 +443,7 @@ export default function VaultEntryScreen() {
                 <Ionicons
                   name={copiedField === "Notes" ? "checkmark" : "copy-outline"}
                   size={14}
-                  color={copiedField === "Notes" ? accent[500] : colors.textSecondary}
+                  color={copiedField === "Notes" ? theme.primary : colors.textSecondary}
                 />
               </Pressable>
             </View>
@@ -482,6 +484,7 @@ function FieldRow({
   accent: any;
 }) {
   const { colors } = useColorScheme();
+  const theme = useTheme();
   return (
     <View className="mb-3">
       <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -499,7 +502,7 @@ function FieldRow({
             <Ionicons
               name={copied ? "checkmark" : "copy-outline"}
               size={16}
-              color={copied ? accent[500] : colors.textSecondary}
+              color={copied ? theme.primary : colors.textSecondary}
             />
           </Pressable>
         )}
@@ -527,6 +530,7 @@ function SecretRow({
   accent: any;
   colors: any;
 }) {
+  const theme = useTheme();
   return (
     <View className="mb-3">
       <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -550,7 +554,7 @@ function SecretRow({
           <Ionicons
             name={copied ? "checkmark" : "copy-outline"}
             size={16}
-            color={copied ? accent[500] : colors.textSecondary}
+            color={copied ? theme.primary : colors.textSecondary}
           />
         </Pressable>
       </View>

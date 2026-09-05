@@ -8,7 +8,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { Button, Text } from "@/components/ui";
 import { formatAmount } from "@/utils/format";
 import {
@@ -19,6 +19,7 @@ import {
   loanToTerms,
 } from "@/services/loan-accounts";
 import { computeForeclosureQuote } from "@/services/loan-engine";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * ForeclosureQuoteSheet (v17.1.0)
@@ -54,6 +55,7 @@ export function ForeclosureQuoteSheet({
   onClose,
 }: Props) {
   const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useSharedValue(500);
   const today = new Date().toISOString().split("T")[0];
@@ -203,12 +205,13 @@ function Row({
   color?: "success" | "danger";
   bold?: boolean;
 }) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const valueColor =
     color === "success"
-      ? StatusColors[colorScheme].success
+      ? theme.success
       : color === "danger"
-        ? StatusColors[colorScheme].danger
+        ? theme.danger
         : colors.text;
   return (
     <View className="flex-row items-center justify-between py-1.5">

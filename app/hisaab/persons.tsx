@@ -8,7 +8,7 @@
 import { ExportFormatPicker } from "@/components/hisaab/ExportFormatPicker";
 import { Button, Card, EmptyState, FAB, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { useAlert } from "@/hooks/use-alert";
 import { useBackOverride } from "@/hooks/use-back-override";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -25,13 +25,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 type ViewMode = "list" | "add_person";
 
 export default function HisaabPersonsScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
   const [summary, setSummary] = useState({
@@ -372,7 +374,8 @@ function PersonCard({
   onEdit: () => void;
   onExport: () => void;
 }) {
-  const { colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const balance = person.balance ?? 0;
   const isPositive = balance >= 0;
 
@@ -386,13 +389,13 @@ function PersonCard({
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
               style={{
                 backgroundColor: isPositive
-                  ? StatusColors[colorScheme].successBg
-                  : StatusColors[colorScheme].dangerBg,
+                  ? theme.alpha("success", 0.08)
+                  : theme.alpha("danger", 0.08),
               }}
             >
               <Text
                 className="text-base font-bold"
-                style={{ color: isPositive ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger }}
+                style={{ color: isPositive ? theme.success : theme.danger }}
               >
                 {person.name.charAt(0).toUpperCase()}
               </Text>

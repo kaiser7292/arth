@@ -1,7 +1,7 @@
 import { Card, ContextualHeader, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { STATUS_COLORS, TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getBalanceSheetColumn } from "@/services/balance-sheet";
@@ -14,20 +14,22 @@ import { listActiveLoans, getCurrentEMIsByLoanId } from "@/services/loan-account
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { getFYStartMonth } from "@/services/settings";
 import { getBucketsByFY, InvestmentBucket } from "@/services/yearly-plan";
-import { ac } from "@/utils/accent";
+
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 // Consume preload once at module level (single-use, clears the cache slot)
 const preloaded = consumeGoalsPreload();
 
 export default function GoalsScreen() {
   const router = useRouter();
-  const { accent, colors, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const startMonth = getFYStartMonth();
   const currentFY = getCurrentFY(startMonth);
   const fyLabel = getFYLabel(currentFY, startMonth);
@@ -116,27 +118,27 @@ export default function GoalsScreen() {
   const milestoneProgressPct =
     milestoneTotalTarget > 0 ? Math.min(100, (milestoneTotalSaved / milestoneTotalTarget) * 100) : 0;
 
-  const accentColor = ac(accent, colorScheme, 500, 400);
-  const accentBg = ac(accent, colorScheme, 500, 700) + "14";
+  const accentColor = theme.primary;
+  const accentBg = theme.primary + "14";
 
   // Grade pill colours (computed only when cockpit data is available)
   const gradeColorVal = hasCockpit && cockpitData
     ? (cockpitData.healthGrade === "A+" || cockpitData.healthGrade === "A"
-        ? StatusColors[colorScheme].success
+        ? theme.success
         : cockpitData.healthGrade === "B"
           ? accentColor
           : cockpitData.healthGrade === "C"
-            ? StatusColors[colorScheme].warning
-            : StatusColors[colorScheme].danger)
+            ? theme.warning
+            : theme.danger)
     : colors.textSecondary;
   const gradeBgVal = hasCockpit && cockpitData
     ? (cockpitData.healthGrade === "A+" || cockpitData.healthGrade === "A"
-        ? StatusColors[colorScheme].successBg
+        ? theme.alpha("success", 0.08)
         : cockpitData.healthGrade === "B"
           ? accentColor + "14"
           : cockpitData.healthGrade === "C"
-            ? StatusColors[colorScheme].warningBg
-            : StatusColors[colorScheme].dangerBg)
+            ? theme.alpha("warning", 0.08)
+            : theme.alpha("danger", 0.08))
     : colors.border;
 
   // FY end label for on-track signal (e.g. "Mar 2026")
@@ -200,7 +202,7 @@ export default function GoalsScreen() {
                     <View
                       key={i}
                       className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: s.done ? StatusColors[colorScheme].success : colors.border }}
+                      style={{ backgroundColor: s.done ? theme.success : colors.border }}
                     />
                   ))}
                 </View>
@@ -234,7 +236,7 @@ export default function GoalsScreen() {
                   <Ionicons
                     name={step.done ? "checkmark-circle" : "ellipse-outline"}
                     size={18}
-                    color={step.done ? StatusColors[colorScheme].success : colors.textSecondary}
+                    color={step.done ? theme.success : colors.textSecondary}
                     style={{ marginRight: 10 }}
                   />
                   <Text
@@ -307,9 +309,9 @@ export default function GoalsScreen() {
                     const hNeg  = hRoom < 0;
                     const hZero = hRoom === 0;
                     const hColor = hNeg
-                      ? StatusColors[colorScheme].danger
+                      ? theme.danger
                       : hZero
-                        ? StatusColors[colorScheme].warning
+                        ? theme.warning
                         : undefined;
                     return (
                       <View className="flex-1">
@@ -347,8 +349,8 @@ export default function GoalsScreen() {
                       style={{
                         width: `${Math.min(100, (cockpitData.savings.totalSaved / cockpitData.savings.targetSavings) * 100)}%`,
                         backgroundColor: cockpitData.savings.isOnTrack
-                          ? StatusColors[colorScheme].success
-                          : StatusColors[colorScheme].warning,
+                          ? theme.success
+                          : theme.warning,
                       }}
                     />
                   </View>
@@ -362,16 +364,16 @@ export default function GoalsScreen() {
                       size={11}
                       color={
                         cockpitData.savings.isOnTrack
-                          ? StatusColors[colorScheme].success
-                          : StatusColors[colorScheme].warning
+                          ? theme.success
+                          : theme.warning
                       }
                     />
                     <Text
                       className="text-label font-medium"
                       style={{
                         color: cockpitData.savings.isOnTrack
-                          ? StatusColors[colorScheme].success
-                          : StatusColors[colorScheme].warning,
+                          ? theme.success
+                          : theme.warning,
                       }}
                     >
                       {cockpitData.savings.isOnTrack
@@ -401,26 +403,26 @@ export default function GoalsScreen() {
             >
               <View
                 className="flex-row items-center p-3 rounded-xl"
-                style={{ backgroundColor: StatusColors[colorScheme].warningBg }}
+                style={{ backgroundColor: theme.alpha("warning", 0.08) }}
               >
-                <Ionicons name="alert-circle-outline" size={18} color={StatusColors[colorScheme].warning} />
+                <Ionicons name="alert-circle-outline" size={18} color={theme.warning} />
                 <View className="flex-1 ml-2.5">
                   <Text
                     className="text-sm font-medium"
-                    style={{ color: StatusColors[colorScheme].warning }}
+                    style={{ color: theme.warning }}
                     numberOfLines={1}
                   >
                     {cockpitData.advisories[0].title}
                   </Text>
                   <Text
                     className="text-xs"
-                    style={{ color: StatusColors[colorScheme].warning, opacity: 0.8 }}
+                    style={{ color: theme.warning, opacity: 0.8 }}
                     numberOfLines={2}
                   >
                     {cockpitData.advisories[0].message}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={14} color={StatusColors[colorScheme].warning} />
+                <Ionicons name="chevron-forward" size={14} color={theme.warning} />
               </View>
             </Pressable>
           )}
@@ -633,9 +635,9 @@ export default function GoalsScreen() {
             >
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: StatusColors[colorScheme].successBg }}
+                style={{ backgroundColor: theme.alpha("success", 0.08) }}
               >
-                <Ionicons name="calculator-outline" size={18} color={StatusColors[colorScheme].success} />
+                <Ionicons name="calculator-outline" size={18} color={theme.success} />
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-medium text-foreground">

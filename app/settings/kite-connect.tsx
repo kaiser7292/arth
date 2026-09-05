@@ -1,5 +1,5 @@
 import { Card, ScreenContainer, Text } from "@/components/ui";
-import { StatusColors } from '@/constants/theme';
+
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAlert } from '@/hooks/use-alert';
 import {
@@ -16,11 +16,12 @@ import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { WebView } from 'react-native-webview';
+import { useTheme } from "@/hooks/use-theme";
 
 export default function KiteConnectScreen() {
   const alert = useAlert();
-  const { colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showWebView, setShowWebView] = useState(false);
@@ -160,26 +161,26 @@ export default function KiteConnectScreen() {
           </Text>
 
           {isAuthenticated ? (
-            <View className="rounded-lg p-4 mt-4" style={{ backgroundColor: sc.success + '20', borderColor: sc.success, borderWidth: 1 }}>
+            <View className="rounded-lg p-4 mt-4" style={{ backgroundColor: theme.success + '20', borderColor: theme.success, borderWidth: 1 }}>
               <View className="flex-row items-center mb-2">
-                <Ionicons name="checkmark-circle" size={20} color={sc.success} />
-                <Text className="ml-2 font-semibold" style={{ color: sc.success }}>
+                <Ionicons name="checkmark-circle" size={20} color={theme.success} />
+                <Text className="ml-2 font-semibold" style={{ color: theme.success }}>
                   Connected to Kite
                 </Text>
               </View>
-              <Text className="text-sm" style={{ color: sc.success }}>
+              <Text className="text-sm" style={{ color: theme.success }}>
                 Your Kite account is linked and ready to use.
               </Text>
             </View>
           ) : (
-            <View className="rounded-lg p-4 mt-4" style={{ backgroundColor: sc.warning + '20', borderColor: sc.warning, borderWidth: 1 }}>
+            <View className="rounded-lg p-4 mt-4" style={{ backgroundColor: theme.warning + '20', borderColor: theme.warning, borderWidth: 1 }}>
               <View className="flex-row items-center mb-2">
-                <Ionicons name="alert-circle" size={20} color={sc.warning} />
-                <Text className="ml-2 font-semibold" style={{ color: sc.warning }}>
+                <Ionicons name="alert-circle" size={20} color={theme.warning} />
+                <Text className="ml-2 font-semibold" style={{ color: theme.warning }}>
                   Not Connected
                 </Text>
               </View>
-              <Text className="text-sm" style={{ color: sc.warning }}>
+              <Text className="text-sm" style={{ color: theme.warning }}>
                 Connect to Kite to enable portfolio tracking and trading features.
               </Text>
             </View>
@@ -200,7 +201,7 @@ export default function KiteConnectScreen() {
             <Pressable
               onPress={handleDisconnectPress}
               className="rounded-lg p-4 mt-3 flex-row items-center justify-center"
-              style={{ backgroundColor: sc.danger }}
+              style={{ backgroundColor: theme.danger }}
             >
               <View className="flex-row items-center">
                 <Ionicons name="log-out" size={20} color="white" />

@@ -3,6 +3,7 @@ import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "./Text";
 import { BottomSheet } from "./BottomSheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ConfirmSheetProps {
   visible: boolean;
@@ -27,7 +28,8 @@ export function ConfirmSheet({
   destructive = false,
   onConfirm,
 }: ConfirmSheetProps) {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const handleConfirm = async () => {
     await onConfirm();
@@ -63,7 +65,7 @@ export function ConfirmSheet({
           <Pressable
             onPress={handleConfirm}
             className="flex-1 py-3.5 rounded-2xl items-center"
-            style={{ backgroundColor: destructive ? STATUS_COLORS.error : accent[500] }}
+            style={{ backgroundColor: destructive ? STATUS_COLORS.error : theme.primary }}
           >
             <Text className="text-base font-semibold text-white">
               {confirmLabel}

@@ -2,8 +2,9 @@ import { View, Pressable } from "react-native";
 import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 interface YoYComparisonRowProps {
   label: string;
@@ -36,12 +37,12 @@ export function YoYComparisonRow({
   maxBarValue,
   onPress,
 }: YoYComparisonRowProps) {
-  const { colorScheme } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   const isNew = deltaPct === null;
   const grew = deltaAmount >= 0;
-  const deltaColor = grew ? statusColors.danger : statusColors.success;
+  const deltaColor = grew ? theme.danger : theme.success;
 
   const currentWidth = maxBarValue > 0 ? (currentAmount / maxBarValue) * 100 : 0;
   const previousWidth = maxBarValue > 0 ? (previousAmount / maxBarValue) * 100 : 0;
@@ -70,9 +71,9 @@ export function YoYComparisonRow({
           {isNew && (
             <View
               className="ml-2 rounded-full px-2 py-0.5"
-              style={{ backgroundColor: statusColors.warning + "22" }}
+              style={{ backgroundColor: theme.warning + "22" }}
             >
-              <Text className="text-label font-semibold" style={{ color: statusColors.warning }}>
+              <Text className="text-label font-semibold" style={{ color: theme.warning }}>
                 NEW THIS YEAR
               </Text>
             </View>
@@ -96,7 +97,7 @@ export function YoYComparisonRow({
           <Ionicons
             name="chevron-forward"
             size={14}
-            color={statusColors.muted}
+            color={theme.faintForeground}
             style={{ marginLeft: 6 }}
           />
         )}
@@ -114,7 +115,7 @@ export function YoYComparisonRow({
               className="h-full rounded-md"
               style={{
                 width: `${Math.max(currentWidth, 1)}%`,
-                backgroundColor: grew ? statusColors.danger : statusColors.success,
+                backgroundColor: grew ? theme.danger : theme.success,
               }}
             />
           </View>
@@ -133,7 +134,7 @@ export function YoYComparisonRow({
               className="h-full rounded-md"
               style={{
                 width: `${Math.max(previousWidth, 1)}%`,
-                backgroundColor: statusColors.muted + "99",
+                backgroundColor: theme.faintForeground + "99",
               }}
             />
           </View>

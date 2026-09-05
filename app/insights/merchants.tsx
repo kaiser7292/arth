@@ -12,6 +12,7 @@ import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import type { MerchantInsight } from "@/utils/spending-insights";
 import type { Category } from "@/services/category";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 type TimeRange = "1m" | "3m" | "6m";
 
@@ -32,7 +33,8 @@ const RANGE_LABELS: { key: TimeRange; label: string }[] = [
 
 export default function MerchantAnalyticsScreen() {
   const router = useRouter();
-  const { accent, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [range, setRange] = useState<TimeRange>("3m");
   const [merchants, setMerchants] = useState<MerchantInsight[]>([]);
   const [categoryMap, setCategoryMap] = useState<Map<string, Category>>(new Map());
@@ -93,7 +95,7 @@ export default function MerchantAnalyticsScreen() {
             className={`flex-1 py-2 rounded-lg items-center mx-1 ${
               range === r.key ? "" : "bg-card"
             }`}
-            style={range === r.key ? { backgroundColor: accent[500] } : undefined}
+            style={range === r.key ? { backgroundColor: theme.primary } : undefined}
           >
             <Text
               className={`text-xs font-semibold ${
@@ -156,7 +158,7 @@ export default function MerchantAnalyticsScreen() {
                 </View>
                 <ProgressBar
                   value={barPct}
-                  color={cat?.color ?? accent[500]}
+                  color={cat?.color ?? theme.primary}
                   height={4}
                   animated={false}
                 />
@@ -179,7 +181,7 @@ export default function MerchantAnalyticsScreen() {
                             <View className="flex-1 mr-2">
                               <ProgressBar
                                 value={maxMonthly > 0 ? mt.total / maxMonthly : 0}
-                                color={accent[500]}
+                                color={theme.primary}
                                 height={6}
                                 animated={false}
                               />
@@ -243,7 +245,7 @@ export default function MerchantAnalyticsScreen() {
                     </Pressable>
                   ))}
                   {detail.transactionCount > 5 && (
-                    <Text className="text-xs mt-1" style={{ color: accent[500] }}>
+                    <Text className="text-xs mt-1" style={{ color: theme.primary }}>
                       +{detail.transactionCount - 5} more
                     </Text>
                   )}

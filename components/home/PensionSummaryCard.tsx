@@ -2,12 +2,13 @@ import { Card, Text } from "@/components/ui";
 import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { FinancialAccount } from "@/services/financial-account";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { memo } from "react";
 import { Pressable, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 interface PensionSummaryCardProps {
   accounts: FinancialAccount[];
@@ -19,7 +20,8 @@ interface PensionSummaryCardProps {
 
 function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, lastContributionDate, ytdContributions }: PensionSummaryCardProps) {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   if (accounts.length === 0) return null;
 
@@ -42,12 +44,12 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
           <View className="flex-row items-center mb-3">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: acAlpha(accent, 600, 0.08) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
               <Ionicons
                 name="briefcase-outline"
                 size={20}
-                color={ac(accent, colorScheme, 700, 300)}
+                color={theme.primary}
               />
             </View>
             <Text className="text-sm font-semibold text-foreground flex-1">

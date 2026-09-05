@@ -9,8 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/hooks/use-alert";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
-import { ac } from "@/utils/accent";
+
 import { logger } from "@/utils/logger";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import {
@@ -26,6 +25,7 @@ import {
   updateScenario,
 } from "@/services/simulator";
 import type { SimulationScenario, ScenarioOverview } from "@/services/simulator";
+import { useTheme } from "@/hooks/use-theme";
 
 function endOfMonthIso(): string {
   const d = new Date();
@@ -51,7 +51,7 @@ export function SimulatorPage() {
   const router = useRouter();
   const alert = useAlert();
   const { colors, accent, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const theme = useTheme();
 
   const [active, setActive] = useState<ScenarioCardData[]>([]);
   const [archived, setArchived] = useState<SimulationScenario[]>([]);
@@ -193,9 +193,9 @@ export function SimulatorPage() {
           <View className="items-center justify-center px-6 pt-20 pb-8">
             <View
               className="w-16 h-16 rounded-full items-center justify-center mb-4"
-              style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.1) }}
             >
-              <Ionicons name="pulse-outline" size={32} color={accent[500]} />
+              <Ionicons name="pulse-outline" size={32} color={theme.primary} />
             </View>
             <Text className="text-lg font-bold text-center" style={{ color: colors.text }}>
               Plan your next month
@@ -207,7 +207,7 @@ export function SimulatorPage() {
             <Pressable
               onPress={() => setCreateSheetVisible(true)}
               className="mt-6 py-3 px-6 rounded-xl flex-row items-center"
-              style={{ backgroundColor: accent[500] }}
+              style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
               accessibilityLabel="Create your first scenario"
             >
@@ -243,7 +243,7 @@ export function SimulatorPage() {
               const netWorthEnd = (overview?.simulation.netWorthEnd ?? 0) + hisaabNet;
               const netWorthStart = (overview?.simulation.netWorthStart ?? 0) + hisaabNet;
               const delta = netWorthEnd - netWorthStart;
-              const deltaColor = delta >= 0 ? sc.success : sc.danger;
+              const deltaColor = delta >= 0 ? theme.success : theme.danger;
               const warnings = overview?.simulation.warnings ?? [];
 
               return (
@@ -260,9 +260,9 @@ export function SimulatorPage() {
                       {scenario.is_default === 1 && (
                         <View
                           className="ml-2 px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}
+                          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                         >
-                          <Text className="text-label font-semibold" style={{ color: accent[500] }}>
+                          <Text className="text-label font-semibold" style={{ color: theme.primary }}>
                             DEFAULT
                           </Text>
                         </View>
@@ -282,10 +282,10 @@ export function SimulatorPage() {
                       {warnings.length > 0 && (
                         <View
                           className="ml-2 flex-row items-center px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: sc.danger + "14" }}
+                          style={{ backgroundColor: theme.danger + "14" }}
                         >
-                          <Ionicons name="warning-outline" size={10} color={sc.danger} />
-                          <Text className="text-label font-semibold ml-1" style={{ color: sc.danger }}>
+                          <Ionicons name="warning-outline" size={10} color={theme.danger} />
+                          <Text className="text-label font-semibold ml-1" style={{ color: theme.danger }}>
                             {warnings.length} {warnings.length === 1 ? "issue" : "issues"}
                           </Text>
                         </View>
@@ -361,10 +361,10 @@ export function SimulatorPage() {
                     <Pressable
                       onPress={() => handleDelete(scenario)}
                       className="flex-1 py-2 items-center rounded-lg"
-                      style={{ backgroundColor: sc.danger + "14" }}
+                      style={{ backgroundColor: theme.danger + "14" }}
                       accessibilityLabel="Delete scenario"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: sc.danger }}>
+                      <Text className="text-xs font-semibold" style={{ color: theme.danger }}>
                         Delete
                       </Text>
                     </Pressable>
@@ -376,7 +376,7 @@ export function SimulatorPage() {
             <Pressable
               onPress={() => setCreateSheetVisible(true)}
               className="mx-4 mt-4 py-3 rounded-xl items-center flex-row justify-center"
-              style={{ backgroundColor: accent[500] }}
+              style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
               accessibilityLabel="Create new scenario"
             >
@@ -450,6 +450,7 @@ function NewScenarioSheet({
   onClose: () => void;
 }) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [horizon, setHorizon] = useState(endOfMonthIso());
@@ -557,9 +558,9 @@ function NewScenarioSheet({
                     onPress={() => setCopyFrom(null)}
                     className="px-3 py-2 rounded-full"
                     style={{
-                      backgroundColor: copyFrom === null ? ac(accent, colorScheme, 500, 300) + "26" : colors.surface,
+                      backgroundColor: copyFrom === null ? theme.primary + "26" : colors.surface,
                       borderWidth: 1,
-                      borderColor: copyFrom === null ? ac(accent, colorScheme, 500, 300) : colors.border,
+                      borderColor: copyFrom === null ? theme.primary : colors.border,
                     }}
                     accessibilityRole="button"
                     accessibilityState={{ selected: copyFrom === null }}
@@ -576,9 +577,9 @@ function NewScenarioSheet({
                         onPress={() => setCopyFrom(s.id)}
                         className="px-3 py-2 rounded-full"
                         style={{
-                          backgroundColor: isActive ? ac(accent, colorScheme, 500, 300) + "26" : colors.surface,
+                          backgroundColor: isActive ? theme.primary + "26" : colors.surface,
                           borderWidth: 1,
-                          borderColor: isActive ? ac(accent, colorScheme, 500, 300) : colors.border,
+                          borderColor: isActive ? theme.primary : colors.border,
                         }}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isActive }}
@@ -608,7 +609,7 @@ function NewScenarioSheet({
               onPress={() => onCreate(name, horizon, copyFrom)}
               disabled={!canSave}
               className="flex-1 py-3 rounded-xl items-center"
-              style={{ backgroundColor: accent[500], opacity: canSave ? 1 : 0.5 }}
+              style={{ backgroundColor: theme.primary, opacity: canSave ? 1 : 0.5 }}
             >
               <Text className="text-sm font-semibold text-white">Create</Text>
             </Pressable>

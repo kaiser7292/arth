@@ -22,7 +22,8 @@ import { consumeLoansPreload } from "@/services/home-preload";
 import { logger } from "@/utils/logger";
 import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
-import { ac, acAlpha } from "@/utils/accent";
+
+import { useTheme } from "@/hooks/use-theme";
 
 const preloaded = consumeLoansPreload();
 
@@ -41,6 +42,7 @@ export default function LoansListScreen() {
   const router = useRouter();
   const alert = useAlert();
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const [loans, setLoans] = useState<Array<LoanAccount & {
     bank_name: string;
     outstanding: number;
@@ -183,7 +185,7 @@ export default function LoansListScreen() {
             <View className="items-center py-8">
               <View
                 className="w-14 h-14 rounded-full items-center justify-center mb-3"
-                style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
               >
                 <Ionicons name="cash-outline" size={28} color={colors.blue} />
               </View>
@@ -252,6 +254,7 @@ function LoanCard({
   onPress: () => void;
 }) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const progress =
     loan.principal_disbursed > 0
       ? Math.min(100, ((loan.principal_disbursed - loan.outstanding) / loan.principal_disbursed) * 100)
@@ -262,7 +265,7 @@ function LoanCard({
         <View className="flex-row items-start mb-2">
           <View
             className="w-10 h-10 rounded-full items-center justify-center mr-3"
-            style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+            style={{ backgroundColor: theme.alpha("primary", 0.08) }}
           >
             <Ionicons name="cash-outline" size={20} color={colors.blue} />
           </View>
@@ -296,7 +299,7 @@ function LoanCard({
             style={{
               height: 4,
               width: `${progress}%`,
-              backgroundColor: ac(accent, colorScheme, 500, 400),
+              backgroundColor: theme.primary,
             }}
           />
         </View>

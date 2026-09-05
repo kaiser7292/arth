@@ -20,11 +20,13 @@ import {
   type LockTimeoutOption,
 } from "@/services/biometric-lock";
 import { useAlert } from "@/hooks/use-alert";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function SecuritySettingsScreen() {
-  const { colorScheme, accent } = useColorScheme();
+  const { colorScheme } = useColorScheme();
+  const uiTheme = useTheme();
   const theme = Colors[colorScheme];
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const accentColor = colorScheme === "dark" ? uiTheme.primary : uiTheme.primary;
   const router = useRouter();
   const alert = useAlert();
 

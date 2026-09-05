@@ -3,7 +3,8 @@ import { Text } from "@/components/ui";
 import { View, Pressable, TextInput, ScrollView, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface FilterOption {
   id: string;
@@ -32,7 +33,8 @@ export function FilterDropdown({
   autoOpen = false,
   onDismiss,
 }: FilterDropdownProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [open, setOpen] = useState(autoOpen);
   const [search, setSearch] = useState("");
 
@@ -74,7 +76,7 @@ export function FilterDropdown({
         <View className="flex-row items-center">
           <Text
             className="text-sm mr-1.5"
-            style={{ color: selectedCount > 0 ? accent[500] : colors.textSecondary }}
+            style={{ color: selectedCount > 0 ? theme.primary : colors.textSecondary }}
             numberOfLines={1}
           >
             {summaryText}
@@ -98,11 +100,11 @@ export function FilterDropdown({
               <View className="flex-row items-center">
                 {selectedCount > 0 && (
                   <Pressable onPress={() => onSelectionChange([])} className="mr-4">
-                    <Text className="text-xs" style={{ color: accent[500] }}>Clear</Text>
+                    <Text className="text-xs" style={{ color: theme.primary }}>Clear</Text>
                   </Pressable>
                 )}
                 <Pressable onPress={() => { setOpen(false); onDismiss?.(); }}>
-                  <Text className="text-xs font-medium" style={{ color: accent[500] }}>Done</Text>
+                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>Done</Text>
                 </Pressable>
               </View>
             </View>
@@ -135,9 +137,9 @@ export function FilterDropdown({
                     <View
                       className="w-5 h-5 rounded items-center justify-center mr-3"
                       style={{
-                        backgroundColor: isSelected ? accent[500] : "transparent",
+                        backgroundColor: isSelected ? theme.primary : "transparent",
                         borderWidth: isSelected ? 0 : 1.5,
-                        borderColor: isSelected ? accent[500] : colors.border,
+                        borderColor: isSelected ? theme.primary : colors.border,
                       }}
                     >
                       {isSelected && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}

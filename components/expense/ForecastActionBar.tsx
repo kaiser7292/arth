@@ -3,8 +3,9 @@ import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { ac } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface ForecastActionBarProps {
   forecastId: string;
@@ -27,7 +28,8 @@ export function ForecastActionBar({
   onRepaymentPaid,
   onPaidExternally,
 }: ForecastActionBarProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const alert = useAlert();
 
   const isRepayment = forecastType === "repayment";
@@ -95,7 +97,7 @@ export function ForecastActionBar({
           accessibilityRole="button"
           className="flex-row items-center mr-3 py-1"
         >
-          <Ionicons name="checkmark-circle-outline" size={14} color={StatusColors[colorScheme].success} />
+          <Ionicons name="checkmark-circle-outline" size={14} color={theme.success} />
           <Text className="text-label font-medium text-success ml-0.5">
             {isRepayment ? "Pay" : "Paid"}
           </Text>
@@ -108,7 +110,7 @@ export function ForecastActionBar({
             className="flex-row items-center mr-3 py-1"
           >
             <Ionicons name="arrow-forward-circle-outline" size={14} color={colors.blue} />
-            <Text className="text-label font-medium ml-0.5" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+            <Text className="text-label font-medium ml-0.5" style={{ color: theme.primary }}>
               Realise
             </Text>
           </Pressable>
@@ -132,7 +134,7 @@ export function ForecastActionBar({
           accessibilityRole="button"
           className="flex-row items-center py-1"
         >
-          <Ionicons name="trash-outline" size={13} color={StatusColors[colorScheme].danger} />
+          <Ionicons name="trash-outline" size={13} color={theme.danger} />
           <Text className="text-label font-medium text-danger ml-0.5">
             Delete
           </Text>
@@ -149,7 +151,7 @@ export function ForecastActionBar({
         accessibilityRole="button"
         className="flex-1 items-center py-2"
       >
-        <Ionicons name="checkmark-circle-outline" size={20} color={StatusColors[colorScheme].success} />
+        <Ionicons name="checkmark-circle-outline" size={20} color={theme.success} />
         <Text className="text-xs font-medium text-success mt-1">
           {isRepayment ? "Pay Bill" : "Mark as Paid"}
         </Text>
@@ -175,7 +177,7 @@ export function ForecastActionBar({
           className="flex-1 items-center py-2"
         >
           <Ionicons name="arrow-forward-circle-outline" size={20} color={colors.blue} />
-          <Text className="text-xs font-medium mt-1" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+          <Text className="text-xs font-medium mt-1" style={{ color: theme.primary }}>
             Realise Now
           </Text>
         </Pressable>
@@ -187,7 +189,7 @@ export function ForecastActionBar({
         accessibilityRole="button"
         className="flex-1 items-center py-2"
       >
-        <Ionicons name="trash-outline" size={20} color={StatusColors[colorScheme].danger} />
+        <Ionicons name="trash-outline" size={20} color={theme.danger} />
         <Text className="text-xs font-medium text-danger mt-1">
           Delete
         </Text>

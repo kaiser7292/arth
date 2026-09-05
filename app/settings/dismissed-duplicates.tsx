@@ -6,7 +6,7 @@ import { ScreenContainer, Text } from "@/components/ui";
 import { DuplicateGroupCard } from "@/components/expense/DuplicateGroupCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getDismissedDuplicateGroups,
@@ -14,12 +14,14 @@ import {
   clearDismissedDuplicates,
   type DismissedGroup,
 } from "@/services/duplicate-detection";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function DismissedDuplicatesScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme } = useColorScheme();
-  const warn = StatusColors[colorScheme].warning;
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const warn = theme.warning;
 
   const [groups, setGroups] = useState<DismissedGroup[]>([]);
   const [loading, setLoading] = useState(true);

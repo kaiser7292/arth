@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 
 import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
@@ -20,6 +20,7 @@ import {
   exportSpendingPersonalityPDF,
   sharePDF,
 } from "@/services/reports/report-pdf-export";
+import { useTheme } from "@/hooks/use-theme";
 
 function PersonalityBadge({ archetype, colorScheme }: { archetype: SpendingPersonalityReport["archetype"]; colorScheme: "light" | "dark" }) {
   return (
@@ -53,7 +54,7 @@ const SENTIMENT_COLORS = {
 export default function SpendingPersonalityReportScreen() {
   const router = useRouter();
   const { colorScheme, colors } = useColorScheme();
-  const status = StatusColors[colorScheme];
+  const theme = useTheme();
   const tint = colors.tint;
 
   const [report, setReport] = useState<SpendingPersonalityReport | null>(null);
@@ -181,7 +182,7 @@ export default function SpendingPersonalityReportScreen() {
                   How predictable your spending is month-to-month
                 </Text>
               </View>
-              <Text className="text-2xl font-bold" style={{ color: report.consistencyScore >= 70 ? status.success : report.consistencyScore >= 40 ? status.warning : status.danger }}>
+              <Text className="text-2xl font-bold" style={{ color: report.consistencyScore >= 70 ? theme.success : report.consistencyScore >= 40 ? theme.warning : theme.danger }}>
                 {Math.round(report.consistencyScore)}
               </Text>
             </View>
@@ -190,7 +191,7 @@ export default function SpendingPersonalityReportScreen() {
                 className="h-full rounded-full"
                 style={{
                   width: `${Math.min(100, report.consistencyScore)}%`,
-                  backgroundColor: report.consistencyScore >= 70 ? status.success : report.consistencyScore >= 40 ? status.warning : status.danger,
+                  backgroundColor: report.consistencyScore >= 70 ? theme.success : report.consistencyScore >= 40 ? theme.warning : theme.danger,
                 }}
               />
             </View>
@@ -223,7 +224,7 @@ export default function SpendingPersonalityReportScreen() {
                         <Ionicons
                           name={cat.trend === "rising" ? "trending-up" : "trending-down"}
                           size={12}
-                          color={cat.trend === "rising" ? status.danger : status.success}
+                          color={cat.trend === "rising" ? theme.danger : theme.success}
                         />
                       )}
                     </View>
@@ -289,16 +290,16 @@ export default function SpendingPersonalityReportScreen() {
                 const isPeak = d.avgSpend === Math.max(...report.dayOfWeekPattern.map((x) => x.avgSpend));
                 return (
                   <View key={d.day} className="flex-1 items-center gap-1">
-                    <Text className="text-xs" style={{ fontSize: 8, color: isPeak ? status.warning : colors.textSecondary }}>
+                    <Text className="text-xs" style={{ fontSize: 8, color: isPeak ? theme.warning : colors.textSecondary }}>
                       {formatAmount(d.avgSpend)}
                     </Text>
                     <View
                       className="w-full rounded-t"
                       style={{
                         height: h,
-                        backgroundColor: isPeak ? status.warning : `${tint}30`,
+                        backgroundColor: isPeak ? theme.warning : `${tint}30`,
                         borderWidth: isPeak ? 1 : 0,
-                        borderColor: status.warning,
+                        borderColor: theme.warning,
                       }}
                     />
                   </View>
@@ -389,14 +390,14 @@ export default function SpendingPersonalityReportScreen() {
             <View className="flex-row gap-3">
               <View className="flex-1 bg-card rounded-xl p-3 border border-border">
                 <Text className="text-xs text-muted-foreground">Highest month</Text>
-                <Text className="text-sm font-bold" style={{ color: status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatAmount(report.highestSpendMonth.total)}</Text>
+                <Text className="text-sm font-bold" style={{ color: theme.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatAmount(report.highestSpendMonth.total)}</Text>
                 <Text className="text-xs text-muted-foreground">
                   {new Date(report.highestSpendMonth.month + "-01").toLocaleString("en-IN", { month: "short", year: "numeric" })}
                 </Text>
               </View>
               <View className="flex-1 bg-card rounded-xl p-3 border border-border">
                 <Text className="text-xs text-muted-foreground">Lowest month</Text>
-                <Text className="text-sm font-bold" style={{ color: status.success }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatAmount(report.lowestSpendMonth.total)}</Text>
+                <Text className="text-sm font-bold" style={{ color: theme.success }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatAmount(report.lowestSpendMonth.total)}</Text>
                 <Text className="text-xs text-muted-foreground">
                   {new Date(report.lowestSpendMonth.month + "-01").toLocaleString("en-IN", { month: "short", year: "numeric" })}
                 </Text>
@@ -411,9 +412,9 @@ export default function SpendingPersonalityReportScreen() {
             <SectionHeader title="Behavioral Insights" />
             {report.insights.map((insight, i) => {
               const sentimentColor = insight.sentiment === "positive"
-                ? status.success
+                ? theme.success
                 : insight.sentiment === "warning"
-                  ? status.warning
+                  ? theme.warning
                   : colors.textSecondary;
               return (
                 <View key={i} className="mb-2">

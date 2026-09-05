@@ -4,7 +4,7 @@ import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getScanRuns,
@@ -16,6 +16,7 @@ import {
 import { listRules } from "@/services/smart-rules";
 import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
+import { useTheme } from "@/hooks/use-theme";
 
 type ViewMode = "list" | "drilldown" | "category";
 
@@ -32,7 +33,8 @@ const CATEGORY_META: Record<
 
 export default function SmsScanRunsScreen() {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [runs, setRuns] = useState<ScanRunRow[]>([]);
@@ -123,12 +125,12 @@ export default function SmsScanRunsScreen() {
             <View className="flex-row items-center">
               <View
                 className="w-7 h-7 rounded-full items-center justify-center mr-2"
-                style={{ backgroundColor: accent[500] + "18" }}
+                style={{ backgroundColor: theme.alpha("primary", 0.09) }}
               >
                 <Ionicons
                   name={item.is_manual ? "scan-outline" : "time-outline"}
                   size={14}
-                  color={accent[500]}
+                  color={theme.primary}
                 />
               </View>
               <Text className="text-sm font-semibold text-foreground">
@@ -223,17 +225,17 @@ export default function SmsScanRunsScreen() {
             <MiniStat
               label="Parsed"
               value={selectedRun.hardcoded_match_count + selectedRun.template_match_count}
-              color={StatusColors[colorScheme].success}
+              color={theme.success}
             />
             <MiniStat
               label="Filtered"
               value={selectedRun.filtered_count}
-              color={StatusColors[colorScheme].warning}
+              color={theme.warning}
             />
             <MiniStat
               label="Created"
               value={selectedRun.expense_created_count + selectedRun.credit_created_count}
-              color={accent[500]}
+              color={theme.primary}
             />
           </View>
           {selectedRun.duration_ms != null && (
@@ -245,7 +247,7 @@ export default function SmsScanRunsScreen() {
 
         {/* Category cards */}
         {detailsLoading ? (
-          <ActivityIndicator size="small" color={accent[500]} className="mt-4" />
+          <ActivityIndicator size="small" color={theme.primary} className="mt-4" />
         ) : (
           <FlatList
             data={categories.filter((c) => counts[c] > 0)}
@@ -254,9 +256,7 @@ export default function SmsScanRunsScreen() {
               const meta = CATEGORY_META[cat];
               const count = counts[cat];
               const catColor =
-                meta.colorKey === "info"
-                  ? accent[500]
-                  : StatusColors[colorScheme][meta.colorKey];
+                meta.colorKey === "info" ? theme.primary : theme[meta.colorKey];
 
               return (
                 <Pressable
@@ -332,19 +332,17 @@ export default function SmsScanRunsScreen() {
           <View
             className="w-8 h-8 rounded-full items-center justify-center mr-2"
             style={{
-              backgroundColor:
-                (meta.colorKey === "info"
-                  ? accent[500]
-                  : StatusColors[colorScheme][meta.colorKey]) + "18",
+              backgroundColor: theme.alpha(
+                meta.colorKey === "info" ? "primary" : meta.colorKey,
+                0.09,
+              ),
             }}
           >
             <Ionicons
               name={meta.icon as any}
               size={16}
               color={
-                meta.colorKey === "info"
-                  ? accent[500]
-                  : StatusColors[colorScheme][meta.colorKey]
+                meta.colorKey === "info" ? theme.primary : theme[meta.colorKey]
               }
             />
           </View>
@@ -465,8 +463,8 @@ export default function SmsScanRunsScreen() {
                 </Text>
                 {ruleIds.map((id) => (
                   <View key={id} className="flex-row items-center py-0.5">
-                    <Ionicons name="sparkles" size={10} color={accent[500]} style={{ marginRight: 4 }} />
-                    <Text className="text-xs font-medium" style={{ color: accent[500] }}>
+                    <Ionicons name="sparkles" size={10} color={theme.primary} style={{ marginRight: 4 }} />
+                    <Text className="text-xs font-medium" style={{ color: theme.primary }}>
                       {ruleNameMap[id] ?? id}
                     </Text>
                   </View>
@@ -489,8 +487,8 @@ export default function SmsScanRunsScreen() {
               }}
               className="flex-row items-center mt-2 pt-2 border-t border-border"
             >
-              <Ionicons name="add-circle-outline" size={14} color={accent[500]} />
-              <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+              <Ionicons name="add-circle-outline" size={14} color={theme.primary} />
+              <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
                 Teach Arth this SMS
               </Text>
             </Pressable>
@@ -502,9 +500,9 @@ export default function SmsScanRunsScreen() {
 
   function ParsedRow({ label, value, isWarning, isAccent }: { label: string; value: string; isWarning?: boolean; isAccent?: boolean }) {
     const valueColor = isWarning
-      ? StatusColors[colorScheme].warning
+      ? theme.warning
       : isAccent
-        ? accent[500]
+        ? theme.primary
         : undefined;
     return (
       <View className="flex-row items-center justify-between py-0.5">
@@ -528,9 +526,7 @@ export default function SmsScanRunsScreen() {
     label: string;
     colorKey?: "success" | "warning" | "danger";
   }) {
-    const pillColor = colorKey
-      ? StatusColors[colorScheme][colorKey]
-      : colors.textSecondary;
+    const pillColor = colorKey ? theme[colorKey] : theme.mutedForeground;
 
     return (
       <View
@@ -596,7 +592,7 @@ export default function SmsScanRunsScreen() {
           headerLeft: showBackButton
             ? () => (
                 <Pressable onPress={handleBack} hitSlop={8}>
-                  <Ionicons name="chevron-back" size={24} color={accent[500]} />
+                  <Ionicons name="chevron-back" size={24} color={theme.primary} />
                 </Pressable>
               )
             : undefined,
@@ -607,7 +603,7 @@ export default function SmsScanRunsScreen() {
         <>
           {loading ? (
             <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color={accent[500]} />
+              <ActivityIndicator size="large" color={theme.primary} />
             </View>
           ) : runs.length === 0 ? (
             <View className="flex-1 items-center justify-center">

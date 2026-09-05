@@ -6,7 +6,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
 import type { BreachedAccount } from "@/services/min-balance";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.5.0 — Home screen card shown when a savings account drops below
@@ -25,8 +26,9 @@ export interface MinBalanceAlertProps {
 
 function MinBalanceAlertImpl({ breach, onDismiss }: MinBalanceAlertProps) {
   const router = useRouter();
-  const { colors, colorScheme } = useColorScheme();
-  const dangerColor = StatusColors[colorScheme].danger;
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const dangerColor = theme.danger;
 
   const { account, currentBalance, threshold, shortfall } = breach;
   const accountLabel = account.account_label || `${account.bank_name} •••${account.account_identifier}`;

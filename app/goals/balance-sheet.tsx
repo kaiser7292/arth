@@ -5,15 +5,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount, formatCompact } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getCurrentFY, getFYRange, getFYLabel, formatLocalDate } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { getBalanceSheet, hasDataInRange } from "@/services/balance-sheet";
 import type { BalanceSheetColumn, BalanceSheetRow } from "@/services/balance-sheet";
 import { consumeBalanceSheetPreload } from "@/services/home-preload";
+import { useTheme } from "@/hooks/use-theme";
 
 const preloaded = consumeBalanceSheetPreload();
 
@@ -31,8 +32,8 @@ const LABEL_COL_WIDTH = 150;
 
 export default function BalanceSheetScreen() {
   const router = useRouter();
-  const { accent, colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [columns, setColumns] = useState<BalanceSheetColumn[]>(
     preloaded ? [preloaded.liveColumn] : [],
   );
@@ -226,9 +227,9 @@ export default function BalanceSheetScreen() {
   const historicNetWorth = earliestHistoric?.netWorth ?? 0;
   const deltaAbs = liveNetWorth - historicNetWorth;
   const deltaPct = historicNetWorth !== 0 ? (deltaAbs / Math.abs(historicNetWorth)) * 100 : 0;
-  const deltaColor = deltaAbs > 0 ? sc.success : deltaAbs < 0 ? sc.danger : sc.muted;
+  const deltaColor = deltaAbs > 0 ? theme.success : deltaAbs < 0 ? theme.danger : theme.faintForeground;
   const liveNetWorthColor =
-    liveNetWorth < 0 ? sc.danger : sc.success;
+    liveNetWorth < 0 ? theme.danger : theme.success;
 
   return (
     <ScreenContainer padTop={false}>
@@ -242,10 +243,10 @@ export default function BalanceSheetScreen() {
             {recomputing && (
               <View
                 className="flex-row items-center px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: accent[500] + "1A" }}
+                style={{ backgroundColor: theme.alpha("primary", 0.1) }}
               >
-                <ActivityIndicator size="small" color={accent[500]} />
-                <Text className="text-label font-semibold ml-1.5" style={{ color: accent[500] }}>
+                <ActivityIndicator size="small" color={theme.primary} />
+                <Text className="text-label font-semibold ml-1.5" style={{ color: theme.primary }}>
                   Updating…
                 </Text>
               </View>
@@ -253,7 +254,7 @@ export default function BalanceSheetScreen() {
           </View>
           <View className="flex-row items-end" style={{ opacity: recomputing ? 0.55 : 1 }}>
             {liveNetWorth < 0 && (
-              <Ionicons name="warning-outline" size={20} color={sc.danger} style={{ marginRight: 6 }} />
+              <Ionicons name="warning-outline" size={20} color={theme.danger} style={{ marginRight: 6 }} />
             )}
             <Text className="text-2xl font-bold" style={{ color: liveNetWorthColor }}>
               {formatAmount(liveNetWorth)}
@@ -299,7 +300,7 @@ export default function BalanceSheetScreen() {
                   >
                     <Text
                       className="text-label font-semibold uppercase tracking-wider"
-                      style={{ color: col.isLive ? ac(accent, colorScheme, 600, 200) : colors.textSecondary }}
+                      style={{ color: col.isLive ? theme.primary : colors.textSecondary }}
                       numberOfLines={1}
                     >
                       {col.label}
@@ -334,7 +335,7 @@ export default function BalanceSheetScreen() {
                   <Ionicons
                     name="add-circle-outline"
                     size={22}
-                    color={ac(accent, colorScheme, 500, 300)}
+                    color={theme.primary}
                   />
                 </Pressable>
               </View>
@@ -343,7 +344,7 @@ export default function BalanceSheetScreen() {
               <Pressable
                 onPress={() => setShowAssets(!showAssets)}
                 className="flex-row items-center px-3 py-2 border-b border-border"
-                style={{ backgroundColor: acAlpha(accent, 500, 0.04) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.04) }}
               >
                 <Ionicons
                   name={showAssets ? "chevron-down" : "chevron-forward"}
@@ -378,9 +379,9 @@ export default function BalanceSheetScreen() {
                           className="text-xs"
                           style={{
                             color: isMissing
-                              ? sc.muted
+                              ? theme.faintForeground
                               : cell?.isFallback
-                                ? sc.muted
+                                ? theme.faintForeground
                                 : colors.text,
                             fontStyle: cell?.isFallback ? "italic" : "normal",
                           }}
@@ -404,7 +405,7 @@ export default function BalanceSheetScreen() {
                   </Text>
                   {columns.map((col) => (
                     <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                      <Text className="text-xs font-bold" style={{ color: sc.success }}>
+                      <Text className="text-xs font-bold" style={{ color: theme.success }}>
                         {formatAmount(col.totalAssets)}
                       </Text>
                     </View>
@@ -416,7 +417,7 @@ export default function BalanceSheetScreen() {
               <Pressable
                 onPress={() => setShowLiabilities(!showLiabilities)}
                 className="flex-row items-center px-3 py-2 border-b border-border"
-                style={{ backgroundColor: sc.danger + "0A" }}
+                style={{ backgroundColor: theme.danger + "0A" }}
               >
                 <Ionicons
                   name={showLiabilities ? "chevron-down" : "chevron-forward"}
@@ -451,9 +452,9 @@ export default function BalanceSheetScreen() {
                           className="text-xs"
                           style={{
                             color: isMissing
-                              ? sc.muted
+                              ? theme.faintForeground
                               : cell?.isFallback
-                                ? sc.muted
+                                ? theme.faintForeground
                                 : colors.text,
                             fontStyle: cell?.isFallback ? "italic" : "normal",
                           }}
@@ -477,7 +478,7 @@ export default function BalanceSheetScreen() {
                   </Text>
                   {columns.map((col) => (
                     <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                      <Text className="text-xs font-bold" style={{ color: sc.danger }}>
+                      <Text className="text-xs font-bold" style={{ color: theme.danger }}>
                         {formatAmount(col.totalLiabilities)}
                       </Text>
                     </View>
@@ -488,7 +489,7 @@ export default function BalanceSheetScreen() {
               {/* Net Worth */}
               <View
                 className="flex-row items-center px-3 py-3"
-                style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
               >
                 <Text
                   className="text-xs font-bold text-foreground"
@@ -501,7 +502,7 @@ export default function BalanceSheetScreen() {
                     <Text
                       className="text-sm font-bold"
                       style={{
-                        color: col.netWorth < 0 ? sc.danger : colors.text,
+                        color: col.netWorth < 0 ? theme.danger : colors.text,
                       }}
                     >
                       {formatAmount(col.netWorth)}

@@ -6,7 +6,7 @@ import { FlatList, Pressable, SectionList, TextInput, View } from "react-native"
 import { FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { VaultIcon } from "@/components/ui/VaultIcon";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import {
   VAULT_CATEGORY_GROUPS,
   VAULT_CATEGORY_ICONS,
@@ -16,10 +16,12 @@ import {
   searchVaultEntries,
 } from "@/services/vault";
 import { consumeVaultPreload } from "@/services/home-preload";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function VaultIndexScreen() {
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -164,17 +166,17 @@ export default function VaultIndexScreen() {
             <View className="flex-row items-center px-4 pt-5 pb-1">
               <View
                 className="w-5 h-5 rounded-md items-center justify-center mr-2"
-                style={{ backgroundColor: ac(accent, colorScheme, 500, 300) + "22" }}
+                style={{ backgroundColor: theme.primary + "22" }}
               >
                 <Ionicons
                   name={section.icon as any}
                   size={11}
-                  color={ac(accent, colorScheme, 500, 300)}
+                  color={theme.primary}
                 />
               </View>
               <Text
                 className="text-xs font-semibold uppercase tracking-wider"
-                style={{ color: ac(accent, colorScheme, 600, 400) }}
+                style={{ color: theme.primary }}
               >
                 {section.title}
               </Text>

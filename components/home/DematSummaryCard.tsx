@@ -4,9 +4,10 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
 import { STATUS_COLORS } from "@/constants/semantic-colors";
+import { useTheme } from "@/hooks/use-theme";
 
 interface DematSummaryCardProps {
   totalPortfolio: number;
@@ -20,7 +21,8 @@ function DematSummaryCardImpl({
   accountCount,
 }: DematSummaryCardProps) {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   if (accountCount === 0) return null;
 
@@ -39,12 +41,12 @@ function DematSummaryCardImpl({
           <View className="flex-row items-center mb-3">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: acAlpha(accent, 600, 0.08) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
               <Ionicons
                 name="trending-up-outline"
                 size={20}
-                color={ac(accent, colorScheme, 700, 300)}
+                color={theme.primary}
               />
             </View>
             <Text className="text-sm font-semibold text-foreground flex-1">

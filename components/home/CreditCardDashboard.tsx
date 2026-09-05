@@ -4,10 +4,11 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
 import { STATUS_COLORS } from "@/constants/semantic-colors";
 import type { FinancialAccount } from "@/services/financial-account";
+import { useTheme } from "@/hooks/use-theme";
 
 interface CreditCardDashboardProps {
   accounts: FinancialAccount[];
@@ -23,7 +24,8 @@ function getUtilColor(pct: number): string {
 
 function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: CreditCardDashboardProps) {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   if (accounts.length === 0) return null;
 
@@ -88,12 +90,12 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
           <View className="flex-row items-center mb-3">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
               <Ionicons
                 name="card-outline"
                 size={20}
-                color={ac(accent, colorScheme, 600, 300)}
+                color={theme.primary}
               />
             </View>
             <Text className="text-sm font-semibold text-foreground flex-1">

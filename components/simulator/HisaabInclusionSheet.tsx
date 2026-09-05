@@ -10,8 +10,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StatusColors } from "@/constants/theme";
-import { ac } from "@/utils/accent";
+
+
 import { formatAmount } from "@/utils/format";
 import {
   listHisaabInclusionCandidates,
@@ -19,6 +19,7 @@ import {
   removeHisaabInclusion,
   type HisaabInclusionCandidate,
 } from "@/services/simulator";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v16.0.5 — per-scenario hisaab inclusion sheet.
@@ -92,9 +93,9 @@ export function HisaabInclusionSheet({
   onSaved,
   onClose,
 }: Props) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const sc = StatusColors[colorScheme];
   const slideAnim = useSharedValue(400);
 
   const [loading, setLoading] = useState(false);
@@ -297,13 +298,13 @@ export function HisaabInclusionSheet({
             >
               {/* Running totals — only if anything's included */}
               {(totalAvailable > 0 || totalOwed > 0) && (
-                <View className="mx-5 mb-3 py-2.5 px-3 rounded-lg" style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}>
+                <View className="mx-5 mb-3 py-2.5 px-3 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                   {totalAvailable > 0 && (
                     <View className="flex-row items-center justify-between">
                       <Text className="text-xs" style={{ color: colors.textSecondary }}>
                         Added to money available
                       </Text>
-                      <Text className="text-sm font-bold" style={{ color: sc.success }}>
+                      <Text className="text-sm font-bold" style={{ color: theme.success }}>
                         +{formatAmount(totalAvailable)}
                       </Text>
                     </View>
@@ -313,7 +314,7 @@ export function HisaabInclusionSheet({
                       <Text className="text-xs" style={{ color: colors.textSecondary }}>
                         Added to money owed
                       </Text>
-                      <Text className="text-sm font-bold" style={{ color: sc.danger }}>
+                      <Text className="text-sm font-bold" style={{ color: theme.danger }}>
                         {formatAmount(totalOwed)}
                       </Text>
                     </View>
@@ -326,7 +327,7 @@ export function HisaabInclusionSheet({
                 const balanceLabel = isPositive
                   ? `Owes you ${formatAmount(Math.abs(r.currentBalance))}`
                   : `You owe ${formatAmount(Math.abs(r.currentBalance))}`;
-                const sideColor = isPositive ? sc.success : sc.danger;
+                const sideColor = isPositive ? theme.success : theme.danger;
                 return (
                   <View
                     key={r.personId}
@@ -430,7 +431,7 @@ export function HisaabInclusionSheet({
               onPress={handleSave}
               disabled={saving || loading}
               className="flex-1 py-3 rounded-xl items-center"
-              style={{ backgroundColor: accent[500], opacity: saving || loading ? 0.5 : 1 }}
+              style={{ backgroundColor: theme.primary, opacity: saving || loading ? 0.5 : 1 }}
               accessibilityRole="button"
               accessibilityLabel="Save hisaab inclusion"
             >

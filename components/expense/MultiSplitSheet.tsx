@@ -16,8 +16,9 @@ import type { HisaabPersonWithBalance } from "@/services/hisaab";
 import type { MultiSplitConfig, MultiSplitEntry } from "@/services/expense-multi-split";
 import { formatAmount } from "@/utils/format";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
-import { ac, acAlpha } from "@/utils/accent";
+
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface MultiSplitSheetProps {
   visible: boolean;
@@ -54,7 +55,8 @@ export function MultiSplitSheet({
   const [confirming, setConfirming] = useState(false);
   const [showAddPerson, setShowAddPerson] = useState(false);
 
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
 
   const slideAnim = useSharedValue(0);
@@ -246,7 +248,7 @@ export function MultiSplitSheet({
                     <Pressable
                       onPress={handleAddPerson}
                       className="rounded-xl px-4 py-3"
-                      style={{ backgroundColor: accent[500] }}
+                      style={{ backgroundColor: theme.primary }}
                     >
                       <Text className="text-white font-semibold">Add</Text>
                     </Pressable>
@@ -255,10 +257,10 @@ export function MultiSplitSheet({
                   <Pressable
                     onPress={() => setShowAddPerson(true)}
                     className="flex-row items-center p-4 rounded-xl border border-dashed"
-                    style={{ borderColor: ac(accent, colorScheme, 300, 700) }}
+                    style={{ borderColor: theme.alpha("primary", 0.25) }}
                   >
-                    <Ionicons name="add-circle-outline" size={20} color={accent[500]} />
-                    <Text className="text-sm font-medium ml-2" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                    <Ionicons name="add-circle-outline" size={20} color={theme.primary} />
+                    <Text className="text-sm font-medium ml-2" style={{ color: theme.primary }}>
                       Add new person
                     </Text>
                   </Pressable>
@@ -296,8 +298,8 @@ export function MultiSplitSheet({
                     className="rounded-xl border border-border p-3"
                   >
                     <View className="flex-row items-center mb-2">
-                      <View className="w-7 h-7 rounded-full items-center justify-center mr-2" style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}>
-                        <Text className="text-xs font-bold" style={{ color: accent[500] }}>
+                      <View className="w-7 h-7 rounded-full items-center justify-center mr-2" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                        <Text className="text-xs font-bold" style={{ color: theme.primary }}>
                           {getPersonName(split.personId).charAt(0).toUpperCase()}
                         </Text>
                       </View>
@@ -313,7 +315,7 @@ export function MultiSplitSheet({
                         </Text>
                       </Pressable>
                       <Pressable onPress={() => handleRemoveSplit(index)} hitSlop={8}>
-                        <Ionicons name="close-circle" size={20} color={StatusColors[colorScheme].danger} />
+                        <Ionicons name="close-circle" size={20} color={theme.danger} />
                       </Pressable>
                     </View>
                     <View className="flex-row gap-2">
@@ -340,10 +342,10 @@ export function MultiSplitSheet({
                 <Pressable
                   onPress={handleAddSplit}
                   className="flex-row items-center justify-center py-3 rounded-xl border border-dashed"
-                  style={{ borderColor: ac(accent, colorScheme, 300, 700) }}
+                  style={{ borderColor: theme.alpha("primary", 0.25) }}
                 >
-                  <Ionicons name="add-circle-outline" size={18} color={accent[500]} />
-                  <Text className="text-sm font-medium ml-2" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                  <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
+                  <Text className="text-sm font-medium ml-2" style={{ color: theme.primary }}>
                     Add Split
                   </Text>
                 </Pressable>
@@ -362,7 +364,7 @@ export function MultiSplitSheet({
                       <>
                         <View className="flex-row justify-between">
                           <Text className="text-xs text-muted-foreground">My share</Text>
-                          <Text className="text-xs font-semibold" style={{ color: StatusColors[colorScheme].warning }}>
+                          <Text className="text-xs font-semibold" style={{ color: theme.warning }}>
                             {formatAmount(convenienceFee)}
                           </Text>
                         </View>
@@ -372,13 +374,13 @@ export function MultiSplitSheet({
                             onPress={() => setFeeAbsorbed(true)}
                             className="flex-1 py-2 items-center rounded-l-lg border"
                             style={feeAbsorbed
-                              ? { borderColor: accent[500], backgroundColor: acAlpha(accent, 500, 0.08) }
+                              ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.08) }
                               : { borderColor: colors.border }
                             }
                           >
                             <Text
                               className="text-xs font-medium"
-                              style={{ color: feeAbsorbed ? accent[500] : colors.textSecondary }}
+                              style={{ color: feeAbsorbed ? theme.primary : colors.textSecondary }}
                             >
                               I absorb
                             </Text>
@@ -387,13 +389,13 @@ export function MultiSplitSheet({
                             onPress={() => setFeeAbsorbed(false)}
                             className="flex-1 py-2 items-center rounded-r-lg border border-l-0"
                             style={!feeAbsorbed
-                              ? { borderColor: accent[500], backgroundColor: acAlpha(accent, 500, 0.08) }
+                              ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.08) }
                               : { borderColor: colors.border }
                             }
                           >
                             <Text
                               className="text-xs font-medium"
-                              style={{ color: !feeAbsorbed ? accent[500] : colors.textSecondary }}
+                              style={{ color: !feeAbsorbed ? theme.primary : colors.textSecondary }}
                             >
                               Split fee
                             </Text>
@@ -406,7 +408,7 @@ export function MultiSplitSheet({
 
                     <View className="flex-row justify-between">
                       <Text className="text-sm font-semibold text-foreground">My budget</Text>
-                      <Text className="text-sm font-bold" style={{ color: ac(accent, colorScheme, 600, 300) }}>
+                      <Text className="text-sm font-bold" style={{ color: theme.primary }}>
                         {formatAmount(myShare)}
                       </Text>
                     </View>
@@ -422,7 +424,7 @@ export function MultiSplitSheet({
               onPress={handleConfirm}
               disabled={!canConfirm}
               className={`mt-4 items-center py-4 rounded-2xl ${!canConfirm ? "bg-border" : ""}`}
-              style={canConfirm ? { backgroundColor: accent[500] } : undefined}
+              style={canConfirm ? { backgroundColor: theme.primary } : undefined}
             >
               <Text className="text-base font-bold text-white">Confirm Split</Text>
             </Pressable>

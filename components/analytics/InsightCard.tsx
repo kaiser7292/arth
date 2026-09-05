@@ -2,9 +2,10 @@ import { View, Pressable } from "react-native";
 import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors, Shadows } from "@/constants/theme";
+import { Shadows } from "@/constants/theme";
 import { MiniTrendSpark } from "./MiniTrendSpark";
 import type { InsightSeverity } from "@/services/insight-engine";
+import { useTheme } from "@/hooks/use-theme";
 
 const SEVERITY_ICONS: Record<InsightSeverity, keyof typeof Ionicons.glyphMap> = {
   celebrate: "sparkles",
@@ -28,14 +29,14 @@ export function InsightCard({
   trendData,
   onPress,
 }: InsightCardProps) {
-  const { colorScheme } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   const severityColor = {
-    celebrate: statusColors.success,
-    info: statusColors.muted,
-    warning: statusColors.warning,
-    critical: statusColors.danger,
+    celebrate: theme.success,
+    info: theme.faintForeground,
+    warning: theme.warning,
+    critical: theme.danger,
   }[severity];
 
   return (
@@ -71,7 +72,7 @@ export function InsightCard({
           <Ionicons
             name="chevron-forward"
             size={16}
-            color={statusColors.muted}
+            color={theme.faintForeground}
           />
         </View>
       </View>

@@ -3,7 +3,7 @@ import { View, Pressable, Modal, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
 import {
   getBalanceSourceInfo,
@@ -12,6 +12,7 @@ import {
   type AutoApplyResult,
 } from "@/services/balance-source";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
+import { useTheme } from "@/hooks/use-theme";
 
 interface BalanceSourceCardProps {
   accountId: string;
@@ -45,7 +46,8 @@ function formatShortDate(yyyymmdd: string): string {
 }
 
 export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountType }: BalanceSourceCardProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [info, setInfo] = useState<BalanceSourceInfo | null>(null);
   const [showSourceSms, setShowSourceSms] = useState(false);
   const [showCandidateSms, setShowCandidateSms] = useState(false);
@@ -128,7 +130,7 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
           </View>
           <Text
             className="text-base font-semibold text-foreground"
-            style={isStale ? { textDecorationLine: "line-through", color: StatusColors[colorScheme].muted } : undefined}
+            style={isStale ? { textDecorationLine: "line-through", color: theme.faintForeground } : undefined}
           >
             {formatAmount(autoDetectedBalance!)}
           </Text>
@@ -156,9 +158,9 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
       {(isStale || mismatch) && (
         <View
           className="mt-3 p-3 rounded-lg"
-          style={{ backgroundColor: StatusColors[colorScheme].warning + "14" }}
+          style={{ backgroundColor: theme.warning + "14" }}
         >
-          <Text className="text-xs leading-4" style={{ color: StatusColors[colorScheme].warning }}>
+          <Text className="text-xs leading-4" style={{ color: theme.warning }}>
             {isStale
               ? "New activity recorded after the last balance SMS. Using the Calculated balance."
               : `Auto-detected and Calculated differ by ${formatAmount(Math.abs((calculatedBalance ?? 0) - (autoDetectedBalance ?? 0)))}. An untracked transaction may have occurred.`}
@@ -171,12 +173,12 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
         <View className="mt-3">
           <View
             className="p-3 rounded-lg mb-2"
-            style={{ backgroundColor: StatusColors[colorScheme].warning + "14" }}
+            style={{ backgroundColor: theme.warning + "14" }}
           >
-            <Text className="text-xs font-medium" style={{ color: StatusColors[colorScheme].warning }}>
+            <Text className="text-xs font-medium" style={{ color: theme.warning }}>
               Newer SMS found but couldn't be applied
             </Text>
-            <Text className="text-xs mt-1 leading-4" style={{ color: StatusColors[colorScheme].warning }}>
+            <Text className="text-xs mt-1 leading-4" style={{ color: theme.warning }}>
               {formatSmsTimestamp(autoApply.candidateSms.sms_date)}
               {autoApply.reason === "no_balance_in_sms" ? " - no balance in it." :
                autoApply.reason === "parse_failed" ? " - couldn't parse." :

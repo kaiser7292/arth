@@ -9,7 +9,7 @@ import { ConfidenceDots } from "@/components/analytics/ConfidenceDots";
 import { ActionSuggestionCard } from "@/components/analytics/ActionSuggestionCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { StatusColors } from "@/constants/theme";
+
 import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
 import { getCategories } from "@/services/category";
 import { getActiveClassifications } from "@/services/analytics/classifier";
@@ -20,11 +20,12 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import type { Expense } from "@/services/expense-types";
 import type { MonthEndForecast } from "@/utils/forecast-engine";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function ForecastDetailScreen() {
   const router = useRouter();
-  const { colorScheme, colors, accent } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
   const [forecast, setForecast] = useState<AnalyticsForecast | null>(null);
   const [categoryForecast, setCategoryForecast] = useState<MonthEndForecast | null>(null);
   const [categoryNames, setCategoryNames] = useState<Map<string, string>>(new Map());
@@ -118,7 +119,7 @@ export default function ForecastDetailScreen() {
 
             <StatusPill
               label={isOverBudget ? "Over Budget" : "Within Budget"}
-              color={isOverBudget ? statusColors.danger : statusColors.success}
+              color={isOverBudget ? theme.danger : theme.success}
               icon={isOverBudget ? "alert-circle" : "checkmark-circle"}
             />
 
@@ -128,14 +129,14 @@ export default function ForecastDetailScreen() {
                 className="h-full"
                 style={{
                   width: `${Math.round(((fixedDone.total + fixedPending.total) / projectedTotal) * 100)}%`,
-                  backgroundColor: statusColors.success,
+                  backgroundColor: theme.success,
                 }}
               />
               <View
                 className="h-full"
                 style={{
                   width: `${Math.round((variable.projected / projectedTotal) * 100)}%`,
-                  backgroundColor: accent[500],
+                  backgroundColor: theme.primary,
                 }}
               />
             </View>
@@ -175,7 +176,7 @@ export default function ForecastDetailScreen() {
                   <Text className="text-xs text-muted-foreground mr-2">
                     {item.actualDate ? formatDay(item.actualDate) : ""}
                   </Text>
-                  <Ionicons name="checkmark-circle" size={16} color={statusColors.success} />
+                  <Ionicons name="checkmark-circle" size={16} color={theme.success} />
                 </View>
               ))
             )}
@@ -188,8 +189,8 @@ export default function ForecastDetailScreen() {
           <Card>
             {fixedPending.items.length === 0 ? (
               <View className="flex-row items-center gap-2">
-                <Ionicons name="checkmark-circle" size={16} color={statusColors.success} />
-                <Text className="text-sm" style={{ color: statusColors.success }}>
+                <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+                <Text className="text-sm" style={{ color: theme.success }}>
                   All expected fixed expenses have arrived this month.
                 </Text>
               </View>
@@ -280,7 +281,7 @@ export default function ForecastDetailScreen() {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1">
                       <View className="flex-row items-center gap-1.5">
-                        <Ionicons name="warning-outline" size={14} color={statusColors.warning} />
+                        <Ionicons name="warning-outline" size={14} color={theme.warning} />
                         <Text className="text-sm font-medium text-foreground">
                           {categoryNames.get(cat.categoryId) ?? "Category"} on pace for {formatAmount(cat.predictedTotal)}
                         </Text>
@@ -289,7 +290,7 @@ export default function ForecastDetailScreen() {
                         Budget: {formatAmount(cat.budget)} ({Math.round((cat.predictedTotal / cat.budget) * 100)}%)
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={statusColors.muted} />
+                    <Ionicons name="chevron-forward" size={16} color={theme.faintForeground} />
                   </View>
                 </Card>
               </Pressable>

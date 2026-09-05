@@ -2,7 +2,7 @@ import { Card, ContextualHeader, DateInput, LearnMoreChip, ScreenContainer, Text
 import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { CleanupObjectType, CleanupScope, CustomDateRange } from "@/services/data-cleanup";
@@ -34,13 +34,14 @@ import {
   setSmsStartDate,
 } from "@/services/sms";
 import { countUnrecognisedSms } from "@/services/sms/user-sms-templates";
-import { ac } from "@/utils/accent";
+
 import { formatDisplayDate as formatDateLabel } from "@/utils/date";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, Switch, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 const SMS_DATE_PRESETS = [
   { label: "Today", daysBack: 0 },
@@ -94,6 +95,7 @@ interface SettingsRowProps {
 
 function SettingsRow({ icon, label, subtitle, onPress, disabled, iconColor }: SettingsRowProps) {
   const { colors: themeColors } = useColorScheme();
+  const uiTheme = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -117,7 +119,8 @@ function SettingsRow({ icon, label, subtitle, onPress, disabled, iconColor }: Se
 export default function SettingsScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colorScheme, setColorScheme, colors, accent } = useColorScheme();
+  const { colorScheme, setColorScheme, colors } = useColorScheme();
+  const uiTheme = useTheme();
   const [startMonth, setStartMonth] = useState(getFYStartMonth);
   const [theme, setTheme] = useState(getThemePreference);
   const [smsEnabled, setSmsEnabled] = useState(() => isSmsDetectionEnabled());
@@ -461,13 +464,13 @@ export default function SettingsScreen() {
               disabled={cleaning}
               className="flex-row items-center py-3 border-b border-border"
             >
-              <Ionicons name="trash-outline" size={20} color={StatusColors[colorScheme].danger} />
+              <Ionicons name="trash-outline" size={20} color={uiTheme.danger} />
               <View className="flex-1 ml-3">
                 <Text className="text-base text-danger">Clean Up Data</Text>
                 <Text className="text-xs text-faint-foreground mt-0.5">Remove expenses and budgets by time range</Text>
               </View>
               {cleaning ? (
-                <ActivityIndicator size="small" color={StatusColors[colorScheme].danger} />
+                <ActivityIndicator size="small" color={uiTheme.danger} />
               ) : (
                 <Ionicons name={showCleanupPicker ? "chevron-down" : "chevron-forward"} size={18} color={colors.textSecondary} />
               )}
@@ -489,7 +492,7 @@ export default function SettingsScreen() {
                   key={option.scope}
                   onPress={() => handleCleanupScopeSelect(option.scope)}
                   className={`px-3 py-1.5 rounded-full border ${cleanupScope === option.scope ? "bg-danger/8" : "border-border"}`}
-                  style={cleanupScope === option.scope ? { borderColor: StatusColors[colorScheme].danger } : undefined}
+                  style={cleanupScope === option.scope ? { borderColor: uiTheme.danger } : undefined}
                 >
                   <Text className={`text-xs font-medium ${cleanupScope === option.scope ? "text-danger" : "text-foreground"}`}>
                     {option.label}
@@ -505,7 +508,7 @@ export default function SettingsScreen() {
                   <View className="flex-1"><DateInput label="To" value={cleanupCustomTo} onChange={setCleanupCustomTo} maximumDate={null} /></View>
                 </View>
                 {cleanupDateError && <Text className="text-xs text-danger mb-2">{cleanupDateError}</Text>}
-                <Pressable onPress={handleCleanupCustomApply} className="py-2 rounded-lg items-center" style={{ backgroundColor: StatusColors[colorScheme].danger }}>
+                <Pressable onPress={handleCleanupCustomApply} className="py-2 rounded-lg items-center" style={{ backgroundColor: uiTheme.danger }}>
                   <Text className="text-sm font-medium text-white">Apply Range</Text>
                 </Pressable>
                 {cleanupCustomRange && (
@@ -542,7 +545,7 @@ export default function SettingsScreen() {
                       className={`flex-row items-center justify-between rounded-lg px-3 py-2.5 mb-1.5 border ${checked ? "border-danger/30 bg-danger/3" : "border-border"}`}
                     >
                       <View className="flex-row items-center flex-1">
-                        <Ionicons name={checked ? "checkbox" : "square-outline"} size={20} color={checked ? StatusColors[colorScheme].danger : colors.textSecondary} />
+                        <Ionicons name={checked ? "checkbox" : "square-outline"} size={20} color={checked ? uiTheme.danger : colors.textSecondary} />
                         <Ionicons name={item.icon} size={16} color={colors.textSecondary} style={{ marginLeft: 8 }} />
                         <Text className="text-sm text-foreground ml-2">{item.label}</Text>
                       </View>
@@ -558,7 +561,7 @@ export default function SettingsScreen() {
                   onPress={executeCleanup}
                   disabled={cleanupObjects.size === 0}
                   className="flex-row items-center justify-center py-2.5 mt-1 rounded-lg"
-                  style={{ backgroundColor: cleanupObjects.size === 0 ? "#9CA3AF40" : StatusColors[colorScheme].danger }}
+                  style={{ backgroundColor: cleanupObjects.size === 0 ? "#9CA3AF40" : uiTheme.danger }}
                 >
                   <Ionicons name="trash-outline" size={16} color="#FFFFFF" />
                   <Text className="text-sm font-semibold text-white ml-2">Delete Selected</Text>
@@ -582,9 +585,9 @@ export default function SettingsScreen() {
                     <Text className="text-xs text-muted-foreground mt-0.5">Detect expenses from SMS</Text>
                   </View>
                   {smsToggling ? (
-                    <ActivityIndicator size="small" color={accent[500]} />
+                    <ActivityIndicator size="small" color={uiTheme.primary} />
                   ) : (
-                    <Switch value={smsEnabled} onValueChange={handleSmsToggle} trackColor={{ false: colors.border, true: accent[500] }} thumbColor={smsEnabled ? "#FFFFFF" : colors.textSecondary} />
+                    <Switch value={smsEnabled} onValueChange={handleSmsToggle} trackColor={{ false: colors.border, true: uiTheme.primary }} thumbColor={smsEnabled ? "#FFFFFF" : colors.textSecondary} />
                   )}
                 </View>
               </>
@@ -614,11 +617,11 @@ export default function SettingsScreen() {
                       <Pressable
                         onPress={() => { setCustomMode(!customMode); if (!customMode) { setCustomFromText(smsStartDateStr); setCustomToText(smsEndDateStr); setCustomDateError(null); } }}
                         className={`flex-row items-center justify-between py-2.5 px-3 mb-1 rounded-lg border ${customMode ? "" : "border-border"}`}
-                        style={customMode ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+                        style={customMode ? { borderColor: uiTheme.primary, backgroundColor: uiTheme.alpha("primary", 0.1) } : undefined}
                       >
                         <View className="flex-row items-center">
                           <Ionicons name="calendar-outline" size={16} color={customMode ? colors.blue : STATUS_COLORS.neutral} />
-                          <Text className={`text-sm ml-2 ${customMode ? "font-medium" : "text-foreground"}`} style={customMode ? { color: ac(accent, colorScheme, 500, 200) } : undefined}>Custom Range</Text>
+                          <Text className={`text-sm ml-2 ${customMode ? "font-medium" : "text-foreground"}`} style={customMode ? { color: uiTheme.primary } : undefined}>Custom Range</Text>
                         </View>
                         <Ionicons name={customMode ? "chevron-up" : "chevron-down"} size={14} color={colors.textSecondary} />
                       </Pressable>
@@ -629,7 +632,7 @@ export default function SettingsScreen() {
                             <View className="flex-1"><DateInput label="To" value={customToText} onChange={setCustomToText} maximumDate={null} /></View>
                           </View>
                           {customDateError && <Text className="text-xs text-danger mb-2">{customDateError}</Text>}
-                          <Pressable onPress={handleCustomDateApply} className="py-2 rounded-lg items-center mb-1" style={{ backgroundColor: accent[500] }}>
+                          <Pressable onPress={handleCustomDateApply} className="py-2 rounded-lg items-center mb-1" style={{ backgroundColor: uiTheme.primary }}>
                             <Text className="text-sm font-medium text-white">Apply Range</Text>
                           </Pressable>
                         </View>
@@ -669,7 +672,7 @@ export default function SettingsScreen() {
                     </Pressable>
                   </View>
 
-                  <Pressable onPress={handleManualScan} disabled={smsScanning} className="flex-row items-center justify-center py-3 mt-2 rounded-lg" style={{ backgroundColor: accent[500] }}>
+                  <Pressable onPress={handleManualScan} disabled={smsScanning} className="flex-row items-center justify-center py-3 mt-2 rounded-lg" style={{ backgroundColor: uiTheme.primary }}>
                     {smsScanning ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
@@ -685,7 +688,7 @@ export default function SettingsScreen() {
                       <Text className="text-xs text-muted-foreground text-center">{smsScanResult}</Text>
                       {smsScanCreated > 0 && (
                         <Pressable onPress={() => router.push("/expense/review-queue")} className="flex-row items-center justify-center mt-2 py-2 rounded-lg bg-success/8">
-                          <Ionicons name="checkmark-circle-outline" size={16} color={StatusColors[colorScheme].success} />
+                          <Ionicons name="checkmark-circle-outline" size={16} color={uiTheme.success} />
                           <Text className="text-sm font-medium text-success ml-1.5">Review {smsScanCreated} Expense{smsScanCreated > 1 ? "s" : ""}</Text>
                         </Pressable>
                       )}
@@ -705,7 +708,7 @@ export default function SettingsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`View ${unrecognisedSmsCount} unrecognised SMS`}
                 >
-                  <Ionicons name="help-circle-outline" size={18} color={accent[500]} />
+                  <Ionicons name="help-circle-outline" size={18} color={uiTheme.primary} />
                   <View className="flex-1 ml-3">
                     <Text className="text-sm font-semibold text-foreground">
                       {unrecognisedSmsCount} unrecognised SMS
@@ -722,7 +725,7 @@ export default function SettingsScreen() {
                 onPress={() => router.push("/settings/sms-scan-runs" as never)}
                 className="flex-row items-center mt-3 pt-3 border-t border-border"
               >
-                <Ionicons name="analytics-outline" size={18} color={accent[500]} />
+                <Ionicons name="analytics-outline" size={18} color={uiTheme.primary} />
                 <View className="flex-1 ml-3">
                   <Text className="text-sm font-semibold text-foreground">Scan Runs</Text>
                   <Text className="text-xs text-faint-foreground mt-0.5">View scan history and pipeline details</Text>
@@ -736,7 +739,7 @@ export default function SettingsScreen() {
                   <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} />
                   <Text className="text-xs text-muted-foreground ml-1.5 flex-1">Find expenses with the same amount, account, merchant, and date. Runs automatically after every SMS scan.</Text>
                 </View>
-                <Pressable onPress={() => handleDuplicateScan(false)} disabled={dupScanning} className="flex-row items-center justify-center py-3 rounded-lg" style={{ backgroundColor: accent[500] }}>
+                <Pressable onPress={() => handleDuplicateScan(false)} disabled={dupScanning} className="flex-row items-center justify-center py-3 rounded-lg" style={{ backgroundColor: uiTheme.primary }}>
                   {dupScanning ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
@@ -753,10 +756,10 @@ export default function SettingsScreen() {
                       <Pressable
                         onPress={() => router.push({ pathname: "/expense/review-queue", params: { filter: "duplicates" } })}
                         className="flex-row items-center justify-center mt-2 py-2 rounded-lg"
-                        style={{ backgroundColor: StatusColors[colorScheme].warning + "14" }}
+                        style={{ backgroundColor: uiTheme.warning + "14" }}
                       >
-                        <Ionicons name="alert-circle-outline" size={16} color={StatusColors[colorScheme].warning} />
-                        <Text className="text-sm font-medium ml-1.5" style={{ color: StatusColors[colorScheme].warning }}>
+                        <Ionicons name="alert-circle-outline" size={16} color={uiTheme.warning} />
+                        <Text className="text-sm font-medium ml-1.5" style={{ color: uiTheme.warning }}>
                           Review {dupGroupCount} Duplicate Group{dupGroupCount > 1 ? "s" : ""}
                         </Text>
                       </Pressable>
@@ -773,7 +776,7 @@ export default function SettingsScreen() {
                 <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} />
                 <Text className="text-xs text-muted-foreground ml-1.5 flex-1">Scan your expenses for potential duplicates - same amount, account, merchant, and date.</Text>
               </View>
-              <Pressable onPress={() => handleDuplicateScan(false)} disabled={dupScanning} className="flex-row items-center justify-center py-3 rounded-lg" style={{ backgroundColor: accent[500] }}>
+              <Pressable onPress={() => handleDuplicateScan(false)} disabled={dupScanning} className="flex-row items-center justify-center py-3 rounded-lg" style={{ backgroundColor: uiTheme.primary }}>
                 {dupScanning ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
@@ -790,10 +793,10 @@ export default function SettingsScreen() {
                     <Pressable
                       onPress={() => router.push({ pathname: "/expense/review-queue", params: { filter: "duplicates" } })}
                       className="flex-row items-center justify-center mt-2 py-2 rounded-lg"
-                      style={{ backgroundColor: StatusColors[colorScheme].warning + "14" }}
+                      style={{ backgroundColor: uiTheme.warning + "14" }}
                     >
-                      <Ionicons name="alert-circle-outline" size={16} color={StatusColors[colorScheme].warning} />
-                      <Text className="text-sm font-medium ml-1.5" style={{ color: StatusColors[colorScheme].warning }}>
+                      <Ionicons name="alert-circle-outline" size={16} color={uiTheme.warning} />
+                      <Text className="text-sm font-medium ml-1.5" style={{ color: uiTheme.warning }}>
                         Review {dupGroupCount} Duplicate Group{dupGroupCount > 1 ? "s" : ""}
                       </Text>
                     </Pressable>
@@ -817,12 +820,12 @@ export default function SettingsScreen() {
                     key={option.value}
                     onPress={() => handleThemeChange(option.value)}
                     className={`flex-1 items-center py-3 mx-1 rounded-lg border ${theme === option.value ? "" : "border-border"}`}
-                    style={theme === option.value ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+                    style={theme === option.value ? { borderColor: uiTheme.primary, backgroundColor: uiTheme.alpha("primary", 0.1) } : undefined}
                     >
                       <Ionicons name={option.icon} size={20} color={theme === option.value ? colors.blue : colors.textSecondary} />
                       <Text
                         className={`text-xs mt-1 ${theme === option.value ? "font-medium" : "text-muted-foreground"}`}
-                        style={theme === option.value ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
+                        style={theme === option.value ? { color: uiTheme.primary } : undefined}
                       >
                         {option.label}
                       </Text>
@@ -884,7 +887,7 @@ export default function SettingsScreen() {
                 smsScanAccountIds.length === 0 ? "" : "border-border"
               }`}
               style={smsScanAccountIds.length === 0
-                ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 700) }
+                ? { borderColor: uiTheme.primary, backgroundColor: uiTheme.alpha("primary", 0.1) }
                 : undefined}
             >
               <View className="flex-1">
@@ -898,7 +901,7 @@ export default function SettingsScreen() {
               <Ionicons
                 name={smsScanAccountIds.length === 0 ? "checkbox" : "square-outline"}
                 size={22}
-                color={smsScanAccountIds.length === 0 ? accent[500] : colors.textSecondary}
+                color={smsScanAccountIds.length === 0 ? uiTheme.primary : colors.textSecondary}
               />
             </Pressable>
 
@@ -918,7 +921,7 @@ export default function SettingsScreen() {
                     isSelected ? "" : "border-border"
                   }`}
                   style={isSelected
-                    ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 700) }
+                    ? { borderColor: uiTheme.primary, backgroundColor: uiTheme.alpha("primary", 0.1) }
                     : undefined}
                 >
                   <View className="flex-1">
@@ -932,7 +935,7 @@ export default function SettingsScreen() {
                   <Ionicons
                     name={isSelected ? "checkbox" : "square-outline"}
                     size={22}
-                    color={isSelected ? accent[500] : colors.textSecondary}
+                    color={isSelected ? uiTheme.primary : colors.textSecondary}
                   />
                 </Pressable>
               );
@@ -942,7 +945,7 @@ export default function SettingsScreen() {
           <Pressable
             onPress={() => setShowAccountPicker(false)}
             className="flex-row items-center justify-center py-3 mt-4 rounded-lg"
-            style={{ backgroundColor: accent[500] }}
+            style={{ backgroundColor: uiTheme.primary }}
           >
             <Text className="text-sm font-medium text-white">Done</Text>
           </Pressable>

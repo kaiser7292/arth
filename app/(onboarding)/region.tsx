@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import {
   setFYStartMonth,
   getFYStartMonth,
@@ -27,6 +27,7 @@ import {
 import { formatAmountPreview } from "@/utils/format";
 import { formatDateWith, todayIso } from "@/utils/date";
 import { getCurrentAppVersion } from "@/services/onboarding";
+import { useTheme } from "@/hooks/use-theme";
 
 const FY_OPTIONS: Array<{ month: number; label: string; region: string }> = [
   { month: 1, label: "January", region: "Calendar year" },
@@ -37,7 +38,8 @@ const FY_OPTIONS: Array<{ month: number; label: string; region: string }> = [
 
 export default function OnboardingRegion() {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [fyMonth, setFyMonth] = useState<number>(getFYStartMonth());
   const [currencyId, setCurrencyId] = useState<CurrencyCode>(getCurrency());
@@ -113,7 +115,7 @@ export default function OnboardingRegion() {
                   <Ionicons
                     name="checkmark-circle"
                     size={22}
-                    color={ac(accent, colorScheme, 500, 200)}
+                    color={theme.primary}
                   />
                 )}
               </Pressable>
@@ -171,7 +173,7 @@ export default function OnboardingRegion() {
                   <Ionicons
                     name="checkmark-circle"
                     size={22}
-                    color={ac(accent, colorScheme, 500, 200)}
+                    color={theme.primary}
                   />
                 )}
               </Pressable>
@@ -241,10 +243,10 @@ export default function OnboardingRegion() {
                   className="mx-4 my-1 rounded-xl p-4 flex-row items-center"
                   style={{
                     backgroundColor: isSelected
-                      ? ac(accent, colorScheme, 100, 800)
-                      : ac(accent, colorScheme, 50, 900),
+                      ? theme.alpha("primary", 0.1)
+                      : theme.alpha("primary", 0.1),
                     borderWidth: isSelected ? 1 : 0,
-                    borderColor: accent[500],
+                    borderColor: theme.primary,
                   }}
                 >
                   <Text className="text-base font-bold w-14 text-foreground">
@@ -258,7 +260,7 @@ export default function OnboardingRegion() {
                       {item.code === "NONE" ? "Plain numbers, no symbol" : item.code}
                     </Text>
                   </View>
-                  {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+                  {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
                 </Pressable>
               );
             }}

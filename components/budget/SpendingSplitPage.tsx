@@ -12,7 +12,7 @@ import { getSpendClassificationTotals } from "@/services/spend-classification";
 import { getYearlyPlanByFY } from "@/services/yearly-plan";
 import { formatAmount } from "@/utils/expense-validation";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { calculateSplit } from "@/utils/unavoidable-split";
 import type { SplitSnapshot } from "@/utils/unavoidable-split";
 import { getMonthDateRange } from "@/utils/budget-helpers";
@@ -20,6 +20,7 @@ import { getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
+import { useTheme } from "@/hooks/use-theme";
 
 const UNAVOIDABLE_COLOR = BRAND_COLOR;
 const DISCRETIONARY_COLOR = STATUS_COLORS.warning;
@@ -30,7 +31,8 @@ interface SpendingSplitPageProps {
 
 export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
   const router = useRouter();
-  const { colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [split, setSplit] = useState<SplitSnapshot | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -180,8 +182,8 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
                   style={{
                     color:
                       split.discretionaryBudget - split.discretionarySpent >= 0
-                        ? StatusColors[colorScheme].success
-                        : StatusColors[colorScheme].danger,
+                        ? theme.success
+                        : theme.danger,
                   }}
                 >
                   {formatAmount(Math.max(split.discretionaryBudget - split.discretionarySpent, 0))}

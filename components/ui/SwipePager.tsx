@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Text } from "./Text";
 import { Animated, Pressable, ScrollView, View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 export interface SwipePagerPage {
   key: string;
@@ -20,7 +21,8 @@ interface SwipePagerProps {
 
 export function SwipePager({ pages, activeIndex, onIndexChange, children, trailing, tabWidth: tabWidthProp }: SwipePagerProps) {
   const tw = tabWidthProp ?? 80;
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const contentRef = useRef<ScrollView>(null);
   const tabStripRef = useRef<ScrollView>(null);
   // Dimensions of the content area (below tab strip)
@@ -88,7 +90,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
                 style={{
                   fontSize: 13,
                   fontWeight: activeIndex === index ? "600" : "400",
-                  color: activeIndex === index ? accent[500] : colors.textSecondary,
+                  color: activeIndex === index ? theme.primary : colors.textSecondary,
                 }}
               >
                 {page.label}
@@ -104,7 +106,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
               height: 2,
               width: tw - 28, // 14px margin each side
               marginHorizontal: 14,
-              backgroundColor: accent[500],
+              backgroundColor: theme.primary,
               borderRadius: 2,
               transform: [{ translateX: underlineX }],
             }}

@@ -3,13 +3,15 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { setOnboardingCompletedVersion } from "@/services/settings";
 import { getCurrentAppVersion } from "@/services/onboarding";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function OnboardingDone() {
   const router = useRouter();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
 
   const finish = (andAddExpense: boolean) => {
     setOnboardingCompletedVersion(getCurrentAppVersion());
@@ -27,12 +29,12 @@ export default function OnboardingDone() {
       <View className="items-center px-8">
         <View
           className="w-20 h-20 rounded-full items-center justify-center mb-6"
-          style={{ backgroundColor: ac(accent, colorScheme, 500, 200) + "1F" }}
+          style={{ backgroundColor: theme.primary + "1F" }}
         >
           <Ionicons
             name="checkmark"
             size={40}
-            color={ac(accent, colorScheme, 500, 200)}
+            color={theme.primary}
           />
         </View>
         <Text className="text-2xl font-bold text-foreground text-center mb-3">

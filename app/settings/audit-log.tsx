@@ -1,7 +1,6 @@
 import { Card, FilterChip, ScreenContainer, Text } from "@/components/ui";
 import { BRAND_COLOR } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
@@ -17,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, SectionList, TextInput, View } from "react-native";
+import { useTheme, type Theme } from "@/hooks/use-theme";
 
 /**
  * Settings → Automation → Audit Log (v15.12.1 new).
@@ -92,27 +92,28 @@ function actionLabel(a: AuditActionType): string {
   return ACTION_OPTIONS.find((o) => o.key === a)?.label ?? a;
 }
 
-type StatusPalette = (typeof StatusColors)[keyof typeof StatusColors];
-
-function actionColor(a: AuditActionType, sc: StatusPalette): string {
+/** Takes the theme as an argument: this is a plain helper, not a component, so it must not
+ *  call a hook. It is invoked from inside map callbacks, where a conditional hook call would
+ *  break hook order. */
+function actionColor(a: AuditActionType, theme: Theme): string {
   switch (a) {
     case "approved":
     case "created":
     case "marked_as_cc_bill":
     case "marked_as_settlement":
     case "linked_to_reminder":
-      return sc.success;
+      return theme.success;
     case "rejected":
     case "deleted":
-      return sc.danger;
+      return theme.danger;
     case "edited":
       return BRAND_COLOR;
     case "marked_as_transfer":
     case "reclassified_by_rule":
     case "refunded":
-      return sc.warning;
+      return theme.warning;
     default:
-      return sc.muted;
+      return theme.faintForeground;
   }
 }
 
@@ -217,8 +218,8 @@ function groupEntriesByDate(entries: AuditLogEntry[]): EntrySection[] {
 
 export default function AuditLogScreen() {
   const router = useRouter();
-  const { colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [scope, setScope] = useState<DateScope>("30d");
   const [sources, setSources] = useState<Set<AuditSourceType>>(new Set());
@@ -322,7 +323,7 @@ export default function AuditLogScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: AuditLogEntry }) => {
-      const color = actionColor(item.actionType, sc);
+      const color = actionColor(item.actionType, theme);
       return (
         <Pressable
           onPress={() => handleOpen(item)}
@@ -405,7 +406,7 @@ export default function AuditLogScreen() {
         </Pressable>
       );
     },
-    [colors.textSecondary, handleOpen, sc],
+    [colors.textSecondary, handleOpen, theme],
   );
 
   return (

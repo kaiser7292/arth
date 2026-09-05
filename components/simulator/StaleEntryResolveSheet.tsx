@@ -10,12 +10,13 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
 import { todayIso, addDays } from "@/utils/date";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import type { SimulationEntry } from "@/services/simulator";
 import { getDatabase } from "@/database";
+import { useTheme } from "@/hooks/use-theme";
 
 interface Candidate {
   id: string;
@@ -75,7 +76,8 @@ export function StaleEntryResolveSheet({
   onRemove,
   onClose,
 }: Props) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const slideAnim = useSharedValue(400);
 
   const [mode, setMode] = useState<"root" | "reschedule" | "link">("root");
@@ -185,15 +187,15 @@ export function StaleEntryResolveSheet({
         onPress={() => toggleSelect(c.id)}
         className="flex-row items-center py-2.5 px-3 rounded-lg mb-1.5"
         style={{
-          backgroundColor: isSelected ? ac(accent, colorScheme, 50, 900) : colors.surface,
+          backgroundColor: isSelected ? theme.alpha("primary", 0.1) : colors.surface,
           borderWidth: 1,
-          borderColor: isSelected ? accent[500] + "55" : colors.border,
+          borderColor: isSelected ? theme.alpha("primary", 0.33) : colors.border,
         }}
       >
         <Ionicons
           name={isSelected ? "checkbox" : "square-outline"}
           size={20}
-          color={isSelected ? accent[500] : colors.textSecondary}
+          color={isSelected ? theme.primary : colors.textSecondary}
         />
         <View className="flex-1 ml-2">
           <View className="flex-row items-center">
@@ -265,10 +267,10 @@ export function StaleEntryResolveSheet({
             <Pressable
               onPress={() => setMode("link")}
               className="flex-row items-center py-3 px-4 rounded-xl mb-2"
-              style={{ backgroundColor: ac(accent, colorScheme, 50, 900), borderWidth: 1, borderColor: accent[500] + "55" }}
+              style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.33) }}
               accessibilityRole="button"
             >
-              <Ionicons name="checkmark-circle-outline" size={20} color={accent[500]} />
+              <Ionicons name="checkmark-circle-outline" size={20} color={theme.primary} />
               <View className="flex-1 ml-3">
                 <Text className="text-sm font-semibold" style={{ color: colors.text }}>
                   It happened - link to transactions
@@ -368,7 +370,7 @@ export function StaleEntryResolveSheet({
             {selectedIds.size > 0 && (
               <View
                 className="mt-3 px-3 py-2.5 rounded-xl"
-                style={{ backgroundColor: ac(accent, colorScheme, 50, 900), borderWidth: 1, borderColor: accent[500] + "33" }}
+                style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.2) }}
               >
                 <View className="flex-row justify-between items-center">
                   <Text className="text-xs" style={{ color: colors.textSecondary }}>
@@ -402,7 +404,7 @@ export function StaleEntryResolveSheet({
                   handleClose();
                 }}
                 className="mt-3 py-3 rounded-xl items-center"
-                style={{ backgroundColor: accent[500] }}
+                style={{ backgroundColor: theme.primary }}
                 accessibilityRole="button"
               >
                 <Text className="text-sm font-bold text-white">

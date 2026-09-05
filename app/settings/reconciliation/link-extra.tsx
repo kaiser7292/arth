@@ -11,6 +11,7 @@ import {
   deleteItem,
   type ReconciliationItemEnriched,
 } from "@/services/reconciliation/reconciliation-crud";
+import { useTheme } from "@/hooks/use-theme";
 
 // mode="find_missing" — initiated from Extra tab: show unmatched statement rows to pair with
 // mode="find_extra"   — initiated from Missing tab: show extra Arth entries to pair with
@@ -32,7 +33,8 @@ export default function LinkExtraScreen() {
     amount: string;
   }>();
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<ReconciliationItemEnriched[]>([]);
@@ -141,7 +143,7 @@ export default function LinkExtraScreen() {
           {linking ? (
             <ActivityIndicator size="small" />
           ) : (
-            <Ionicons name="git-merge-outline" size={18} color={accent[500]} />
+            <Ionicons name="git-merge-outline" size={18} color={theme.primary} />
           )}
         </Pressable>
       );
@@ -181,7 +183,7 @@ export default function LinkExtraScreen() {
           {linking ? (
             <ActivityIndicator size="small" />
           ) : (
-            <Ionicons name="git-merge-outline" size={18} color={accent[500]} />
+            <Ionicons name="git-merge-outline" size={18} color={theme.primary} />
           )}
         </Pressable>
       );

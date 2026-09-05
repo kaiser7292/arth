@@ -17,7 +17,8 @@ import { View, Pressable, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
+import { useTheme } from "@/hooks/use-theme";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTH_NAMES = [
@@ -98,7 +99,8 @@ export function CalendarModal({
   maximumDate,
   minimumDate,
 }: CalendarModalProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, accent } = useColorScheme();
+  const theme = useTheme();
 
   // Parse selected date
   const [selY, selM, selD] = useMemo(() => {
@@ -410,9 +412,9 @@ export function CalendarModal({
                             }`}
                             style={
                               isSelected
-                                ? { backgroundColor: accent[500] }
+                                ? { backgroundColor: theme.primary }
                                 : isToday
-                                  ? { borderColor: accent[300] }
+                                  ? { borderColor: theme.alpha("primary", 0.25) }
                                   : undefined
                             }
                           >
@@ -465,9 +467,9 @@ export function CalendarModal({
                           }`}
                           style={
                             isSelected
-                              ? { backgroundColor: accent[500] }
+                              ? { backgroundColor: theme.primary }
                               : isCurrentMonth
-                                ? { borderColor: accent[300] }
+                                ? { borderColor: theme.alpha("primary", 0.25) }
                                 : undefined
                           }
                         >
@@ -517,9 +519,9 @@ export function CalendarModal({
                           }`}
                           style={
                             isSelected
-                              ? { backgroundColor: accent[500] }
+                              ? { backgroundColor: theme.primary }
                               : isCurrentYear
-                                ? { borderColor: accent[300] }
+                                ? { borderColor: theme.alpha("primary", 0.25) }
                                 : undefined
                           }
                         >
@@ -550,11 +552,11 @@ export function CalendarModal({
             <Pressable
               onPress={handleTodayPress}
               className="flex-1 py-3 rounded-xl items-center"
-              style={{ backgroundColor: ac(accent, colorScheme, 50, 800) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.1) }}
             >
               <Text
                 className="text-sm font-semibold"
-                style={{ color: ac(accent, colorScheme, 600, 200) }}
+                style={{ color: theme.primary }}
               >
                 Today
               </Text>

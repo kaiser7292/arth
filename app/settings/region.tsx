@@ -19,13 +19,14 @@ import {
     setTimezone,
 } from "@/services/locale-preferences";
 import { getFYStartMonth, setFYStartMonth } from "@/services/settings";
-import { ac } from "@/utils/accent";
+
 import { formatDateWith, todayIso } from "@/utils/date";
 import { formatAmountPreview } from "@/utils/format";
 import { formatDateTimeInTimezone } from "@/utils/timezone";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 const FY_OPTIONS: Array<{ month: number; label: string; region: string }> = [
   { month: 1, label: "January", region: "Calendar year" },
@@ -62,7 +63,8 @@ const COMMON_TIMEZONES = [
  * that currency's default; the user can override it afterwards.
  */
 export default function RegionSettingsScreen() {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [currency, setCurrencyState] = useState<CurrencyCode>(getCurrency());
   const [grouping, setGroupingState] = useState<NumberGrouping>(getNumberGrouping());
   const [dateFormat, setDateFormatState] = useState<DateFormat>(getDateFormat());
@@ -133,7 +135,7 @@ export default function RegionSettingsScreen() {
         <Pressable
           onPress={() => setCurrencyPickerOpen(true)}
           className="mx-4 rounded-xl p-4 flex-row items-center"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
         >
           <View className="flex-1">
             <Text className="text-base font-semibold text-foreground">
@@ -159,10 +161,10 @@ export default function RegionSettingsScreen() {
               className="mx-4 mt-2 rounded-xl p-4 flex-row items-center"
               style={{
                 backgroundColor: isSelected
-                  ? ac(accent, colorScheme, 100, 800)
-                  : ac(accent, colorScheme, 50, 900),
+                  ? theme.alpha("primary", 0.1)
+                  : theme.alpha("primary", 0.1),
                 borderWidth: isSelected ? 1 : 0,
-                borderColor: accent[500],
+                borderColor: theme.primary,
               }}
             >
               <View className="flex-1">
@@ -173,7 +175,7 @@ export default function RegionSettingsScreen() {
                   Sample: {formatAmountPreview(1234567.89, currency, g)}
                 </Text>
               </View>
-              {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+              {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
             </Pressable>
           );
         })}
@@ -194,10 +196,10 @@ export default function RegionSettingsScreen() {
               className="mx-4 mt-2 rounded-xl p-4 flex-row items-center"
               style={{
                 backgroundColor: isSelected
-                  ? ac(accent, colorScheme, 100, 800)
-                  : ac(accent, colorScheme, 50, 900),
+                  ? theme.alpha("primary", 0.1)
+                  : theme.alpha("primary", 0.1),
                 borderWidth: isSelected ? 1 : 0,
-                borderColor: accent[500],
+                borderColor: theme.primary,
               }}
             >
               <View className="flex-1">
@@ -208,7 +210,7 @@ export default function RegionSettingsScreen() {
                   {opt.region}
                 </Text>
               </View>
-              {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+              {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
             </Pressable>
           );
         })}
@@ -226,10 +228,10 @@ export default function RegionSettingsScreen() {
               className="mx-4 mt-2 rounded-xl p-4 flex-row items-center"
               style={{
                 backgroundColor: isSelected
-                  ? ac(accent, colorScheme, 100, 800)
-                  : ac(accent, colorScheme, 50, 900),
+                  ? theme.alpha("primary", 0.1)
+                  : theme.alpha("primary", 0.1),
                 borderWidth: isSelected ? 1 : 0,
-                borderColor: accent[500],
+                borderColor: theme.primary,
               }}
             >
               <View className="flex-1">
@@ -240,7 +242,7 @@ export default function RegionSettingsScreen() {
                   Sample: {formatDateWith(sampleDate, f)}
                 </Text>
               </View>
-              {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+              {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
             </Pressable>
           );
         })}
@@ -252,7 +254,7 @@ export default function RegionSettingsScreen() {
         <Pressable
           onPress={() => setTimezonePickerOpen(true)}
           className="mx-4 mt-2 rounded-xl p-4 flex-row items-center"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
         >
           <View className="flex-1">
             <Text className="text-base font-semibold text-foreground">
@@ -314,10 +316,10 @@ export default function RegionSettingsScreen() {
                   className="mx-4 my-1 rounded-xl p-4 flex-row items-center"
                   style={{
                     backgroundColor: isSelected
-                      ? ac(accent, colorScheme, 100, 800)
-                      : ac(accent, colorScheme, 50, 900),
+                      ? theme.alpha("primary", 0.1)
+                      : theme.alpha("primary", 0.1),
                     borderWidth: isSelected ? 1 : 0,
-                    borderColor: accent[500],
+                    borderColor: theme.primary,
                   }}
                 >
                   <Text className="text-base font-bold w-14 text-foreground">
@@ -331,7 +333,7 @@ export default function RegionSettingsScreen() {
                       {item.code === "NONE" ? "Plain numbers, no symbol" : item.code} · Sample: {formatAmountPreview(1234567.89, item.code, grouping)}
                     </Text>
                   </View>
-                  {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+                  {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
                 </Pressable>
               );
             }}
@@ -371,10 +373,10 @@ export default function RegionSettingsScreen() {
                   className="mx-4 my-1 rounded-xl p-4 flex-row items-center"
                   style={{
                     backgroundColor: isSelected
-                      ? ac(accent, colorScheme, 100, 800)
-                      : ac(accent, colorScheme, 50, 900),
+                      ? theme.alpha("primary", 0.1)
+                      : theme.alpha("primary", 0.1),
                     borderWidth: isSelected ? 1 : 0,
-                    borderColor: accent[500],
+                    borderColor: theme.primary,
                   }}
                 >
                   <View className="flex-1">
@@ -385,7 +387,7 @@ export default function RegionSettingsScreen() {
                       Sample: {formatDateTimeInTimezone(sampleDateTime, { timeZone: item })}
                     </Text>
                   </View>
-                  {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+                  {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
                 </Pressable>
               );
             }}

@@ -20,11 +20,13 @@ import { formatAmount, formatCompact } from "@/utils/format";
 import { calculateYoYComparison } from "@/utils/yoy-comparison";
 import type { YoYComparison, YoYCategory, FYData } from "@/utils/yoy-comparison";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function YoYComparisonScreen() {
   const { colorScheme, colors } = useColorScheme();
+  const theme = useTheme();
   const [comparison, setComparison] = useState<YoYComparison | null>(null);
   const [previousFYLabel, setPreviousFYLabel] = useState("");
   const [currentFYLabel, setCurrentFYLabel] = useState("");
@@ -217,10 +219,10 @@ export default function YoYComparisonScreen() {
               style={{
                 backgroundColor:
                   comparison.overallTrend === "improved"
-                    ? StatusColors[colorScheme].successBg
+                    ? theme.alpha("success", 0.08)
                     : comparison.overallTrend === "declined"
-                      ? StatusColors[colorScheme].dangerBg
-                      : StatusColors[colorScheme].warningBg,
+                      ? theme.alpha("danger", 0.08)
+                      : theme.alpha("warning", 0.08),
               }}
             >
               <View className="flex-row items-center">
@@ -235,10 +237,10 @@ export default function YoYComparisonScreen() {
                   size={24}
                   color={
                     comparison.overallTrend === "improved"
-                      ? StatusColors[colorScheme].success
+                      ? theme.success
                       : comparison.overallTrend === "declined"
-                        ? StatusColors[colorScheme].danger
-                        : StatusColors[colorScheme].warning
+                        ? theme.danger
+                        : theme.warning
                   }
                 />
                 <View className="ml-3">
@@ -282,6 +284,7 @@ function CategoryCard({
   currLabel: string;
 }) {
   const { colorScheme } = useColorScheme();
+  const theme = useTheme();
   const c = category;
 
   const fmt = (v: number) =>
@@ -321,7 +324,7 @@ function CategoryCard({
     <Card className="mb-3">
       {/* Category header */}
       <View className="flex-row items-center mb-3">
-        <Ionicons name={icon} size={16} color={StatusColors[colorScheme].muted} style={{ marginRight: 6 }} />
+        <Ionicons name={icon} size={16} color={theme.faintForeground} style={{ marginRight: 6 }} />
         <Text className="text-sm font-bold text-foreground">
           {c.label}
         </Text>
@@ -375,8 +378,8 @@ function CategoryCard({
           className="mt-2 px-3 py-1.5 rounded-lg flex-row items-center justify-between"
           style={{
             backgroundColor: currGap.isGood
-              ? StatusColors[colorScheme].successBg
-              : StatusColors[colorScheme].dangerBg,
+              ? theme.alpha("success", 0.08)
+              : theme.alpha("danger", 0.08),
           }}
         >
           <Text className="text-label text-muted-foreground">
@@ -386,8 +389,8 @@ function CategoryCard({
             className="text-label font-bold"
             style={{
               color: currGap.isGood
-                ? StatusColors[colorScheme].success
-                : StatusColors[colorScheme].danger,
+                ? theme.success
+                : theme.danger,
             }}
           >
             {currGap.diff > 0 ? "+" : ""}{c.isAmount ? formatCompact(currGap.diff) : `${currGap.diff.toFixed(1)}pp`}
@@ -401,10 +404,11 @@ function CategoryCard({
 
 function ChangeBadge({ value, lowerIsBetter }: { value: number; lowerIsBetter: boolean }) {
   const { colorScheme } = useColorScheme();
+  const theme = useTheme();
   if (value === 0) return <View className="w-16" />;
 
   const isGood = lowerIsBetter ? value < 0 : value > 0;
-  const color = isGood ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger;
+  const color = isGood ? theme.success : theme.danger;
 
   return (
     <View className="w-16 flex-row items-center justify-end">

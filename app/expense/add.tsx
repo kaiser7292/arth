@@ -36,7 +36,7 @@ import { getDistinctMerchantNames } from "@/services/merchant-alias";
 import type { PaymentMode } from "@/services/payment-mode";
 import { getPaymentModes } from "@/services/payment-mode";
 import { addTagsToExpense } from "@/services/tags";
-import { ac } from "@/utils/accent";
+
 import { formatError } from "@/utils/error-message";
 import type { ExpenseValidationErrors } from "@/utils/expense-validation";
 import {
@@ -50,6 +50,7 @@ import * as Haptics from "expo-haptics";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 
 
@@ -76,7 +77,8 @@ export default function AddExpenseScreen() {
   const copyFromExpenseId = params.copyFromExpenseId ?? null;
   const fulfillsReminderId = params.fulfillsReminderId ?? null;
   const refundAccountId = params.refundAccountId ?? null;
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
 
@@ -530,12 +532,12 @@ export default function AddExpenseScreen() {
                 <Pressable
                   onPress={() => setShowSplitSheet(true)}
                   className="p-4 rounded-xl border"
-                  style={{ backgroundColor: ac(accent, colorScheme, 50, 900), borderColor: ac(accent, colorScheme, 200, 700) }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.alpha("primary", 0.25) }}
                 >
                   <View className="flex-row items-center justify-between mb-2">
                     <View className="flex-row items-center">
-                      <Ionicons name="people" size={18} color={accent[500]} />
-                      <Text className="ml-2 text-sm font-semibold" style={{ color: ac(accent, colorScheme, 600, 300) }}>
+                      <Ionicons name="people" size={18} color={theme.primary} />
+                      <Text className="ml-2 text-sm font-semibold" style={{ color: theme.primary }}>
                         Split with {splitPerson?.name ?? "someone"}
                       </Text>
                     </View>
@@ -656,14 +658,14 @@ export default function AddExpenseScreen() {
                     <View
                       key={leg.key}
                       className="rounded-xl border border-border p-3 mb-2"
-                      style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                     >
                       <View className="flex-row items-center justify-between mb-2">
                         <View className="flex-row items-center">
-                          <Ionicons name="card-outline" size={16} color={accent[500]} />
+                          <Ionicons name="card-outline" size={16} color={theme.primary} />
                           <Text
                             className="ml-2 text-xs font-semibold uppercase tracking-wider"
-                            style={{ color: ac(accent, colorScheme, 600, 300) }}
+                            style={{ color: theme.primary }}
                           >
                             Extra payment {idx + 1}
                           </Text>
@@ -793,11 +795,11 @@ export default function AddExpenseScreen() {
                     <Ionicons
                       name="add-circle-outline"
                       size={18}
-                      color={ac(accent, colorScheme, 500, 300)}
+                      color={theme.primary}
                     />
                     <Text
                       className="ml-2 text-sm font-medium"
-                      style={{ color: ac(accent, colorScheme, 500, 300) }}
+                      style={{ color: theme.primary }}
                     >
                       Add another payment source
                     </Text>

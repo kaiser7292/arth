@@ -1,13 +1,14 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Text } from "@/components/ui";
 import type { Expense } from "@/services/expense";
-import { ac } from "@/utils/accent";
+
 import { formatDisplayDate as formatDate } from "@/utils/date";
 import { formatDateTimeInTimezone } from "@/utils/timezone";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 const SOURCE_LABELS: Record<string, string> = {
   manual: "Manual",
@@ -36,7 +37,8 @@ interface ExpenseMetadataProps {
 }
 
 export default function ExpenseMetadata({ expense }: ExpenseMetadataProps) {
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [showRawSms, setShowRawSms] = useState(false);
   const router = useRouter();
@@ -126,7 +128,7 @@ export default function ExpenseMetadata({ expense }: ExpenseMetadataProps) {
                 <Text className="text-xs font-medium text-muted-foreground">
                   Refund of:
                 </Text>
-                <Text className="text-xs ml-1.5 underline" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+                <Text className="text-xs ml-1.5 underline" style={{ color: theme.primary }}>
                   View original expense
                 </Text>
               </Pressable>

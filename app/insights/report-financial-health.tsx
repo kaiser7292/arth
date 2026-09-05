@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 
 import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
@@ -22,13 +22,16 @@ import {
   exportFinancialHealthPDF,
   sharePDF,
 } from "@/services/reports/report-pdf-export";
+import { useTheme, type Theme } from "@/hooks/use-theme";
 
-function gradeColor(grade: string, colorScheme: "light" | "dark") {
-  const s = StatusColors[colorScheme];
-  if (grade.startsWith("A")) return s.success;
+/** Takes the theme as an argument: this is a plain helper, not a component, so it must not
+ *  call a hook. It is invoked from inside map callbacks, where a conditional hook call would
+ *  break hook order. */
+function gradeColor(grade: string, theme: Theme) {
+  if (grade.startsWith("A")) return theme.success;
   if (grade.startsWith("B")) return BRAND_COLOR;
-  if (grade.startsWith("C")) return s.warning;
-  return s.danger;
+  if (grade.startsWith("C")) return theme.warning;
+  return theme.danger;
 }
 
 function StatBox({ label, value, color }: { label: string; value: string; color?: string }) {
@@ -56,8 +59,8 @@ const DIMENSION_ICONS: Record<string, string> = {
 
 export default function FinancialHealthReportScreen() {
   const router = useRouter();
-  const { colorScheme, colors } = useColorScheme();
-  const status = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const tint = colors.tint;
   const [report, setReport] = useState<FinancialHealthReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -180,7 +183,7 @@ export default function FinancialHealthReportScreen() {
     );
   }
 
-  const gc = gradeColor(report.overallGrade, colorScheme);
+  const gc = gradeColor(report.overallGrade, theme);
 
   return (
     <ScreenContainer padTop={false}>
@@ -227,7 +230,7 @@ export default function FinancialHealthReportScreen() {
         <View className="px-4 mb-1">
           <View className="flex-row flex-wrap gap-2">
             {report.dimensions.map((d) => {
-              const dc = gradeColor(d.grade, colorScheme);
+              const dc = gradeColor(d.grade, theme);
               const iconName = DIMENSION_ICONS[d.name] || "ellipse-outline";
               return (
                 <View
@@ -260,8 +263,8 @@ export default function FinancialHealthReportScreen() {
         <View className="px-4 mt-4">
           <SectionHeader title="Net Worth" />
           <View className="flex-row gap-3 mb-3">
-            <StatBox label="Total assets" value={formatAmount(report.totalAssets)} color={status.success} />
-            <StatBox label="Total liabilities" value={formatAmount(report.totalLiabilities)} color={status.danger} />
+            <StatBox label="Total assets" value={formatAmount(report.totalAssets)} color={theme.success} />
+            <StatBox label="Total liabilities" value={formatAmount(report.totalLiabilities)} color={theme.danger} />
           </View>
           <Card>
             <View className="flex-row items-center justify-between">
@@ -270,7 +273,7 @@ export default function FinancialHealthReportScreen() {
               </Text>
               <Text
                 className="text-lg font-bold"
-                style={{ color: report.netWorth >= 0 ? status.success : status.danger }}
+                style={{ color: report.netWorth >= 0 ? theme.success : theme.danger }}
               >
                 {formatAmount(report.netWorth)}
               </Text>
@@ -293,16 +296,16 @@ export default function FinancialHealthReportScreen() {
                   const isLast = i === report.monthlySavingsRates.length - 1;
                   return (
                     <View key={m.month} className="flex-1 items-center gap-1">
-                      <Text className="text-xs font-medium" style={{ color: m.rate >= 0 ? status.success : status.danger, fontSize: 9 }}>
+                      <Text className="text-xs font-medium" style={{ color: m.rate >= 0 ? theme.success : theme.danger, fontSize: 9 }}>
                         {Math.round(m.rate)}%
                       </Text>
                       <View
                         className="w-full rounded-t"
                         style={{
                           height: h,
-                          backgroundColor: isLast ? status.success : status.successBg,
+                          backgroundColor: isLast ? theme.success : theme.alpha("success", 0.08),
                           borderWidth: isLast ? 1 : 0,
-                          borderColor: status.success,
+                          borderColor: theme.success,
                         }}
                       />
                     </View>
@@ -340,11 +343,11 @@ export default function FinancialHealthReportScreen() {
                   <View key={m.month} className="flex-row items-center py-1.5 border-b border-border">
                     <Text className="text-xs text-muted-foreground w-10">{m.month}</Text>
                     <Text className="text-xs text-foreground flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatAmount(m.income)}</Text>
-                    <Text className="text-xs flex-1 text-right" style={{ color: status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatAmount(m.expenses)}</Text>
-                    <Text className="text-xs font-medium flex-1 text-right" style={{ color: m.saved >= 0 ? status.success : status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                    <Text className="text-xs flex-1 text-right" style={{ color: theme.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatAmount(m.expenses)}</Text>
+                    <Text className="text-xs font-medium flex-1 text-right" style={{ color: m.saved >= 0 ? theme.success : theme.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                       {formatAmount(m.saved)}
                     </Text>
-                    <Text className="text-xs font-semibold w-10 text-right" style={{ color: m.rate >= 30 ? status.success : m.rate >= 0 ? status.warning : status.danger }}>
+                    <Text className="text-xs font-semibold w-10 text-right" style={{ color: m.rate >= 30 ? theme.success : m.rate >= 0 ? theme.warning : theme.danger }}>
                       {Math.round(m.rate)}%
                     </Text>
                   </View>
@@ -355,13 +358,13 @@ export default function FinancialHealthReportScreen() {
                   <Text className="text-xs font-semibold text-foreground flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                     {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.income, 0) / report.monthlySavingsRates.length)}
                   </Text>
-                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: theme.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                     {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.expenses, 0) / report.monthlySavingsRates.length)}
                   </Text>
-                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: status.success }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: theme.success }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                     {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.saved, 0) / report.monthlySavingsRates.length)}
                   </Text>
-                  <Text className="text-xs font-bold w-10 text-right" style={{ color: report.avgSavingsRate >= 30 ? status.success : status.warning }}>
+                  <Text className="text-xs font-bold w-10 text-right" style={{ color: report.avgSavingsRate >= 30 ? theme.success : theme.warning }}>
                     {Math.round(report.avgSavingsRate)}%
                   </Text>
                 </View>
@@ -377,24 +380,24 @@ export default function FinancialHealthReportScreen() {
             <StatBox
               label="Savings rate"
               value={`${Math.round(report.currentSavingsRate)}%`}
-              color={report.currentSavingsRate >= 40 ? status.success : status.warning}
+              color={report.currentSavingsRate >= 40 ? theme.success : theme.warning}
             />
             <StatBox
               label="Debt-to-income"
               value={`${Math.round(report.debtToIncomeRatio)}%`}
-              color={report.debtToIncomeRatio <= 20 ? status.success : status.warning}
+              color={report.debtToIncomeRatio <= 20 ? theme.success : theme.warning}
             />
           </View>
           <View className="flex-row gap-3">
             <StatBox
               label="Emergency buffer"
               value={`${report.emergencyMonths.toFixed(1)} mo`}
-              color={report.emergencyMonths >= 3 ? status.success : status.danger}
+              color={report.emergencyMonths >= 3 ? theme.success : theme.danger}
             />
             <StatBox
               label="Monthly EMI"
               value={report.monthlyEMI > 0 ? formatAmount(report.monthlyEMI) : "None"}
-              color={report.monthlyEMI > 0 ? status.warning : status.success}
+              color={report.monthlyEMI > 0 ? theme.warning : theme.success}
             />
           </View>
         </View>
@@ -403,10 +406,10 @@ export default function FinancialHealthReportScreen() {
         {report.emergencyGap > 0 && (
           <View className="px-4 mt-3">
             <Card>
-              <View className="rounded-lg p-3" style={{ backgroundColor: status.dangerBg }}>
+              <View className="rounded-lg p-3" style={{ backgroundColor: theme.alpha("danger", 0.08) }}>
                 <View className="flex-row items-center gap-2 mb-1">
-                  <Ionicons name="warning-outline" size={14} color={status.danger} />
-                  <Text className="text-xs font-semibold" style={{ color: status.danger }}>
+                  <Ionicons name="warning-outline" size={14} color={theme.danger} />
+                  <Text className="text-xs font-semibold" style={{ color: theme.danger }}>
                     Emergency fund gap
                   </Text>
                 </View>
@@ -550,7 +553,7 @@ export default function FinancialHealthReportScreen() {
               <Pressable key={s.categoryId} onPress={() => drillSpikeCategory(s.categoryId, s.categoryName)} className="mb-3">
                 <Card>
                   <View className="flex-row items-center gap-2 mb-1">
-                    <Ionicons name="trending-up" size={14} color={status.warning} />
+                    <Ionicons name="trending-up" size={14} color={theme.warning} />
                     <Text className="text-xs font-semibold text-foreground flex-1">
                       {s.categoryName}
                     </Text>

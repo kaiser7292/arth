@@ -24,8 +24,9 @@ import type { HisaabPersonWithBalance } from "@/services/hisaab";
 import type { SplitConfig, SplitMode } from "@/services/expense";
 import { formatAmount } from "@/utils/format";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
-import { ac } from "@/utils/accent";
+
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface SplitSheetProps {
   visible: boolean;
@@ -65,7 +66,8 @@ export function SplitSheet({
   const [newPersonName, setNewPersonName] = useState("");
   const [showAddPerson, setShowAddPerson] = useState(false);
 
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
 
   // Animation
@@ -217,10 +219,10 @@ export function SplitSheet({
                       ? ""
                       : "border-border"
                   }`}
-                  style={paidBy === "me" ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 900) } : undefined}
+                  style={paidBy === "me" ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}>
-                    <Ionicons name="person" size={20} color={accent[500]} />
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                    <Ionicons name="person" size={20} color={theme.primary} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-base font-semibold text-foreground">
@@ -288,7 +290,7 @@ export function SplitSheet({
                         ? ""
                         : "border-border"
                     }`}
-                    style={splitMode === item.mode ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 900) } : undefined}
+                    style={splitMode === item.mode ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
                   >
                     <View className="w-9 h-9 rounded-lg bg-background items-center justify-center mr-3">
                       <Ionicons
@@ -333,7 +335,7 @@ export function SplitSheet({
                           ? ""
                           : "border-border"
                       }`}
-                      style={selectedPersonId === person.id ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 900) } : undefined}
+                      style={selectedPersonId === person.id ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
                     >
                       <View className="w-10 h-10 rounded-full bg-background items-center justify-center mr-3">
                         <Text className="text-base font-bold text-muted-foreground">
@@ -366,7 +368,7 @@ export function SplitSheet({
                     <Pressable
                       onPress={handleAddPerson}
                       className="rounded-xl px-4 py-3"
-                      style={{ backgroundColor: accent[500] }}
+                      style={{ backgroundColor: theme.primary }}
                     >
                       <Text className="text-white font-semibold">Add</Text>
                     </Pressable>
@@ -375,10 +377,10 @@ export function SplitSheet({
                   <Pressable
                     onPress={() => setShowAddPerson(true)}
                     className="flex-row items-center p-4 rounded-xl border border-dashed"
-                    style={{ borderColor: ac(accent, colorScheme, 300, 700) }}
+                    style={{ borderColor: theme.alpha("primary", 0.25) }}
                   >
-                    <Ionicons name="add-circle-outline" size={20} color={accent[500]} />
-                    <Text className="text-sm font-medium ml-2" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                    <Ionicons name="add-circle-outline" size={20} color={theme.primary} />
+                    <Text className="text-sm font-medium ml-2" style={{ color: theme.primary }}>
                       Add new person
                     </Text>
                   </Pressable>
@@ -420,7 +422,7 @@ export function SplitSheet({
                               ? ""
                               : "bg-background"
                           }`}
-                          style={percentage === pct ? { backgroundColor: accent[500] } : undefined}
+                          style={percentage === pct ? { backgroundColor: theme.primary } : undefined}
                         >
                           <Text
                             className={`text-sm font-semibold ${
@@ -469,14 +471,14 @@ export function SplitSheet({
 
                   <View className="flex-row justify-between items-center">
                     <View className="flex-row items-center">
-                      <View className="w-6 h-6 rounded-full items-center justify-center mr-2" style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}>
-                        <Ionicons name="person" size={12} color={accent[500]} />
+                      <View className="w-6 h-6 rounded-full items-center justify-center mr-2" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                        <Ionicons name="person" size={12} color={theme.primary} />
                       </View>
                       <Text className="text-sm text-foreground">
                         My budget
                       </Text>
                     </View>
-                    <Text className="text-base font-bold" style={{ color: ac(accent, colorScheme, 600, 300) }}>
+                    <Text className="text-base font-bold" style={{ color: theme.primary }}>
                       {formatAmount(preview.myBudgetAmount)}
                     </Text>
                   </View>
@@ -484,7 +486,7 @@ export function SplitSheet({
                   <View className="flex-row justify-between items-center">
                     <View className="flex-row items-center">
                       <View className="w-6 h-6 rounded-full bg-warning/15 items-center justify-center mr-2">
-                        <Ionicons name="people" size={12} color={StatusColors[colorScheme].warning} />
+                        <Ionicons name="people" size={12} color={theme.warning} />
                       </View>
                       <Text className="text-sm text-foreground">
                         {selectedPerson?.name ?? "Person"}
@@ -538,7 +540,7 @@ export function SplitSheet({
                   ? "bg-border"
                   : ""
               }`}
-              style={!selectedPersonId || (splitMode === "exact" && !exactAmount) ? undefined : { backgroundColor: accent[500] }}
+              style={!selectedPersonId || (splitMode === "exact" && !exactAmount) ? undefined : { backgroundColor: theme.primary }}
             >
               <Text className="text-base font-bold text-white">Confirm Split</Text>
             </Pressable>

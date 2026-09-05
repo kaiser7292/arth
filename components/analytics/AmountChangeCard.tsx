@@ -4,8 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 interface AmountChangeCardProps {
   merchant: string;
@@ -26,17 +27,17 @@ export function AmountChangeCard({
   onDifferentPlan,
   onNotSure,
 }: AmountChangeCardProps) {
-  const { colorScheme, accent } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   return (
     <View
       className="rounded-2xl p-4 mb-3 border"
-      style={{ borderColor: accent[200], backgroundColor: accent[50] + "30" }}
+      style={{ borderColor: theme.alpha("primary", 0.25), backgroundColor: theme.alpha("primary", 0.19) }}
       accessibilityLabel={`Amount change: ${merchant} charged ${formatAmount(newAmount)} this month, usually ${formatAmount(usualAmount)}`}
     >
       <View className="flex-row items-start mb-2">
-        <Ionicons name="swap-horizontal" size={16} color={accent[600]} style={{ marginRight: 8, marginTop: 1 }} />
+        <Ionicons name="swap-horizontal" size={16} color={theme.primary} style={{ marginRight: 8, marginTop: 1 }} />
         <View className="flex-1">
           <Text className="text-sm font-medium text-foreground capitalize">
             {merchant} charged {formatAmount(newAmount)} this month

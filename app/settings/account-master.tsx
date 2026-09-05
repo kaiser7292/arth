@@ -10,6 +10,7 @@ import type { AccountWithModes } from "@/services/account-master";
 import { getDematAccountsWithSummary } from "@/services/financial-account";
 import type { DematAccountSummary } from "@/services/financial-account";
 import { consumeAccountsPreload } from "@/services/home-preload";
+import { useTheme } from "@/hooks/use-theme";
 
 const preloaded = consumeAccountsPreload();
 
@@ -45,7 +46,8 @@ const TYPE_FILTERS: Array<{ key: TypeFilter; label: string }> = [
 
 export default function AccountMasterScreen() {
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [accounts, setAccounts] = useState<AccountWithModes[]>(preloaded?.accounts ?? []);
   const [dematSummaries, setDematSummaries] = useState<Map<string, DematAccountSummary>>(() => {
     const m = new Map<string, DematAccountSummary>();
@@ -156,7 +158,7 @@ export default function AccountMasterScreen() {
           <View className="flex-row items-center">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: accent[500] + "14" }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
               <Ionicons
                 name={ACCOUNT_TYPE_ICONS[account.account_type] ?? "help-outline"}

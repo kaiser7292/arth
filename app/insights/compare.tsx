@@ -18,6 +18,7 @@ import { formatAmount } from "@/utils/expense-validation";
 import { formatDisplayDate as formatDateShort } from "@/utils/date";
 import { changePctColor } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 
 function changeArrow(pct: number): keyof typeof Ionicons.glyphMap {
@@ -35,7 +36,8 @@ function shortRangeLabel(start: string, end: string): string {
 
 export default function PeriodComparisonScreen() {
   const router = useRouter();
-  const { accent, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [presets] = useState<ComparisonPreset[]>(() => getComparisonPresets());
   const [selectedPreset, setSelectedPreset] = useState<string>("This Month vs Last Month");
 
@@ -129,7 +131,7 @@ export default function PeriodComparisonScreen() {
               className={`px-3 py-2 rounded-lg ${
                 selectedPreset === p.label ? "" : "bg-card"
               }`}
-              style={selectedPreset === p.label ? { backgroundColor: accent[500] } : undefined}
+              style={selectedPreset === p.label ? { backgroundColor: theme.primary } : undefined}
             >
               <Text
                 className={`text-xs font-semibold ${
@@ -147,7 +149,7 @@ export default function PeriodComparisonScreen() {
             className={`px-3 py-2 rounded-lg ${
               selectedPreset === "Custom" ? "" : "bg-card"
             }`}
-            style={selectedPreset === "Custom" ? { backgroundColor: accent[500] } : undefined}
+            style={selectedPreset === "Custom" ? { backgroundColor: theme.primary } : undefined}
           >
             <Text
               className={`text-xs font-semibold ${
@@ -213,7 +215,7 @@ export default function PeriodComparisonScreen() {
         {/* Loading */}
         {loading && (
           <View className="items-center py-8">
-            <ActivityIndicator size="small" color={accent[500]} />
+            <ActivityIndicator size="small" color={theme.primary} />
           </View>
         )}
 
@@ -246,7 +248,7 @@ export default function PeriodComparisonScreen() {
                   <Text className="text-xs text-faint-foreground mb-1">
                     {formatDateShort(data.range1.start)} – {formatDateShort(data.range1.end)}
                   </Text>
-                  <Text className="text-lg font-bold" style={{ color: accent[500] }}>
+                  <Text className="text-lg font-bold" style={{ color: theme.primary }}>
                     {formatAmount(data.range1.summary.totalSpent)}
                   </Text>
                   <Text className="text-xs text-faint-foreground mt-0.5">
@@ -263,7 +265,7 @@ export default function PeriodComparisonScreen() {
                   <Text className="text-xs text-faint-foreground mb-1">
                     {formatDateShort(data.range2.start)} – {formatDateShort(data.range2.end)}
                   </Text>
-                  <Text className="text-lg font-bold" style={{ color: accent[500] }}>
+                  <Text className="text-lg font-bold" style={{ color: theme.primary }}>
                     {formatAmount(data.range2.summary.totalSpent)}
                   </Text>
                   <Text className="text-xs text-faint-foreground mt-0.5">
@@ -316,7 +318,7 @@ export default function PeriodComparisonScreen() {
                         className="w-[76px] ml-1"
                         onPress={() => drillInto(data.range1.start, data.range1.end, { type: "category", categoryId: c.categoryId }, `${c.categoryName} · ${shortRangeLabel(data.range1.start, data.range1.end)}`)}
                       >
-                        <Text className="text-xs text-right" style={{ color: accent[500] }}>
+                        <Text className="text-xs text-right" style={{ color: theme.primary }}>
                           {formatAmount(c.range1Total)}
                         </Text>
                       </Pressable>
@@ -324,7 +326,7 @@ export default function PeriodComparisonScreen() {
                         className="w-[76px] ml-1"
                         onPress={() => drillInto(data.range2.start, data.range2.end, { type: "category", categoryId: c.categoryId }, `${c.categoryName} · ${shortRangeLabel(data.range2.start, data.range2.end)}`)}
                       >
-                        <Text className="text-xs font-medium text-right" style={{ color: accent[500] }}>
+                        <Text className="text-xs font-medium text-right" style={{ color: theme.primary }}>
                           {formatAmount(c.range2Total)}
                         </Text>
                       </Pressable>
@@ -367,7 +369,7 @@ export default function PeriodComparisonScreen() {
                         className="w-[76px] ml-1"
                         onPress={() => drillInto(data.range1.start, data.range1.end, { type: "merchant", merchantName: m.merchantName }, `${m.merchantName} · ${shortRangeLabel(data.range1.start, data.range1.end)}`)}
                       >
-                        <Text className="text-xs text-right" style={{ color: accent[500] }}>
+                        <Text className="text-xs text-right" style={{ color: theme.primary }}>
                           {formatAmount(m.range1Total)}
                         </Text>
                       </Pressable>
@@ -375,7 +377,7 @@ export default function PeriodComparisonScreen() {
                         className="w-[76px] ml-1"
                         onPress={() => drillInto(data.range2.start, data.range2.end, { type: "merchant", merchantName: m.merchantName }, `${m.merchantName} · ${shortRangeLabel(data.range2.start, data.range2.end)}`)}
                       >
-                        <Text className="text-xs font-medium text-right" style={{ color: accent[500] }}>
+                        <Text className="text-xs font-medium text-right" style={{ color: theme.primary }}>
                           {formatAmount(m.range2Total)}
                         </Text>
                       </Pressable>
@@ -392,7 +394,7 @@ export default function PeriodComparisonScreen() {
                       onPress={() => setShowAllMerchants((prev) => !prev)}
                       className="py-2"
                     >
-                      <Text className="text-xs font-medium text-center" style={{ color: accent[500] }}>
+                      <Text className="text-xs font-medium text-center" style={{ color: theme.primary }}>
                         {showAllMerchants ? "Show fewer" : `+${data.byMerchant.length - 10} more merchants`}
                       </Text>
                     </Pressable>
@@ -428,7 +430,7 @@ export default function PeriodComparisonScreen() {
                         className="w-[76px] ml-1"
                         onPress={() => drillInto(data.range1.start, data.range1.end, { type: "paymentMode", paymentModeId: pm.paymentModeId }, `${pm.paymentModeName} · ${shortRangeLabel(data.range1.start, data.range1.end)}`)}
                       >
-                        <Text className="text-xs text-right" style={{ color: accent[500] }}>
+                        <Text className="text-xs text-right" style={{ color: theme.primary }}>
                           {formatAmount(pm.range1Total)}
                         </Text>
                       </Pressable>
@@ -436,7 +438,7 @@ export default function PeriodComparisonScreen() {
                         className="w-[76px] ml-1"
                         onPress={() => drillInto(data.range2.start, data.range2.end, { type: "paymentMode", paymentModeId: pm.paymentModeId }, `${pm.paymentModeName} · ${shortRangeLabel(data.range2.start, data.range2.end)}`)}
                       >
-                        <Text className="text-xs font-medium text-right" style={{ color: accent[500] }}>
+                        <Text className="text-xs font-medium text-right" style={{ color: theme.primary }}>
                           {formatAmount(pm.range2Total)}
                         </Text>
                       </Pressable>

@@ -13,9 +13,9 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Card, DateInput, FAB, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { useAlert } from "@/hooks/use-alert";
-import { ac } from "@/utils/accent";
+
 import {
   getEntries,
   getEntriesByDateRange,
@@ -35,6 +35,7 @@ import { formatAmount } from "@/utils/expense-validation";
 import { ExportFormatPicker } from "@/components/hisaab/ExportFormatPicker";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { getActiveAccounts } from "@/services/financial-account";
+import { useTheme } from "@/hooks/use-theme";
 
 type ViewMode = "list" | "add_entry" | "settle";
 type EntryType = "debit" | "credit";
@@ -50,6 +51,7 @@ export default function LedgerScreen() {
   }>();
   const router = useRouter();
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const [person, setPerson] = useState<HisaabPerson | null>(null);
   const [entries, setEntries] = useState<HisaabEntry[]>([]);
@@ -351,7 +353,7 @@ export default function LedgerScreen() {
                   className="flex-row items-center border rounded-lg px-3 py-2.5 mb-4"
                   style={{ borderColor: colors.border }}
                 >
-                  <Ionicons name="wallet-outline" size={16} color={settleAccountId ? accent[500] : colors.textSecondary} />
+                  <Ionicons name="wallet-outline" size={16} color={settleAccountId ? theme.primary : colors.textSecondary} />
                   <Text
                     className="flex-1 text-sm ml-2"
                     style={{ color: settleAccountId ? colors.text : colors.textSecondary }}
@@ -440,7 +442,7 @@ export default function LedgerScreen() {
                         ? "bg-danger/8"
                         : "bg-transparent border-border"
                     }`}
-                    style={formType === "debit" ? { borderColor: StatusColors[colorScheme].danger } : undefined}
+                    style={formType === "debit" ? { borderColor: theme.danger } : undefined}
                   >
                     <Text
                       className={`text-sm font-medium ${
@@ -459,7 +461,7 @@ export default function LedgerScreen() {
                         ? "bg-success/8"
                         : "bg-transparent border-border"
                     }`}
-                    style={formType === "credit" ? { borderColor: StatusColors[colorScheme].success } : undefined}
+                    style={formType === "credit" ? { borderColor: theme.success } : undefined}
                   >
                     <Text
                       className={`text-sm font-medium ${
@@ -555,28 +557,28 @@ export default function LedgerScreen() {
                 <Pressable
                   onPress={() => setViewMode("settle")}
                   className="flex-row items-center px-3 py-1.5 rounded-full mr-2"
-                  style={{ backgroundColor: accent[500] + "14" }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                 >
                   <Ionicons
                     name="checkmark-circle-outline"
                     size={14}
                     color={colors.blue}
                   />
-                  <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+                  <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
                     Settle
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={handleShare}
                   className="flex-row items-center px-3 py-1.5 rounded-full mr-2"
-                  style={{ backgroundColor: accent[500] + "14" }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                 >
                   <Ionicons
                     name="download-outline"
                     size={14}
                     color={colors.blue}
                   />
-                  <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+                  <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
                     Export
                   </Text>
                 </Pressable>
@@ -602,24 +604,24 @@ export default function LedgerScreen() {
               onPress={() => setShowFilters(!showFilters)}
               className="flex-row items-center px-3 py-1.5 rounded-full border"
               style={filterActive
-                ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 700) }
+                ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) }
                 : { borderColor: colors.border }
               }
             >
               <Ionicons
                 name="funnel-outline"
                 size={14}
-                color={filterActive ? accent[500] : colors.textSecondary}
+                color={filterActive ? theme.primary : colors.textSecondary}
               />
               <Text
                 className="text-xs font-medium ml-1"
-                style={{ color: filterActive ? accent[500] : colors.textSecondary }}
+                style={{ color: filterActive ? theme.primary : colors.textSecondary }}
               >
                 {filterActive ? `${filterFrom} → ${filterTo}` : "Filter"}
               </Text>
               {filterActive && (
                 <Pressable onPress={handleClearFilter} hitSlop={6} className="ml-1.5">
-                  <Ionicons name="close-circle" size={14} color={accent[500]} />
+                  <Ionicons name="close-circle" size={14} color={theme.primary} />
                 </Pressable>
               )}
             </Pressable>
@@ -637,13 +639,13 @@ export default function LedgerScreen() {
                   onPress={() => setSortBy(opt.key)}
                   className="px-2 py-1 rounded-full ml-1"
                   style={sortBy === opt.key
-                    ? { backgroundColor: ac(accent, colorScheme, 50, 700) }
+                    ? { backgroundColor: theme.alpha("primary", 0.1) }
                     : undefined
                   }
                 >
                   <Text
                     className="text-label font-semibold"
-                    style={{ color: sortBy === opt.key ? accent[500] : colors.textSecondary }}
+                    style={{ color: sortBy === opt.key ? theme.primary : colors.textSecondary }}
                   >
                     {opt.label}
                   </Text>
@@ -690,7 +692,7 @@ export default function LedgerScreen() {
                   style={{
                     backgroundColor: !filterFrom || !filterTo || filterFrom > filterTo
                       ? "#9CA3AF40"
-                      : accent[500],
+                      : theme.primary,
                   }}
                 >
                   <Text className="text-xs font-medium text-white">
@@ -719,11 +721,10 @@ export default function LedgerScreen() {
               else if (e.type === "credit") rangeCredits += e.amount;
               else if (e.type === "settlement") rangeSettlements += e.amount;
             }
-            const sc = StatusColors[colorScheme];
             const openIsPositive = openingBalance >= 0;
             const closeIsPositive = closingBalance >= 0;
             const netChange = closingBalance - openingBalance;
-            const netColor = netChange === 0 ? colors.textSecondary : netChange > 0 ? sc.success : sc.danger;
+            const netColor = netChange === 0 ? colors.textSecondary : netChange > 0 ? theme.success : theme.danger;
             return (
               <Card className="mb-3">
                 <Text
@@ -739,7 +740,7 @@ export default function LedgerScreen() {
                   </Text>
                   <Text
                     className="text-sm font-semibold"
-                    style={{ color: openIsPositive ? sc.success : sc.danger }}
+                    style={{ color: openIsPositive ? theme.success : theme.danger }}
                   >
                     {openIsPositive ? "+" : ""}
                     {formatAmount(openingBalance)}
@@ -751,7 +752,7 @@ export default function LedgerScreen() {
                     <Text className="text-xs" style={{ color: colors.textSecondary }}>
                       They owed (debits)
                     </Text>
-                    <Text className="text-xs font-semibold" style={{ color: sc.danger }}>
+                    <Text className="text-xs font-semibold" style={{ color: theme.danger }}>
                       +{formatAmount(rangeDebits)}
                     </Text>
                   </View>
@@ -761,7 +762,7 @@ export default function LedgerScreen() {
                     <Text className="text-xs" style={{ color: colors.textSecondary }}>
                       They paid (credits)
                     </Text>
-                    <Text className="text-xs font-semibold" style={{ color: sc.success }}>
+                    <Text className="text-xs font-semibold" style={{ color: theme.success }}>
                       −{formatAmount(rangeCredits)}
                     </Text>
                   </View>
@@ -771,7 +772,7 @@ export default function LedgerScreen() {
                     <Text className="text-xs" style={{ color: colors.textSecondary }}>
                       Settlements
                     </Text>
-                    <Text className="text-xs font-semibold" style={{ color: sc.success }}>
+                    <Text className="text-xs font-semibold" style={{ color: theme.success }}>
                       −{formatAmount(rangeSettlements)}
                     </Text>
                   </View>
@@ -793,7 +794,7 @@ export default function LedgerScreen() {
                   </Text>
                   <Text
                     className="text-base font-bold"
-                    style={{ color: closeIsPositive ? sc.success : sc.danger }}
+                    style={{ color: closeIsPositive ? theme.success : theme.danger }}
                   >
                     {closeIsPositive ? "+" : ""}
                     {formatAmount(closingBalance)}
@@ -922,6 +923,7 @@ function EntryCard({
   accountMap?: Map<string, string>;
 }) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const isDebit = entry.type === "debit";
   const isSettlement = entry.type === "settlement";
   const isCredit = entry.type === "credit";
@@ -931,7 +933,7 @@ function EntryCard({
     : isSettlement
       ? "checkmark-circle-outline"
       : "arrow-down-outline";
-  const color = isDebit ? StatusColors[colorScheme].danger : StatusColors[colorScheme].success;
+  const color = isDebit ? theme.danger : theme.success;
   const prefix = isDebit ? "+" : "-";
   const label = isDebit ? "They owe" : isSettlement ? "Settlement" : "They paid";
 
@@ -974,11 +976,11 @@ function EntryCard({
                     onViewExpense(entry.linked_expense_id!);
                   }}
                   className="flex-row items-center ml-2 px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: accent[50] }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                   hitSlop={4}
                 >
                   <Ionicons name="receipt-outline" size={10} color={colors.blue} />
-                  <Text className="text-label font-medium ml-0.5" style={{ color: accent[500] }}>
+                  <Text className="text-label font-medium ml-0.5" style={{ color: theme.primary }}>
                     Expense
                   </Text>
                 </Pressable>

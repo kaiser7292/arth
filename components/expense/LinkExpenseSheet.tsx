@@ -13,6 +13,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { findReminderCandidateExpenses } from "@/services/expense";
 import type { Expense } from "@/services/expense";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * "Link to an existing expense" sheet. Shown when the user taps a pending
@@ -45,7 +46,8 @@ export function LinkExpenseSheet({
   onLogNew,
   onClose,
 }: LinkExpenseSheetProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [candidates, setCandidates] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,7 +178,7 @@ export function LinkExpenseSheet({
             accessibilityRole="button"
             accessibilityLabel="Log new expense"
             className="py-3 rounded-xl items-center flex-row justify-center"
-            style={{ backgroundColor: accent[500] }}
+            style={{ backgroundColor: theme.primary }}
           >
             <Ionicons name="add-outline" size={18} color="#fff" />
             <Text className="text-sm font-semibold text-white ml-1">

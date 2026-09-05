@@ -4,9 +4,10 @@ import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/expense-validation";
 import type { FilteredSummary } from "@/services/expense";
+import { useTheme } from "@/hooks/use-theme";
 
 interface FilterSummaryCardProps {
   summary: FilteredSummary;
@@ -34,7 +35,8 @@ export function FilterSummaryCard({
   natureKind = "realized",
   availableGroupBys = ["category", "account", "payment_mode", "merchant"] as const,
 }: FilterSummaryCardProps) {
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const [collapsed, setCollapsed] = useState(true);
   const [showAll, setShowAll] = useState(false);
 
@@ -63,7 +65,7 @@ export function FilterSummaryCard({
               </Text>
               <Text
                 className="text-2xl font-bold mt-1"
-                style={{ color: ac(accent, colorScheme, 600, 300) }}
+                style={{ color: theme.primary }}
               >
                 {formatAmount(summary.total)}
               </Text>
@@ -89,7 +91,7 @@ export function FilterSummaryCard({
             <Ionicons
               name={collapsed ? "chevron-down" : "chevron-up"}
               size={18}
-              color={ac(accent, colorScheme, 500, 300)}
+              color={theme.primary}
             />
           </View>
         </Pressable>
@@ -110,7 +112,7 @@ export function FilterSummaryCard({
                       }`}
                       style={
                         isActive
-                          ? { backgroundColor: ac(accent, colorScheme, 100, 700), borderColor: accent[500] }
+                          ? { backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.primary }
                           : undefined
                       }
                     >
@@ -118,7 +120,7 @@ export function FilterSummaryCard({
                         className={`text-xs ${
                           isActive ? "font-medium" : "text-muted-foreground"
                         }`}
-                        style={isActive ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
+                        style={isActive ? { color: theme.primary } : undefined}
                       >
                         {label}
                       </Text>
@@ -153,7 +155,7 @@ export function FilterSummaryCard({
                         className="h-full rounded-full"
                         style={{
                           width: `${pct}%`,
-                          backgroundColor: accent[500],
+                          backgroundColor: theme.primary,
                         }}
                       />
                     </View>
@@ -167,7 +169,7 @@ export function FilterSummaryCard({
 
             {summary.groups.length > MAX_VISIBLE_GROUPS && (
               <Pressable onPress={() => setShowAll((v) => !v)} className="mt-1">
-                <Text className="text-xs font-medium" style={{ color: accent[500] }}>
+                <Text className="text-xs font-medium" style={{ color: theme.primary }}>
                   {showAll ? "Show less" : `Show all ${summary.groups.length}`}
                 </Text>
               </Pressable>

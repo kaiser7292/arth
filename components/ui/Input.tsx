@@ -31,7 +31,7 @@ export function Input({
   keyboardType,
   ...props
 }: InputProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
 
   const inFormula = formula && typeof value === "string" && isFormulaMode(value);
   const formulaExpr = inFormula ? getFormulaExpr(value as string) : "";

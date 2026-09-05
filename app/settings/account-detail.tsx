@@ -9,7 +9,7 @@ import { Button, Card, DateInput, Input, PeriodNavigator, ScreenContainer, Text 
 import { BalanceSourceCard } from "@/components/account/BalanceSourceCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getAccountWithModes,
@@ -43,6 +43,7 @@ import {
 import type { MonthBalanceSummary } from "@/services/account-balance";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   savings: "wallet-outline",
@@ -70,8 +71,8 @@ function getCurrentMonth(): string {
 export default function AccountDetailScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const { accountId } = useLocalSearchParams<{ accountId: string }>();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -437,7 +438,7 @@ export default function AccountDetailScreen() {
             <View className="flex-row items-center mb-4">
               <View
                 className="w-12 h-12 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: accent[500] + "14" }}
+                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
               >
                 <Ionicons
                   name={ACCOUNT_TYPE_ICONS[accountType] ?? "help-outline"}
@@ -472,8 +473,8 @@ export default function AccountDetailScreen() {
                         className="flex-row items-center px-3 py-2.5 rounded-lg border"
                         style={{
                           width: "48%",
-                          backgroundColor: isSelected ? accent[500] : undefined,
-                          borderColor: isSelected ? accent[500] : colors.border,
+                          backgroundColor: isSelected ? theme.primary : undefined,
+                          borderColor: isSelected ? theme.primary : colors.border,
                         }}
                       >
                         <Ionicons
@@ -518,11 +519,11 @@ export default function AccountDetailScreen() {
               {siblingCards.length > 0 && (
                 <View
                   className="flex-row items-start mt-3 p-3 rounded-lg"
-                  style={{ backgroundColor: sc.warning + "14" }}
+                  style={{ backgroundColor: theme.warning + "14" }}
                 >
-                  <Ionicons name="information-circle" size={16} color={sc.warning} style={{ marginTop: 1 }} />
+                  <Ionicons name="information-circle" size={16} color={theme.warning} style={{ marginTop: 1 }} />
                   <View className="flex-1 ml-2">
-                    <Text className="text-xs font-medium" style={{ color: sc.warning }}>
+                    <Text className="text-xs font-medium" style={{ color: theme.warning }}>
                       Shared limit - changes sync to all {siblingCards.length + 1} {account.bank_name} cards
                     </Text>
                     {siblingCards.map((s) => (
@@ -541,7 +542,7 @@ export default function AccountDetailScreen() {
                   </Text>
                   <View className="flex-row justify-between">
                     <Text className="text-sm text-foreground">Total Due</Text>
-                    <Text className="text-sm font-bold" style={{ color: sc.danger }}>
+                    <Text className="text-sm font-bold" style={{ color: theme.danger }}>
                       {formatAmount(account.total_due)}
                     </Text>
                   </View>
@@ -761,13 +762,13 @@ export default function AccountDetailScreen() {
                             onPress={() => handleOverrideOpening(ledgerMonth)}
                             className="ml-2 p-1"
                           >
-                            <Ionicons name="checkmark-circle" size={22} color={sc.success} />
+                            <Ionicons name="checkmark-circle" size={22} color={theme.success} />
                           </Pressable>
                           <Pressable
                             onPress={() => setEditingMonth(null)}
                             className="ml-1 p-1"
                           >
-                            <Ionicons name="close-circle" size={22} color={sc.muted} />
+                            <Ionicons name="close-circle" size={22} color={theme.faintForeground} />
                           </Pressable>
                         </View>
                       ) : (
@@ -792,7 +793,7 @@ export default function AccountDetailScreen() {
                               className="ml-2"
                               accessibilityLabel="Remove opening balance adjustment"
                             >
-                              <Ionicons name="trash-outline" size={14} color={sc.danger} />
+                              <Ionicons name="trash-outline" size={14} color={theme.danger} />
                             </Pressable>
                           )}
                         </View>
@@ -805,7 +806,7 @@ export default function AccountDetailScreen() {
                         <Text className="text-xs text-muted-foreground">
                           Expenses
                         </Text>
-                        <Text className="text-xs" style={{ color: sc.danger }}>
+                        <Text className="text-xs" style={{ color: theme.danger }}>
                           −{formatAmount(ledgerSummary.expenses)}
                         </Text>
                       </View>
@@ -817,7 +818,7 @@ export default function AccountDetailScreen() {
                         <Text className="text-xs text-muted-foreground">
                           Credits / Refunds
                         </Text>
-                        <Text className="text-xs" style={{ color: sc.success }}>
+                        <Text className="text-xs" style={{ color: theme.success }}>
                           +{formatAmount(ledgerSummary.credits)}
                         </Text>
                       </View>
@@ -829,7 +830,7 @@ export default function AccountDetailScreen() {
                         <Text className="text-xs text-muted-foreground">
                           Manual adjustments
                         </Text>
-                        <Text className="text-xs" style={{ color: sc.warning }}>
+                        <Text className="text-xs" style={{ color: theme.warning }}>
                           {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
                         </Text>
                       </View>
@@ -915,8 +916,8 @@ export default function AccountDetailScreen() {
               </Pressable>
             ) : (
               <Pressable onPress={handleClose} className="flex-row items-center justify-center py-1">
-                <Ionicons name="lock-closed-outline" size={18} color={sc.danger} />
-                <Text className="text-sm font-medium ml-2" style={{ color: sc.danger }}>Close account</Text>
+                <Ionicons name="lock-closed-outline" size={18} color={theme.danger} />
+                <Text className="text-sm font-medium ml-2" style={{ color: theme.danger }}>Close account</Text>
               </Pressable>
             )}
             <View className="border-t border-border mt-3 pt-3">

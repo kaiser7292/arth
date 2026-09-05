@@ -2,9 +2,10 @@ import { View, Pressable } from "react-native";
 import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 interface DrillGroupRowProps {
   label: string;
@@ -23,8 +24,8 @@ export function DrillGroupRow({
   icon = "storefront-outline",
   onPress,
 }: DrillGroupRowProps) {
-  const { colorScheme } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   return (
     <Pressable
@@ -35,7 +36,7 @@ export function DrillGroupRow({
     >
       <View className="flex-row items-center justify-between mb-1.5">
         <View className="flex-row items-center flex-1 mr-3">
-          <Ionicons name={icon} size={16} color={statusColors.muted} style={{ marginRight: 8 }} />
+          <Ionicons name={icon} size={16} color={theme.faintForeground} style={{ marginRight: 8 }} />
           <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
             {label}
           </Text>
@@ -44,7 +45,7 @@ export function DrillGroupRow({
           <Text className="text-sm font-bold text-foreground">
             {formatAmount(amount)} ({percentage}%)
           </Text>
-          {onPress && <Ionicons name="chevron-forward" size={14} color={statusColors.muted} />}
+          {onPress && <Ionicons name="chevron-forward" size={14} color={theme.faintForeground} />}
         </View>
       </View>
 

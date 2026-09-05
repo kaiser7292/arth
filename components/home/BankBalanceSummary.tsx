@@ -5,12 +5,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
+
 import type { FinancialAccount } from "@/services/financial-account";
 import { getComputedBalanceComponents, computeUnseededBalance } from "@/services/account-balance";
 import { getCurrentMonth } from "@/services/budget";
+import { useTheme } from "@/hooks/use-theme";
 
 interface BankBalanceSummaryProps {
   accounts: FinancialAccount[];
@@ -27,8 +28,8 @@ interface Totals {
 
 function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [totals, setTotals] = useState<Totals>({ opening: 0, expenses: 0, credits: 0, transfersOut: 0, transfersIn: 0, closing: 0 });
 
   const load = useCallback(async () => {
@@ -80,9 +81,9 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           <View className="flex-row items-center mb-3">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: acAlpha(accent, 600, 0.08) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
-              <Ionicons name="wallet-outline" size={20} color={ac(accent, colorScheme, 700, 300)} />
+              <Ionicons name="wallet-outline" size={20} color={theme.primary} />
             </View>
             <Text className="text-sm font-semibold text-foreground flex-1">
               Bank Accounts
@@ -105,7 +106,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           {expenses > 0 && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Expenses</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                 −{formatAmount(expenses)}
               </Text>
             </View>
@@ -115,7 +116,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           {credits > 0 && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Credits / Refunds</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                 +{formatAmount(credits)}
               </Text>
             </View>
@@ -125,7 +126,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           {transfersOut > 0 && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Transfers Out</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                 −{formatAmount(transfersOut)}
               </Text>
             </View>
@@ -135,7 +136,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           {transfersIn > 0 && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Transfers In</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                 +{formatAmount(transfersIn)}
               </Text>
             </View>
@@ -148,7 +149,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
             </Text>
             <Text
               className="text-sm font-bold"
-              style={{ color: closing >= 0 ? sc.success : sc.danger }}
+              style={{ color: closing >= 0 ? theme.success : theme.danger }}
             >
               {formatAmount(closing)}
             </Text>

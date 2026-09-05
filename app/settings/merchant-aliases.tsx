@@ -5,7 +5,7 @@ import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Card, FAB, LearnMoreChip, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getMerchantAliases,
@@ -16,6 +16,7 @@ import {
   renameCanonical,
   getDistinctMerchantNames,
 } from "@/services/merchant-alias";
+import { useTheme } from "@/hooks/use-theme";
 
 interface Alias {
   id: string;
@@ -26,7 +27,8 @@ interface Alias {
 
 export default function MerchantAliasesScreen() {
   const alert = useAlert();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [aliases, setAliases] = useState<Alias[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newSmsName, setNewSmsName] = useState("");
@@ -222,7 +224,7 @@ export default function MerchantAliasesScreen() {
               autoFocus
               maxLength={100}
               className="text-base font-semibold text-foreground flex-1 border-b-2 py-0 mr-2"
-              style={{ borderColor: accent[500] }}
+              style={{ borderColor: theme.primary }}
             />
           ) : (
             <Pressable
@@ -269,7 +271,7 @@ export default function MerchantAliasesScreen() {
                     </Pressable>
                   )}
                   <Pressable onPress={() => handleDelete(a)} className="p-1" hitSlop={6}>
-                    <Ionicons name="trash-outline" size={14} color={StatusColors[colorScheme].danger} />
+                    <Ionicons name="trash-outline" size={14} color={theme.danger} />
                   </Pressable>
                 </View>
               </View>

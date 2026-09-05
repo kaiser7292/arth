@@ -3,11 +3,12 @@ import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Card, Input, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac, acAlpha } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
 import { formatAmount } from "@/utils/expense-validation";
 import type { SalaryCalculation, BonusTaxResult, CapitalGainsTaxResult } from "@/services/tax-engine";
 import { BreakdownRow } from "./salary-helpers";
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── CTC Results Display ──────────────────────────────────
 // Hero card + CTC Breakdown + EPF Contributions + Empty state
@@ -20,6 +21,7 @@ export interface SalarySummaryProps {
 
 export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandChange }: SalarySummaryProps) {
   const { accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const [showCorrectionInput, setShowCorrectionInput] = useState(false);
 
   if (!calculation) return null;
@@ -42,8 +44,8 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
         <Text className="text-sm text-muted-foreground mt-0.5">
           {formatAmount(effectiveAnnualInHand)} / year
         </Text>
-        <View className="mt-2 px-3 py-1 rounded-full" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
-          <Text className="text-xs" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+        <View className="mt-2 px-3 py-1 rounded-full" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+          <Text className="text-xs" style={{ color: theme.primary }}>
             Best regime:{" "}
             {calculation.selectedRegime === "new"
               ? "New"
@@ -56,7 +58,7 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
           <Pressable className="mt-2" onPress={() => setShowCorrectionInput(true)}>
             <Text
               className="text-xs"
-              style={{ color: ac(accent, colorScheme, 500, 200) }}
+              style={{ color: theme.primary }}
             >
               Not matching your payslip?
             </Text>
@@ -72,7 +74,7 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
                 </Text>
                 <Text
                   className="text-xs font-semibold ml-1"
-                  style={{ color: correctionAmount > 0 ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger }}
+                  style={{ color: correctionAmount > 0 ? theme.success : theme.danger }}
                 >
                   · Manual Correction: {correctionAmount > 0 ? "+" : ""}
                   {formatAmount(correctionAmount)}
@@ -97,7 +99,7 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
               >
                 <Text
                   className="text-xs text-center"
-                  style={{ color: ac(accent, colorScheme, 500, 200) }}
+                  style={{ color: theme.primary }}
                 >
                   Reset to calculated
                 </Text>
@@ -118,12 +120,13 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
 
 export function SalarySummary({ calculation }: { calculation: SalaryCalculation | null }) {
   const { colors, accent } = useColorScheme();
+  const theme = useTheme();
 
   if (!calculation) {
     return (
       <Card className="mb-4">
         <View className="items-center py-6">
-          <View className="w-14 h-14 rounded-full items-center justify-center mb-3" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+          <View className="w-14 h-14 rounded-full items-center justify-center mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
             <Ionicons
               name="calculator-outline"
               size={28}
@@ -254,6 +257,7 @@ export function SalaryFooter({
   onCapitalGainsReference,
 }: SalaryFooterProps) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const parsedManualFtr = parseFloat(manualInHand ?? "") || 0;
   const effectiveAnnualSalary = inputMode === "ctc"
@@ -312,7 +316,7 @@ export function SalaryFooter({
             <View className="flex-row items-center flex-1">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
               >
                 <Ionicons
                   name="trending-up-outline"

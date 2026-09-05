@@ -2,7 +2,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTheme } from "@/hooks/use-theme";
 import { Text } from "./Text";
 import { getFlag } from "@/services/feature-flags";
-import { ac } from "@/utils/accent";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -29,11 +29,12 @@ interface Props {
 export function LearnMoreChip({ contextKey, label = "Learn more", subtle = false }: Props) {
   const router = useRouter();
   const { accent, colorScheme } = useColorScheme();
+  const uiTheme = useTheme();
   const theme = useTheme();
 
   if (!getFlag("v15_help_center")) return null;
 
-  const tint = ac(accent, colorScheme, 500, 200);
+  const tint = uiTheme.primary;
   const bg = tint + "14";
 
   const handlePress = () => {
@@ -76,11 +77,12 @@ export function LearnMoreChip({ contextKey, label = "Learn more", subtle = false
 export function LearnMoreRow({ contextKey, label = "Learn more" }: Props) {
   const router = useRouter();
   const { accent, colorScheme } = useColorScheme();
+  const uiTheme = useTheme();
   const theme = useTheme();
 
   if (!getFlag("v15_help_center")) return null;
 
-  const tint = ac(accent, colorScheme, 500, 200);
+  const tint = uiTheme.primary;
 
   const handlePress = () => {
     const href = contextKey

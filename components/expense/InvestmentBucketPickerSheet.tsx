@@ -10,7 +10,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
 import {
   getAllActiveBuckets,
@@ -19,6 +19,7 @@ import {
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Investment Bucket picker for "Mark expense as investment" (v17.0.0).
@@ -40,7 +41,8 @@ export function InvestmentBucketPickerSheet({
   onPick,
   onClose,
 }: Props) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,12 +176,12 @@ export function InvestmentBucketPickerSheet({
                   <View className="flex-row items-center mb-2">
                     <View
                       className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                     >
                       <Ionicons
                         name="trending-up-outline"
                         size={18}
-                        color={ac(accent, colorScheme, 600, 200)}
+                        color={theme.primary}
                       />
                     </View>
                     <View className="flex-1">
@@ -211,7 +213,7 @@ export function InvestmentBucketPickerSheet({
                           style={{
                             height: 4,
                             width: `${progress}%`,
-                            backgroundColor: ac(accent, colorScheme, 500, 400),
+                            backgroundColor: theme.primary,
                           }}
                         />
                       </View>

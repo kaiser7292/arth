@@ -7,6 +7,7 @@ import { VoiceQuality } from "expo-speech";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getVoiceSettings, saveVoiceSettings } from "@/services/voice-settings";
 import type { VoiceSettings } from "@/services/voice-settings";
+import { useTheme } from "@/hooks/use-theme";
 
 interface DisplayVoice {
   identifier: string;
@@ -87,8 +88,9 @@ function buildDisplayVoices(raw: Speech.Voice[]): DisplayVoice[] {
 }
 
 export default function VoiceInputSettingsScreen() {
-  const { accent, colors } = useColorScheme();
-  const accentColor = accent[500];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = theme.primary;
 
   const [settings, setSettings] = useState<VoiceSettings>(getVoiceSettings);
   const [voices, setVoices] = useState<DisplayVoice[]>([]);

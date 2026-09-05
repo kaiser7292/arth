@@ -5,9 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { Card, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getActiveAccounts, getCcExpenseTotals, clearCcDues, getClosedAccounts } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
@@ -21,14 +21,14 @@ import { consumeCreditCardsPreload } from "@/services/home-preload";
 const preloaded = consumeCreditCardsPreload();
 
 import { getMonthDateRange } from "@/utils/budget-helpers";
+import { useTheme, type Theme } from "@/hooks/use-theme";
 
-function getUtilColor(
-  pct: number,
-  sc: (typeof StatusColors)["light"] | (typeof StatusColors)["dark"],
-): string {
-  if (pct > 75) return sc.danger;
-  if (pct > 50) return sc.warning;
-  return sc.success;
+/** Takes the theme as an argument: this is a plain helper, not a component, so it must not call a
+ *  hook. It runs inside map callbacks, where a conditional hook call would break hook order. */
+function getUtilColor(pct: number, theme: Theme): string {
+  if (pct > 75) return theme.danger;
+  if (pct > 50) return theme.warning;
+  return theme.success;
 }
 
 function formatDueDate(dateStr: string | null): string {
@@ -63,8 +63,8 @@ interface BankGroup {
 export default function CreditCardsScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { accent, colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [closedCCs, setClosedCCs] = useState<FinancialAccount[]>([]);
   const [closedExpanded, setClosedExpanded] = useState(false);
   const [ccAccounts, setCcAccounts] = useState<FinancialAccount[]>(preloaded?.ccAccounts ?? []);
@@ -216,7 +216,7 @@ export default function CreditCardsScreen() {
     (g) => g.autoDetectedAvailable == null || g.autoDetectedStale,
   );
   const overallUtil = totalLimit > 0 ? ((totalLimit - totalAvailable) / totalLimit) * 100 : 0;
-  const overallUtilColor = getUtilColor(overallUtil, sc);
+  const overallUtilColor = getUtilColor(overallUtil, theme);
 
   return (
     <ScreenContainer padTop={false}>
@@ -251,10 +251,10 @@ export default function CreditCardsScreen() {
             // Negative → ledger thinks there's less room → untracked credit/payment.
             const totalDiff = autoDetectedUsable ? remaining - totalAutoDetected : 0;
             const totalDiffColor = !autoDetectedUsable
-              ? sc.muted
+              ? theme.faintForeground
               : Math.abs(totalDiff) < 0.005
-                ? sc.success
-                : totalDiff > 0 ? sc.warning : sc.danger;
+                ? theme.success
+                : totalDiff > 0 ? theme.warning : theme.danger;
             const totalDiffLabel = !autoDetectedUsable
               ? "Partial SMS data"
               : Math.abs(totalDiff) < 0.005
@@ -300,7 +300,7 @@ export default function CreditCardsScreen() {
                       </Text>
                       <Text
                         className="text-sm font-bold text-foreground"
-                        style={anyAutoDetectedStaleOrMissing ? { color: sc.muted } : undefined}
+                        style={anyAutoDetectedStaleOrMissing ? { color: theme.faintForeground } : undefined}
                       >
                         {formatAmount(totalAutoDetected)}
                       </Text>
@@ -323,7 +323,7 @@ export default function CreditCardsScreen() {
               <Text className="text-label text-faint-foreground">
                 Manual ledger adjustments
               </Text>
-              <Text className="text-label" style={{ color: sc.warning }}>
+              <Text className="text-label" style={{ color: theme.warning }}>
                 {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
               </Text>
             </View>
@@ -335,7 +335,7 @@ export default function CreditCardsScreen() {
           const bankUtil = group.sharedLimit > 0
             ? ((group.sharedLimit - group.sharedAvailable) / group.sharedLimit) * 100
             : 0;
-          const bankUtilColor = getUtilColor(bankUtil, sc);
+          const bankUtilColor = getUtilColor(bankUtil, theme);
           const isShared = group.accounts.length > 1;
 
           return (
@@ -344,9 +344,9 @@ export default function CreditCardsScreen() {
               <View className="flex-row items-center mb-3">
                 <View
                   className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                 >
-                  <Ionicons name="card-outline" size={18} color={accent[500]} />
+                  <Ionicons name="card-outline" size={18} color={theme.primary} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-base font-bold text-foreground">
@@ -368,10 +368,10 @@ export default function CreditCardsScreen() {
                   ? remaining - (group.autoDetectedAvailable ?? 0)
                   : 0;
                 const diffColor = !autoDetectedUsable
-                  ? sc.muted
+                  ? theme.faintForeground
                   : Math.abs(diff) < 0.005
-                    ? sc.success
-                    : diff > 0 ? sc.warning : sc.danger;
+                    ? theme.success
+                    : diff > 0 ? theme.warning : theme.danger;
                 const diffLabel = !autoDetectedUsable
                   ? group.autoDetectedStale ? "SMS stale - using ledger" : "No SMS data"
                   : Math.abs(diff) < 0.005
@@ -429,7 +429,7 @@ export default function CreditCardsScreen() {
                           </Text>
                           <Text
                             className="text-sm font-semibold text-foreground"
-                            style={group.autoDetectedStale ? { textDecorationLine: "line-through", color: sc.muted } : undefined}
+                            style={group.autoDetectedStale ? { textDecorationLine: "line-through", color: theme.faintForeground } : undefined}
                           >
                             {formatAmount(group.autoDetectedAvailable)}
                           </Text>
@@ -490,7 +490,7 @@ export default function CreditCardsScreen() {
                     {credits > 0 && (
                       <View className="flex-row justify-between mb-0.5">
                         <Text className="text-xs text-muted-foreground">Paid back</Text>
-                        <Text className="text-xs" style={{ color: sc.success }}>{"−"}{formatAmount(credits)}</Text>
+                        <Text className="text-xs" style={{ color: theme.success }}>{"−"}{formatAmount(credits)}</Text>
                       </View>
                     )}
                     {adjNet !== 0 && (
@@ -498,7 +498,7 @@ export default function CreditCardsScreen() {
                         <Text className="text-xs text-muted-foreground">Adjustments</Text>
                         <Text
                           className="text-xs"
-                          style={{ color: adjNet > 0 ? sc.warning : sc.success }}
+                          style={{ color: adjNet > 0 ? theme.warning : theme.success }}
                         >
                           {adjNet > 0 ? "+" : "−"}{formatAmount(Math.abs(adjNet))}
                         </Text>
@@ -513,8 +513,8 @@ export default function CreditCardsScreen() {
                     {hasDue && (
                       <View className="flex-row items-center justify-between mt-2">
                         <View className="flex-row items-center flex-1">
-                          <Ionicons name="time-outline" size={10} color={sc.danger} />
-                          <Text className="text-label font-bold ml-1" style={{ color: sc.danger }}>
+                          <Ionicons name="time-outline" size={10} color={theme.danger} />
+                          <Text className="text-label font-bold ml-1" style={{ color: theme.danger }}>
                             Due: {formatAmount(account.total_due!)}
                           </Text>
                           {dueLabel && (
@@ -549,7 +549,7 @@ export default function CreditCardsScreen() {
                           accessibilityRole="button"
                           accessibilityLabel="Clear dues"
                         >
-                          <Ionicons name="close-circle-outline" size={18} color={sc.danger} />
+                          <Ionicons name="close-circle-outline" size={18} color={theme.danger} />
                         </Pressable>
                       </View>
                     )}

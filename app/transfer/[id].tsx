@@ -6,13 +6,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
 import { getTransferById, deleteTransfer } from "@/services/account-transfer";
 import { getActiveAccounts, getAllAccounts } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import type { AccountTransfer } from "@/services/account-transfer";
 import type { FinancialAccount } from "@/services/financial-account";
+import { useTheme } from "@/hooks/use-theme";
 
 function formatDate(dateStr: string): string {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -28,9 +29,9 @@ function accountLabel(acct: FinancialAccount | undefined): string {
 export default function TransferDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const alert = useAlert();
-  const sc = StatusColors[colorScheme];
 
   const [transfer, setTransfer] = useState<AccountTransfer | null>(null);
   const [accountMap, setAccountMap] = useState<Map<string, FinancialAccount>>(new Map());
@@ -90,7 +91,7 @@ export default function TransferDetailScreen() {
           headerBackTitle: "Back",
           headerRight: () => (
             <Pressable onPress={handleDelete} hitSlop={8}>
-              <Ionicons name="trash-outline" size={20} color={sc.danger} />
+              <Ionicons name="trash-outline" size={20} color={theme.danger} />
             </Pressable>
           ),
         }}
@@ -104,7 +105,7 @@ export default function TransferDetailScreen() {
               <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Amount
               </Text>
-              <Text className="text-2xl font-bold" style={{ color: accent[500] }}>
+              <Text className="text-2xl font-bold" style={{ color: theme.primary }}>
                 {formatAmount(transfer.amount)}
               </Text>
               <Text className="text-xs text-muted-foreground mt-1">

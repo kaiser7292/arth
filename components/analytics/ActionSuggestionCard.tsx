@@ -7,6 +7,7 @@ import { formatAmount } from "@/utils/format";
 
 import { StatusPill } from "@/components/ui/StatusPill";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ActionSuggestionCardProps {
   suggestion: string;
@@ -19,18 +20,19 @@ function ActionSuggestionCardBase({
   savingsAmount,
   difficulty,
 }: ActionSuggestionCardProps) {
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
 
   const difficultyColor = difficulty === "Easy" ? STATUS_COLORS.success : difficulty === "Medium" ? STATUS_COLORS.warning : STATUS_COLORS.error;
 
   return (
     <View
       className="rounded-2xl p-4 mb-3"
-      style={{ backgroundColor: accent[50] + "50", borderWidth: 1, borderColor: accent[200] }}
+      style={{ backgroundColor: theme.alpha("primary", 0.31), borderWidth: 1, borderColor: theme.alpha("primary", 0.25) }}
       accessibilityLabel={`Suggestion: ${suggestion}. Potential savings: ${formatAmount(savingsAmount)} per month. Difficulty: ${difficulty}`}
     >
       <View className="flex-row items-start">
-        <Ionicons name="bulb" size={18} color={accent[600]} style={{ marginRight: 8, marginTop: 1 }} />
+        <Ionicons name="bulb" size={18} color={theme.primary} style={{ marginRight: 8, marginTop: 1 }} />
         <View className="flex-1">
           <Text className="text-sm text-foreground leading-5">
             {suggestion}

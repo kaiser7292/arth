@@ -8,8 +8,8 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import {
@@ -45,6 +45,7 @@ import type {
 } from "@/services/hisaab-import";
 import type * as XLSX from "xlsx";
 import { formatAmount } from "@/utils/expense-validation";
+import { useTheme } from "@/hooks/use-theme";
 
 type Step = "pick" | "sheets" | "preview" | "importing" | "done";
 type ImportMode = "expenses" | "hisaab";
@@ -52,7 +53,8 @@ type ImportMode = "expenses" | "hisaab";
 export default function ImportExcelScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   // Shared state
   const [importMode, setImportMode] = useState<ImportMode>("expenses");
@@ -287,7 +289,7 @@ export default function ImportExcelScreen() {
             <View className="rounded-lg border border-border bg-card p-4 mb-4">
               <View className="flex-row items-center mb-3">
                 <View className="w-10 h-10 rounded-full bg-success/8 items-center justify-center mr-3">
-                  <Ionicons name="download-outline" size={20} color={StatusColors[colorScheme].success} />
+                  <Ionicons name="download-outline" size={20} color={theme.success} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-base font-semibold text-foreground">
@@ -304,9 +306,9 @@ export default function ImportExcelScreen() {
               <Pressable
                 onPress={handleDownloadTemplate}
                 className="flex-row items-center justify-center py-2.5 rounded-lg bg-success/8"
-                style={{ borderWidth: 1, borderColor: StatusColors[colorScheme].success }}
+                style={{ borderWidth: 1, borderColor: theme.success }}
               >
-                <Ionicons name="download-outline" size={18} color={StatusColors[colorScheme].success} />
+                <Ionicons name="download-outline" size={18} color={theme.success} />
                 <Text className="text-sm font-semibold text-success ml-2">
                   Download CSV Template
                 </Text>
@@ -347,7 +349,7 @@ export default function ImportExcelScreen() {
 
             {/* Upload card */}
             <View className="items-center py-8 rounded-lg border-2 border-dashed border-border mb-4">
-              <View className="w-16 h-16 rounded-2xl items-center justify-center mb-3" style={{ backgroundColor: accent[500] + '14' }}>
+              <View className="w-16 h-16 rounded-2xl items-center justify-center mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
                 <Ionicons name="cloud-upload-outline" size={32} color={colors.blue} />
               </View>
               <Text className="text-base font-medium text-foreground mb-1">
@@ -388,8 +390,8 @@ export default function ImportExcelScreen() {
                       {sheet.name}
                     </Text>
                     {sheet.sheetType !== "unknown" && (
-                      <View className="ml-2 rounded px-2 py-0.5" style={{ backgroundColor: accent[500] + '14' }}>
-                        <Text className="text-xs" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                      <View className="ml-2 rounded px-2 py-0.5" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+                        <Text className="text-xs" style={{ color: theme.primary }}>
                           {sheet.sheetType.replace("_", " ")}
                         </Text>
                       </View>
@@ -404,7 +406,7 @@ export default function ImportExcelScreen() {
             ))}
 
             <Pressable onPress={() => setStep("pick")} className="mt-4 py-3 items-center">
-              <Text className="font-medium" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+              <Text className="font-medium" style={{ color: theme.primary }}>
                 Choose a different file
               </Text>
             </Pressable>
@@ -493,7 +495,7 @@ export default function ImportExcelScreen() {
 
             {(preview.uniqueCategories.length > 0 || preview.uniquePaymentModes.length > 0) && (
               <View className="mt-4 p-3 rounded-lg bg-warning/8">
-                <Text className="text-sm font-medium mb-1" style={{ color: StatusColors[colorScheme].warning }}>
+                <Text className="text-sm font-medium mb-1" style={{ color: theme.warning }}>
                   New items will be auto-created
                 </Text>
                 <Text className="text-xs text-muted-foreground">
@@ -515,7 +517,7 @@ export default function ImportExcelScreen() {
               <Pressable
                 onPress={handleImport}
                 className="flex-1 rounded-lg py-3 ml-2 items-center"
-                style={{ backgroundColor: StatusColors[colorScheme].success }}
+                style={{ backgroundColor: theme.success }}
               >
                 <Text className="text-white font-bold">
                   Import {preview.count} Expenses
@@ -616,7 +618,7 @@ export default function ImportExcelScreen() {
 
             {/* Auto-create notice */}
             <View className="mt-3 p-3 rounded-lg bg-warning/8">
-              <Text className="text-sm font-medium mb-1" style={{ color: StatusColors[colorScheme].warning }}>
+              <Text className="text-sm font-medium mb-1" style={{ color: theme.warning }}>
                 Persons will be auto-created
               </Text>
               <Text className="text-xs text-muted-foreground">
@@ -637,7 +639,7 @@ export default function ImportExcelScreen() {
               <Pressable
                 onPress={handleHisaabImport}
                 className="flex-1 rounded-lg py-3 ml-2 items-center"
-                style={{ backgroundColor: StatusColors[colorScheme].success }}
+                style={{ backgroundColor: theme.success }}
               >
                 <Text className="text-white font-bold">
                   Import {hisaabPreview.entryCount} Entries
@@ -664,7 +666,7 @@ export default function ImportExcelScreen() {
         {step === "done" && forecastResult && !importResult && !hisaabResult && (
           <View className="items-center py-8">
             <View className="w-16 h-16 rounded-full bg-success/8 items-center justify-center mb-4">
-              <Ionicons name="checkmark-circle" size={40} color={StatusColors[colorScheme].success} />
+              <Ionicons name="checkmark-circle" size={40} color={theme.success} />
             </View>
             <Text className="text-xl font-bold text-foreground mb-2">
               Forecast Imported
@@ -698,7 +700,7 @@ export default function ImportExcelScreen() {
         {step === "done" && importResult && (
           <View className="items-center py-8">
             <View className="w-16 h-16 rounded-full bg-success/8 items-center justify-center mb-4">
-              <Ionicons name="checkmark-circle" size={40} color={StatusColors[colorScheme].success} />
+              <Ionicons name="checkmark-circle" size={40} color={theme.success} />
             </View>
             <Text className="text-xl font-bold text-foreground mb-2">
               Import Complete
@@ -755,7 +757,7 @@ export default function ImportExcelScreen() {
         {step === "done" && hisaabResult && (
           <View className="items-center py-8">
             <View className="w-16 h-16 rounded-full bg-success/8 items-center justify-center mb-4">
-              <Ionicons name="checkmark-circle" size={40} color={StatusColors[colorScheme].success} />
+              <Ionicons name="checkmark-circle" size={40} color={theme.success} />
             </View>
             <Text className="text-xl font-bold text-foreground mb-2">
               Hisaab Import Complete

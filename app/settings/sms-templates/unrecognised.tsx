@@ -10,6 +10,7 @@ import {
   listUnrecognisedSms,
   type UnrecognisedSmsRow,
 } from "@/services/sms/user-sms-templates";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.6.0 — Browser for pending_sms rows that never became expenses.
@@ -28,8 +29,9 @@ import {
 export default function UnrecognisedSmsScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme, accent } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
 
   const [rows, setRows] = useState<UnrecognisedSmsRow[]>([]);
   const [loading, setLoading] = useState(true);

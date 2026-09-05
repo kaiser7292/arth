@@ -6,12 +6,13 @@ import * as Haptics from "expo-haptics";
 
 import { Button } from "@/components/ui/Button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { getDatabase } from "@/database";
 import { bumpDataVersion } from "@/services/settings";
 import { dismissRecurring } from "@/services/recurring-detector";
 import type { RecurringTransaction, RecurringFrequency } from "@/services/recurring-detector";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 interface PatternEditSheetProps {
   visible: boolean;
@@ -27,8 +28,8 @@ const FREQUENCIES: { value: RecurringFrequency; label: string }[] = [
 ];
 
 export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheetProps) {
-  const { colorScheme, colors, accent } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
 
   const [amount, setAmount] = useState(String(Math.round(pattern.amount)));
@@ -122,13 +123,13 @@ export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheet
                     ? "border-transparent"
                     : "border-border"
                 }`}
-                style={frequency === f.value ? { backgroundColor: accent[500] + "20" } : undefined}
+                style={frequency === f.value ? { backgroundColor: theme.alpha("primary", 0.13) } : undefined}
                 accessibilityLabel={f.label}
                 accessibilityState={{ selected: frequency === f.value }}
               >
                 <Text
                   className="text-xs font-medium"
-                  style={{ color: frequency === f.value ? accent[600] : colors.textSecondary }}
+                  style={{ color: frequency === f.value ? theme.primary : colors.textSecondary }}
                 >
                   {f.label}
                 </Text>
@@ -159,13 +160,13 @@ export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheet
         <View className="border-t border-border pt-4 mt-2">
           <View className="flex-row justify-between">
             <Pressable onPress={handleDelete} className="py-2">
-              <Text className="text-sm font-medium" style={{ color: statusColors.danger }}>
+              <Text className="text-sm font-medium" style={{ color: theme.danger }}>
                 Delete Pattern
               </Text>
             </Pressable>
             <Button title="Save Changes" onPress={handleSave} />
           </View>
-          <Text className="text-xs mt-3" style={{ color: statusColors.warning }}>
+          <Text className="text-xs mt-3" style={{ color: theme.warning }}>
             Changing this will update your forecast immediately.
           </Text>
         </View>

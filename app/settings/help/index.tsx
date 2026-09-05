@@ -9,11 +9,12 @@ import {
     type DocsIndexEntry,
     type DocsSearchHit
 } from "@/services/docs";
-import { ac } from "@/utils/accent";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Help Center home. Two modes:
@@ -23,7 +24,8 @@ import { Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
  */
 export default function HelpCenterScreen() {
   const router = useRouter();
-  const { accent, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
+  const theme = useTheme();
   const params = useLocalSearchParams<{ context?: string; q?: string }>();
 
   const [query, setQuery] = useState(params.q ?? "");
@@ -41,7 +43,7 @@ export default function HelpCenterScreen() {
   const allArticles = useMemo(() => listAllArticles(), []);
   const groups = useMemo(() => listArticleGroups(), []);
 
-  const tint = ac(accent, colorScheme, 500, 200);
+  const tint = theme.primary;
 
   const openArticle = (slug: string) => {
     Keyboard.dismiss();

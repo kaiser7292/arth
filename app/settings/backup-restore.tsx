@@ -6,8 +6,7 @@ import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
 import {
   createBackup,
   shareBackup,
@@ -33,6 +32,7 @@ import {
   formatFileSize,
 } from "@/services/backup-schedule";
 import type { BackupScheduleSettings, ScheduledBackupInfo } from "@/services/backup-schedule";
+import { useTheme } from "@/hooks/use-theme";
 
 type Mode = "menu" | "backup" | "restore";
 
@@ -48,7 +48,8 @@ const FREQ_OPTIONS = [
 export default function BackupRestoreScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [mode, setMode] = useState<Mode>("menu");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -261,7 +262,7 @@ export default function BackupRestoreScreen() {
               className="flex-row items-center p-4 mb-3 rounded-lg border border-border"
             >
               <View className="w-12 h-12 rounded-full bg-success/8 items-center justify-center mr-4">
-                <Ionicons name="cloud-upload-outline" size={24} color={StatusColors[colorScheme].success} />
+                <Ionicons name="cloud-upload-outline" size={24} color={theme.success} />
               </View>
               <View className="flex-1">
                 <Text className="text-base font-semibold text-foreground">
@@ -278,7 +279,7 @@ export default function BackupRestoreScreen() {
               onPress={() => setMode("restore")}
               className="flex-row items-center p-4 mb-3 rounded-lg border border-border"
             >
-              <View className="w-12 h-12 rounded-full items-center justify-center mr-4" style={{ backgroundColor: accent[500] + '14' }}>
+              <View className="w-12 h-12 rounded-full items-center justify-center mr-4" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
                 <Ionicons name="cloud-download-outline" size={24} color={colors.blue} />
               </View>
               <View className="flex-1">
@@ -293,7 +294,7 @@ export default function BackupRestoreScreen() {
             </Pressable>
 
             <View className="mt-4 p-3 rounded-lg bg-warning/8">
-              <Text className="text-sm font-medium mb-1" style={{ color: StatusColors[colorScheme].warning }}>
+              <Text className="text-sm font-medium mb-1" style={{ color: theme.warning }}>
                 Keep your password safe
               </Text>
               <Text className="text-xs text-muted-foreground">
@@ -321,7 +322,7 @@ export default function BackupRestoreScreen() {
                 <Switch
                   value={schedSettings.enabled}
                   onValueChange={handleToggleScheduled}
-                  trackColor={{ false: colors.border, true: accent[500] }}
+                  trackColor={{ false: colors.border, true: theme.primary }}
                   thumbColor={schedSettings.enabled ? "#FFFFFF" : "#FFFFFF"}
                 />
               </View>
@@ -342,13 +343,13 @@ export default function BackupRestoreScreen() {
                             onPress={() => handlePickFrequency(o.hours)}
                             className="py-1.5 px-3 rounded-full border"
                             style={{
-                              backgroundColor: active ? ac(accent, colorScheme, 500, 400) + "22" : "transparent",
-                              borderColor: active ? ac(accent, colorScheme, 500, 400) : colors.border,
+                              backgroundColor: active ? theme.primary + "22" : "transparent",
+                              borderColor: active ? theme.primary : colors.border,
                             }}
                           >
                             <Text
                               className="text-sm font-medium"
-                              style={{ color: active ? ac(accent, colorScheme, 600, 300) : colors.textSecondary }}
+                              style={{ color: active ? theme.primary : colors.textSecondary }}
                             >
                               {o.label}
                             </Text>
@@ -385,7 +386,7 @@ export default function BackupRestoreScreen() {
                       className="flex-row items-center p-3 mb-2 rounded-lg border border-border"
                     >
                       <View className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-3 shrink-0">
-                        <Ionicons name="shield-checkmark-outline" size={18} color={StatusColors[colorScheme].success} />
+                        <Ionicons name="shield-checkmark-outline" size={18} color={theme.success} />
                       </View>
                       <View className="flex-1 mr-2">
                         <Text className="text-sm font-medium text-foreground">
@@ -400,9 +401,9 @@ export default function BackupRestoreScreen() {
                         onPress={() => handleRestoreScheduled(b)}
                         disabled={restoringScheduled === b.filePath}
                         className="py-1.5 px-3 rounded-lg mr-2"
-                        style={{ backgroundColor: ac(accent, colorScheme, 500, 400) + "22" }}
+                        style={{ backgroundColor: theme.primary + "22" }}
                       >
-                        <Text className="text-xs font-semibold" style={{ color: ac(accent, colorScheme, 600, 300) }}>
+                        <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
                           {restoringScheduled === b.filePath ? "…" : "Restore"}
                         </Text>
                       </Pressable>
@@ -410,7 +411,7 @@ export default function BackupRestoreScreen() {
                         <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
                       </Pressable>
                       <Pressable onPress={() => handleDeleteScheduled(b)} hitSlop={8}>
-                        <Ionicons name="trash-outline" size={18} color={StatusColors[colorScheme].danger} />
+                        <Ionicons name="trash-outline" size={18} color={theme.danger} />
                       </Pressable>
                     </View>
                   ))}
@@ -425,7 +426,7 @@ export default function BackupRestoreScreen() {
           <View className="py-4">
             <Pressable onPress={resetState} className="flex-row items-center mb-4">
               <Ionicons name="arrow-back" size={20} color={colors.blue} />
-              <Text className="ml-2 font-medium" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+              <Text className="ml-2 font-medium" style={{ color: theme.primary }}>
                 Back
               </Text>
             </Pressable>
@@ -495,7 +496,7 @@ export default function BackupRestoreScreen() {
               <Ionicons
                 name={backupResult.success ? "checkmark-circle" : "close-circle"}
                 size={40}
-                color={backupResult.success ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger}
+                color={backupResult.success ? theme.success : theme.danger}
               />
             </View>
 
@@ -559,7 +560,7 @@ export default function BackupRestoreScreen() {
           <View className="py-4">
             <Pressable onPress={resetState} className="flex-row items-center mb-4">
               <Ionicons name="arrow-back" size={20} color={colors.blue} />
-              <Text className="ml-2 font-medium" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+              <Text className="ml-2 font-medium" style={{ color: theme.primary }}>
                 Back
               </Text>
             </Pressable>
@@ -582,8 +583,8 @@ export default function BackupRestoreScreen() {
               </View>
             ) : (
               <View>
-                <View className="flex-row items-center p-3 mb-4 rounded-lg border border-border" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
-                  <Ionicons name="document-attach-outline" size={24} color={StatusColors[colorScheme].success} />
+                <View className="flex-row items-center p-3 mb-4 rounded-lg border border-border" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
+                  <Ionicons name="document-attach-outline" size={24} color={theme.success} />
                   <View className="flex-1 ml-3">
                     <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
                       {pickedFile.name}
@@ -651,7 +652,7 @@ export default function BackupRestoreScreen() {
               <Ionicons
                 name={restoreResult.success ? "checkmark-circle" : "close-circle"}
                 size={40}
-                color={restoreResult.success ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger}
+                color={restoreResult.success ? theme.success : theme.danger}
               />
             </View>
 

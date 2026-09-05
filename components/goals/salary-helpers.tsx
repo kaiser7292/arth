@@ -3,9 +3,10 @@ import { Text } from "@/components/ui";
 import { View, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { STATE_LIST } from "@/services/tax-engine";
 import { formatAmount } from "@/utils/expense-validation";
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── Toggle Component ─────────────────────────────────────
 
@@ -21,6 +22,7 @@ export function Toggle({
   onChange: (v: string) => void;
 }) {
   const { accent } = useColorScheme();
+  const theme = useTheme();
   return (
     <View className="mb-3">
       <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
@@ -36,7 +38,7 @@ export function Toggle({
                 ? ""
                 : "bg-card"
             }`}
-            style={value === opt.value ? { backgroundColor: accent[500] } : undefined}
+            style={value === opt.value ? { backgroundColor: theme.primary } : undefined}
           >
             <Text
               className={`text-sm font-medium ${
@@ -63,7 +65,8 @@ export function StatePicker({
   value: string | null;
   onChange: (v: string | null) => void;
 }) {
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { accent, colors } = useColorScheme();
+  const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -104,7 +107,7 @@ export function StatePicker({
                       ? "font-medium"
                       : "text-foreground"
                   }`}
-                  style={value === state ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
+                  style={value === state ? { color: theme.primary } : undefined}
                 >
                   {state}
                 </Text>

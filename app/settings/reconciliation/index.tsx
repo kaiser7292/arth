@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, View } from "react-native";
@@ -9,6 +9,7 @@ import { useAlert } from "@/hooks/use-alert";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getSessions, deleteSession, type ReconciliationSession } from "@/services/reconciliation/reconciliation-crud";
+import { useTheme, type Theme } from "@/hooks/use-theme";
 
 function statusLabel(status: string): string {
   if (status === "completed") return "Completed";
@@ -16,10 +17,13 @@ function statusLabel(status: string): string {
   return "Abandoned";
 }
 
-function statusColor(status: string, accent: any, colors: any): string {
-  if (status === "completed") return STATUS_COLORS.success;
-  if (status === "in_progress") return accent[500];
-  return colors.textSecondary;
+/** Takes the theme as an argument: this is a plain helper, not a component, so it must not
+ *  call a hook. It is invoked from inside map callbacks, where a conditional hook call would
+ *  break hook order. */
+function statusColor(status: string, theme: Theme): string {
+  if (status === "completed") return theme.success;
+  if (status === "in_progress") return theme.primary;
+  return theme.mutedForeground;
 }
 
 function formatDate(iso: string): string {
@@ -30,7 +34,8 @@ function formatDate(iso: string): string {
 
 export default function ReconciliationHubScreen() {
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const alert = useAlert();
 
   const [sessions, setSessions] = useState<ReconciliationSession[]>([]);
@@ -75,7 +80,7 @@ export default function ReconciliationHubScreen() {
 
   const renderItem = ({ item }: { item: ReconciliationSession }) => {
     const account = accounts[item.account_id];
-    const color = statusColor(item.status, accent, colors);
+    const color = statusColor(item.status, theme);
     const matchRatio = item.total_stmt_count
       ? (item.matched_count ?? 0) / item.total_stmt_count
       : null;

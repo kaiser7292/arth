@@ -10,7 +10,8 @@ import { Text } from "./Text";
 import { View, Pressable, Modal, FlatList } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
+import { useTheme } from "@/hooks/use-theme";
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
 const MINUTES = Array.from({ length: 60 }, (_, i) => i);
@@ -36,6 +37,7 @@ interface ColumnProps {
 
 function Column({ data, selectedIndex, onSelect, formatItem }: ColumnProps) {
   const { accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const scrollingRef = useRef(false);
 
@@ -93,7 +95,7 @@ function Column({ data, selectedIndex, onSelect, formatItem }: ColumnProps) {
         >
           <Text
             className={isSelected ? "text-xl font-bold" : "text-base text-faint-foreground"}
-            style={isSelected ? { color: ac(accent, colorScheme, 500, 300) } : undefined}
+            style={isSelected ? { color: theme.primary } : undefined}
           >
             {label}
           </Text>
@@ -143,7 +145,8 @@ export function TimePickerModal({
   initialHour = 12,
   initialMinute = 0,
 }: TimePickerModalProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const init12 = to12Hour(initialHour);
   const [hourIdx, setHourIdx] = useState(HOURS.indexOf(init12.hour12));
@@ -198,7 +201,7 @@ export function TimePickerModal({
               Pick Time
             </Text>
             <Pressable onPress={handleConfirm} className="py-1">
-              <Text className="text-sm font-semibold" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
                 Done
               </Text>
             </Pressable>
@@ -208,7 +211,7 @@ export function TimePickerModal({
           <View className="items-center mb-2">
             <Text
               className="text-3xl font-bold"
-              style={{ color: ac(accent, colorScheme, 500, 300) }}
+              style={{ color: theme.primary }}
             >
               {previewHour}:{previewMinute} {previewPeriod}
             </Text>
@@ -239,9 +242,9 @@ export function TimePickerModal({
                 right: 0,
                 height: ITEM_HEIGHT,
                 borderRadius: 12,
-                backgroundColor: ac(accent, colorScheme, 50, 800),
+                backgroundColor: theme.alpha("primary", 0.1),
                 borderWidth: 1,
-                borderColor: ac(accent, colorScheme, 200, 700),
+                borderColor: theme.alpha("primary", 0.25),
               }}
             />
 

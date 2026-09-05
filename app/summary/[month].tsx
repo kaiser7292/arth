@@ -5,7 +5,7 @@ import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, LoadingState, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { getCategories } from "@/services/category";
 import { getBudgetsForMonth } from "@/services/budget";
 import { getDataVersion } from "@/services/settings";
@@ -19,6 +19,7 @@ import { getSpendClassificationTotals } from "@/services/spend-classification";
 import type { Category } from "@/services/category";
 import { formatAmount } from "@/utils/expense-validation";
 import { getMonthDateRange, getDaysRemaining, getTotalDaysInMonth } from "@/utils/budget-helpers";
+import { useTheme } from "@/hooks/use-theme";
 
 interface TopCategory {
   category: Category | null;
@@ -43,7 +44,8 @@ interface SummaryData {
 export default function MonthlySummaryScreen() {
   const { month: monthParam } = useLocalSearchParams<{ month: string }>();
   const router = useRouter();
-  const { colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [month, setMonth] = useState(monthParam ?? "");
   const [data, setData] = useState<SummaryData | null>(null);
   const lastVersionRef = useRef<number | null>(null);
@@ -168,8 +170,8 @@ export default function MonthlySummaryScreen() {
                   style={{
                     width: `${Math.min(data.budgetCompliancePct, 100)}%`,
                     backgroundColor:
-                      data.budgetCompliancePct < 70 ? StatusColors[colorScheme].success :
-                      data.budgetCompliancePct <= 90 ? StatusColors[colorScheme].warning : StatusColors[colorScheme].danger,
+                      data.budgetCompliancePct < 70 ? theme.success :
+                      data.budgetCompliancePct <= 90 ? theme.warning : theme.danger,
                   }}
                 />
               </View>
@@ -180,7 +182,7 @@ export default function MonthlySummaryScreen() {
                 <Text
                   className="text-xs font-medium"
                   style={{
-                    color: data.totalBudget - data.totalSpent >= 0 ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger,
+                    color: data.totalBudget - data.totalSpent >= 0 ? theme.success : theme.danger,
                   }}
                 >
                   {data.totalBudget - data.totalSpent >= 0
@@ -204,12 +206,12 @@ export default function MonthlySummaryScreen() {
               <Ionicons
                 name={spendChangeUp ? "trending-up" : "trending-down"}
                 size={24}
-                color={spendChangeUp ? StatusColors[colorScheme].danger : StatusColors[colorScheme].success}
+                color={spendChangeUp ? theme.danger : theme.success}
               />
               <View className="ml-3">
                 <Text
                   className="text-lg font-bold"
-                  style={{ color: spendChangeUp ? StatusColors[colorScheme].danger : StatusColors[colorScheme].success }}
+                  style={{ color: spendChangeUp ? theme.danger : theme.success }}
                 >
                   {spendChangeUp ? "+" : ""}{Math.round(spendChange)}%
                 </Text>
@@ -252,8 +254,8 @@ export default function MonthlySummaryScreen() {
                 }
                 size={24}
                 color={
-                  data.rightSpendPct >= 70 ? StatusColors[colorScheme].success :
-                  data.rightSpendPct >= 40 ? StatusColors[colorScheme].warning : StatusColors[colorScheme].danger
+                  data.rightSpendPct >= 70 ? theme.success :
+                  data.rightSpendPct >= 40 ? theme.warning : theme.danger
                 }
               />
             </View>
@@ -265,8 +267,8 @@ export default function MonthlySummaryScreen() {
                 style={{
                   width: `${data.rightSpendPct}%`,
                   backgroundColor:
-                    data.rightSpendPct >= 70 ? StatusColors[colorScheme].success :
-                    data.rightSpendPct >= 40 ? StatusColors[colorScheme].warning : StatusColors[colorScheme].danger,
+                    data.rightSpendPct >= 70 ? theme.success :
+                    data.rightSpendPct >= 40 ? theme.warning : theme.danger,
                 }}
               />
             </View>

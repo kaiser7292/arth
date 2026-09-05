@@ -18,13 +18,14 @@ import {
     getScenarioOverview,
     updateEntry,
 } from "@/services/simulator";
-import { ac } from "@/utils/accent";
+
 import { todayIso } from "@/utils/date";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 function prettyDate(ymd: string): string {
   if (!ymd) return "";
@@ -39,7 +40,8 @@ function prettyDate(ymd: string): string {
 export default function SimulatorEntryForm() {
   const { id, entryId } = useLocalSearchParams<{ id: string; entryId?: string }>();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   type EntryFlavor = "out" | "in" | "collect" | "payback" | "transfer";
   const [flavor, setFlavor] = useState<EntryFlavor>("out");
@@ -280,11 +282,11 @@ export default function SimulatorEntryForm() {
                       minWidth: "48%",
                       flexGrow: 1,
                       backgroundColor: active
-                        ? ac(accent, colorScheme, 500, 300) + "22"
+                        ? theme.primary + "22"
                         : colors.surface,
                       borderWidth: active ? 2 : 1,
                       borderColor: active
-                        ? ac(accent, colorScheme, 500, 300)
+                        ? theme.primary
                         : colors.border,
                       borderRadius: 12,
                       paddingVertical: 10,
@@ -297,7 +299,7 @@ export default function SimulatorEntryForm() {
                     <Ionicons
                       name={f.icon}
                       size={14}
-                      color={active ? ac(accent, colorScheme, 600, 200) : colors.textSecondary}
+                      color={active ? theme.primary : colors.textSecondary}
                     />
                     <Text
                       className="ml-1.5 text-xs font-semibold"

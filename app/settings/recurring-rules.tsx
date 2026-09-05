@@ -11,9 +11,10 @@ import {
   stopRecurringRule,
 } from "@/services/expense";
 import type { ReminderWithSource } from "@/services/expense";
-import { StatusColors } from "@/constants/theme";
+
 import { formatDate } from "@/utils/date";
 import { getErrorMessage } from "@/utils/error-message";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Settings → Reminders.
@@ -27,7 +28,8 @@ import { getErrorMessage } from "@/utils/error-message";
 export default function RecurringRulesScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [reminders, setReminders] = useState<ReminderWithSource[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -120,18 +122,18 @@ export default function RecurringRulesScreen() {
           const secondary = item.source?.merchant_name ?? null;
           const stateStyle =
             item.state === "overdue"
-              ? { color: StatusColors[colorScheme].danger, label: "Overdue" }
+              ? { color: theme.danger, label: "Overdue" }
               : item.state === "due_soon"
-                ? { color: StatusColors[colorScheme].warning, label: "Due soon" }
+                ? { color: theme.warning, label: "Due soon" }
                 : { color: colors.textSecondary, label: "Upcoming" };
 
           return (
             <View className="flex-row items-center px-4 py-3 border-b border-border">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: accent[500] + "1A" }}
+                style={{ backgroundColor: theme.alpha("primary", 0.1) }}
               >
-                <Ionicons name="repeat-outline" size={18} color={accent[500]} />
+                <Ionicons name="repeat-outline" size={18} color={theme.primary} />
               </View>
               <Pressable
                 className="flex-1"

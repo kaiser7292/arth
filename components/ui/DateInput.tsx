@@ -4,8 +4,9 @@ import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CalendarModal } from "./CalendarModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatDate } from "@/utils/date";
+import { useTheme } from "@/hooks/use-theme";
 
 interface DateInputProps {
   label?: string;
@@ -38,7 +39,8 @@ export function DateInput({
   minimumDate,
   containerClassName = "",
 }: DateInputProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [showPicker, setShowPicker] = useState(false);
 
   const maxDate = maximumDate === null ? null : (maximumDate ?? new Date());
@@ -67,7 +69,7 @@ export function DateInput({
         </Text>
         <View
           className="w-8 h-8 rounded-lg items-center justify-center"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
         >
           <Ionicons name="calendar-outline" size={18} color={colors.blue} />
         </View>

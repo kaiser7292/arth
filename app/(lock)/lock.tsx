@@ -16,6 +16,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.2.0 biometric lock screen.
@@ -31,9 +32,10 @@ import { ActivityIndicator, Pressable, View } from "react-native";
  */
 export default function LockScreen() {
   const router = useRouter();
-  const { colorScheme, accent } = useColorScheme();
+  const { colorScheme } = useColorScheme();
+  const uiTheme = useTheme();
   const theme = Colors[colorScheme];
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const accentColor = colorScheme === "dark" ? uiTheme.primary : uiTheme.primary;
 
   const [biometricLabel, setBiometricLabel] = useState<string>("Biometric");
   const [inFlight, setInFlight] = useState(false);

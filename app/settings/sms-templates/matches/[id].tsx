@@ -12,11 +12,13 @@ import {
   type TemplateMatchRow,
 } from "@/services/sms/user-sms-templates";
 import { formatAmount } from "@/utils/expense-validation";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function TemplateMatchesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors, accent, colorScheme } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
 
   const [template, setTemplate] = useState<UserSmsTemplate | null>(null);
   const [matches, setMatches] = useState<TemplateMatchRow[]>([]);

@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { getCategories } from "@/services/category";
 import { getBudgetsForMonth } from "@/services/budget";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -19,6 +19,7 @@ import type { Category } from "@/services/category";
 import { formatAmount } from "@/utils/expense-validation";
 import { getMonthDateRange, getDaysRemaining, getTotalDaysInMonth } from "@/utils/budget-helpers";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
+import { useTheme } from "@/hooks/use-theme";
 
 interface TopCategory {
   category: Category | null;
@@ -46,7 +47,8 @@ interface MonthlySummaryPageProps {
 
 export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const [data, setData] = useState<SummaryData | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -176,10 +178,10 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                   width: `${Math.min(data.budgetCompliancePct, 100)}%`,
                   backgroundColor:
                     data.budgetCompliancePct < 70
-                      ? StatusColors[colorScheme].success
+                      ? theme.success
                       : data.budgetCompliancePct <= 90
-                        ? StatusColors[colorScheme].warning
-                        : StatusColors[colorScheme].danger,
+                        ? theme.warning
+                        : theme.danger,
                 }}
               />
             </View>
@@ -190,8 +192,8 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                 style={{
                   color:
                     data.totalBudget - data.totalSpent >= 0
-                      ? StatusColors[colorScheme].success
-                      : StatusColors[colorScheme].danger,
+                      ? theme.success
+                      : theme.danger,
                 }}
               >
                 {data.totalBudget - data.totalSpent >= 0
@@ -215,13 +217,13 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
             <Ionicons
               name={spendChangeUp ? "trending-up" : "trending-down"}
               size={24}
-              color={spendChangeUp ? StatusColors[colorScheme].danger : StatusColors[colorScheme].success}
+              color={spendChangeUp ? theme.danger : theme.success}
             />
             <View className="ml-3">
               <Text
                 className="text-lg font-bold"
                 style={{
-                  color: spendChangeUp ? StatusColors[colorScheme].danger : StatusColors[colorScheme].success,
+                  color: spendChangeUp ? theme.danger : theme.success,
                 }}
               >
                 {spendChangeUp ? "+" : ""}
@@ -272,10 +274,10 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
               size={24}
               color={
                 data.rightSpendPct >= 70
-                  ? StatusColors[colorScheme].success
+                  ? theme.success
                   : data.rightSpendPct >= 40
-                    ? StatusColors[colorScheme].warning
-                    : StatusColors[colorScheme].danger
+                    ? theme.warning
+                    : theme.danger
               }
             />
           </View>
@@ -288,10 +290,10 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                 width: `${data.rightSpendPct}%`,
                 backgroundColor:
                   data.rightSpendPct >= 70
-                    ? StatusColors[colorScheme].success
+                    ? theme.success
                     : data.rightSpendPct >= 40
-                      ? StatusColors[colorScheme].warning
-                      : StatusColors[colorScheme].danger,
+                      ? theme.warning
+                      : theme.danger,
               }}
             />
           </View>

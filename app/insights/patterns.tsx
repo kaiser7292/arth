@@ -9,7 +9,7 @@ import { PatternEditSheet } from "@/components/analytics/PatternEditSheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useAlert } from "@/hooks/use-alert";
-import { StatusColors } from "@/constants/theme";
+
 import {
   getRecurringTransactions,
   confirmRecurring,
@@ -22,6 +22,7 @@ import { getCategories } from "@/services/category";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import { getErrorMessage } from "@/utils/error-message";
+import { useTheme } from "@/hooks/use-theme";
 
 type PatternType = "fixed" | "semi" | "variable";
 
@@ -33,8 +34,8 @@ interface PatternGroup {
 
 export default function PatternLibraryScreen() {
   const alert = useAlert();
-  const { colorScheme, colors } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [patterns, setPatterns] = useState<RecurringTransaction[]>([]);
   const [categories, setCategories] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -181,7 +182,6 @@ export default function PatternLibraryScreen() {
                   key={item.id}
                   pattern={item}
                   categoryName={item.category_id ? categories.get(item.category_id) ?? "Unknown" : "Uncategorized"}
-                  statusColors={statusColors}
                   isLast={idx === group.items.length - 1}
                   onEdit={() => handleEdit(item)}
                   onConfirm={() => handleConfirm(item.id)}
@@ -195,7 +195,7 @@ export default function PatternLibraryScreen() {
         {/* Empty State */}
         {patterns.length === 0 && (
           <View className="items-center py-16 px-8">
-            <Ionicons name="bulb-outline" size={48} color={statusColors.muted} />
+            <Ionicons name="bulb-outline" size={48} color={theme.faintForeground} />
             <Text className="text-lg font-medium text-foreground mt-4">
               No patterns detected yet
             </Text>
@@ -236,7 +236,6 @@ export default function PatternLibraryScreen() {
 function PatternRow({
   pattern,
   categoryName,
-  statusColors,
   isLast,
   onEdit,
   onConfirm,
@@ -244,12 +243,12 @@ function PatternRow({
 }: {
   pattern: RecurringTransaction;
   categoryName: string;
-  statusColors: { success: string; successBg: string; danger: string; dangerBg: string; warning: string; warningBg: string; muted: string };
   isLast: boolean;
   onEdit: () => void;
   onConfirm: () => void;
   onDismiss: () => void;
 }) {
+  const theme = useTheme();
   const confidence = pattern.is_confirmed === 1 ? 100 : Math.min(95, pattern.occurrence_count * 15 + 40);
   const isConfirmed = pattern.is_confirmed === 1;
   const expectedDay = new Date(pattern.last_seen_date).getDate();
@@ -272,7 +271,7 @@ function PatternRow({
           <View className="flex-row items-center gap-2 mt-1">
             <StatusPill
               label={isConfirmed ? "Confirmed" : "Auto-detected"}
-              color={isConfirmed ? statusColors.success : statusColors.muted}
+              color={isConfirmed ? theme.success : theme.faintForeground}
               icon={isConfirmed ? "checkmark-circle" : "scan-outline"}
             />
             <Text className="text-xs text-muted-foreground">
@@ -286,25 +285,25 @@ function PatternRow({
             <Pressable
               onPress={onConfirm}
               className="w-8 h-8 rounded-full items-center justify-center"
-              style={{ backgroundColor: statusColors.success + "18" }}
+              style={{ backgroundColor: theme.success + "18" }}
               accessibilityLabel="Confirm pattern"
             >
-              <Ionicons name="checkmark" size={16} color={statusColors.success} />
+              <Ionicons name="checkmark" size={16} color={theme.success} />
             </Pressable>
             <Pressable
               onPress={onDismiss}
               className="w-8 h-8 rounded-full items-center justify-center"
-              style={{ backgroundColor: statusColors.danger + "18" }}
+              style={{ backgroundColor: theme.danger + "18" }}
               accessibilityLabel="Dismiss pattern"
             >
-              <Ionicons name="close" size={16} color={statusColors.danger} />
+              <Ionicons name="close" size={16} color={theme.danger} />
             </Pressable>
           </View>
         )}
 
         {isConfirmed && (
           <Pressable onPress={onEdit} accessibilityLabel="Edit pattern">
-            <Text className="text-xs font-medium" style={{ color: statusColors.muted }}>
+            <Text className="text-xs font-medium" style={{ color: theme.faintForeground }}>
               Edit
             </Text>
           </Pressable>

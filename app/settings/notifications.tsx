@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAlert } from "@/hooks/use-alert";
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   isNotificationEnabled,
@@ -25,6 +25,7 @@ import {
   scheduleSmartDailyDigest,
   syncNotifBackgroundTask,
 } from "@/services/notification-scheduler";
+import { useTheme } from "@/hooks/use-theme";
 
 interface NotifToggleProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -38,6 +39,7 @@ interface NotifToggleProps {
 
 function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onToggle }: NotifToggleProps) {
   const { colors } = useColorScheme();
+  const theme = useTheme();
   return (
     <View className="flex-row items-center justify-between py-3 border-b border-border">
       <View className="flex-row items-center flex-1 mr-3">
@@ -68,7 +70,8 @@ function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onTo
 
 export default function NotificationPreferencesScreen() {
   const alert = useAlert();
-  const { colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const [overdue, setOverdue] = useState(() => isNotificationEnabled("overdue_forecast"));
   const [upcoming, setUpcoming] = useState(() => isNotificationEnabled("upcoming_due"));
   const [scheduledBackup, setScheduledBackup] = useState(() => isNotificationEnabled("scheduled_backup"));
@@ -126,13 +129,13 @@ export default function NotificationPreferencesScreen() {
         {permissionGranted === false && (
           <View
             className="mx-4 mb-3 p-3 rounded-xl"
-            style={{ backgroundColor: StatusColors[colorScheme].warningBg }}
+            style={{ backgroundColor: theme.alpha("warning", 0.08) }}
           >
             <View className="flex-row items-center">
-              <Ionicons name="warning-outline" size={16} color={StatusColors[colorScheme].warning} />
+              <Ionicons name="warning-outline" size={16} color={theme.warning} />
               <Text
                 className="text-xs font-medium ml-2"
-                style={{ color: StatusColors[colorScheme].warning }}
+                style={{ color: theme.warning }}
               >
                 Notification permission not granted. Enable in device settings.
               </Text>
@@ -143,7 +146,7 @@ export default function NotificationPreferencesScreen() {
         <Card className="mx-4 mb-3">
           <NotifToggle
             icon="alert-circle-outline"
-            iconColor={StatusColors[colorScheme].danger}
+            iconColor={theme.danger}
             title="Overdue Payments"
             subtitle="Daily 9:10 AM digest when payments are overdue"
             category="overdue_forecast"
@@ -172,7 +175,7 @@ export default function NotificationPreferencesScreen() {
           />
         </Card>
 
-        <View className="mx-4 px-3 py-2.5 rounded-xl" style={{ backgroundColor: StatusColors[colorScheme].warningBg }}>
+        <View className="mx-4 px-3 py-2.5 rounded-xl" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
           <Text className="text-xs text-muted-foreground">
             The daily digest fires at 9:10 AM via a system alarm — it works even when the app is closed. Content reflects your data as of the last time Arth was open. No notification is sent if nothing needs your attention.
           </Text>

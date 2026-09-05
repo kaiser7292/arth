@@ -12,7 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useRouter } from "expo-router";
-import { ac } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
 import {
   getLinkableExpenses,
@@ -21,6 +21,7 @@ import {
   type LoanScheduleEntry,
 } from "@/services/loan-accounts";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 interface Candidate {
   id: string;
@@ -46,7 +47,8 @@ function prettyDate(ymd: string): string {
 }
 
 export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }: Props) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const slideAnim = useSharedValue(400);
@@ -195,9 +197,9 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
           <View className="px-5 pb-4">
             <View
               className="flex-row items-center px-3 py-3 rounded-xl mb-3"
-              style={{ backgroundColor: ac(accent, colorScheme, 50, 900), borderWidth: 1, borderColor: accent[500] + "33" }}
+              style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.2) }}
             >
-              <Ionicons name="checkmark-circle" size={18} color={accent[500]} />
+              <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
               <View className="flex-1 ml-2">
                 <Text className="text-sm" style={{ color: colors.text }}>
                   Paid {installment.paid_amount != null ? formatAmount(installment.paid_amount) : ""}
@@ -222,7 +224,7 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
                   }, 220);
                 }}
                 className="flex-row items-center justify-center py-3 rounded-xl mb-2"
-                style={{ backgroundColor: accent[500] }}
+                style={{ backgroundColor: theme.primary }}
               >
                 <Ionicons name="receipt-outline" size={18} color="#FFFFFF" />
                 <Text className="text-sm font-semibold ml-2" style={{ color: "#FFFFFF" }}>

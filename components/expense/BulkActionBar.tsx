@@ -3,6 +3,7 @@ import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/hooks/use-theme";
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -23,7 +24,8 @@ export function BulkActionBar({
   onChangeDate,
   onCancel,
 }: BulkActionBarProps) {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
 
   const actions = [
@@ -45,7 +47,7 @@ export function BulkActionBar({
           {selectedCount} selected
         </Text>
         <Pressable onPress={onCancel}>
-          <Text className="text-xs font-medium" style={{ color: accent[500] }}>Cancel</Text>
+          <Text className="text-xs font-medium" style={{ color: theme.primary }}>Cancel</Text>
         </Pressable>
       </View>
 
@@ -57,7 +59,7 @@ export function BulkActionBar({
             onPress={action.onPress}
             className="items-center px-2 py-1.5"
           >
-            <Ionicons name={action.icon} size={18} color={accent[500]} />
+            <Ionicons name={action.icon} size={18} color={theme.primary} />
             <Text className="text-label mt-1 text-muted-foreground">
               {action.label}
             </Text>

@@ -16,12 +16,13 @@ import {
 } from "@/services/ai-assistant";
 import { buildAIDataContext } from "@/services/ai-data-context";
 import { settingsStorage } from "@/services/storage";
-import { ac } from "@/utils/accent";
+
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 const CHAT_HISTORY_KEY = "arth_ai_chat_history";
 const MAX_STORED = 30;
@@ -139,7 +140,8 @@ function MessageContent({ text, textColor }: { text: string; textColor: string }
 
 export default function AIChatScreen() {
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const [loadState, setLoadState] = useState<LoadState>("checking");
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -316,7 +318,7 @@ export default function AIChatScreen() {
     await generate(aiMsgId, text);
   }, [retryText, isGenerating, loadState, scrollToBottom, generate]);
 
-  const accentColor = accent[500];
+  const accentColor = theme.primary;
   const bubbleAiBg = colorScheme === "dark" ? "#1c2128" : "#f3f4f6";
 
   return (
@@ -336,7 +338,7 @@ export default function AIChatScreen() {
         </Pressable>
         <View
           className="w-8 h-8 rounded-full items-center justify-center mr-2.5"
-          style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
         >
           <Ionicons name="sparkles" size={16} color={accentColor} />
         </View>
@@ -420,7 +422,7 @@ export default function AIChatScreen() {
               <View className="items-center pt-8 pb-4">
                 <View
                   className="w-14 h-14 rounded-full items-center justify-center mb-4"
-                  style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <Ionicons name="sparkles" size={28} color={accentColor} />
                 </View>
@@ -436,8 +438,8 @@ export default function AIChatScreen() {
             {messages.map((msg) => {
               const isUser = msg.role === "user";
               const isCopied = copiedId === msg.id;
-              const userBubbleBg = ac(accent, colorScheme, 100, 800);
-              const userTextColor = ac(accent, colorScheme, 700, 100) as string;
+              const userBubbleBg = theme.alpha("primary", 0.1);
+              const userTextColor = theme.primary as string;
 
               return (
                 <View

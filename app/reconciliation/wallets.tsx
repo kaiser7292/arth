@@ -1,6 +1,6 @@
 import { Card, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import {
@@ -13,13 +13,14 @@ import { getCurrentMonth } from "@/services/budget";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getAccountLatestStaleCheckDates, getActiveAccounts, getClosedAccounts } from "@/services/financial-account";
 import { consumeWalletsPreload } from "@/services/home-preload";
-import { acAlpha } from "@/utils/accent";
+
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 const preloaded = consumeWalletsPreload();
 
@@ -37,8 +38,8 @@ interface WalletSummary {
 
 export default function WalletsScreen() {
   const router = useRouter();
-  const { accent, colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [summaries, setSummaries] = useState<WalletSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [closedAccounts, setClosedAccounts] = useState<FinancialAccount[]>([]);
@@ -143,7 +144,7 @@ export default function WalletsScreen() {
           {totalExpenses > 0 && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Expenses</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                 −{formatAmount(totalExpenses)}
               </Text>
             </View>
@@ -151,7 +152,7 @@ export default function WalletsScreen() {
           {totalCredits > 0 && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Top-ups / Refunds</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                 +{formatAmount(totalCredits)}
               </Text>
             </View>
@@ -159,7 +160,7 @@ export default function WalletsScreen() {
           {totalTransfersOut > 0 && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Transfers Out</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                 −{formatAmount(totalTransfersOut)}
               </Text>
             </View>
@@ -167,14 +168,14 @@ export default function WalletsScreen() {
           {totalTransfersIn > 0 && (
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Transfers In</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+              <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                 +{formatAmount(totalTransfersIn)}
               </Text>
             </View>
           )}
           <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
             <Text className="text-xs font-semibold text-muted-foreground">Closing Balance</Text>
-            <Text className="text-sm font-bold" style={{ color: totalBalance >= 0 ? sc.success : sc.danger }}>
+            <Text className="text-sm font-bold" style={{ color: totalBalance >= 0 ? theme.success : theme.danger }}>
               {formatAmount(totalBalance)}
             </Text>
           </View>
@@ -184,7 +185,7 @@ export default function WalletsScreen() {
               <Text className="text-label text-faint-foreground">
                 Manual ledger adjustments
               </Text>
-              <Text className="text-label" style={{ color: sc.warning }}>
+              <Text className="text-label" style={{ color: theme.warning }}>
                 {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
               </Text>
             </View>
@@ -200,9 +201,9 @@ export default function WalletsScreen() {
               <View className="flex-row items-center mb-3">
                 <View
                   className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                 >
-                  <Ionicons name="phone-portrait-outline" size={18} color={accent[500]} />
+                  <Ionicons name="phone-portrait-outline" size={18} color={theme.primary} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-base font-bold text-foreground">
@@ -220,10 +221,10 @@ export default function WalletsScreen() {
               {!seeded && (
                 <View
                   className="flex-row items-center px-3 py-2 rounded-lg mb-3"
-                  style={{ backgroundColor: sc.warning + "14" }}
+                  style={{ backgroundColor: theme.warning + "14" }}
                 >
-                  <Ionicons name="alert-circle" size={14} color={sc.warning} />
-                  <Text className="text-label font-medium ml-2" style={{ color: sc.warning }}>
+                  <Ionicons name="alert-circle" size={14} color={theme.warning} />
+                  <Text className="text-label font-medium ml-2" style={{ color: theme.warning }}>
                     No opening balance set - showing from ₹0
                   </Text>
                 </View>
@@ -238,7 +239,7 @@ export default function WalletsScreen() {
               {expenses > 0 && (
                 <View className="flex-row justify-between mb-1">
                   <Text className="text-xs text-muted-foreground">Spent</Text>
-                  <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                  <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                     −{formatAmount(expenses)}
                   </Text>
                 </View>
@@ -246,7 +247,7 @@ export default function WalletsScreen() {
               {credits > 0 && (
                 <View className="flex-row justify-between mb-1">
                   <Text className="text-xs text-muted-foreground">Top-ups / Refunds</Text>
-                  <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                  <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                     +{formatAmount(credits)}
                   </Text>
                 </View>
@@ -254,7 +255,7 @@ export default function WalletsScreen() {
               {transfersOut > 0 && (
                 <View className="flex-row justify-between mb-1">
                   <Text className="text-xs text-muted-foreground">Transfers Out</Text>
-                  <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                  <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                     −{formatAmount(transfersOut)}
                   </Text>
                 </View>
@@ -262,7 +263,7 @@ export default function WalletsScreen() {
               {transfersIn > 0 && (
                 <View className="flex-row justify-between mb-1">
                   <Text className="text-xs text-muted-foreground">Transfers In</Text>
-                  <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                  <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                     +{formatAmount(transfersIn)}
                   </Text>
                 </View>
@@ -274,7 +275,7 @@ export default function WalletsScreen() {
                   </Text>
                   <Text
                     className="text-sm font-semibold text-foreground"
-                    style={autoDetectedStale ? { textDecorationLine: "line-through", color: sc.muted } : undefined}
+                    style={autoDetectedStale ? { textDecorationLine: "line-through", color: theme.faintForeground } : undefined}
                   >
                     {formatAmount(account.last_known_balance)}
                   </Text>
@@ -286,7 +287,7 @@ export default function WalletsScreen() {
                 </Text>
                 <Text
                   className="text-sm font-bold"
-                  style={{ color: current >= 0 ? sc.success : sc.danger }}
+                  style={{ color: current >= 0 ? theme.success : theme.danger }}
                 >
                   {formatAmount(current)}
                 </Text>

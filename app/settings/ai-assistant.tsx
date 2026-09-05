@@ -33,6 +33,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 type Phase = "idle" | "downloading" | "cancelling";
 
@@ -50,7 +51,8 @@ function makeDefaultState(model: ModelDefinition): ModelState {
 }
 
 export default function AIAssistantSettings() {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const alert = useAlert();
 
   const [aiEnabled, setAiEnabled] = useState(isArthAIEnabled);
@@ -224,7 +226,7 @@ export default function AIAssistantSettings() {
               <Switch
                 value={aiEnabled}
                 onValueChange={handleAIToggle}
-                trackColor={{ false: colors.border, true: accent[500] }}
+                trackColor={{ false: colors.border, true: theme.primary }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -313,14 +315,14 @@ export default function AIAssistantSettings() {
                             <Text className="text-xs text-muted-foreground">
                               {state.downloadedMB} MB of {state.totalMB} MB
                             </Text>
-                            <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
+                            <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
                               {pctLabel}
                             </Text>
                           </View>
                           <View className="h-1.5 rounded-full bg-border overflow-hidden">
                             <View
                               className="h-full rounded-full"
-                              style={{ width: `${Math.round(state.pct * 100)}%`, backgroundColor: accent[500] }}
+                              style={{ width: `${Math.round(state.pct * 100)}%`, backgroundColor: theme.primary }}
                             />
                           </View>
                         </View>
@@ -349,7 +351,7 @@ export default function AIAssistantSettings() {
                           <Pressable
                             onPress={() => handleDownload(model.id)}
                             className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5"
-                            style={{ backgroundColor: accent[500] }}
+                            style={{ backgroundColor: theme.primary }}
                           >
                             <Ionicons name="download-outline" size={16} color="#FFFFFF" />
                             <Text className="text-sm font-semibold text-white">
@@ -365,7 +367,7 @@ export default function AIAssistantSettings() {
                           <Pressable
                             onPress={() => handleUseModel(model.id)}
                             className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5"
-                            style={{ backgroundColor: accent[500] }}
+                            style={{ backgroundColor: theme.primary }}
                           >
                             <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
                             <Text className="text-sm font-semibold text-white">Use this model</Text>
@@ -474,7 +476,7 @@ export default function AIAssistantSettings() {
                     <Switch
                       value={row.val}
                       onValueChange={row.set}
-                      trackColor={{ false: colors.border, true: accent[500] }}
+                      trackColor={{ false: colors.border, true: theme.primary }}
                       thumbColor="#FFFFFF"
                     />
                   </View>
@@ -497,7 +499,7 @@ export default function AIAssistantSettings() {
               <Switch
                 value={nlSearchEnabled}
                 onValueChange={(v) => { setNLSearchEnabled(v); setNlSearchEnabled(v); }}
-                trackColor={{ false: colors.border, true: accent[500] }}
+                trackColor={{ false: colors.border, true: theme.primary }}
                 thumbColor="#FFFFFF"
               />
             </View>

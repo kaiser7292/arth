@@ -8,17 +8,19 @@ import { Card, EmptyState, LoadingState, SectionHeader, Text } from "@/component
 import { ForecastBreakdown } from "@/components/analytics/ForecastBreakdown";
 import { InsightCard } from "@/components/analytics/InsightCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
 import { getInsights, type Insight } from "@/services/insight-engine";
 import { getThisVsLastMonthTotals } from "@/services/comparison-insights";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 export function InsightsPage() {
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [forecast, setForecast] = useState<AnalyticsForecast | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [thisMonthTotal, setThisMonthTotal] = useState(0);
@@ -118,7 +120,7 @@ export function InsightsPage() {
             </View>
             {lastMonthTotal > 0 && (() => {
               const pulseColor =
-                diff <= 0 ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger;
+                diff <= 0 ? theme.success : theme.danger;
               return (
                 <View className="flex-row items-center gap-1">
                   <Ionicons name={diff <= 0 ? "arrow-down" : "arrow-up"} size={14} color={pulseColor} />
@@ -136,11 +138,11 @@ export function InsightsPage() {
       <View className="px-4 mt-4">
         <SectionHeader title="Explore" />
         <View className="flex-row flex-wrap gap-3">
-          <QuickAction icon="git-compare-outline" label="Compare" onPress={() => router.push("/insights/compare" as never)} color={accent[500]} />
-          <QuickAction icon="trending-up-outline" label="Forecast" onPress={() => router.push("/insights/forecast" as never)} color={accent[600]} />
-          <QuickAction icon="repeat-outline" label="Patterns" onPress={() => router.push("/insights/patterns" as never)} color={accent[700]} />
-          <QuickAction icon="storefront-outline" label="Merchants" onPress={() => router.push("/insights/merchants" as never)} color={accent[800]} />
-          <QuickAction icon="bar-chart-outline" label="Budget" onPress={() => router.push("/insights/budget-vs-actual" as never)} color={accent[500]} />
+          <QuickAction icon="git-compare-outline" label="Compare" onPress={() => router.push("/insights/compare" as never)} color={theme.primary} />
+          <QuickAction icon="trending-up-outline" label="Forecast" onPress={() => router.push("/insights/forecast" as never)} color={theme.primary} />
+          <QuickAction icon="repeat-outline" label="Patterns" onPress={() => router.push("/insights/patterns" as never)} color={theme.primary} />
+          <QuickAction icon="storefront-outline" label="Merchants" onPress={() => router.push("/insights/merchants" as never)} color={theme.primary} />
+          <QuickAction icon="bar-chart-outline" label="Budget" onPress={() => router.push("/insights/budget-vs-actual" as never)} color={theme.primary} />
           <QuickAction icon="document-text-outline" label="Reports" onPress={() => router.push("/insights/reports" as never)} color={BRAND_COLOR} />
         </View>
       </View>

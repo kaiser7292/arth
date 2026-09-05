@@ -6,6 +6,7 @@ import { ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getDatabase } from "@/database";
 import { updateItem } from "@/services/reconciliation/reconciliation-crud";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ArthEntry {
   id: string;
@@ -76,7 +77,8 @@ export default function ManualLinkScreen() {
     narration: string;
   }>();
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [query, setQuery] = useState("");
   const [entries, setEntries] = useState<ArthEntry[]>([]);
@@ -239,7 +241,7 @@ export default function ManualLinkScreen() {
         {linking ? (
           <ActivityIndicator size="small" />
         ) : (
-          <Ionicons name="link" size={18} color={accent[500]} />
+          <Ionicons name="link" size={18} color={theme.primary} />
         )}
       </Pressable>
     );

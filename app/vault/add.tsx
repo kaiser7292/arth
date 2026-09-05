@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import {
   LOGIN_METHOD_LABELS,
   LoginMethod,
@@ -21,6 +21,7 @@ import {
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getErrorMessage } from "@/utils/error-message";
+import { useTheme } from "@/hooks/use-theme";
 
 const ALL_CATEGORIES = VAULT_CATEGORY_GROUPS.flatMap((g) => g.categories);
 
@@ -41,7 +42,8 @@ const CATEGORY_LOGIN_METHODS: Record<VaultCategory, LoginMethod[]> = {
 export default function VaultAddScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const params = useLocalSearchParams<{
     id?: string;
     linked_account_id?: string;
@@ -276,7 +278,7 @@ export default function VaultAddScreen() {
           <Ionicons
             name={VAULT_CATEGORY_ICONS[category] as any}
             size={16}
-            color={accent[500]}
+            color={theme.primary}
           />
           <Text className="flex-1 text-sm text-foreground ml-2">
             {VAULT_CATEGORY_LABELS[category]}
@@ -298,7 +300,7 @@ export default function VaultAddScreen() {
                   onPress={() => { setCategory(cat); setCategoryOpen(false); }}
                   className="flex-row items-center px-4 py-3"
                   style={{
-                    backgroundColor: selected ? accent[500] + "18" : "transparent",
+                    backgroundColor: selected ? theme.alpha("primary", 0.09) : "transparent",
                     borderTopWidth: idx > 0 ? 1 : 0,
                     borderTopColor: colors.border,
                   }}
@@ -306,16 +308,16 @@ export default function VaultAddScreen() {
                   <Ionicons
                     name={VAULT_CATEGORY_ICONS[cat] as any}
                     size={14}
-                    color={selected ? accent[500] : colors.textSecondary}
+                    color={selected ? theme.primary : colors.textSecondary}
                   />
                   <Text
                     className="flex-1 text-sm ml-2.5"
-                    style={{ color: selected ? accent[600] : colors.text }}
+                    style={{ color: selected ? theme.primary : colors.text }}
                   >
                     {VAULT_CATEGORY_LABELS[cat]}
                   </Text>
                   {selected && (
-                    <Ionicons name="checkmark" size={14} color={accent[500]} />
+                    <Ionicons name="checkmark" size={14} color={theme.primary} />
                   )}
                 </Pressable>
               );
@@ -337,7 +339,7 @@ export default function VaultAddScreen() {
               <Ionicons
                 name="wallet-outline"
                 size={16}
-                color={linkedAccountId ? accent[500] : colors.textSecondary}
+                color={linkedAccountId ? theme.primary : colors.textSecondary}
               />
               <Text
                 className="flex-1 text-sm ml-2"
@@ -375,7 +377,7 @@ export default function VaultAddScreen() {
                       onPress={() => { setLinkedAccountId(acc.id); setAccountPickerOpen(false); }}
                       className="flex-row items-center px-4 py-3"
                       style={{
-                        backgroundColor: selected ? accent[500] + "18" : "transparent",
+                        backgroundColor: selected ? theme.alpha("primary", 0.09) : "transparent",
                         borderTopWidth: idx > 0 ? 1 : 0,
                         borderTopColor: colors.border,
                       }}
@@ -383,12 +385,12 @@ export default function VaultAddScreen() {
                       <Ionicons
                         name="wallet-outline"
                         size={14}
-                        color={selected ? accent[500] : colors.textSecondary}
+                        color={selected ? theme.primary : colors.textSecondary}
                       />
                       <View className="flex-1 ml-2.5">
                         <Text
                           className="text-sm"
-                          style={{ color: selected ? accent[600] : colors.text }}
+                          style={{ color: selected ? theme.primary : colors.text }}
                         >
                           {acc.account_label || acc.bank_name}
                         </Text>
@@ -399,7 +401,7 @@ export default function VaultAddScreen() {
                         ) : null}
                       </View>
                       {selected && (
-                        <Ionicons name="checkmark" size={14} color={accent[500]} />
+                        <Ionicons name="checkmark" size={14} color={theme.primary} />
                       )}
                     </Pressable>
                   );
@@ -567,13 +569,13 @@ export default function VaultAddScreen() {
                     onPress={() => setLoginMethod(method)}
                     className="px-3 py-1.5 rounded-full border"
                     style={{
-                      backgroundColor: selected ? ac(accent, colorScheme, 100, 800) : "transparent",
-                      borderColor: selected ? accent[500] : colors.border,
+                      backgroundColor: selected ? theme.alpha("primary", 0.1) : "transparent",
+                      borderColor: selected ? theme.primary : colors.border,
                     }}
                   >
                     <Text
                       className="text-xs font-medium"
-                      style={{ color: selected ? ac(accent, colorScheme, 700, 200) : colors.textSecondary }}
+                      style={{ color: selected ? theme.primary : colors.textSecondary }}
                     >
                       {LOGIN_METHOD_LABELS[method]}
                     </Text>
@@ -681,9 +683,9 @@ export default function VaultAddScreen() {
           <Ionicons
             name={showMore ? "remove-circle-outline" : "add-circle-outline"}
             size={16}
-            color={accent[500]}
+            color={theme.primary}
           />
-          <Text className="text-sm font-medium ml-1.5" style={{ color: accent[600] }}>
+          <Text className="text-sm font-medium ml-1.5" style={{ color: theme.primary }}>
             {showMore ? "Hide extra fields" : "More fields"}
           </Text>
         </Pressable>
@@ -841,7 +843,7 @@ export default function VaultAddScreen() {
           onPress={handleSave}
           disabled={saving}
           className="py-4 rounded-2xl items-center mt-4"
-          style={{ backgroundColor: accent[500] }}
+          style={{ backgroundColor: theme.primary }}
         >
           {saving ? (
             <ActivityIndicator color="#fff" />

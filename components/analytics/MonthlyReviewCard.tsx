@@ -6,8 +6,9 @@ import * as Haptics from "expo-haptics";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ReviewItem {
   id: string;
@@ -31,15 +32,15 @@ export function MonthlyReviewCard({
   onConfirmAll,
   onSkip,
 }: MonthlyReviewCardProps) {
-  const { colorScheme, accent } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   if (items.length === 0) return null;
 
   return (
     <Card className="mb-4">
       <View className="flex-row items-center mb-3">
-        <Ionicons name="bulb-outline" size={18} color={accent[500]} style={{ marginRight: 8 }} />
+        <Ionicons name="bulb-outline" size={18} color={theme.primary} style={{ marginRight: 8 }} />
         <Text className="text-sm font-semibold text-foreground">
           Quick check (takes 30 seconds)
         </Text>
@@ -72,10 +73,10 @@ export function MonthlyReviewCard({
                   onConfirm(item.id);
                 }}
                 className="w-7 h-7 rounded-full items-center justify-center"
-                style={{ backgroundColor: statusColors.success + "18" }}
+                style={{ backgroundColor: theme.success + "18" }}
                 accessibilityLabel={`Confirm ${item.merchant} as recurring`}
               >
-                <Ionicons name="checkmark" size={14} color={statusColors.success} />
+                <Ionicons name="checkmark" size={14} color={theme.success} />
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -83,10 +84,10 @@ export function MonthlyReviewCard({
                   onDeny(item.id);
                 }}
                 className="w-7 h-7 rounded-full items-center justify-center"
-                style={{ backgroundColor: statusColors.danger + "18" }}
+                style={{ backgroundColor: theme.danger + "18" }}
                 accessibilityLabel={`Deny ${item.merchant} as recurring`}
               >
-                <Ionicons name="close" size={14} color={statusColors.danger} />
+                <Ionicons name="close" size={14} color={theme.danger} />
               </Pressable>
             </View>
           </View>

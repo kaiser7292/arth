@@ -11,10 +11,11 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
 import { getPersonsWithBalances, type HisaabPersonWithBalance } from "@/services/hisaab";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Person-picker sheet for "Mark credit as settlement from hisaab person".
@@ -37,7 +38,8 @@ export function HisaabSettlementPickerSheet({
   onPick,
   onClose,
 }: Props) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,12 +169,12 @@ export function HisaabSettlementPickerSheet({
                 >
                   <View
                     className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}
+                    style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                   >
                     <Ionicons
                       name="person-outline"
                       size={18}
-                      color={ac(accent, colorScheme, 600, 200)}
+                      color={theme.primary}
                     />
                   </View>
                   <View className="flex-1">

@@ -36,6 +36,7 @@ import { getTags, type Tag } from "@/services/tags";
 import { getPersonsWithBalances, type HisaabPersonWithBalance } from "@/services/hisaab";
 import { getAllActiveBuckets, type InvestmentBucket } from "@/services/yearly-plan";
 import { getErrorMessage } from "@/utils/error-message";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Smart-rule detail / create form. Route: /settings/smart-rules/[id]
@@ -128,8 +129,9 @@ export default function SmartRuleDetailScreen() {
   const isCreate = id === "new";
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme, accent } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = colorScheme === "dark" ? theme.primary : theme.primary;
 
   const [loading, setLoading] = useState(!isCreate);
   const [saving, setSaving] = useState(false);

@@ -9,6 +9,7 @@ import {
   resetHomeCardPreferences,
 } from "@/services/home-card-preferences";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Settings → Preferences → Home cards (v17.4.0).
@@ -17,7 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
  * feature is always reachable via its deep-link or the related tab.
  */
 export default function HomeCardsScreen() {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [tick, setTick] = useState(0);
 
   const handleToggle = useCallback((id: string, visible: boolean) => {
@@ -69,7 +71,7 @@ export default function HomeCardsScreen() {
                 <Switch
                   value={visible}
                   onValueChange={(v) => handleToggle(card.id, v)}
-                  trackColor={{ false: colors.border, true: accent[500] }}
+                  trackColor={{ false: colors.border, true: theme.primary }}
                   thumbColor="#ffffff"
                 />
               </View>

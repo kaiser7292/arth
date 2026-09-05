@@ -1,19 +1,20 @@
 import { View } from "react-native";
 import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors, Shadows } from "@/constants/theme";
+import { Shadows } from "@/constants/theme";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ConfidenceDots } from "./ConfidenceDots";
 import { formatAmount } from "@/utils/format";
 import type { AnalyticsForecast } from "@/services/analytics-forecast";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ForecastBreakdownProps {
   forecast: AnalyticsForecast;
 }
 
 export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
-  const { colorScheme, colors } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   const { fixedDone, fixedPending, variable, projectedTotal, budget, breathingRoom, confidence, dataMonths } = forecast;
 
@@ -50,7 +51,7 @@ export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
             {formatAmount(fixedDone.total)}
           </Text>
         </View>
-        <ProgressBar value={fixedDonePct} color={statusColors.success} height={6} />
+        <ProgressBar value={fixedDonePct} color={theme.success} height={6} />
         {fixedDone.items.length > 0 && (
           <Text className="text-xs text-muted-foreground mt-1" numberOfLines={1}>
             {fixedDone.items.slice(0, 3).map((i) => `${capitalize(i.merchant)} ${formatCompact(i.actualAmount ?? i.amount)}`).join(" · ")}
@@ -68,9 +69,9 @@ export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
             {formatAmount(fixedPending.total)}
           </Text>
         </View>
-        <ProgressBar value={fixedPendingPct} color={statusColors.muted} height={6} />
+        <ProgressBar value={fixedPendingPct} color={theme.faintForeground} height={6} />
         {allFixedArrived ? (
-          <Text className="text-xs mt-1" style={{ color: statusColors.success }}>
+          <Text className="text-xs mt-1" style={{ color: theme.success }}>
             All fixed expenses arrived {"\u2713"}
           </Text>
         ) : (
@@ -126,7 +127,7 @@ export function ForecastBreakdown({ forecast }: ForecastBreakdownProps) {
               </Text>
               <Text
                 className="text-sm font-bold"
-                style={{ color: isOverBudget ? statusColors.danger : statusColors.success }}
+                style={{ color: isOverBudget ? theme.danger : theme.success }}
               >
                 {isOverBudget ? "-" : ""}{formatAmount(Math.abs(breathingRoom ?? 0))} {isOverBudget ? "\u2717" : "\u2713"}
               </Text>

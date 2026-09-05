@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -15,6 +15,7 @@ import {
   PAYMENT_MODE_TYPE_LABELS,
 } from "@/services/payment-mode";
 import type { PaymentModeType } from "@/services/payment-mode";
+import { useTheme } from "@/hooks/use-theme";
 
 const TYPE_OPTIONS: PaymentModeType[] = [
   "credit_card",
@@ -28,7 +29,8 @@ const TYPE_OPTIONS: PaymentModeType[] = [
 export default function PaymentModeEditScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
   const scrollRef = useRef<ScrollView>(null);
@@ -108,8 +110,8 @@ export default function PaymentModeEditScreen() {
                     : "bg-card border-transparent"
                 }`}
                 style={type === t ? {
-                  backgroundColor: ac(accent, colorScheme, 100, 700),
-                  borderColor: ac(accent, colorScheme, 600, 300),
+                  backgroundColor: theme.alpha("primary", 0.1),
+                  borderColor: theme.primary,
                 } : undefined}
               >
                 <Text
@@ -118,7 +120,7 @@ export default function PaymentModeEditScreen() {
                       ? "font-medium"
                       : "text-muted-foreground"
                   }`}
-                  style={type === t ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
+                  style={type === t ? { color: theme.primary } : undefined}
                 >
                   {PAYMENT_MODE_TYPE_LABELS[t]}
                 </Text>

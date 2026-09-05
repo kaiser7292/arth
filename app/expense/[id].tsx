@@ -25,7 +25,7 @@ import { Button, Input, LoadingState, ScreenContainer, Text } from "@/components
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TYPE_ICONS } from "@/constants/icons";
 import { STATUS_COLORS } from "@/constants/semantic-colors";
-import { StatusColors } from "@/constants/theme";
+
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getLinkedModesForAccount } from "@/services/account-master";
@@ -101,7 +101,7 @@ import {
     recordCategoryCorrection,
 } from "@/services/smart-categorizer";
 import { getInvestmentBucketById } from "@/services/yearly-plan";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatError } from "@/utils/error-message";
 import type { ExpenseValidationErrors } from "@/utils/expense-validation";
@@ -118,13 +118,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Modal, Pressable, ScrollView, View } from "react-native";
 import { listRules, applyRuleActionsToExpense } from "@/services/smart-rules";
 import type { SmartRule } from "@/services/smart-rules";
+import { useTheme } from "@/hooks/use-theme";
 
 
 
 export default function ExpenseDetailScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -1517,7 +1519,7 @@ export default function ExpenseDetailScreen() {
           </Text>
           {editing ? (
             <Pressable onPress={handleCancelEdit} className="p-2 -mr-2">
-              <Text className="text-sm font-medium" style={{ color: accent[500] }}>Cancel</Text>
+              <Text className="text-sm font-medium" style={{ color: theme.primary }}>Cancel</Text>
             </Pressable>
           ) : (
             <View className="flex-row items-center">
@@ -1528,7 +1530,7 @@ export default function ExpenseDetailScreen() {
                 <Ionicons name="create-outline" size={22} color={colors.blue} />
               </Pressable>
               <Pressable onPress={handleDelete} className="p-2 -mr-2">
-                <Ionicons name="trash-outline" size={22} color={StatusColors[colorScheme].danger} />
+                <Ionicons name="trash-outline" size={22} color={theme.danger} />
               </Pressable>
             </View>
           )}
@@ -1685,14 +1687,14 @@ export default function ExpenseDetailScreen() {
                       <View
                         key={leg.key}
                         className="rounded-xl border border-border p-3 mb-2"
-                        style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+                        style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                       >
                         <View className="flex-row items-center justify-between mb-2">
                           <View className="flex-row items-center">
-                            <Ionicons name="card-outline" size={16} color={accent[500]} />
+                            <Ionicons name="card-outline" size={16} color={theme.primary} />
                             <Text
                               className="ml-2 text-xs font-semibold uppercase tracking-wider"
-                              style={{ color: ac(accent, colorScheme, 600, 300) }}
+                              style={{ color: theme.primary }}
                             >
                               New payment source {idx + 1}
                             </Text>
@@ -1799,11 +1801,11 @@ export default function ExpenseDetailScreen() {
                       <Ionicons
                         name="add-circle-outline"
                         size={18}
-                        color={ac(accent, colorScheme, 500, 300)}
+                        color={theme.primary}
                       />
                       <Text
                         className="ml-2 text-sm font-medium"
-                        style={{ color: ac(accent, colorScheme, 500, 300) }}
+                        style={{ color: theme.primary }}
                       >
                         Add another payment source
                       </Text>
@@ -1840,18 +1842,18 @@ export default function ExpenseDetailScreen() {
                         );
                       }}
                       className="flex-row items-center justify-center py-3 mt-2 rounded-xl"
-                      style={{ backgroundColor: StatusColors[colorScheme].danger + "14" }}
+                      style={{ backgroundColor: theme.danger + "14" }}
                       accessibilityRole="button"
                       accessibilityLabel="Remove this leg from the split purchase"
                     >
                       <Ionicons
                         name="unlink-outline"
                         size={16}
-                        color={StatusColors[colorScheme].danger}
+                        color={theme.danger}
                       />
                       <Text
                         className="ml-2 text-sm font-medium"
-                        style={{ color: StatusColors[colorScheme].danger }}
+                        style={{ color: theme.danger }}
                       >
                         Remove from split purchase
                       </Text>
@@ -1912,9 +1914,9 @@ export default function ExpenseDetailScreen() {
                   <View className="flex-row items-center px-4 py-3 border-b border-border">
                     <View
                       className="w-8 h-8 rounded-full items-center justify-center mr-2.5"
-                      style={{ backgroundColor: ac(accent, colorScheme, 50, 800) }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                     >
-                      <Ionicons name="git-branch-outline" size={16} color={ac(accent, colorScheme, 500, 200)} />
+                      <Ionicons name="git-branch-outline" size={16} color={theme.primary} />
                     </View>
                     <View className="flex-1">
                       <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -1971,13 +1973,13 @@ export default function ExpenseDetailScreen() {
 
               {/* 1c. Pending Review Action Bar */}
               {expense.status === "pending_review" && !transfer && (
-                <View className="mx-4 mt-1 flex-row rounded-xl overflow-hidden" style={{ backgroundColor: StatusColors[colorScheme].warning + "12" }}>
+                <View className="mx-4 mt-1 flex-row rounded-xl overflow-hidden" style={{ backgroundColor: theme.warning + "12" }}>
                   <Pressable
                     onPress={handleApprove}
                     className="flex-1 flex-row items-center justify-center py-3"
                   >
-                    <Ionicons name="checkmark-circle" size={20} color={StatusColors[colorScheme].success} />
-                    <Text className="text-sm font-semibold ml-1.5" style={{ color: StatusColors[colorScheme].success }}>
+                    <Ionicons name="checkmark-circle" size={20} color={theme.success} />
+                    <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.success }}>
                       Approve
                     </Text>
                   </Pressable>
@@ -1986,8 +1988,8 @@ export default function ExpenseDetailScreen() {
                     onPress={handleReject}
                     className="flex-1 flex-row items-center justify-center py-3"
                   >
-                    <Ionicons name="close-circle" size={20} color={StatusColors[colorScheme].danger} />
-                    <Text className="text-sm font-semibold ml-1.5" style={{ color: StatusColors[colorScheme].danger }}>
+                    <Ionicons name="close-circle" size={20} color={theme.danger} />
+                    <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.danger }}>
                       Reject
                     </Text>
                   </Pressable>
@@ -2034,11 +2036,11 @@ export default function ExpenseDetailScreen() {
                     )}
                     {paidOn && (
                       <View className="flex-row items-center px-4 py-3">
-                        <Ionicons name="checkmark-circle-outline" size={16} color={StatusColors[colorScheme].success} />
+                        <Ionicons name="checkmark-circle-outline" size={16} color={theme.success} />
                         <Text className="text-xs text-muted-foreground ml-3 w-24">
                           Paid on
                         </Text>
-                        <Text className="text-sm font-medium flex-1 text-right" style={{ color: StatusColors[colorScheme].success }}>
+                        <Text className="text-sm font-medium flex-1 text-right" style={{ color: theme.success }}>
                           {paidOn}
                         </Text>
                       </View>
@@ -2142,7 +2144,7 @@ export default function ExpenseDetailScreen() {
                     <Ionicons
                       name={expense.is_right_spend !== 0 ? "lock-closed" : "pricetag-outline"}
                       size={16}
-                      color={expense.is_right_spend !== 0 ? colors.blue : StatusColors[colorScheme].warning}
+                      color={expense.is_right_spend !== 0 ? colors.blue : theme.warning}
                     />
                     <Text className="text-xs text-muted-foreground ml-3 w-20">
                       Spend
@@ -2178,14 +2180,14 @@ export default function ExpenseDetailScreen() {
                   <View>
                     <View
                       className="py-3 px-4 rounded-xl"
-                      style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                     >
                       <View className="flex-row items-center mb-2">
-                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 800) }}>
+                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                           <Ionicons name="people" size={20} color={colors.blue} />
                         </View>
                         <View className="flex-1">
-                          <Text className="text-sm font-semibold" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+                          <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
                             Split with:
                           </Text>
                           <Text className="text-xs text-muted-foreground mt-0.5">
@@ -2241,7 +2243,7 @@ export default function ExpenseDetailScreen() {
                         <Text className="text-xs font-medium text-foreground flex-1">
                           My budget
                         </Text>
-                        <Text className="text-xs font-bold" style={{ color: ac(accent, colorScheme, 600, 300) }}>
+                        <Text className="text-xs font-bold" style={{ color: theme.primary }}>
                           {formatAmount(multiSplitSummary.myShare)}
                         </Text>
                       </View>
@@ -2252,7 +2254,7 @@ export default function ExpenseDetailScreen() {
                         onPress={() => setShowMultiSplitSheet(true)}
                         className="py-2 px-3 rounded-lg"
                       >
-                        <Text className="text-label font-medium" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                        <Text className="text-label font-medium" style={{ color: theme.primary }}>
                           Change Split
                         </Text>
                       </Pressable>
@@ -2260,7 +2262,7 @@ export default function ExpenseDetailScreen() {
                         onPress={handleRemoveMultiSplit}
                         className="py-2 px-3 rounded-lg"
                       >
-                        <Text className="text-label font-medium" style={{ color: StatusColors[colorScheme].danger }}>
+                        <Text className="text-label font-medium" style={{ color: theme.danger }}>
                           Remove Split
                         </Text>
                       </Pressable>
@@ -2271,14 +2273,14 @@ export default function ExpenseDetailScreen() {
                   <View>
                     <View
                       className="py-3 px-4 rounded-xl"
-                      style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                     >
                       <View className="flex-row items-center mb-2">
-                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 800) }}>
+                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                           <Ionicons name="people" size={20} color={colors.blue} />
                         </View>
                         <View className="flex-1">
-                          <Text className="text-sm font-semibold" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+                          <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
                             Split with:
                           </Text>
                           <Text className="text-xs text-muted-foreground mt-0.5">
@@ -2324,7 +2326,7 @@ export default function ExpenseDetailScreen() {
                         onPress={() => setShowMultiSplitSheet(true)}
                         className="py-2 px-3 rounded-lg"
                       >
-                        <Text className="text-label font-medium" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                        <Text className="text-label font-medium" style={{ color: theme.primary }}>
                           Change Split
                         </Text>
                       </Pressable>
@@ -2332,7 +2334,7 @@ export default function ExpenseDetailScreen() {
                         onPress={handleRemoveSplit}
                         className="py-2 px-3 rounded-lg"
                       >
-                        <Text className="text-label font-medium" style={{ color: StatusColors[colorScheme].danger }}>
+                        <Text className="text-label font-medium" style={{ color: theme.danger }}>
                           Remove Split
                         </Text>
                       </Pressable>
@@ -2345,7 +2347,7 @@ export default function ExpenseDetailScreen() {
                       onPress={() => setShowSplitSheet(true)}
                       className="flex-row items-center py-3 px-4 rounded-xl bg-card"
                     >
-                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                         <Ionicons name="people-outline" size={20} color={colors.blue} />
                       </View>
                       <View className="flex-1">
@@ -2362,7 +2364,7 @@ export default function ExpenseDetailScreen() {
                       onPress={() => setShowMultiSplitSheet(true)}
                       className="flex-row items-center py-2.5 px-4 rounded-xl bg-card"
                     >
-                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                         <Ionicons name="git-network-outline" size={20} color={colors.blue} />
                       </View>
                       <View className="flex-1">
@@ -2432,7 +2434,7 @@ export default function ExpenseDetailScreen() {
                   </View>
                   <View className="px-4 py-3">
                     <View className="flex-row items-center mb-3">
-                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                         <Ionicons name="swap-horizontal-outline" size={20} color={colors.blue} />
                       </View>
                       <View className="flex-1">
@@ -2444,7 +2446,7 @@ export default function ExpenseDetailScreen() {
                     <View className="ml-13 mb-3">
                       <Text className="text-xs text-muted-foreground mb-1">From:</Text>
                       <Pressable onPress={() => navigateToTransferAccountLedger(transfer.from_account_id)}>
-                        <Text className="text-sm font-semibold" style={{ color: accent[500] }}>
+                        <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
                           {accounts.find(a => a.id === transfer.from_account_id)?.bank_name || "Unknown"} ****{accounts.find(a => a.id === transfer.from_account_id)?.account_identifier || ""}
                         </Text>
                       </Pressable>
@@ -2452,7 +2454,7 @@ export default function ExpenseDetailScreen() {
                     <View className="ml-13 mb-3">
                       <Text className="text-xs text-muted-foreground mb-1">To:</Text>
                       <Pressable onPress={() => navigateToTransferAccountLedger(transfer.to_account_id)}>
-                        <Text className="text-sm font-semibold" style={{ color: accent[500] }}>
+                        <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
                           {accounts.find(a => a.id === transfer.to_account_id)?.bank_name || "Unknown"} ****{accounts.find(a => a.id === transfer.to_account_id)?.account_identifier || ""}
                         </Text>
                       </Pressable>
@@ -2474,7 +2476,7 @@ export default function ExpenseDetailScreen() {
                     onPress={handleUndoTransfer}
                     className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-xl bg-background"
                   >
-                    <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                    <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                       <Ionicons name="arrow-undo-outline" size={20} color={colors.blue} />
                     </View>
                     <View className="flex-1">
@@ -2495,7 +2497,7 @@ export default function ExpenseDetailScreen() {
                   onPress={() => setTransferPickerVisible(true)}
                   className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                     <Ionicons name="swap-horizontal-outline" size={20} color={colors.blue} />
                   </View>
                   <View className="flex-1">
@@ -2522,7 +2524,7 @@ export default function ExpenseDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Mark this credit as a transfer from another account"
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                     <Ionicons name="swap-horizontal-outline" size={20} color={colors.blue} />
                   </View>
                   <View className="flex-1">
@@ -2554,7 +2556,7 @@ export default function ExpenseDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Mark this credit as a settlement from a hisaab person"
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                     <Ionicons name="people-outline" size={20} color={colors.blue} />
                   </View>
                   <View className="flex-1">
@@ -2575,17 +2577,17 @@ export default function ExpenseDetailScreen() {
               {expense.nature === "credit" && linkedSettlement && (
                 <View
                   className="mx-4 mt-3 p-3 rounded-xl"
-                  style={{ backgroundColor: accent[500] + "1A" }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <View className="flex-row items-center">
                     <View
                       className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: ac(accent, colorScheme, 100, 700) }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                     >
                       <Ionicons
                         name="people"
                         size={20}
-                        color={ac(accent, colorScheme, 600, 200)}
+                        color={theme.primary}
                       />
                     </View>
                     <View className="flex-1">
@@ -2601,7 +2603,7 @@ export default function ExpenseDetailScreen() {
                     <Pressable
                       onPress={() => router.push(`/hisaab/ledger?personId=${linkedSettlement.personId}`)}
                       className="flex-1 py-2 rounded-lg items-center"
-                      style={{ backgroundColor: accent[500] }}
+                      style={{ backgroundColor: theme.primary }}
                       accessibilityRole="button"
                       accessibilityLabel={`View ${linkedSettlement.personName}'s hisaab ledger`}
                     >
@@ -2635,7 +2637,7 @@ export default function ExpenseDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Tag this credit as a refund for an expense"
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                     <Ionicons name="return-up-back-outline" size={20} color={colors.blue} />
                   </View>
                   <View className="flex-1">
@@ -2655,17 +2657,17 @@ export default function ExpenseDetailScreen() {
               {expense.nature === "credit" && expense.refund_of_expense_id && (
                 <View
                   className="mx-4 mt-3 p-3 rounded-xl"
-                  style={{ backgroundColor: accent[500] + "1A" }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <View className="flex-row items-center">
                     <View
                       className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: ac(accent, colorScheme, 100, 700) }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                     >
                       <Ionicons
                         name="return-up-back"
                         size={20}
-                        color={ac(accent, colorScheme, 600, 200)}
+                        color={theme.primary}
                       />
                     </View>
                     <View className="flex-1">
@@ -2681,7 +2683,7 @@ export default function ExpenseDetailScreen() {
                     <Pressable
                       onPress={() => router.push(`/expense/${expense.refund_of_expense_id}`)}
                       className="flex-1 py-2 rounded-lg items-center"
-                      style={{ backgroundColor: accent[500] }}
+                      style={{ backgroundColor: theme.primary }}
                       accessibilityRole="button"
                       accessibilityLabel="Open the linked expense"
                     >
@@ -2716,7 +2718,7 @@ export default function ExpenseDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Mark this expense as an investment contribution"
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                     <Ionicons name="trending-up-outline" size={20} color={colors.blue} />
                   </View>
                   <View className="flex-1">
@@ -2735,17 +2737,17 @@ export default function ExpenseDetailScreen() {
               {investmentLink && (
                 <View
                   className="mx-4 mt-3 p-3 rounded-xl"
-                  style={{ backgroundColor: accent[500] + "1A" }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <View className="flex-row items-center">
                     <View
                       className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: ac(accent, colorScheme, 100, 700) }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                     >
                       <Ionicons
                         name="trending-up"
                         size={20}
-                        color={ac(accent, colorScheme, 600, 200)}
+                        color={theme.primary}
                       />
                     </View>
                     <View className="flex-1">
@@ -2761,7 +2763,7 @@ export default function ExpenseDetailScreen() {
                     <Pressable
                       onPress={() => router.push({ pathname: "/goals/investment-detail", params: { bucketId: investmentLink.investment_bucket_id } } as never)}
                       className="flex-1 py-2 rounded-lg items-center"
-                      style={{ backgroundColor: accent[500] }}
+                      style={{ backgroundColor: theme.primary }}
                       accessibilityRole="button"
                       accessibilityLabel={`View ${investmentBucketName} bucket`}
                     >
@@ -2797,7 +2799,7 @@ export default function ExpenseDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Mark this expense as a loan payment"
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                     <Ionicons name="cash-outline" size={20} color={colors.blue} />
                   </View>
                   <View className="flex-1">
@@ -2816,17 +2818,17 @@ export default function ExpenseDetailScreen() {
               {loanLink && (
                 <View
                   className="mx-4 mt-3 p-3 rounded-xl"
-                  style={{ backgroundColor: accent[500] + "1A" }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <View className="flex-row items-center">
                     <View
                       className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: ac(accent, colorScheme, 100, 700) }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                     >
                       <Ionicons
                         name={loanLink.link_kind === "emi" ? "calendar" : "trending-down"}
                         size={20}
-                        color={ac(accent, colorScheme, 600, 200)}
+                        color={theme.primary}
                       />
                     </View>
                     <View className="flex-1">
@@ -2848,7 +2850,7 @@ export default function ExpenseDetailScreen() {
                         router.push({ pathname: "/loans/[id]", params: { id: loanLink.loan_account_id } } as never)
                       }
                       className="flex-1 py-2 rounded-lg items-center"
-                      style={{ backgroundColor: accent[500] }}
+                      style={{ backgroundColor: theme.primary }}
                       accessibilityRole="button"
                       accessibilityLabel="View loan"
                     >
@@ -2881,7 +2883,7 @@ export default function ExpenseDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={recurringRule ? "Stop reminder" : "Set reminder"}
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                     <Ionicons
                       name={recurringRule ? "pause-circle-outline" : "repeat-outline"}
                       size={20}
@@ -2910,14 +2912,14 @@ export default function ExpenseDetailScreen() {
               {expense.nature === "realized" && suggestedReminder && (
                 <View
                   className="mx-4 mt-3 p-3 rounded-xl"
-                  style={{ backgroundColor: accent[500] + "1A" }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <View className="flex-row items-start">
-                    <Ionicons name="repeat-outline" size={18} color={accent[500]} />
+                    <Ionicons name="repeat-outline" size={18} color={theme.primary} />
                     <View className="flex-1 ml-2">
                       <Text
                         className="text-sm font-semibold"
-                        style={{ color: ac(accent, colorScheme, 600, 200) }}
+                        style={{ color: theme.primary }}
                       >
                         Link to a reminder?
                       </Text>
@@ -2940,7 +2942,7 @@ export default function ExpenseDetailScreen() {
                             }
                           }}
                           className="px-3 py-1.5 rounded-lg mr-2"
-                          style={{ backgroundColor: accent[500] }}
+                          style={{ backgroundColor: theme.primary }}
                           accessibilityRole="button"
                           accessibilityLabel="Link this expense to the reminder"
                         >
@@ -2989,19 +2991,19 @@ export default function ExpenseDetailScreen() {
                 <Pressable
                   onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${fulfilledRule.id}` as never)}
                   className="mx-4 mt-3 p-3 rounded-xl flex-row items-center"
-                  style={{ backgroundColor: StatusColors[colorScheme].success + "14" }}
+                  style={{ backgroundColor: theme.success + "14" }}
                   accessibilityRole="button"
                   accessibilityLabel="View reminder details"
                 >
                   <Ionicons
                     name="checkmark-circle"
                     size={18}
-                    color={StatusColors[colorScheme].success}
+                    color={theme.success}
                   />
                   <View className="flex-1 ml-2">
                     <Text
                       className="text-sm font-semibold"
-                      style={{ color: StatusColors[colorScheme].success }}
+                      style={{ color: theme.success }}
                     >
                       {fulfilledRule.notes
                         ? fulfilledRule.notes
@@ -3047,7 +3049,7 @@ export default function ExpenseDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Duplicate this expense"
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                     <Ionicons name="copy-outline" size={20} color={colors.blue} />
                   </View>
                   <View className="flex-1">
@@ -3074,7 +3076,7 @@ export default function ExpenseDetailScreen() {
                     <View key={refund.id}>
                       <View className="px-4 py-3">
                         <View className="flex-row items-center mb-2">
-                          <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                          <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                             <Ionicons name="return-up-back-outline" size={20} color={colors.blue} />
                           </View>
                           <View className="flex-1">
@@ -3100,7 +3102,7 @@ export default function ExpenseDetailScreen() {
                         onPress={() => handleUndoRefund(refund.id)}
                         className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-xl bg-background"
                       >
-                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                           <Ionicons name="arrow-undo-outline" size={20} color={colors.blue} />
                         </View>
                         <View className="flex-1">
@@ -3125,7 +3127,7 @@ export default function ExpenseDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Record a refund for this expense"
                 >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                     <Ionicons name="return-up-back-outline" size={20} color={colors.blue} />
                   </View>
                   <View className="flex-1">
@@ -3330,11 +3332,11 @@ export default function ExpenseDetailScreen() {
                   <View
                     style={{
                       width: 36, height: 36, borderRadius: 18,
-                      backgroundColor: accent[500] + "18",
+                      backgroundColor: theme.alpha("primary", 0.09),
                       alignItems: "center", justifyContent: "center", marginRight: 12,
                     }}
                   >
-                    <Ionicons name="flash-outline" size={17} color={accent[500]} />
+                    <Ionicons name="flash-outline" size={17} color={theme.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text }}>{rule.name}</Text>

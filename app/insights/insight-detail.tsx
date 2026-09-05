@@ -11,13 +11,14 @@ import { YoYComparisonRow } from "@/components/analytics/YoYComparisonRow";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getInsightDrill, type InsightDetail } from "@/services/insight-engine";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 const SEVERITY_COLORS = {
   celebrate: "success" as const,
-  info: "muted" as const,
+  info: "faintForeground" as const,
   warning: "warning" as const,
   critical: "danger" as const,
 };
@@ -25,8 +26,8 @@ const SEVERITY_COLORS = {
 export default function InsightDetailScreen() {
   const router = useRouter();
   const { insightId } = useLocalSearchParams<{ insightId: string; title: string }>();
-  const { colorScheme } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
   const [detail, setDetail] = useState<InsightDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -56,7 +57,7 @@ export default function InsightDetailScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="items-center py-16 px-8">
-          <Ionicons name="alert-circle-outline" size={48} color={statusColors.muted} />
+          <Ionicons name="alert-circle-outline" size={48} color={theme.faintForeground} />
           <Text className="text-lg font-medium text-foreground mt-4">
             Insight not available
           </Text>
@@ -69,7 +70,7 @@ export default function InsightDetailScreen() {
   }
 
   const { insight, drillGroups, totalAmount, budgetAmount, yoyComparison } = detail;
-  const severityColor = statusColors[SEVERITY_COLORS[insight.severity]];
+  const severityColor = theme[SEVERITY_COLORS[insight.severity]];
   const overPct = budgetAmount && budgetAmount > 0
     ? Math.round(((totalAmount - budgetAmount) / budgetAmount) * 100)
     : 0;
@@ -132,7 +133,7 @@ export default function InsightDetailScreen() {
                     </Text>
                     <Text
                       className="text-lg font-bold mt-0.5"
-                      style={{ color: grandDelta >= 0 ? statusColors.danger : statusColors.success }}
+                      style={{ color: grandDelta >= 0 ? theme.danger : theme.success }}
                     >
                       {formatAmount(yoyComparison.currentTotal)}
                     </Text>
@@ -155,11 +156,11 @@ export default function InsightDetailScreen() {
                     <Ionicons
                       name={grandDelta >= 0 ? "arrow-up" : "arrow-down"}
                       size={14}
-                      color={grandDelta >= 0 ? statusColors.danger : statusColors.success}
+                      color={grandDelta >= 0 ? theme.danger : theme.success}
                     />
                     <Text
                       className="text-sm font-bold ml-1"
-                      style={{ color: grandDelta >= 0 ? statusColors.danger : statusColors.success }}
+                      style={{ color: grandDelta >= 0 ? theme.danger : theme.success }}
                     >
                       {grandDelta >= 0 ? "+" : "−"}
                       {formatAmount(Math.abs(grandDelta))}
@@ -174,7 +175,7 @@ export default function InsightDetailScreen() {
               <View className="mt-4">
                 <ProgressBar
                   value={Math.min(progressValue, 1)}
-                  color={overPct > 0 ? statusColors.danger : statusColors.success}
+                  color={overPct > 0 ? theme.danger : theme.success}
                   height={8}
                 />
                 <View className="flex-row justify-between mt-1.5">

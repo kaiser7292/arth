@@ -4,7 +4,7 @@ import { Button, Card, DateInput, FABMenu, FilterChip, Input, PeriodNavigator, S
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
-import { StatusColors } from "@/constants/theme";
+
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -46,6 +46,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 interface LedgerEntry {
   id: string;
@@ -98,9 +99,9 @@ export default function AccountLedgerScreen() {
     transferId?: string;
     filterMode?: string;
   }>();
-  const { accent, colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   // Theme-aware status colors (migrated from flat STATUS_COLORS in v14.8.0).
-  const sc = StatusColors[colorScheme];
   const scrollRef = useRef<ScrollView>(null);
 
   // When keyboard opens for the bottom "clear ledger" area we previously
@@ -765,10 +766,10 @@ const loadData = useCallback(async () => {
             {!seeded && (
               <View
                 className="flex-row items-center px-3 py-2 rounded-lg mb-3"
-                style={{ backgroundColor: sc.warning + "14" }}
+                style={{ backgroundColor: theme.warning + "14" }}
               >
-                <Ionicons name="alert-circle" size={14} color={sc.warning} />
-                <Text className="text-label font-medium ml-2" style={{ color: sc.warning }}>
+                <Ionicons name="alert-circle" size={14} color={theme.warning} />
+                <Text className="text-label font-medium ml-2" style={{ color: theme.warning }}>
                   No opening balance set - computed from ₹0
                 </Text>
               </View>
@@ -787,7 +788,7 @@ const loadData = useCallback(async () => {
                 <Text className="text-xs text-muted-foreground">
                   {isCreditCard ? "Spent this cycle" : "Expenses"}
                 </Text>
-                <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                   −{formatAmount(totalExpenses)}
                 </Text>
               </View>
@@ -797,7 +798,7 @@ const loadData = useCallback(async () => {
                 <Text className="text-xs text-muted-foreground">
                   {isCreditCard ? "Paid back" : "Credits / Refunds"}
                 </Text>
-                <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                   +{formatAmount(totalCredits)}
                 </Text>
               </View>
@@ -807,7 +808,7 @@ const loadData = useCallback(async () => {
                 <Text className="text-xs text-muted-foreground">
                   Transfers Out
                 </Text>
-                <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                   −{formatAmount(totalTransfersOut)}
                 </Text>
               </View>
@@ -817,7 +818,7 @@ const loadData = useCallback(async () => {
                 <Text className="text-xs text-muted-foreground">
                   Transfers In
                 </Text>
-                <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                   +{formatAmount(totalTransfersIn)}
                 </Text>
               </View>
@@ -830,8 +831,8 @@ const loadData = useCallback(async () => {
                 className="text-sm font-bold"
                 style={{
                   color: isCreditCard
-                    ? (closing === 0 ? sc.success : sc.danger)
-                    : (closing >= 0 ? sc.success : sc.danger),
+                    ? (closing === 0 ? theme.success : theme.danger)
+                    : (closing >= 0 ? theme.success : theme.danger),
                 }}
               >
                 {formatAmount(closing)}
@@ -919,7 +920,7 @@ const loadData = useCallback(async () => {
                 <Pressable
                   onPress={handleSaveCreditForm}
                   className="flex-1 py-2.5 rounded-lg items-center"
-                  style={{ backgroundColor: accent[500] }}
+                  style={{ backgroundColor: theme.primary }}
                 >
                   <Text className="text-sm font-semibold text-white">{editingCreditId ? "Save" : "Add Credit"}</Text>
                 </Pressable>
@@ -940,11 +941,11 @@ const loadData = useCallback(async () => {
                   onPress={() => setTransferDirection("in")}
                   className="flex-1 py-2 rounded-l-lg items-center border"
                   style={transferDirection === "in"
-                    ? { borderColor: sc.success, backgroundColor: sc.success + "14" }
+                    ? { borderColor: theme.success, backgroundColor: theme.success + "14" }
                     : { borderColor: colors.border }
                   }
                 >
-                  <Text className="text-xs font-medium" style={{ color: transferDirection === "in" ? sc.success : colors.textSecondary }}>
+                  <Text className="text-xs font-medium" style={{ color: transferDirection === "in" ? theme.success : colors.textSecondary }}>
                     Money In ↓
                   </Text>
                 </Pressable>
@@ -952,11 +953,11 @@ const loadData = useCallback(async () => {
                   onPress={() => setTransferDirection("out")}
                   className="flex-1 py-2 rounded-r-lg items-center border border-l-0"
                   style={transferDirection === "out"
-                    ? { borderColor: sc.danger, backgroundColor: sc.danger + "14" }
+                    ? { borderColor: theme.danger, backgroundColor: theme.danger + "14" }
                     : { borderColor: colors.border }
                   }
                 >
-                  <Text className="text-xs font-medium" style={{ color: transferDirection === "out" ? sc.danger : colors.textSecondary }}>
+                  <Text className="text-xs font-medium" style={{ color: transferDirection === "out" ? theme.danger : colors.textSecondary }}>
                     Money Out ↑
                   </Text>
                 </Pressable>
@@ -971,7 +972,7 @@ const loadData = useCallback(async () => {
                 className="flex-row items-center border rounded-lg px-3 py-2.5 mb-3"
                 style={{ borderColor: colors.border }}
               >
-                <Ionicons name="wallet-outline" size={16} color={transferAccountId ? accent[500] : colors.textSecondary} />
+                <Ionicons name="wallet-outline" size={16} color={transferAccountId ? theme.primary : colors.textSecondary} />
                 <Text
                   className="flex-1 text-sm ml-2"
                   style={{ color: transferAccountId ? colors.text : colors.textSecondary }}
@@ -1012,7 +1013,7 @@ const loadData = useCallback(async () => {
                 <Pressable
                   onPress={handleSaveTransfer}
                   className="flex-1 py-2.5 rounded-lg items-center"
-                  style={{ backgroundColor: transferAccountId ? accent[500] : colors.textSecondary + "40" }}
+                  style={{ backgroundColor: transferAccountId ? theme.primary : colors.textSecondary + "40" }}
                   disabled={!transferAccountId}
                 >
                   <Text className="text-sm font-semibold text-white">Add Transfer</Text>
@@ -1105,7 +1106,7 @@ const loadData = useCallback(async () => {
           {filteredEntries.map((entry) => {
             const isTransfer = entry.type === "transfer_in" || entry.type === "transfer_out";
             const isDebitSide = entry.type === "debit" || entry.type === "transfer_out";
-            const entryColor = isDebitSide ? sc.danger : sc.success;
+            const entryColor = isDebitSide ? theme.danger : theme.success;
             const transferColor = TRANSFER_COLOR;
             const isReclassified = entry.reclassifiedAsTransfer === true;
             // When the ledger is opened via a cross-link (e.g. "From transfer"
@@ -1119,9 +1120,9 @@ const loadData = useCallback(async () => {
                 style={
                   isFocused
                     ? {
-                        backgroundColor: accent[500] + "33",
+                        backgroundColor: theme.alpha("primary", 0.2),
                         borderLeftWidth: 3,
-                        borderLeftColor: accent[500],
+                        borderLeftColor: theme.primary,
                       }
                     : undefined
                 }
@@ -1249,8 +1250,8 @@ const loadData = useCallback(async () => {
                         </View>
                       )}
                       {entry.isRefund && (
-                        <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: sc.success + "14" }}>
-                          <Text className="text-label font-semibold" style={{ color: sc.success }}>REFUND</Text>
+                        <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: theme.success + "14" }}>
+                          <Text className="text-label font-semibold" style={{ color: theme.success }}>REFUND</Text>
                         </View>
                       )}
                       {isTransfer && (
@@ -1264,8 +1265,8 @@ const loadData = useCallback(async () => {
                         </View>
                       )}
                       {entry.type === "credit" && entry.linkedHisaabPersonName && (
-                        <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: accent[500] + "1A" }}>
-                          <Text className="text-label font-semibold" style={{ color: accent[500] }} numberOfLines={1}>
+                        <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                          <Text className="text-label font-semibold" style={{ color: theme.primary }} numberOfLines={1}>
                             HISAAB · {entry.linkedHisaabPersonName.toUpperCase()}
                           </Text>
                         </View>
@@ -1297,7 +1298,7 @@ const loadData = useCallback(async () => {
                       accessibilityRole="button"
                       accessibilityLabel="Delete entry"
                     >
-                      <Ionicons name="trash-outline" size={18} color={sc.danger} />
+                      <Ionicons name="trash-outline" size={18} color={theme.danger} />
                     </Pressable>
                   )}
                   {isTransfer && (
@@ -1308,7 +1309,7 @@ const loadData = useCallback(async () => {
                       accessibilityRole="button"
                       accessibilityLabel="Delete transfer"
                     >
-                      <Ionicons name="trash-outline" size={18} color={sc.danger} />
+                      <Ionicons name="trash-outline" size={18} color={theme.danger} />
                     </Pressable>
                   )}
 
@@ -1345,8 +1346,8 @@ const loadData = useCallback(async () => {
               onPress={handleClearLedger}
               className="flex-row items-center py-3"
             >
-              <Ionicons name="trash-outline" size={16} color={sc.danger} />
-              <Text className="text-sm ml-3 flex-1" style={{ color: sc.danger }}>
+              <Ionicons name="trash-outline" size={16} color={theme.danger} />
+              <Text className="text-sm ml-3 flex-1" style={{ color: theme.danger }}>
                 Clear all ledger data
               </Text>
               <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
@@ -1363,7 +1364,7 @@ const loadData = useCallback(async () => {
           {
             icon: "arrow-down-outline",
             label: "Add Credit",
-            color: sc.success,
+            color: theme.success,
             onPress: () => {
               setCreditDate(new Date().toISOString().split("T")[0]);
               setShowAddCredit(true);
@@ -1383,7 +1384,7 @@ const loadData = useCallback(async () => {
           {
             icon: "swap-vertical-outline",
             label: "Adjust Balance",
-            color: sc.warning,
+            color: theme.warning,
             onPress: () => {
               setShowAdjust(true);
               setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);

@@ -33,6 +33,7 @@ import {
   type ExcludeReason,
 } from "@/services/reconciliation/reconciliation-crud";
 import { generateReconciliationPdf } from "@/services/reconciliation/reconciliation-export-pdf";
+import { useTheme } from "@/hooks/use-theme";
 
 type Tab = "matched" | "missing" | "extra" | "excluded";
 
@@ -56,7 +57,8 @@ export default function ReconciliationSessionScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [session, setSession] = useState<ReconciliationSession | null>(null);
   const [items, setItems] = useState<ReconciliationItemEnriched[]>([]);
@@ -346,9 +348,9 @@ export default function ReconciliationSessionScreen() {
               </Text>
               <View
                 className="ml-2 px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: accent[500] + "22" }}
+                style={{ backgroundColor: theme.alpha("primary", 0.13) }}
               >
-                <Text className="text-label font-semibold uppercase" style={{ color: accent[600] }}>
+                <Text className="text-label font-semibold uppercase" style={{ color: theme.primary }}>
                   {item.match_confidence ?? "manual"}
                 </Text>
               </View>
@@ -367,7 +369,7 @@ export default function ReconciliationSessionScreen() {
         {hasArthDetail && (
           <View
             className="mt-2 pl-3"
-            style={{ borderLeftWidth: 2, borderLeftColor: accent[500] + "55" }}
+            style={{ borderLeftWidth: 2, borderLeftColor: theme.alpha("primary", 0.33) }}
           >
             <View className="flex-row items-center">
               <Text className="text-xs font-medium text-foreground flex-1" numberOfLines={1}>
@@ -407,8 +409,8 @@ export default function ReconciliationSessionScreen() {
           onPress={() => handleAddExpense(item)}
           className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-border"
         >
-          <Ionicons name="add" size={14} color={accent[500]} />
-          <Text className="text-xs font-semibold ml-1" style={{ color: accent[500] }}>Add</Text>
+          <Ionicons name="add" size={14} color={theme.primary} />
+          <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>Add</Text>
         </Pressable>
         <Pressable
           onPress={() => handleManualLink(item)}
@@ -422,8 +424,8 @@ export default function ReconciliationSessionScreen() {
             onPress={() => handleLinkMissingToExtra(item)}
             className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-border"
           >
-            <Ionicons name="git-merge-outline" size={14} color={accent[500]} />
-            <Text className="text-xs font-semibold ml-1" style={{ color: accent[500] }}>Extra</Text>
+            <Ionicons name="git-merge-outline" size={14} color={theme.primary} />
+            <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>Extra</Text>
           </Pressable>
         )}
         <Pressable
@@ -449,7 +451,7 @@ export default function ReconciliationSessionScreen() {
         </Text>
       </View>
       <Pressable onPress={() => handleUndoExclude(item)} hitSlop={8} className="ml-3">
-        <Text className="text-xs font-semibold" style={{ color: accent[500] }}>Undo</Text>
+        <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Undo</Text>
       </Pressable>
     </View>
   );
@@ -529,7 +531,7 @@ export default function ReconciliationSessionScreen() {
                 onPress={handleApplyPreArth}
                 disabled={!preArthPickerDate}
                 className="flex-1 py-3 rounded-xl items-center"
-                style={{ backgroundColor: preArthPickerDate ? accent[500] : colors.border }}
+                style={{ backgroundColor: preArthPickerDate ? theme.primary : colors.border }}
               >
                 <Text className="text-sm font-semibold text-white">Apply</Text>
               </Pressable>
@@ -567,7 +569,7 @@ export default function ReconciliationSessionScreen() {
                     width: session.total_stmt_count
                       ? `${Math.min(100, (matched.length / session.total_stmt_count) * 100)}%`
                       : "0%",
-                    backgroundColor: session.status === "completed" ? STATUS_COLORS.success : accent[500],
+                    backgroundColor: session.status === "completed" ? STATUS_COLORS.success : theme.primary,
                   }}
                 />
               </View>
@@ -635,7 +637,7 @@ export default function ReconciliationSessionScreen() {
                 {session.pre_arth_cutoff ? (
                   <View className="flex-row gap-3 ml-3">
                     <Pressable onPress={() => { setPreArthPickerDate(session.pre_arth_cutoff!); setShowPreArthModal(true); }}>
-                      <Text className="text-xs font-semibold" style={{ color: accent[500] }}>Change</Text>
+                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Change</Text>
                     </Pressable>
                     <Pressable onPress={handleClearPreArth}>
                       <Text className="text-xs font-semibold text-muted-foreground">Clear</Text>
@@ -649,7 +651,7 @@ export default function ReconciliationSessionScreen() {
                     }}
                     className="ml-3"
                   >
-                    <Text className="text-xs font-semibold" style={{ color: accent[500] }}>Set date</Text>
+                    <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Set date</Text>
                   </Pressable>
                 )}
               </View>
@@ -666,7 +668,7 @@ export default function ReconciliationSessionScreen() {
                   onPress={() => setActiveTab(tab.key)}
                   className="flex-1 py-2 rounded-xl items-center"
                   style={{
-                    backgroundColor: active ? accent[500] : colors.border + "44",
+                    backgroundColor: active ? theme.primary : colors.border + "44",
                   }}
                 >
                   <Text
@@ -729,8 +731,8 @@ export default function ReconciliationSessionScreen() {
                         onPress={() => handleLinkExtraToMissing(item)}
                         className="flex-row items-center mt-2.5 py-2 px-3 rounded-lg border border-border self-start"
                       >
-                        <Ionicons name="git-merge-outline" size={14} color={accent[500]} />
-                        <Text className="text-xs font-semibold ml-1" style={{ color: accent[500] }}>Link to statement row</Text>
+                        <Ionicons name="git-merge-outline" size={14} color={theme.primary} />
+                        <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>Link to statement row</Text>
                       </Pressable>
                     )}
                   </View>
@@ -787,7 +789,7 @@ export default function ReconciliationSessionScreen() {
             onPress={handleMarkReconciled}
             disabled={markingDone}
             className="py-4 rounded-2xl items-center"
-            style={{ backgroundColor: missing.length === 0 ? STATUS_COLORS.success : accent[500] }}
+            style={{ backgroundColor: missing.length === 0 ? STATUS_COLORS.success : theme.primary }}
           >
             {markingDone ? (
               <ActivityIndicator color="#fff" />

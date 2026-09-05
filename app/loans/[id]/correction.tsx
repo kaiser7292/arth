@@ -23,7 +23,7 @@ export default function CorrectionForm() {
   const { id, correctionId } = useLocalSearchParams<{ id: string; correctionId?: string }>();
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
 
   const [loan, setLoan] = useState<LoanAccount | null>(null);
   const [computedOutstanding, setComputedOutstanding] = useState(0);

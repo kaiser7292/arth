@@ -9,9 +9,9 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { Input, Text } from "@/components/ui";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
 import {
   listActiveLoans,
@@ -27,6 +27,7 @@ import { computePrepaymentImpact } from "@/services/loan-engine";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatDate } from "@/utils/date";
 import { getDatabase } from "@/database";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * LoanPaymentPickerSheet — picker for linking an expense to a loan.
@@ -73,6 +74,7 @@ export function LoanPaymentPickerSheet({
   onClose,
 }: Props) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useSharedValue(500);
 
@@ -468,12 +470,12 @@ export function LoanPaymentPickerSheet({
                   >
                     <View
                       className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                      style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                     >
                       <Ionicons
                         name="cash-outline"
                         size={18}
-                        color={ac(accent, colorScheme, 600, 200)}
+                        color={theme.primary}
                       />
                     </View>
                     <View className="flex-1">
@@ -512,19 +514,19 @@ export function LoanPaymentPickerSheet({
                     onPress={() => handlePickKind("prepayment")}
                     className="flex-row items-center py-3 px-4 rounded-xl mb-2"
                     style={{
-                      backgroundColor: acAlpha(accent, 500, 0.08),
+                      backgroundColor: theme.alpha("primary", 0.08),
                       borderWidth: 1,
-                      borderColor: ac(accent, colorScheme, 200, 700),
+                      borderColor: theme.alpha("primary", 0.25),
                     }}
                   >
                     <Ionicons
                       name="trending-down-outline"
                       size={18}
-                      color={ac(accent, colorScheme, 600, 200)}
+                      color={theme.primary}
                     />
                     <Text
                       className="text-sm font-semibold ml-3 flex-1"
-                      style={{ color: ac(accent, colorScheme, 700, 100) }}
+                      style={{ color: theme.primary }}
                     >
                       Record as prepayment
                     </Text>
@@ -537,7 +539,7 @@ export function LoanPaymentPickerSheet({
                     onPress={() => handlePickKind("prepayment")}
                     className="flex-row items-center py-3 px-4 rounded-xl mb-3"
                     style={{
-                      backgroundColor: acAlpha(accent, 500, 0.05),
+                      backgroundColor: theme.alpha("primary", 0.05),
                       borderWidth: 1,
                       borderColor: colors.border,
                     }}
@@ -545,7 +547,7 @@ export function LoanPaymentPickerSheet({
                     <Ionicons
                       name="trending-down-outline"
                       size={18}
-                      color={ac(accent, colorScheme, 600, 200)}
+                      color={theme.primary}
                     />
                     <View className="flex-1 ml-3">
                       <Text
@@ -706,8 +708,8 @@ export function LoanPaymentPickerSheet({
                     value={impact.charge > 0 ? `− ${formatAmount(impact.charge)}` : "- waived"}
                     color={
                       impact.charge > 0
-                        ? StatusColors[colorScheme].danger
-                        : StatusColors[colorScheme].success
+                        ? theme.danger
+                        : theme.success
                     }
                     colors={colors}
                   />
@@ -727,14 +729,14 @@ export function LoanPaymentPickerSheet({
                   <PreviewRow
                     label="Interest saved"
                     value={formatAmount(impact.interestSavedTotal)}
-                    color={StatusColors[colorScheme].success}
+                    color={theme.success}
                     colors={colors}
                   />
                   {chosenStrategy === "reduce_tenure" && impact.monthsSaved > 0 && (
                     <PreviewRow
                       label="Months saved"
                       value={`${impact.monthsSaved}`}
-                      color={StatusColors[colorScheme].success}
+                      color={theme.success}
                       colors={colors}
                     />
                   )}
@@ -828,7 +830,7 @@ export function LoanPaymentPickerSheet({
                 accessibilityRole="button"
                 accessibilityLabel="Save prepayment"
                 className="py-3 rounded-xl items-center mb-2"
-                style={{ backgroundColor: accent[500] }}
+                style={{ backgroundColor: theme.primary }}
               >
                 <Text className="text-sm font-bold" style={{ color: "#FFFFFF" }}>
                   Save prepayment
@@ -917,6 +919,7 @@ function KindChip({
   colors: ReturnType<typeof useColorScheme>["colors"];
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
 }) {
+  const theme = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -927,9 +930,9 @@ function KindChip({
       style={
         selected
           ? {
-              backgroundColor: ac(accent, colorScheme, 100, 700),
+              backgroundColor: theme.alpha("primary", 0.1),
               borderWidth: 1,
-              borderColor: accent[500],
+              borderColor: theme.primary,
             }
           : {
               backgroundColor: colors.surface,
@@ -942,7 +945,7 @@ function KindChip({
         className="text-xs"
         style={
           selected
-            ? { color: ac(accent, colorScheme, 700, 100), fontWeight: "600" }
+            ? { color: theme.primary, fontWeight: "600" }
             : { color: colors.textSecondary }
         }
       >
@@ -976,6 +979,7 @@ function StrategyTile({
   colors: ReturnType<typeof useColorScheme>["colors"];
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
 }) {
+  const theme = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -993,9 +997,9 @@ function StrategyTile({
       >
         <View
           className="w-10 h-10 rounded-full items-center justify-center mr-3"
-          style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.08) }}
         >
-          <Ionicons name={icon} size={20} color={ac(accent, colorScheme, 600, 300)} />
+          <Ionicons name={icon} size={20} color={theme.primary} />
         </View>
         <View className="flex-1">
           <View className="flex-row items-center">
@@ -1005,11 +1009,11 @@ function StrategyTile({
             {recommended && (
               <View
                 className="ml-2 px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: acAlpha(accent, 500, 0.12) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.12) }}
               >
                 <Text
                   className="text-label font-semibold uppercase"
-                  style={{ color: ac(accent, colorScheme, 700, 200) }}
+                  style={{ color: theme.primary }}
                 >
                   Recommended
                 </Text>

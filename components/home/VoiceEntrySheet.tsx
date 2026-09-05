@@ -26,6 +26,7 @@ import { createTransfer } from "@/services/account-transfer";
 import { bumpDataVersion } from "@/services/settings";
 import { getVoiceSettings } from "@/services/voice-settings";
 import type { VoiceSettings } from "@/services/voice-settings";
+import { useTheme } from "@/hooks/use-theme";
 
 type VoiceState = "idle" | "listening" | "speaking";
 type SessionType = "expense" | "transfer";
@@ -194,8 +195,9 @@ function enrichFromTranscript(
 
 export function VoiceEntrySheet({ visible, onClose }: Props) {
   const router = useRouter();
-  const { accent, colors } = useColorScheme();
-  const accentColor = accent[500];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = theme.primary;
 
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const makeBlank = (): VoiceSession => ({ sessionType: "expense", confirming: false });

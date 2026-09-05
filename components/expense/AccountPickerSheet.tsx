@@ -14,8 +14,9 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getComputedBalances } from "@/services/account-balance";
 import { formatAmount } from "@/utils/format";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 interface AccountPickerSheetProps {
   visible: boolean;
@@ -50,7 +51,8 @@ export function AccountPickerSheet({
   filterTypes = ["savings", "wallet"],
   excludeAccountId,
 }: AccountPickerSheetProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   // Computed balances from the ledger (opening - expenses + credits - transfers).
@@ -151,12 +153,12 @@ export function AccountPickerSheet({
               >
                 <View
                   className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: ac(accent, colorScheme, 500, 200) + "1A" }}
+                  style={{ backgroundColor: theme.primary + "1A" }}
                 >
                   <Ionicons
                     name={ACCOUNT_ICONS[item.account_type] ?? "wallet-outline"}
                     size={18}
-                    color={ac(accent, colorScheme, 500, 200)}
+                    color={theme.primary}
                   />
                 </View>
                 <View className="flex-1">

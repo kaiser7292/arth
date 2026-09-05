@@ -6,9 +6,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getDematAccountsWithSummary,
@@ -20,6 +20,7 @@ import {
 import type { DematAccountSummary, FinancialAccount } from "@/services/financial-account";
 import { TrendLineChart } from "@/components/charts/TrendLineChart";
 import type { TrendSeries } from "@/components/charts/TrendLineChart";
+import { useTheme } from "@/hooks/use-theme";
 
 const ACCOUNT_COLORS = [
   "#6366F1", // indigo
@@ -47,8 +48,8 @@ function formatYearMonth(ym: string): string {
 
 export default function DematPortfolioScreen() {
   const router = useRouter();
-  const { accent, colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [accounts, setAccounts] = useState<DematAccountSummary[]>([]);
   const [trendSeries, setTrendSeries] = useState<TrendSeries[]>([]);
@@ -75,7 +76,7 @@ export default function DematPortfolioScreen() {
       seriesList.push({
         label: "Total",
         data: aggregateTrend,
-        color: sc.success,
+        color: theme.success,
       });
     }
 
@@ -98,12 +99,12 @@ export default function DematPortfolioScreen() {
       seriesList.push({
         label: "Total",
         data: aggregateTrend,
-        color: sc.success,
+        color: theme.success,
       });
     }
 
     setTrendSeries(seriesList);
-  }, [sc.success]);
+  }, [theme.success]);
 
   useDataRefresh(
     useCallback(async () => {
@@ -154,7 +155,7 @@ export default function DematPortfolioScreen() {
             <Text className="text-xs text-muted-foreground">Portfolio Value</Text>
             <Text
               className="text-sm font-bold"
-              style={{ color: summary.totalPortfolio > 0 ? sc.success : colors.text }}
+              style={{ color: summary.totalPortfolio > 0 ? theme.success : colors.text }}
             >
               {formatAmount(summary.totalPortfolio)}
             </Text>
@@ -165,7 +166,7 @@ export default function DematPortfolioScreen() {
               <Text className="text-xs text-muted-foreground">Idle Cash / Fund</Text>
               <Text
                 className="text-sm font-semibold"
-                style={{ color: summary.totalFund < 0 ? sc.danger : colors.text }}
+                style={{ color: summary.totalFund < 0 ? theme.danger : colors.text }}
               >
                 {formatAmount(summary.totalFund)}
               </Text>
@@ -177,7 +178,7 @@ export default function DematPortfolioScreen() {
               <Text className="text-xs font-semibold text-muted-foreground">Total</Text>
               <Text
                 className="text-sm font-bold"
-                style={{ color: total < 0 ? sc.danger : colors.text }}
+                style={{ color: total < 0 ? theme.danger : colors.text }}
               >
                 {formatAmount(total)}
               </Text>
@@ -192,7 +193,7 @@ export default function DematPortfolioScreen() {
               <Pressable
                 onPress={handlePeriodBack}
                 className="w-8 h-8 rounded-full items-center justify-center"
-                style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                 accessibilityLabel="Previous month"
               >
                 <Ionicons name="chevron-back" size={16} color={colors.textSecondary} />
@@ -203,7 +204,7 @@ export default function DematPortfolioScreen() {
               <Pressable
                 onPress={handlePeriodForward}
                 className="w-8 h-8 rounded-full items-center justify-center"
-                style={{ backgroundColor: monthOffset === 0 ? undefined : acAlpha(accent, 500, 0.08) }}
+                style={{ backgroundColor: monthOffset === 0 ? undefined : theme.alpha("primary", 0.08) }}
                 accessibilityLabel="Next month"
                 disabled={monthOffset === 0}
               >
@@ -249,7 +250,7 @@ export default function DematPortfolioScreen() {
                 <View className="flex-row items-center">
                   <View
                     className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                    style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                   >
                     <Ionicons name="trending-up-outline" size={18} color={ACCOUNT_COLORS[idx % ACCOUNT_COLORS.length]} />
                   </View>
@@ -266,7 +267,7 @@ export default function DematPortfolioScreen() {
                   </View>
                   <Text
                     className="text-sm font-bold mr-2"
-                    style={{ color: (showTotal ? accountTotal : (latestPortfolioValue ?? 0)) > 0 ? sc.success : colors.text }}
+                    style={{ color: (showTotal ? accountTotal : (latestPortfolioValue ?? 0)) > 0 ? theme.success : colors.text }}
                   >
                     {showTotal ? formatAmount(accountTotal) : (latestPortfolioValue != null ? formatAmount(latestPortfolioValue) : "No data")}
                   </Text>

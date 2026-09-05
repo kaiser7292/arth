@@ -26,6 +26,7 @@ import {
   type VaultEntry,
 } from "@/services/vault";
 import type { AlertButton } from "@/hooks/use-alert";
+import { useTheme } from "@/hooks/use-theme";
 
 const ACCOUNT_SUFFIX_MAP_KEY = "recon_account_suffix_map";
 
@@ -49,7 +50,8 @@ type Step = "account" | "file" | "matching" | "done";
 export default function NewReconciliationScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const params = useLocalSearchParams<{ prefill_account_id?: string }>();
 
@@ -426,7 +428,7 @@ export default function NewReconciliationScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
-          <ActivityIndicator size="large" color={accent[500]} />
+          <ActivityIndicator size="large" color={theme.primary} />
           <Text className="text-base font-semibold text-foreground mt-5 text-center">
             Matching transactions…
           </Text>
@@ -482,7 +484,7 @@ export default function NewReconciliationScreen() {
               <Pressable
                 onPress={handlePdfPasswordSubmit}
                 className="flex-1 py-3 rounded-xl items-center"
-                style={{ backgroundColor: accent[500] }}
+                style={{ backgroundColor: theme.primary }}
               >
                 <Text className="text-sm font-semibold text-white">Unlock</Text>
               </Pressable>
@@ -531,7 +533,7 @@ export default function NewReconciliationScreen() {
               <Pressable
                 onPress={handleXlsPasswordSubmit}
                 className="flex-1 py-3 rounded-xl items-center"
-                style={{ backgroundColor: accent[500] }}
+                style={{ backgroundColor: theme.primary }}
               >
                 <Text className="text-sm font-semibold text-white">Unlock</Text>
               </Pressable>
@@ -615,8 +617,8 @@ export default function NewReconciliationScreen() {
               onPress={() => setStep("account")}
               className="flex-row items-center"
             >
-              <Ionicons name="swap-horizontal-outline" size={14} color={accent[500]} />
-              <Text className="text-xs font-semibold ml-1" style={{ color: accent[500] }}>
+              <Ionicons name="swap-horizontal-outline" size={14} color={theme.primary} />
+              <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>
                 Change account
               </Text>
             </Pressable>
@@ -624,10 +626,10 @@ export default function NewReconciliationScreen() {
           {selectedAccount && (
             <View
               className="mt-2 flex-row items-center px-3 py-2 rounded-xl self-start"
-              style={{ backgroundColor: accent[500] + "18" }}
+              style={{ backgroundColor: theme.alpha("primary", 0.09) }}
             >
-              <Ionicons name="wallet-outline" size={13} color={accent[600]} />
-              <Text className="text-xs font-semibold ml-1.5" style={{ color: accent[700] }}>
+              <Ionicons name="wallet-outline" size={13} color={theme.primary} />
+              <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.primary }}>
                 {selectedAccount.account_label || selectedAccount.bank_name}
                 {selectedAccount.account_identifier ? ` ····${selectedAccount.account_identifier}` : ""}
               </Text>
@@ -639,10 +641,10 @@ export default function NewReconciliationScreen() {
         <Pressable
           onPress={handlePickFile}
           className="border-2 border-dashed rounded-2xl py-10 items-center mb-3"
-          style={{ borderColor: accent[500] }}
+          style={{ borderColor: theme.primary }}
         >
-          <Ionicons name="cloud-upload-outline" size={36} color={accent[500]} />
-          <Text className="text-sm font-semibold mt-2" style={{ color: accent[500] }}>
+          <Ionicons name="cloud-upload-outline" size={36} color={theme.primary} />
+          <Text className="text-sm font-semibold mt-2" style={{ color: theme.primary }}>
             {filename ?? "Upload XLS, XLSX, or PDF"}
           </Text>
           <Text className="text-xs text-faint-foreground mt-1">
@@ -664,7 +666,7 @@ export default function NewReconciliationScreen() {
         {parsed && (
           <Card className="mb-4">
             <View className="flex-row items-center mb-2">
-              <Ionicons name="document-text-outline" size={18} color={accent[500]} />
+              <Ionicons name="document-text-outline" size={18} color={theme.primary} />
               <Text className="text-sm font-semibold text-foreground ml-2 flex-1" numberOfLines={1}>
                 {filename}
               </Text>
@@ -699,7 +701,7 @@ export default function NewReconciliationScreen() {
           onPress={handleStartMatching}
           disabled={!parsed}
           className="py-4 rounded-2xl items-center"
-          style={{ backgroundColor: parsed ? accent[500] : colors.border, opacity: parsed ? 1 : 0.5 }}
+          style={{ backgroundColor: parsed ? theme.primary : colors.border, opacity: parsed ? 1 : 0.5 }}
         >
           <Text className="text-base font-semibold text-white">
             Start Matching

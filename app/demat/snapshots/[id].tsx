@@ -6,9 +6,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { Card, DateInput, FAB, Input, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
-import { ac } from "@/utils/accent";
+
 import {
   getAccountById,
   getLatestSnapshot,
@@ -22,6 +22,7 @@ import {
   getDematTransferTotals,
 } from "@/services/financial-account";
 import type { FinancialAccount, PortfolioSnapshot, FundSnapshot } from "@/services/financial-account";
+import { useTheme } from "@/hooks/use-theme";
 
 function getCurrentMonth(): string {
   const now = new Date();
@@ -50,9 +51,9 @@ function getDefaultDate(selectedMonth: string): string {
 export default function DematSnapshotsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const alert = useAlert();
-  const sc = StatusColors[colorScheme];
 
   const [account, setAccount] = useState<FinancialAccount | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonth());
@@ -221,7 +222,7 @@ export default function DematSnapshotsScreen() {
         >
           {/* Account name */}
           <View className="px-4 pt-3 pb-1 flex-row items-center">
-            <Ionicons name="trending-up-outline" size={18} color={ac(accent, colorScheme, 500, 300)} style={{ marginRight: 8 }} />
+            <Ionicons name="trending-up-outline" size={18} color={theme.primary} style={{ marginRight: 8 }} />
             <Text className="text-base font-semibold text-foreground">
               {accountLabel}
             </Text>
@@ -247,7 +248,7 @@ export default function DematSnapshotsScreen() {
               </View>
               <View className="flex-1 items-end">
                 <Text className="text-xs text-muted-foreground mb-0.5">Total</Text>
-                <Text className="text-base font-bold" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                <Text className="text-base font-bold" style={{ color: theme.primary }}>
                   {latestPortfolio != null ? formatAmount(totalLatest) : "—"}
                 </Text>
               </View>
@@ -265,13 +266,13 @@ export default function DematSnapshotsScreen() {
                   <View className="flex-row justify-between">
                     <View className="flex-1">
                       <Text className="text-xs text-muted-foreground mb-0.5">Deposited</Text>
-                      <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                      <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                         {formatAmount(totalDeposited)}
                       </Text>
                     </View>
                     <View className="flex-1 items-center">
                       <Text className="text-xs text-muted-foreground mb-0.5">Withdrawn</Text>
-                      <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                      <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                         {totalWithdrawn > 0 ? formatAmount(totalWithdrawn) : "—"}
                       </Text>
                     </View>
@@ -329,7 +330,7 @@ export default function DematSnapshotsScreen() {
                   onPress={handleSaveAdd}
                   disabled={saving}
                   className="flex-1 py-2.5 rounded-lg items-center"
-                  style={{ backgroundColor: ac(accent, colorScheme, 500, 400), opacity: saving ? 0.6 : 1 }}
+                  style={{ backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }}
                 >
                   <Text className="text-sm font-semibold text-white">
                     {saving ? "Saving…" : "Save Snapshot"}
@@ -442,7 +443,7 @@ export default function DematSnapshotsScreen() {
                             }}
                             hitSlop={6}
                           >
-                            <Ionicons name="checkmark-circle" size={20} color={sc.success} />
+                            <Ionicons name="checkmark-circle" size={20} color={theme.success} />
                           </Pressable>
                           <Pressable
                             onPress={() => {
@@ -479,7 +480,7 @@ export default function DematSnapshotsScreen() {
                             }}
                             hitSlop={6}
                           >
-                            <Ionicons name="trash-outline" size={16} color={sc.danger} />
+                            <Ionicons name="trash-outline" size={16} color={theme.danger} />
                           </Pressable>
                         </>
                       )}

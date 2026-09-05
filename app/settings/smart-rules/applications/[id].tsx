@@ -15,10 +15,12 @@ import type { Category } from "@/services/category";
 import type { PaymentMode } from "@/services/payment-mode";
 import type { FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function RuleApplicationsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const router = useRouter();
 
   const [ruleName, setRuleName] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export default function RuleApplicationsScreen() {
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={accent[500]} />
+          <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : expenses.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">

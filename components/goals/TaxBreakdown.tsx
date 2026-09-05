@@ -6,7 +6,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/expense-validation";
 import type { SalaryCalculation } from "@/services/tax-engine";
 import { TaxRow } from "./salary-helpers";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── Props ────────────────────────────────────────────────
 
@@ -17,7 +18,8 @@ export interface TaxBreakdownProps {
 // ─── Component ────────────────────────────────────────────
 
 export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [compareTab, setCompareTab] = useState<"new" | "old">("new");
 
   return (
@@ -33,7 +35,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
                 ? ""
                 : "bg-card"
             }`}
-            style={compareTab === "new" ? { backgroundColor: accent[500] } : undefined}
+            style={compareTab === "new" ? { backgroundColor: theme.primary } : undefined}
           >
             <Text
               className={`text-sm font-medium ${
@@ -52,7 +54,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
                 ? ""
                 : "bg-card"
             }`}
-            style={compareTab === "old" ? { backgroundColor: accent[500] } : undefined}
+            style={compareTab === "old" ? { backgroundColor: theme.primary } : undefined}
           >
             <Text
               className={`text-sm font-medium ${
@@ -82,7 +84,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
                   <Ionicons
                     name="checkmark-circle"
                     size={16}
-                    color={StatusColors[colorScheme].success}
+                    color={theme.success}
                   />
                   <Text className="text-xs font-medium text-success ml-1">
                     Better regime - saves you{" "}
@@ -108,14 +110,14 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
                 <TaxRow
                   label="Section 87A Rebate"
                   value={`-${formatAmount(tax.rebate87A)}`}
-                  color={StatusColors[colorScheme].success}
+                  color={theme.success}
                 />
               )}
               {tax.marginalRelief > 0 && (
                 <TaxRow
                   label="Marginal Relief"
                   value={`-${formatAmount(tax.marginalRelief)}`}
-                  color={StatusColors[colorScheme].success}
+                  color={theme.success}
                 />
               )}
               {tax.surcharge > 0 && (
@@ -132,7 +134,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
               <TaxRow
                 label="Total Tax"
                 value={formatAmount(tax.totalTax)}
-                color={StatusColors[colorScheme].danger}
+                color={theme.danger}
               />
               <TaxRow
                 label="Effective Rate"

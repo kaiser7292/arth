@@ -19,7 +19,7 @@ import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth, getDataVersion } from "@/services/settings";
 import { formatAmount } from "@/utils/expense-validation";
 import { formatCompact, formatAmount as fmtFull } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
+
 import { getRealityCheck, type RealityCheckData } from "@/services/financial-cockpit";
 import { consumeYearlyPlanPreload } from "@/services/home-preload";
 import {
@@ -30,6 +30,7 @@ import {
 } from "@/services/loan-accounts";
 import type { LoanAccount } from "@/services/loan-accounts";
 import { getFYRange } from "@/utils/fiscal-year";
+import { useTheme } from "@/hooks/use-theme";
 
 interface LoanForecastRow {
   loanId: string;
@@ -45,7 +46,8 @@ interface LoanForecastRow {
 
 export default function YearlyPlanScreen() {
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const { fy } = useLocalSearchParams<{ fy?: string }>();
   const startMonth = getFYStartMonth();
 
@@ -193,8 +195,8 @@ export default function YearlyPlanScreen() {
                   Income
                 </Text>
                 {profile?.status === "draft" && (
-                  <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: StatusColors[colorScheme].warningBg }}>
-                    <Text className="text-label font-bold" style={{ color: StatusColors[colorScheme].warning }}>DRAFT</Text>
+                  <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
+                    <Text className="text-label font-bold" style={{ color: theme.warning }}>DRAFT</Text>
                   </View>
                 )}
               </View>
@@ -208,7 +210,7 @@ export default function YearlyPlanScreen() {
                 className="flex-row items-center"
               >
                 <Ionicons name="create-outline" size={14} color={colors.blue} />
-                <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+                <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
                   Edit
                 </Text>
               </Pressable>
@@ -233,7 +235,7 @@ export default function YearlyPlanScreen() {
               label="Total Income"
               value={formatAmount(derived?.total_income ?? 0)}
               bold
-              color={StatusColors[colorScheme].success}
+              color={theme.success}
             />
           </Card>
 
@@ -253,7 +255,7 @@ export default function YearlyPlanScreen() {
                 className="flex-row items-center"
               >
                 <Ionicons name="settings-outline" size={14} color={colors.blue} />
-                <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+                <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
                   Manage
                 </Text>
               </Pressable>
@@ -298,7 +300,7 @@ export default function YearlyPlanScreen() {
                 className="flex-row items-center"
               >
                 <Ionicons name="settings-outline" size={14} color={colors.blue} />
-                <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+                <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
                   Manage
                 </Text>
               </Pressable>
@@ -375,7 +377,7 @@ export default function YearlyPlanScreen() {
               <View className="flex-row items-center flex-1">
                 <View
                   className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: accent[500] + "14" }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                 >
                   <Ionicons name="cash-outline" size={18} color={colors.blue} />
                 </View>
@@ -390,7 +392,7 @@ export default function YearlyPlanScreen() {
                 className="flex-row items-center"
               >
                 <Ionicons name="create-outline" size={14} color={colors.blue} />
-                <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+                <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
                   Manage
                 </Text>
               </Pressable>
@@ -406,7 +408,7 @@ export default function YearlyPlanScreen() {
                   className="mt-3 py-2 rounded-lg items-center"
                   style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
                 >
-                  <Text className="text-sm font-medium" style={{ color: accent[500] }}>
+                  <Text className="text-sm font-medium" style={{ color: theme.primary }}>
                     Add a loan
                   </Text>
                 </Pressable>
@@ -464,7 +466,7 @@ export default function YearlyPlanScreen() {
                         <Text className="text-xs font-semibold text-foreground">
                           Total annual outflow
                         </Text>
-                        <Text className="text-xs font-bold" style={{ color: StatusColors[colorScheme].danger }}>
+                        <Text className="text-xs font-bold" style={{ color: theme.danger }}>
                           {fmt(row.annualOutflowTotal)}
                         </Text>
                       </View>
@@ -486,7 +488,7 @@ export default function YearlyPlanScreen() {
                         <Text className="text-sm font-bold text-foreground">
                           Debt servicing this year
                         </Text>
-                        <Text className="text-sm font-bold" style={{ color: StatusColors[colorScheme].danger }}>
+                        <Text className="text-sm font-bold" style={{ color: theme.danger }}>
                           −{formatAmount(grandTotal)}
                         </Text>
                       </View>
@@ -513,7 +515,7 @@ export default function YearlyPlanScreen() {
                 className="flex-row items-center"
               >
                 <Ionicons name="create-outline" size={14} color={colors.blue} />
-                <Text className="text-xs font-medium ml-1" style={{ color: accent[500] }}>
+                <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
                   Edit Budget
                 </Text>
               </Pressable>
@@ -522,7 +524,7 @@ export default function YearlyPlanScreen() {
               label="Estimated Annual Expenses"
               value={formatAmount(derived?.total_planned_expenses ?? 0)}
               icon="receipt-outline"
-              color={StatusColors[colorScheme].danger}
+              color={theme.danger}
             />
             <Text className="text-xs text-faint-foreground mt-1">
               Based on your monthly budget averages
@@ -545,7 +547,7 @@ export default function YearlyPlanScreen() {
                     label="Total Income"
                     value={formatAmount(derived?.total_income ?? 0)}
                     icon="arrow-down-circle-outline"
-                    color={StatusColors[colorScheme].success}
+                    color={theme.success}
                   />
                   <View className="h-px bg-border my-2" />
                   <MetricRow
@@ -580,7 +582,7 @@ export default function YearlyPlanScreen() {
                     label="Total Outflow"
                     value={formatAmount(outflowWithDebt)}
                     icon="arrow-up-circle-outline"
-                    color={StatusColors[colorScheme].danger}
+                    color={theme.danger}
                     bold
                   />
                   <View className="h-px bg-border my-2" />
@@ -592,7 +594,7 @@ export default function YearlyPlanScreen() {
                         ? "checkmark-circle-outline"
                         : "alert-circle-outline"
                     }
-                    color={surplusWithDebt >= 0 ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger}
+                    color={surplusWithDebt >= 0 ? theme.success : theme.danger}
                     bold
                   />
                 </>
@@ -611,8 +613,8 @@ export default function YearlyPlanScreen() {
                 icon="pulse-outline"
                 color={
                   savings.actualSavingsRatePct >= (derived?.savings_rate ?? 0)
-                    ? StatusColors[colorScheme].success
-                    : StatusColors[colorScheme].danger
+                    ? theme.success
+                    : theme.danger
                 }
               />
             )}
@@ -629,19 +631,19 @@ export default function YearlyPlanScreen() {
                   className="mt-3 flex-row items-center justify-center py-2 rounded-lg"
                   style={{
                     backgroundColor: isPositive
-                      ? StatusColors[colorScheme].successBg
-                      : StatusColors[colorScheme].dangerBg,
+                      ? theme.alpha("success", 0.08)
+                      : theme.alpha("danger", 0.08),
                   }}
                 >
                   <Ionicons
                     name={isPositive ? "checkmark-circle" : "alert-circle"}
                     size={18}
-                    color={isPositive ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger}
+                    color={isPositive ? theme.success : theme.danger}
                   />
                   <Text
                     className="ml-2 text-sm font-medium"
                     style={{
-                      color: isPositive ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger,
+                      color: isPositive ? theme.success : theme.danger,
                     }}
                   >
                     {isPositive
@@ -661,21 +663,21 @@ export default function YearlyPlanScreen() {
                 className="flex-row items-center px-3 py-2 rounded-lg mb-3"
                 style={{
                   backgroundColor: realityCheck.overallStatus === "on_track"
-                    ? StatusColors[colorScheme].successBg
-                    : StatusColors[colorScheme].dangerBg,
+                    ? theme.alpha("success", 0.08)
+                    : theme.alpha("danger", 0.08),
                 }}
               >
                 <Ionicons
                   name={realityCheck.overallStatus === "on_track" ? "checkmark-circle" : "alert-circle"}
                   size={16}
-                  color={realityCheck.overallStatus === "on_track" ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger}
+                  color={realityCheck.overallStatus === "on_track" ? theme.success : theme.danger}
                 />
                 <Text
                   className="text-xs font-semibold ml-1.5"
                   style={{
                     color: realityCheck.overallStatus === "on_track"
-                      ? StatusColors[colorScheme].success
-                      : StatusColors[colorScheme].danger,
+                      ? theme.success
+                      : theme.danger,
                   }}
                 >
                   {realityCheck.isPastFY
@@ -732,13 +734,13 @@ export default function YearlyPlanScreen() {
                   const statusColor = Math.abs(gap) < 1
                     ? colors.textSecondary
                     : isAhead
-                      ? StatusColors[colorScheme].success
-                      : StatusColors[colorScheme].danger;
+                      ? theme.success
+                      : theme.danger;
                   const statusBg = Math.abs(gap) < 1
                     ? colors.surface
                     : isAhead
-                      ? StatusColors[colorScheme].successBg
-                      : StatusColors[colorScheme].dangerBg;
+                      ? theme.alpha("success", 0.08)
+                      : theme.alpha("danger", 0.08);
                   return (
                     <View
                       key={label}
@@ -784,8 +786,8 @@ export default function YearlyPlanScreen() {
                                 color: Math.abs(gap) < 1
                                   ? colors.textSecondary
                                   : isAhead
-                                    ? StatusColors[colorScheme].success
-                                    : StatusColors[colorScheme].danger,
+                                    ? theme.success
+                                    : theme.danger,
                               }}
                             >
                               {fmtFull(projYearEnd)}
@@ -799,16 +801,16 @@ export default function YearlyPlanScreen() {
                       {/* Correction / confirmation hint */}
                       {!realityCheck.isPastFY && !isAhead && Math.abs(gap) >= 1 && (
                         <View className="flex-row items-center gap-1.5">
-                          <Ionicons name="arrow-forward" size={11} color={StatusColors[colorScheme].danger} />
-                          <Text className="text-xs font-semibold" style={{ color: StatusColors[colorScheme].danger }}>
+                          <Ionicons name="arrow-forward" size={11} color={theme.danger} />
+                          <Text className="text-xs font-semibold" style={{ color: theme.danger }}>
                             {correctionLabel} to get back on track
                           </Text>
                         </View>
                       )}
                       {!realityCheck.isPastFY && isAhead && Math.abs(gap) >= 1 && (
                         <View className="flex-row items-center gap-1.5">
-                          <Ionicons name="checkmark" size={11} color={StatusColors[colorScheme].success} />
-                          <Text className="text-xs font-semibold" style={{ color: StatusColors[colorScheme].success }}>
+                          <Ionicons name="checkmark" size={11} color={theme.success} />
+                          <Text className="text-xs font-semibold" style={{ color: theme.success }}>
                             {correctionLabel}
                           </Text>
                         </View>
@@ -864,8 +866,8 @@ export default function YearlyPlanScreen() {
                         className="text-sm font-bold"
                         style={{
                           color: netSurplusProj >= 0
-                            ? StatusColors[colorScheme].success
-                            : StatusColors[colorScheme].danger,
+                            ? theme.success
+                            : theme.danger,
                         }}
                       >
                         {fmtFull(netSurplusProj)}
@@ -884,8 +886,8 @@ export default function YearlyPlanScreen() {
                   className="mt-3 p-2.5 rounded-lg"
                   style={{
                     backgroundColor: realityCheck.overallStatus === "on_track"
-                      ? StatusColors[colorScheme].successBg
-                      : StatusColors[colorScheme].dangerBg,
+                      ? theme.alpha("success", 0.08)
+                      : theme.alpha("danger", 0.08),
                   }}
                 >
                   {realityCheck.summaryLines.map((line, i) => (

@@ -8,8 +8,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/hooks/use-alert";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
-import { ac } from "@/utils/accent";
+
+
 import { logger } from "@/utils/logger";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import {
@@ -27,6 +27,7 @@ import {
   updateScenario,
 } from "@/services/simulator";
 import type { SimulationScenario, ScenarioOverview } from "@/services/simulator";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Scenario list — entry point from the Home card.
@@ -57,7 +58,7 @@ export default function SimulatorListScreen() {
   const router = useRouter();
   const alert = useAlert();
   const { colors, accent, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const theme = useTheme();
 
   const [active, setActive] = useState<ScenarioCardData[]>([]);
   const [archived, setArchived] = useState<SimulationScenario[]>([]);
@@ -231,9 +232,9 @@ export default function SimulatorListScreen() {
           <View className="items-center justify-center px-6 pt-20 pb-8">
             <View
               className="w-16 h-16 rounded-full items-center justify-center mb-4"
-              style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.1) }}
             >
-              <Ionicons name="pulse-outline" size={32} color={accent[500]} />
+              <Ionicons name="pulse-outline" size={32} color={theme.primary} />
             </View>
             <Text className="text-lg font-bold text-center" style={{ color: colors.text }}>
               Plan your next month
@@ -245,7 +246,7 @@ export default function SimulatorListScreen() {
             <Pressable
               onPress={() => setCreateSheetVisible(true)}
               className="mt-6 py-3 px-6 rounded-xl flex-row items-center"
-              style={{ backgroundColor: accent[500] }}
+              style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
               accessibilityLabel="Create your first scenario"
             >
@@ -285,7 +286,7 @@ export default function SimulatorListScreen() {
               const netWorthEnd = (overview?.simulation.netWorthEnd ?? 0) + hisaabNet;
               const netWorthStart = (overview?.simulation.netWorthStart ?? 0) + hisaabNet;
               const delta = netWorthEnd - netWorthStart;
-              const deltaColor = delta >= 0 ? sc.success : sc.danger;
+              const deltaColor = delta >= 0 ? theme.success : theme.danger;
               const warnings = overview?.simulation.warnings ?? [];
 
               return (
@@ -303,9 +304,9 @@ export default function SimulatorListScreen() {
                       {scenario.is_default === 1 && (
                         <View
                           className="ml-2 px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}
+                          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                         >
-                          <Text className="text-label font-semibold" style={{ color: accent[500] }}>
+                          <Text className="text-label font-semibold" style={{ color: theme.primary }}>
                             DEFAULT
                           </Text>
                         </View>
@@ -325,10 +326,10 @@ export default function SimulatorListScreen() {
                       {warnings.length > 0 && (
                         <View
                           className="ml-2 flex-row items-center px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: sc.danger + "14" }}
+                          style={{ backgroundColor: theme.danger + "14" }}
                         >
-                          <Ionicons name="warning-outline" size={10} color={sc.danger} />
-                          <Text className="text-label font-semibold ml-1" style={{ color: sc.danger }}>
+                          <Ionicons name="warning-outline" size={10} color={theme.danger} />
+                          <Text className="text-label font-semibold ml-1" style={{ color: theme.danger }}>
                             {warnings.length} {warnings.length === 1 ? "issue" : "issues"}
                           </Text>
                         </View>
@@ -398,21 +399,21 @@ export default function SimulatorListScreen() {
                     <Pressable
                       onPress={() => handleArchive(scenario)}
                       className="flex-1 py-2 items-center rounded-lg flex-row justify-center gap-1"
-                      style={{ backgroundColor: sc.success + "14", borderWidth: 1, borderColor: sc.success + "40" }}
+                      style={{ backgroundColor: theme.success + "14", borderWidth: 1, borderColor: theme.success + "40" }}
                       accessibilityLabel="Mark scenario as done"
                     >
-                      <Ionicons name="checkmark" size={13} color={sc.success} />
-                      <Text className="text-xs font-semibold" style={{ color: sc.success }}>
+                      <Ionicons name="checkmark" size={13} color={theme.success} />
+                      <Text className="text-xs font-semibold" style={{ color: theme.success }}>
                         Mark done
                       </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => handleDelete(scenario)}
                       className="flex-1 py-2 items-center rounded-lg"
-                      style={{ backgroundColor: sc.danger + "14" }}
+                      style={{ backgroundColor: theme.danger + "14" }}
                       accessibilityLabel="Delete scenario"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: sc.danger }}>
+                      <Text className="text-xs font-semibold" style={{ color: theme.danger }}>
                         Delete
                       </Text>
                     </Pressable>
@@ -424,7 +425,7 @@ export default function SimulatorListScreen() {
             <Pressable
               onPress={() => setCreateSheetVisible(true)}
               className="mx-4 mt-4 py-3 rounded-xl items-center flex-row justify-center"
-              style={{ backgroundColor: accent[500] }}
+              style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
               accessibilityLabel="Create new scenario"
             >
@@ -462,9 +463,9 @@ export default function SimulatorListScreen() {
                   <View className="flex-row items-center">
                     <View
                       className="w-6 h-6 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: sc.success + "22" }}
+                      style={{ backgroundColor: theme.success + "22" }}
                     >
-                      <Ionicons name="checkmark" size={13} color={sc.success} />
+                      <Ionicons name="checkmark" size={13} color={theme.success} />
                     </View>
                     <Pressable className="flex-1" onPress={() => handleOpenScenario(s.id)}>
                       <Text className="text-sm font-semibold" style={{ color: colors.text }}>
@@ -530,21 +531,21 @@ export default function SimulatorListScreen() {
                 onPress={() => setDuplicateMode(mode)}
                 className="flex-row items-start p-4 rounded-xl mb-3"
                 style={{
-                  backgroundColor: isActive ? accent[500] + "12" : colors.surface,
+                  backgroundColor: isActive ? theme.alpha("primary", 0.07) : colors.surface,
                   borderWidth: 1.5,
-                  borderColor: isActive ? accent[500] : colors.border,
+                  borderColor: isActive ? theme.primary : colors.border,
                 }}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: isActive }}
               >
                 <View
                   className="w-5 h-5 rounded-full border-2 items-center justify-center mt-0.5 mr-3"
-                  style={{ borderColor: isActive ? accent[500] : colors.border, backgroundColor: isActive ? accent[500] : "transparent" }}
+                  style={{ borderColor: isActive ? theme.primary : colors.border, backgroundColor: isActive ? theme.primary : "transparent" }}
                 >
                   {isActive && <View className="w-2 h-2 rounded-full bg-white" />}
                 </View>
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold" style={{ color: isActive ? accent[500] : colors.text }}>
+                  <Text className="text-sm font-semibold" style={{ color: isActive ? theme.primary : colors.text }}>
                     {mode === "upcoming" ? "Upcoming only" : "Full setup"}
                   </Text>
                   <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
@@ -569,7 +570,7 @@ export default function SimulatorListScreen() {
               onPress={executeDuplicate}
               disabled={duplicating}
               className="flex-1 py-3 rounded-xl items-center"
-              style={{ backgroundColor: accent[500], opacity: duplicating ? 0.6 : 1 }}
+              style={{ backgroundColor: theme.primary, opacity: duplicating ? 0.6 : 1 }}
             >
               <Text className="text-sm font-semibold text-white">{duplicating ? "Copying…" : "Duplicate"}</Text>
             </Pressable>
@@ -596,6 +597,7 @@ function NewScenarioSheet({
   onClose: () => void;
 }) {
   const { colors, accent, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [horizon, setHorizon] = useState(endOfMonthIso());
@@ -705,9 +707,9 @@ function NewScenarioSheet({
                   onPress={() => setCopyFrom(null)}
                   className="px-3 py-2 rounded-full"
                   style={{
-                    backgroundColor: copyFrom === null ? ac(accent, colorScheme, 500, 300) + "26" : colors.surface,
+                    backgroundColor: copyFrom === null ? theme.primary + "26" : colors.surface,
                     borderWidth: 1,
-                    borderColor: copyFrom === null ? ac(accent, colorScheme, 500, 300) : colors.border,
+                    borderColor: copyFrom === null ? theme.primary : colors.border,
                   }}
                   accessibilityRole="button"
                   accessibilityState={{ selected: copyFrom === null }}
@@ -724,9 +726,9 @@ function NewScenarioSheet({
                       onPress={() => setCopyFrom(s.id)}
                       className="px-3 py-2 rounded-full"
                       style={{
-                        backgroundColor: active ? ac(accent, colorScheme, 500, 300) + "26" : colors.surface,
+                        backgroundColor: active ? theme.primary + "26" : colors.surface,
                         borderWidth: 1,
-                        borderColor: active ? ac(accent, colorScheme, 500, 300) : colors.border,
+                        borderColor: active ? theme.primary : colors.border,
                       }}
                       accessibilityRole="button"
                       accessibilityState={{ selected: active }}
@@ -756,7 +758,7 @@ function NewScenarioSheet({
               onPress={() => onCreate(name, horizon, copyFrom)}
               disabled={!canSave}
               className="flex-1 py-3 rounded-xl items-center"
-              style={{ backgroundColor: accent[500], opacity: canSave ? 1 : 0.5 }}
+              style={{ backgroundColor: theme.primary, opacity: canSave ? 1 : 0.5 }}
             >
               <Text className="text-sm font-semibold text-white">Create</Text>
             </Pressable>

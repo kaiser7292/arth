@@ -5,7 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface ReportCardProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -58,8 +59,8 @@ function ReportCard({ icon, iconColor, iconBg, title, description, inputsNeeded,
 
 export default function ReportsHubScreen() {
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
-  const status = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   return (
     <ScreenContainer padTop={false}>
@@ -77,8 +78,8 @@ export default function ReportsHubScreen() {
         <View className="px-4">
           <ReportCard
             icon="heart-outline"
-            iconColor={status.success}
-            iconBg={status.successBg}
+            iconColor={theme.success}
+            iconBg={theme.alpha("success", 0.08)}
             title="Financial health"
             description="Net worth, savings rate, debt ratio, emergency readiness, grade card"
             inputsNeeded="No user input needed"
@@ -97,8 +98,8 @@ export default function ReportsHubScreen() {
 
           <ReportCard
             icon="trending-down-outline"
-            iconColor={status.warning}
-            iconBg={status.warningBg}
+            iconColor={theme.warning}
+            iconBg={theme.alpha("warning", 0.08)}
             title="Loan payoff strategy"
             description="Avalanche vs snowball, interest saved, optimal payoff sequence"
             inputsNeeded="1 input needed"

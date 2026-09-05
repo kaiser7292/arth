@@ -11,9 +11,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ac } from "@/utils/accent";
+
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import type { RecurringFrequency } from "@/services/expense";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Reminder sheet (formerly "Make recurring"). Shown from the expense detail
@@ -117,7 +118,8 @@ export function RecurringRuleSheet({
   onConfirm,
   onClose,
 }: RecurringRuleSheetProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [frequency, setFrequency] = useState<RecurringFrequency>(
     initial?.frequency ?? "monthly",
@@ -262,18 +264,18 @@ export function RecurringRuleSheet({
                     className="flex-row items-center py-3 px-4 rounded-xl mb-2"
                     style={{
                       backgroundColor: active
-                        ? ac(accent, colorScheme, 500, 300) + "26"
+                        ? theme.primary + "26"
                         : colors.surface,
                       borderWidth: active ? 2 : 1,
                       borderColor: active
-                        ? ac(accent, colorScheme, 500, 300)
+                        ? theme.primary
                         : colors.border,
                     }}
                   >
                     <Ionicons
                       name={opt.icon}
                       size={20}
-                      color={active ? ac(accent, colorScheme, 600, 200) : colors.textSecondary}
+                      color={active ? theme.primary : colors.textSecondary}
                     />
                     <View className="flex-1 ml-3">
                       <Text
@@ -290,7 +292,7 @@ export function RecurringRuleSheet({
                       <Ionicons
                         name="checkmark-circle"
                         size={18}
-                        color={ac(accent, colorScheme, 600, 200)}
+                        color={theme.primary}
                       />
                     )}
                   </Pressable>
@@ -412,7 +414,7 @@ export function RecurringRuleSheet({
               accessibilityLabel="Save reminder"
               className="flex-1 py-3 rounded-xl items-center"
               style={{
-                backgroundColor: accent[500],
+                backgroundColor: theme.primary,
                 opacity: endDateValid ? 1 : 0.5,
               }}
             >

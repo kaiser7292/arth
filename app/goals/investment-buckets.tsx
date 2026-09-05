@@ -27,17 +27,19 @@ import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth, getDataVersion } from "@/services/settings";
 import { formatAmount } from "@/utils/expense-validation";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { acAlpha } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
 import { getFinancialCockpit, type FinancialCockpitData } from "@/services/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
+import { useTheme } from "@/hooks/use-theme";
 
 type ViewMode = "buckets" | "add_bucket";
 
 export default function InvestmentBucketsScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const { fy } = useLocalSearchParams<{ fy?: string }>();
   const startMonth = getFYStartMonth();
   const initialFY = fy ? parseInt(fy, 10) : getCurrentFY(startMonth);
@@ -376,7 +378,7 @@ export default function InvestmentBucketsScreen() {
                       className="mr-2 px-3 py-2 rounded-lg border"
                       style={{
                         borderColor: selectedMilestoneId === null ? colors.blue : BORDER_COLOR,
-                        backgroundColor: selectedMilestoneId === null ? acAlpha(accent, 500, 0.08) : "transparent",
+                        backgroundColor: selectedMilestoneId === null ? theme.alpha("primary", 0.08) : "transparent",
                       }}
                     >
                       <Text
@@ -395,7 +397,7 @@ export default function InvestmentBucketsScreen() {
                         className="mr-2 px-3 py-2 rounded-lg border"
                         style={{
                           borderColor: selectedMilestoneId === ms.id ? colors.blue : BORDER_COLOR,
-                          backgroundColor: selectedMilestoneId === ms.id ? acAlpha(accent, 500, 0.08) : "transparent",
+                          backgroundColor: selectedMilestoneId === ms.id ? theme.alpha("primary", 0.08) : "transparent",
                         }}
                       >
                         <Text
@@ -530,7 +532,7 @@ export default function InvestmentBucketsScreen() {
                               {b.name}
                             </Text>
                             <Text className="text-xs text-muted-foreground">
-                              {formatAmount(b.annual_target)} → <Text className="font-semibold" style={{ color: accent[500] }}>{formatAmount(newTarget)}</Text>
+                              {formatAmount(b.annual_target)} → <Text className="font-semibold" style={{ color: theme.primary }}>{formatAmount(newTarget)}</Text>
                             </Text>
                           </View>
                           <View className="w-20">
@@ -550,7 +552,7 @@ export default function InvestmentBucketsScreen() {
                       <Text className="text-xs text-muted-foreground">
                         Previous total: {formatAmount(prevYearBuckets.reduce((s, b) => s + b.annual_target, 0))}
                       </Text>
-                      <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
+                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
                         New total: {formatAmount(prevYearBuckets.reduce((s, b) => {
                           const h = bucketHikes[b.id] ? parseFloat(bucketHikes[b.id]) : 0;
                           return s + Math.round(b.annual_target * (1 + (isNaN(h) ? 0 : h) / 100));
@@ -605,7 +607,7 @@ export default function InvestmentBucketsScreen() {
             <View className="h-3 rounded-full bg-border overflow-hidden">
               <View
                 className="h-3 rounded-full"
-                style={{ width: `${overallPct}%`, backgroundColor: accent[500] }}
+                style={{ width: `${overallPct}%`, backgroundColor: theme.primary }}
               />
             </View>
             <Text className="text-xs text-muted-foreground mt-1 text-right">
@@ -617,7 +619,7 @@ export default function InvestmentBucketsScreen() {
               <View
                 className="mt-3 py-2 px-3 rounded-lg"
                 style={{
-                  backgroundColor: (cockpit.waterfall.breathingRoomMonthly > 0 ? "#14B8A6" : StatusColors[colorScheme].danger) + "0A",
+                  backgroundColor: (cockpit.waterfall.breathingRoomMonthly > 0 ? "#14B8A6" : theme.danger) + "0A",
                 }}
               >
                 <Text className="text-xs text-muted-foreground text-center">
@@ -677,8 +679,8 @@ export default function InvestmentBucketsScreen() {
                           className="w-7 h-7 rounded-full items-center justify-center mr-2"
                           style={{
                             backgroundColor: isComplete
-                              ? StatusColors[colorScheme].successBg
-                              : acAlpha(accent, 500, 0.08),
+                              ? theme.alpha("success", 0.08)
+                              : theme.alpha("primary", 0.08),
                           }}
                         >
                           <Ionicons
@@ -688,7 +690,7 @@ export default function InvestmentBucketsScreen() {
                                 : "wallet-outline"
                             }
                             size={16}
-                            color={isComplete ? StatusColors[colorScheme].success : colors.blue}
+                            color={isComplete ? theme.success : colors.blue}
                           />
                         </View>
                         <View className="flex-1">
@@ -758,7 +760,7 @@ export default function InvestmentBucketsScreen() {
                         className="h-2 rounded-full"
                         style={{
                           width: `${pct}%`,
-                          backgroundColor: isComplete ? StatusColors[colorScheme].success : colors.blue,
+                          backgroundColor: isComplete ? theme.success : colors.blue,
                         }}
                       />
                     </View>
