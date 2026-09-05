@@ -1,6 +1,6 @@
-import { Card, FilterChip, ScreenContainer } from "@/components/ui";
+import { Card, FilterChip, ScreenContainer, Text } from "@/components/ui";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
@@ -15,7 +15,8 @@ import { formatDateTimeInTimezone } from "@/utils/timezone";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, SectionList, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, SectionList, TextInput, View } from "react-native";
+import { useTheme, type Theme } from "@/hooks/use-theme";
 
 /**
  * Settings → Automation → Audit Log (v15.12.1 new).
@@ -91,27 +92,28 @@ function actionLabel(a: AuditActionType): string {
   return ACTION_OPTIONS.find((o) => o.key === a)?.label ?? a;
 }
 
-type StatusPalette = (typeof StatusColors)[keyof typeof StatusColors];
-
-function actionColor(a: AuditActionType, sc: StatusPalette): string {
+/** Takes the theme as an argument: this is a plain helper, not a component, so it must not
+ *  call a hook. It is invoked from inside map callbacks, where a conditional hook call would
+ *  break hook order. */
+function actionColor(a: AuditActionType, theme: Theme): string {
   switch (a) {
     case "approved":
     case "created":
     case "marked_as_cc_bill":
     case "marked_as_settlement":
     case "linked_to_reminder":
-      return sc.success;
+      return theme.success;
     case "rejected":
     case "deleted":
-      return sc.danger;
+      return theme.danger;
     case "edited":
-      return "#3B82F6";
+      return theme.primary;
     case "marked_as_transfer":
     case "reclassified_by_rule":
     case "refunded":
-      return sc.warning;
+      return theme.warning;
     default:
-      return sc.muted;
+      return theme.faintForeground;
   }
 }
 
@@ -216,8 +218,8 @@ function groupEntriesByDate(entries: AuditLogEntry[]): EntrySection[] {
 
 export default function AuditLogScreen() {
   const router = useRouter();
-  const { colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [scope, setScope] = useState<DateScope>("30d");
   const [sources, setSources] = useState<Set<AuditSourceType>>(new Set());
@@ -321,12 +323,12 @@ export default function AuditLogScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: AuditLogEntry }) => {
-      const color = actionColor(item.actionType, sc);
+      const color = actionColor(item.actionType, theme);
       return (
         <Pressable
           onPress={() => handleOpen(item)}
           disabled={!item.navigable}
-          className="flex-row items-center mx-4 py-3 border-b border-border-light dark:border-border-dark"
+          className="flex-row items-center mx-4 py-3 border-b border-border"
           style={{ opacity: item.navigable ? 1 : 0.7 }}
         >
           <View
@@ -337,7 +339,7 @@ export default function AuditLogScreen() {
           </View>
           <View className="flex-1">
             <Text
-              className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
+              className="text-sm font-semibold text-foreground"
               numberOfLines={1}
             >
               {item.description}
@@ -348,13 +350,13 @@ export default function AuditLogScreen() {
                 className="px-1.5 py-0.5 rounded mr-1.5"
                 style={{ backgroundColor: color + "14" }}
               >
-                <Text className="text-[9px] font-semibold" style={{ color }}>
+                <Text className="text-label font-semibold" style={{ color }}>
                   {actionLabel(item.actionType).toUpperCase()}
                 </Text>
               </View>
               {item.sourceType === "sms" && (
-                <View className="px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900 mr-1.5">
-                  <Text className="text-[8px] font-semibold text-blue-600 dark:text-blue-300">SMS</Text>
+                <View className="px-1 py-0.5 rounded bg-primary/15 mr-1.5">
+                  <Text className="text-label font-semibold text-primary">SMS</Text>
                 </View>
               )}
               <Ionicons
@@ -362,7 +364,7 @@ export default function AuditLogScreen() {
                 size={10}
                 color={colors.textSecondary}
               />
-              <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary ml-1">
+              <Text className="text-label text-muted-foreground ml-1">
                 {item.date}
               </Text>
             </View>
@@ -371,7 +373,7 @@ export default function AuditLogScreen() {
               <View className="flex-row items-center mt-0.5 flex-wrap gap-y-0.5">
                 {item.accountLabel && (
                   <Text
-                    className="text-[10px] text-text-tertiary dark:text-text-dark-secondary mr-1.5"
+                    className="text-label text-faint-foreground mr-1.5"
                     numberOfLines={1}
                     style={{ flexShrink: 1 }}
                   >
@@ -379,16 +381,16 @@ export default function AuditLogScreen() {
                   </Text>
                 )}
                 {item.actionTimestamp && (
-                  <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary">
+                  <Text className="text-label text-faint-foreground">
                     {item.accountLabel ? "· " : ""}{formatActionTimestamp(item.actionTimestamp)}
                   </Text>
                 )}
               </View>
             )}
             {item.editDetails && (
-              <View className="mt-1.5 px-2 py-1.5 rounded bg-surface-light-alt dark:bg-surface-dark-alt">
-                <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary">
-                  {item.editDetails.fieldLabel}: <Text className="line-through">{item.editDetails.oldValue ?? "empty"}</Text> → <Text className="font-medium text-text-primary dark:text-text-dark-primary">{item.editDetails.newValue ?? "empty"}</Text>
+              <View className="mt-1.5 px-2 py-1.5 rounded bg-card">
+                <Text className="text-label text-muted-foreground">
+                  {item.editDetails.fieldLabel}: <Text className="line-through">{item.editDetails.oldValue ?? "empty"}</Text> → <Text className="font-medium text-foreground">{item.editDetails.newValue ?? "empty"}</Text>
                 </Text>
               </View>
             )}
@@ -404,7 +406,7 @@ export default function AuditLogScreen() {
         </Pressable>
       );
     },
-    [colors.textSecondary, handleOpen, sc],
+    [colors.textSecondary, handleOpen, theme],
   );
 
   return (
@@ -425,7 +427,7 @@ export default function AuditLogScreen() {
           </View>
 
           {/* Search */}
-          <View className="flex-row items-center border border-border-light dark:border-border-dark rounded-lg px-3 py-2 mb-2">
+          <View className="flex-row items-center border border-border rounded-lg px-3 py-2 mb-2">
             <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
             <TextInput
               value={searchRaw}
@@ -471,7 +473,7 @@ export default function AuditLogScreen() {
           {expanded && (
             <View className="mt-3">
               <Text
-                className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                className="text-label font-semibold uppercase tracking-wider mb-1.5"
                 style={{ color: colors.textSecondary }}
               >
                 Source
@@ -488,7 +490,7 @@ export default function AuditLogScreen() {
               </View>
 
               <Text
-                className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                className="text-label font-semibold uppercase tracking-wider mb-1.5"
                 style={{ color: colors.textSecondary }}
               >
                 Type
@@ -505,7 +507,7 @@ export default function AuditLogScreen() {
               </View>
 
               <Text
-                className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                className="text-label font-semibold uppercase tracking-wider mb-1.5"
                 style={{ color: colors.textSecondary }}
               >
                 Action
@@ -571,13 +573,13 @@ export default function AuditLogScreen() {
                   style={{ marginRight: 4 }}
                 />
                 <Text
-                  className="text-[10px] font-semibold uppercase"
+                  className="text-label font-semibold uppercase"
                   style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
                   numberOfLines={1}
                 >
                   {section.title}
                 </Text>
-                <Text className="text-[10px] ml-1.5" style={{ color: colors.textSecondary }}>
+                <Text className="text-label ml-1.5" style={{ color: colors.textSecondary }}>
                   ({count})
                 </Text>
                 <View className="flex-1 h-px ml-2" style={{ backgroundColor: colors.border }} />

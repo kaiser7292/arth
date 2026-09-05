@@ -7,6 +7,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useEffect } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ProgressBarProps {
   value: number; // 0 to 1
@@ -23,7 +24,8 @@ export function ProgressBar({
   height = 8,
   animated = true,
 }: ProgressBarProps) {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const resolvedColor = color ?? colors.tint;
   const clampedValue = Math.min(Math.max(value, 0), 1);
   const width = useSharedValue(animated ? 0 : clampedValue);
@@ -45,7 +47,7 @@ export function ProgressBar({
 
   return (
     <View
-      className="w-full rounded-full overflow-hidden bg-border-light dark:bg-border-dark"
+      className="w-full rounded-full overflow-hidden bg-border"
       style={[{ height }, trackColor ? { backgroundColor: trackColor } : undefined]}
       accessibilityLabel={`Progress: ${Math.round(clampedValue * 100)}%`}
       accessibilityRole="progressbar"
@@ -53,7 +55,7 @@ export function ProgressBar({
       <Animated.View className="h-full rounded-full overflow-hidden" style={fillStyle}>
         {useGradient ? (
           <LinearGradient
-            colors={[accent[400], accent[600]]}
+            colors={[theme.primary, theme.primary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{ flex: 1 }}

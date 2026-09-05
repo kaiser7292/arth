@@ -1,21 +1,15 @@
 import { useState, useCallback } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-} from "react-native";
+import { View, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { ScreenContainer, Button } from "@/components/ui";
+import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import {
@@ -51,6 +45,7 @@ import type {
 } from "@/services/hisaab-import";
 import type * as XLSX from "xlsx";
 import { formatAmount } from "@/utils/expense-validation";
+import { useTheme } from "@/hooks/use-theme";
 
 type Step = "pick" | "sheets" | "preview" | "importing" | "done";
 type ImportMode = "expenses" | "hisaab";
@@ -58,7 +53,8 @@ type ImportMode = "expenses" | "hisaab";
 export default function ImportExcelScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   // Shared state
   const [importMode, setImportMode] = useState<ImportMode>("expenses");
@@ -248,37 +244,37 @@ export default function ImportExcelScreen() {
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
         {/* Import Mode Toggle */}
-        <View className="flex-row bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-1 mt-2 mb-4">
+        <View className="flex-row bg-card rounded-xl p-1 mt-2 mb-4">
           <Pressable
             onPress={() => handleModeChange("expenses")}
-            className={`flex-1 py-2.5 rounded-lg items-center ${importMode === "expenses" ? "bg-white dark:bg-surface-dark shadow-sm" : ""}`}
+            className={`flex-1 py-2.5 rounded-lg items-center ${importMode === "expenses" ? "bg-card shadow-sm" : ""}`}
           >
             <Text
-              className={`text-sm font-semibold ${importMode === "expenses" ? "text-text-primary dark:text-text-dark-primary" : "text-text-secondary dark:text-text-dark-secondary"}`}
+              className={`text-sm font-semibold ${importMode === "expenses" ? "text-foreground" : "text-muted-foreground"}`}
             >
               Expenses
             </Text>
           </Pressable>
           <Pressable
             onPress={() => handleModeChange("hisaab")}
-            className={`flex-1 py-2.5 rounded-lg items-center ${importMode === "hisaab" ? "bg-white dark:bg-surface-dark shadow-sm" : ""}`}
+            className={`flex-1 py-2.5 rounded-lg items-center ${importMode === "hisaab" ? "bg-card shadow-sm" : ""}`}
           >
             <Text
-              className={`text-sm font-semibold ${importMode === "hisaab" ? "text-text-primary dark:text-text-dark-primary" : "text-text-secondary dark:text-text-dark-secondary"}`}
+              className={`text-sm font-semibold ${importMode === "hisaab" ? "text-foreground" : "text-muted-foreground"}`}
             >
               Hisaab Ledger
             </Text>
           </Pressable>
         </View>
 
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-6">
+        <Text className="text-sm text-muted-foreground mb-6">
           {importMode === "hisaab"
             ? "Import hisaab (ledger) entries from a CSV or Excel file."
             : "Import your expenses from a CSV or Excel file."}
         </Text>
 
         {error && (
-          <View className="bg-[#EF444414] rounded-lg p-3 mb-4">
+          <View className="bg-danger/8 rounded-lg p-3 mb-4">
             <Text className="text-danger text-sm">{error}</Text>
             <Pressable onPress={() => setError(null)} className="mt-1">
               <Text className="text-xs text-danger underline">Dismiss</Text>
@@ -290,16 +286,16 @@ export default function ImportExcelScreen() {
         {step === "pick" && (
           <View>
             {/* Template download card */}
-            <View className="rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt p-4 mb-4">
+            <View className="rounded-lg border border-border bg-card p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <View className="w-10 h-10 rounded-full bg-[#22C55E14] items-center justify-center mr-3">
-                  <Ionicons name="download-outline" size={20} color={StatusColors[colorScheme].success} />
+                <View className="w-10 h-10 rounded-full bg-success/8 items-center justify-center mr-3">
+                  <Ionicons name="download-outline" size={20} color={theme.success} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-base font-semibold text-foreground">
                     Step 1: Get the template
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {importMode === "hisaab"
                       ? "Download, fill in your hisaab entries, then upload"
                       : "Download, fill in your expenses, then upload"}
@@ -310,17 +306,17 @@ export default function ImportExcelScreen() {
               <Pressable
                 onPress={handleDownloadTemplate}
                 className="flex-row items-center justify-center py-2.5 rounded-lg bg-success/8"
-                style={{ borderWidth: 1, borderColor: StatusColors[colorScheme].success }}
+                style={{ borderWidth: 1, borderColor: theme.success }}
               >
-                <Ionicons name="download-outline" size={18} color={StatusColors[colorScheme].success} />
+                <Ionicons name="download-outline" size={18} color={theme.success} />
                 <Text className="text-sm font-semibold text-success ml-2">
                   Download CSV Template
                 </Text>
               </Pressable>
 
               {/* Template columns info */}
-              <View className="mt-3 pt-3 border-t border-border-light dark:border-border-dark">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1.5">
+              <View className="mt-3 pt-3 border-t border-border">
+                <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
                   Template columns:
                 </Text>
                 <View className="flex-row flex-wrap">
@@ -331,9 +327,9 @@ export default function ImportExcelScreen() {
                     return (
                       <View
                         key={col}
-                        className="px-2 py-1 rounded bg-surface-light-alt dark:bg-surface-dark mr-1.5 mb-1.5"
+                        className="px-2 py-1 rounded bg-background mr-1.5 mb-1.5"
                       >
-                        <Text className="text-xs text-text-primary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           {col}
                           {isRequired && (
                             <Text className="text-danger"> *</Text>
@@ -343,7 +339,7 @@ export default function ImportExcelScreen() {
                     );
                   })}
                 </View>
-                <Text className="text-[10px] text-text-tertiary mt-1">
+                <Text className="text-label text-faint-foreground mt-1">
                   {importMode === "hisaab"
                     ? "* Required. Types: debit, credit, settlement, initial_balance. Date optional for initial_balance."
                     : "* Required fields. Supports dates like 2025-05-15 or 15/05/2025."}
@@ -352,14 +348,14 @@ export default function ImportExcelScreen() {
             </View>
 
             {/* Upload card */}
-            <View className="items-center py-8 rounded-lg border-2 border-dashed border-border-light dark:border-border-dark mb-4">
-              <View className="w-16 h-16 rounded-2xl items-center justify-center mb-3" style={{ backgroundColor: accent[500] + '14' }}>
+            <View className="items-center py-8 rounded-lg border-2 border-dashed border-border mb-4">
+              <View className="w-16 h-16 rounded-2xl items-center justify-center mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
                 <Ionicons name="cloud-upload-outline" size={32} color={colors.blue} />
               </View>
-              <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary mb-1">
+              <Text className="text-base font-medium text-foreground mb-1">
                 Step 2: Upload your file
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-4 text-center px-4">
+              <Text className="text-sm text-muted-foreground mb-4 text-center px-4">
                 Accepts .csv and .xlsx files
               </Text>
               <Button
@@ -375,10 +371,10 @@ export default function ImportExcelScreen() {
         {/* Step 2: Sheet selection (only for multi-sheet Excel files) */}
         {step === "sheets" && (
           <View>
-            <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+            <Text className="text-base font-semibold text-foreground mb-1">
               {fileName}
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-4">
+            <Text className="text-sm text-muted-foreground mb-4">
               {sheets.length} sheets found. Select one to import:
             </Text>
 
@@ -386,22 +382,22 @@ export default function ImportExcelScreen() {
               <Pressable
                 key={sheet.name}
                 onPress={() => handleSelectSheet(sheet)}
-                className="flex-row items-center p-4 mb-2 rounded-lg border border-border-light dark:border-border-dark"
+                className="flex-row items-center p-4 mb-2 rounded-lg border border-border"
               >
                 <View className="flex-1">
                   <View className="flex-row items-center mb-1">
-                    <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-base font-medium text-foreground">
                       {sheet.name}
                     </Text>
                     {sheet.sheetType !== "unknown" && (
-                      <View className="ml-2 rounded px-2 py-0.5" style={{ backgroundColor: accent[500] + '14' }}>
-                        <Text className="text-xs" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                      <View className="ml-2 rounded px-2 py-0.5" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+                        <Text className="text-xs" style={{ color: theme.primary }}>
                           {sheet.sheetType.replace("_", " ")}
                         </Text>
                       </View>
                     )}
                   </View>
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-sm text-muted-foreground">
                     {sheet.rowCount} rows
                   </Text>
                 </View>
@@ -410,7 +406,7 @@ export default function ImportExcelScreen() {
             ))}
 
             <Pressable onPress={() => setStep("pick")} className="mt-4 py-3 items-center">
-              <Text className="font-medium" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+              <Text className="font-medium" style={{ color: theme.primary }}>
                 Choose a different file
               </Text>
             </Pressable>
@@ -420,46 +416,46 @@ export default function ImportExcelScreen() {
         {/* Step 3: Preview — Expenses */}
         {step === "preview" && importMode === "expenses" && preview && (
           <View>
-            <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+            <Text className="text-base font-semibold text-foreground mb-1">
               {fileName}
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-4">
+            <Text className="text-sm text-muted-foreground mb-4">
               Ready to import
             </Text>
 
-            <View className="rounded-lg border border-border-light dark:border-border-dark p-4 mb-4">
+            <View className="rounded-lg border border-border p-4 mb-4">
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Expenses</Text>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm text-muted-foreground">Expenses</Text>
+                <Text className="text-base font-bold text-foreground">
                   {preview.count}
                 </Text>
               </View>
               {preview.dateRange && (
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Date range</Text>
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm text-muted-foreground">Date range</Text>
+                  <Text className="text-sm text-foreground">
                     {preview.dateRange.from} → {preview.dateRange.to}
                   </Text>
                 </View>
               )}
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Total amount</Text>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm text-muted-foreground">Total amount</Text>
+                <Text className="text-base font-bold text-foreground">
                   {formatAmount(preview.totalAmount)}
                 </Text>
               </View>
               {preview.uniqueCategories.length > 0 && (
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Categories</Text>
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm text-muted-foreground">Categories</Text>
+                  <Text className="text-sm text-foreground">
                     {preview.uniqueCategories.length}
                   </Text>
                 </View>
               )}
               {preview.uniquePaymentModes.length > 0 && (
                 <View className="flex-row justify-between">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Payment modes</Text>
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm text-muted-foreground">Payment modes</Text>
+                  <Text className="text-sm text-foreground">
                     {preview.uniquePaymentModes.length}
                   </Text>
                 </View>
@@ -467,42 +463,42 @@ export default function ImportExcelScreen() {
             </View>
 
             {/* Sample rows */}
-            <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary mb-2">
+            <Text className="text-sm font-medium text-foreground mb-2">
               Sample rows:
             </Text>
             {parsedRows.slice(0, 5).map((row, i) => (
               <View
                 key={i}
-                className="flex-row items-center p-3 mb-1 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+                className="flex-row items-center p-3 mb-1 rounded-lg bg-card"
               >
                 <View className="flex-1">
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                  <Text className="text-sm text-foreground" numberOfLines={1}>
                     {row.description ?? row.merchantName ?? "-"}{" "}
                     {row.categoryName ? `(${row.categoryName})` : ""}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {row.date}
                     {row.merchantName && row.description ? ` · ${row.merchantName}` : ""}
                     {row.paymentModeName ? ` · ${row.paymentModeName}` : ""}
                   </Text>
                 </View>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-semibold text-foreground">
                   {formatAmount(row.amount)}
                 </Text>
               </View>
             ))}
             {parsedRows.length > 5 && (
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center mt-1">
+              <Text className="text-xs text-muted-foreground text-center mt-1">
                 + {parsedRows.length - 5} more rows
               </Text>
             )}
 
             {(preview.uniqueCategories.length > 0 || preview.uniquePaymentModes.length > 0) && (
-              <View className="mt-4 p-3 rounded-lg bg-[#F59E0B14]">
-                <Text className="text-sm font-medium mb-1" style={{ color: StatusColors[colorScheme].warning }}>
+              <View className="mt-4 p-3 rounded-lg bg-warning/8">
+                <Text className="text-sm font-medium mb-1" style={{ color: theme.warning }}>
                   New items will be auto-created
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Categories and payment modes not in the app will be created automatically.
                 </Text>
               </View>
@@ -514,14 +510,14 @@ export default function ImportExcelScreen() {
                   setParsedRows([]);
                   setStep("pick");
                 }}
-                className="flex-1 border border-border-light dark:border-border-dark rounded-lg py-3 mr-2 items-center"
+                className="flex-1 border border-border rounded-lg py-3 mr-2 items-center"
               >
-                <Text className="text-text-primary dark:text-text-dark-primary font-medium">Back</Text>
+                <Text className="text-foreground font-medium">Back</Text>
               </Pressable>
               <Pressable
                 onPress={handleImport}
                 className="flex-1 rounded-lg py-3 ml-2 items-center"
-                style={{ backgroundColor: StatusColors[colorScheme].success }}
+                style={{ backgroundColor: theme.success }}
               >
                 <Text className="text-white font-bold">
                   Import {preview.count} Expenses
@@ -534,43 +530,43 @@ export default function ImportExcelScreen() {
         {/* Step 3: Preview — Hisaab */}
         {step === "preview" && importMode === "hisaab" && hisaabPreview && (
           <View>
-            <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+            <Text className="text-base font-semibold text-foreground mb-1">
               {fileName}
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-4">
+            <Text className="text-sm text-muted-foreground mb-4">
               Ready to import hisaab entries
             </Text>
 
             {/* Summary card */}
-            <View className="rounded-lg border border-border-light dark:border-border-dark p-4 mb-4">
+            <View className="rounded-lg border border-border p-4 mb-4">
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Persons</Text>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm text-muted-foreground">Persons</Text>
+                <Text className="text-base font-bold text-foreground">
                   {hisaabPreview.personCount}
                 </Text>
               </View>
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Entries</Text>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm text-muted-foreground">Entries</Text>
+                <Text className="text-base font-bold text-foreground">
                   {hisaabPreview.entryCount}
                 </Text>
               </View>
               {hisaabPreview.dateRange && (
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Date range</Text>
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm text-muted-foreground">Date range</Text>
+                  <Text className="text-sm text-foreground">
                     {hisaabPreview.dateRange.from} → {hisaabPreview.dateRange.to}
                   </Text>
                 </View>
               )}
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Total debits</Text>
+                <Text className="text-sm text-muted-foreground">Total debits</Text>
                 <Text className="text-sm font-semibold text-danger">
                   {formatAmount(hisaabPreview.totalDebits)}
                 </Text>
               </View>
               <View className="flex-row justify-between">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Total credits</Text>
+                <Text className="text-sm text-muted-foreground">Total credits</Text>
                 <Text className="text-sm font-semibold text-success">
                   {formatAmount(hisaabPreview.totalCredits)}
                 </Text>
@@ -578,25 +574,25 @@ export default function ImportExcelScreen() {
             </View>
 
             {/* Per-person breakdown */}
-            <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary mb-2">
+            <Text className="text-sm font-medium text-foreground mb-2">
               Person breakdown:
             </Text>
             {hisaabPreview.persons.map((person) => (
               <View
                 key={person.name}
-                className="p-3 mb-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+                className="p-3 mb-2 rounded-lg bg-card"
               >
                 <View className="flex-row justify-between items-center mb-1">
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-semibold text-foreground">
                     {person.name}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {person.entries} entries
                   </Text>
                 </View>
                 {person.initialBalance !== null && (
                   <View className="flex-row justify-between">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       Initial balance
                     </Text>
                     <Text
@@ -609,10 +605,10 @@ export default function ImportExcelScreen() {
                 )}
                 {person.entries > 0 && (
                   <View className="flex-row justify-between mt-0.5">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       Debits / Credits
                     </Text>
-                    <Text className="text-xs text-text-primary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {formatAmount(person.debits)} / {formatAmount(person.credits)}
                     </Text>
                   </View>
@@ -621,11 +617,11 @@ export default function ImportExcelScreen() {
             ))}
 
             {/* Auto-create notice */}
-            <View className="mt-3 p-3 rounded-lg bg-[#F59E0B14]">
-              <Text className="text-sm font-medium mb-1" style={{ color: StatusColors[colorScheme].warning }}>
+            <View className="mt-3 p-3 rounded-lg bg-warning/8">
+              <Text className="text-sm font-medium mb-1" style={{ color: theme.warning }}>
                 Persons will be auto-created
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 New persons not already in your hisaab will be created automatically.
               </Text>
             </View>
@@ -636,14 +632,14 @@ export default function ImportExcelScreen() {
                   setParsedHisaabRows([]);
                   setStep("pick");
                 }}
-                className="flex-1 border border-border-light dark:border-border-dark rounded-lg py-3 mr-2 items-center"
+                className="flex-1 border border-border rounded-lg py-3 mr-2 items-center"
               >
-                <Text className="text-text-primary dark:text-text-dark-primary font-medium">Back</Text>
+                <Text className="text-foreground font-medium">Back</Text>
               </Pressable>
               <Pressable
                 onPress={handleHisaabImport}
                 className="flex-1 rounded-lg py-3 ml-2 items-center"
-                style={{ backgroundColor: StatusColors[colorScheme].success }}
+                style={{ backgroundColor: theme.success }}
               >
                 <Text className="text-white font-bold">
                   Import {hisaabPreview.entryCount} Entries
@@ -657,10 +653,10 @@ export default function ImportExcelScreen() {
         {step === "importing" && (
           <View className="items-center py-20">
             <ActivityIndicator size="large" color={colors.blue} />
-            <Text className="text-base text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-base text-foreground mt-4">
               Importing...
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1">
+            <Text className="text-sm text-muted-foreground mt-1">
               This may take a moment.
             </Text>
           </View>
@@ -670,26 +666,26 @@ export default function ImportExcelScreen() {
         {step === "done" && forecastResult && !importResult && !hisaabResult && (
           <View className="items-center py-8">
             <View className="w-16 h-16 rounded-full bg-success/8 items-center justify-center mb-4">
-              <Ionicons name="checkmark-circle" size={40} color={StatusColors[colorScheme].success} />
+              <Ionicons name="checkmark-circle" size={40} color={theme.success} />
             </View>
-            <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary mb-2">
+            <Text className="text-xl font-bold text-foreground mb-2">
               Forecast Imported
             </Text>
-            <View className="w-full rounded-lg border border-border-light dark:border-border-dark p-4 mt-4">
+            <View className="w-full rounded-lg border border-border p-4 mt-4">
               {forecastResult.yearlyPlanCreated && (
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Yearly Plan</Text>
+                  <Text className="text-sm text-muted-foreground">Yearly Plan</Text>
                   <Text className="text-sm font-semibold text-success">Created</Text>
                 </View>
               )}
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Budget entries</Text>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm text-muted-foreground">Budget entries</Text>
+                <Text className="text-sm font-semibold text-foreground">
                   {forecastResult.budgetsCreated}
                 </Text>
               </View>
               {forecastResult.errors.length > 0 && (
-                <View className="mt-2 p-2 rounded bg-[#EF444414]">
+                <View className="mt-2 p-2 rounded bg-danger/8">
                   <Text className="text-xs text-danger">
                     {forecastResult.errors.length} error(s)
                   </Text>
@@ -704,52 +700,52 @@ export default function ImportExcelScreen() {
         {step === "done" && importResult && (
           <View className="items-center py-8">
             <View className="w-16 h-16 rounded-full bg-success/8 items-center justify-center mb-4">
-              <Ionicons name="checkmark-circle" size={40} color={StatusColors[colorScheme].success} />
+              <Ionicons name="checkmark-circle" size={40} color={theme.success} />
             </View>
-            <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary mb-2">
+            <Text className="text-xl font-bold text-foreground mb-2">
               Import Complete
             </Text>
-            <View className="w-full rounded-lg border border-border-light dark:border-border-dark p-4 mt-4">
+            <View className="w-full rounded-lg border border-border p-4 mt-4">
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Total rows</Text>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm text-muted-foreground">Total rows</Text>
+                <Text className="text-sm font-semibold text-foreground">
                   {importResult.totalRows}
                 </Text>
               </View>
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Imported</Text>
+                <Text className="text-sm text-muted-foreground">Imported</Text>
                 <Text className="text-sm font-semibold text-success">{importResult.imported}</Text>
               </View>
               {importResult.skipped > 0 && (
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Skipped</Text>
+                  <Text className="text-sm text-muted-foreground">Skipped</Text>
                   <Text className="text-sm font-semibold text-danger">{importResult.skipped}</Text>
                 </View>
               )}
               {importResult.categoriesCreated.length > 0 && (
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">New categories</Text>
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm text-muted-foreground">New categories</Text>
+                  <Text className="text-sm text-foreground">
                     {importResult.categoriesCreated.length}
                   </Text>
                 </View>
               )}
               {importResult.paymentModesCreated.length > 0 && (
                 <View className="flex-row justify-between">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">New payment modes</Text>
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm text-muted-foreground">New payment modes</Text>
+                  <Text className="text-sm text-foreground">
                     {importResult.paymentModesCreated.length}
                   </Text>
                 </View>
               )}
             </View>
             {importResult.errors.length > 0 && (
-              <View className="w-full mt-4 p-3 rounded-lg bg-[#EF444414]">
+              <View className="w-full mt-4 p-3 rounded-lg bg-danger/8">
                 <Text className="text-sm font-medium text-danger mb-1">
                   {importResult.errors.length} error{importResult.errors.length > 1 ? "s" : ""}
                 </Text>
                 {importResult.errors.slice(0, 5).map((err, i) => (
-                  <Text key={i} className="text-xs text-text-secondary dark:text-text-dark-secondary">{err}</Text>
+                  <Text key={i} className="text-xs text-muted-foreground">{err}</Text>
                 ))}
               </View>
             )}
@@ -761,52 +757,52 @@ export default function ImportExcelScreen() {
         {step === "done" && hisaabResult && (
           <View className="items-center py-8">
             <View className="w-16 h-16 rounded-full bg-success/8 items-center justify-center mb-4">
-              <Ionicons name="checkmark-circle" size={40} color={StatusColors[colorScheme].success} />
+              <Ionicons name="checkmark-circle" size={40} color={theme.success} />
             </View>
-            <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary mb-2">
+            <Text className="text-xl font-bold text-foreground mb-2">
               Hisaab Import Complete
             </Text>
-            <View className="w-full rounded-lg border border-border-light dark:border-border-dark p-4 mt-4">
+            <View className="w-full rounded-lg border border-border p-4 mt-4">
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Total rows</Text>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm text-muted-foreground">Total rows</Text>
+                <Text className="text-sm font-semibold text-foreground">
                   {hisaabResult.totalRows}
                 </Text>
               </View>
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Entries imported</Text>
+                <Text className="text-sm text-muted-foreground">Entries imported</Text>
                 <Text className="text-sm font-semibold text-success">{hisaabResult.entriesImported}</Text>
               </View>
               {hisaabResult.personsCreated.length > 0 && (
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Persons created</Text>
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm text-muted-foreground">Persons created</Text>
+                  <Text className="text-sm text-foreground">
                     {hisaabResult.personsCreated.join(", ")}
                   </Text>
                 </View>
               )}
               {hisaabResult.personsUpdated.length > 0 && (
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Persons updated</Text>
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm text-muted-foreground">Persons updated</Text>
+                  <Text className="text-sm text-foreground">
                     {hisaabResult.personsUpdated.join(", ")}
                   </Text>
                 </View>
               )}
               {hisaabResult.skipped > 0 && (
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Skipped</Text>
+                  <Text className="text-sm text-muted-foreground">Skipped</Text>
                   <Text className="text-sm font-semibold text-danger">{hisaabResult.skipped}</Text>
                 </View>
               )}
             </View>
             {hisaabResult.errors.length > 0 && (
-              <View className="w-full mt-4 p-3 rounded-lg bg-[#EF444414]">
+              <View className="w-full mt-4 p-3 rounded-lg bg-danger/8">
                 <Text className="text-sm font-medium text-danger mb-1">
                   {hisaabResult.errors.length} error{hisaabResult.errors.length > 1 ? "s" : ""}
                 </Text>
                 {hisaabResult.errors.slice(0, 5).map((err, i) => (
-                  <Text key={i} className="text-xs text-text-secondary dark:text-text-dark-secondary">{err}</Text>
+                  <Text key={i} className="text-xs text-muted-foreground">{err}</Text>
                 ))}
               </View>
             )}

@@ -1,19 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from "react-native";
+
+import { View, TextInput, ScrollView, Pressable, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer } from "@/components/ui";
+import { LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -46,6 +36,7 @@ import {
 } from "@/services/sms/user-sms-templates";
 import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.6.0 — SMS template tagger screen.
@@ -138,8 +129,9 @@ const BANK_SUGGESTIONS = [
 export default function TagSmsTemplateScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme, accent } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = theme.primary;
 
   const draft = getDraft();
 
@@ -300,7 +292,7 @@ export default function TagSmsTemplateScreen() {
               }}
             />
             <Text
-              className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1"
+              className="text-sm font-semibold text-foreground flex-1"
             >
               {palette.label}
               {field === "amount" && (
@@ -310,7 +302,7 @@ export default function TagSmsTemplateScreen() {
               )}
             </Text>
             <Text
-              className="text-sm text-text-secondary dark:text-text-dark-secondary"
+              className="text-sm text-muted-foreground"
               numberOfLines={1}
               style={{ maxWidth: 160 }}
             >
@@ -351,7 +343,7 @@ export default function TagSmsTemplateScreen() {
             >
               {help.format}
             </Text>
-            <Text className="text-[11px]" style={{ color: colors.textSecondary, fontFamily: "monospace" }}>
+            <Text className="text-label" style={{ color: colors.textSecondary, fontFamily: "monospace" }}>
               {help.examples}
             </Text>
           </View>
@@ -555,9 +547,7 @@ export default function TagSmsTemplateScreen() {
   if (!smsBody) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={accentColor} />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }
@@ -653,7 +643,7 @@ export default function TagSmsTemplateScreen() {
         {/* Card 1: Fields */}
         <Card className="mb-4">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               1. Tag the fields
             </Text>
             <Pressable
@@ -673,8 +663,8 @@ export default function TagSmsTemplateScreen() {
               className="mt-2 p-2.5 rounded-lg flex-row items-start"
               style={{ backgroundColor: "#EF444415" }}
             >
-              <Ionicons name="warning-outline" size={14} color="#EF4444" style={{ marginTop: 2 }} />
-              <Text className="text-xs ml-2 flex-1" style={{ color: "#EF4444" }}>
+              <Ionicons name="warning-outline" size={14} color={theme.danger} style={{ marginTop: 2 }} />
+              <Text className="text-xs ml-2 flex-1" style={{ color: theme.danger }}>
                 {compileError}
               </Text>
             </View>
@@ -683,10 +673,10 @@ export default function TagSmsTemplateScreen() {
 
         {/* Card 2: SMS with tappable tokens */}
         <Card className="mb-4">
-          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2 uppercase tracking-wider">
+          <Text className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
             2. The SMS
           </Text>
-          <Text className="text-[11px] text-text-tertiary mb-3">
+          <Text className="text-label text-faint-foreground mb-3">
             Tap a word to tag. Tap a tagged word to untag it. Long-press to pick just part of a word (e.g. "1,500" out of "Rs.1,500").
           </Text>
           <TokenTagger
@@ -699,11 +689,11 @@ export default function TagSmsTemplateScreen() {
 
         {/* Card 3: Metadata (tx type + bank + label) */}
         <Card className="mb-4">
-          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2 uppercase tracking-wider">
+          <Text className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
             3. Details
           </Text>
 
-          <Text className="text-xs text-text-tertiary mb-1.5">Transaction type</Text>
+          <Text className="text-xs text-faint-foreground mb-1.5">Transaction type</Text>
           <View className="flex-row mb-3" style={{ gap: 8 }}>
             {(["debit", "credit", "refund"] as const).map((t) => (
               <Pressable
@@ -732,19 +722,19 @@ export default function TagSmsTemplateScreen() {
           {/* v15.11.0: sender ID routing. The template matches future SMSes
               based on the sender (header of the message), not the bank name.
               This is what makes wallets + unknown brands work. */}
-          <Text className="text-xs text-text-tertiary mb-1.5">Sender ID</Text>
+          <Text className="text-xs text-faint-foreground mb-1.5">Sender ID</Text>
           <Input
             value={senderPattern}
             onChangeText={setSenderPattern}
             placeholder="e.g. VM-MYTNEU-S"
             autoCapitalize="characters"
           />
-          <Text className="text-[11px] text-text-tertiary mt-1 mb-2">
+          <Text className="text-label text-faint-foreground mt-1 mb-2">
             Copy the sender shown above the SMS in your messages app. Arth will
             match future SMSes from the same sender.
           </Text>
 
-          <Text className="text-xs text-text-tertiary mb-1.5">Match mode</Text>
+          <Text className="text-xs text-faint-foreground mb-1.5">Match mode</Text>
           <View className="flex-row mb-2" style={{ gap: 8 }}>
             {(["code", "exact", "contains"] as const).map((m) => {
               const isActive = senderMatchMode === m;
@@ -779,7 +769,7 @@ export default function TagSmsTemplateScreen() {
               className="mb-3 p-2.5 rounded-lg"
               style={{ backgroundColor: accentColor + "14" }}
             >
-              <Text className="text-[11px]" style={{ color: colors.text }}>
+              <Text className="text-label" style={{ color: colors.text }}>
                 {senderMatchMode === "code" &&
                   `Will match any sender with code "${effectiveSenderPattern}" (e.g. VM-${effectiveSenderPattern}-S, AD-${effectiveSenderPattern}-T).`}
                 {senderMatchMode === "exact" &&
@@ -790,7 +780,7 @@ export default function TagSmsTemplateScreen() {
             </View>
           )}
 
-          <Text className="text-xs text-text-tertiary mb-1.5">Bank or Wallet Name</Text>
+          <Text className="text-xs text-faint-foreground mb-1.5">Bank or Wallet Name</Text>
           <Input
             value={bankName}
             onChangeText={(v) => {
@@ -827,7 +817,7 @@ export default function TagSmsTemplateScreen() {
                       borderColor: colors.border,
                     }}
                   >
-                    <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm text-foreground">
                       {b}
                     </Text>
                   </Pressable>
@@ -840,7 +830,7 @@ export default function TagSmsTemplateScreen() {
               className="mt-3 p-2.5 rounded-lg flex-row items-start"
               style={{ backgroundColor: "#F59E0B18" }}
             >
-              <Ionicons name="information-circle-outline" size={14} color="#F59E0B" style={{ marginTop: 2 }} />
+              <Ionicons name="information-circle-outline" size={14} color={theme.warning} style={{ marginTop: 2 }} />
               <Text className="text-xs ml-2 flex-1" style={{ color: colors.text }}>
                 You already have a "{duplicateFound.label}" template for this bank + type. Tap Save to add this as a second format, or tap the template in the list to edit it.
               </Text>
@@ -855,8 +845,8 @@ export default function TagSmsTemplateScreen() {
             placeholder="e.g. Kotak UPI Debit"
           />
 
-          <Text className="text-xs text-text-tertiary mt-3 mb-1.5">Default payment mode (optional)</Text>
-          <Text className="text-[11px] text-text-tertiary mb-2">
+          <Text className="text-xs text-faint-foreground mt-3 mb-1.5">Default payment mode (optional)</Text>
+          <Text className="text-label text-faint-foreground mb-2">
             Applied when the SMS doesn't carry payment mode info. Smart Rules override this.
           </Text>
           {/* Payment mode dropdown */}
@@ -890,7 +880,7 @@ export default function TagSmsTemplateScreen() {
                 className="flex-row items-center justify-between py-2.5 px-3"
                 style={{ borderBottomWidth: paymentModes.length > 0 ? 1 : 0, borderColor: colors.border }}
               >
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">None</Text>
+                <Text className="text-sm text-muted-foreground">None</Text>
                 {defaultPaymentModeId === null && (
                   <Ionicons name="checkmark" size={16} color={accentColor} />
                 )}
@@ -902,7 +892,7 @@ export default function TagSmsTemplateScreen() {
                   className="flex-row items-center justify-between py-2.5 px-3"
                   style={{ borderTopWidth: i === 0 ? 0 : 1, borderColor: colors.border }}
                 >
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">{mode.name}</Text>
+                  <Text className="text-sm text-foreground">{mode.name}</Text>
                   {defaultPaymentModeId === mode.id && (
                     <Ionicons name="checkmark" size={16} color={accentColor} />
                   )}
@@ -924,7 +914,7 @@ export default function TagSmsTemplateScreen() {
                 size={14}
                 color={colors.textSecondary}
               />
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary ml-2 uppercase tracking-wider">
+              <Text className="text-xs font-semibold text-muted-foreground ml-2 uppercase tracking-wider">
                 Pattern Preview (advanced)
               </Text>
             </Pressable>
@@ -937,10 +927,10 @@ export default function TagSmsTemplateScreen() {
                       Alert.alert("Copied", "Regex copied to clipboard");
                     }}
                     className="flex-row items-center px-2 py-1 rounded"
-                    style={{ backgroundColor: accent[500] + "20" }}
+                    style={{ backgroundColor: theme.alpha("primary", 0.13) }}
                   >
-                    <Ionicons name="copy-outline" size={14} color={accent[500]} />
-                    <Text className="text-xs ml-1" style={{ color: accent[500] }}>Copy</Text>
+                    <Ionicons name="copy-outline" size={14} color={theme.primary} />
+                    <Text className="text-xs ml-1" style={{ color: theme.primary }}>Copy</Text>
                   </Pressable>
                   <View className="flex-1" />
                   <Pressable
@@ -951,14 +941,14 @@ export default function TagSmsTemplateScreen() {
                       }
                     }}
                     className="flex-row items-center px-2 py-1 rounded"
-                    style={{ backgroundColor: useManualRegex ? accent[500] + "20" : colors.border }}
+                    style={{ backgroundColor: useManualRegex ? theme.alpha("primary", 0.13) : colors.border }}
                   >
                     <Ionicons 
                       name={useManualRegex ? "checkmark-circle" : "radio-button-off"} 
                       size={14} 
-                      color={useManualRegex ? accent[500] : colors.textSecondary} 
+                      color={useManualRegex ? theme.primary : colors.textSecondary} 
                     />
-                    <Text className="text-xs ml-1" style={{ color: useManualRegex ? accent[500] : colors.textSecondary }}>
+                    <Text className="text-xs ml-1" style={{ color: useManualRegex ? theme.primary : colors.textSecondary }}>
                       Manual Edit
                     </Text>
                   </Pressable>
@@ -1011,10 +1001,10 @@ export default function TagSmsTemplateScreen() {
 
         {/* Card 5: Test */}
         <Card className="mb-4">
-          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2 uppercase tracking-wider">
+          <Text className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
             Test the template (optional)
           </Text>
-          <Text className="text-[11px] text-text-tertiary mb-2">
+          <Text className="text-label text-faint-foreground mb-2">
             Paste another SMS from the same bank to verify the template matches it too.
           </Text>
           <TextInput
@@ -1061,21 +1051,21 @@ export default function TagSmsTemplateScreen() {
               {testResult.ok ? (
                 <>
                   <View className="flex-row items-center mb-1">
-                    <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                    <Text className="text-xs font-semibold ml-1" style={{ color: "#10B981" }}>
+                    <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+                    <Text className="text-xs font-semibold ml-1" style={{ color: theme.success }}>
                       Matched
                     </Text>
                   </View>
                   {Object.entries(testResult.extracted).map(([field, value]) => (
-                    <Text key={field} className="text-xs text-text-secondary dark:text-text-dark-secondary ml-5">
+                    <Text key={field} className="text-xs text-muted-foreground ml-5">
                       {field}: {value}
                     </Text>
                   ))}
                 </>
               ) : (
                 <View className="flex-row items-center">
-                  <Ionicons name="close-circle" size={16} color="#EF4444" />
-                  <Text className="text-xs font-semibold ml-1" style={{ color: "#EF4444" }}>
+                  <Ionicons name="close-circle" size={16} color={theme.danger} />
+                  <Text className="text-xs font-semibold ml-1" style={{ color: theme.danger }}>
                     No match. Try tagging just the number part (long-press a token for char selection).
                   </Text>
                 </View>
@@ -1099,7 +1089,7 @@ export default function TagSmsTemplateScreen() {
                   {unrecResult.samples.map((s, i) => (
                     <Text
                       key={i}
-                      className="text-[11px] mt-0.5 ml-5"
+                      className="text-label mt-0.5 ml-5"
                       style={{ color: colors.textSecondary }}
                       numberOfLines={1}
                     >

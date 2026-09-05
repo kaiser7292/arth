@@ -1,13 +1,14 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button } from "@/components/ui";
+import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import {
   setOnboardingCompletedVersion,
 } from "@/services/settings";
 import { getCurrentAppVersion } from "@/services/onboarding";
+import { useTheme } from "@/hooks/use-theme";
 
 const BULLETS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body: string }> = [
   {
@@ -29,7 +30,8 @@ const BULLETS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body
 
 export default function OnboardingWelcome() {
   const router = useRouter();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
 
   const handleSkip = () => {
     setOnboardingCompletedVersion(getCurrentAppVersion());
@@ -43,15 +45,15 @@ export default function OnboardingWelcome() {
         showsVerticalScrollIndicator={false}
       >
         <Text
-          className="text-3xl font-bold text-text-primary dark:text-text-dark-primary mb-2"
-          style={{ color: ac(accent, colorScheme, 500, 200) }}
+          className="text-3xl font-bold text-foreground mb-2"
+          style={{ color: theme.primary }}
         >
           अर्थ
         </Text>
-        <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mb-3">
+        <Text className="text-2xl font-bold text-foreground mb-3">
           Welcome to Arth
         </Text>
-        <Text className="text-base text-text-secondary dark:text-text-dark-secondary mb-6 leading-6">
+        <Text className="text-base text-muted-foreground mb-6 leading-6">
           A private finance tracker that respects your data and your time.
         </Text>
 
@@ -59,19 +61,19 @@ export default function OnboardingWelcome() {
           <View key={b.title} className="mb-5 flex-row">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3 mt-0.5"
-              style={{ backgroundColor: ac(accent, colorScheme, 500, 200) + "1F" }}
+              style={{ backgroundColor: theme.primary + "1F" }}
             >
               <Ionicons
                 name={b.icon}
                 size={20}
-                color={ac(accent, colorScheme, 500, 200)}
+                color={theme.primary}
               />
             </View>
             <View className="flex-1">
-              <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+              <Text className="text-base font-semibold text-foreground mb-1">
                 {b.title}
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary leading-5">
+              <Text className="text-sm text-muted-foreground leading-5">
                 {b.body}
               </Text>
             </View>
@@ -86,7 +88,7 @@ export default function OnboardingWelcome() {
           className="mb-3"
         />
         <Pressable onPress={handleSkip} className="py-3 items-center">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             Skip for now
           </Text>
         </Pressable>

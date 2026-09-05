@@ -1,7 +1,9 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
+import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/hooks/use-theme";
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -22,7 +24,8 @@ export function BulkActionBar({
   onChangeDate,
   onCancel,
 }: BulkActionBarProps) {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
 
   const actions = [
@@ -35,16 +38,16 @@ export function BulkActionBar({
 
   return (
     <View
-      className="absolute left-0 right-0 bottom-0 border-t border-border-light dark:border-border-dark"
+      className="absolute left-0 right-0 bottom-0 border-t border-border"
       style={{ backgroundColor: colors.background, paddingBottom: Math.max(insets.bottom, 8) }}
     >
       {/* Header row */}
       <View className="flex-row items-center justify-between px-4 pt-3 pb-2">
-        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+        <Text className="text-xs font-semibold text-foreground">
           {selectedCount} selected
         </Text>
         <Pressable onPress={onCancel}>
-          <Text className="text-xs font-medium" style={{ color: accent[500] }}>Cancel</Text>
+          <Text className="text-xs font-medium" style={{ color: theme.primary }}>Cancel</Text>
         </Pressable>
       </View>
 
@@ -56,8 +59,8 @@ export function BulkActionBar({
             onPress={action.onPress}
             className="items-center px-2 py-1.5"
           >
-            <Ionicons name={action.icon} size={18} color={accent[500]} />
-            <Text className="text-[10px] mt-1 text-text-secondary dark:text-text-dark-secondary">
+            <Ionicons name={action.icon} size={18} color={theme.primary} />
+            <Text className="text-label mt-1 text-muted-foreground">
               {action.label}
             </Text>
           </Pressable>

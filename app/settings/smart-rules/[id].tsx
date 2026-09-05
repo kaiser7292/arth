@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, Pressable, ScrollView, ActivityIndicator, Switch, TextInput } from "react-native";
-import { BottomSheet } from "@/components/ui/BottomSheet";
+import { View, Pressable, ScrollView, ActivityIndicator, Switch, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { DateInput, ScreenContainer } from "@/components/ui";
+import { DateInput, LoadingState, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +35,7 @@ import { getTags, type Tag } from "@/services/tags";
 import { getPersonsWithBalances, type HisaabPersonWithBalance } from "@/services/hisaab";
 import { getAllActiveBuckets, type InvestmentBucket } from "@/services/yearly-plan";
 import { getErrorMessage } from "@/utils/error-message";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Smart-rule detail / create form. Route: /settings/smart-rules/[id]
@@ -128,8 +128,9 @@ export default function SmartRuleDetailScreen() {
   const isCreate = id === "new";
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme, accent } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = theme.primary;
 
   const [loading, setLoading] = useState(!isCreate);
   const [saving, setSaving] = useState(false);
@@ -409,9 +410,7 @@ export default function SmartRuleDetailScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={accentColor} />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }
@@ -437,7 +436,7 @@ export default function SmartRuleDetailScreen() {
               containerClassName="mb-3"
             />
             <View className="flex-row items-center justify-between py-2">
-              <Text className="text-sm text-text-primary dark:text-text-dark-primary">Active</Text>
+              <Text className="text-sm text-foreground">Active</Text>
               <Switch
                 value={isActive}
                 onValueChange={setIsActive}
@@ -447,7 +446,7 @@ export default function SmartRuleDetailScreen() {
           </Card>
 
           <Card className="mb-4">
-            <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-3">
+            <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-3">
               Applies to
             </Text>
             <View className="flex-row mb-1">
@@ -480,7 +479,7 @@ export default function SmartRuleDetailScreen() {
                 );
               })}
             </View>
-            <Text className="text-xs text-text-tertiary mt-1">
+            <Text className="text-xs text-faint-foreground mt-1">
               {appliesTo === "expense"
                 ? "Rule fires on debits and spending."
                 : appliesTo === "credit"
@@ -490,7 +489,7 @@ export default function SmartRuleDetailScreen() {
           </Card>
 
           <Card className="mb-4">
-            <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-3">
+            <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-3">
               When (conditions)
             </Text>
 
@@ -500,7 +499,7 @@ export default function SmartRuleDetailScreen() {
                 className="flex-1 py-2.5 rounded-l-lg items-center"
                 style={{ backgroundColor: matchMode === "all" ? accentColor : "transparent", borderWidth: matchMode === "all" ? 0 : 1, borderColor: colors.border }}
               >
-                <Text className={matchMode === "all" ? "text-white font-semibold" : "text-text-secondary dark:text-text-dark-secondary"}>
+                <Text className={matchMode === "all" ? "text-primary-foreground font-semibold" : "text-muted-foreground"}>
                   Match ALL
                 </Text>
               </Pressable>
@@ -509,7 +508,7 @@ export default function SmartRuleDetailScreen() {
                 className="flex-1 py-2.5 rounded-r-lg items-center"
                 style={{ backgroundColor: matchMode === "any" ? accentColor : "transparent", borderWidth: matchMode === "any" ? 0 : 1, borderColor: colors.border, borderLeftWidth: 0 }}
               >
-                <Text className={matchMode === "any" ? "text-white font-semibold" : "text-text-secondary dark:text-text-dark-secondary"}>
+                <Text className={matchMode === "any" ? "text-primary-foreground font-semibold" : "text-muted-foreground"}>
                   Match ANY
                 </Text>
               </Pressable>
@@ -525,17 +524,17 @@ export default function SmartRuleDetailScreen() {
               return (
                 <View
                   key={index}
-                  className="mb-3 p-3 rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark"
+                  className="mb-3 p-3 rounded-xl border border-border bg-background"
                 >
                   <View className="flex-row items-center justify-between mb-2">
-                    <Text className="text-xs font-semibold tracking-wider uppercase text-text-tertiary">
+                    <Text className="text-xs font-semibold tracking-wider uppercase text-faint-foreground">
                       Condition {index + 1}
                     </Text>
                     {conditions.length > 1 && (
                       <Pressable
                         onPress={() => removeCondition(index)}
                         hitSlop={8}
-                        className="w-6 h-6 rounded-full items-center justify-center bg-surface-light-alt dark:bg-surface-dark-alt"
+                        className="w-6 h-6 rounded-full items-center justify-center bg-card"
                       >
                         <Ionicons name="close" size={14} color={colors.textSecondary} />
                       </Pressable>
@@ -553,8 +552,8 @@ export default function SmartRuleDetailScreen() {
                     className="flex-row items-center justify-between py-2"
                   >
                     <View>
-                      <Text className="text-xs text-text-tertiary">Field</Text>
-                      <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs text-faint-foreground">Field</Text>
+                      <Text className="text-base text-foreground">
                         {fieldLabel(condition.field)}
                       </Text>
                     </View>
@@ -562,15 +561,15 @@ export default function SmartRuleDetailScreen() {
                   </Pressable>
 
                   {fieldExpanded && (
-                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
-                      <View className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark">
+                    <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
+                      <View className="flex-row items-center px-3 py-2 border-b border-border">
                         <Ionicons name="search" size={14} color={colors.textSecondary} />
                         <TextInput
                           placeholder="Search fields..."
                           placeholderTextColor={colors.tabIconDefault}
                           value={fieldSearch}
                           onChangeText={setFieldSearch}
-                          className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
+                          className="flex-1 ml-2 text-sm text-foreground"
                         />
                       </View>
                       {filteredFields.map((f) => {
@@ -579,10 +578,10 @@ export default function SmartRuleDetailScreen() {
                           <Pressable
                             key={f.key}
                             onPress={() => setConditionField(index, f.key)}
-                            className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                            className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                             style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
                           >
-                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSelected ? { color: accentColor } : undefined}>
+                            <Text className="text-sm text-foreground" style={isSelected ? { color: accentColor } : undefined}>
                               {f.label}
                             </Text>
                             {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
@@ -602,8 +601,8 @@ export default function SmartRuleDetailScreen() {
                     className="flex-row items-center justify-between py-2"
                   >
                     <View>
-                      <Text className="text-xs text-text-tertiary">Operator</Text>
-                      <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs text-faint-foreground">Operator</Text>
+                      <Text className="text-base text-foreground">
                         {OPERATOR_LABELS[condition.operator]}
                       </Text>
                     </View>
@@ -611,17 +610,17 @@ export default function SmartRuleDetailScreen() {
                   </Pressable>
 
                   {operatorExpanded && (
-                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
+                    <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
                       {availableOperators.map((op) => {
                         const isSelected = condition.operator === op;
                         return (
                           <Pressable
                             key={op}
                             onPress={() => setConditionOperator(index, op)}
-                            className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                            className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                             style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
                           >
-                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSelected ? { color: accentColor } : undefined}>
+                            <Text className="text-sm text-foreground" style={isSelected ? { color: accentColor } : undefined}>
                               {OPERATOR_LABELS[op]}
                             </Text>
                             {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
@@ -634,7 +633,7 @@ export default function SmartRuleDetailScreen() {
                   {/* Value */}
                   {needsValue && (
                     <View className="mt-1">
-                      <Text className="text-xs text-text-tertiary mb-1.5">Value</Text>
+                      <Text className="text-xs text-faint-foreground mb-1.5">Value</Text>
                       {condition.operator === "between" ? (
                         <View className="flex-row">
                           <TextInput
@@ -646,7 +645,7 @@ export default function SmartRuleDetailScreen() {
                               const max = Array.isArray(condition.value) ? condition.value[1] : 0;
                               updateCondition(index, { value: [parseFloat(v) || 0, max] });
                             }}
-                            className="flex-1 mr-2 rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
+                            className="flex-1 mr-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground"
                           />
                           <TextInput
                             placeholder="Max"
@@ -657,7 +656,7 @@ export default function SmartRuleDetailScreen() {
                               const min = Array.isArray(condition.value) ? condition.value[0] : 0;
                               updateCondition(index, { value: [min, parseFloat(v) || 0] });
                             }}
-                            className="flex-1 rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
+                            className="flex-1 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground"
                           />
                         </View>
                       ) : isPicker ? (() => {
@@ -678,15 +677,15 @@ export default function SmartRuleDetailScreen() {
                                 setExpandedFieldRow(null);
                                 setExpandedOperatorRow(null);
                               }}
-                              className="flex-row items-center justify-between py-2.5 px-3 rounded-lg border border-border-light dark:border-border-dark"
+                              className="flex-row items-center justify-between py-2.5 px-3 rounded-lg border border-border"
                             >
-                              <Text className="text-sm flex-1 text-text-primary dark:text-text-dark-primary" style={selectedLabel ? undefined : { color: colors.tabIconDefault }}>
+                              <Text className="text-sm flex-1 text-foreground" style={selectedLabel ? undefined : { color: colors.tabIconDefault }}>
                                 {selectedLabel ?? placeholder}
                               </Text>
                               <Ionicons name={condValueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                             </Pressable>
                             {condValueExpanded && (
-                              <View className="mt-1 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
+                              <View className="mt-1 rounded-lg border border-border overflow-hidden bg-background">
                                 {condition.field === "account_id"
                                   ? accounts.map((a) => {
                                       const isSel = condition.value === a.id;
@@ -694,14 +693,14 @@ export default function SmartRuleDetailScreen() {
                                         <Pressable
                                           key={a.id}
                                           onPress={() => { updateCondition(index, { value: a.id }); setExpandedCondValueRow(null); }}
-                                          className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                          className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                                           style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                         >
                                           <View className="flex-1">
-                                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSel ? { color: accentColor } : undefined}>
+                                            <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>
                                               {a.account_label || a.bank_name}
                                             </Text>
-                                            <Text className="text-xs text-text-tertiary mt-0.5">
+                                            <Text className="text-xs text-faint-foreground mt-0.5">
                                               {accountTypeLabel(a.account_type)} · ••••{a.account_identifier}
                                             </Text>
                                           </View>
@@ -716,10 +715,10 @@ export default function SmartRuleDetailScreen() {
                                         <Pressable
                                           key={m.id}
                                           onPress={() => { updateCondition(index, { value: m.id }); setExpandedCondValueRow(null); }}
-                                          className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                          className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                                           style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                         >
-                                          <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSel ? { color: accentColor } : undefined}>{m.name}</Text>
+                                          <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{m.name}</Text>
                                           {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                         </Pressable>
                                       );
@@ -730,10 +729,10 @@ export default function SmartRuleDetailScreen() {
                                         <Pressable
                                           key={c.id}
                                           onPress={() => { updateCondition(index, { value: c.id }); setExpandedCondValueRow(null); }}
-                                          className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                          className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                                           style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                         >
-                                          <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSel ? { color: accentColor } : undefined}>{c.name}</Text>
+                                          <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{c.name}</Text>
                                           {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                         </Pressable>
                                       );
@@ -753,7 +752,7 @@ export default function SmartRuleDetailScreen() {
                           onChangeText={(v) =>
                             updateCondition(index, { value: condition.field === "amount" ? parseFloat(v) || 0 : v })
                           }
-                          className="rounded-lg border border-border-light dark:border-border-dark px-3 py-2.5 text-sm text-text-primary dark:text-text-dark-primary"
+                          className="rounded-lg border border-border px-3 py-2.5 text-sm text-foreground"
                         />
                       )}
                     </View>
@@ -764,7 +763,7 @@ export default function SmartRuleDetailScreen() {
 
             <Pressable
               onPress={addCondition}
-              className="flex-row items-center justify-center py-2.5 rounded-lg border border-dashed border-border-light dark:border-border-dark"
+              className="flex-row items-center justify-center py-2.5 rounded-lg border border-dashed border-border"
             >
               <Ionicons name="add" size={16} color={accentColor} />
               <Text className="text-sm font-medium ml-1.5" style={{ color: accentColor }}>
@@ -774,7 +773,7 @@ export default function SmartRuleDetailScreen() {
           </Card>
 
           <Card className="mb-4">
-            <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-3">
+            <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-3">
               Then (actions)
             </Text>
 
@@ -785,17 +784,17 @@ export default function SmartRuleDetailScreen() {
               return (
                 <View
                   key={index}
-                  className="mb-3 p-3 rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark"
+                  className="mb-3 p-3 rounded-xl border border-border bg-background"
                 >
                   {/* Header */}
                   <View className="flex-row items-center justify-between mb-2">
-                    <Text className="text-xs font-semibold tracking-wider uppercase text-text-tertiary">
+                    <Text className="text-xs font-semibold tracking-wider uppercase text-faint-foreground">
                       Action {index + 1}
                     </Text>
                     <Pressable
                       onPress={() => removeAction(index)}
                       hitSlop={8}
-                      className="w-6 h-6 rounded-full items-center justify-center bg-surface-light-alt dark:bg-surface-dark-alt"
+                      className="w-6 h-6 rounded-full items-center justify-center bg-card"
                     >
                       <Ionicons name="close" size={14} color={colors.textSecondary} />
                     </Pressable>
@@ -810,8 +809,8 @@ export default function SmartRuleDetailScreen() {
                     className="flex-row items-center justify-between py-2"
                   >
                     <View>
-                      <Text className="text-xs text-text-tertiary">Action type</Text>
-                      <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs text-faint-foreground">Action type</Text>
+                      <Text className="text-base text-foreground">
                         {ACTION_TYPE_LABELS[action.type]}
                       </Text>
                     </View>
@@ -819,17 +818,17 @@ export default function SmartRuleDetailScreen() {
                   </Pressable>
 
                   {typeExpanded && (
-                    <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
+                    <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
                       {ACTION_TYPE_OPTIONS.map((opt) => {
                         const isSelected = action.type === opt.type;
                         return (
                           <Pressable
                             key={opt.type}
                             onPress={() => setActionType(index, opt.type)}
-                            className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                            className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                             style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
                           >
-                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSelected ? { color: accentColor } : undefined}>
+                            <Text className="text-sm text-foreground" style={isSelected ? { color: accentColor } : undefined}>
                               {opt.label}
                             </Text>
                             {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
@@ -850,25 +849,25 @@ export default function SmartRuleDetailScreen() {
                           className="flex-row items-center justify-between py-2"
                         >
                           <View>
-                            <Text className="text-xs text-text-tertiary">Category</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={selectedCat ? undefined : { color: colors.tabIconDefault }}>
+                            <Text className="text-xs text-faint-foreground">Category</Text>
+                            <Text className="text-base text-foreground" style={selectedCat ? undefined : { color: colors.tabIconDefault }}>
                               {selectedCat?.name ?? "Select category"}
                             </Text>
                           </View>
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
                         {valueExpanded && (
-                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
+                          <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
                             {categories.map((c) => {
                               const isSel = a.category_id === c.id;
                               return (
                                 <Pressable
                                   key={c.id}
                                   onPress={() => { updateAction(index, { category_id: c.id }); setExpandedActionValueRow(null); }}
-                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSel ? { color: accentColor } : undefined}>{c.name}</Text>
+                                  <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{c.name}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
@@ -889,25 +888,25 @@ export default function SmartRuleDetailScreen() {
                           className="flex-row items-center justify-between py-2"
                         >
                           <View>
-                            <Text className="text-xs text-text-tertiary">Payment mode</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={selectedMode ? undefined : { color: colors.tabIconDefault }}>
+                            <Text className="text-xs text-faint-foreground">Payment mode</Text>
+                            <Text className="text-base text-foreground" style={selectedMode ? undefined : { color: colors.tabIconDefault }}>
                               {selectedMode?.name ?? "Select payment mode"}
                             </Text>
                           </View>
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
                         {valueExpanded && (
-                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
+                          <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
                             {paymentModes.map((m) => {
                               const isSel = a.payment_mode === m.id;
                               return (
                                 <Pressable
                                   key={m.id}
                                   onPress={() => { updateAction(index, { payment_mode: m.id }); setExpandedActionValueRow(null); }}
-                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSel ? { color: accentColor } : undefined}>{m.name}</Text>
+                                  <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{m.name}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
@@ -920,22 +919,22 @@ export default function SmartRuleDetailScreen() {
 
                   {action.type === "set_description" && (
                     <View className="mt-1">
-                      <Text className="text-xs text-text-tertiary mb-1.5">Description text</Text>
+                      <Text className="text-xs text-faint-foreground mb-1.5">Description text</Text>
                       <TextInput
                         placeholder="e.g. Monthly subscription"
                         placeholderTextColor={colors.tabIconDefault}
                         value={(action as RuleAction & { type: "set_description" }).description_template ?? ""}
                         onChangeText={(v) => updateAction(index, { description_template: v })}
-                        className="rounded-lg border border-border-light dark:border-border-dark px-3 py-2 text-sm text-text-primary dark:text-text-dark-primary"
+                        className="rounded-lg border border-border px-3 py-2 text-sm text-foreground"
                       />
                     </View>
                   )}
 
                   {action.type === "tags" && (
                     <View className="mt-1">
-                      <Text className="text-xs text-text-tertiary mb-1.5">Select tags</Text>
+                      <Text className="text-xs text-faint-foreground mb-1.5">Select tags</Text>
                       {tags.length === 0 ? (
-                        <Text className="text-xs text-text-tertiary">No tags created yet</Text>
+                        <Text className="text-xs text-faint-foreground">No tags created yet</Text>
                       ) : (
                         <View className="flex-row flex-wrap" style={{ gap: 8 }}>
                           {tags.map((t) => {
@@ -954,7 +953,7 @@ export default function SmartRuleDetailScreen() {
                                 className="px-3 py-1.5 rounded-full border"
                                 style={{ backgroundColor: selected ? accentColor : "transparent", borderColor: selected ? accentColor : colors.border }}
                               >
-                                <Text className={selected ? "text-white text-xs font-medium" : "text-text-secondary dark:text-text-dark-secondary text-xs"}>
+                                <Text className={selected ? "text-primary-foreground text-xs font-medium" : "text-muted-foreground text-xs"}>
                                   {t.name}
                                 </Text>
                               </Pressable>
@@ -979,25 +978,25 @@ export default function SmartRuleDetailScreen() {
                           className="flex-row items-center justify-between py-2"
                         >
                           <View>
-                            <Text className="text-xs text-text-tertiary">Classification</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={selectedLabel ? undefined : { color: colors.tabIconDefault }}>
+                            <Text className="text-xs text-faint-foreground">Classification</Text>
+                            <Text className="text-base text-foreground" style={selectedLabel ? undefined : { color: colors.tabIconDefault }}>
                               {selectedLabel ?? "Select classification"}
                             </Text>
                           </View>
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
                         {valueExpanded && (
-                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
+                          <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
                             {opts.map((opt) => {
                               const isSel = a.is_right_spend === opt.value;
                               return (
                                 <Pressable
                                   key={String(opt.value)}
                                   onPress={() => { updateAction(index, { is_right_spend: opt.value }); setExpandedActionValueRow(null); }}
-                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSel ? { color: accentColor } : undefined}>{opt.label}</Text>
+                                  <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{opt.label}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
@@ -1010,7 +1009,7 @@ export default function SmartRuleDetailScreen() {
 
                   {action.type === "mark_auto" && (
                     <View className="py-2">
-                      <Text className="text-xs text-text-tertiary">SMS-detected expenses skip the pending review queue</Text>
+                      <Text className="text-xs text-faint-foreground">SMS-detected expenses skip the pending review queue</Text>
                     </View>
                   )}
 
@@ -1026,27 +1025,27 @@ export default function SmartRuleDetailScreen() {
                           className="flex-row items-center justify-between py-2"
                         >
                           <View>
-                            <Text className="text-xs text-text-tertiary">Split with</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={selectedPerson ? undefined : { color: colors.tabIconDefault }}>
+                            <Text className="text-xs text-faint-foreground">Split with</Text>
+                            <Text className="text-base text-foreground" style={selectedPerson ? undefined : { color: colors.tabIconDefault }}>
                               {selectedPerson?.name ?? "Select person"}
                             </Text>
                           </View>
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
                         {valueExpanded && (
-                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
+                          <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
                             {persons.length === 0 ? (
-                              <Text className="text-sm text-text-tertiary px-3 py-2.5">No people in Hisaab yet</Text>
+                              <Text className="text-sm text-faint-foreground px-3 py-2.5">No people in Hisaab yet</Text>
                             ) : persons.map((p) => {
                               const isSel = a.person_id === p.id;
                               return (
                                 <Pressable
                                   key={p.id}
                                   onPress={() => { updateAction(index, { person_id: p.id }); setExpandedActionValueRow(null); }}
-                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSel ? { color: accentColor } : undefined}>{p.name}</Text>
+                                  <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{p.name}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
@@ -1055,7 +1054,7 @@ export default function SmartRuleDetailScreen() {
                         )}
                         {selectedPerson && (
                           <View className="mt-1 pb-1">
-                            <Text className="text-xs text-text-tertiary mb-1.5">How to split</Text>
+                            <Text className="text-xs text-faint-foreground mb-1.5">How to split</Text>
                             <View className="flex-row flex-wrap gap-2 mb-2">
                               {([
                                 { mode: "equal", label: "Equal" },
@@ -1069,7 +1068,7 @@ export default function SmartRuleDetailScreen() {
                                   <Pressable
                                     key={opt.mode}
                                     onPress={() => updateAction(index, { split_mode: opt.mode })}
-                                    className="px-3 py-1.5 rounded-lg items-center border border-border-light dark:border-border-dark"
+                                    className="px-3 py-1.5 rounded-lg items-center border border-border"
                                     style={isSel ? { backgroundColor: accentColor + "20", borderColor: accentColor } : undefined}
                                   >
                                     <Text className="text-xs font-semibold" style={{ color: isSel ? accentColor : colors.textSecondary }}>{opt.label}</Text>
@@ -1088,7 +1087,7 @@ export default function SmartRuleDetailScreen() {
                                   keyboardType="numeric"
                                   placeholder="Their share % (e.g. 50)"
                                   placeholderTextColor={colors.tabIconDefault}
-                                  className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark text-sm text-text-primary dark:text-text-dark-primary"
+                                  className="px-3 py-2 rounded-lg border border-border text-sm text-foreground"
                                 />
                               </View>
                             )}
@@ -1103,11 +1102,11 @@ export default function SmartRuleDetailScreen() {
                                   keyboardType="numeric"
                                   placeholder="Their share amount (₹)"
                                   placeholderTextColor={colors.tabIconDefault}
-                                  className="px-3 py-2 rounded-lg border border-border-light dark:border-border-dark text-sm text-text-primary dark:text-text-dark-primary"
+                                  className="px-3 py-2 rounded-lg border border-border text-sm text-foreground"
                                 />
                               </View>
                             )}
-                            <Text className="text-xs text-text-tertiary mb-1.5">Who paid</Text>
+                            <Text className="text-xs text-faint-foreground mb-1.5">Who paid</Text>
                             <View className="flex-row gap-2">
                               {([ { value: "me", label: "I paid" }, { value: "them", label: "They paid" } ] as const).map((opt) => {
                                 const isSel = paidBy === opt.value;
@@ -1115,7 +1114,7 @@ export default function SmartRuleDetailScreen() {
                                   <Pressable
                                     key={opt.value}
                                     onPress={() => updateAction(index, { paid_by: opt.value })}
-                                    className="flex-1 py-1.5 rounded-lg items-center border border-border-light dark:border-border-dark"
+                                    className="flex-1 py-1.5 rounded-lg items-center border border-border"
                                     style={isSel ? { backgroundColor: accentColor + "20", borderColor: accentColor } : undefined}
                                   >
                                     <Text className="text-xs font-semibold" style={{ color: isSel ? accentColor : colors.textSecondary }}>{opt.label}</Text>
@@ -1139,27 +1138,27 @@ export default function SmartRuleDetailScreen() {
                           className="flex-row items-center justify-between py-2"
                         >
                           <View>
-                            <Text className="text-xs text-text-tertiary">Investment bucket</Text>
-                            <Text className="text-base text-text-primary dark:text-text-dark-primary" style={selectedBucket ? undefined : { color: colors.tabIconDefault }}>
+                            <Text className="text-xs text-faint-foreground">Investment bucket</Text>
+                            <Text className="text-base text-foreground" style={selectedBucket ? undefined : { color: colors.tabIconDefault }}>
                               {selectedBucket?.name ?? "Select bucket"}
                             </Text>
                           </View>
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
                         {valueExpanded && (
-                          <View className="mb-2 rounded-lg border border-border-light dark:border-border-dark overflow-hidden bg-surface-light dark:bg-surface-dark">
+                          <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
                             {buckets.length === 0 ? (
-                              <Text className="text-sm text-text-tertiary px-3 py-2.5">No investment buckets created yet</Text>
+                              <Text className="text-sm text-faint-foreground px-3 py-2.5">No investment buckets created yet</Text>
                             ) : buckets.map((b) => {
                               const isSel = a.bucket_id === b.id;
                               return (
                                 <Pressable
                                   key={b.id}
                                   onPress={() => { updateAction(index, { bucket_id: b.id }); setExpandedActionValueRow(null); }}
-                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border-light dark:border-border-dark"
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-text-primary dark:text-text-dark-primary" style={isSel ? { color: accentColor } : undefined}>{b.name}</Text>
+                                  <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{b.name}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
@@ -1174,12 +1173,12 @@ export default function SmartRuleDetailScreen() {
             })}
 
             {actions.length === 0 && (
-              <Text className="text-sm text-text-tertiary text-center py-2 mb-3">No actions yet - add one below</Text>
+              <Text className="text-sm text-faint-foreground text-center py-2 mb-3">No actions yet - add one below</Text>
             )}
 
             <Pressable
               onPress={addAction}
-              className="flex-row items-center justify-center py-2.5 rounded-lg border border-dashed border-border-light dark:border-border-dark"
+              className="flex-row items-center justify-center py-2.5 rounded-lg border border-dashed border-border"
             >
               <Ionicons name="add" size={16} color={accentColor} />
               <Text className="text-sm font-medium ml-1.5" style={{ color: accentColor }}>
@@ -1197,10 +1196,10 @@ export default function SmartRuleDetailScreen() {
               >
                 <Ionicons name="time-outline" size={20} color={isPendingRetroactive ? accentColor : colors.textSecondary} />
                 <View className="flex-1 ml-3">
-                  <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-base font-semibold text-foreground">
                     Apply to past expenses
                   </Text>
-                  <Text className="text-xs text-text-tertiary mt-0.5">
+                  <Text className="text-xs text-faint-foreground mt-0.5">
                     {isPendingRetroactive
                       ? "Retroactively apply this rule to matching past expenses"
                       : "Already applied — edit the rule to enable again"}
@@ -1223,10 +1222,10 @@ export default function SmartRuleDetailScreen() {
         </View>
       </ScrollView>
       {/* Retroactive apply sheet */}
-      <BottomSheet visible={showRetroSheet} onClose={() => setShowRetroSheet(false)}>
+      <Sheet visible={showRetroSheet} onClose={() => setShowRetroSheet(false)}>
         <View className="px-4 pb-6">
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-lg font-semibold text-foreground">
               Apply to past expenses
             </Text>
             <Pressable onPress={() => setShowRetroSheet(false)}>
@@ -1235,7 +1234,7 @@ export default function SmartRuleDetailScreen() {
           </View>
 
           {/* Quick presets */}
-          <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-2">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground mb-2">
             Date range
           </Text>
           <View className="flex-row flex-wrap mb-3" style={{ gap: 6 }}>
@@ -1291,7 +1290,7 @@ export default function SmartRuleDetailScreen() {
           {/* Account filter */}
           {accounts.length > 0 && (
             <>
-              <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-2">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground mb-2">
                 Filter by account (optional)
               </Text>
               <ScrollView className="max-h-36 mb-4" showsVerticalScrollIndicator={false}>
@@ -1306,14 +1305,14 @@ export default function SmartRuleDetailScreen() {
                         );
                         setRetroPreview(null);
                       }}
-                      className={`flex-row items-center justify-between py-2.5 px-3 rounded-lg mb-1.5 border ${isSel ? "" : "border-border-light dark:border-border-dark"}`}
+                      className={`flex-row items-center justify-between py-2.5 px-3 rounded-lg mb-1.5 border ${isSel ? "" : "border-border"}`}
                       style={isSel ? { borderColor: accentColor, backgroundColor: accentColor + "18" } : undefined}
                     >
                       <View className="flex-1">
-                        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" style={isSel ? { color: accentColor } : undefined}>
+                        <Text className="text-sm font-medium text-foreground" style={isSel ? { color: accentColor } : undefined}>
                           {a.account_label || a.bank_name}
                         </Text>
-                        <Text className="text-xs text-text-tertiary mt-0.5">
+                        <Text className="text-xs text-faint-foreground mt-0.5">
                           {accountTypeLabel(a.account_type)} · ••••{a.account_identifier}
                         </Text>
                       </View>
@@ -1326,10 +1325,10 @@ export default function SmartRuleDetailScreen() {
           )}
 
           {/* Overwrite toggle */}
-          <View className="flex-row items-center justify-between py-3 border-t border-border-light dark:border-border-dark mb-4">
+          <View className="flex-row items-center justify-between py-3 border-t border-border mb-4">
             <View className="flex-1 mr-4">
-              <Text className="text-sm text-text-primary dark:text-text-dark-primary">Override existing values</Text>
-              <Text className="text-xs text-text-tertiary mt-0.5">If off, expenses that already have a category are skipped</Text>
+              <Text className="text-sm text-foreground">Override existing values</Text>
+              <Text className="text-xs text-faint-foreground mt-0.5">If off, expenses that already have a category are skipped</Text>
             </View>
             <Switch
               value={retroOverwrite}
@@ -1344,15 +1343,15 @@ export default function SmartRuleDetailScreen() {
               <Text className="text-sm font-semibold mb-1" style={{ color: accentColor }}>
                 Preview result
               </Text>
-              <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm text-foreground">
                 {retroPreview.matching} matching expense{retroPreview.matching === 1 ? "" : "s"}
               </Text>
-              <Text className="text-xs text-text-tertiary mt-0.5">
+              <Text className="text-xs text-faint-foreground mt-0.5">
                 {retroPreview.wouldOverwrite} will be updated · {retroPreview.wouldSkip} skipped (already processed){retroPreview.wouldSkip > 0 && retroPreview.wouldOverwrite === 0 ? " — enable Overwrite to re-apply" : ""}
               </Text>
             </View>
           ) : (
-            <Text className="text-xs text-text-tertiary text-center mb-4">
+            <Text className="text-xs text-faint-foreground text-center mb-4">
               Run Preview first to see how many expenses will be updated, then Apply.
             </Text>
           )}
@@ -1362,20 +1361,20 @@ export default function SmartRuleDetailScreen() {
             <Pressable
               onPress={onRetroPreview}
               disabled={retroPreviewing}
-              className="py-3 rounded-xl items-center border border-border-light dark:border-border-dark"
+              className="py-3 rounded-xl items-center border border-border"
             >
               {retroPreviewing
                 ? <ActivityIndicator size="small" color={accentColor} />
-                : <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">Preview</Text>
+                : <Text className="text-sm font-semibold text-foreground">Preview</Text>
               }
             </Pressable>
           ) : (
             <View className="flex-row" style={{ gap: 8 }}>
               <Pressable
                 onPress={() => { setRetroPreview(null); }}
-                className="flex-1 py-3 rounded-xl items-center border border-border-light dark:border-border-dark"
+                className="flex-1 py-3 rounded-xl items-center border border-border"
               >
-                <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">Re-Preview</Text>
+                <Text className="text-sm font-semibold text-muted-foreground">Re-Preview</Text>
               </Pressable>
               <Pressable
                 onPress={onRetroApply}
@@ -1384,14 +1383,14 @@ export default function SmartRuleDetailScreen() {
                 style={{ backgroundColor: retroPreview.wouldOverwrite === 0 ? colors.border : accentColor }}
               >
                 {retroApplying
-                  ? <ActivityIndicator size="small" color="white" />
-                  : <Text className="text-sm font-semibold text-white">Apply ({retroPreview.wouldOverwrite})</Text>
+                  ? <ActivityIndicator size="small" color={theme.primaryForeground} />
+                  : <Text className="text-sm font-semibold text-primary-foreground">Apply ({retroPreview.wouldOverwrite})</Text>
                 }
               </Pressable>
             </View>
           )}
         </View>
-      </BottomSheet>
+      </Sheet>
     </ScreenContainer>
   );
 }

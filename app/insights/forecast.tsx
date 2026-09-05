@@ -1,15 +1,15 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ScreenContainer, Card, SectionHeader, LoadingState } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { ConfidenceDots } from "@/components/analytics/ConfidenceDots";
 import { ActionSuggestionCard } from "@/components/analytics/ActionSuggestionCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { StatusColors } from "@/constants/theme";
+
 import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
 import { getCategories } from "@/services/category";
 import { getActiveClassifications } from "@/services/analytics/classifier";
@@ -20,11 +20,12 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import type { Expense } from "@/services/expense-types";
 import type { MonthEndForecast } from "@/utils/forecast-engine";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function ForecastDetailScreen() {
   const router = useRouter();
-  const { colorScheme, colors, accent } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
   const [forecast, setForecast] = useState<AnalyticsForecast | null>(null);
   const [categoryForecast, setCategoryForecast] = useState<MonthEndForecast | null>(null);
   const [categoryNames, setCategoryNames] = useState<Map<string, string>>(new Map());
@@ -101,49 +102,49 @@ export default function ForecastDetailScreen() {
         <View className="px-4 mt-3">
           <Card>
             <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 Projected Month-End
               </Text>
-              <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-xl font-bold text-foreground">
                 {formatAmount(projectedTotal)}
               </Text>
             </View>
 
             {budget != null && (
               <View className="flex-row justify-between items-center mb-3">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">Budget</Text>
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">{formatAmount(budget)}</Text>
+                <Text className="text-sm text-muted-foreground">Budget</Text>
+                <Text className="text-sm text-muted-foreground">{formatAmount(budget)}</Text>
               </View>
             )}
 
             <StatusPill
               label={isOverBudget ? "Over Budget" : "Within Budget"}
-              color={isOverBudget ? statusColors.danger : statusColors.success}
+              color={isOverBudget ? theme.danger : theme.success}
               icon={isOverBudget ? "alert-circle" : "checkmark-circle"}
             />
 
             {/* Stacked Bar */}
-            <View className="mt-4 flex-row h-3 rounded-full overflow-hidden bg-border-light dark:bg-border-dark">
+            <View className="mt-4 flex-row h-3 rounded-full overflow-hidden bg-border">
               <View
                 className="h-full"
                 style={{
                   width: `${Math.round(((fixedDone.total + fixedPending.total) / projectedTotal) * 100)}%`,
-                  backgroundColor: statusColors.success,
+                  backgroundColor: theme.success,
                 }}
               />
               <View
                 className="h-full"
                 style={{
                   width: `${Math.round((variable.projected / projectedTotal) * 100)}%`,
-                  backgroundColor: accent[500],
+                  backgroundColor: theme.primary,
                 }}
               />
             </View>
             <View className="flex-row justify-between mt-1.5">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Fixed {formatAmount(fixedDone.total + fixedPending.total)}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Variable {formatAmount(variable.projected)}
               </Text>
             </View>
@@ -155,7 +156,7 @@ export default function ForecastDetailScreen() {
           <SectionHeader title={`Fixed Expenses (Done) - ${formatAmount(fixedDone.total)}`} />
           <Card>
             {fixedDone.items.length === 0 ? (
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 No fixed expenses arrived yet this month.
               </Text>
             ) : (
@@ -163,19 +164,19 @@ export default function ForecastDetailScreen() {
                 <View
                   key={item.id}
                   className={`flex-row items-center justify-between py-2.5 ${
-                    idx < fixedDone.items.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""
+                    idx < fixedDone.items.length - 1 ? "border-b border-border" : ""
                   }`}
                 >
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary capitalize flex-1">
+                  <Text className="text-sm text-foreground capitalize flex-1">
                     {item.merchant}
                   </Text>
-                  <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary mr-2">
+                  <Text className="text-sm font-bold text-foreground mr-2">
                     {formatAmount(item.actualAmount ?? item.amount)}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+                  <Text className="text-xs text-muted-foreground mr-2">
                     {item.actualDate ? formatDay(item.actualDate) : ""}
                   </Text>
-                  <Ionicons name="checkmark-circle" size={16} color={statusColors.success} />
+                  <Ionicons name="checkmark-circle" size={16} color={theme.success} />
                 </View>
               ))
             )}
@@ -188,8 +189,8 @@ export default function ForecastDetailScreen() {
           <Card>
             {fixedPending.items.length === 0 ? (
               <View className="flex-row items-center gap-2">
-                <Ionicons name="checkmark-circle" size={16} color={statusColors.success} />
-                <Text className="text-sm" style={{ color: statusColors.success }}>
+                <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+                <Text className="text-sm" style={{ color: theme.success }}>
                   All expected fixed expenses have arrived this month.
                 </Text>
               </View>
@@ -198,16 +199,16 @@ export default function ForecastDetailScreen() {
                 <View
                   key={item.id}
                   className={`flex-row items-center justify-between py-2.5 ${
-                    idx < fixedPending.items.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""
+                    idx < fixedPending.items.length - 1 ? "border-b border-border" : ""
                   }`}
                 >
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary capitalize flex-1">
+                  <Text className="text-sm text-foreground capitalize flex-1">
                     {item.merchant}
                   </Text>
-                  <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary mr-2">
+                  <Text className="text-sm font-bold text-foreground mr-2">
                     {formatAmount(item.amount)}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     ~Day {item.expectedDay}
                   </Text>
                 </View>
@@ -229,18 +230,18 @@ export default function ForecastDetailScreen() {
             {/* Category Paces */}
             {forecast.categoryPaces.length > 0 && (
               <>
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mt-3 mb-2">
+                <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-3 mb-2">
                   By Category
                 </Text>
                 {forecast.categoryPaces.slice(0, 5).map((cp) => (
                   <View key={cp.categoryId} className="flex-row items-center justify-between py-1.5">
-                    <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1">
+                    <Text className="text-xs text-foreground flex-1">
                       {categoryNames.get(cp.categoryId) || "Other"}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+                    <Text className="text-xs text-muted-foreground mr-2">
                       {formatAmount(cp.dailyPace)}/day
                     </Text>
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary w-16 text-right">
+                    <Text className="text-xs font-bold text-foreground w-16 text-right">
                       → {formatAmount(cp.projected)}
                     </Text>
                   </View>
@@ -248,7 +249,7 @@ export default function ForecastDetailScreen() {
               </>
             )}
 
-            <View className="border-t border-border-light dark:border-border-dark mt-3 pt-3">
+            <View className="border-t border-border mt-3 pt-3">
               <MetricLine label="Historical avg" value={`${formatAmount(variable.historicalAvg)}/month`} />
               <MetricLine
                 label="Current pace"
@@ -280,16 +281,16 @@ export default function ForecastDetailScreen() {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1">
                       <View className="flex-row items-center gap-1.5">
-                        <Ionicons name="warning-outline" size={14} color={statusColors.warning} />
-                        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                        <Ionicons name="warning-outline" size={14} color={theme.warning} />
+                        <Text className="text-sm font-medium text-foreground">
                           {categoryNames.get(cat.categoryId) ?? "Category"} on pace for {formatAmount(cat.predictedTotal)}
                         </Text>
                       </View>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5 ml-5">
+                      <Text className="text-xs text-muted-foreground mt-0.5 ml-5">
                         Budget: {formatAmount(cat.budget)} ({Math.round((cat.predictedTotal / cat.budget) * 100)}%)
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={statusColors.muted} />
+                    <Ionicons name="chevron-forward" size={16} color={theme.faintForeground} />
                   </View>
                 </Card>
               </Pressable>
@@ -316,8 +317,8 @@ export default function ForecastDetailScreen() {
 function MetricLine({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row justify-between items-center">
-      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{label}:</Text>
-      <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">{value}</Text>
+      <Text className="text-xs text-muted-foreground">{label}:</Text>
+      <Text className="text-xs font-medium text-foreground">{value}</Text>
     </View>
   );
 }

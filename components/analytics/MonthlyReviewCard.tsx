@@ -1,12 +1,14 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
+import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ReviewItem {
   id: string;
@@ -30,37 +32,37 @@ export function MonthlyReviewCard({
   onConfirmAll,
   onSkip,
 }: MonthlyReviewCardProps) {
-  const { colorScheme, accent } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   if (items.length === 0) return null;
 
   return (
     <Card className="mb-4">
       <View className="flex-row items-center mb-3">
-        <Ionicons name="bulb-outline" size={18} color={accent[500]} style={{ marginRight: 8 }} />
-        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+        <Ionicons name="bulb-outline" size={18} color={theme.primary} style={{ marginRight: 8 }} />
+        <Text className="text-sm font-semibold text-foreground">
           Quick check (takes 30 seconds)
         </Text>
       </View>
 
-      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+      <Text className="text-xs text-muted-foreground mb-3">
         I noticed these might be regular:
       </Text>
 
-      <View className="rounded-xl border border-border-light dark:border-border-dark overflow-hidden">
+      <View className="rounded-xl border border-border overflow-hidden">
         {items.map((item, idx) => (
           <View
             key={item.id}
             className={`flex-row items-center justify-between px-3 py-2.5 ${
-              idx < items.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""
+              idx < items.length - 1 ? "border-b border-border" : ""
             }`}
           >
             <View className="flex-1 mr-3">
-              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary capitalize">
+              <Text className="text-sm font-medium text-foreground capitalize">
                 {formatAmount(item.amount)}  {item.merchant}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 {capitalizeFirst(item.frequency)}?
               </Text>
             </View>
@@ -71,10 +73,10 @@ export function MonthlyReviewCard({
                   onConfirm(item.id);
                 }}
                 className="w-7 h-7 rounded-full items-center justify-center"
-                style={{ backgroundColor: statusColors.success + "18" }}
+                style={{ backgroundColor: theme.success + "18" }}
                 accessibilityLabel={`Confirm ${item.merchant} as recurring`}
               >
-                <Ionicons name="checkmark" size={14} color={statusColors.success} />
+                <Ionicons name="checkmark" size={14} color={theme.success} />
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -82,10 +84,10 @@ export function MonthlyReviewCard({
                   onDeny(item.id);
                 }}
                 className="w-7 h-7 rounded-full items-center justify-center"
-                style={{ backgroundColor: statusColors.danger + "18" }}
+                style={{ backgroundColor: theme.danger + "18" }}
                 accessibilityLabel={`Deny ${item.merchant} as recurring`}
               >
-                <Ionicons name="close" size={14} color={statusColors.danger} />
+                <Ionicons name="close" size={14} color={theme.danger} />
               </Pressable>
             </View>
           </View>
@@ -95,7 +97,7 @@ export function MonthlyReviewCard({
       <View className="flex-row items-center justify-between mt-4">
         <Button title="Confirm All" onPress={onConfirmAll} />
         <Pressable onPress={onSkip}>
-          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs font-medium text-muted-foreground">
             Skip for Now
           </Text>
         </Pressable>

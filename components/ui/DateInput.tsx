@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { Text } from "./Text";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CalendarModal } from "./CalendarModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatDate } from "@/utils/date";
+import { useTheme } from "@/hooks/use-theme";
 
 interface DateInputProps {
   label?: string;
@@ -37,7 +39,8 @@ export function DateInput({
   minimumDate,
   containerClassName = "",
 }: DateInputProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [showPicker, setShowPicker] = useState(false);
 
   const maxDate = maximumDate === null ? null : (maximumDate ?? new Date());
@@ -46,7 +49,7 @@ export function DateInput({
   return (
     <View className={containerClassName}>
       {label && (
-        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1.5">
+        <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
           {label}
         </Text>
       )}
@@ -54,8 +57,8 @@ export function DateInput({
         onPress={() => setShowPicker(true)}
         accessibilityLabel={label || "Pick a date"}
         accessibilityRole="button"
-        className={`flex-row items-center rounded-lg border px-3 py-3 bg-white dark:bg-surface-dark-alt ${
-          error ? "border-danger" : "border-border-light dark:border-border-dark"
+        className={`flex-row items-center rounded-lg border px-3 py-3 bg-card ${
+          error ? "border-danger" : "border-border"
         }`}
       >
         <Text
@@ -66,7 +69,7 @@ export function DateInput({
         </Text>
         <View
           className="w-8 h-8 rounded-lg items-center justify-center"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
         >
           <Ionicons name="calendar-outline" size={18} color={colors.blue} />
         </View>

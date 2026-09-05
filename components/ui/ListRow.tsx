@@ -1,4 +1,5 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
+import { Text } from "./Text";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -32,11 +33,11 @@ export function ListRow({
         <Ionicons name={icon} size={18} color={resolvedColor} />
       </View>
       <View className="flex-1">
-        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+        <Text className="text-sm font-medium text-foreground">
           {title}
         </Text>
         {subtitle && (
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-xs text-muted-foreground mt-0.5">
             {subtitle}
           </Text>
         )}

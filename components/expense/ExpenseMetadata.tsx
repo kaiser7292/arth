@@ -1,12 +1,14 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Text } from "@/components/ui";
 import type { Expense } from "@/services/expense";
-import { ac } from "@/utils/accent";
+
 import { formatDisplayDate as formatDate } from "@/utils/date";
 import { formatDateTimeInTimezone } from "@/utils/timezone";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 const SOURCE_LABELS: Record<string, string> = {
   manual: "Manual",
@@ -35,7 +37,8 @@ interface ExpenseMetadataProps {
 }
 
 export default function ExpenseMetadata({ expense }: ExpenseMetadataProps) {
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [showRawSms, setShowRawSms] = useState(false);
   const router = useRouter();
@@ -44,13 +47,13 @@ export default function ExpenseMetadata({ expense }: ExpenseMetadataProps) {
   const hasRawSms = expense.raw_source_text != null;
 
   return (
-    <View className="mx-4 mt-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden">
+    <View className="mx-4 mt-3 rounded-xl bg-card overflow-hidden">
       {/* Header — always visible */}
       <Pressable
         onPress={() => setExpanded(!expanded)}
         className="flex-row items-center justify-between px-4 py-3"
       >
-        <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-sm font-semibold text-muted-foreground">
           Other Info
         </Text>
         <Ionicons
@@ -93,7 +96,7 @@ export default function ExpenseMetadata({ expense }: ExpenseMetadataProps) {
                 onPress={() => setShowRawSms(!showRawSms)}
                 className="flex-row items-center"
               >
-                <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs font-medium text-muted-foreground">
                   Raw SMS
                 </Text>
                 <Ionicons
@@ -104,8 +107,8 @@ export default function ExpenseMetadata({ expense }: ExpenseMetadataProps) {
                 />
               </Pressable>
               {showRawSms && (
-                <View className="mt-1.5 p-3 rounded-lg bg-surface-light dark:bg-surface-dark-alt">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary leading-4">
+                <View className="mt-1.5 p-3 rounded-lg bg-background">
+                  <Text className="text-xs text-muted-foreground leading-4">
                     {expense.raw_source_text}
                   </Text>
                 </View>
@@ -122,10 +125,10 @@ export default function ExpenseMetadata({ expense }: ExpenseMetadataProps) {
                 }
                 className="flex-row items-center"
               >
-                <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs font-medium text-muted-foreground">
                   Refund of:
                 </Text>
-                <Text className="text-xs ml-1.5 underline" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+                <Text className="text-xs ml-1.5 underline" style={{ color: theme.primary }}>
                   View original expense
                 </Text>
               </Pressable>
@@ -140,10 +143,10 @@ export default function ExpenseMetadata({ expense }: ExpenseMetadataProps) {
 function MetadataRow({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-center justify-between py-1.5">
-      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+      <Text className="text-xs text-muted-foreground">
         {label}
       </Text>
-      <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
+      <Text className="text-xs font-medium text-foreground">
         {value}
       </Text>
     </View>

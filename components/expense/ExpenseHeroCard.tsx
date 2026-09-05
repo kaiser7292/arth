@@ -1,8 +1,10 @@
-import { StatusColors } from "@/constants/theme";
+
+
+import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { Ionicons } from "@expo/vector-icons";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 interface ExpenseHeroCardProps {
   merchantName: string | null;
@@ -51,6 +53,7 @@ function formatTime12h(time: string): string | null {
 }
 
 import { formatNumber } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function ExpenseHeroCard({
   merchantName,
@@ -69,7 +72,8 @@ export default function ExpenseHeroCard({
   splitOriginalAmount,
   isTransfer = false,
 }: ExpenseHeroCardProps) {
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const title = description || merchantName || "Expense";
   const subtitle = description && merchantName ? merchantName : null;
 
@@ -87,42 +91,42 @@ export default function ExpenseHeroCard({
     <View className="px-4 pt-5 pb-4 items-center">
       {/* Source + Nature badges */}
       <View className="flex-row items-center mb-3">
-        <View className="px-2.5 py-1 rounded-full mr-2" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
-          <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+        <View className="px-2.5 py-1 rounded-full mr-2" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+          <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.primary }}>
             {SOURCE_LABELS[source] ?? source}
           </Text>
         </View>
         {nature === "forecast" && (
-          <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: StatusColors[colorScheme].warningBg }}>
-            <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
+          <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.warning }}>
               Forecast
             </Text>
           </View>
         )}
         {status === "pending_review" && (
-          <View className="px-2.5 py-1 rounded-full bg-[#F59E0B14]">
-            <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
+          <View className="px-2.5 py-1 rounded-full bg-warning/8">
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.warning }}>
               Pending Review
             </Text>
           </View>
         )}
         {isFullRefund && (
-          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: StatusColors[colorScheme].success + "1A" }}>
-            <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].success }}>
+          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: theme.success + "1A" }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.success }}>
               Refunded
             </Text>
           </View>
         )}
         {isPartialRefund && (
-          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: StatusColors[colorScheme].warning + "1A" }}>
-            <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
+          <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: theme.warning + "1A" }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.warning }}>
               Partial Refund
             </Text>
           </View>
         )}
         {isTransfer && (
           <View className="px-2.5 py-1 rounded-full ml-2" style={{ backgroundColor: "#6366F11A" }}>
-            <Text className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#6366F1" }}>
+            <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: "#6366F1" }}>
               Transfer
             </Text>
           </View>
@@ -131,7 +135,7 @@ export default function ExpenseHeroCard({
 
       {/* Merchant / Title */}
       <Text
-        className="text-xl font-bold text-text-primary dark:text-text-dark-primary text-center"
+        className="text-xl font-bold text-foreground text-center"
         numberOfLines={2}
       >
         {title}
@@ -140,7 +144,7 @@ export default function ExpenseHeroCard({
       {/* Subtitle (description when merchant exists) */}
       {subtitle && (
         <Text
-          className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center"
+          className="text-sm text-muted-foreground mt-1 text-center"
           numberOfLines={1}
         >
           {subtitle}
@@ -153,10 +157,10 @@ export default function ExpenseHeroCard({
         <Ionicons
           name={nature === "credit" ? "arrow-up" : "arrow-down"}
           size={18}
-          color={nature === "credit" ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger}
+          color={nature === "credit" ? theme.success : theme.danger}
         />
         <Text
-          className="text-3xl font-bold text-text-primary dark:text-text-dark-primary ml-1"
+          className="text-3xl font-bold text-foreground ml-1"
           style={isFullRefund || isPartialRefund ? { textDecorationLine: "line-through", opacity: 0.5 } : undefined}
         >
           {"\u20B9"}{formatNumber(amount)}
@@ -165,13 +169,13 @@ export default function ExpenseHeroCard({
 
       {(isFullRefund || isPartialRefund) && (
         <View className="mt-2 items-center">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             {isFullRefund ? "Fully refunded \u00B7 effective cost" : "Net cost after refund"}
           </Text>
-          <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary mt-0.5">
+          <Text className="text-xl font-bold text-foreground mt-0.5">
             {"\u20B9"}{formatNumber(effectiveAmount)}
           </Text>
-          <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-label text-muted-foreground mt-0.5">
             Refunded {"\u20B9"}{formatNumber(refundedAmount)}
           </Text>
         </View>
@@ -181,18 +185,18 @@ export default function ExpenseHeroCard({
       {categoryName && (
         <View
           className="flex-row items-center px-3 py-1.5 rounded-full mt-3"
-          style={{ backgroundColor: (categoryColor ?? "#6B7280") + "14" }}
+          style={{ backgroundColor: (categoryColor ?? theme.mutedForeground) + "14" }}
         >
           {categoryIcon && (
             <Ionicons
               name={categoryIcon as keyof typeof Ionicons.glyphMap}
               size={14}
-              color={categoryColor ?? "#6B7280"}
+              color={categoryColor ?? theme.mutedForeground}
             />
           )}
           <Text
             className="text-xs font-semibold ml-1.5"
-            style={{ color: categoryColor ?? "#6B7280" }}
+            style={{ color: categoryColor ?? theme.mutedForeground }}
           >
             {categoryName}
           </Text>
@@ -200,7 +204,7 @@ export default function ExpenseHeroCard({
       )}
 
       {/* Date + Time */}
-      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-2">
+      <Text className="text-sm text-muted-foreground mt-2">
         {nature === "forecast" && dueDate
           ? `Due ${formatDisplayDate(dueDate)}`
           : formatDisplayDate(date)}

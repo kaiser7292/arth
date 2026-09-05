@@ -1,15 +1,17 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button } from "@/components/ui";
+import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { setOnboardingCompletedVersion } from "@/services/settings";
 import { getCurrentAppVersion } from "@/services/onboarding";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function OnboardingDone() {
   const router = useRouter();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
 
   const finish = (andAddExpense: boolean) => {
     setOnboardingCompletedVersion(getCurrentAppVersion());
@@ -27,18 +29,18 @@ export default function OnboardingDone() {
       <View className="items-center px-8">
         <View
           className="w-20 h-20 rounded-full items-center justify-center mb-6"
-          style={{ backgroundColor: ac(accent, colorScheme, 500, 200) + "1F" }}
+          style={{ backgroundColor: theme.primary + "1F" }}
         >
           <Ionicons
             name="checkmark"
             size={40}
-            color={ac(accent, colorScheme, 500, 200)}
+            color={theme.primary}
           />
         </View>
-        <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary text-center mb-3">
+        <Text className="text-2xl font-bold text-foreground text-center mb-3">
           You're set
         </Text>
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center leading-5 mb-10">
+        <Text className="text-sm text-muted-foreground text-center leading-5 mb-10">
           Arth will keep working quietly in the background. When a bank SMS comes in or you log an expense manually, it shows up in your dashboard.
         </Text>
         <Button
@@ -47,7 +49,7 @@ export default function OnboardingDone() {
           className="mb-3 self-stretch"
         />
         <Pressable onPress={() => finish(false)} className="py-3">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             Take me to the dashboard
           </Text>
         </Pressable>

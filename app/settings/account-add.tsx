@@ -1,16 +1,17 @@
 import { useState, useRef } from "react";
-import { View, Text, ScrollView, Pressable, Keyboard } from "react-native";
+import { View, ScrollView, Pressable, Keyboard } from "react-native";
 import { useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
-import { ScreenContainer, Button, Input, DateInput } from "@/components/ui";
+import { Button, DateInput, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import { createManualAccount, addOrUpdateSnapshot } from "@/services/financial-account";
 import type { AccountType } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import type { AlertButton } from "@/hooks/use-alert";
+import { useTheme } from "@/hooks/use-theme";
 
 const TYPE_OPTIONS: AccountType[] = [
   "savings",
@@ -33,7 +34,8 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 export default function AccountAddScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
 
   const [accountType, setAccountType] = useState<AccountType>("savings");
@@ -157,7 +159,7 @@ export default function AccountAddScreen() {
       >
         <View className="px-4 py-4">
           {/* Account Type Picker */}
-          <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
+          <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
             Account Type
           </Text>
           <View className="flex-row flex-wrap mb-4">
@@ -168,13 +170,13 @@ export default function AccountAddScreen() {
                 className={`px-4 py-3 rounded-lg mr-2 mb-2 border ${
                   accountType === t
                     ? ""
-                    : "bg-surface-light-alt dark:bg-surface-dark-alt border-transparent"
+                    : "bg-card border-transparent"
                 }`}
                 style={
                   accountType === t
                     ? {
-                        backgroundColor: ac(accent, colorScheme, 100, 700),
-                        borderColor: ac(accent, colorScheme, 600, 300),
+                        backgroundColor: theme.alpha("primary", 0.1),
+                        borderColor: theme.primary,
                       }
                     : undefined
                 }
@@ -183,11 +185,11 @@ export default function AccountAddScreen() {
                   className={`text-sm ${
                     accountType === t
                       ? "font-medium"
-                      : "text-text-secondary dark:text-text-dark-secondary"
+                      : "text-muted-foreground"
                   }`}
                   style={
                     accountType === t
-                      ? { color: ac(accent, colorScheme, 500, 200) }
+                      ? { color: theme.primary }
                       : undefined
                   }
                 >

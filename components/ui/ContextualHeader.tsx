@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, Text, View } from "react-native";
+import { Text } from "./Text";
+import { Pressable, View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 export interface ContextualHeaderAction {
   icon: keyof typeof Ionicons.glyphMap;
@@ -24,32 +26,33 @@ interface Props {
 }
 
 export function ContextualHeader({ title, subtitle, badge, rightActions }: Props) {
-  const { colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const badgeColors = badge
     ? {
-        warning: { bg: StatusColors[colorScheme].warning + "1A", text: StatusColors[colorScheme].warning },
-        success: { bg: StatusColors[colorScheme].success + "1A", text: StatusColors[colorScheme].success },
-        danger:  { bg: StatusColors[colorScheme].danger  + "1A", text: StatusColors[colorScheme].danger  },
+        warning: { bg: theme.warning + "1A", text: theme.warning },
+        success: { bg: theme.success + "1A", text: theme.success },
+        danger:  { bg: theme.danger  + "1A", text: theme.danger  },
       }[badge.variant]
     : null;
 
   return (
     <View
-      className="flex-row items-center px-4 pt-3 pb-3 border-b border-border-light dark:border-border-dark"
+      className="flex-row items-center px-4 pt-3 pb-3 border-b border-border"
       style={{ minHeight: 52 }}
     >
       {/* Left: title + optional subtitle */}
       <View className="flex-1">
         <Text
-          className="text-base font-semibold text-text-primary dark:text-text-dark-primary"
+          className="text-base font-semibold text-foreground"
           numberOfLines={1}
         >
           {title}
         </Text>
         {subtitle ? (
           <Text
-            className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+            className="text-xs text-muted-foreground mt-0.5"
             numberOfLines={1}
           >
             {subtitle}

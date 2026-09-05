@@ -1,14 +1,15 @@
 import { useState, useCallback, useRef } from "react";
+
 import { logger } from "@/utils/logger";
-import { View, Text, ScrollView, Pressable, Keyboard, RefreshControl } from "react-native";
+import { View, ScrollView, Pressable, Keyboard, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, Button, DateInput, PeriodNavigator } from "@/components/ui";
+import { Button, Card, DateInput, Input, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { BalanceSourceCard } from "@/components/account/BalanceSourceCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getAccountWithModes,
@@ -42,6 +43,7 @@ import {
 import type { MonthBalanceSummary } from "@/services/account-balance";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   savings: "wallet-outline",
@@ -69,8 +71,8 @@ function getCurrentMonth(): string {
 export default function AccountDetailScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const { accountId } = useLocalSearchParams<{ accountId: string }>();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -380,7 +382,7 @@ export default function AccountDetailScreen() {
         <ScreenContainer padTop={false} keyboardAware>
           <View className="items-center py-16">
             <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               Account not found
             </Text>
           </View>
@@ -423,9 +425,9 @@ export default function AccountDetailScreen() {
           <View className="px-4 py-4">
           {/* Closed account banner */}
           {account.closed_at && (
-            <View className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 mb-3 flex-row items-center gap-3">
-              <Ionicons name="lock-closed-outline" size={18} color="#D97706" />
-              <Text className="text-sm text-amber-700 dark:text-amber-400 flex-1">
+            <View className="bg-warning/10 border border-warning/30 rounded-xl px-4 py-3 mb-3 flex-row items-center gap-3">
+              <Ionicons name="lock-closed-outline" size={18} color={theme.warning} />
+              <Text className="text-sm text-warning flex-1">
                 This account is closed. History is read-only.
               </Text>
             </View>
@@ -436,7 +438,7 @@ export default function AccountDetailScreen() {
             <View className="flex-row items-center mb-4">
               <View
                 className="w-12 h-12 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: accent[500] + "14" }}
+                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
               >
                 <Ionicons
                   name={ACCOUNT_TYPE_ICONS[accountType] ?? "help-outline"}
@@ -445,10 +447,10 @@ export default function AccountDetailScreen() {
                 />
               </View>
               <View>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base font-bold text-foreground">
                   {account.bank_name}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   ****{account.account_identifier}
                 </Text>
               </View>
@@ -458,7 +460,7 @@ export default function AccountDetailScreen() {
                 orphan the loan_accounts row and its schedule). */}
             {account.account_type !== "loan" && (
               <>
-                <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-medium text-muted-foreground mb-2">
                   Account Type
                 </Text>
                 <View className="flex-row flex-wrap mb-4" style={{ gap: 8 }}>
@@ -471,8 +473,8 @@ export default function AccountDetailScreen() {
                         className="flex-row items-center px-3 py-2.5 rounded-lg border"
                         style={{
                           width: "48%",
-                          backgroundColor: isSelected ? accent[500] : undefined,
-                          borderColor: isSelected ? accent[500] : colors.border,
+                          backgroundColor: isSelected ? theme.primary : undefined,
+                          borderColor: isSelected ? theme.primary : colors.border,
                         }}
                       >
                         <Ionicons
@@ -517,15 +519,15 @@ export default function AccountDetailScreen() {
               {siblingCards.length > 0 && (
                 <View
                   className="flex-row items-start mt-3 p-3 rounded-lg"
-                  style={{ backgroundColor: sc.warning + "14" }}
+                  style={{ backgroundColor: theme.warning + "14" }}
                 >
-                  <Ionicons name="information-circle" size={16} color={sc.warning} style={{ marginTop: 1 }} />
+                  <Ionicons name="information-circle" size={16} color={theme.warning} style={{ marginTop: 1 }} />
                   <View className="flex-1 ml-2">
-                    <Text className="text-xs font-medium" style={{ color: sc.warning }}>
+                    <Text className="text-xs font-medium" style={{ color: theme.warning }}>
                       Shared limit - changes sync to all {siblingCards.length + 1} {account.bank_name} cards
                     </Text>
                     {siblingCards.map((s) => (
-                      <Text key={s.id} className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                      <Text key={s.id} className="text-xs text-muted-foreground mt-0.5">
                         ****{s.account_identifier}
                         {s.credit_limit != null ? ` · Limit ${formatAmount(s.credit_limit)}` : ""}
                       </Text>
@@ -534,28 +536,28 @@ export default function AccountDetailScreen() {
                 </View>
               )}
               {account.total_due != null && account.total_due > 0 && (
-                <View className="mt-4 pt-3 border-t border-border-light dark:border-border-dark">
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">
+                <View className="mt-4 pt-3 border-t border-border">
+                  <Text className="text-xs font-semibold text-muted-foreground mb-2">
                     Statement Dues (from SMS)
                   </Text>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-text-primary dark:text-text-dark-primary">Total Due</Text>
-                    <Text className="text-sm font-bold" style={{ color: sc.danger }}>
+                    <Text className="text-sm text-foreground">Total Due</Text>
+                    <Text className="text-sm font-bold" style={{ color: theme.danger }}>
                       {formatAmount(account.total_due)}
                     </Text>
                   </View>
                   {account.min_due != null && (
                     <View className="flex-row justify-between mt-1">
-                      <Text className="text-sm text-text-primary dark:text-text-dark-primary">Minimum Due</Text>
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm text-foreground">Minimum Due</Text>
+                      <Text className="text-sm font-semibold text-foreground">
                         {formatAmount(account.min_due)}
                       </Text>
                     </View>
                   )}
                   {account.due_date && (
                     <View className="flex-row justify-between mt-1">
-                      <Text className="text-sm text-text-primary dark:text-text-dark-primary">Due Date</Text>
-                      <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm text-foreground">Due Date</Text>
+                      <Text className="text-sm text-foreground">
                         {new Date(account.due_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                       </Text>
                     </View>
@@ -579,7 +581,7 @@ export default function AccountDetailScreen() {
                 keyboardType="numeric"
                 formula
               />
-              <Text className="text-xs text-text-tertiary mt-2">
+              <Text className="text-xs text-faint-foreground mt-2">
                 Arth will show an alert on Home if this account's closing balance drops below this. Leave at 0 or blank to disable for this account.
               </Text>
             </Card>
@@ -588,31 +590,31 @@ export default function AccountDetailScreen() {
           {/* Demat: Current value summary */}
           {accountType === "demat" && (
             <Card className="mb-3">
-              <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
+              <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
                 Current Value
               </Text>
               <View className="flex-row justify-between mb-2">
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Portfolio</Text>
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-xs text-muted-foreground mb-0.5">Portfolio</Text>
+                  <Text className="text-base font-bold text-foreground">
                     {dematLatestValue != null ? formatAmount(dematLatestValue) : "—"}
                   </Text>
                 </View>
                 <View className="flex-1 items-center">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Idle Cash</Text>
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-xs text-muted-foreground mb-0.5">Idle Cash</Text>
+                  <Text className="text-base font-bold text-foreground">
                     {dematLatestFund != null ? formatAmount(dematLatestFund) : "—"}
                   </Text>
                 </View>
                 <View className="flex-1 items-end">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Total</Text>
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-xs text-muted-foreground mb-0.5">Total</Text>
+                  <Text className="text-base font-bold text-foreground">
                     {dematLatestValue != null ? formatAmount((dematLatestValue ?? 0) + (dematLatestFund ?? 0)) : "—"}
                   </Text>
                 </View>
               </View>
               {dematLatestDate && (
-                <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary">
+                <Text className="text-label text-faint-foreground">
                   As of {formatSnapshotDate(dematLatestDate)}
                 </Text>
               )}
@@ -623,16 +625,16 @@ export default function AccountDetailScreen() {
           {accountType === "demat" && (
             <Pressable
               onPress={() => router.push({ pathname: "/demat/snapshots/[id]", params: { id: accountId } } as never)}
-              className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt"
+              className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-xl bg-card"
             >
               <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: colors.border }}>
                 <Ionicons name="stats-chart-outline" size={16} color={colors.textSecondary} />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-semibold text-foreground">
                   Demat Account Details
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   {dematSnapshotCount > 0 ? `${dematSnapshotCount} snapshots recorded` : "No snapshots yet"}
                 </Text>
               </View>
@@ -678,10 +680,10 @@ export default function AccountDetailScreen() {
                     />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       View loan details
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       Amortization schedule, prepayments, corrections
                     </Text>
                   </View>
@@ -703,7 +705,7 @@ export default function AccountDetailScreen() {
           {accountType !== "demat" && accountType !== "loan" && accountType !== "credit_card" && <Card className="mb-3" title="Monthly Balance Ledger">
             {!seeded ? (
               <View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+                <Text className="text-xs text-muted-foreground mb-3">
                   Set a starting balance and month to begin tracking. The chain continues automatically from there.
                 </Text>
                 <Input
@@ -733,17 +735,17 @@ export default function AccountDetailScreen() {
                 <PeriodNavigator mode="month" value={ledgerMonth} onChange={setLedgerMonth} variant="inline" />
 
                 {!ledgerSummary ? (
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-4">
+                  <Text className="text-xs text-muted-foreground text-center py-4">
                     No balance data for this month.
                   </Text>
                 ) : (
                   <View className="mt-2">
                     {/* Opening balance — editable */}
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         Opening
                         {ledgerSummary.is_manual_override && (
-                          <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary"> (override)</Text>
+                          <Text className="text-xs text-faint-foreground"> (override)</Text>
                         )}
                       </Text>
                       {editingMonth === ledgerMonth ? (
@@ -760,18 +762,18 @@ export default function AccountDetailScreen() {
                             onPress={() => handleOverrideOpening(ledgerMonth)}
                             className="ml-2 p-1"
                           >
-                            <Ionicons name="checkmark-circle" size={22} color={sc.success} />
+                            <Ionicons name="checkmark-circle" size={22} color={theme.success} />
                           </Pressable>
                           <Pressable
                             onPress={() => setEditingMonth(null)}
                             className="ml-1 p-1"
                           >
-                            <Ionicons name="close-circle" size={22} color={sc.muted} />
+                            <Ionicons name="close-circle" size={22} color={theme.faintForeground} />
                           </Pressable>
                         </View>
                       ) : (
                         <View className="flex-row items-center">
-                          <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary">
+                          <Text className="text-xs font-medium text-foreground">
                             {formatAmount(ledgerSummary.opening_balance)}
                           </Text>
                           <Pressable
@@ -791,7 +793,7 @@ export default function AccountDetailScreen() {
                               className="ml-2"
                               accessibilityLabel="Remove opening balance adjustment"
                             >
-                              <Ionicons name="trash-outline" size={14} color={sc.danger} />
+                              <Ionicons name="trash-outline" size={14} color={theme.danger} />
                             </Pressable>
                           )}
                         </View>
@@ -801,10 +803,10 @@ export default function AccountDetailScreen() {
                     {/* Expenses */}
                     {ledgerSummary.expenses > 0 && (
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Expenses
                         </Text>
-                        <Text className="text-xs" style={{ color: sc.danger }}>
+                        <Text className="text-xs" style={{ color: theme.danger }}>
                           −{formatAmount(ledgerSummary.expenses)}
                         </Text>
                       </View>
@@ -813,10 +815,10 @@ export default function AccountDetailScreen() {
                     {/* Credits */}
                     {ledgerSummary.credits > 0 && (
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Credits / Refunds
                         </Text>
-                        <Text className="text-xs" style={{ color: sc.success }}>
+                        <Text className="text-xs" style={{ color: theme.success }}>
                           +{formatAmount(ledgerSummary.credits)}
                         </Text>
                       </View>
@@ -825,21 +827,21 @@ export default function AccountDetailScreen() {
                     {/* Manual adjustments — drift indicator */}
                     {adjustmentStats.count > 0 && (
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Manual adjustments
                         </Text>
-                        <Text className="text-xs" style={{ color: sc.warning }}>
+                        <Text className="text-xs" style={{ color: theme.warning }}>
                           {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
                         </Text>
                       </View>
                     )}
 
                     {/* Closing / Current balance */}
-                    <View className="flex-row justify-between mt-2 pt-2 border-t border-border-light dark:border-border-dark">
-                      <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
+                    <View className="flex-row justify-between mt-2 pt-2 border-t border-border">
+                      <Text className="text-xs font-semibold text-muted-foreground">
                         {ledgerMonth === getCurrentMonth() ? "Current" : "Closing"}
                       </Text>
-                      <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs font-bold text-foreground">
                         {formatAmount(ledgerSummary.closing_balance)}
                       </Text>
                     </View>
@@ -874,25 +876,25 @@ export default function AccountDetailScreen() {
                     <Ionicons
                       name={isLinked ? "checkbox" : "square-outline"}
                       size={22}
-                      color={isLinked ? colors.blue : "#9CA3AF"}
+                      color={isLinked ? colors.blue : theme.faintForeground}
                     />
                     <Text
                       className={`text-sm ml-3 ${
                         isLinked
-                          ? "text-text-primary dark:text-text-dark-primary font-medium"
-                          : "text-text-secondary dark:text-text-dark-secondary"
+                          ? "text-foreground font-medium"
+                          : "text-muted-foreground"
                       }`}
                     >
                       {mode.name}
                     </Text>
-                    <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary ml-auto">
+                    <Text className="text-label text-muted-foreground ml-auto">
                       {mode.type.replace("_", " ")}
                     </Text>
                   </Pressable>
                 );
               })
             ) : (
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center py-2">
+              <Text className="text-xs text-muted-foreground text-center py-2">
                 No payment modes created yet. Add them in Settings → Payment Modes.
               </Text>
             )}
@@ -914,14 +916,14 @@ export default function AccountDetailScreen() {
               </Pressable>
             ) : (
               <Pressable onPress={handleClose} className="flex-row items-center justify-center py-1">
-                <Ionicons name="lock-closed-outline" size={18} color={sc.danger} />
-                <Text className="text-sm font-medium ml-2" style={{ color: sc.danger }}>Close account</Text>
+                <Ionicons name="lock-closed-outline" size={18} color={theme.danger} />
+                <Text className="text-sm font-medium ml-2" style={{ color: theme.danger }}>Close account</Text>
               </Pressable>
             )}
-            <View className="border-t border-border-light dark:border-border-dark mt-3 pt-3">
+            <View className="border-t border-border mt-3 pt-3">
               <Pressable onPress={handleDelete} className="flex-row items-center justify-center py-1">
                 <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
-                <Text className="text-sm ml-2 text-text-secondary dark:text-text-dark-secondary">Remove account</Text>
+                <Text className="text-sm ml-2 text-muted-foreground">Remove account</Text>
               </Pressable>
             </View>
           </Card>

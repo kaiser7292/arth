@@ -1,8 +1,11 @@
-import { TextInput, View, Text } from "react-native";
+import { TextInput, View } from "react-native";
+
+import { Text } from "./Text";
 import type { TextInputProps } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -29,7 +32,8 @@ export function Input({
   keyboardType,
   ...props
 }: InputProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
+  const { colors } = useColorScheme();
 
   const inFormula = formula && typeof value === "string" && isFormulaMode(value);
   const formulaExpr = inFormula ? getFormulaExpr(value as string) : "";
@@ -47,7 +51,7 @@ export function Input({
   return (
     <View className={containerClassName}>
       {label && (
-        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1.5">
+        <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
           {label}
         </Text>
       )}
@@ -57,12 +61,12 @@ export function Input({
         onBlur={handleBlur}
         keyboardType={formula ? "default" : keyboardType}
         accessibilityLabel={label || props.placeholder}
-        className={`rounded-lg border px-3 py-3 text-base text-text-primary dark:text-text-dark-primary bg-white dark:bg-surface-dark-alt ${
+        className={`rounded-lg border px-3 py-3 text-base text-foreground bg-card ${
           error
             ? "border-danger"
             : inFormula
-            ? "border-blue-400 dark:border-blue-500"
-            : "border-border-light dark:border-border-dark"
+            ? "border-primary"
+            : "border-border"
         } ${className}`}
         placeholderTextColor={colors.tabIconDefault}
         {...props}
@@ -71,7 +75,7 @@ export function Input({
       {inFormula && hasExpr && (
         <Text
           className="text-xs mt-1 ml-1"
-          style={{ color: formulaValid ? colors.tint : "#EF4444" }}
+          style={{ color: formulaValid ? colors.tint : theme.danger }}
         >
           {formulaValid
             ? `= ${formatAmount(formulaResult!)}`

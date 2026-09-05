@@ -1,9 +1,11 @@
 import { useState, useCallback, useMemo } from "react";
-import { View, Text, Pressable, Modal, FlatList } from "react-native";
+import { Text } from "./Text";
+import { View, Pressable, Modal, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+import { useTheme } from "@/hooks/use-theme";
+
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 
@@ -52,7 +54,8 @@ const MONTH_NAMES_SHORT = [
 // ═══════════════════════════════════════════════
 
 export function PeriodNavigator(props: PeriodNavigatorProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const uiTheme = useTheme();
   const [showPicker, setShowPicker] = useState(false);
 
   const isMonth = props.mode === "month";
@@ -110,7 +113,7 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
     <>
       <View
         className={`flex-row items-center justify-between px-4 py-2 ${
-          isBar ? "border-b border-border-light dark:border-border-dark" : ""
+          isBar ? "border-b border-border" : ""
         }`}
       >
         <Pressable
@@ -133,18 +136,18 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
           accessibilityLabel={`Select ${isMonth ? "month" : "financial year"}`}
           accessibilityRole="button"
           className="flex-row items-center px-3 py-1.5 rounded-lg"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 800) }}
+          style={{ backgroundColor: uiTheme.alpha("primary", 0.1) }}
         >
           <Text
             className="text-base font-semibold"
-            style={{ color: ac(accent, colorScheme, 600, 200) }}
+            style={{ color: uiTheme.primary }}
           >
             {label}
           </Text>
           <Ionicons
             name="caret-down"
             size={14}
-            color={ac(accent, colorScheme, 400, 400)}
+            color={uiTheme.primary}
             style={{ marginLeft: 4 }}
           />
         </Pressable>
@@ -176,12 +179,12 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
           onPress={() => setShowPicker(false)}
         >
           <Pressable
-            className="bg-surface-light dark:bg-surface-dark-alt rounded-t-2xl max-h-[70%]"
+            className="bg-background rounded-t-2xl max-h-[70%]"
             onPress={() => {}} // Prevent dismiss when tapping inside
           >
             {/* Handle bar */}
             <View className="items-center pt-3 pb-2">
-              <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+              <View className="w-10 h-1 rounded-full bg-border" />
             </View>
 
             {isMonth ? (
@@ -207,9 +210,9 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
             {/* Cancel */}
             <Pressable
               onPress={() => setShowPicker(false)}
-              className="mx-4 mb-6 py-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark items-center"
+              className="mx-4 mb-6 py-3 rounded-xl bg-background items-center"
             >
-              <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm font-semibold text-muted-foreground">
                 Cancel
               </Text>
             </Pressable>
@@ -235,7 +238,9 @@ function MonthPickerContent({
   maxMonth?: string;
   onChange: (v: string) => void;
 }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const uiTheme = useTheme();
+  const theme = useTheme();
   const [y, m] = value.split("-").map(Number);
   const [pickerYear, setPickerYear] = useState(y);
 
@@ -249,7 +254,7 @@ function MonthPickerContent({
 
   return (
     <View className="px-4 pt-2 pb-3">
-      <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mb-3">
+      <Text className="text-base font-bold text-foreground mb-3">
         Select Month
       </Text>
       {/* Year header with arrows */}
@@ -263,7 +268,7 @@ function MonthPickerContent({
         >
           <Ionicons name="chevron-back" size={22} color={colors.textSecondary} />
         </Pressable>
-        <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+        <Text className="text-lg font-bold text-foreground">
           {pickerYear}
         </Text>
         <Pressable
@@ -300,18 +305,17 @@ function MonthPickerContent({
                 }`}
                 style={
                   isSelected
-                    ? { backgroundColor: accent[500] }
+                    ? { backgroundColor: theme.primary }
                     : isCurrent
-                      ? { borderColor: accent[300] }
+                      ? { borderColor: uiTheme.alpha("primary", 0.25) }
                       : undefined
                 }
               >
                 <Text
                   className={`text-sm ${
-                    isSelected
-                      ? "font-bold text-white"
-                      : "font-medium text-text-primary dark:text-text-dark-primary"
+                    isSelected ? "font-bold" : "font-medium text-foreground"
                   }`}
+                  style={isSelected ? { color: theme.primaryForeground } : undefined}
                 >
                   {name}
                 </Text>
@@ -335,7 +339,9 @@ function FYPickerContent({
   value: number;
   onChange: (v: number) => void;
 }) {
-  const { accent, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
+  const uiTheme = useTheme();
+  const theme = useTheme();
   const fyStartMonth = getFYStartMonth();
   const currentFY = getCurrentFY(fyStartMonth);
 
@@ -350,10 +356,13 @@ function FYPickerContent({
 
   return (
     <View className="pt-2 pb-3">
-      <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary px-4 mb-3">
+      <Text className="text-base font-bold text-foreground px-4 mb-3">
         Select Financial Year
       </Text>
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={fyList}
         keyExtractor={(item) => String(item)}
         renderItem={({ item }) => {
@@ -363,24 +372,25 @@ function FYPickerContent({
             <Pressable
               onPress={() => onChange(item)}
               className={`mx-4 mb-2 py-3 px-4 rounded-xl flex-row items-center justify-between ${
-                isSelected ? "" : "bg-surface-light-alt dark:bg-surface-dark-alt"
+                isSelected ? "" : "bg-card"
               }`}
-              style={isSelected ? { backgroundColor: accent[500] } : undefined}
+              style={isSelected ? { backgroundColor: theme.primary } : undefined}
             >
               <Text
                 className={`text-base ${
-                  isSelected ? "font-bold text-white" : "font-medium text-text-primary dark:text-text-dark-primary"
+                  isSelected ? "font-bold" : "font-medium text-foreground"
                 }`}
+                style={isSelected ? { color: theme.primaryForeground } : undefined}
               >
                 {getFYLabel(item, fyStartMonth)}
               </Text>
               {isCurrent && !isSelected && (
-                <Text className="text-xs font-medium" style={{ color: accent[500] }}>
+                <Text className="text-xs font-medium" style={{ color: theme.primary }}>
                   Current
                 </Text>
               )}
               {isSelected && (
-                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                <Ionicons name="checkmark" size={20} color={theme.primaryForeground} />
               )}
             </Pressable>
           );

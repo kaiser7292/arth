@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from "react-native";
-import { ScreenContainer } from "@/components/ui";
+import { ActivityIndicator, FlatList, Pressable, TextInput, View } from "react-native";
+import { ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getDatabase } from "@/database";
 import { updateItem } from "@/services/reconciliation/reconciliation-crud";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ArthEntry {
   id: string;
@@ -76,7 +77,8 @@ export default function ManualLinkScreen() {
     narration: string;
   }>();
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [query, setQuery] = useState("");
   const [entries, setEntries] = useState<ArthEntry[]>([]);
@@ -220,18 +222,18 @@ export default function ManualLinkScreen() {
     return (
       <Pressable
         onPress={() => handleLink(item)}
-        className="flex-row items-center py-3.5 border-b border-border-light dark:border-border-dark"
+        className="flex-row items-center py-3.5 border-b border-border"
       >
         <View className="flex-1">
-          <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+          <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
             {item.description}
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-xs text-muted-foreground mt-0.5">
             {formatDate(item.date)} · {amountStr(item.amount)}
             {diff > 0 && diff <= 10 && ` · ₹${diff.toFixed(2)} diff`}
           </Text>
           {meta.length > 0 && (
-            <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-0.5" numberOfLines={1}>
+            <Text className="text-xs text-faint-foreground mt-0.5" numberOfLines={1}>
               {meta.join(" · ")}
             </Text>
           )}
@@ -239,7 +241,7 @@ export default function ManualLinkScreen() {
         {linking ? (
           <ActivityIndicator size="small" />
         ) : (
-          <Ionicons name="link" size={18} color={accent[500]} />
+          <Ionicons name="link" size={18} color={theme.primary} />
         )}
       </Pressable>
     );
@@ -248,7 +250,7 @@ export default function ManualLinkScreen() {
   return (
     <ScreenContainer padTop={false}>
       <View className="px-4 pt-3 pb-2">
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+        <Text className="text-xs text-muted-foreground mb-3">
           Statement: {direction === "debit" ? "−" : "+"}{amountStr(parseFloat(amount ?? "0"))} on {formatDate(date ?? "")}. Pick the matching Arth entry.
         </Text>
         <View
@@ -261,7 +263,7 @@ export default function ManualLinkScreen() {
             onChangeText={setQuery}
             placeholder="Search by name or amount…"
             placeholderTextColor={colors.textSecondary}
-            className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
+            className="flex-1 ml-2 text-sm text-foreground"
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -274,13 +276,16 @@ export default function ManualLinkScreen() {
         </View>
       ) : (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={filtered}
           keyExtractor={(item) => `${item.kind}-${item.id}`}
           renderItem={renderItem}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
           ListEmptyComponent={
             <View className="items-center py-12">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 {query ? `No results for "${query}"` : "No nearby Arth entries found."}
               </Text>
             </View>

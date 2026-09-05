@@ -1,7 +1,11 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
+
+import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Advisory, AdvisorySeverity } from "@/utils/financial-cockpit";
+import { useTheme } from "@/hooks/use-theme";
+import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 
 interface AdvisoryCardProps {
   advisory: Advisory;
@@ -21,7 +25,7 @@ const SEVERITY_STYLES: Record<AdvisorySeverity, SeverityStyle> = {
   critical: {
     bg: "#FEF2F2",
     bgDark: "#3B0000",
-    border: "#EF4444",
+    border: STATUS_COLORS.error,
     text: "#991B1B",
     textDark: "#FCA5A5",
     icon: "warning-outline",
@@ -29,7 +33,7 @@ const SEVERITY_STYLES: Record<AdvisorySeverity, SeverityStyle> = {
   warning: {
     bg: "#FEF9E7",
     bgDark: "#332B00",
-    border: "#F59E0B",
+    border: STATUS_COLORS.warning,
     text: "#92400E",
     textDark: "#FBBF24",
     icon: "alert-circle-outline",
@@ -37,15 +41,15 @@ const SEVERITY_STYLES: Record<AdvisorySeverity, SeverityStyle> = {
   info: {
     bg: "#EFF6FF",
     bgDark: "#1E293B",
-    border: "#3B82F6",
-    text: "#1E40AF",
+    border: BRAND_COLOR,
+    text: BRAND_COLOR,
     textDark: "#93C5FD",
     icon: "information-circle-outline",
   },
   celebrate: {
     bg: "#F0FDF4",
     bgDark: "#052E16",
-    border: "#22C55E",
+    border: STATUS_COLORS.success,
     text: "#166534",
     textDark: "#86EFAC",
     icon: "sparkles-outline",

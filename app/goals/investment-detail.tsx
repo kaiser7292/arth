@@ -1,5 +1,5 @@
-import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ScreenContainer } from "@/components/ui";
-import { StatusColors } from "@/constants/theme";
+import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ScreenContainer, Text } from "@/components/ui";
+
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -19,24 +19,20 @@ import {
     getInvestmentContributions,
     updateInvestmentContribution,
 } from "@/services/yearly-plan";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/expense-validation";
 import { formatLocalDate } from "@/utils/fiscal-year";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import {
-    KeyboardAvoidingView,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function InvestmentDetailScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const { bucketId } = useLocalSearchParams<{ bucketId: string }>();
 
   const [bucket, setBucket] = useState<InvestmentBucket | null>(null);
@@ -278,7 +274,7 @@ export default function InvestmentDetailScreen() {
     return (
       <ScreenContainer centered padTop={false}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-        <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary mt-4">
+        <Text className="text-base font-medium text-foreground mt-4">
           Bucket not found
         </Text>
       </ScreenContainer>
@@ -317,29 +313,29 @@ export default function InvestmentDetailScreen() {
                   className="w-14 h-14 rounded-full items-center justify-center mb-2"
                   style={{
                     backgroundColor: isComplete
-                      ? StatusColors[colorScheme].successBg
-                      : acAlpha(accent, 500, 0.08),
+                      ? theme.alpha("success", 0.08)
+                      : theme.alpha("primary", 0.08),
                   }}
                 >
                   <Ionicons
                     name={isComplete ? "checkmark-circle" : "wallet-outline"}
                     size={28}
-                    color={isComplete ? StatusColors[colorScheme].success : colors.blue}
+                    color={isComplete ? theme.success : colors.blue}
                   />
                 </View>
-                <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-lg font-bold text-foreground">
                   {bucket.name}
                 </Text>
                 {linkedMilestoneName && (
-                  <View className="flex-row items-center mt-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+                  <View className="flex-row items-center mt-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
                     <Ionicons name="link-outline" size={12} color={colors.blue} />
-                    <Text className="text-xs ml-1" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+                    <Text className="text-xs ml-1" style={{ color: theme.primary }}>
                       Feeds "{linkedMilestoneName}"
                     </Text>
                   </View>
                 )}
                 {isComplete && (
-                  <View className="mt-1 px-3 py-1 rounded-full" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
+                  <View className="mt-1 px-3 py-1 rounded-full" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
                     <Text className="text-xs font-medium text-success">
                       Goal Complete!
                     </Text>
@@ -350,15 +346,15 @@ export default function InvestmentDetailScreen() {
               {/* Goal / Done / Left */}
               <View className="flex-row mt-3">
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center">
+                  <Text className="text-xs text-muted-foreground text-center">
                     Goal
                   </Text>
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary text-center">
+                  <Text className="text-base font-bold text-foreground text-center">
                     {formatAmount(bucket.annual_target)}
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center">
+                  <Text className="text-xs text-muted-foreground text-center">
                     Done
                   </Text>
                   <Text className="text-base font-bold text-success text-center">
@@ -366,7 +362,7 @@ export default function InvestmentDetailScreen() {
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center">
+                  <Text className="text-xs text-muted-foreground text-center">
                     Left
                   </Text>
                   <Text className="text-base font-bold text-danger text-center">
@@ -376,16 +372,16 @@ export default function InvestmentDetailScreen() {
               </View>
 
               {/* Progress bar */}
-              <View className="mt-3 h-3 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+              <View className="mt-3 h-3 rounded-full bg-border overflow-hidden">
                 <View
                   className="h-3 rounded-full"
                   style={{
                     width: `${pct}%`,
-                    backgroundColor: isComplete ? StatusColors[colorScheme].success : colors.blue,
+                    backgroundColor: isComplete ? theme.success : colors.blue,
                   }}
                 />
               </View>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1 text-right">
+              <Text className="text-xs text-muted-foreground mt-1 text-right">
                 {pct.toFixed(1)}% complete
               </Text>
             </Card>
@@ -398,7 +394,7 @@ export default function InvestmentDetailScreen() {
                     <Ionicons
                       name="checkmark-circle"
                       size={18}
-                      color={StatusColors[colorScheme].success}
+                      color={theme.success}
                     />
                     <Text className="text-sm font-medium text-success ml-2">
                       Annual target achieved!
@@ -425,18 +421,18 @@ export default function InvestmentDetailScreen() {
                         style={{
                           backgroundColor:
                             projection.avgMonthly >= remaining / 12
-                              ? StatusColors[colorScheme].successBg
-                              : StatusColors[colorScheme].dangerBg,
+                              ? theme.alpha("success", 0.08)
+                              : theme.alpha("danger", 0.08),
                         }}
                       >
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           At current pace: {formatAmount(projection.avgMonthly)}/month
                         </Text>
                       </View>
                     )}
                   </>
                 ) : (
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary py-2">
+                  <Text className="text-sm text-muted-foreground py-2">
                     Add contributions to see projection
                   </Text>
                 )}
@@ -460,26 +456,26 @@ export default function InvestmentDetailScreen() {
                       key={m.month}
                       className={`py-2.5 ${
                         i < monthlyHistory.length - 1
-                          ? "border-b border-border-light dark:border-border-dark"
+                          ? "border-b border-border"
                           : ""
                       }`}
                     >
                       <View className="flex-row items-center justify-between mb-1">
-                        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-medium text-foreground">
                           {m.label}
                         </Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-semibold text-foreground">
                           {formatAmount(m.total)}
                         </Text>
                       </View>
-                      <View className="h-2 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+                      <View className="h-2 rounded-full bg-border overflow-hidden">
                         <View
                           className="h-2 rounded-full"
-                          style={{ width: `${barPct}%`, backgroundColor: accent[500] }}
+                          style={{ width: `${barPct}%`, backgroundColor: theme.primary }}
                         />
                       </View>
                       {m.count > 1 && (
-                        <Text className="text-xs text-text-tertiary mt-0.5">
+                        <Text className="text-xs text-faint-foreground mt-0.5">
                           {m.count} contributions
                         </Text>
                       )}
@@ -537,14 +533,14 @@ export default function InvestmentDetailScreen() {
               <Pressable
                 onPress={() => setShowAddForm(true)}
                 className="flex-row items-center justify-center py-3 mb-4 rounded-lg border border-dashed"
-                style={{ borderColor: ac(accent, colorScheme, 600, 300) }}
+                style={{ borderColor: theme.primary }}
               >
                 <Ionicons
                   name="add-circle-outline"
                   size={18}
                   color={colors.blue}
                 />
-                <Text className="text-sm font-medium ml-1" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+                <Text className="text-sm font-medium ml-1" style={{ color: theme.primary }}>
                   Add Contribution
                 </Text>
               </Pressable>
@@ -562,16 +558,16 @@ export default function InvestmentDetailScreen() {
                     onLongPress={c.source === 'manual' ? () => handleContributionLongPress(contributions.find(contr => contr.id === c.id)!) : undefined}
                     className={`flex-row items-center py-2.5 ${
                       i < allContributions.length - 1
-                        ? "border-b border-border-light dark:border-border-dark"
+                        ? "border-b border-border"
                         : ""
                     }`}
                   >
                     <View className="flex-1">
-                      <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm font-medium text-foreground">
                         {formatAmount(c.amount)}
                       </Text>
                       {c.notes && (
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           {c.notes}
                         </Text>
                       )}
@@ -583,7 +579,7 @@ export default function InvestmentDetailScreen() {
                         >
                           <Text
                             className="text-xs mt-0.5"
-                            style={{ color: accent[500] }}
+                            style={{ color: theme.primary }}
                           >
                             from expense · tap to view
                           </Text>
@@ -614,7 +610,7 @@ export default function InvestmentDetailScreen() {
                           >
                             <Text
                               className="text-xs mt-0.5"
-                              style={{ color: accent[500] }}
+                              style={{ color: theme.primary }}
                             >
                               from transfer · tap to view
                             </Text>
@@ -622,12 +618,12 @@ export default function InvestmentDetailScreen() {
                         ) : null;
                       })()}
                     </View>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {c.date}
                     </Text>
                   </Pressable>
                 ))}
-                <Text className="text-xs text-text-tertiary mt-2 text-center">
+                <Text className="text-xs text-faint-foreground mt-2 text-center">
                   Long-press to edit or delete manual contributions
                 </Text>
               </Card>

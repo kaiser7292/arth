@@ -1,21 +1,24 @@
-import { View, Text } from "react-native";
+import { View } from "react-native";
+import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/expense-validation";
 import type { SavingsPulseData } from "@/utils/financial-cockpit";
+import { useTheme } from "@/hooks/use-theme";
 
 interface SavingsPulseProps {
   data: SavingsPulseData;
 }
 
 export function SavingsPulse({ data }: SavingsPulseProps) {
-  const { colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const rateColor = data.actualRatePct >= 20
-    ? StatusColors[colorScheme].success
+    ? theme.success
     : data.actualRatePct >= 10
-      ? StatusColors[colorScheme].warning
-      : StatusColors[colorScheme].danger;
+      ? theme.warning
+      : theme.danger;
 
   return (
     <View className="flex-row items-center">
@@ -27,7 +30,7 @@ export function SavingsPulse({ data }: SavingsPulseProps) {
         >
           {data.actualRatePct.toFixed(1)}%
         </Text>
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-xs text-muted-foreground">
           savings rate
         </Text>
       </View>
@@ -38,10 +41,10 @@ export function SavingsPulse({ data }: SavingsPulseProps) {
           <Ionicons
             name="cash-outline"
             size={12}
-            color={StatusColors[colorScheme].muted}
+            color={theme.faintForeground}
             style={{ marginRight: 4 }}
           />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             Saved: {formatAmount(Math.round(data.totalSaved))}
           </Text>
         </View>
@@ -50,10 +53,10 @@ export function SavingsPulse({ data }: SavingsPulseProps) {
           <Ionicons
             name="stats-chart-outline"
             size={12}
-            color={StatusColors[colorScheme].muted}
+            color={theme.faintForeground}
             style={{ marginRight: 4 }}
           />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             Avg: {formatAmount(Math.round(data.avgMonthlySavings))}/mo
           </Text>
         </View>
@@ -63,10 +66,10 @@ export function SavingsPulse({ data }: SavingsPulseProps) {
           <Ionicons
             name="trending-up-outline"
             size={12}
-            color={StatusColors[colorScheme].muted}
+            color={theme.faintForeground}
             style={{ marginRight: 4 }}
           />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             Year-end: {data.projectedYearEndRate.toFixed(1)}%
           </Text>
         </View>
@@ -75,7 +78,7 @@ export function SavingsPulse({ data }: SavingsPulseProps) {
       <Ionicons
         name="chevron-forward"
         size={16}
-        color={StatusColors[colorScheme].muted}
+        color={theme.faintForeground}
       />
     </View>
   );

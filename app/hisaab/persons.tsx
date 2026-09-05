@@ -6,9 +6,9 @@
  */
 
 import { ExportFormatPicker } from "@/components/hisaab/ExportFormatPicker";
-import { Button, Card, EmptyState, FAB, Input, LoadingState, ScreenContainer } from "@/components/ui";
+import { Button, Card, EmptyState, FAB, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { useAlert } from "@/hooks/use-alert";
 import { useBackOverride } from "@/hooks/use-back-override";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -24,21 +24,16 @@ import { formatAmount } from "@/utils/expense-validation";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-    Keyboard,
-    KeyboardAvoidingView,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 type ViewMode = "list" | "add_person";
 
 export default function HisaabPersonsScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
   const [summary, setSummary] = useState({
@@ -278,7 +273,7 @@ export default function HisaabPersonsScreen() {
             <Card className="mb-4">
               <View className="flex-row mb-2">
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Owed to You
                   </Text>
                   <Text className="text-base font-bold text-success">
@@ -286,7 +281,7 @@ export default function HisaabPersonsScreen() {
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     You Owe
                   </Text>
                   <Text className="text-base font-bold text-danger">
@@ -294,7 +289,7 @@ export default function HisaabPersonsScreen() {
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Net
                   </Text>
                   <Text
@@ -339,7 +334,7 @@ export default function HisaabPersonsScreen() {
           ))}
 
           {persons.length > 0 && (
-            <Text className="text-xs text-text-tertiary text-center mt-2 mb-4">
+            <Text className="text-xs text-faint-foreground text-center mt-2 mb-4">
               Tap to view ledger. Long-press to remove.
             </Text>
           )}
@@ -379,7 +374,8 @@ function PersonCard({
   onEdit: () => void;
   onExport: () => void;
 }) {
-  const { colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const balance = person.balance ?? 0;
   const isPositive = balance >= 0;
 
@@ -393,13 +389,13 @@ function PersonCard({
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
               style={{
                 backgroundColor: isPositive
-                  ? StatusColors[colorScheme].successBg
-                  : StatusColors[colorScheme].dangerBg,
+                  ? theme.alpha("success", 0.08)
+                  : theme.alpha("danger", 0.08),
               }}
             >
               <Text
                 className="text-base font-bold"
-                style={{ color: isPositive ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger }}
+                style={{ color: isPositive ? theme.success : theme.danger }}
               >
                 {person.name.charAt(0).toUpperCase()}
               </Text>
@@ -408,12 +404,12 @@ function PersonCard({
             {/* Name + metadata */}
             <View className="flex-1">
               <Text
-                className="text-sm font-medium text-text-primary dark:text-text-dark-primary"
+                className="text-sm font-medium text-foreground"
                 numberOfLines={1}
               >
                 {person.name}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 {person.entryCount} entries
                 {person.lastEntryDate
                   ? ` · Last: ${person.lastEntryDate}`
@@ -431,7 +427,7 @@ function PersonCard({
                 {isPositive ? "+" : ""}
                 {formatAmount(balance)}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 {isPositive
                   ? balance === 0
                     ? "Settled"
@@ -451,7 +447,7 @@ function PersonCard({
         {/* Notes */}
         {person.notes && (
           <Text
-            className="text-xs text-text-tertiary mt-2"
+            className="text-xs text-faint-foreground mt-2"
             numberOfLines={1}
           >
             {person.notes}

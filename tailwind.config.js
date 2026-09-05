@@ -1,53 +1,79 @@
+const fs = require("fs");
+const path = require("path");
+
+/**
+ * Resolve the token file by walking up from this config's own directory.
+ *
+ * A plain `require("./constants/design-tokens.js")` breaks the Android build: NativeWind/Metro
+ * resolves tailwind.config.js relative to `android/` during Expo autolinking, so the build copies
+ * this file to `android/tailwind.config.js` (see .github/workflows/build-apk.yml). From there a
+ * relative require points at `android/constants/...`, which does not exist. Walking up finds the
+ * real file from either location.
+ */
+function loadTokens() {
+  let dir = __dirname;
+  for (let i = 0; i < 4; i++) {
+    const candidate = path.join(dir, "constants", "design-tokens.js");
+    if (fs.existsSync(candidate)) return require(candidate);
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  throw new Error("tailwind.config.js: cannot locate constants/design-tokens.js from " + __dirname);
+}
+
+const { SEMANTIC, TYPE, SCALE_OVERRIDES, RADIUS } = loadTokens();
+
+/**
+ * Maps a semantic role to a Tailwind colour backed by its CSS variable.
+ *
+ * The `<alpha-value>` placeholder is what makes `bg-primary/10` work: Tailwind converts any theme
+ * colour string containing it into a function, then `withAlphaVariable` substitutes the modifier.
+ * This only parses because the variable holds RGB channels rather than hex — see design-tokens.js.
+ */
+const role = (name) => `rgb(var(--color-${name}) / <alpha-value>)`;
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./app/**/*.{js,jsx,ts,tsx}",
-    "./components/**/*.{js,jsx,ts,tsx}",
-  ],
+  content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
   darkMode: "class",
   theme: {
     extend: {
       borderRadius: {
-        card: "16px",
-        button: "14px",
+        control: RADIUS.control,
+        card: RADIUS.card,
+        sheet: RADIUS.sheet,
       },
-      fontSize: {
-        display: ["32px", { lineHeight: "38px" }],
-        title: ["24px", { lineHeight: "32px" }],
-        headline: ["18px", { lineHeight: "26px" }],
-        body: ["16px", { lineHeight: "24px" }],
-        caption: ["14px", { lineHeight: "20px" }],
-        label: ["12px", { lineHeight: "16px" }],
-        micro: ["10px", { lineHeight: "14px" }],
+
+      // SCALE_OVERRIDES last: it deliberately redefines Tailwind's own xs/sm steps.
+      fontSize: { ...TYPE, ...SCALE_OVERRIDES },
+
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+        mono: ["monospace"],
       },
+
       colors: {
-        surface: {
-          light: "#FFFFFF",
-          "light-alt": "#F7F7F5",
-          dark: "#111111",
-          "dark-alt": "#1E1E1E",
+        /* ---- new semantic roles: one token, both themes, no `dark:` variant needed ---- */
+        background: role("background"),
+        card: role("card"),
+        foreground: role("foreground"),
+        "muted-foreground": role("muted-foreground"),
+        "faint-foreground": role("faint-foreground"),
+        primary: {
+          DEFAULT: role("primary"),
+          foreground: role("primary-foreground"),
         },
-        border: {
-          light: "#E5E5E3",
-          dark: "#2E2E2E",
+        accent: {
+          DEFAULT: role("accent"),
+          solid: role("accent-solid"),
         },
-        text: {
-          primary: "#1A1A1A",
-          secondary: "#6B7280",
-          tertiary: "#9CA3AF",
-          "dark-primary": "#FFFFFF",
-          "dark-secondary": "#A0A0A0",
-          "dark-tertiary": "#6B7280",
-        },
-        success: "#22C55E",
-        danger: "#EF4444",
-        warning: "#F59E0B",
-        budget: {
-          under: "#22C55E",
-          warning: "#F59E0B",
-          over: "#EF4444",
-        },
+
+        border: role("border"),
+        success: role("success"),
+        danger: role("danger"),
+        warning: role("warning"),
       },
     },
   },

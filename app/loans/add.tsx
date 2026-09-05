@@ -1,18 +1,10 @@
 import { useState, useCallback, useMemo } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  KeyboardAvoidingView,
-  Pressable,
-  Modal,
-  Platform,
-} from "react-native";
+import { View, ScrollView, KeyboardAvoidingView, Pressable, Modal, Platform } from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, Button } from "@/components/ui";
+import { Button, Card, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Toggle } from "@/components/goals";
 import { CalendarModal } from "@/components/ui/CalendarModal";
@@ -284,15 +276,15 @@ export default function AddLoanScreen() {
           <Card title="Basics" className="mb-4">
             <Pressable
               onPress={() => setShowLoanTypePicker(true)}
-              className="mb-3 py-3 px-3 rounded-lg border border-border-light dark:border-border-dark"
+              className="mb-3 py-3 px-3 rounded-lg border border-border"
               accessibilityRole="button"
               accessibilityLabel="Choose loan type"
             >
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Loan Type
               </Text>
               <View className="flex-row items-center justify-between mt-1">
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-semibold text-foreground">
                   {LOAN_TYPES.find((t) => t.value === loanType)?.label ?? "Personal"}
                 </Text>
                 <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
@@ -313,7 +305,7 @@ export default function AddLoanScreen() {
               placeholder="e.g. 7249 (as shown on EMI SMS or NACH mandate)"
               containerClassName="mb-3"
             />
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary -mt-2 mb-3">
+            <Text className="text-xs text-muted-foreground -mt-2 mb-3">
               Used to match bank EMI reminders to this loan. If Arth already auto-detected this loan from an SMS, typing the same digits will merge the two cards.
             </Text>
             <Input
@@ -325,12 +317,12 @@ export default function AddLoanScreen() {
             />
             <Pressable
               onPress={() => setShowCurrencyPicker(!showCurrencyPicker)}
-              className="mb-3 py-3 px-3 rounded-lg border border-border-light dark:border-border-dark"
+              className="mb-3 py-3 px-3 rounded-lg border border-border"
             >
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Currency
               </Text>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mt-1">
+              <Text className="text-sm font-semibold text-foreground mt-1">
                 {currency} - {CURRENCIES.find((c) => c.code === currency)?.displayName ?? "-"}
               </Text>
             </Pressable>
@@ -346,7 +338,7 @@ export default function AddLoanScreen() {
                     className="py-2 px-3 rounded-lg"
                     style={{ backgroundColor: c.code === currency ? colors.surface : undefined }}
                   >
-                    <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm text-foreground">
                       {c.code} · {c.displayName}
                     </Text>
                   </Pressable>
@@ -461,7 +453,7 @@ export default function AddLoanScreen() {
               placeholder={suggestedEMI > 0 ? String(Math.round(suggestedEMI)) : "auto"}
             />
             {suggestedEMI > 0 && (
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
+              <Text className="text-xs text-muted-foreground mt-1">
                 Computed EMI: {formatAmount(Math.round(suggestedEMI))}
               </Text>
             )}
@@ -469,7 +461,7 @@ export default function AddLoanScreen() {
 
           {/* v17.5.0 — Historical: how many EMIs already paid? */}
           <Card title="Already in progress?" className="mb-4">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+            <Text className="text-xs text-muted-foreground mb-3">
               If this loan isn't brand new, how many EMIs have you already paid? Arth will mark those installments as paid so the outstanding principal matches reality.
             </Text>
             <Input
@@ -513,7 +505,7 @@ export default function AddLoanScreen() {
 
           {/* Prepayment rules */}
           <Card title="Prepayment / Foreclosure Rules" className="mb-4">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+            <Text className="text-xs text-muted-foreground mb-3">
               Charges the bank takes when you pay extra ahead of schedule. From your loan's Key Fact Sheet. Nothing to do with missing an EMI - that's Penal Charges below. Leave 0 if not applicable.
             </Text>
             <Input
@@ -568,7 +560,7 @@ export default function AddLoanScreen() {
 
           {/* Penal */}
           <Card title="Late-payment charges" className="mb-4">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+            <Text className="text-xs text-muted-foreground mb-3">
               What the bank charges if you miss an EMI. Different from prepayment charges above.
             </Text>
             <Input

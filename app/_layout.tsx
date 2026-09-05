@@ -1,8 +1,10 @@
 import { DEFAULT_USER_ID } from "@/constants/app";
+
+import { Text } from "@/components/ui";
 import { ALLOWED_DEEP_LINK_SCREENS } from "@/constants/routes";
 import { initDatabase } from "@/database";
 import { AlertProvider } from "@/hooks/use-alert";
-import { AccentProvider } from "@/hooks/use-color-scheme";
+import { ToastProvider } from "@/components/ui";
 import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
 import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
@@ -23,10 +25,55 @@ import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as TaskManager from "expo-task-manager";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Appearance, AppState, BackHandler, Easing, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Appearance, AppState, BackHandler, Easing, ScrollView, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Circle, G, Rect, Svg } from "react-native-svg";
 import "../global.css";
+import { useTheme } from "@/hooks/use-theme";
+
+/**
+ * The error fallback, split out as a function component.
+ *
+ * ErrorBoundary must stay a class - getDerivedStateFromError has no hook equivalent - and a class
+ * cannot call hooks. Keeping the themed UI in a child function component is the standard way to
+ * give an error boundary access to context.
+ *
+ * A useTheme() call briefly lived in the class's render(). Since this boundary wraps the entire
+ * app, that threw "Invalid hook call" on every launch and crashed the app before anything rendered.
+ */
+function ErrorFallback({ error }: { error: Error }) {
+  const theme = useTheme();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background, padding: 32, paddingTop: 80 }}>
+      <Text style={{ color: theme.danger, fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
+        Something went wrong
+      </Text>
+      <Text style={{ color: theme.foreground, fontSize: 14, marginBottom: 24 }}>
+        Please close and reopen the app to continue.
+      </Text>
+      <TouchableOpacity
+        onPress={() => BackHandler.exitApp()}
+        style={{
+          backgroundColor: theme.primary,
+          padding: 14,
+          borderRadius: 10,
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: theme.primaryForeground, fontWeight: "600" }}>Close App</Text>
+      </TouchableOpacity>
+      {__DEV__ && (
+        <ScrollView style={{ marginTop: 16 }}>
+          <Text style={{ color: theme.foreground, fontSize: 14, marginBottom: 8 }}>
+            {error.message}
+          </Text>
+          <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>{error.stack}</Text>
+        </ScrollView>
+      )}
+    </View>
+  );
+}
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -38,38 +85,14 @@ class ErrorBoundary extends React.Component<
   }
   render() {
     if (this.state.error) {
-      return (
-        <View style={{ flex: 1, backgroundColor: "#111111", padding: 32, paddingTop: 80 }}>
-          <Text style={{ color: "#EF4444", fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
-            Something went wrong
-          </Text>
-          <Text style={{ color: "#FFFFFF", fontSize: 14, marginBottom: 24 }}>
-            Please close and reopen the app to continue.
-          </Text>
-          <TouchableOpacity
-            onPress={() => BackHandler.exitApp()}
-            style={{ backgroundColor: "#134E4A", padding: 14, borderRadius: 10, alignItems: "center" }}
-          >
-            <Text style={{ color: "#FFFFFF", fontWeight: "600" }}>Close App</Text>
-          </TouchableOpacity>
-          {__DEV__ && (
-            <ScrollView style={{ marginTop: 16 }}>
-              <Text style={{ color: "#FFFFFF", fontSize: 14, marginBottom: 8 }}>
-                {this.state.error.message}
-              </Text>
-              <Text style={{ color: "#6B7280", fontSize: 12 }}>
-                {this.state.error.stack}
-              </Text>
-            </ScrollView>
-          )}
-        </View>
-      );
+      return <ErrorFallback error={this.state.error} />;
     }
     return this.props.children;
   }
 }
 
 function SplashScreen({ step }: { step: string }) {
+  const theme = useTheme();
   const isDark = Appearance.getColorScheme() === "dark";
   const pulseAnim = useRef(new Animated.Value(0.6)).current;
 
@@ -119,7 +142,7 @@ function SplashScreen({ step }: { step: string }) {
               cy="200"
               r="152"
               fill="none"
-              stroke="#F59E0B"
+              stroke={theme.warning}
               strokeWidth="5.5"
             />
             <Circle
@@ -127,10 +150,10 @@ function SplashScreen({ step }: { step: string }) {
               cy="200"
               r="139"
               fill="none"
-              stroke="#F59E0B"
+              stroke={theme.warning}
               strokeWidth="1.2"
             />
-            <G fill="#F59E0B" opacity={0.6}>
+            <G fill={theme.warning} opacity={0.6}>
               <Circle cx="200" cy="55" r="2.3"/>
               <Circle cx="271" cy="75" r="2.3"/>
               <Circle cx="325" cy="129" r="2.3"/>
@@ -153,13 +176,13 @@ function SplashScreen({ step }: { step: string }) {
       <Text style={{ fontSize: 36, fontWeight: "bold", color: isDark ? "#FFFFFF" : "#111111", letterSpacing: 2 }}>
         अर्थ
       </Text>
-      <Text style={{ fontSize: 16, fontWeight: "600", color: isDark ? "#D1D5DB" : "#6B7280", marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>
+      <Text style={{ fontSize: 16, fontWeight: "600", color: isDark ? "#D1D5DB" : theme.mutedForeground, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>
         Arth
       </Text>
-      <Text style={{ fontSize: 13, color: isDark ? "#6B7280" : "#9CA3AF", marginTop: 12, fontStyle: "italic" }}>
+      <Text style={{ fontSize: 13, color: isDark ? theme.mutedForeground : theme.faintForeground, marginTop: 12, fontStyle: "italic" }}>
         your finances, your way
       </Text>
-      <Text style={{ fontSize: 12, color: isDark ? "#6B7280" : "#9CA3AF", marginTop: 32 }}>
+      <Text style={{ fontSize: 12, color: isDark ? theme.mutedForeground : theme.faintForeground, marginTop: 32 }}>
         {step}
       </Text>
     </View>
@@ -205,6 +228,7 @@ async function cleanupLegacyScheduledScan(): Promise<void> {
 }
 
 export default function RootLayout(): React.JSX.Element {
+  const theme = useTheme();
   const [dbReady, setDbReady] = useState(false);
   const [minSplashDone, setMinSplashDone] = useState(false);
   const [lockEvaluated, setLockEvaluated] = useState(false);
@@ -428,7 +452,7 @@ export default function RootLayout(): React.JSX.Element {
   if (initError) {
     return (
       <View style={{ flex: 1, backgroundColor: "#111111", padding: 32, paddingTop: 80 }}>
-        <Text style={{ color: "#EF4444", fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
+        <Text style={{ color: theme.danger, fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
           Database Init Failed
         </Text>
         <Text style={{ color: "#FFFFFF", fontSize: 14, marginBottom: 24 }}>
@@ -444,7 +468,7 @@ export default function RootLayout(): React.JSX.Element {
           onPress={() => BackHandler.exitApp()}
           style={{ borderWidth: 1, borderColor: "#374151", padding: 14, borderRadius: 10, alignItems: "center" }}
         >
-          <Text style={{ color: "#9CA3AF", fontWeight: "600" }}>Close App</Text>
+          <Text style={{ color: theme.faintForeground, fontWeight: "600" }}>Close App</Text>
         </TouchableOpacity>
         {__DEV__ && (
           <ScrollView style={{ marginTop: 16 }}>
@@ -462,13 +486,15 @@ export default function RootLayout(): React.JSX.Element {
 
   return (
     <ErrorBoundary>
-    <AccentProvider>
     <AlertProvider>
     <GestureHandlerRootView style={{ flex: 1 }}>
+    <ToastProvider>
     <>
       <StatusBar style="auto" />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* Was unregistered, so it fell through to expo-router's default chrome. */}
+        <Stack.Screen name="transfer" options={{ headerShown: false }} />
         <Stack.Screen
           name="settings"
           options={{ headerShown: false }}
@@ -531,9 +557,9 @@ export default function RootLayout(): React.JSX.Element {
         />
       </Stack>
     </>
+    </ToastProvider>
     </GestureHandlerRootView>
     </AlertProvider>
-    </AccentProvider>
     </ErrorBoundary>
   );
 }

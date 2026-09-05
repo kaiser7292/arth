@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { View, Text, Pressable, Modal } from "react-native";
+import { View, Pressable, Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
-import { Button } from "@/components/ui";
+
+import { Button, Sheet, Text } from "@/components/ui";
 import { formatAmount } from "@/utils/format";
 import {
   type LoanAccount,
@@ -19,6 +13,7 @@ import {
   loanToTerms,
 } from "@/services/loan-accounts";
 import { computeForeclosureQuote } from "@/services/loan-engine";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * ForeclosureQuoteSheet (v17.1.0)
@@ -54,23 +49,18 @@ export function ForeclosureQuoteSheet({
   onClose,
 }: Props) {
   const { colors } = useColorScheme();
-  const insets = useSafeAreaInsets();
-  const slideAnim = useSharedValue(500);
+  const theme = useTheme();
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
-    if (visible) slideAnim.value = withTiming(0, { duration: 250 });
-  }, [visible, slideAnim]);
+
+  }, [visible]);
 
   const handleClose = useCallback(() => {
-    slideAnim.value = withTiming(500, { duration: 200 }, () => {
-      runOnJS(onClose)();
-    });
-  }, [slideAnim, onClose]);
+    onClose();
+  }, [onClose]);
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: slideAnim.value }],
-  }));
+
 
   const quote = useMemo(() => {
     try {
@@ -110,85 +100,63 @@ export function ForeclosureQuoteSheet({
   if (!visible || !quote) return null;
 
   return (
-    <Modal transparent animationType="none" visible={visible} onRequestClose={handleClose}>
-      <Pressable
-        className="flex-1 bg-black/40"
-        onPress={handleClose}
-        accessibilityLabel="Close"
-        accessibilityRole="button"
-      />
-      <Animated.View
-        style={[
-          animStyle,
-          {
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            maxHeight: "80%",
-            paddingBottom: Math.max(insets.bottom, 8),
-          },
-        ]}
-      >
-        <View className="items-center pt-3 pb-1">
-          <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+    <Sheet visible={visible} onClose={handleClose}>
+      <View className="px-5 pb-3">
+        <Text className="text-base font-bold" style={{ color: colors.text }}>
+          Foreclosure Quote
+        </Text>
+        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+          Close this loan today. Quote valid for {today}.
+        </Text>
+      </View>
+      <View className="px-5">
+        <View
+          className="p-4 rounded-xl"
+          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+        >
+          <Row label="Principal outstanding" value={formatMoney(quote.principalOutstanding)} />
+          <Row label="Interest accrued (from last EMI)" value={formatMoney(quote.interestAccruedToDate)} />
+          <Row
+            label="Prepayment charge"
+            value={quote.prepaymentCharge > 0 ? formatMoney(quote.prepaymentCharge) : "- waived"}
+            color={quote.prepaymentCharge === 0 ? "success" : undefined}
+          />
+          {quote.gst > 0 && <Row label="GST" value={formatMoney(quote.gst)} />}
+          <View className="border-t border-border my-2" />
+          <Row
+            label="Total to pay"
+            value={formatMoney(quote.totalToPay)}
+            bold
+            color="danger"
+          />
+          <View className="border-t border-border my-2" />
+          <Row
+            label="Interest saved vs running to term"
+            value={formatMoney(quote.interestSavedVsTerm)}
+            color="success"
+          />
+          <Row label="Months saved" value={`${quote.monthsSaved}`} color="success" />
         </View>
-        <View className="px-5 pb-3">
-          <Text className="text-base font-bold" style={{ color: colors.text }}>
-            Foreclosure Quote
-          </Text>
-          <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
-            Close this loan today. Quote valid for {today}.
-          </Text>
+      </View>
+      <View className="px-5 pt-3 flex-row gap-2">
+        <View className="flex-1">
+          <Button title="Close" variant="outline" onPress={handleClose} />
         </View>
-        <View className="px-5">
-          <View
-            className="p-4 rounded-xl"
-            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-          >
-            <Row label="Principal outstanding" value={formatMoney(quote.principalOutstanding)} />
-            <Row label="Interest accrued (from last EMI)" value={formatMoney(quote.interestAccruedToDate)} />
-            <Row
-              label="Prepayment charge"
-              value={quote.prepaymentCharge > 0 ? formatMoney(quote.prepaymentCharge) : "- waived"}
-              color={quote.prepaymentCharge === 0 ? "success" : undefined}
-            />
-            {quote.gst > 0 && <Row label="GST" value={formatMoney(quote.gst)} />}
-            <View className="border-t border-border-light dark:border-border-dark my-2" />
-            <Row
-              label="Total to pay"
-              value={formatMoney(quote.totalToPay)}
-              bold
-              color="danger"
-            />
-            <View className="border-t border-border-light dark:border-border-dark my-2" />
-            <Row
-              label="Interest saved vs running to term"
-              value={formatMoney(quote.interestSavedVsTerm)}
-              color="success"
-            />
-            <Row label="Months saved" value={`${quote.monthsSaved}`} color="success" />
-          </View>
+        <View className="flex-1">
+          <Button
+            title="Record Foreclosure"
+            onPress={() =>
+              onForeclose({
+                prepayment_date: today,
+                amount: quote.principalOutstanding + quote.interestAccruedToDate,
+                prepayment_charge: quote.prepaymentCharge,
+                gst_on_charge: quote.gst,
+              })
+            }
+          />
         </View>
-        <View className="px-5 pt-3 flex-row gap-2">
-          <View className="flex-1">
-            <Button title="Close" variant="outline" onPress={handleClose} />
-          </View>
-          <View className="flex-1">
-            <Button
-              title="Record Foreclosure"
-              onPress={() =>
-                onForeclose({
-                  prepayment_date: today,
-                  amount: quote.principalOutstanding + quote.interestAccruedToDate,
-                  prepayment_charge: quote.prepaymentCharge,
-                  gst_on_charge: quote.gst,
-                })
-              }
-            />
-          </View>
-        </View>
-      </Animated.View>
-    </Modal>
+      </View>
+    </Sheet>
   );
 }
 
@@ -203,12 +171,13 @@ function Row({
   color?: "success" | "danger";
   bold?: boolean;
 }) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const valueColor =
     color === "success"
-      ? StatusColors[colorScheme].success
+      ? theme.success
       : color === "danger"
-        ? StatusColors[colorScheme].danger
+        ? theme.danger
         : colors.text;
   return (
     <View className="flex-row items-center justify-between py-1.5">

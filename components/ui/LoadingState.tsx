@@ -1,54 +1,37 @@
-import { useEffect, useRef } from "react";
-import { View, Text, Animated, Easing } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { View } from "react-native";
+import type { Ionicons } from "@expo/vector-icons";
+import { Text } from "./Text";
+import { SkeletonList } from "./Skeleton";
 
 interface LoadingStateProps {
   message?: string;
+  /** Accepted for source compatibility with the previous icon-based version; no longer rendered. */
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Number of placeholder rows. Tune to roughly match what the screen is about to show. */
+  rows?: number;
 }
 
-export function LoadingState({
-  message = "Loading...",
-  icon = "wallet-outline",
-}: LoadingStateProps) {
-  const { colors, accent } = useColorScheme();
-  const pulseAnim = useRef(new Animated.Value(0.4)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 800,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0.4,
-          duration: 800,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [pulseAnim]);
-
+/**
+ * The app's loading state.
+ *
+ * Rewritten to show a skeleton of the content rather than a pulsing icon in the middle of an empty
+ * screen. A centred icon says only "wait", and because it sits nowhere near where the content will
+ * land, the screen jumps when data arrives. Rows shaped like the eventual list say what is coming
+ * and hold its place.
+ *
+ * Changed here rather than at the 31 call sites, so every screen using it improves without being
+ * edited - and the `icon` prop is still accepted so none of them break.
+ *
+ * The message is kept but demoted: it is context, not the main event, and several screens pass a
+ * useful one ("Crunching your numbers", "Building the schedule").
+ */
+export function LoadingState({ message, rows = 6 }: LoadingStateProps) {
   return (
-    <View className="flex-1 items-center justify-center">
-      <Animated.View style={{ opacity: pulseAnim }}>
-        <View
-          className="w-14 h-14 rounded-2xl items-center justify-center mb-4"
-          style={{ backgroundColor: accent[500] + "14" }}
-        >
-          <Ionicons name={icon} size={28} color={accent[500]} />
-        </View>
-      </Animated.View>
-      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
-        {message}
-      </Text>
+    <View className="flex-1 pt-2" accessibilityLabel={message ?? "Loading"}>
+      <SkeletonList rows={rows} />
+      {message ? (
+        <Text className="text-meta text-faint-foreground text-center mt-2">{message}</Text>
+      ) : null}
     </View>
   );
 }

@@ -1,7 +1,7 @@
 import { Toggle } from "@/components/goals";
-import { Button, Input, ScreenContainer } from "@/components/ui";
+import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
-import { StatusColors } from "@/constants/theme";
+
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -22,19 +22,15 @@ import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-    KeyboardAvoidingView,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function PrepaymentForm() {
   const { id, prepaymentId } = useLocalSearchParams<{ id: string; prepaymentId?: string }>();
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme, accent } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const [loan, setLoan] = useState<LoanAccount | null>(null);
   const [schedule, setSchedule] = useState<LoanScheduleEntry[]>([]);
@@ -281,13 +277,13 @@ export default function PrepaymentForm() {
                   label="GST (on charge)"
                   value={impact.gst > 0 ? `− ${formatMoney(impact.gst)}` : "-"}
                 />
-                <View className="border-t border-border-light dark:border-border-dark my-2" />
+                <View className="border-t border-border my-2" />
                 <ImpactRow
                   label="Net applied to principal"
                   value={formatMoney(impact.netApplied)}
                   bold
                 />
-                <View className="border-t border-border-light dark:border-border-dark my-2" />
+                <View className="border-t border-border my-2" />
                 <ImpactRow
                   label="Interest saved"
                   value={formatMoney(impact.interestSavedTotal)}
@@ -359,7 +355,7 @@ export default function PrepaymentForm() {
                       placeholder={String(Math.round(impact.gst))}
                     />
                     <Text
-                      className="text-[11px] mt-1"
+                      className="text-label mt-1"
                       style={{ color: colors.textSecondary }}
                     >
                       Your values override the auto-computed ones. Leave blank to use the auto figures.
@@ -416,11 +412,12 @@ function ImpactRow({
   bold?: boolean;
 }) {
   const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const valueColor =
     color === "success"
-      ? StatusColors[colorScheme].success
+      ? theme.success
       : color === "danger"
-        ? StatusColors[colorScheme].danger
+        ? theme.danger
         : colors.text;
   return (
     <View className="flex-row items-center justify-between py-1">

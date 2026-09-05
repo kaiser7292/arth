@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ScreenContainer, Card, SectionHeader, LoadingState } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { DrillGroupRow } from "@/components/analytics/DrillGroupRow";
@@ -11,13 +11,14 @@ import { YoYComparisonRow } from "@/components/analytics/YoYComparisonRow";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getInsightDrill, type InsightDetail } from "@/services/insight-engine";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
+import { useTheme } from "@/hooks/use-theme";
 
 const SEVERITY_COLORS = {
   celebrate: "success" as const,
-  info: "muted" as const,
+  info: "faintForeground" as const,
   warning: "warning" as const,
   critical: "danger" as const,
 };
@@ -25,8 +26,8 @@ const SEVERITY_COLORS = {
 export default function InsightDetailScreen() {
   const router = useRouter();
   const { insightId } = useLocalSearchParams<{ insightId: string; title: string }>();
-  const { colorScheme } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
   const [detail, setDetail] = useState<InsightDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -56,11 +57,11 @@ export default function InsightDetailScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="items-center py-16 px-8">
-          <Ionicons name="alert-circle-outline" size={48} color={statusColors.muted} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Ionicons name="alert-circle-outline" size={48} color={theme.faintForeground} />
+          <Text className="text-lg font-medium text-foreground mt-4">
             Insight not available
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center">
+          <Text className="text-sm text-muted-foreground mt-1 text-center">
             This insight may no longer be relevant for the current month.
           </Text>
         </View>
@@ -69,7 +70,7 @@ export default function InsightDetailScreen() {
   }
 
   const { insight, drillGroups, totalAmount, budgetAmount, yoyComparison } = detail;
-  const severityColor = statusColors[SEVERITY_COLORS[insight.severity]];
+  const severityColor = theme[SEVERITY_COLORS[insight.severity]];
   const overPct = budgetAmount && budgetAmount > 0
     ? Math.round(((totalAmount - budgetAmount) / budgetAmount) * 100)
     : 0;
@@ -111,13 +112,13 @@ export default function InsightDetailScreen() {
               color={severityColor}
             />
 
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary mt-3">
+            <Text className="text-lg font-bold text-foreground mt-3">
               {insight.title}
             </Text>
 
             {/* Generic detail — suppressed for creep drill because the YoY summary below is more informative */}
             {!isCreepDrill && (
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1">
+              <Text className="text-sm text-muted-foreground mt-1">
                 {insight.detail}
               </Text>
             )}
@@ -127,39 +128,39 @@ export default function InsightDetailScreen() {
               <View className="mt-3">
                 <View className="flex-row">
                   <View className="flex-1 pr-2">
-                    <Text className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary dark:text-text-dark-tertiary">
+                    <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
                       {yoyComparison.currentLabel}
                     </Text>
                     <Text
                       className="text-lg font-bold mt-0.5"
-                      style={{ color: grandDelta >= 0 ? statusColors.danger : statusColors.success }}
+                      style={{ color: grandDelta >= 0 ? theme.danger : theme.success }}
                     >
                       {formatAmount(yoyComparison.currentTotal)}
                     </Text>
                   </View>
-                  <View className="flex-1 pl-2 border-l border-border-light dark:border-border-dark">
-                    <Text className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary dark:text-text-dark-tertiary">
+                  <View className="flex-1 pl-2 border-l border-border">
+                    <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
                       {yoyComparison.previousLabel}
                     </Text>
-                    <Text className="text-lg font-bold text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-lg font-bold text-muted-foreground mt-0.5">
                       {formatAmount(yoyComparison.previousTotal)}
                     </Text>
                   </View>
                 </View>
 
-                <View className="mt-3 pt-3 border-t border-border-light dark:border-border-dark flex-row items-center justify-between">
-                  <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+                <View className="mt-3 pt-3 border-t border-border flex-row items-center justify-between">
+                  <Text className="text-xs font-medium text-muted-foreground">
                     Change YoY
                   </Text>
                   <View className="flex-row items-center">
                     <Ionicons
                       name={grandDelta >= 0 ? "arrow-up" : "arrow-down"}
                       size={14}
-                      color={grandDelta >= 0 ? statusColors.danger : statusColors.success}
+                      color={grandDelta >= 0 ? theme.danger : theme.success}
                     />
                     <Text
                       className="text-sm font-bold ml-1"
-                      style={{ color: grandDelta >= 0 ? statusColors.danger : statusColors.success }}
+                      style={{ color: grandDelta >= 0 ? theme.danger : theme.success }}
                     >
                       {grandDelta >= 0 ? "+" : "−"}
                       {formatAmount(Math.abs(grandDelta))}
@@ -174,14 +175,14 @@ export default function InsightDetailScreen() {
               <View className="mt-4">
                 <ProgressBar
                   value={Math.min(progressValue, 1)}
-                  color={overPct > 0 ? statusColors.danger : statusColors.success}
+                  color={overPct > 0 ? theme.danger : theme.success}
                   height={8}
                 />
                 <View className="flex-row justify-between mt-1.5">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {overPct > 0 ? `${overPct}% over` : "Within budget"}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Budget: {formatAmount(budgetAmount)}
                   </Text>
                 </View>
@@ -198,7 +199,7 @@ export default function InsightDetailScreen() {
             />
             <Card>
               {isCreepDrill && (
-                <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-label text-muted-foreground mb-2">
                   Sorted by largest absolute increase. Bars share the same scale so you can compare sizes.
                 </Text>
               )}
@@ -252,10 +253,10 @@ export default function InsightDetailScreen() {
         {isCreepDrill ? (
           <View className="px-4 mt-4">
             <Card>
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">
+              <Text className="text-xs font-semibold text-muted-foreground mb-2">
                 How to read this
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary leading-5">
+              <Text className="text-xs text-muted-foreground leading-5">
                 Each row shows one category. The red/green bar is what you spent in the last 3 months. The grey bar is what you spent in the same 3 months last year. A big gap between the two is where lifestyle creep is happening.
                 {"\n\n"}
                 <Text className="font-semibold">"New this year"</Text> means Arth has no data for that category last year - either you weren't tracking yet, or the category name is new. That can inflate the headline YoY % even when your real spending is similar.
@@ -266,15 +267,15 @@ export default function InsightDetailScreen() {
           <View className="px-4 mt-4">
             <Card>
               <View className="flex-row justify-between items-center">
-                <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-sm font-medium text-muted-foreground">
                   Total
                 </Text>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base font-bold text-foreground">
                   {formatAmount(totalAmount)}
                 </Text>
               </View>
               {drillGroups.length > 0 && (
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
+                <Text className="text-xs text-muted-foreground mt-1">
                   Across {drillGroups.reduce((s, g) => s + g.count, 0)} transactions
                 </Text>
               )}

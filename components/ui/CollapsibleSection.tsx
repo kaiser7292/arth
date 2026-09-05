@@ -1,8 +1,9 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Text } from "./Text";
 import { settingsStorage as storage } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { LayoutAnimation, Platform, Pressable, Text, UIManager, View } from "react-native";
+import { LayoutAnimation, Platform, Pressable, UIManager, View } from "react-native";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -68,12 +69,12 @@ export function CollapsibleSection({
               style={{ marginRight: 8 }}
             />
           )}
-          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-sm font-semibold text-foreground">
             {title}
           </Text>
           {badge !== undefined && badge > 0 && (
-            <View className="ml-2 px-1.5 py-0.5 rounded-full bg-muted-light/10 dark:bg-muted-dark/10">
-              <Text className="text-[10px] font-bold text-secondary-light dark:text-secondary-dark">
+            <View className="ml-2 px-1.5 py-0.5 rounded-full bg-muted-light/10">
+              <Text className="text-label font-bold text-secondary-light">
                 {badge}
               </Text>
             </View>

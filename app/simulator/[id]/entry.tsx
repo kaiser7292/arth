@@ -1,5 +1,5 @@
 import { SearchablePickerList } from "@/components/expense/ExpenseFormFields";
-import { Button, Input, ScreenContainer } from "@/components/ui";
+import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -18,20 +18,14 @@ import {
     getScenarioOverview,
     updateEntry,
 } from "@/services/simulator";
-import { ac } from "@/utils/accent";
+
 import { todayIso } from "@/utils/date";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-    KeyboardAvoidingView,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
-} from "react-native";
+import { KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 function prettyDate(ymd: string): string {
   if (!ymd) return "";
@@ -46,7 +40,8 @@ function prettyDate(ymd: string): string {
 export default function SimulatorEntryForm() {
   const { id, entryId } = useLocalSearchParams<{ id: string; entryId?: string }>();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   type EntryFlavor = "out" | "in" | "collect" | "payback" | "transfer";
   const [flavor, setFlavor] = useState<EntryFlavor>("out");
@@ -287,11 +282,11 @@ export default function SimulatorEntryForm() {
                       minWidth: "48%",
                       flexGrow: 1,
                       backgroundColor: active
-                        ? ac(accent, colorScheme, 500, 300) + "22"
+                        ? theme.primary + "22"
                         : colors.surface,
                       borderWidth: active ? 2 : 1,
                       borderColor: active
-                        ? ac(accent, colorScheme, 500, 300)
+                        ? theme.primary
                         : colors.border,
                       borderRadius: 12,
                       paddingVertical: 10,
@@ -304,7 +299,7 @@ export default function SimulatorEntryForm() {
                     <Ionicons
                       name={f.icon}
                       size={14}
-                      color={active ? ac(accent, colorScheme, 600, 200) : colors.textSecondary}
+                      color={active ? theme.primary : colors.textSecondary}
                     />
                     <Text
                       className="ml-1.5 text-xs font-semibold"
@@ -330,7 +325,7 @@ export default function SimulatorEntryForm() {
               </Text>
               <Pressable
                 onPress={() => setPersonPickerVisible(prev => !prev)}
-                className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
                 style={{ borderColor: colors.border }}
               >
                 <Text className="text-sm flex-1" numberOfLines={1} style={{ color: selectedPerson ? colors.text : colors.textSecondary }}>
@@ -355,7 +350,7 @@ export default function SimulatorEntryForm() {
                 />
               )}
               {!selectedPerson && (
-                <Text className="text-[10px] mt-1" style={{ color: colors.textSecondary }}>
+                <Text className="text-label mt-1" style={{ color: colors.textSecondary }}>
                   {flavor === "collect"
                     ? "Who's paying you back?"
                     : "Who are you paying back?"}
@@ -386,7 +381,7 @@ export default function SimulatorEntryForm() {
             </Text>
             <Pressable
               onPress={() => setDatePickerVisible(true)}
-              className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+              className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
               style={{ borderColor: colors.border }}
             >
               <Text className="text-sm" style={{ color: colors.text }}>
@@ -406,7 +401,7 @@ export default function SimulatorEntryForm() {
             </Text>
             <Pressable
               onPress={() => setAccountPickerVisible(prev => !prev)}
-              className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+              className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
               style={{ borderColor: colors.border }}
             >
               <Text className="text-sm flex-1" numberOfLines={1} style={{ color: selectedAccount ? colors.text : colors.textSecondary }}>
@@ -457,7 +452,7 @@ export default function SimulatorEntryForm() {
               </Text>
               <Pressable
                 onPress={() => setToAccountPickerVisible(prev => !prev)}
-                className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
                 style={{ borderColor: colors.border }}
               >
                 <Text className="text-sm flex-1" numberOfLines={1} style={{ color: toAccountId ? colors.text : colors.textSecondary }}>
@@ -510,7 +505,7 @@ export default function SimulatorEntryForm() {
               </Text>
               <Pressable
                 onPress={() => setCategoryPickerVisible(prev => !prev)}
-                className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
                 style={{ borderColor: colors.border }}
               >
                 <Text className="text-sm flex-1" numberOfLines={1} style={{ color: selectedCategory ? colors.text : colors.textSecondary }}>
@@ -571,7 +566,7 @@ export default function SimulatorEntryForm() {
                 }}
                 placeholder={direction === "out" ? "e.g. Netflix" : "e.g. Bonus"}
                 placeholderTextColor={colors.textSecondary}
-                className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 text-sm"
+                className="border border-border rounded-lg px-3 py-2.5 text-sm"
                 style={{ color: colors.text, borderColor: colors.border }}
               />
               {merchantSuggestions.length > 0 && (
@@ -613,7 +608,7 @@ export default function SimulatorEntryForm() {
               onFocus={scrollToBottom}
               placeholder="Any note"
               placeholderTextColor={colors.textSecondary}
-              className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 text-sm"
+              className="border border-border rounded-lg px-3 py-2.5 text-sm"
               style={{ color: colors.text, borderColor: colors.border, minHeight: 48 }}
               multiline
             />

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ScreenContainer } from "@/components/ui";
+import { LoadingState, ScreenContainer } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/services/sms/user-sms-templates";
 import { startDraft } from "@/services/sms/template-draft-store";
 import { compileTemplate, deriveSpansFromRegex } from "@/services/sms/template-compiler";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.6.0 — Edit an existing user SMS template.
@@ -26,8 +27,9 @@ export default function EditSmsTemplateScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const alert = useAlert();
-  const { accent, colorScheme } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  
+  const theme = useTheme();
+  const accentColor = theme.primary;
 
   const [, setTemplate] = useState<UserSmsTemplate | null>(null);
 
@@ -86,9 +88,7 @@ export default function EditSmsTemplateScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color={accentColor} />
-      </View>
+      <LoadingState />
     </ScreenContainer>
   );
 }

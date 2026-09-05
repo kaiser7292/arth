@@ -1,10 +1,12 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
+
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface ReportCardProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -20,7 +22,7 @@ function ReportCard({ icon, iconColor, iconBg, title, description, inputsNeeded,
   return (
     <Pressable
       onPress={onPress}
-      className="bg-surface-light-alt dark:bg-surface-dark-alt rounded-2xl p-4 mb-3 border border-border-light dark:border-border-dark"
+      className="bg-card rounded-2xl p-4 mb-3 border border-border"
       accessibilityRole="button"
       accessibilityLabel={title}
     >
@@ -32,16 +34,16 @@ function ReportCard({ icon, iconColor, iconBg, title, description, inputsNeeded,
           <Ionicons name={icon} size={20} color={iconColor} />
         </View>
         <View className="flex-1">
-          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-sm font-semibold text-foreground">
             {title}
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-xs text-muted-foreground mt-0.5">
             {description}
           </Text>
         </View>
       </View>
-      <View className="flex-row items-center justify-between mt-3 pt-2 border-t border-border-light dark:border-border-dark">
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary opacity-60">
+      <View className="flex-row items-center justify-between mt-3 pt-2 border-t border-border">
+        <Text className="text-xs text-muted-foreground opacity-60">
           {inputsNeeded}
         </Text>
         <View className="flex-row items-center gap-1">
@@ -57,8 +59,8 @@ function ReportCard({ icon, iconColor, iconBg, title, description, inputsNeeded,
 
 export default function ReportsHubScreen() {
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
-  const status = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   return (
     <ScreenContainer padTop={false}>
@@ -68,7 +70,7 @@ export default function ReportsHubScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         <View className="px-4 pt-2 pb-4">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary leading-5">
+          <Text className="text-xs text-muted-foreground leading-5">
             Personalized reports generated from your actual financial data
           </Text>
         </View>
@@ -76,8 +78,8 @@ export default function ReportsHubScreen() {
         <View className="px-4">
           <ReportCard
             icon="heart-outline"
-            iconColor={status.success}
-            iconBg={status.successBg}
+            iconColor={theme.success}
+            iconBg={theme.alpha("success", 0.08)}
             title="Financial health"
             description="Net worth, savings rate, debt ratio, emergency readiness, grade card"
             inputsNeeded="No user input needed"
@@ -86,7 +88,7 @@ export default function ReportsHubScreen() {
 
           <ReportCard
             icon="umbrella-outline"
-            iconColor="#3B82F6"
+            iconColor={theme.primary}
             iconBg="#3B82F614"
             title="Retirement readiness"
             description="Corpus target, SIP plan, phase roadmap, risk assessment, scenarios"
@@ -96,8 +98,8 @@ export default function ReportsHubScreen() {
 
           <ReportCard
             icon="trending-down-outline"
-            iconColor={status.warning}
-            iconBg={status.warningBg}
+            iconColor={theme.warning}
+            iconBg={theme.alpha("warning", 0.08)}
             title="Loan payoff strategy"
             description="Avalanche vs snowball, interest saved, optimal payoff sequence"
             inputsNeeded="1 input needed"

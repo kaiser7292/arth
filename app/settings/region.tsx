@@ -1,4 +1,4 @@
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import {
     CURRENCIES,
     DATE_FORMATS,
@@ -19,13 +19,14 @@ import {
     setTimezone,
 } from "@/services/locale-preferences";
 import { getFYStartMonth, setFYStartMonth } from "@/services/settings";
-import { ac } from "@/utils/accent";
+
 import { formatDateWith, todayIso } from "@/utils/date";
 import { formatAmountPreview } from "@/utils/format";
 import { formatDateTimeInTimezone } from "@/utils/timezone";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 const FY_OPTIONS: Array<{ month: number; label: string; region: string }> = [
   { month: 1, label: "January", region: "Calendar year" },
@@ -62,7 +63,8 @@ const COMMON_TIMEZONES = [
  * that currency's default; the user can override it afterwards.
  */
 export default function RegionSettingsScreen() {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [currency, setCurrencyState] = useState<CurrencyCode>(getCurrency());
   const [grouping, setGroupingState] = useState<NumberGrouping>(getNumberGrouping());
   const [dateFormat, setDateFormatState] = useState<DateFormat>(getDateFormat());
@@ -121,25 +123,25 @@ export default function RegionSettingsScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary px-4 pt-4 pb-2">
+        <Text className="text-sm text-muted-foreground px-4 pt-4 pb-2">
           These are display-only preferences. They don&apos;t convert any amounts or
           dates - they just change how numbers and dates look.
         </Text>
 
         {/* Currency */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary px-4 mt-4 mb-2">
+        <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground px-4 mt-4 mb-2">
           Currency
         </Text>
         <Pressable
           onPress={() => setCurrencyPickerOpen(true)}
           className="mx-4 rounded-xl p-4 flex-row items-center"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
         >
           <View className="flex-1">
-            <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-semibold text-foreground">
               {selectedCurrencyDef.displayName}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               Sample: {formatAmountPreview(1234567.89, currency, grouping)}
             </Text>
           </View>
@@ -147,7 +149,7 @@ export default function RegionSettingsScreen() {
         </Pressable>
 
         {/* Grouping */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary px-4 mt-6 mb-2">
+        <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground px-4 mt-6 mb-2">
           Number format
         </Text>
         {(Object.keys(NUMBER_GROUPING_LABELS) as NumberGrouping[]).map((g) => {
@@ -159,30 +161,30 @@ export default function RegionSettingsScreen() {
               className="mx-4 mt-2 rounded-xl p-4 flex-row items-center"
               style={{
                 backgroundColor: isSelected
-                  ? ac(accent, colorScheme, 100, 800)
-                  : ac(accent, colorScheme, 50, 900),
+                  ? theme.alpha("primary", 0.1)
+                  : theme.alpha("primary", 0.1),
                 borderWidth: isSelected ? 1 : 0,
-                borderColor: accent[500],
+                borderColor: theme.primary,
               }}
             >
               <View className="flex-1">
-                <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base font-semibold text-foreground">
                   {NUMBER_GROUPING_LABELS[g]}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   Sample: {formatAmountPreview(1234567.89, currency, g)}
                 </Text>
               </View>
-              {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+              {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
             </Pressable>
           );
         })}
 
         {/* Fiscal Year */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary px-4 mt-6 mb-2">
+        <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground px-4 mt-6 mb-2">
           Fiscal year starts in
         </Text>
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary px-4 mb-2">
+        <Text className="text-xs text-muted-foreground px-4 mb-2">
           All budgets, reports, and yearly comparisons follow this fiscal year.
         </Text>
         {FY_OPTIONS.map((opt) => {
@@ -194,27 +196,27 @@ export default function RegionSettingsScreen() {
               className="mx-4 mt-2 rounded-xl p-4 flex-row items-center"
               style={{
                 backgroundColor: isSelected
-                  ? ac(accent, colorScheme, 100, 800)
-                  : ac(accent, colorScheme, 50, 900),
+                  ? theme.alpha("primary", 0.1)
+                  : theme.alpha("primary", 0.1),
                 borderWidth: isSelected ? 1 : 0,
-                borderColor: accent[500],
+                borderColor: theme.primary,
               }}
             >
               <View className="flex-1">
-                <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base font-semibold text-foreground">
                   {opt.label}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   {opt.region}
                 </Text>
               </View>
-              {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+              {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
             </Pressable>
           );
         })}
 
         {/* Date format */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary px-4 mt-6 mb-2">
+        <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground px-4 mt-6 mb-2">
           Date format
         </Text>
         {DATE_FORMATS.map((f) => {
@@ -226,39 +228,39 @@ export default function RegionSettingsScreen() {
               className="mx-4 mt-2 rounded-xl p-4 flex-row items-center"
               style={{
                 backgroundColor: isSelected
-                  ? ac(accent, colorScheme, 100, 800)
-                  : ac(accent, colorScheme, 50, 900),
+                  ? theme.alpha("primary", 0.1)
+                  : theme.alpha("primary", 0.1),
                 borderWidth: isSelected ? 1 : 0,
-                borderColor: accent[500],
+                borderColor: theme.primary,
               }}
             >
               <View className="flex-1">
-                <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base font-semibold text-foreground">
                   {f}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   Sample: {formatDateWith(sampleDate, f)}
                 </Text>
               </View>
-              {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+              {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
             </Pressable>
           );
         })}
 
         {/* Timezone */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary px-4 mt-6 mb-2">
+        <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground px-4 mt-6 mb-2">
           Timezone
         </Text>
         <Pressable
           onPress={() => setTimezonePickerOpen(true)}
           className="mx-4 mt-2 rounded-xl p-4 flex-row items-center"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
         >
           <View className="flex-1">
-            <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-semibold text-foreground">
               {timezoneState}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               Sample: {formatDateTimeInTimezone(sampleDateTime)}
             </Text>
           </View>
@@ -269,28 +271,28 @@ export default function RegionSettingsScreen() {
       {/* Currency picker overlay */}
       {currencyPickerOpen && (
         <View
-          className="absolute inset-0 bg-surface-light dark:bg-surface-dark"
+          className="absolute inset-0 bg-background"
           style={{ backgroundColor: colors.background }}
         >
           <View
-            className="flex-row items-center px-4 pt-12 pb-3 border-b border-border-light dark:border-border-dark"
+            className="flex-row items-center px-4 pt-12 pb-3 border-b border-border"
             style={{ backgroundColor: colors.background }}
           >
             <Pressable onPress={() => { setCurrencyPickerOpen(false); setCurrencySearch(""); }} className="p-2 -ml-2 mr-2">
               <Ionicons name="close" size={22} color={colors.textSecondary} />
             </Pressable>
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">Choose currency</Text>
+            <Text className="text-lg font-bold text-foreground">Choose currency</Text>
           </View>
 
           <View className="px-4 pt-3 pb-2">
-            <View className="flex-row items-center rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt px-3 py-2">
+            <View className="flex-row items-center rounded-lg bg-card px-3 py-2">
               <Ionicons name="search" size={18} color={colors.textSecondary} />
               <TextInput
                 value={currencySearch}
                 onChangeText={setCurrencySearch}
                 placeholder="Search by name or code..."
                 placeholderTextColor={colors.tabIconDefault}
-                className="flex-1 ml-2 text-base text-text-primary dark:text-text-dark-primary"
+                className="flex-1 ml-2 text-base text-foreground"
                 autoFocus={false}
               />
               {currencySearch !== "" && (
@@ -302,6 +304,9 @@ export default function RegionSettingsScreen() {
           </View>
 
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={filteredCurrencies}
             keyExtractor={(item) => item.code}
             keyboardShouldPersistTaps="handled"
@@ -314,24 +319,24 @@ export default function RegionSettingsScreen() {
                   className="mx-4 my-1 rounded-xl p-4 flex-row items-center"
                   style={{
                     backgroundColor: isSelected
-                      ? ac(accent, colorScheme, 100, 800)
-                      : ac(accent, colorScheme, 50, 900),
+                      ? theme.alpha("primary", 0.1)
+                      : theme.alpha("primary", 0.1),
                     borderWidth: isSelected ? 1 : 0,
-                    borderColor: accent[500],
+                    borderColor: theme.primary,
                   }}
                 >
-                  <Text className="text-base font-bold w-14 text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-base font-bold w-14 text-foreground">
                     {item.symbol || "-"}
                   </Text>
                   <View className="flex-1">
-                    <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-base font-semibold text-foreground">
                       {item.displayName}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       {item.code === "NONE" ? "Plain numbers, no symbol" : item.code} · Sample: {formatAmountPreview(1234567.89, item.code, grouping)}
                     </Text>
                   </View>
-                  {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+                  {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
                 </Pressable>
               );
             }}
@@ -342,20 +347,23 @@ export default function RegionSettingsScreen() {
       {/* Timezone picker overlay */}
       {timezonePickerOpen && (
         <View
-          className="absolute inset-0 bg-surface-light dark:bg-surface-dark"
+          className="absolute inset-0 bg-background"
           style={{ backgroundColor: colors.background }}
         >
           <View
-            className="flex-row items-center px-4 pt-12 pb-3 border-b border-border-light dark:border-border-dark"
+            className="flex-row items-center px-4 pt-12 pb-3 border-b border-border"
             style={{ backgroundColor: colors.background }}
           >
             <Pressable onPress={() => setTimezonePickerOpen(false)} className="p-2 -ml-2 mr-2">
               <Ionicons name="close" size={22} color={colors.textSecondary} />
             </Pressable>
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">Choose timezone</Text>
+            <Text className="text-lg font-bold text-foreground">Choose timezone</Text>
           </View>
 
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={COMMON_TIMEZONES}
             keyExtractor={(item) => item}
             keyboardShouldPersistTaps="handled"
@@ -371,21 +379,21 @@ export default function RegionSettingsScreen() {
                   className="mx-4 my-1 rounded-xl p-4 flex-row items-center"
                   style={{
                     backgroundColor: isSelected
-                      ? ac(accent, colorScheme, 100, 800)
-                      : ac(accent, colorScheme, 50, 900),
+                      ? theme.alpha("primary", 0.1)
+                      : theme.alpha("primary", 0.1),
                     borderWidth: isSelected ? 1 : 0,
-                    borderColor: accent[500],
+                    borderColor: theme.primary,
                   }}
                 >
                   <View className="flex-1">
-                    <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-base font-semibold text-foreground">
                       {item}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       Sample: {formatDateTimeInTimezone(sampleDateTime, { timeZone: item })}
                     </Text>
                   </View>
-                  {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+                  {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
                 </Pressable>
               );
             }}

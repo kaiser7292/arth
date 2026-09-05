@@ -1,10 +1,12 @@
 import { useCallback } from "react";
-import { View, Text } from "react-native";
+
+import { View } from "react-native";
 import type { TextInputProps } from "react-native";
-import { Input } from "@/components/ui";
+import { Input, Text } from "@/components/ui";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";
 import { formatAmount } from "@/utils/format";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 interface AmountInputProps {
   value: string;
@@ -41,6 +43,7 @@ export function AmountInput({
   error,
   autoFocus,
 }: AmountInputProps) {
+  const theme = useTheme();
   const { colors } = useColorScheme();
 
   const inFormula = isFormulaMode(value);
@@ -74,13 +77,13 @@ export function AmountInput({
 
   return (
     <View className="items-center mb-6">
-      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-1">
+      <Text className="text-sm text-muted-foreground mb-1">
         Amount
       </Text>
       <View className="flex-row items-center">
         {/* ₹ prefix — dimmed in formula mode since user is typing an expression */}
         <Text
-          className={`text-3xl font-bold mr-1 ${inFormula ? "text-text-tertiary dark:text-text-dark-tertiary" : "text-text-tertiary dark:text-text-dark-tertiary"}`}
+          className={`text-3xl font-bold mr-1 ${inFormula ? "text-faint-foreground" : "text-faint-foreground"}`}
         >
           {"₹"}
         </Text>
@@ -106,7 +109,7 @@ export function AmountInput({
       {inFormula && hasExpr && (
         <Text
           className="text-base font-semibold mt-1"
-          style={{ color: formulaValid ? colors.tint : "#EF4444" }}
+          style={{ color: formulaValid ? colors.tint : theme.danger }}
         >
           {formulaValid
             ? `= ${formatAmount(formulaResult!)}`
@@ -116,7 +119,7 @@ export function AmountInput({
 
       {/* Hint shown as soon as "=" is typed but expression is empty */}
       {inFormula && !hasExpr && (
-        <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-1">
+        <Text className="text-xs text-faint-foreground mt-1">
           Type an expression, e.g. =5000+2500
         </Text>
       )}

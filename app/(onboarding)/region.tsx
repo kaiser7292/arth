@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { View, Text, ScrollView, Pressable, TextInput, FlatList } from "react-native";
+import { View, ScrollView, Pressable, TextInput, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button, Card } from "@/components/ui";
+import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import {
   setFYStartMonth,
   getFYStartMonth,
@@ -27,6 +27,7 @@ import {
 import { formatAmountPreview } from "@/utils/format";
 import { formatDateWith, todayIso } from "@/utils/date";
 import { getCurrentAppVersion } from "@/services/onboarding";
+import { useTheme } from "@/hooks/use-theme";
 
 const FY_OPTIONS: Array<{ month: number; label: string; region: string }> = [
   { month: 1, label: "January", region: "Calendar year" },
@@ -37,7 +38,8 @@ const FY_OPTIONS: Array<{ month: number; label: string; region: string }> = [
 
 export default function OnboardingRegion() {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [fyMonth, setFyMonth] = useState<number>(getFYStartMonth());
   const [currencyId, setCurrencyId] = useState<CurrencyCode>(getCurrency());
@@ -78,14 +80,14 @@ export default function OnboardingRegion() {
         contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mb-2">
+        <Text className="text-2xl font-bold text-foreground mb-2">
           Set your basics
         </Text>
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-6 leading-5">
+        <Text className="text-sm text-muted-foreground mb-6 leading-5">
           We use these for yearly reports and currency formatting. You can change them later in Settings.
         </Text>
 
-        <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-tertiary uppercase tracking-wider mb-3">
+        <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
           Fiscal year starts in
         </Text>
         <Card className="p-0 mb-6">
@@ -97,15 +99,15 @@ export default function OnboardingRegion() {
                 onPress={() => setFyMonth(opt.month)}
                 className={`flex-row items-center px-4 py-3 ${
                   i < FY_OPTIONS.length - 1
-                    ? "border-b border-border-light dark:border-border-dark"
+                    ? "border-b border-border"
                     : ""
                 }`}
               >
                 <View className="flex-1">
-                  <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-base font-medium text-foreground">
                     {opt.label}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                  <Text className="text-xs text-muted-foreground mt-0.5">
                     {opt.region}
                   </Text>
                 </View>
@@ -113,7 +115,7 @@ export default function OnboardingRegion() {
                   <Ionicons
                     name="checkmark-circle"
                     size={22}
-                    color={ac(accent, colorScheme, 500, 200)}
+                    color={theme.primary}
                   />
                 )}
               </Pressable>
@@ -121,7 +123,7 @@ export default function OnboardingRegion() {
           })}
         </Card>
 
-        <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-tertiary uppercase tracking-wider mb-3">
+        <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
           Currency
         </Text>
         <Pressable
@@ -129,21 +131,21 @@ export default function OnboardingRegion() {
           className="flex-row items-center px-4 py-3 rounded-xl mb-6"
           style={{ backgroundColor: colors.surface }}
         >
-          <Text className="text-base font-bold mr-3 text-text-primary dark:text-text-dark-primary w-14">
+          <Text className="text-base font-bold mr-3 text-foreground w-14">
             {selectedCurrencyDef.symbol || "-"}
           </Text>
           <View className="flex-1">
-            <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-semibold text-foreground">
               {selectedCurrencyDef.displayName}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {selectedCurrencyDef.code === "NONE" ? "Plain numbers, no symbol" : selectedCurrencyDef.code}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </Pressable>
 
-        <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-tertiary uppercase tracking-wider mb-3">
+        <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
           Date format
         </Text>
         <Card className="p-0 mb-6">
@@ -155,15 +157,15 @@ export default function OnboardingRegion() {
                 onPress={() => setDateFormatId(f)}
                 className={`flex-row items-center px-4 py-3 ${
                   i < DATE_FORMATS.length - 1
-                    ? "border-b border-border-light dark:border-border-dark"
+                    ? "border-b border-border"
                     : ""
                 }`}
               >
                 <View className="flex-1">
-                  <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-base font-medium text-foreground">
                     {f}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                  <Text className="text-xs text-muted-foreground mt-0.5">
                     {formatDateWith(todayIso(), f)}  ·  Sample amount: {formatAmountPreview(1234567.89, currencyId, getNumberGrouping())}
                   </Text>
                 </View>
@@ -171,7 +173,7 @@ export default function OnboardingRegion() {
                   <Ionicons
                     name="checkmark-circle"
                     size={22}
-                    color={ac(accent, colorScheme, 500, 200)}
+                    color={theme.primary}
                   />
                 )}
               </Pressable>
@@ -184,7 +186,7 @@ export default function OnboardingRegion() {
       <View className="px-6 pb-6 pt-2">
         <Button title="Continue" onPress={handleContinue} className="mb-3" />
         <Pressable onPress={handleSkip} className="py-3 items-center">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             Skip setup
           </Text>
         </Pressable>
@@ -193,28 +195,28 @@ export default function OnboardingRegion() {
       {/* Currency picker overlay — searchable dropdown. */}
       {currencyPickerOpen && (
         <View
-          className="absolute inset-0 bg-surface-light dark:bg-surface-dark"
+          className="absolute inset-0 bg-background"
           style={{ backgroundColor: colors.background }}
         >
           <View
-            className="flex-row items-center px-4 pt-12 pb-3 border-b border-border-light dark:border-border-dark"
+            className="flex-row items-center px-4 pt-12 pb-3 border-b border-border"
             style={{ backgroundColor: colors.background }}
           >
             <Pressable onPress={() => { setCurrencyPickerOpen(false); setCurrencySearch(""); }} className="p-2 -ml-2 mr-2">
               <Ionicons name="close" size={22} color={colors.textSecondary} />
             </Pressable>
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">Choose currency</Text>
+            <Text className="text-lg font-bold text-foreground">Choose currency</Text>
           </View>
 
           <View className="px-4 pt-3 pb-2">
-            <View className="flex-row items-center rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt px-3 py-2">
+            <View className="flex-row items-center rounded-lg bg-card px-3 py-2">
               <Ionicons name="search" size={18} color={colors.textSecondary} />
               <TextInput
                 value={currencySearch}
                 onChangeText={setCurrencySearch}
                 placeholder="Search by name or code..."
                 placeholderTextColor={colors.tabIconDefault}
-                className="flex-1 ml-2 text-base text-text-primary dark:text-text-dark-primary"
+                className="flex-1 ml-2 text-base text-foreground"
               />
               {currencySearch !== "" && (
                 <Pressable onPress={() => setCurrencySearch("")}>
@@ -225,6 +227,9 @@ export default function OnboardingRegion() {
           </View>
 
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={filteredCurrencies}
             keyExtractor={(item) => item.code}
             keyboardShouldPersistTaps="handled"
@@ -241,24 +246,24 @@ export default function OnboardingRegion() {
                   className="mx-4 my-1 rounded-xl p-4 flex-row items-center"
                   style={{
                     backgroundColor: isSelected
-                      ? ac(accent, colorScheme, 100, 800)
-                      : ac(accent, colorScheme, 50, 900),
+                      ? theme.alpha("primary", 0.1)
+                      : theme.alpha("primary", 0.1),
                     borderWidth: isSelected ? 1 : 0,
-                    borderColor: accent[500],
+                    borderColor: theme.primary,
                   }}
                 >
-                  <Text className="text-base font-bold w-14 text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-base font-bold w-14 text-foreground">
                     {item.symbol || "-"}
                   </Text>
                   <View className="flex-1">
-                    <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-base font-semibold text-foreground">
                       {item.displayName}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       {item.code === "NONE" ? "Plain numbers, no symbol" : item.code}
                     </Text>
                   </View>
-                  {isSelected && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+                  {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
                 </Pressable>
               );
             }}

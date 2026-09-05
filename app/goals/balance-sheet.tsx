@@ -1,19 +1,20 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, LoadingState } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount, formatCompact } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getCurrentFY, getFYRange, getFYLabel, formatLocalDate } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { getBalanceSheet, hasDataInRange } from "@/services/balance-sheet";
 import type { BalanceSheetColumn, BalanceSheetRow } from "@/services/balance-sheet";
 import { consumeBalanceSheetPreload } from "@/services/home-preload";
+import { useTheme } from "@/hooks/use-theme";
 
 const preloaded = consumeBalanceSheetPreload();
 
@@ -31,8 +32,8 @@ const LABEL_COL_WIDTH = 150;
 
 export default function BalanceSheetScreen() {
   const router = useRouter();
-  const { accent, colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [columns, setColumns] = useState<BalanceSheetColumn[]>(
     preloaded ? [preloaded.liveColumn] : [],
   );
@@ -226,9 +227,9 @@ export default function BalanceSheetScreen() {
   const historicNetWorth = earliestHistoric?.netWorth ?? 0;
   const deltaAbs = liveNetWorth - historicNetWorth;
   const deltaPct = historicNetWorth !== 0 ? (deltaAbs / Math.abs(historicNetWorth)) * 100 : 0;
-  const deltaColor = deltaAbs > 0 ? sc.success : deltaAbs < 0 ? sc.danger : sc.muted;
+  const deltaColor = deltaAbs > 0 ? theme.success : deltaAbs < 0 ? theme.danger : theme.faintForeground;
   const liveNetWorthColor =
-    liveNetWorth < 0 ? sc.danger : sc.success;
+    liveNetWorth < 0 ? theme.danger : theme.success;
 
   return (
     <ScreenContainer padTop={false}>
@@ -236,16 +237,16 @@ export default function BalanceSheetScreen() {
         {/* Hero: current net worth + delta */}
         <Card className="mx-4 mt-3 mb-2">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Net Worth · Today
             </Text>
             {recomputing && (
               <View
                 className="flex-row items-center px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: accent[500] + "1A" }}
+                style={{ backgroundColor: theme.alpha("primary", 0.1) }}
               >
-                <ActivityIndicator size="small" color={accent[500]} />
-                <Text className="text-[10px] font-semibold ml-1.5" style={{ color: accent[500] }}>
+                <ActivityIndicator size="small" color={theme.primary} />
+                <Text className="text-label font-semibold ml-1.5" style={{ color: theme.primary }}>
                   Updating…
                 </Text>
               </View>
@@ -253,7 +254,7 @@ export default function BalanceSheetScreen() {
           </View>
           <View className="flex-row items-end" style={{ opacity: recomputing ? 0.55 : 1 }}>
             {liveNetWorth < 0 && (
-              <Ionicons name="warning-outline" size={20} color={sc.danger} style={{ marginRight: 6 }} />
+              <Ionicons name="warning-outline" size={20} color={theme.danger} style={{ marginRight: 6 }} />
             )}
             <Text className="text-2xl font-bold" style={{ color: liveNetWorthColor }}>
               {formatAmount(liveNetWorth)}
@@ -269,7 +270,7 @@ export default function BalanceSheetScreen() {
               <Text className="text-xs font-medium ml-1" style={{ color: deltaColor }}>
                 {deltaAbs >= 0 ? "+" : ""}{formatCompact(deltaAbs)}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-1">
+              <Text className="text-xs text-muted-foreground ml-1">
                 ({deltaAbs >= 0 ? "+" : ""}{deltaPct.toFixed(1)}%) since {earliestHistoric.label}
               </Text>
             </View>
@@ -280,7 +281,7 @@ export default function BalanceSheetScreen() {
             Plain View (not Card) so the scroller can extend to the table edges
             without inherited padding. */}
         <View
-          className="mx-4 mb-2 rounded-2xl bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden"
+          className="mx-4 mb-2 rounded-2xl bg-card overflow-hidden"
           style={{ opacity: recomputing ? 0.55 : 1 }}
         >
           <ScrollView
@@ -289,7 +290,7 @@ export default function BalanceSheetScreen() {
           >
             <View>
               {/* Header row */}
-              <View className="flex-row items-center border-b border-border-light dark:border-border-dark px-3 py-2">
+              <View className="flex-row items-center border-b border-border px-3 py-2">
                 <View style={{ width: LABEL_COL_WIDTH }} />
                 {columns.map((col) => (
                   <View
@@ -298,8 +299,8 @@ export default function BalanceSheetScreen() {
                     className="flex-row items-center justify-end"
                   >
                     <Text
-                      className="text-[10px] font-semibold uppercase tracking-wider"
-                      style={{ color: col.isLive ? ac(accent, colorScheme, 600, 200) : colors.textSecondary }}
+                      className="text-label font-semibold uppercase tracking-wider"
+                      style={{ color: col.isLive ? theme.primary : colors.textSecondary }}
                       numberOfLines={1}
                     >
                       {col.label}
@@ -334,7 +335,7 @@ export default function BalanceSheetScreen() {
                   <Ionicons
                     name="add-circle-outline"
                     size={22}
-                    color={ac(accent, colorScheme, 500, 300)}
+                    color={theme.primary}
                   />
                 </Pressable>
               </View>
@@ -342,15 +343,15 @@ export default function BalanceSheetScreen() {
               {/* Assets section */}
               <Pressable
                 onPress={() => setShowAssets(!showAssets)}
-                className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark"
-                style={{ backgroundColor: acAlpha(accent, 500, 0.04) }}
+                className="flex-row items-center px-3 py-2 border-b border-border"
+                style={{ backgroundColor: theme.alpha("primary", 0.04) }}
               >
                 <Ionicons
                   name={showAssets ? "chevron-down" : "chevron-forward"}
                   size={12}
                   color={colors.textSecondary}
                 />
-                <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary ml-1 flex-1">
+                <Text className="text-xs font-bold text-foreground ml-1 flex-1">
                   Assets
                 </Text>
               </Pressable>
@@ -359,10 +360,10 @@ export default function BalanceSheetScreen() {
                 <Pressable
                   key={`a-${row.label}`}
                   onPress={() => handleRowPress(row)}
-                  className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark"
+                  className="flex-row items-center px-3 py-2 border-b border-border"
                 >
                   <Text
-                    className="text-xs text-text-primary dark:text-text-dark-primary"
+                    className="text-xs text-foreground"
                     numberOfLines={1}
                     style={{ width: LABEL_COL_WIDTH }}
                   >
@@ -378,9 +379,9 @@ export default function BalanceSheetScreen() {
                           className="text-xs"
                           style={{
                             color: isMissing
-                              ? sc.muted
+                              ? theme.faintForeground
                               : cell?.isFallback
-                                ? sc.muted
+                                ? theme.faintForeground
                                 : colors.text,
                             fontStyle: cell?.isFallback ? "italic" : "normal",
                           }}
@@ -395,16 +396,16 @@ export default function BalanceSheetScreen() {
 
               {/* Total Assets */}
               {showAssets && (
-                <View className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark">
+                <View className="flex-row items-center px-3 py-2 border-b border-border">
                   <Text
-                    className="text-xs font-bold text-text-primary dark:text-text-dark-primary"
+                    className="text-xs font-bold text-foreground"
                     style={{ width: LABEL_COL_WIDTH }}
                   >
                     Total Assets
                   </Text>
                   {columns.map((col) => (
                     <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                      <Text className="text-xs font-bold" style={{ color: sc.success }}>
+                      <Text className="text-xs font-bold" style={{ color: theme.success }}>
                         {formatAmount(col.totalAssets)}
                       </Text>
                     </View>
@@ -415,15 +416,15 @@ export default function BalanceSheetScreen() {
               {/* Liabilities section */}
               <Pressable
                 onPress={() => setShowLiabilities(!showLiabilities)}
-                className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark"
-                style={{ backgroundColor: sc.danger + "0A" }}
+                className="flex-row items-center px-3 py-2 border-b border-border"
+                style={{ backgroundColor: theme.danger + "0A" }}
               >
                 <Ionicons
                   name={showLiabilities ? "chevron-down" : "chevron-forward"}
                   size={12}
                   color={colors.textSecondary}
                 />
-                <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary ml-1 flex-1">
+                <Text className="text-xs font-bold text-foreground ml-1 flex-1">
                   Liabilities
                 </Text>
               </Pressable>
@@ -432,10 +433,10 @@ export default function BalanceSheetScreen() {
                 <Pressable
                   key={`l-${row.label}`}
                   onPress={() => handleRowPress(row)}
-                  className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark"
+                  className="flex-row items-center px-3 py-2 border-b border-border"
                 >
                   <Text
-                    className="text-xs text-text-primary dark:text-text-dark-primary"
+                    className="text-xs text-foreground"
                     numberOfLines={1}
                     style={{ width: LABEL_COL_WIDTH }}
                   >
@@ -451,9 +452,9 @@ export default function BalanceSheetScreen() {
                           className="text-xs"
                           style={{
                             color: isMissing
-                              ? sc.muted
+                              ? theme.faintForeground
                               : cell?.isFallback
-                                ? sc.muted
+                                ? theme.faintForeground
                                 : colors.text,
                             fontStyle: cell?.isFallback ? "italic" : "normal",
                           }}
@@ -468,16 +469,16 @@ export default function BalanceSheetScreen() {
 
               {/* Total Liabilities */}
               {showLiabilities && (
-                <View className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark">
+                <View className="flex-row items-center px-3 py-2 border-b border-border">
                   <Text
-                    className="text-xs font-bold text-text-primary dark:text-text-dark-primary"
+                    className="text-xs font-bold text-foreground"
                     style={{ width: LABEL_COL_WIDTH }}
                   >
                     Total Liabilities
                   </Text>
                   {columns.map((col) => (
                     <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                      <Text className="text-xs font-bold" style={{ color: sc.danger }}>
+                      <Text className="text-xs font-bold" style={{ color: theme.danger }}>
                         {formatAmount(col.totalLiabilities)}
                       </Text>
                     </View>
@@ -488,10 +489,10 @@ export default function BalanceSheetScreen() {
               {/* Net Worth */}
               <View
                 className="flex-row items-center px-3 py-3"
-                style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
               >
                 <Text
-                  className="text-xs font-bold text-text-primary dark:text-text-dark-primary"
+                  className="text-xs font-bold text-foreground"
                   style={{ width: LABEL_COL_WIDTH }}
                 >
                   Net Worth
@@ -501,7 +502,7 @@ export default function BalanceSheetScreen() {
                     <Text
                       className="text-sm font-bold"
                       style={{
-                        color: col.netWorth < 0 ? sc.danger : colors.text,
+                        color: col.netWorth < 0 ? theme.danger : colors.text,
                       }}
                     >
                       {formatAmount(col.netWorth)}
@@ -518,7 +519,7 @@ export default function BalanceSheetScreen() {
           <View className="flex-row items-start">
             <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} style={{ marginTop: 2 }} />
             <View className="flex-1 ml-2">
-              <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary leading-4">
+              <Text className="text-label text-muted-foreground leading-4">
                 A "-" means no data for that row in that period. For demat, it means no portfolio or fund snapshot was recorded within that fiscal year. Italic values fall back to the last SMS balance when the ledger opening isn't seeded - seed openings to make those authoritative.
               </Text>
             </View>

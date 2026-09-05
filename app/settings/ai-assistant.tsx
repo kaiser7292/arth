@@ -1,4 +1,5 @@
-import { Card, ScreenContainer } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
+
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -31,7 +32,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 type Phase = "idle" | "downloading" | "cancelling";
 
@@ -49,7 +51,8 @@ function makeDefaultState(model: ModelDefinition): ModelState {
 }
 
 export default function AIAssistantSettings() {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const alert = useAlert();
 
   const [aiEnabled, setAiEnabled] = useState(isArthAIEnabled);
@@ -211,24 +214,24 @@ export default function AIAssistantSettings() {
 
           {/* Feature toggle */}
           <Card title="Arth AI (Beta)" className="mb-4">
-            <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
+            <View className="flex-row items-center justify-between py-2 border-b border-border">
               <View className="flex-1 mr-3">
-                <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base text-foreground">
                   Enable AI assistant
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   Runs fully on-device. No data ever leaves your phone.
                 </Text>
               </View>
               <Switch
                 value={aiEnabled}
                 onValueChange={handleAIToggle}
-                trackColor={{ false: colors.border, true: accent[500] }}
+                trackColor={{ false: colors.border, true: theme.primary }}
                 thumbColor="#FFFFFF"
               />
             </View>
             {!aiEnabled && (
-              <Text className="text-xs text-text-tertiary mt-3">
+              <Text className="text-xs text-faint-foreground mt-3">
                 Enable to chat with your personal finance data. Choose and download a model below.
               </Text>
             )}
@@ -251,7 +254,7 @@ export default function AIAssistantSettings() {
 
               {/* Model cards */}
               <Card title="AI Model" className="mb-4">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+                <Text className="text-xs text-muted-foreground mb-3">
                   Download one or both models. The active model is used in chat.
                 </Text>
                 {AVAILABLE_MODELS.map((model, idx) => {
@@ -265,15 +268,15 @@ export default function AIAssistantSettings() {
                   return (
                     <View
                       key={model.id}
-                      className={`py-3 ${!isLast ? "border-b border-border-light dark:border-border-dark" : ""}`}
+                      className={`py-3 ${!isLast ? "border-b border-border" : ""}`}
                     >
                       {/* Header row */}
                       <View className="flex-row items-start justify-between mb-1">
                         <View className="flex-1 mr-2">
-                          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                          <Text className="text-sm font-semibold text-foreground">
                             {model.name}
                           </Text>
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                          <Text className="text-xs text-muted-foreground mt-0.5">
                             {model.description}
                           </Text>
                         </View>
@@ -283,15 +286,15 @@ export default function AIAssistantSettings() {
                             className="px-2 py-0.5 rounded-full flex-row items-center gap-1"
                             style={{ backgroundColor: isDark ? "#0f2a18" : "#dcfce7" }}
                           >
-                            <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#3fb950" }} />
-                            <Text className="text-xs font-semibold" style={{ color: "#3fb950" }}>Active</Text>
+                            <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: theme.success }} />
+                            <Text className="text-xs font-semibold" style={{ color: theme.success }}>Active</Text>
                           </View>
                         ) : state.downloaded ? (
                           <View
                             className="px-2 py-0.5 rounded-full"
                             style={{ backgroundColor: isDark ? "#1c2128" : "#f3f4f6" }}
                           >
-                            <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+                            <Text className="text-xs font-medium text-muted-foreground">
                               Downloaded
                             </Text>
                           </View>
@@ -299,7 +302,7 @@ export default function AIAssistantSettings() {
                       </View>
 
                       {/* Size tag */}
-                      <Text className="text-xs text-text-tertiary mb-2">
+                      <Text className="text-xs text-faint-foreground mb-2">
                         ~{model.sizeMB >= 1000
                           ? `${(model.sizeMB / 1024).toFixed(1)} GB`
                           : `${model.sizeMB} MB`} · {model.minRAMGB} GB+ RAM required
@@ -309,17 +312,17 @@ export default function AIAssistantSettings() {
                       {(isDownloading || isCancelling) && (
                         <View className="mb-2">
                           <View className="flex-row justify-between mb-1">
-                            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                            <Text className="text-xs text-muted-foreground">
                               {state.downloadedMB} MB of {state.totalMB} MB
                             </Text>
-                            <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
+                            <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
                               {pctLabel}
                             </Text>
                           </View>
-                          <View className="h-1.5 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+                          <View className="h-1.5 rounded-full bg-border overflow-hidden">
                             <View
                               className="h-full rounded-full"
-                              style={{ width: `${Math.round(state.pct * 100)}%`, backgroundColor: accent[500] }}
+                              style={{ width: `${Math.round(state.pct * 100)}%`, backgroundColor: theme.primary }}
                             />
                           </View>
                         </View>
@@ -332,12 +335,12 @@ export default function AIAssistantSettings() {
                           <Pressable
                             onPress={() => handleCancel(model.id)}
                             disabled={isCancelling}
-                            className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-border-light dark:border-border-dark"
+                            className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-border"
                           >
                             {isCancelling ? (
                               <ActivityIndicator size="small" color={colors.textSecondary} />
                             ) : (
-                              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                              <Text className="text-sm text-muted-foreground">
                                 Cancel
                               </Text>
                             )}
@@ -348,10 +351,10 @@ export default function AIAssistantSettings() {
                           <Pressable
                             onPress={() => handleDownload(model.id)}
                             className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5"
-                            style={{ backgroundColor: accent[500] }}
+                            style={{ backgroundColor: theme.primary }}
                           >
                             <Ionicons name="download-outline" size={16} color="#FFFFFF" />
-                            <Text className="text-sm font-semibold text-white">
+                            <Text className="text-sm font-semibold text-primary-foreground">
                               Download (~{model.sizeMB >= 1000
                                 ? `${(model.sizeMB / 1024).toFixed(1)} GB`
                                 : `${model.sizeMB} MB`})
@@ -364,10 +367,10 @@ export default function AIAssistantSettings() {
                           <Pressable
                             onPress={() => handleUseModel(model.id)}
                             className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5"
-                            style={{ backgroundColor: accent[500] }}
+                            style={{ backgroundColor: theme.primary }}
                           >
                             <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
-                            <Text className="text-sm font-semibold text-white">Use this model</Text>
+                            <Text className="text-sm font-semibold text-primary-foreground">Use this model</Text>
                           </Pressable>
                         )}
 
@@ -375,8 +378,8 @@ export default function AIAssistantSettings() {
                         {state.downloaded && isActive && (
                           <View className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg gap-1.5"
                             style={{ backgroundColor: isDark ? "#0f2a18" : "#dcfce7" }}>
-                            <Ionicons name="checkmark-circle" size={16} color="#3fb950" />
-                            <Text className="text-sm font-semibold" style={{ color: "#3fb950" }}>Currently active</Text>
+                            <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+                            <Text className="text-sm font-semibold" style={{ color: theme.success }}>Currently active</Text>
                           </View>
                         )}
 
@@ -384,7 +387,7 @@ export default function AIAssistantSettings() {
                         {state.downloaded && (
                           <Pressable
                             onPress={() => handleDelete(model.id)}
-                            className="w-10 h-10 items-center justify-center rounded-lg border border-border-light dark:border-border-dark"
+                            className="w-10 h-10 items-center justify-center rounded-lg border border-border"
                           >
                             <Ionicons name="trash-outline" size={18} color="#f85149" />
                           </Pressable>
@@ -393,7 +396,7 @@ export default function AIAssistantSettings() {
 
                       {/* 3B RAM caution */}
                       {model.id === "3b" && state.downloaded && (
-                        <Text className="text-xs text-text-tertiary mt-2">
+                        <Text className="text-xs text-faint-foreground mt-2">
                           If the app is slow or unresponsive, delete the 3B model and use 1B instead.
                         </Text>
                       )}
@@ -406,17 +409,17 @@ export default function AIAssistantSettings() {
               {(initError || modelPath) && (
                 <Card title="Debug Info" className="mb-4">
                   <View className="py-2">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">Active model path:</Text>
+                    <Text className="text-xs text-muted-foreground mb-1">Active model path:</Text>
                     <Text
                       className="text-xs font-mono"
-                      style={{ color: initError ? "#f85149" : "#3fb950" }}
+                      style={{ color: initError ? "#f85149" : theme.success }}
                       selectable
                     >
                       {modelPath || "—"}
                     </Text>
                     {initError && (
                       <>
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-3 mb-1">Init error:</Text>
+                        <Text className="text-xs text-muted-foreground mt-3 mb-1">Init error:</Text>
                         <Text className="text-xs text-danger" selectable>{initError}</Text>
                       </>
                     )}
@@ -426,7 +429,7 @@ export default function AIAssistantSettings() {
 
               {/* Data access toggles */}
               <Card title="Data Access" className="mb-4">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+                <Text className="text-xs text-muted-foreground mb-3">
                   Choose what data the AI assistant can see. All processing stays on-device.
                 </Text>
 
@@ -464,16 +467,16 @@ export default function AIAssistantSettings() {
                 ].map((row, idx, arr) => (
                   <View
                     key={row.label}
-                    className={`flex-row items-center justify-between py-2.5 ${idx < arr.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""}`}
+                    className={`flex-row items-center justify-between py-2.5 ${idx < arr.length - 1 ? "border-b border-border" : ""}`}
                   >
                     <View className="flex-1 mr-3">
-                      <Text className="text-sm text-text-primary dark:text-text-dark-primary">{row.label}</Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">{row.sub}</Text>
+                      <Text className="text-sm text-foreground">{row.label}</Text>
+                      <Text className="text-xs text-muted-foreground mt-0.5">{row.sub}</Text>
                     </View>
                     <Switch
                       value={row.val}
                       onValueChange={row.set}
-                      trackColor={{ false: colors.border, true: accent[500] }}
+                      trackColor={{ false: colors.border, true: theme.primary }}
                       thumbColor="#FFFFFF"
                     />
                   </View>
@@ -486,17 +489,17 @@ export default function AIAssistantSettings() {
           <Card title="Natural Language Search" className="mb-4">
             <View className="flex-row items-center justify-between py-2">
               <View className="flex-1 mr-3">
-                <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base text-foreground">
                   Smart search
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   Search Transactions with phrases like "food expenses last month". Rule-based — works without a model download.
                 </Text>
               </View>
               <Switch
                 value={nlSearchEnabled}
                 onValueChange={(v) => { setNLSearchEnabled(v); setNlSearchEnabled(v); }}
-                trackColor={{ false: colors.border, true: accent[500] }}
+                trackColor={{ false: colors.border, true: theme.primary }}
                 thumbColor="#FFFFFF"
               />
             </View>

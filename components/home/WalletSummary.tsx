@@ -1,16 +1,17 @@
 import { memo, useState, useCallback } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card } from "@/components/ui";
+import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
+
 import type { FinancialAccount } from "@/services/financial-account";
 import { getComputedBalanceComponents, computeUnseededBalance } from "@/services/account-balance";
 import { getCurrentMonth } from "@/services/budget";
+import { useTheme } from "@/hooks/use-theme";
 
 interface WalletSummaryProps {
   accounts: FinancialAccount[];
@@ -27,8 +28,8 @@ interface Totals {
 
 function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [totals, setTotals] = useState<Totals>({ opening: 0, expenses: 0, credits: 0, transfersOut: 0, transfersIn: 0, closing: 0 });
 
   const load = useCallback(async () => {
@@ -79,14 +80,14 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
           <View className="flex-row items-center mb-3">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: acAlpha(accent, 600, 0.08) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
-              <Ionicons name="phone-portrait-outline" size={20} color={ac(accent, colorScheme, 700, 300)} />
+              <Ionicons name="phone-portrait-outline" size={20} color={theme.primary} />
             </View>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
               Digital Wallets
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+            <Text className="text-xs text-muted-foreground mr-2">
               {accounts.length} wallet{accounts.length !== 1 ? "s" : ""}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
@@ -94,8 +95,8 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
 
           {/* Opening */}
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Opening Balance</Text>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-xs text-muted-foreground">Opening Balance</Text>
+            <Text className="text-sm font-semibold text-foreground">
               {formatAmount(opening)}
             </Text>
           </View>
@@ -103,8 +104,8 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
           {/* Expenses */}
           {expenses > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Expenses</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+              <Text className="text-xs text-muted-foreground">Expenses</Text>
+              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                 −{formatAmount(expenses)}
               </Text>
             </View>
@@ -113,8 +114,8 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
           {/* Top-ups / Credits */}
           {credits > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Top-ups / Refunds</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+              <Text className="text-xs text-muted-foreground">Top-ups / Refunds</Text>
+              <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                 +{formatAmount(credits)}
               </Text>
             </View>
@@ -123,8 +124,8 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
           {/* Transfers Out */}
           {transfersOut > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers Out</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+              <Text className="text-xs text-muted-foreground">Transfers Out</Text>
+              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                 −{formatAmount(transfersOut)}
               </Text>
             </View>
@@ -133,19 +134,19 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
           {/* Transfers In */}
           {transfersIn > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers In</Text>
-              <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+              <Text className="text-xs text-muted-foreground">Transfers In</Text>
+              <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                 +{formatAmount(transfersIn)}
               </Text>
             </View>
           )}
 
           {/* Closing */}
-          <View className="flex-row justify-between pt-2 mt-1 border-t border-border-light dark:border-border-dark">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
+          <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
+            <Text className="text-xs font-semibold text-muted-foreground">
               Closing Balance
             </Text>
-            <Text className="text-sm font-bold" style={{ color: closing >= 0 ? sc.success : sc.danger }}>
+            <Text className="text-sm font-bold" style={{ color: closing >= 0 ? theme.success : theme.danger }}>
               {formatAmount(closing)}
             </Text>
           </View>

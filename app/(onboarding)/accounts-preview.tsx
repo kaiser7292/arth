@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button, Card } from "@/components/ui";
+import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { setOnboardingCompletedVersion } from "@/services/settings";
 import { getCurrentAppVersion } from "@/services/onboarding";
+import { useTheme } from "@/hooks/use-theme";
 
 const TYPE_LABEL: Record<string, string> = {
   savings: "Savings",
@@ -30,7 +31,8 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export default function OnboardingAccountsPreview() {
   const router = useRouter();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
 
@@ -64,10 +66,10 @@ export default function OnboardingAccountsPreview() {
         contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mb-2">
+        <Text className="text-2xl font-bold text-foreground mb-2">
           Your accounts
         </Text>
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-6 leading-5">
+        <Text className="text-sm text-muted-foreground mb-6 leading-5">
           {loading
             ? "Looking for accounts in your recent SMS..."
             : accounts.length > 0
@@ -77,7 +79,7 @@ export default function OnboardingAccountsPreview() {
 
         {loading && (
           <View className="items-center py-12">
-            <ActivityIndicator size="small" color={ac(accent, colorScheme, 500, 200)} />
+            <ActivityIndicator size="small" color={theme.primary} />
           </View>
         )}
 
@@ -91,25 +93,25 @@ export default function OnboardingAccountsPreview() {
                   key={acct.id}
                   className={`flex-row items-center px-4 py-3 ${
                     i < accounts.length - 1
-                      ? "border-b border-border-light dark:border-border-dark"
+                      ? "border-b border-border"
                       : ""
                   }`}
                 >
                   <View
                     className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: ac(accent, colorScheme, 500, 200) + "1F" }}
+                    style={{ backgroundColor: theme.primary + "1F" }}
                   >
                     <Ionicons
                       name={TYPE_ICON[acct.account_type] || "ellipse-outline"}
                       size={18}
-                      color={ac(accent, colorScheme, 500, 200)}
+                      color={theme.primary}
                     />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-base font-medium text-foreground">
                       {label}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       {sub}
                     </Text>
                   </View>
@@ -123,17 +125,17 @@ export default function OnboardingAccountsPreview() {
           <Pressable
             onPress={handleAddManually}
             className="flex-row items-center justify-center py-3 border border-dashed rounded-xl"
-            style={{ borderColor: ac(accent, colorScheme, 500, 200) }}
+            style={{ borderColor: theme.primary }}
           >
             <Ionicons
               name="add"
               size={18}
-              color={ac(accent, colorScheme, 500, 200)}
+              color={theme.primary}
               style={{ marginRight: 6 }}
             />
             <Text
               className="text-sm font-medium"
-              style={{ color: ac(accent, colorScheme, 500, 200) }}
+              style={{ color: theme.primary }}
             >
               Add an account manually
             </Text>
@@ -144,7 +146,7 @@ export default function OnboardingAccountsPreview() {
       <View className="px-6 pb-6 pt-2">
         <Button title="Continue" onPress={handleContinue} className="mb-3" />
         <Pressable onPress={handleSkip} className="py-3 items-center">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             Skip setup
           </Text>
         </Pressable>

@@ -1,7 +1,8 @@
 import { ForeclosureQuoteSheet } from "@/components/loans/ForeclosureQuoteSheet";
+
 import { LinkInstallmentSheet } from "@/components/loans/LinkInstallmentSheet";
-import { Button, Card, LoadingState, MetricRow, ScreenContainer } from "@/components/ui";
-import { StatusColors } from "@/constants/theme";
+import { Button, Card, LoadingState, MetricRow, ScreenContainer, Text } from "@/components/ui";
+
 import { getDatabase } from "@/database";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -21,14 +22,15 @@ import {
     type LoanScheduleEntry
 } from "@/services/loan-accounts";
 import { clearEmiReminderOnLoan } from "@/services/loan-emi-reminder";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatDate } from "@/utils/date";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 const STATUS_PILL_COLOR: Record<string, "success" | "danger" | "warning" | "info"> = {
   paid: "success",
@@ -42,7 +44,8 @@ export default function LoanDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const [loan, setLoan] = useState<LoanAccount | null>(null);
   const [schedule, setSchedule] = useState<LoanScheduleEntry[]>([]);
@@ -142,7 +145,7 @@ export default function LoanDetailScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-base text-text-secondary dark:text-text-dark-secondary text-center">
+          <Text className="text-base text-muted-foreground text-center">
             Loan not found.
           </Text>
         </View>
@@ -170,12 +173,12 @@ export default function LoanDetailScreen() {
       >
         {/* Hero */}
         <Card className="mb-4">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-1">
+          <Text className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
             {bankName} · {loan.loan_type}
           </Text>
           <View className="flex-row items-end justify-between mb-2">
             <View>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Outstanding
               </Text>
               <Text className="text-3xl font-bold text-danger">
@@ -183,10 +186,10 @@ export default function LoanDetailScreen() {
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 EMI
               </Text>
-              <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-base font-bold text-foreground">
                 {formatMoney(Math.round(nextEMI?.emi_amount ?? loan.emi_amount))}
               </Text>
             </View>
@@ -207,18 +210,18 @@ export default function LoanDetailScreen() {
               style={{
                 height: 6,
                 width: `${progressPct}%`,
-                backgroundColor: StatusColors[colorScheme].success,
+                backgroundColor: theme.success,
               }}
             />
           </View>
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             {progressPct.toFixed(0)}% paid · {formatMoney(principalPaid)} of {formatMoney(loan.principal_disbursed)}
           </Text>
 
           {loan.currency !== "INR" && (
             <View
               className="mt-3 flex-row items-center px-2 py-1.5 rounded-lg"
-              style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
               <Ionicons name="information-circle-outline" size={14} color={colors.blue} />
               <Text className="text-xs ml-1" style={{ color: colors.textSecondary }}>
@@ -238,19 +241,19 @@ export default function LoanDetailScreen() {
           loan.last_sms_reminder_due_date >= new Date().toISOString().split("T")[0] && (
             <View
               className="mb-3 rounded-xl px-4 py-3"
-              style={{ backgroundColor: acAlpha(accent, 500, 0.1) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.1) }}
             >
               <View className="flex-row items-start">
                 <Ionicons
                   name="notifications-outline"
                   size={18}
-                  color={ac(accent, colorScheme, 600, 300)}
+                  color={theme.primary}
                   style={{ marginRight: 10, marginTop: 1 }}
                 />
                 <View className="flex-1">
                   <Text
                     className="text-sm font-semibold"
-                    style={{ color: ac(accent, colorScheme, 700, 200) }}
+                    style={{ color: theme.primary }}
                   >
                     {bankName} reminder
                   </Text>
@@ -311,7 +314,6 @@ export default function LoanDetailScreen() {
               label="Foreclose quote"
               sublabel="See total to close the loan today"
               onPress={() => setForeclosureSheetVisible(true)}
-              accent={accent}
               colors={colors}
               colorScheme={colorScheme}
             />
@@ -323,7 +325,6 @@ export default function LoanDetailScreen() {
                 pathname: "/loans/[id]/correction",
                 params: { id: loan.id }
               } as never)}
-              accent={accent}
               colors={colors}
               colorScheme={colorScheme}
             />
@@ -334,7 +335,6 @@ export default function LoanDetailScreen() {
           label="Edit loan details"
           sublabel="Change rate, tenure, EMI day, fees…"
           onPress={() => router.push({ pathname: "/loans/add", params: { loanId: loan.id } } as never)}
-          accent={accent}
           colors={colors}
           colorScheme={colorScheme}
         />
@@ -363,7 +363,6 @@ export default function LoanDetailScreen() {
               ],
             );
           }}
-          accent={accent}
           colors={colors}
           colorScheme={colorScheme}
           danger
@@ -425,7 +424,7 @@ export default function LoanDetailScreen() {
                   key={p.id}
                   className={`flex-row items-center py-3 ${
                     idx < prepayments.length - 1
-                      ? "border-b border-border-light dark:border-border-dark"
+                      ? "border-b border-border"
                       : ""
                   }`}
                 >
@@ -464,8 +463,8 @@ export default function LoanDetailScreen() {
                       style={{
                         backgroundColor:
                           p.kind === "foreclosure"
-                            ? StatusColors[colorScheme].warning + "14"
-                            : acAlpha(accent, 500, 0.08),
+                            ? theme.warning + "14"
+                            : theme.alpha("primary", 0.08),
                       }}
                     >
                       <Ionicons
@@ -477,8 +476,8 @@ export default function LoanDetailScreen() {
                         size={20}
                         color={
                           p.kind === "foreclosure"
-                            ? StatusColors[colorScheme].warning
-                            : ac(accent, colorScheme, 600, 300)
+                            ? theme.warning
+                            : theme.primary
                         }
                       />
                     </View>
@@ -487,7 +486,7 @@ export default function LoanDetailScreen() {
                     <View className="flex-1 mr-3">
                       <View className="flex-row items-center">
                         <Text
-                          className="text-sm font-semibold text-text-primary dark:text-text-dark-primary shrink"
+                          className="text-sm font-semibold text-foreground shrink"
                           numberOfLines={1}
                         >
                           {p.kind === "foreclosure" ? "Foreclosure" : "Part payment"}
@@ -495,11 +494,11 @@ export default function LoanDetailScreen() {
                         {strategyLabel && (
                           <View
                             className="ml-1.5 px-1.5 py-0.5 rounded"
-                            style={{ backgroundColor: accent[500] + "1A" }}
+                            style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                           >
                             <Text
-                              className="text-[9px] font-bold uppercase"
-                              style={{ color: ac(accent, colorScheme, 600, 300) }}
+                              className="text-label font-bold uppercase"
+                              style={{ color: theme.primary }}
                             >
                               {strategyLabel}
                             </Text>
@@ -508,7 +507,7 @@ export default function LoanDetailScreen() {
                       </View>
                       {p.prepayment_charge > 0 && (
                         <Text
-                          className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+                          className="text-xs text-muted-foreground mt-0.5"
                           numberOfLines={1}
                         >
                           Charge {formatMoney(p.prepayment_charge + p.gst_on_charge)}
@@ -516,7 +515,7 @@ export default function LoanDetailScreen() {
                       )}
                       {p.linked_expense_id && (
                         <Text
-                          className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+                          className="text-xs text-muted-foreground mt-0.5"
                           numberOfLines={1}
                         >
                           Linked from expense · manage there
@@ -528,11 +527,11 @@ export default function LoanDetailScreen() {
                     <View className="items-end shrink-0">
                       <Text
                         className="text-sm font-bold"
-                        style={{ color: StatusColors[colorScheme].success }}
+                        style={{ color: theme.success }}
                       >
                         {formatMoney(p.amount)}
                       </Text>
-                      <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                      <Text className="text-label text-muted-foreground mt-0.5">
                         {formatDate(p.prepayment_date)}
                       </Text>
                     </View>
@@ -601,7 +600,7 @@ export default function LoanDetailScreen() {
                 key={c.id}
                 className={`flex-row items-center py-3 ${
                   idx < corrections.length - 1
-                    ? "border-b border-border-light dark:border-border-dark"
+                    ? "border-b border-border"
                     : ""
                 }`}
               >
@@ -619,23 +618,23 @@ export default function LoanDetailScreen() {
                 >
                   <View
                     className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                    style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                   >
                     <Ionicons
                       name="construct-outline"
                       size={20}
-                      color={ac(accent, colorScheme, 600, 300)}
+                      color={theme.primary}
                     />
                   </View>
                   <View className="flex-1 mr-3">
                     <Text
-                      className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
+                      className="text-sm font-semibold text-foreground"
                       numberOfLines={1}
                     >
                       Correction
                     </Text>
                     <Text
-                      className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+                      className="text-xs text-muted-foreground mt-0.5"
                       numberOfLines={1}
                     >
                       EMI {formatMoney(Math.round(c.emi_amount))}
@@ -643,7 +642,7 @@ export default function LoanDetailScreen() {
                     </Text>
                     {c.reason && (
                       <Text
-                        className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+                        className="text-xs text-muted-foreground mt-0.5"
                         numberOfLines={1}
                       >
                         {c.reason}
@@ -652,11 +651,11 @@ export default function LoanDetailScreen() {
                   </View>
                   <View className="items-end shrink-0">
                     <Text
-                      className="text-sm font-bold text-text-primary dark:text-text-dark-primary"
+                      className="text-sm font-bold text-foreground"
                     >
                       {formatMoney(Math.round(c.outstanding_principal))}
                     </Text>
-                    <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-label text-muted-foreground mt-0.5">
                       {formatDate(c.effective_date)}
                     </Text>
                   </View>
@@ -698,7 +697,7 @@ export default function LoanDetailScreen() {
 
         {/* Schedule */}
         <Card title="Amortization Schedule" className="mb-4">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+          <Text className="text-xs text-muted-foreground mb-3">
             {showFullSchedule
               ? `All ${schedule.length} installments`
               : `First 5 and last 5 of ${schedule.length} installments`}
@@ -709,27 +708,27 @@ export default function LoanDetailScreen() {
               onPress={() => setLinkInstallment(e)}
               className={`flex-row items-center py-2 ${
                 i < visibleSchedule.length - 1
-                  ? "border-b border-border-light dark:border-border-dark"
+                  ? "border-b border-border"
                   : ""
               }`}
               accessibilityRole="button"
               accessibilityLabel={`Installment ${e.installment_num}, ${e.status}`}
             >
               <View style={{ width: 36 }}>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   #{e.installment_num}
                 </Text>
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-medium text-foreground">
                   {formatDate(e.due_date)}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   P {formatMoney(Math.round(e.principal_component))} · I {formatMoney(Math.round(e.interest_component))}
                 </Text>
               </View>
               <View style={{ alignItems: "flex-end" }}>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-semibold text-foreground">
                   {formatMoney(Math.round(e.emi_amount))}
                 </Text>
                 <Text
@@ -737,9 +736,9 @@ export default function LoanDetailScreen() {
                   style={{
                     color:
                       STATUS_PILL_COLOR[e.status] === "success"
-                        ? StatusColors[colorScheme].success
+                        ? theme.success
                         : STATUS_PILL_COLOR[e.status] === "danger"
-                          ? StatusColors[colorScheme].danger
+                          ? theme.danger
                           : colors.textSecondary,
                   }}
                 >
@@ -829,7 +828,6 @@ function ActionTile({
   label,
   sublabel,
   onPress,
-  accent,
   colors,
   colorScheme,
   danger,
@@ -838,14 +836,14 @@ function ActionTile({
   label: string;
   sublabel?: string;
   onPress: () => void;
-  accent: ReturnType<typeof useColorScheme>["accent"];
   colors: ReturnType<typeof useColorScheme>["colors"];
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
   danger?: boolean;
 }) {
-  const circleBg = danger ? "#DC262616" : acAlpha(accent, 500, 0.08);
-  const iconColor = danger ? "#DC2626" : ac(accent, colorScheme, 600, 300);
-  const labelColor = danger ? "#DC2626" : colors.text;
+  const theme = useTheme();
+  const circleBg = danger ? "#DC262616" : theme.alpha("primary", 0.08);
+  const iconColor = danger ? theme.danger : theme.primary;
+  const labelColor = danger ? theme.danger : colors.text;
   return (
     <Pressable
       onPress={onPress}

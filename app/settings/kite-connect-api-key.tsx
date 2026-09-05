@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
+import { LoadingState, Text } from "@/components/ui";
+import { View, TextInput, Pressable, ActivityIndicator } from "react-native";
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -79,55 +80,53 @@ export default function KiteConnectApiKeyScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-background-light dark:bg-background-dark">
-        <ActivityIndicator size="large" />
-      </View>
+      <LoadingState />
     );
   }
 
   if (loadError) {
     return (
-      <View className="flex-1 items-center justify-center bg-background-light dark:bg-background-dark p-4">
+      <View className="flex-1 items-center justify-center bg-background-light p-4">
         <Text className="text-red-500 text-base text-center">Failed to load API key. Please restart the app.</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background-light dark:bg-background-dark p-4">
-      <Text className="text-2xl font-bold text-text-light dark:text-text-dark mb-2">
+    <View className="flex-1 bg-background-light p-4">
+      <Text className="text-2xl font-bold text-text-light mb-2">
         Kite API Key
       </Text>
-      <Text className="text-sm text-secondary-light dark:text-secondary-dark mb-6">
+      <Text className="text-sm text-secondary-light mb-6">
         Enter your Kite API key from the developer portal. Keep this secure.
       </Text>
 
       <View className="mb-4">
-        <Text className="text-sm font-medium text-text-light dark:text-text-dark mb-2">
+        <Text className="text-sm font-medium text-text-light mb-2">
           API Key
         </Text>
         <TextInput
           value={apiKey}
           onChangeText={setApiKey}
           placeholder="Enter your API key"
-          className="border border-border-light dark:border-border-dark rounded-lg p-3 text-text-light dark:text-text-dark bg-background-light dark:bg-background-dark"
+          className="border border-border rounded-lg p-3 text-text-light bg-background-light"
           autoCapitalize="none"
           autoCorrect={false}
           secureTextEntry
         />
       </View>
 
-      <View className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-        <Text className="text-xs text-blue-700 dark:text-blue-400 mb-2 font-semibold">
+      <View className="mb-6 p-4 bg-primary/10 rounded-lg border border-primary/30">
+        <Text className="text-xs text-primary mb-2 font-semibold">
           Where to get your API key:
         </Text>
-        <Text className="text-xs text-blue-600 dark:text-blue-500 mb-1">
+        <Text className="text-xs text-primary mb-1">
           1. Visit https://developers.kite.trade/apps
         </Text>
-        <Text className="text-xs text-blue-600 dark:text-blue-500 mb-1">
+        <Text className="text-xs text-primary mb-1">
           2. Create a new app or select existing
         </Text>
-        <Text className="text-xs text-blue-600 dark:text-blue-500">
+        <Text className="text-xs text-primary">
           3. Copy the API key from the app details
         </Text>
       </View>
@@ -143,7 +142,7 @@ export default function KiteConnectApiKeyScreen() {
           ) : (
             <>
               <Ionicons name="checkmark" size={20} color="white" />
-              <Text className="text-white font-semibold text-base ml-2">
+              <Text className="text-primary-foreground font-semibold text-base ml-2">
                 Save
               </Text>
             </>

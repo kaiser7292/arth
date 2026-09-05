@@ -1,16 +1,10 @@
 import { useState, useCallback, useMemo } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  Pressable,
-} from "react-native";
+import { View, FlatList, TextInput, Pressable } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button, PeriodNavigator } from "@/components/ui";
+import { Button, EmptyState, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
@@ -23,7 +17,8 @@ import {
 import type { Category } from "@/services/category";
 import type { Budget } from "@/services/budget";
 import { formatAmount } from "@/utils/expense-validation";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface BudgetRow {
   category: Category;
@@ -33,7 +28,8 @@ interface BudgetRow {
 
 export default function BudgetConfigScreen() {
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [month, setMonth] = useState(getCurrentMonth());
   const [rows, setRows] = useState<BudgetRow[]>([]);
   const [saving, setSaving] = useState(false);
@@ -238,7 +234,7 @@ export default function BudgetConfigScreen() {
   );
 
   const renderItem = ({ item }: { item: BudgetRow }) => (
-    <View className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark">
+    <View className="flex-row items-center px-4 py-3 border-b border-border">
       <View
         className="w-9 h-9 rounded-full items-center justify-center mr-3"
         style={{ backgroundColor: item.category.color + "14" }}
@@ -251,24 +247,24 @@ export default function BudgetConfigScreen() {
       </View>
       <View className="flex-1 mr-3">
         <Text
-          className="text-sm font-medium text-text-primary dark:text-text-dark-primary"
+          className="text-sm font-medium text-foreground"
           numberOfLines={1}
         >
           {item.category.name}
         </Text>
         {item.category.is_unavoidable === 1 && (
-          <Text className="text-xs text-text-tertiary">Unavoidable</Text>
+          <Text className="text-xs text-faint-foreground">Unavoidable</Text>
         )}
       </View>
       <View className="flex-row items-center">
-        <Text className="text-sm text-text-tertiary mr-1">
+        <Text className="text-sm text-faint-foreground mr-1">
           {"\u20B9"}
         </Text>
         <TextInput
           value={item.editAmount}
           onChangeText={(text) => handleAmountChange(item.category.id, text)}
           keyboardType="numeric"
-          className="w-20 text-right text-base font-medium text-text-primary dark:text-text-dark-primary border-b border-border-light dark:border-border-dark py-1"
+          className="w-20 text-right text-base font-medium text-foreground border-b border-border py-1"
           placeholderTextColor={colors.tabIconDefault}
           selectTextOnFocus
         />
@@ -285,14 +281,14 @@ export default function BudgetConfigScreen() {
       {hasNoBudget && (
         <View
           className="mx-4 mt-2 mb-1 px-3 py-2.5 rounded-lg flex-row items-center"
-          style={{ backgroundColor: StatusColors[colorScheme].warningBg }}
+          style={{ backgroundColor: theme.alpha("warning", 0.08) }}
         >
-          <Ionicons name="information-circle-outline" size={16} color={StatusColors[colorScheme].warning} />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1 ml-2">
+          <Ionicons name="information-circle-outline" size={16} color={theme.warning} />
+          <Text className="text-xs text-muted-foreground flex-1 ml-2">
             No budget set for {monthLabel}.
           </Text>
           <Pressable onPress={copyFromPreviousMonth} className="ml-2">
-            <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
+            <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
               Copy from {previousMonthLabel}
             </Text>
           </Pressable>
@@ -300,12 +296,12 @@ export default function BudgetConfigScreen() {
       )}
 
       {/* Total */}
-      <View className="px-4 py-3 bg-surface-light-alt dark:bg-surface-dark-alt">
+      <View className="px-4 py-3 bg-card">
         <View className="flex-row items-center justify-between">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             Total Monthly Budget
           </Text>
-          <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-lg font-bold text-foreground">
             {formatAmount(totalBudget)}
           </Text>
         </View>
@@ -313,22 +309,25 @@ export default function BudgetConfigScreen() {
 
       {/* Category budgets */}
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={rows}
         keyExtractor={(item) => item.category.id}
         renderItem={renderItem}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-text-secondary dark:text-text-dark-secondary">
-              No categories found. Add categories first.
-            </Text>
-          </View>
+          <EmptyState
+            icon="calculator-outline"
+            title="No categories to budget"
+            subtitle="Budgets are set per category, so add a few categories first."
+          />
         }
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 120 }}
       />
 
       {/* Save button */}
-      <View className="p-4 border-t border-border-light dark:border-border-dark">
+      <View className="p-4 border-t border-border">
         <Button
           title="Save"
           onPress={handleSave}

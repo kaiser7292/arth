@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import { View, Text, Pressable, ScrollView, Switch } from "react-native";
-import { ScreenContainer, Card } from "@/components/ui";
+import { View, Pressable, ScrollView, Switch } from "react-native";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   HOME_CARDS,
@@ -9,6 +9,7 @@ import {
   resetHomeCardPreferences,
 } from "@/services/home-card-preferences";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Settings → Preferences → Home cards (v17.4.0).
@@ -17,7 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
  * feature is always reachable via its deep-link or the related tab.
  */
 export default function HomeCardsScreen() {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [tick, setTick] = useState(0);
 
   const handleToggle = useCallback((id: string, visible: boolean) => {
@@ -39,7 +41,7 @@ export default function HomeCardsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Card className="mb-4">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             Toggle any card off to declutter Home. Hidden cards stay reachable
             through their related tab or deep-link. Defaults match the original
             Home layout.
@@ -54,22 +56,22 @@ export default function HomeCardsScreen() {
                 key={card.id + tick}
                 className={`flex-row items-center py-3 ${
                   i < HOME_CARDS.length - 1
-                    ? "border-b border-border-light dark:border-border-dark"
+                    ? "border-b border-border"
                     : ""
                 }`}
               >
                 <View className="flex-1 mr-3">
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-semibold text-foreground">
                     {card.label}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                  <Text className="text-xs text-muted-foreground mt-0.5">
                     {card.description}
                   </Text>
                 </View>
                 <Switch
                   value={visible}
                   onValueChange={(v) => handleToggle(card.id, v)}
-                  trackColor={{ false: colors.border, true: accent[500] }}
+                  trackColor={{ false: colors.border, true: theme.primary }}
                   thumbColor="#ffffff"
                 />
               </View>

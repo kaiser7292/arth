@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, Pressable, Switch, ScrollView, ActivityIndicator } from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable, Switch, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors } from "@/constants/theme";
 import {
   isLockEnabled,
   setLockEnabled,
@@ -19,11 +19,12 @@ import {
   type LockTimeoutOption,
 } from "@/services/biometric-lock";
 import { useAlert } from "@/hooks/use-alert";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function SecuritySettingsScreen() {
-  const { colorScheme, accent } = useColorScheme();
-  const theme = Colors[colorScheme];
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  
+  const theme = useTheme();
+  const accentColor = theme.primary;
   const router = useRouter();
   const alert = useAlert();
 
@@ -119,10 +120,10 @@ export default function SecuritySettingsScreen() {
             <View className="flex-row items-center py-3">
               <Ionicons name="lock-closed" size={20} color={accentColor} />
               <View className="flex-1 ml-3">
-                <Text className="text-base text-text-primary dark:text-text-dark-primary font-semibold">
+                <Text className="text-base text-foreground font-semibold">
                   Enable App Lock
                 </Text>
-                <Text className="text-xs text-text-tertiary mt-0.5">
+                <Text className="text-xs text-faint-foreground mt-0.5">
                   {canEnable
                     ? `Use ${biometricLabel} to unlock Arth`
                     : !hasHardware
@@ -150,10 +151,10 @@ export default function SecuritySettingsScreen() {
                   <Pressable
                     key={opt}
                     onPress={() => onSelectTimeout(opt)}
-                    className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark last:border-b-0"
+                    className="flex-row items-center py-3 border-b border-border last:border-b-0"
                   >
                     <View className="flex-1">
-                      <Text className="text-base text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-base text-foreground">
                         {LOCK_TIMEOUT_LABELS[opt]}
                       </Text>
                     </View>
@@ -162,7 +163,7 @@ export default function SecuritySettingsScreen() {
                     )}
                   </Pressable>
                 ))}
-                <Text className="text-xs text-text-tertiary mt-3">
+                <Text className="text-xs text-faint-foreground mt-3">
                   "Never" means Arth only locks on cold start (after closing the app completely).
                   Any other option also locks when the app is backgrounded for that long.
                 </Text>
@@ -170,22 +171,22 @@ export default function SecuritySettingsScreen() {
 
               <Card className="mb-4">
                 <Pressable onPress={onLockNow} className="flex-row items-center py-3">
-                  <Ionicons name="log-out-outline" size={20} color={theme.text} />
+                  <Ionicons name="log-out-outline" size={20} color={theme.foreground} />
                   <View className="flex-1 ml-3">
-                    <Text className="text-base text-text-primary dark:text-text-dark-primary font-semibold">
+                    <Text className="text-base text-foreground font-semibold">
                       Lock Now
                     </Text>
-                    <Text className="text-xs text-text-tertiary mt-0.5">
+                    <Text className="text-xs text-faint-foreground mt-0.5">
                       Immediately lock Arth
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+                  <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
                 </Pressable>
               </Card>
             </>
           )}
 
-          <Text className="text-xs text-text-tertiary px-2">
+          <Text className="text-xs text-faint-foreground px-2">
             App lock preferences are stored on this device only. Uninstalling Arth or restoring from
             a backup on another device will start with the lock off - you can turn it on again from
             this screen.

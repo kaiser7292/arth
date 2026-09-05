@@ -1,6 +1,9 @@
-import { Pressable, Text, View } from "react-native";
-import { BottomSheet } from "./BottomSheet";
+import { Pressable, View } from "react-native";
+
+import { Text } from "./Text";
+import { Sheet } from "./Sheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ConfirmSheetProps {
   visible: boolean;
@@ -25,7 +28,8 @@ export function ConfirmSheet({
   destructive = false,
   onConfirm,
 }: ConfirmSheetProps) {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const handleConfirm = async () => {
     await onConfirm();
@@ -33,18 +37,18 @@ export function ConfirmSheet({
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} maxHeightPct={45}>
+    <Sheet visible={visible} onClose={onClose} maxHeightPct={45}>
       <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 }}>
-        <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary mb-1">
+        <Text className="text-lg font-bold text-foreground mb-1">
           {title}
         </Text>
         {context ? (
-          <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary mb-1">
+          <Text className="text-sm font-semibold text-muted-foreground mb-1">
             {context}
           </Text>
         ) : null}
         {message ? (
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-5">
+          <Text className="text-sm text-muted-foreground mb-5">
             {message}
           </Text>
         ) : <View className="mb-5" />}
@@ -54,21 +58,21 @@ export function ConfirmSheet({
             className="flex-1 py-3.5 rounded-2xl items-center"
             style={{ backgroundColor: colors.border + "66" }}
           >
-            <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-semibold text-foreground">
               {cancelLabel}
             </Text>
           </Pressable>
           <Pressable
             onPress={handleConfirm}
             className="flex-1 py-3.5 rounded-2xl items-center"
-            style={{ backgroundColor: destructive ? "#EF4444" : accent[500] }}
+            style={{ backgroundColor: destructive ? theme.danger : theme.primary }}
           >
-            <Text className="text-base font-semibold text-white">
+            <Text className="text-base font-semibold" style={{ color: theme.primaryForeground }}>
               {confirmLabel}
             </Text>
           </Pressable>
         </View>
       </View>
-    </BottomSheet>
+    </Sheet>
   );
 }

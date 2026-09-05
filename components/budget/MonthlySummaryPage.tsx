@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, RefreshControl } from "react-native";
+
+import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card } from "@/components/ui";
+import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { getCategories } from "@/services/category";
 import { getBudgetsForMonth } from "@/services/budget";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -18,6 +19,7 @@ import type { Category } from "@/services/category";
 import { formatAmount } from "@/utils/expense-validation";
 import { getMonthDateRange, getDaysRemaining, getTotalDaysInMonth } from "@/utils/budget-helpers";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
+import { useTheme } from "@/hooks/use-theme";
 
 interface TopCategory {
   category: Category | null;
@@ -43,9 +45,20 @@ interface MonthlySummaryPageProps {
   month: string;
 }
 
+/**
+ * The month's summary: total spent, budget compliance, top categories, unavoidable ratio.
+ *
+ * The single implementation, rendered by the Budget tab's swipe-pager and by
+ * app/summary/[month].tsx. Each previously kept its own ~340-line copy of the same computation
+ * and layout.
+ *
+ * The month is a prop because the callers source it differently - the pager inherits the Budget
+ * tab's month, the route reads a URL param and owns a PeriodNavigator.
+ */
 export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const [data, setData] = useState<SummaryData | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -101,8 +114,8 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
   if (!data) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Ionicons name="bar-chart-outline" size={32} color="#9CA3AF" />
-        <Text style={{ color: "#9CA3AF", marginTop: 8, fontSize: 14 }}>Loading summary…</Text>
+        <Ionicons name="bar-chart-outline" size={32} color={theme.faintForeground} />
+        <Text style={{ color: theme.faintForeground, marginTop: 8, fontSize: 14 }}>Loading summary…</Text>
       </View>
     );
   }
@@ -139,16 +152,16 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
         }
       >
         <Card className="mx-4 mt-3">
-          <Text className="text-xs text-text-tertiary mb-1">Total Spent</Text>
-          <Text className="text-3xl font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-xs text-faint-foreground mb-1">Total Spent</Text>
+          <Text className="text-3xl font-bold text-foreground">
             {formatAmount(data.totalSpent)}
           </Text>
           <View className="flex-row items-center mt-2">
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-sm text-muted-foreground">
               {data.transactionCount} transaction{data.transactionCount !== 1 ? "s" : ""}
             </Text>
-            <Text className="text-sm text-text-tertiary mx-2">|</Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-sm text-faint-foreground mx-2">|</Text>
+            <Text className="text-sm text-muted-foreground">
               {formatAmount(data.avgPerDay)}/day avg
             </Text>
           </View>
@@ -157,40 +170,40 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
 
       {/* Budget Compliance */}
       <Card className="mx-4 mt-3">
-        <Text className="text-xs text-text-tertiary mb-2">Budget Compliance</Text>
+        <Text className="text-xs text-faint-foreground mb-2">Budget Compliance</Text>
         {data.totalBudget > 0 ? (
           <>
             <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-xl font-bold text-foreground">
                 {Math.round(data.budgetCompliancePct)}% used
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 of {formatAmount(data.totalBudget)}
               </Text>
             </View>
-            <View className="h-3 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+            <View className="h-3 rounded-full bg-border overflow-hidden">
               <View
                 className="h-full rounded-full"
                 style={{
                   width: `${Math.min(data.budgetCompliancePct, 100)}%`,
                   backgroundColor:
                     data.budgetCompliancePct < 70
-                      ? StatusColors[colorScheme].success
+                      ? theme.success
                       : data.budgetCompliancePct <= 90
-                        ? StatusColors[colorScheme].warning
-                        : StatusColors[colorScheme].danger,
+                        ? theme.warning
+                        : theme.danger,
                 }}
               />
             </View>
             <View className="flex-row justify-between mt-2">
-              <Text className="text-xs text-text-tertiary">{data.daysRemaining} days remaining</Text>
+              <Text className="text-xs text-faint-foreground">{data.daysRemaining} days remaining</Text>
               <Text
                 className="text-xs font-medium"
                 style={{
                   color:
                     data.totalBudget - data.totalSpent >= 0
-                      ? StatusColors[colorScheme].success
-                      : StatusColors[colorScheme].danger,
+                      ? theme.success
+                      : theme.danger,
                 }}
               >
                 {data.totalBudget - data.totalSpent >= 0
@@ -200,7 +213,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
             </View>
           </>
         ) : (
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             No budget set for this month
           </Text>
         )}
@@ -208,31 +221,31 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
 
       {/* vs Last Month */}
       <Card className="mx-4 mt-3">
-        <Text className="text-xs text-text-tertiary mb-2">vs Last Month</Text>
+        <Text className="text-xs text-faint-foreground mb-2">vs Last Month</Text>
         {data.prevMonthSpent > 0 ? (
           <View className="flex-row items-center">
             <Ionicons
               name={spendChangeUp ? "trending-up" : "trending-down"}
               size={24}
-              color={spendChangeUp ? StatusColors[colorScheme].danger : StatusColors[colorScheme].success}
+              color={spendChangeUp ? theme.danger : theme.success}
             />
             <View className="ml-3">
               <Text
                 className="text-lg font-bold"
                 style={{
-                  color: spendChangeUp ? StatusColors[colorScheme].danger : StatusColors[colorScheme].success,
+                  color: spendChangeUp ? theme.danger : theme.success,
                 }}
               >
                 {spendChangeUp ? "+" : ""}
                 {Math.round(spendChange)}%
               </Text>
-              <Text className="text-xs text-text-tertiary">
+              <Text className="text-xs text-faint-foreground">
                 Last month: {formatAmount(data.prevMonthSpent)}
               </Text>
             </View>
           </View>
         ) : (
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             No data for previous month
           </Text>
         )}
@@ -240,7 +253,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
 
       {/* Unavoidable Spend Ratio */}
       <Card className="mx-4 mt-3">
-        <Text className="text-xs text-text-tertiary mb-2">Unavoidable Spend Ratio</Text>
+        <Text className="text-xs text-faint-foreground mb-2">Unavoidable Spend Ratio</Text>
         <View className="flex-row items-center justify-between">
           <Pressable
             onPress={() =>
@@ -250,10 +263,10 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
               })
             }
           >
-            <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-xl font-bold text-foreground">
               {Math.round(data.rightSpendPct)}%
             </Text>
-            <Text className="text-xs text-text-tertiary">
+            <Text className="text-xs text-faint-foreground">
               {formatAmount(data.rightSpendTotal)} of {formatAmount(data.totalSpent)}
             </Text>
           </Pressable>
@@ -271,26 +284,26 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
               size={24}
               color={
                 data.rightSpendPct >= 70
-                  ? StatusColors[colorScheme].success
+                  ? theme.success
                   : data.rightSpendPct >= 40
-                    ? StatusColors[colorScheme].warning
-                    : StatusColors[colorScheme].danger
+                    ? theme.warning
+                    : theme.danger
               }
             />
           </View>
         </View>
         {data.totalSpent > 0 && (
-          <View className="h-2 rounded-full bg-border-light dark:bg-border-dark overflow-hidden mt-3">
+          <View className="h-2 rounded-full bg-border overflow-hidden mt-3">
             <View
               className="h-full rounded-full"
               style={{
                 width: `${data.rightSpendPct}%`,
                 backgroundColor:
                   data.rightSpendPct >= 70
-                    ? StatusColors[colorScheme].success
+                    ? theme.success
                     : data.rightSpendPct >= 40
-                      ? StatusColors[colorScheme].warning
-                      : StatusColors[colorScheme].danger,
+                      ? theme.warning
+                      : theme.danger,
               }}
             />
           </View>
@@ -299,7 +312,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
 
       {/* Top Categories */}
       <Card className="mx-4 mt-3">
-        <Text className="text-xs text-text-tertiary mb-3">Top Categories</Text>
+        <Text className="text-xs text-faint-foreground mb-3">Top Categories</Text>
         {data.topCategories.length > 0 ? (
           data.topCategories.map((tc, idx) => (
             <View key={tc.category?.id ?? `unknown-${idx}`} className="mb-3 last:mb-0">
@@ -318,34 +331,34 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                     </View>
                   )}
                   <Text
-                    className="text-sm text-text-primary dark:text-text-dark-primary flex-1"
+                    className="text-sm text-foreground flex-1"
                     numberOfLines={1}
                   >
                     {tc.category?.name ?? "Unknown"}
                   </Text>
                 </View>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2">
+                <Text className="text-sm font-semibold text-foreground ml-2">
                   {formatAmount(tc.total)}
                 </Text>
               </View>
               <View className="flex-row items-center">
-                <View className="h-2 flex-1 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+                <View className="h-2 flex-1 rounded-full bg-border overflow-hidden">
                   <View
                     className="h-full rounded-full"
                     style={{
                       width: `${tc.pctOfTotal}%`,
-                      backgroundColor: tc.category?.color ?? "#6B7280",
+                      backgroundColor: tc.category?.color ?? theme.mutedForeground,
                     }}
                   />
                 </View>
-                <Text className="text-[10px] text-text-tertiary ml-2 w-10 text-right">
+                <Text className="text-label text-faint-foreground ml-2 w-10 text-right">
                   {Math.round(tc.pctOfTotal)}%
                 </Text>
               </View>
             </View>
           ))
         ) : (
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             No expenses this month
           </Text>
         )}

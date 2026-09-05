@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, TextInput } from "react-native";
+
+import { View, ScrollView, Pressable, Alert, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ScreenContainer, Card, SectionHeader, LoadingState, EmptyState } from "@/components/ui";
+import { Card, EmptyState, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import { settingsStorage } from "@/services/storage";
@@ -18,6 +19,7 @@ import {
   exportLoanPayoffPDF,
   sharePDF,
 } from "@/services/reports/report-pdf-export";
+import { useTheme } from "@/hooks/use-theme";
 
 const INPUTS_KEY = "report_loan_payoff_inputs";
 
@@ -38,57 +40,57 @@ function StrategyCard({
   isRecommended: boolean;
   colorScheme: "light" | "dark";
 }) {
-  const status = StatusColors[colorScheme];
-  const borderColor = isRecommended ? status.success : colorScheme === "dark" ? "#2E2E2E" : "#E5E5E3";
+  const theme = useTheme();
+  const borderColor = isRecommended ? theme.success : colorScheme === "dark" ? "#2E2E2E" : theme.border;
 
   return (
     <Card>
       <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+        <Text className="text-sm font-bold text-foreground">
           {strategy.name}
         </Text>
         {isRecommended && (
-          <View className="px-2 py-0.5 rounded" style={{ backgroundColor: status.successBg }}>
-            <Text className="text-xs font-semibold" style={{ color: status.success }}>Recommended</Text>
+          <View className="px-2 py-0.5 rounded" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
+            <Text className="text-xs font-semibold" style={{ color: theme.success }}>Recommended</Text>
           </View>
         )}
       </View>
-      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+      <Text className="text-xs text-muted-foreground mb-3">
         {strategy.description}
       </Text>
       <View className="flex-row gap-3">
         <View className="flex-1">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Debt-free by</Text>
-          <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{strategy.debtFreeDate}</Text>
+          <Text className="text-xs text-muted-foreground">Debt-free by</Text>
+          <Text className="text-sm font-bold text-foreground">{strategy.debtFreeDate}</Text>
         </View>
         <View className="flex-1">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Interest saved</Text>
-          <Text className="text-sm font-bold" style={{ color: status.success }}>{formatAmount(strategy.interestSaved)}</Text>
+          <Text className="text-xs text-muted-foreground">Interest saved</Text>
+          <Text className="text-sm font-bold" style={{ color: theme.success }}>{formatAmount(strategy.interestSaved)}</Text>
         </View>
       </View>
       <View className="flex-row gap-3 mt-2">
         <View className="flex-1">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Months saved</Text>
-          <Text className="text-sm font-bold" style={{ color: status.success }}>{strategy.monthsSaved}</Text>
+          <Text className="text-xs text-muted-foreground">Months saved</Text>
+          <Text className="text-sm font-bold" style={{ color: theme.success }}>{strategy.monthsSaved}</Text>
         </View>
         <View className="flex-1">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Total interest</Text>
-          <Text className="text-sm font-bold" style={{ color: status.warning }}>{formatAmount(strategy.totalInterestPaid)}</Text>
+          <Text className="text-xs text-muted-foreground">Total interest</Text>
+          <Text className="text-sm font-bold" style={{ color: theme.warning }}>{formatAmount(strategy.totalInterestPaid)}</Text>
         </View>
       </View>
       {/* Timeline milestones */}
       {strategy.timeline.length > 0 && (
-        <View className="mt-3 pt-3 border-t border-border-light dark:border-border-dark">
-          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">Payoff timeline</Text>
+        <View className="mt-3 pt-3 border-t border-border">
+          <Text className="text-xs font-semibold text-muted-foreground mb-2">Payoff timeline</Text>
           {strategy.timeline.map((step, i) => (
             <View key={i} className="flex-row items-center gap-2 mb-1.5">
-              <View className="w-4 h-4 rounded-full items-center justify-center" style={{ backgroundColor: status.successBg }}>
-                <Ionicons name="checkmark" size={10} color={status.success} />
+              <View className="w-4 h-4 rounded-full items-center justify-center" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
+                <Ionicons name="checkmark" size={10} color={theme.success} />
               </View>
-              <Text className="text-xs text-text-primary dark:text-text-dark-primary flex-1">
+              <Text className="text-xs text-foreground flex-1">
                 {step.loanName}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">{step.date}</Text>
+              <Text className="text-xs text-muted-foreground">{step.date}</Text>
             </View>
           ))}
         </View>
@@ -99,7 +101,7 @@ function StrategyCard({
 
 export default function LoanPayoffReportScreen() {
   const { colorScheme, colors } = useColorScheme();
-  const status = StatusColors[colorScheme];
+  const theme = useTheme();
   const tint = colors.tint;
 
   const [inputs, setInputs] = useState<LoanPayoffInputs>(loadSavedInputs);
@@ -157,18 +159,18 @@ export default function LoanPayoffReportScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="px-4 pt-4 flex-1">
-          <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mb-1">
+          <Text className="text-base font-bold text-foreground mb-1">
             Extra monthly payment
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-6">
+          <Text className="text-xs text-muted-foreground mb-6">
             How much extra can you put toward debt each month, beyond your regular EMIs?
           </Text>
 
-          <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             Extra amount per month
           </Text>
           <TextInput
-            className="bg-surface-light-alt dark:bg-surface-dark-alt border border-border-light dark:border-border-dark rounded-xl px-4 py-3 text-base text-text-primary dark:text-text-dark-primary"
+            className="bg-card border border-border rounded-xl px-4 py-3 text-base text-foreground"
             value={extraText}
             onChangeText={setExtraText}
             keyboardType="numeric"
@@ -182,7 +184,7 @@ export default function LoanPayoffReportScreen() {
             style={{ backgroundColor: tint }}
             accessibilityRole="button"
           >
-            <Text className="text-sm font-semibold text-white">Generate report</Text>
+            <Text className="text-sm font-semibold text-primary-foreground">Generate report</Text>
           </Pressable>
         </View>
       </ScreenContainer>
@@ -202,7 +204,7 @@ export default function LoanPayoffReportScreen() {
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             Could not generate report
           </Text>
           <Pressable onPress={() => setShowSheet(true)} className="mt-4">
@@ -221,7 +223,7 @@ export default function LoanPayoffReportScreen() {
         contentContainerStyle={{ paddingBottom: 80 }}
       >
         <View className="px-4 pt-2 pb-1 flex-row justify-between items-center">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary opacity-60">
+          <Text className="text-xs text-muted-foreground opacity-60">
             Generated {new Date(report.generatedAt).toLocaleDateString()}
           </Text>
           <Pressable onPress={() => setShowSheet(true)} hitSlop={8}>
@@ -233,23 +235,23 @@ export default function LoanPayoffReportScreen() {
         <View className="px-4">
           <SectionHeader title="Debt Snapshot" />
           <View className="flex-row gap-3 mb-3">
-            <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Outstanding</Text>
-              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary" style={{ color: status.danger }}>{formatAmount(report.totalOutstanding)}</Text>
+            <View className="flex-1 bg-card rounded-xl p-3 border border-border">
+              <Text className="text-xs text-muted-foreground">Outstanding</Text>
+              <Text className="text-sm font-bold text-foreground" style={{ color: theme.danger }}>{formatAmount(report.totalOutstanding)}</Text>
             </View>
-            <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Monthly EMI</Text>
-              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatAmount(report.totalMonthlyEMI)}</Text>
+            <View className="flex-1 bg-card rounded-xl p-3 border border-border">
+              <Text className="text-xs text-muted-foreground">Monthly EMI</Text>
+              <Text className="text-sm font-bold text-foreground">{formatAmount(report.totalMonthlyEMI)}</Text>
             </View>
           </View>
           <View className="flex-row gap-3 mb-3">
-            <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Avg rate</Text>
-              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{report.weightedAvgRate.toFixed(1)}%</Text>
+            <View className="flex-1 bg-card rounded-xl p-3 border border-border">
+              <Text className="text-xs text-muted-foreground">Avg rate</Text>
+              <Text className="text-sm font-bold text-foreground">{report.weightedAvgRate.toFixed(1)}%</Text>
             </View>
-            <View className="flex-1 bg-surface-light-alt dark:bg-surface-dark-alt rounded-xl p-3 border border-border-light dark:border-border-dark">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Extra/mo</Text>
-              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary" style={{ color: status.success }}>{formatAmount(report.inputs.extraMonthlyAmount)}</Text>
+            <View className="flex-1 bg-card rounded-xl p-3 border border-border">
+              <Text className="text-xs text-muted-foreground">Extra/mo</Text>
+              <Text className="text-sm font-bold text-foreground" style={{ color: theme.success }}>{formatAmount(report.inputs.extraMonthlyAmount)}</Text>
             </View>
           </View>
         </View>
@@ -260,14 +262,14 @@ export default function LoanPayoffReportScreen() {
           {report.loans.map((loan) => (
             <Card key={loan.id}>
               <View className="flex-row justify-between items-start mb-1">
-                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1">{loan.name}</Text>
-                <Text className="text-xs" style={{ color: status.danger }}>{loan.interestRate}%</Text>
+                <Text className="text-xs font-semibold text-foreground flex-1">{loan.name}</Text>
+                <Text className="text-xs" style={{ color: theme.danger }}>{loan.interestRate}%</Text>
               </View>
               <View className="flex-row justify-between">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {formatAmount(loan.outstanding)} outstanding
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   EMI {formatAmount(loan.emiAmount)}
                 </Text>
               </View>
@@ -281,12 +283,12 @@ export default function LoanPayoffReportScreen() {
           <Card>
             <View className="flex-row justify-between items-center">
               <View>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Debt-free by</Text>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">{report.naturalEndDate}</Text>
+                <Text className="text-xs text-muted-foreground">Debt-free by</Text>
+                <Text className="text-sm font-semibold text-foreground">{report.naturalEndDate}</Text>
               </View>
               <View className="items-end">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Total interest</Text>
-                <Text className="text-sm font-bold" style={{ color: status.danger }}>{formatAmount(report.naturalTotalInterest)}</Text>
+                <Text className="text-xs text-muted-foreground">Total interest</Text>
+                <Text className="text-sm font-bold" style={{ color: theme.danger }}>{formatAmount(report.naturalTotalInterest)}</Text>
               </View>
             </View>
           </Card>
@@ -312,11 +314,11 @@ export default function LoanPayoffReportScreen() {
         {/* After debt-free */}
         <View className="px-4 mt-4">
           <Card>
-            <View className="rounded-lg p-3" style={{ backgroundColor: status.successBg }}>
-              <Text className="text-xs font-semibold mb-1" style={{ color: status.success }}>
+            <View className="rounded-lg p-3" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
+              <Text className="text-xs font-semibold mb-1" style={{ color: theme.success }}>
                 After debt-free
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 You'll free up {formatAmount(report.postDebtFreeMonthlySurplus)}/month from EMIs.
                 Redirect this to investments for maximum wealth building.
               </Text>
@@ -329,7 +331,7 @@ export default function LoanPayoffReportScreen() {
           <Pressable
             onPress={handleExportPDF}
             className="rounded-xl p-3.5 items-center flex-row justify-center gap-2"
-            style={{ backgroundColor: "#0F766E" }}
+            style={{ backgroundColor: theme.primary }}
             disabled={exporting}
             accessibilityRole="button"
           >

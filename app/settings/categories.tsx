@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
-import { View, Text, FlatList, Pressable } from "react-native";
+
+import { View, FlatList, Pressable } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, FAB } from "@/components/ui";
+import { EmptyState, FAB, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
@@ -15,8 +16,10 @@ import {
 } from "@/services/category";
 import type { Category } from "@/services/category";
 import { getErrorMessage } from "@/utils/error-message";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function CategoriesScreen() {
+  const theme = useTheme();
   const router = useRouter();
   const alert = useAlert();
   const { colors } = useColorScheme();
@@ -137,7 +140,7 @@ export default function CategoriesScreen() {
           params: { id: item.id },
         })
       }
-      className={`flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark ${
+      className={`flex-row items-center px-4 py-3 border-b border-border ${
         item.is_active === 0 ? "opacity-40" : ""
       }`}
     >
@@ -152,12 +155,12 @@ export default function CategoriesScreen() {
         />
       </View>
       <View className="flex-1">
-        <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+        <Text className="text-base font-medium text-foreground">
           {item.name}
         </Text>
         <View className="flex-row items-center">
           {item.is_unavoidable === 1 && (
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+            <Text className="text-xs text-muted-foreground mr-2">
               Unavoidable
             </Text>
           )}
@@ -177,7 +180,7 @@ export default function CategoriesScreen() {
           <Ionicons
             name="chevron-up"
             size={16}
-            color={index === 0 ? "#9CA3AF" : "#6B7280"}
+            color={index === 0 ? theme.faintForeground : theme.mutedForeground}
           />
         </Pressable>
         <Pressable
@@ -188,7 +191,7 @@ export default function CategoriesScreen() {
           <Ionicons
             name="chevron-down"
             size={16}
-            color={index === categories.length - 1 ? "#9CA3AF" : "#6B7280"}
+            color={index === categories.length - 1 ? theme.faintForeground : theme.mutedForeground}
           />
         </Pressable>
       </View>
@@ -198,13 +201,13 @@ export default function CategoriesScreen() {
         <Ionicons
           name={item.is_active === 1 ? "eye-outline" : "eye-off-outline"}
           size={18}
-          color={item.is_active === 1 ? colors.blue : "#9CA3AF"}
+          color={item.is_active === 1 ? colors.blue : theme.faintForeground}
         />
       </Pressable>
 
       {/* Delete button */}
       <Pressable onPress={() => handleDelete(item)} className="p-2">
-        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+        <Ionicons name="trash-outline" size={18} color={theme.danger} />
       </Pressable>
     </Pressable>
   );
@@ -212,16 +215,19 @@ export default function CategoriesScreen() {
   return (
     <ScreenContainer padTop={false}>
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={categories}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 80 }}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-text-secondary dark:text-text-dark-secondary">
-              No categories yet. Tap + to add one.
-            </Text>
-          </View>
+          <EmptyState
+            icon="pricetag-outline"
+            title="No categories yet"
+            subtitle="Categories are how spending gets grouped in Budget and Insights. Tap + to add your first."
+          />
         }
       />
       <FAB icon="add" onPress={() => router.push("/settings/category-edit")} />

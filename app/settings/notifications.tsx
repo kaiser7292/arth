@@ -6,12 +6,13 @@
  */
 
 import { useState, useCallback } from "react";
-import { View, Text, Switch, ScrollView } from "react-native";
+
+import { View, Switch, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAlert } from "@/hooks/use-alert";
-import { ScreenContainer, Card } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   isNotificationEnabled,
@@ -24,6 +25,7 @@ import {
   scheduleSmartDailyDigest,
   syncNotifBackgroundTask,
 } from "@/services/notification-scheduler";
+import { useTheme } from "@/hooks/use-theme";
 
 interface NotifToggleProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -37,8 +39,9 @@ interface NotifToggleProps {
 
 function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onToggle }: NotifToggleProps) {
   const { colors } = useColorScheme();
+  const theme = useTheme();
   return (
-    <View className="flex-row items-center justify-between py-3 border-b border-border-light dark:border-border-dark">
+    <View className="flex-row items-center justify-between py-3 border-b border-border">
       <View className="flex-row items-center flex-1 mr-3">
         <View
           className="w-7 h-7 rounded-full items-center justify-center mr-3"
@@ -47,10 +50,10 @@ function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onTo
           <Ionicons name={icon} size={16} color={iconColor} />
         </View>
         <View className="flex-1">
-          <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+          <Text className="text-sm font-medium text-foreground">
             {title}
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-xs text-muted-foreground mt-0.5">
             {subtitle}
           </Text>
         </View>
@@ -58,8 +61,8 @@ function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onTo
       <Switch
         value={enabled}
         onValueChange={(val) => onToggle(category, val)}
-        trackColor={{ false: "#E5E5E3", true: colors.blue }}
-        thumbColor={enabled ? "#FFFFFF" : "#9CA3AF"}
+        trackColor={{ false: theme.border, true: colors.blue }}
+        thumbColor={enabled ? "#FFFFFF" : theme.faintForeground}
       />
     </View>
   );
@@ -67,7 +70,8 @@ function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onTo
 
 export default function NotificationPreferencesScreen() {
   const alert = useAlert();
-  const { colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const [overdue, setOverdue] = useState(() => isNotificationEnabled("overdue_forecast"));
   const [upcoming, setUpcoming] = useState(() => isNotificationEnabled("upcoming_due"));
   const [scheduledBackup, setScheduledBackup] = useState(() => isNotificationEnabled("scheduled_backup"));
@@ -113,10 +117,10 @@ export default function NotificationPreferencesScreen() {
     <ScreenContainer padTop={false}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 pt-5 pb-3">
-          <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-lg font-bold text-foreground">
             Notification Preferences
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
+          <Text className="text-xs text-muted-foreground mt-1">
             Choose which alerts you want to receive
           </Text>
         </View>
@@ -125,13 +129,13 @@ export default function NotificationPreferencesScreen() {
         {permissionGranted === false && (
           <View
             className="mx-4 mb-3 p-3 rounded-xl"
-            style={{ backgroundColor: StatusColors[colorScheme].warningBg }}
+            style={{ backgroundColor: theme.alpha("warning", 0.08) }}
           >
             <View className="flex-row items-center">
-              <Ionicons name="warning-outline" size={16} color={StatusColors[colorScheme].warning} />
+              <Ionicons name="warning-outline" size={16} color={theme.warning} />
               <Text
                 className="text-xs font-medium ml-2"
-                style={{ color: StatusColors[colorScheme].warning }}
+                style={{ color: theme.warning }}
               >
                 Notification permission not granted. Enable in device settings.
               </Text>
@@ -142,7 +146,7 @@ export default function NotificationPreferencesScreen() {
         <Card className="mx-4 mb-3">
           <NotifToggle
             icon="alert-circle-outline"
-            iconColor={StatusColors[colorScheme].danger}
+            iconColor={theme.danger}
             title="Overdue Payments"
             subtitle="Daily 9:10 AM digest when payments are overdue"
             category="overdue_forecast"
@@ -152,7 +156,7 @@ export default function NotificationPreferencesScreen() {
 
           <NotifToggle
             icon="time-outline"
-            iconColor="#F59E0B"
+            iconColor={theme.warning}
             title="Upcoming Dues"
             subtitle="Daily 9:10 AM digest for payments due within 2 days"
             category="upcoming_due"
@@ -171,8 +175,8 @@ export default function NotificationPreferencesScreen() {
           />
         </Card>
 
-        <View className="mx-4 px-3 py-2.5 rounded-xl" style={{ backgroundColor: StatusColors[colorScheme].warningBg }}>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <View className="mx-4 px-3 py-2.5 rounded-xl" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
+          <Text className="text-xs text-muted-foreground">
             The daily digest fires at 9:10 AM via a system alarm — it works even when the app is closed. Content reflects your data as of the last time Arth was open. No notification is sent if nothing needs your attention.
           </Text>
         </View>

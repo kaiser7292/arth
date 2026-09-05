@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef } from "react";
-import { View, Text, ScrollView, Pressable, RefreshControl } from "react-native";
+
+import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ProgressBar } from "@/components/ui";
+import { ProgressBar, Text } from "@/components/ui";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { getCategories } from "@/services/category";
 import { getBudgetsForMonth } from "@/services/budget";
@@ -11,7 +12,7 @@ import { getSpendClassificationTotals } from "@/services/spend-classification";
 import { getYearlyPlanByFY } from "@/services/yearly-plan";
 import { formatAmount } from "@/utils/expense-validation";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { calculateSplit } from "@/utils/unavoidable-split";
 import type { SplitSnapshot } from "@/utils/unavoidable-split";
 import { getMonthDateRange } from "@/utils/budget-helpers";
@@ -19,17 +20,30 @@ import { getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
+import { useTheme } from "@/hooks/use-theme";
+import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 
-const UNAVOIDABLE_COLOR = "#3B82F6";
-const DISCRETIONARY_COLOR = "#D97706";
+const UNAVOIDABLE_COLOR = BRAND_COLOR;
+const DISCRETIONARY_COLOR = STATUS_COLORS.warning;
 
 interface SpendingSplitPageProps {
   month: string;
 }
 
+/**
+ * The avoidable / discretionary spending breakdown for one month.
+ *
+ * The single implementation, rendered by the Budget tab's swipe-pager and by
+ * app/budget/spending-split.tsx. Each previously carried its own copy of the same calculation and
+ * layout, ~270 and ~366 lines, so a change to how the split is presented had to be made twice.
+ *
+ * The month arrives as a prop rather than being owned here, because the two callers source it
+ * differently: the pager takes the Budget tab's current month, the route owns a PeriodNavigator.
+ */
 export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
   const router = useRouter();
-  const { colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [split, setSplit] = useState<SplitSnapshot | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -108,7 +122,7 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
       {split && split.totalSpent > 0 ? (
         <>
           {/* Donut chart */}
-          <View className="mx-4 mt-3 mb-2 p-4 rounded-lg bg-white dark:bg-surface-dark-alt border border-border-light dark:border-border-dark items-center">
+          <View className="mx-4 mt-3 mb-2 p-4 rounded-lg bg-card border border-border items-center">
             <DonutChart
               segments={[
                 { label: "Unavoidable", value: split.unavoidableSpent, color: UNAVOIDABLE_COLOR },
@@ -124,21 +138,21 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
           </View>
 
           {/* Summary metrics */}
-          <View className="mx-4 mb-2 p-4 rounded-lg bg-white dark:bg-surface-dark-alt border border-border-light dark:border-border-dark">
+          <View className="mx-4 mb-2 p-4 rounded-lg bg-card border border-border">
             <Pressable
               onPress={() => router.push({ pathname: "/budget/transactions" as never, params: { filterMonth: month, filterAvoidability: "unavoidable", title: "Unavoidable Expenses" } })}
               className="flex-row items-center justify-between mb-3"
             >
               <View className="flex-row items-center">
                 <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: UNAVOIDABLE_COLOR }} />
-                <Text className="text-sm text-text-primary dark:text-text-dark-primary">Unavoidable</Text>
+                <Text className="text-sm text-foreground">Unavoidable</Text>
               </View>
               <View className="flex-row items-center">
                 <View className="items-end">
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-semibold text-foreground">
                     {formatAmount(split.unavoidableSpent)}
                   </Text>
-                  <Text className="text-xs text-text-tertiary">of {formatAmount(split.unavoidableBudget)} budget</Text>
+                  <Text className="text-xs text-faint-foreground">of {formatAmount(split.unavoidableBudget)} budget</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 6 }} />
               </View>
@@ -150,37 +164,37 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
             >
               <View className="flex-row items-center">
                 <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: DISCRETIONARY_COLOR }} />
-                <Text className="text-sm text-text-primary dark:text-text-dark-primary">Discretionary</Text>
+                <Text className="text-sm text-foreground">Discretionary</Text>
               </View>
               <View className="flex-row items-center">
                 <View className="items-end">
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-semibold text-foreground">
                     {formatAmount(split.discretionarySpent)}
                   </Text>
-                  <Text className="text-xs text-text-tertiary">of {formatAmount(split.discretionaryBudget)} budget</Text>
+                  <Text className="text-xs text-faint-foreground">of {formatAmount(split.discretionaryBudget)} budget</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 6 }} />
               </View>
             </Pressable>
 
-            <View className="h-[1px] bg-border-light dark:bg-border-dark mb-3" />
+            <View className="h-[1px] bg-border mb-3" />
 
             <View className="flex-row justify-between">
               <View>
-                <Text className="text-xs text-text-tertiary">Unavoidable baseline</Text>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-xs text-faint-foreground">Unavoidable baseline</Text>
+                <Text className="text-sm font-semibold text-foreground">
                   {formatAmount(split.unavoidableBudget)}/mo
                 </Text>
               </View>
               <View className="items-center">
-                <Text className="text-xs text-text-tertiary">Discretionary left</Text>
+                <Text className="text-xs text-faint-foreground">Discretionary left</Text>
                 <Text
                   className="text-sm font-semibold"
                   style={{
                     color:
                       split.discretionaryBudget - split.discretionarySpent >= 0
-                        ? StatusColors[colorScheme].success
-                        : StatusColors[colorScheme].danger,
+                        ? theme.success
+                        : theme.danger,
                   }}
                 >
                   {formatAmount(Math.max(split.discretionaryBudget - split.discretionarySpent, 0))}
@@ -188,7 +202,7 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
               </View>
               {split.maxPossibleSavings !== null && (
                 <View className="items-end">
-                  <Text className="text-xs text-text-tertiary">Max savings</Text>
+                  <Text className="text-xs text-faint-foreground">Max savings</Text>
                   <Text className="text-sm font-semibold text-success">
                     {formatAmount(Math.max(Math.round(split.maxPossibleSavings), 0))}
                   </Text>
@@ -199,12 +213,12 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
 
           {/* Unavoidable categories */}
           <View
-            className="mx-4 mb-2 p-4 rounded-lg bg-white dark:bg-surface-dark-alt border border-border-light dark:border-border-dark"
+            className="mx-4 mb-2 p-4 rounded-lg bg-card border border-border"
             onLayout={(e) => { sectionY.current.unavoidable = e.nativeEvent.layout.y; }}
           >
             <View className="flex-row items-center mb-3">
               <Ionicons name="lock-closed-outline" size={16} color={UNAVOIDABLE_COLOR} />
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2">
+              <Text className="text-sm font-semibold text-foreground ml-2">
                 Unavoidable ({split.unavoidableCategories.length})
               </Text>
             </View>
@@ -212,18 +226,18 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
               <CategoryRow key={cat.categoryId} name={cat.name} spent={cat.spent} budget={cat.budget} color={UNAVOIDABLE_COLOR} />
             ))}
             {split.unavoidableCategories.length === 0 && (
-              <Text className="text-xs text-text-tertiary">No unavoidable categories with spending</Text>
+              <Text className="text-xs text-faint-foreground">No unavoidable categories with spending</Text>
             )}
           </View>
 
           {/* Discretionary categories */}
           <View
-            className="mx-4 mb-4 p-4 rounded-lg bg-white dark:bg-surface-dark-alt border border-border-light dark:border-border-dark"
+            className="mx-4 mb-4 p-4 rounded-lg bg-card border border-border"
             onLayout={(e) => { sectionY.current.discretionary = e.nativeEvent.layout.y; }}
           >
             <View className="flex-row items-center mb-3">
               <Ionicons name="pricetag-outline" size={16} color={DISCRETIONARY_COLOR} />
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2">
+              <Text className="text-sm font-semibold text-foreground ml-2">
                 Discretionary ({split.discretionaryCategories.length})
               </Text>
             </View>
@@ -231,17 +245,17 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
               <CategoryRow key={cat.categoryId} name={cat.name} spent={cat.spent} budget={cat.budget} color={DISCRETIONARY_COLOR} />
             ))}
             {split.discretionaryCategories.length === 0 && (
-              <Text className="text-xs text-text-tertiary">No discretionary categories with spending</Text>
+              <Text className="text-xs text-faint-foreground">No discretionary categories with spending</Text>
             )}
           </View>
         </>
       ) : (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 80 }}>
           <Ionicons name="pie-chart-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             No spending data
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+          <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
             Start adding expenses to see your unavoidable vs discretionary classification
           </Text>
         </View>
@@ -255,13 +269,13 @@ function CategoryRow({ name, spent, budget, color }: { name: string; spent: numb
   return (
     <View className="mb-3 last:mb-0">
       <View className="flex-row justify-between mb-1">
-        <Text className="text-sm text-text-primary dark:text-text-dark-primary flex-1" numberOfLines={1}>
+        <Text className="text-sm text-foreground flex-1" numberOfLines={1}>
           {name}
         </Text>
-        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary ml-2">
+        <Text className="text-sm font-medium text-foreground ml-2">
           {formatAmount(spent)}
         </Text>
-        {budget > 0 && <Text className="text-xs text-text-tertiary ml-1">/ {formatAmount(budget)}</Text>}
+        {budget > 0 && <Text className="text-xs text-faint-foreground ml-1">/ {formatAmount(budget)}</Text>}
       </View>
       {budget > 0 && <ProgressBar value={pct} color={color} height={6} animated={false} />}
     </View>

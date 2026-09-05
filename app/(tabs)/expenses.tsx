@@ -1,3 +1,4 @@
+import { restoreExpense } from "@/services/expense-crud";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { isNLSearchEnabled } from "@/services/ai-assistant";
 import { parseNLQuery } from "@/utils/nl-search";
@@ -5,15 +6,15 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
-import { View, Text, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ContextualHeader, ScreenContainer, FABMenu, DateInput, EmptyState, Input, Card, SwipePager } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, Input, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { ac } from "@/utils/accent";
+
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
 import { addCredit } from "@/services/account-credit";
@@ -72,9 +73,10 @@ import {
   type DatePreset,
 } from "@/services/saved-filter-views";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
-import { StatusColors } from "@/constants/theme";
+
 import { settingsStorage } from "@/services/storage";
 import { Modal } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 type ExpenseSortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "name_asc";
 const SORT_OPTIONS: { value: ExpenseSortBy; label: string; icon: string }[] = [
@@ -99,8 +101,9 @@ const NATURE_TABS: SwipePagerPage[] = [
 export default function ExpensesScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const toast = useToast();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
@@ -230,6 +233,33 @@ export default function ExpensesScreen() {
 
   const lastVersionRef = useRef<number | null>(null);
 
+  /**
+   * Signature of everything that changes WHICH rows should be shown.
+   *
+   * loadExpenses skips a reload when the data version has not moved, which is right for a refocus
+   * but wrong for a filter change: switching the nature tab to Committed, Credits or Transfers
+   * alters the query without touching the data version, so the guard swallowed the reload and the
+   * list kept showing the previous tab's rows.
+   */
+  const filterSignature = [
+    debouncedSearch,
+    filterStartDate,
+    filterEndDate,
+    filterCategoryIds.join(","),
+    filterPaymentModeIds.join(","),
+    filterAccountIds.join(","),
+    filterTagIds.join(","),
+    filterMerchantNames.join(","),
+    filterRefundedStatus,
+    filterAvoidability,
+    filterRuleIds.join(","),
+    filterStatus,
+    filterNature,
+    summaryGroupBy,
+    sortBy,
+  ].join("|");
+  const lastFilterSignatureRef = useRef<string | null>(null);
+
   const loadExpenses = useCallback(
     async (reset = true) => {
       if (reset) {
@@ -352,6 +382,11 @@ export default function ExpensesScreen() {
   // Reload expenses when screen gains focus or filters change
   useFocusEffect(
     useCallback(() => {
+      // A changed query must bypass the data-version guard; a plain refocus must not.
+      if (lastFilterSignatureRef.current !== filterSignature) {
+        lastFilterSignatureRef.current = filterSignature;
+        lastVersionRef.current = null;
+      }
       loadExpenses(true);
       getPendingExpenseCount(DEFAULT_USER_ID).then(setPendingCount).catch(() => {});
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -388,6 +423,22 @@ export default function ExpensesScreen() {
                     }
                   : prev,
               );
+
+              // The delete is soft, so it is recoverable - but until now the only way back was to
+              // find the Recycle Bin in Settings. A split expense is excluded: restoring one has to
+              // put the hisaab entry back too, which restoreExpense does not do.
+              if (!isSplit) {
+                toast(`Deleted "${desc}"`, {
+                  actionLabel: "Undo",
+                  onAction: async () => {
+                    await restoreExpense(expense.id);
+                    lastVersionRef.current = null;
+                    await loadExpenses(true);
+                  },
+                });
+              } else {
+                toast(`Deleted "${desc}"`);
+              }
             },
           },
         ],
@@ -775,19 +826,19 @@ export default function ExpensesScreen() {
             }
             // manual transfers with no linked expense: all info is in the row, no drilldown
           }}
-          className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark"
+          className="flex-row items-center px-4 py-3 border-b border-border"
         >
           <View className="flex-1">
             <Text className="text-sm font-medium" style={{ color: colors.text }}>
               {item.description || "Transfer"}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               {accountName} → {toAccountName}
             </Text>
-            <Text className="text-[10px] text-text-tertiary">{item.date}</Text>
+            <Text className="text-label text-faint-foreground">{item.date}</Text>
           </View>
           <View className="items-end">
-            <Text className="text-sm font-bold" style={{ color: accent[500] }}>
+            <Text className="text-sm font-bold" style={{ color: theme.primary }}>
               {formatAmount(item.amount)}
             </Text>
             <Pressable
@@ -817,14 +868,14 @@ export default function ExpensesScreen() {
         </Pressable>
       );
     },
-    [accountMap, colors, accent, alert, loadExpenses, router],
+    [accountMap, colors, alert, loadExpenses, router],
   );
 
   // Group expenses by date for display. Each entry is either a date header
   // sentinel or an expense item. useMemo keeps it O(n) and only reruns when
   // the expenses array reference changes.
   type DateGroupRow =
-    | { _type: "header"; date: string; label: string }
+    | { _type: "header"; date: string; label: string; total: number }
     | { _type: "item"; expense: Expense };
 
   const groupedExpenses = useMemo<DateGroupRow[]>(() => {
@@ -858,13 +909,21 @@ export default function ExpensesScreen() {
 
     const rows: DateGroupRow[] = [];
     let lastDate = "";
+    let currentHeader: Extract<DateGroupRow, { _type: "header" }> | null = null;
     for (const expense of expenses) {
       const expDate = expense.date?.slice(0, 10) ?? "";
       if (expDate !== lastDate) {
-        rows.push({ _type: "header", date: expDate, label: dateLabel(expDate) });
+        currentHeader = { _type: "header", date: expDate, label: dateLabel(expDate), total: 0 };
+        rows.push(currentHeader);
         lastDate = expDate;
       }
       rows.push({ _type: "item", expense });
+
+      // Signed by each row's OWN nature, not by the active tab, so the day total stays correct on
+      // All where credits and debits are interleaved.
+      if (currentHeader) {
+        currentHeader.total += expense.nature === "credit" ? expense.amount : -expense.amount;
+      }
     }
     return rows;
   }, [expenses]);
@@ -873,13 +932,23 @@ export default function ExpensesScreen() {
     ({ item }: { item: DateGroupRow }) => {
       if (item._type === "header") {
         return (
-          <View className="px-4 pt-4 pb-1.5">
+          // The day's net sits beside its date, so scanning down the list answers "what did that
+          // day cost me" without adding the rows up by eye.
+          <View className="px-4 pt-4 pb-1.5 flex-row items-baseline justify-between">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary"
+              className="text-label font-semibold uppercase tracking-wider text-muted-foreground"
               style={{ letterSpacing: 0.6 }}
             >
               {item.label}
             </Text>
+            {item.total !== 0 && (
+              <Money
+                value={item.total}
+                signed
+                showPlus
+                className="text-label font-semibold"
+              />
+            )}
           </View>
         );
       }
@@ -894,9 +963,9 @@ export default function ExpensesScreen() {
               <View
                 className="w-5 h-5 rounded items-center justify-center"
                 style={{
-                  backgroundColor: selectedExpenseIds.has(expense.id) ? accent[500] : "transparent",
+                  backgroundColor: selectedExpenseIds.has(expense.id) ? theme.primary : "transparent",
                   borderWidth: selectedExpenseIds.has(expense.id) ? 0 : 1.5,
-                  borderColor: selectedExpenseIds.has(expense.id) ? accent[500] : colors.border,
+                  borderColor: selectedExpenseIds.has(expense.id) ? theme.primary : colors.border,
                 }}
               >
                 {selectedExpenseIds.has(expense.id) && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
@@ -917,7 +986,7 @@ export default function ExpensesScreen() {
         </View>
       );
     },
-    [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, accent, colors],
+    [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, colors],
   );
 
   return (
@@ -932,13 +1001,13 @@ export default function ExpensesScreen() {
         } : undefined}
         rightActions={[{
           icon: "swap-vertical-outline",
-          color: sortBy !== "date_desc" ? accent[500] : undefined,
+          color: sortBy !== "date_desc" ? theme.primary : undefined,
           onPress: () => setShowSortSheet(true),
         }]}
       />
       {/* Search bar */}
       <View className="px-4 pt-3 pb-2">
-        <View className="flex-row items-center rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt px-3 py-2">
+        <View className="flex-row items-center rounded-lg bg-card px-3 py-2">
           <Ionicons name="search" size={18} color={colors.textSecondary} />
           <TextInput
             value={search}
@@ -948,7 +1017,7 @@ export default function ExpensesScreen() {
             placeholderTextColor={colors.tabIconDefault}
             maxLength={100}
             accessibilityLabel="Search expenses"
-            className="flex-1 ml-2 text-base text-text-primary dark:text-text-dark-primary"
+            className="flex-1 ml-2 text-base text-foreground"
             returnKeyType={nlEnabled ? "go" : "search"}
             blurOnSubmit={false}
           />
@@ -964,9 +1033,9 @@ export default function ExpensesScreen() {
               accessibilityLabel="Apply smart search"
               accessibilityRole="button"
               className="ml-2 px-2 py-1 rounded-md"
-              style={{ backgroundColor: accent[500] }}
+              style={{ backgroundColor: theme.primary }}
             >
-              <Text className="text-xs font-semibold text-white">Apply</Text>
+              <Text className="text-xs font-semibold text-primary-foreground">Apply</Text>
             </Pressable>
           )}
           {/* Voice search mic */}
@@ -979,7 +1048,7 @@ export default function ExpensesScreen() {
             <Ionicons
               name={isVoiceSearching ? "radio-button-on" : "mic-outline"}
               size={18}
-              color={isVoiceSearching ? "#EF4444" : colors.textSecondary}
+              color={isVoiceSearching ? theme.danger : colors.textSecondary}
             />
           </Pressable>
           <Pressable
@@ -991,7 +1060,7 @@ export default function ExpensesScreen() {
             <Ionicons
               name="options-outline"
               size={20}
-              color={hasActiveFilters ? colors.blue : "#9CA3AF"}
+              color={hasActiveFilters ? colors.blue : theme.faintForeground}
             />
           </Pressable>
         </View>
@@ -1009,10 +1078,10 @@ export default function ExpensesScreen() {
             maxLength={30}
             onSubmitEditing={confirmSaveView}
             returnKeyType="done"
-            className="flex-1 text-sm text-text-primary dark:text-text-dark-primary bg-surface-light-alt dark:bg-surface-dark-alt rounded-lg px-3 py-2 mr-2"
+            className="flex-1 text-sm text-foreground bg-card rounded-lg px-3 py-2 mr-2"
           />
-          <Pressable onPress={confirmSaveView} className="px-3 py-2 rounded-lg" style={{ backgroundColor: accent[500] }}>
-            <Text className="text-xs font-medium text-white">Save</Text>
+          <Pressable onPress={confirmSaveView} className="px-3 py-2 rounded-lg" style={{ backgroundColor: theme.primary }}>
+            <Text className="text-xs font-medium text-primary-foreground">Save</Text>
           </Pressable>
           <Pressable onPress={() => setShowSaveViewInput(false)} className="ml-2">
             <Ionicons name="close" size={18} color={colors.textSecondary} />
@@ -1025,11 +1094,11 @@ export default function ExpensesScreen() {
         <View className="px-4 pb-2">
           <Pressable
             onPress={() => setShowViewsPicker(!showViewsPicker)}
-            className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+            className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card"
           >
             <View className="flex-row items-center">
-              <Ionicons name="bookmark-outline" size={14} color={accent[500]} style={{ marginRight: 6 }} />
-              <Text className="text-sm font-medium" style={{ color: activeViewId ? accent[500] : colors.textSecondary }}>
+              <Ionicons name="bookmark-outline" size={14} color={theme.primary} style={{ marginRight: 6 }} />
+              <Text className="text-sm font-medium" style={{ color: activeViewId ? theme.primary : colors.textSecondary }}>
                 {activeViewId ? savedViews.find((v) => v.id === activeViewId)?.name ?? "Saved Views" : "Saved Views"}
               </Text>
             </View>
@@ -1037,27 +1106,27 @@ export default function ExpensesScreen() {
           </Pressable>
 
           {showViewsPicker && (
-            <View className="mt-1 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden">
+            <View className="mt-1 rounded-lg bg-card overflow-hidden">
               {savedViews.map((view) => {
                 const isActive = activeViewId === view.id;
                 const isDefault = getDefaultFilterViewId() === view.id;
                 return (
-                  <View key={view.id} className="flex-row items-center border-b border-border-light dark:border-border-dark">
+                  <View key={view.id} className="flex-row items-center border-b border-border">
                     <Pressable
                       onPress={() => { applyFilterView(view); setShowViewsPicker(false); }}
                       className="flex-1 flex-row items-center px-3 py-2.5"
                     >
-                      {isDefault && <Ionicons name="star" size={11} color="#F59E0B" style={{ marginRight: 5 }} />}
-                      <Text className={`text-sm flex-1 ${isActive ? "font-semibold" : "text-text-primary dark:text-text-dark-primary"}`} style={isActive ? { color: accent[500] } : undefined}>
+                      {isDefault && <Ionicons name="star" size={11} color={theme.warning} style={{ marginRight: 5 }} />}
+                      <Text className={`text-sm flex-1 ${isActive ? "font-semibold" : "text-foreground"}`} style={isActive ? { color: theme.primary } : undefined}>
                         {view.name}
                       </Text>
-                      {isActive && <Ionicons name="checkmark" size={14} color={accent[500]} />}
+                      {isActive && <Ionicons name="checkmark" size={14} color={theme.primary} />}
                     </Pressable>
                     <Pressable
                       onPress={() => handleSetDefault(view.id)}
                       className="px-2 py-2.5"
                     >
-                      <Ionicons name={isDefault ? "star" : "star-outline"} size={14} color="#F59E0B" />
+                      <Ionicons name={isDefault ? "star" : "star-outline"} size={14} color={theme.warning} />
                     </Pressable>
                     <Pressable
                       onPress={() => { handleDeleteView(view.id, view.name); }}
@@ -1077,11 +1146,11 @@ export default function ExpensesScreen() {
       <View className="px-4 pb-2">
         <Pressable
           onPress={() => setShowDatePicker(!showDatePicker)}
-          className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+          className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card"
         >
           <View className="flex-row items-center">
-            <Ionicons name="calendar-outline" size={14} color={accent[500]} style={{ marginRight: 6 }} />
-            <Text className="text-sm font-medium" style={{ color: accent[500] }}>
+            <Ionicons name="calendar-outline" size={14} color={theme.primary} style={{ marginRight: 6 }} />
+            <Text className="text-sm font-medium" style={{ color: theme.primary }}>
               {DATE_PRESET_LABELS[datePreset]}
             </Text>
           </View>
@@ -1090,7 +1159,7 @@ export default function ExpensesScreen() {
 
         {showDatePicker && (
           <ScrollView
-            className="mt-1 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden"
+            className="mt-1 rounded-lg bg-card overflow-hidden"
             style={{ maxHeight: 300 }}
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
@@ -1104,15 +1173,15 @@ export default function ExpensesScreen() {
                     setDatePreset(preset);
                     if (preset !== "custom") setShowDatePicker(false);
                   }}
-                  className="flex-row items-center justify-between px-3 py-3 border-b border-border-light dark:border-border-dark"
+                  className="flex-row items-center justify-between px-3 py-3 border-b border-border"
                 >
                   <Text
-                    className="text-sm text-text-primary dark:text-text-dark-primary"
-                    style={isSelected ? { color: accent[500], fontWeight: "600" } : undefined}
+                    className="text-sm text-foreground"
+                    style={isSelected ? { color: theme.primary, fontWeight: "600" } : undefined}
                   >
                     {DATE_PRESET_LABELS[preset]}
                   </Text>
-                  {isSelected && <Ionicons name="checkmark" size={16} color={accent[500]} />}
+                  {isSelected && <Ionicons name="checkmark" size={16} color={theme.primary} />}
                 </Pressable>
               );
             })}
@@ -1193,7 +1262,7 @@ export default function ExpensesScreen() {
             if (!cat) return null;
             return (
               <Pressable key={`cat-${id}`} onPress={() => setFilterCategoryIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-text-tertiary">{cat.name}</Text>
+                <Text className="text-label text-faint-foreground">{cat.name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
@@ -1203,7 +1272,7 @@ export default function ExpensesScreen() {
             if (!pm) return null;
             return (
               <Pressable key={`pm-${id}`} onPress={() => setFilterPaymentModeIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-text-tertiary">{pm.name}</Text>
+                <Text className="text-label text-faint-foreground">{pm.name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
@@ -1213,14 +1282,14 @@ export default function ExpensesScreen() {
             if (!acct) return null;
             return (
               <Pressable key={`acct-${id}`} onPress={() => setFilterAccountIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-text-tertiary">{acct.bank_name}</Text>
+                <Text className="text-label text-faint-foreground">{acct.bank_name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
           })}
           {filterMerchantNames.map((name) => (
             <Pressable key={`merchant-${name}`} onPress={() => setFilterMerchantNames((prev) => prev.filter((x) => x !== name))} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-text-tertiary">{name}</Text>
+              <Text className="text-label text-faint-foreground">{name}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           ))}
@@ -1229,37 +1298,37 @@ export default function ExpensesScreen() {
             if (!rule) return null;
             return (
               <Pressable key={`rule-${rid}`} onPress={() => setFilterRuleIds((prev) => prev.filter((x) => x !== rid))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-text-tertiary">Rule: {rule.name}</Text>
+                <Text className="text-label text-faint-foreground">Rule: {rule.name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
           })}
           {filterRefundedStatus !== "" && (
             <Pressable onPress={() => setFilterRefundedStatus("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-text-tertiary">{filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded"}</Text>
+              <Text className="text-label text-faint-foreground">{filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded"}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           {filterStatus !== "" && (
             <Pressable onPress={() => setFilterStatus("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-text-tertiary">{filterStatus === "pending_review" ? "Pending Review" : "Approved"}</Text>
+              <Text className="text-label text-faint-foreground">{filterStatus === "pending_review" ? "Pending Review" : "Approved"}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           {filterAvoidability !== "" && (
             <Pressable onPress={() => setFilterAvoidability("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-text-tertiary">{filterAvoidability === "avoidable" ? "Avoidable" : "Unavoidable"}</Text>
+              <Text className="text-label text-faint-foreground">{filterAvoidability === "avoidable" ? "Avoidable" : "Unavoidable"}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           {search !== "" && (
             <Pressable onPress={() => setSearch("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-text-tertiary">"{search}"</Text>
+              <Text className="text-label text-faint-foreground">"{search}"</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           <Pressable onPress={() => { clearFilters(); setActiveViewId(null); }} className="flex-row items-center mb-1">
-            <Text className="text-[10px] font-medium" style={{ color: accent[500] }}>Clear all</Text>
+            <Text className="text-label font-medium" style={{ color: theme.primary }}>Clear all</Text>
           </Pressable>
         </View>
       )}
@@ -1273,12 +1342,12 @@ export default function ExpensesScreen() {
           <View className="flex-row items-center">
             {hasActiveFilters && (
               <Pressable onPress={handleSaveView} className="mr-3">
-                <Ionicons name="bookmark-outline" size={16} color={accent[500]} />
+                <Ionicons name="bookmark-outline" size={16} color={theme.primary} />
               </Pressable>
             )}
             {activeViewId && (
               <Pressable onPress={() => handleSetDefault(activeViewId)}>
-                <Ionicons name={getDefaultFilterViewId() === activeViewId ? "star" : "star-outline"} size={16} color="#F59E0B" />
+                <Ionicons name={getDefaultFilterViewId() === activeViewId ? "star" : "star-outline"} size={16} color={theme.warning} />
               </Pressable>
             )}
           </View>
@@ -1289,6 +1358,9 @@ export default function ExpensesScreen() {
             {activeNatureIndex === pageIdx ? (
               filterNature === "transfers" ? (
                 <FlatList
+                  initialNumToRender={12}
+                  maxToRenderPerBatch={10}
+                  windowSize={7}
                   data={transfers}
                   keyExtractor={(item) => item.id}
                   renderItem={renderTransferItem}
@@ -1297,33 +1369,38 @@ export default function ExpensesScreen() {
                   onRefresh={() => loadExpenses(true)}
                   ListHeaderComponent={
                     transfers.length > 0 ? (
-                      <View className="mx-4 my-2 p-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt">
+                      <View className="mx-4 my-2 p-4 rounded-xl bg-card">
                         <View className="flex-row items-center justify-between">
-                          <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+                          <Text className="text-sm font-medium text-muted-foreground">
                             Total transfers
                           </Text>
                           <Text className="text-lg font-bold" style={{ color: TRANSFER_COLOR }}>
                             {formatAmount(transfers.reduce((sum, t) => sum + t.amount, 0))}
                           </Text>
                         </View>
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                        <Text className="text-xs text-muted-foreground mt-0.5">
                           {transfers.length} {transfers.length === 1 ? "transfer" : "transfers"}
                         </Text>
                       </View>
                     ) : null
                   }
                   ListEmptyComponent={
-                    !loading ? (
+                    loading ? (
+                      <SkeletonList rows={5} />
+                    ) : (
                       <EmptyState
                         icon="swap-horizontal-outline"
                         title="No transfers yet"
                         subtitle="Transfers between accounts will appear here"
                       />
-                    ) : null
+                    )
                   }
                 />
               ) : (
                 <FlatList
+                  initialNumToRender={12}
+                  maxToRenderPerBatch={10}
+                  windowSize={7}
                   data={groupedExpenses}
                   keyExtractor={(item) => item._type === "header" ? `header-${item.date}` : item.expense.id}
                   renderItem={renderExpenseItem}
@@ -1368,7 +1445,7 @@ export default function ExpensesScreen() {
                     ) : null
                   }
                   ListEmptyComponent={
-                    !loading ? (() => {
+                    loading ? <SkeletonList rows={7} /> : (() => {
                       const isCreditView = filterNature === "credit";
                       const emptyIcon = isCreditView ? "arrow-down-circle-outline" : "receipt-outline";
                       const emptyTitle = hasActiveFilters
@@ -1380,14 +1457,13 @@ export default function ExpensesScreen() {
                           ? "Credits appear here when an incoming SMS is parsed"
                           : "Tap + to add your first expense";
                       return <EmptyState icon={emptyIcon} title={emptyTitle} subtitle={emptySubtitle} />;
-                    })() : null
+                    })()
                   }
                   ListFooterComponent={
-                    loading ? (
-                      <View className="py-4 items-center">
-                        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
-                          Loading expenses...
-                        </Text>
+                    // Only while paginating: the empty state already covers the first load.
+                    loading && expenses.length > 0 ? (
+                      <View className="px-4 py-2">
+                        <SkeletonList rows={2} />
                       </View>
                     ) : null
                   }
@@ -1406,13 +1482,13 @@ export default function ExpensesScreen() {
           {
             icon: "receipt-outline",
             label: "Add Expense",
-            color: sc.danger,
+            color: theme.danger,
             onPress: () => router.push("/expense/add"),
           },
           {
             icon: "arrow-down-outline",
             label: "Add Credit",
-            color: sc.success,
+            color: theme.success,
             onPress: () => {
               setCreditDate(new Date().toISOString().split("T")[0]);
               setShowAddCredit(true);
@@ -1494,7 +1570,7 @@ export default function ExpensesScreen() {
         <View className="absolute left-0 right-0 bottom-0 top-0 justify-end" style={{ backgroundColor: "rgba(0,0,0,0.4)", zIndex: 100 }}>
           <Pressable className="flex-1" onPress={() => setBulkPickerType(null)} />
           <View className="rounded-t-2xl px-4 pt-4 pb-8" style={{ backgroundColor: colors.background }}>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mb-3">Set Date</Text>
+            <Text className="text-sm font-semibold text-foreground mb-3">Set Date</Text>
             <DateInput
               label=""
               value=""
@@ -1502,7 +1578,7 @@ export default function ExpensesScreen() {
               maximumDate={null}
             />
             <Pressable onPress={() => setBulkPickerType(null)} className="mt-3">
-              <Text className="text-xs text-center" style={{ color: accent[500] }}>Cancel</Text>
+              <Text className="text-xs text-center" style={{ color: theme.primary }}>Cancel</Text>
             </Pressable>
           </View>
         </View>
@@ -1516,8 +1592,8 @@ export default function ExpensesScreen() {
           <Pressable style={{ flex: 1 }} onPress={handleCancelCredit} />
           <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 }}>
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", marginRight: 10, backgroundColor: sc.success + "20" }}>
-                <Ionicons name="arrow-down-outline" size={16} color={sc.success} />
+              <View style={{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", marginRight: 10, backgroundColor: theme.success + "20" }}>
+                <Ionicons name="arrow-down-outline" size={16} color={theme.success} />
               </View>
               <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>Add Credit</Text>
             </View>
@@ -1526,7 +1602,7 @@ export default function ExpensesScreen() {
               onPress={() => setShowCreditAccountPicker(true)}
               style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}
             >
-              <Ionicons name="wallet-outline" size={16} color={creditAccountId ? sc.success : colors.textSecondary} />
+              <Ionicons name="wallet-outline" size={16} color={creditAccountId ? theme.success : colors.textSecondary} />
               <Text style={{ flex: 1, fontSize: 14, marginLeft: 8, color: creditAccountId ? colors.text : colors.textSecondary }}>
                 {creditAccountLabel || "Select account"}
               </Text>
@@ -1562,7 +1638,7 @@ export default function ExpensesScreen() {
               </Pressable>
               <Pressable
                 onPress={handleSaveCredit}
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: sc.success }}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: theme.success }}
               >
                 <Text style={{ fontSize: 14, fontWeight: "600", color: "#fff" }}>Add Credit</Text>
               </Pressable>
@@ -1711,10 +1787,10 @@ export default function ExpensesScreen() {
           }}
         >
           <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
           <View className="flex-row items-center justify-between px-5 pb-3 pt-1">
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">Sort by</Text>
+            <Text className="text-base font-bold text-foreground">Sort by</Text>
             <Pressable onPress={() => setShowSortSheet(false)} hitSlop={8}>
               <Ionicons name="close" size={20} color={colors.textSecondary} />
             </Pressable>
@@ -1737,15 +1813,15 @@ export default function ExpensesScreen() {
                 <Ionicons
                   name={opt.icon as never}
                   size={18}
-                  color={active ? accent[500] : colors.textSecondary}
+                  color={active ? theme.primary : colors.textSecondary}
                 />
                 <Text
                   className="flex-1 text-sm ml-3"
-                  style={{ color: active ? accent[500] : colors.text, fontWeight: active ? "600" : "400" }}
+                  style={{ color: active ? theme.primary : colors.text, fontWeight: active ? "600" : "400" }}
                 >
                   {opt.label}
                 </Text>
-                {active && <Ionicons name="checkmark" size={18} color={accent[500]} />}
+                {active && <Ionicons name="checkmark" size={18} color={theme.primary} />}
               </Pressable>
             );
           })}

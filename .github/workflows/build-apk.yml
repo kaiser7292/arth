@@ -17,6 +17,8 @@ on:
       - 'app.json'
       - 'package.json'
       - 'tailwind.config.js'
+      - 'global.css'
+      - 'scripts/**'
       - 'babel.config.js'
       - 'metro.config.js'
       - 'tsconfig.json'

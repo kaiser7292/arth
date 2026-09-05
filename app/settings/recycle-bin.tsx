@@ -1,13 +1,14 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { View, Text, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-native";
+
+import { View, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer } from "@/components/ui";
+import { ScreenContainer, Text } from "@/components/ui";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
-import { ac } from "@/utils/accent";
+
+
 import { formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
 import { getErrorMessage } from "@/utils/error-message";
@@ -38,6 +39,7 @@ import { listDeletedRules, restoreRule, restoreAllRules, hardDeleteRule, purgeDe
 import type { SmartRule } from "@/services/smart-rules";
 import { getDeletedUserTemplates, restoreUserTemplate, restoreAllUserTemplates, hardDeleteUserTemplate, purgeDeletedUserTemplates } from "@/services/sms/user-sms-templates";
 import type { UserSmsTemplate } from "@/services/sms/user-sms-templates";
+import { useTheme, type Theme } from "@/hooks/use-theme";
 
 type SectionFilter = "deleted" | "rejected" | "categories" | "payment_modes" | "accounts" | "hisaab" | "credits" | "recurring" | "sms" | "vault" | "smart_rules" | "sms_templates";
 
@@ -76,13 +78,15 @@ function truncate(text: string, max: number): string {
   return text.length > max ? text.substring(0, max) + "\u2026" : text;
 }
 
-function getSmsStatusStyle(cs: "light" | "dark"): Record<string, { label: string; color: string }> {
-  const sc = StatusColors[cs];
+/** Takes the theme as an argument: this is a plain helper, not a component, so it must not
+ *  call a hook. It is invoked from inside map callbacks, where a conditional hook call would
+ *  break hook order. */
+function getSmsStatusStyle(theme: Theme): Record<string, { label: string; color: string }> {
   return {
-    pending: { label: "PENDING", color: sc.warning },
-    processed: { label: "PROCESSED", color: sc.success },
-    ignored: { label: "IGNORED", color: sc.muted },
-    failed: { label: "FAILED", color: sc.danger },
+    pending: { label: "PENDING", color: theme.warning },
+    processed: { label: "PROCESSED", color: theme.success },
+    ignored: { label: "IGNORED", color: theme.faintForeground },
+    failed: { label: "FAILED", color: theme.danger },
   };
 }
 
@@ -97,7 +101,8 @@ const FREQ_LABELS: Record<string, string> = {
 export default function RecycleBinScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const [activeFilter, setActiveFilter] = useState<SectionFilter>("deleted");
   const [loading, setLoading] = useState(true);
   const [purging, setPurging] = useState(false);
@@ -216,23 +221,23 @@ export default function RecycleBinScreen() {
       icon: keyof typeof Ionicons.glyphMap; title: string; subtitle?: string;
       onRestore: () => void; onDelete: () => void;
     }) => (
-      <View className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark">
+      <View className="flex-row items-center px-4 py-3 border-b border-border">
         <Ionicons name={icon} size={18} color={colors.textSecondary} />
         <View className="flex-1 ml-3">
-          <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+          <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
             {title}
           </Text>
           {subtitle ? (
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5" numberOfLines={1}>
+            <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
               {subtitle}
             </Text>
           ) : null}
         </View>
         <Pressable onPress={onRestore} className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-2">
-          <Ionicons name="refresh-outline" size={16} color={StatusColors[colorScheme].success} />
+          <Ionicons name="refresh-outline" size={16} color={theme.success} />
         </Pressable>
         <Pressable onPress={onDelete} className="w-9 h-9 rounded-full bg-danger/8 items-center justify-center">
-          <Ionicons name="close-outline" size={16} color={StatusColors[colorScheme].danger} />
+          <Ionicons name="close-outline" size={16} color={theme.danger} />
         </Pressable>
       </View>
     ),
@@ -250,25 +255,25 @@ export default function RecycleBinScreen() {
     }) => {
       if (count === 0) return null;
       return (
-        <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border-light dark:border-border-dark">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary flex-1 mr-2">
+        <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border">
+          <Text className="text-sm text-muted-foreground flex-1 mr-2">
             {count} {label}
           </Text>
           <View className="flex-row items-center">
             {onRestoreAll && (
               <Pressable onPress={onRestoreAll} disabled={purging}
                 className="flex-row items-center py-1.5 px-3 rounded-lg bg-success/8 mr-2">
-                <Ionicons name="refresh-outline" size={14} color={StatusColors[colorScheme].success} />
-                <Text className="text-xs font-medium ml-1" style={{ color: StatusColors[colorScheme].success }}>
+                <Ionicons name="refresh-outline" size={14} color={theme.success} />
+                <Text className="text-xs font-medium ml-1" style={{ color: theme.success }}>
                   {restoreLabel ?? "Restore All"}
                 </Text>
               </Pressable>
             )}
             <Pressable onPress={onPurgeAll} disabled={purging}
               className="flex-row items-center py-1.5 px-3 rounded-lg bg-danger/8">
-              {purging ? <ActivityIndicator size="small" color={StatusColors[colorScheme].danger} /> : (
+              {purging ? <ActivityIndicator size="small" color={theme.danger} /> : (
                 <>
-                  <Ionicons name="trash-outline" size={14} color={StatusColors[colorScheme].danger} />
+                  <Ionicons name="trash-outline" size={14} color={theme.danger} />
                   <Text className="text-xs font-medium text-danger ml-1">{purgeLabel ?? "Delete All"}</Text>
                 </>
               )}
@@ -293,16 +298,16 @@ export default function RecycleBinScreen() {
       onPress={() => router.push(`/expense/${item.id}`)}
       rightElement={
         <View className="flex-row items-center ml-2">
-          {item.deleted_at && <Text className="text-[10px] text-text-tertiary mr-2">{daysAgo(item.deleted_at)}</Text>}
+          {item.deleted_at && <Text className="text-label text-faint-foreground mr-2">{daysAgo(item.deleted_at)}</Text>}
           <Pressable onPress={() => confirm("Restore", `Restore "${item.description || "Expense"}"?`, "Restore", false, async () => {
             await restoreExpense(item.id); setDeletedExpenses((p) => p.filter((e) => e.id !== item.id));
           })} className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-2">
-            <Ionicons name="refresh-outline" size={18} color={StatusColors[colorScheme].success} />
+            <Ionicons name="refresh-outline" size={18} color={theme.success} />
           </Pressable>
           <Pressable onPress={() => confirm("Delete Forever", `Permanently delete "${item.description || "Expense"}"? Cannot be undone.`, "Delete", true, async () => {
             await permanentlyDeleteExpense(item.id); setDeletedExpenses((p) => p.filter((e) => e.id !== item.id));
           })} className="w-9 h-9 rounded-full bg-danger/8 items-center justify-center">
-            <Ionicons name="close-outline" size={18} color={StatusColors[colorScheme].danger} />
+            <Ionicons name="close-outline" size={18} color={theme.danger} />
           </Pressable>
         </View>
       }
@@ -318,18 +323,18 @@ export default function RecycleBinScreen() {
       onPress={() => router.push(`/expense/${item.id}`)}
       rightElement={
         <View className="flex-row items-center ml-2">
-          <View className="px-1.5 py-0.5 rounded mr-2 bg-[#EF444414]">
-            <Text className="text-[10px] font-semibold" style={{ color: StatusColors[colorScheme].danger }}>REJECTED</Text>
+          <View className="px-1.5 py-0.5 rounded mr-2 bg-danger/8">
+            <Text className="text-label font-semibold" style={{ color: theme.danger }}>REJECTED</Text>
           </View>
           <Pressable onPress={() => confirm("Re-approve", `Approve "${item.description || item.merchant_name || "Expense"}"?`, "Approve", false, async () => {
             await approveExpense(item.id); setRejectedExpenses((p) => p.filter((e) => e.id !== item.id));
           })} className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-2">
-            <Ionicons name="checkmark" size={18} color={StatusColors[colorScheme].success} />
+            <Ionicons name="checkmark" size={18} color={theme.success} />
           </Pressable>
           <Pressable onPress={() => confirm("Delete", `Move to recycle bin?`, "Delete", true, async () => {
             await deleteExpense(item.id); setRejectedExpenses((p) => p.filter((e) => e.id !== item.id)); loadData();
           })} className="w-9 h-9 rounded-full bg-danger/8 items-center justify-center">
-            <Ionicons name="trash-outline" size={18} color={StatusColors[colorScheme].danger} />
+            <Ionicons name="trash-outline" size={18} color={theme.danger} />
           </Pressable>
         </View>
       }
@@ -476,22 +481,22 @@ export default function RecycleBinScreen() {
   ), [SimpleRow, confirm]);
 
   const renderSmsItem = useCallback(({ item }: { item: SmsRecord }) => {
-    const smsStyles = getSmsStatusStyle(colorScheme);
+    const smsStyles = getSmsStatusStyle(theme);
     const style = smsStyles[item.status] ?? smsStyles.pending;
     return (
-      <View className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark">
+      <View className="flex-row items-center px-4 py-3 border-b border-border">
         <View className="flex-1">
           <View className="flex-row items-center mb-1">
             <Ionicons name="chatbox-outline" size={14} color={colors.textSecondary} />
-            <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary ml-1.5 flex-1 mr-2" numberOfLines={1}>
+            <Text className="text-xs font-semibold text-foreground ml-1.5 flex-1 mr-2" numberOfLines={1}>
               {item.address}
             </Text>
             <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: style.color + "14" }}>
-              <Text className="text-[10px] font-semibold" style={{ color: style.color }}>{style.label}</Text>
+              <Text className="text-label font-semibold" style={{ color: style.color }}>{style.label}</Text>
             </View>
-            <Text className="text-[10px] text-text-tertiary">{formatSmsDate(item.sms_date)}</Text>
+            <Text className="text-label text-faint-foreground">{formatSmsDate(item.sms_date)}</Text>
           </View>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" numberOfLines={2}>
+          <Text className="text-xs text-muted-foreground" numberOfLines={2}>
             {truncate(item.body, 150)}
           </Text>
         </View>
@@ -511,7 +516,7 @@ export default function RecycleBinScreen() {
             await deleteSmsRecord(item.id); setSmsRecords((p) => p.filter((r) => r.id !== item.id)); loadData();
           });
         }} className="w-9 h-9 rounded-full bg-danger/8 items-center justify-center ml-3">
-          <Ionicons name="trash-outline" size={16} color={StatusColors[colorScheme].danger} />
+          <Ionicons name="trash-outline" size={16} color={theme.danger} />
         </Pressable>
       </View>
     );
@@ -548,15 +553,15 @@ export default function RecycleBinScreen() {
     <ScreenContainer padTop={false}>
       {/* Total summary */}
       {totalCount > 0 && (
-        <View className="px-4 py-2 border-b border-border-light dark:border-border-dark">
-          <Text className="text-xs text-text-tertiary">
+        <View className="px-4 py-2 border-b border-border">
+          <Text className="text-xs text-faint-foreground">
             {totalCount} item{totalCount !== 1 ? "s" : ""} across all sections
           </Text>
         </View>
       )}
 
       {/* Filter chips */}
-      <View className="border-b border-border-light dark:border-border-dark">
+      <View className="border-b border-border">
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
           {FILTER_OPTIONS.map((opt) => {
@@ -564,20 +569,20 @@ export default function RecycleBinScreen() {
             const count = counts[opt.key];
             return (
               <Pressable key={opt.key} onPress={() => setActiveFilter(opt.key)}
-                className={`flex-row items-center px-3 py-1.5 rounded-full ${isActive ? "border" : "bg-surface-light-alt dark:bg-surface-dark-alt"}`}
-                style={isActive ? { backgroundColor: ac(accent, colorScheme, 100, 700), borderColor: accent[500] } : undefined}>
+                className={`flex-row items-center px-3 py-1.5 rounded-full ${isActive ? "border" : "bg-card"}`}
+                style={isActive ? { backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.primary } : undefined}>
                 <Ionicons name={opt.icon} size={14}
-                  color={isActive ? ac(accent, colorScheme, 500, 200) : colors.textSecondary}
+                  color={isActive ? theme.primary : colors.textSecondary}
                   style={{ marginRight: 4 }} />
-                <Text className={`text-xs ${isActive ? "font-semibold" : "text-text-secondary dark:text-text-dark-secondary"}`}
-                  style={isActive ? { color: ac(accent, colorScheme, 500, 200) } : undefined}>
+                <Text className={`text-xs ${isActive ? "font-semibold" : "text-muted-foreground"}`}
+                  style={isActive ? { color: theme.primary } : undefined}>
                   {opt.label}
                 </Text>
                 {count > 0 && (
                   <View className="ml-1.5 px-1.5 py-0.5 rounded-full"
-                    style={{ backgroundColor: isActive ? accent[500] + "20" : "#6B728014" }}>
-                    <Text className="text-[10px] font-bold"
-                      style={{ color: isActive ? ac(accent, colorScheme, 500, 200) : "#6B7280" }}>
+                    style={{ backgroundColor: isActive ? theme.alpha("primary", 0.13) : "#6B728014" }}>
+                    <Text className="text-label font-bold"
+                      style={{ color: isActive ? theme.primary : theme.mutedForeground }}>
                       {count}
                     </Text>
                   </View>
@@ -636,8 +641,8 @@ export default function RecycleBinScreen() {
         onPurgeAll={() => confirm("Purge All", `Permanently delete all deleted SMS templates?`, "Delete All", true, async () => { await purgeDeletedUserTemplates(); setDeletedSmsTemplates([]); })} />}
 
       {activeFilter === "sms" && smsRecords.length > 0 && (
-        <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border-light dark:border-border-dark">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1 mr-2">
+        <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border">
+          <Text className="text-xs text-muted-foreground flex-1 mr-2">
             {smsRecords.filter((s) => s.status === "processed").length} processed
             {" \u00b7 "}{smsRecords.filter((s) => s.status === "ignored").length} ignored
             {" \u00b7 "}{smsRecords.filter((s) => s.status === "pending").length} pending
@@ -651,9 +656,9 @@ export default function RecycleBinScreen() {
             confirm("Clear All", msg, "Clear All", true, async () => { await deleteAllSmsRecords(DEFAULT_USER_ID); setSmsRecords([]); loadData(); });
           }}
             disabled={purging} className="flex-row items-center py-1.5 px-3 rounded-lg bg-danger/8">
-            {purging ? <ActivityIndicator size="small" color={StatusColors[colorScheme].danger} /> : (
+            {purging ? <ActivityIndicator size="small" color={theme.danger} /> : (
               <>
-                <Ionicons name="trash-outline" size={14} color={StatusColors[colorScheme].danger} />
+                <Ionicons name="trash-outline" size={14} color={theme.danger} />
                 <Text className="text-xs font-medium text-danger ml-1">Clear All</Text>
               </>
             )}
@@ -665,15 +670,18 @@ export default function RecycleBinScreen() {
       {section.data.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name={section.emptyIcon} size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             {section.emptyTitle}
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center mt-2">
+          <Text className="text-sm text-muted-foreground text-center mt-2">
             {section.emptySubtitle}
           </Text>
         </View>
       ) : (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={section.data}
           keyExtractor={(item: any) => item.id}
           renderItem={section.renderItem}
@@ -681,14 +689,14 @@ export default function RecycleBinScreen() {
           contentContainerStyle={{ paddingBottom: 40 }}
           ListHeaderComponent={
             (activeFilter === "deleted" || activeFilter === "rejected") && section.data.length > 0 ? (
-              <View className="mx-4 my-3 p-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">
+              <View className="mx-4 my-3 p-4 rounded-xl bg-card">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Total at Risk
                 </Text>
-                <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary mt-1">
+                <Text className="text-xl font-bold text-foreground mt-1">
                   {formatAmount(section.data.reduce((sum: number, e: any) => sum + (e.amount ?? 0), 0))}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   {section.data.length} {section.data.length === 1 ? "expense" : "expenses"}
                 </Text>
               </View>

@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, Input } from "@/components/ui";
+import { Card, Input, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { Toggle, StatePicker } from "./salary-helpers";
 import { formatAmount } from "@/utils/expense-validation";
 import { getFYMonthLabels } from "@/utils/fiscal-year";
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -105,7 +106,8 @@ export function SalaryInputForm({
   onMonthlyOverridesChange,
   fyStartMonth = 4,
 }: SalaryInputFormProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [showMonthWise, setShowMonthWise] = useState(false);
 
   if (inputMode === "direct") {
@@ -118,7 +120,7 @@ export function SalaryInputForm({
       <>
         <Card className="mb-4">
           <View className="flex-row items-center mb-3">
-            <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+            <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
               <Ionicons
                 name="wallet-outline"
                 size={20}
@@ -126,10 +128,10 @@ export function SalaryInputForm({
               />
             </View>
             <View>
-              <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-base font-bold text-foreground">
                 Direct Salary Input
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Enter your take-home salary directly
               </Text>
             </View>
@@ -152,22 +154,22 @@ export function SalaryInputForm({
               <Ionicons
                 name={showMonthWise ? "chevron-up" : "chevron-down"}
                 size={16}
-                color={ac(accent, colorScheme, 500, 200)}
+                color={theme.primary}
               />
               <Text
                 className="text-xs font-medium ml-1"
-                style={{ color: ac(accent, colorScheme, 500, 200) }}
+                style={{ color: theme.primary }}
               >
                 Customize by Month
               </Text>
               {hasAnyOverride && !showMonthWise && (
                 <View
                   className="ml-2 px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: acAlpha(accent, 500, 0.12) }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.12) }}
                 >
                   <Text
-                    className="text-[10px] font-semibold"
-                    style={{ color: ac(accent, colorScheme, 500, 200) }}
+                    className="text-label font-semibold"
+                    style={{ color: theme.primary }}
                   >
                     {overrideCount} customized
                   </Text>
@@ -188,7 +190,7 @@ export function SalaryInputForm({
 
           {showMonthWise && (
             <View className="mt-1">
-              <Text className="text-[10px] text-text-tertiary mb-2">
+              <Text className="text-label text-faint-foreground mb-2">
                 Override specific months. Empty = uses default above.
               </Text>
               {monthLabels.map((label, index) => {
@@ -204,9 +206,9 @@ export function SalaryInputForm({
                       className={`w-10 text-xs font-medium ${
                         isOverridden
                           ? ""
-                          : "text-text-secondary dark:text-text-dark-secondary"
+                          : "text-muted-foreground"
                       }`}
-                      style={isOverridden ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
+                      style={isOverridden ? { color: theme.primary } : undefined}
                     >
                       {label}
                     </Text>
@@ -255,17 +257,17 @@ export function SalaryInputForm({
         {directAnnual > 0 && (
           <Card className="mb-4">
             <View className="items-center py-2">
-              <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-1">
+              <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-1">
                 Annual In-Hand
               </Text>
               <Text className="text-3xl font-bold text-success">
                 {formatAmount(directAnnual)}
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-0.5">
+              <Text className="text-sm text-muted-foreground mt-0.5">
                 {formatAmount(directAnnual / 12)} / month avg
               </Text>
               {hasAnyOverride && (
-                <Text className="text-xs text-text-tertiary mt-1">
+                <Text className="text-xs text-faint-foreground mt-1">
                   {overrideCount} month{overrideCount > 1 ? "s" : ""} customized
                 </Text>
               )}
@@ -277,17 +279,17 @@ export function SalaryInputForm({
         {directAnnual <= 0 && (
           <Card className="mb-4">
             <View className="items-center py-6">
-              <View className="w-14 h-14 rounded-full items-center justify-center mb-3" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+              <View className="w-14 h-14 rounded-full items-center justify-center mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
                 <Ionicons
                   name="wallet-outline"
                   size={28}
                   color={colors.blue}
                 />
               </View>
-              <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary mb-1">
+              <Text className="text-base font-medium text-foreground mb-1">
                 Enter your salary
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center px-4">
+              <Text className="text-sm text-muted-foreground text-center px-4">
                 Enter your monthly take-home salary. No tax calculation
                 needed - just the amount you receive.
               </Text>
@@ -304,7 +306,7 @@ export function SalaryInputForm({
       {/* CTC Input */}
       <Card className="mb-4">
         <View className="flex-row items-center mb-3">
-          <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+          <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
             <Ionicons
               name="cash-outline"
               size={20}
@@ -312,10 +314,10 @@ export function SalaryInputForm({
             />
           </View>
           <View>
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-bold text-foreground">
               Annual CTC
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               Enter your cost-to-company
             </Text>
           </View>
@@ -363,7 +365,7 @@ export function SalaryInputForm({
           </View>
         ) : (
           <View>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
+            <Text className="text-xs text-muted-foreground mb-2">
               Enter rupee amounts from your offer letter. Leave Special Allowance blank to auto-fill from remainder.
             </Text>
             <Input
@@ -467,7 +469,7 @@ export function SalaryInputForm({
             size={14}
             color={colors.textSecondary}
           />
-          <Text className="text-xs text-text-tertiary ml-1">
+          <Text className="text-xs text-faint-foreground ml-1">
             Professional Tax: {formatAmount(profTax)}/year
           </Text>
         </View>

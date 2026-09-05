@@ -1,9 +1,11 @@
-import { View, Text, Pressable, LayoutChangeEvent } from "react-native";
+import { View, Pressable, LayoutChangeEvent } from "react-native";
+import { Text } from "@/components/ui";
 import { memo, useState, useCallback } from "react";
 import Svg, { Path, Circle, Defs, LinearGradient, Stop, G, Line } from "react-native-svg";
 import type { MonthlyTotal } from "@/services/expense";
 import { formatAmount } from "@/utils/format";
 import { CHART_COLORS } from "@/constants/semantic-colors";
+import { useTheme } from "@/hooks/use-theme";
 
 const SHORT_MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -36,8 +38,16 @@ function formatXLabel(key: string): string {
 }
 
 function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartProps) {
+  const theme = useTheme();
   const [width, setWidth] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  // All hooks stay above every early return - this component returns early twice, and a
+  // hook behind either one runs on some renders and not others, which React throws on.
+  // Pre-existing: an empty series or an all-zero chart took an early path and skipped it.
+  const handlePress = useCallback((index: number) => {
+    setSelectedIndex((prev) => (prev === index ? null : index));
+  }, []);
 
   const allSeries: TrendSeries[] = series && series.length > 0
     ? series
@@ -70,7 +80,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
   if (maxValue === 0) {
     return (
       <View className="items-center py-4">
-        <Text className="text-xs text-text-tertiary">No portfolio data yet</Text>
+        <Text className="text-xs text-faint-foreground">No portfolio data yet</Text>
       </View>
     );
   }
@@ -101,10 +111,6 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
   };
 
   const isMulti = allSeries.length > 1;
-
-  const handlePress = useCallback((index: number) => {
-    setSelectedIndex((prev) => (prev === index ? null : index));
-  }, []);
 
   // Determine which x-axis labels to show: first, last, and evenly-spaced middle ones
   const getVisibleLabels = (): number[] => {
@@ -138,7 +144,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
             minWidth: 104,
           }}
         >
-          <Text style={{ fontSize: 10, color: "#9CA3AF", textAlign: "center" }}>
+          <Text style={{ fontSize: 10, color: theme.faintForeground, textAlign: "center" }}>
             {formatXLabel(months[selectedIndex])}
           </Text>
           {expandedSeries.map((s, si) => {
@@ -178,7 +184,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
                 y1={PAD_TOP}
                 x2={getX(selectedIndex)}
                 y2={CHART_HEIGHT - PAD_BOTTOM}
-                stroke="#6B7280"
+                stroke={theme.mutedForeground}
                 strokeWidth={1}
                 strokeDasharray="3,3"
                 opacity={0.5}
@@ -283,7 +289,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
 
       {/* Legend — shows latest value per series */}
       {showLegend && isMulti && (
-        <View className="flex-row flex-wrap mt-3 pt-2 border-t border-border-light dark:border-border-dark">
+        <View className="flex-row flex-wrap mt-3 pt-2 border-t border-border">
           {expandedSeries.map((s, si) => {
             const latestVal = s.data[s.data.length - 1]?.total ?? 0;
             return (

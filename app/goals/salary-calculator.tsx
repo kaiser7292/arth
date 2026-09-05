@@ -1,17 +1,11 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  KeyboardAvoidingView,
-  Keyboard,
-} from "react-native";
+import { View, ScrollView, Pressable, KeyboardAvoidingView, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, Button, LoadingState } from "@/components/ui";
+import { Button, Card, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
@@ -38,15 +32,17 @@ import { SalaryInputForm, type MonthlyOverrides } from "@/components/goals/Salar
 import { OldRegimeDeductions, AnnualDeductions, AdditionalIncome } from "@/components/goals/DeductionsSection";
 import { TaxBreakdown } from "@/components/goals/TaxBreakdown";
 import { MonthlyInHandHero, SalarySummary, SalaryFooter } from "@/components/goals/SalarySummary";
-import { ac } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── Main Screen ──────────────────────────────────────────
 
 export default function SalaryCalculatorScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const { planId, fy } = useLocalSearchParams<{ planId?: string; fy?: string }>();
   const startMonth = getFYStartMonth();
@@ -560,19 +556,19 @@ export default function SalaryCalculatorScreen() {
               <Pressable
                 onPress={() => setSelectedFY(String(selectedFYNum - 1))}
                 disabled={loadingFY}
-                className="p-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+                className="p-2 rounded-lg bg-card"
               >
                 <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
               </Pressable>
-              <View className="px-4 py-2 rounded-lg" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
-                <Text className="text-sm font-bold" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+              <View className="px-4 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                <Text className="text-sm font-bold" style={{ color: theme.primary }}>
                   {fyLabel}
                 </Text>
               </View>
               <Pressable
                 onPress={() => setSelectedFY(String(selectedFYNum + 1))}
                 disabled={loadingFY}
-                className="p-2 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+                className="p-2 rounded-lg bg-card"
               >
                 <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
               </Pressable>
@@ -582,14 +578,14 @@ export default function SalaryCalculatorScreen() {
             {showCopyPrompt && prevYearProfile && !existingProfile && (
               <Card className="mb-4">
                 <View className="flex-row items-center mb-3">
-                  <View className="w-9 h-9 rounded-full items-center justify-center mr-3" style={{ backgroundColor: accent[500] + "14" }}>
+                  <View className="w-9 h-9 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
                     <Ionicons name="copy-outline" size={18} color={colors.blue} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       No income data for {fyLabel}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       You have data from{" "}
                       {getFYLabel(selectedFYNum - 1, startMonth)}
                       {prevYearProfile.input_mode === "ctc" && prevYearProfile.annual_ctc
@@ -640,7 +636,7 @@ export default function SalaryCalculatorScreen() {
                       const isCtcMode = prevYearProfile.input_mode === "ctc";
                       return prevAmount > 0 ? (
                         <View className="flex-row justify-between mb-3 px-1">
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                          <Text className="text-xs text-muted-foreground">
                             Previous {isCtcMode ? "CTC" : "Annual"}:{" "}
                             {formatAmount(prevAmount)}
                           </Text>
@@ -683,9 +679,9 @@ export default function SalaryCalculatorScreen() {
 
             {/* ─── Draft Indicator ────────────────────── */}
             {isDraft && (
-              <View className="flex-row items-center mb-3 px-3 py-2.5 rounded-lg bg-[#F59E0B14]">
-                <Ionicons name="document-outline" size={16} color="#F59E0B" />
-                <Text className="text-xs font-medium ml-2" style={{ color: StatusColors[colorScheme].warning }}>
+              <View className="flex-row items-center mb-3 px-3 py-2.5 rounded-lg bg-warning/8">
+                <Ionicons name="document-outline" size={16} color={theme.warning} />
+                <Text className="text-xs font-medium ml-2" style={{ color: theme.warning }}>
                   Draft - not yet saved to your plan
                 </Text>
               </View>
@@ -707,9 +703,9 @@ export default function SalaryCalculatorScreen() {
                 ════════════════════════════════════════════ */}
             {inputMode === "direct" && (
               <>
-              <View className="flex-row items-center px-3 py-2.5 rounded-lg mb-3 bg-[#3B82F614]">
+              <View className="flex-row items-center px-3 py-2.5 rounded-lg mb-3 bg-primary/8">
                 <Ionicons name="information-circle-outline" size={16} color={colors.blue} />
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-2 flex-1">
+                <Text className="text-xs text-muted-foreground ml-2 flex-1">
                   All amounts here are considered post-tax. No tax rates will be applied.
                 </Text>
               </View>
@@ -880,7 +876,7 @@ export default function SalaryCalculatorScreen() {
                   keyboardType="number-pad"
                   maxLength={2}
                 />
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2">
+                <Text className="text-xs text-muted-foreground mt-2">
                   Used for on-track checks. Until this date, the current month isn't counted as
                   "elapsed" for investment/milestone warnings - avoids false alarms when you're
                   paid later in the month.

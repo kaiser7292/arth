@@ -1,6 +1,6 @@
-import { Card, PeriodNavigator, ScreenContainer } from "@/components/ui";
+import { Card, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import {
@@ -14,14 +14,15 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getAccountLatestStaleCheckDates, getActiveAccounts, getClosedAccounts } from "@/services/financial-account";
 import { consumePensionAccountsPreload } from "@/services/home-preload";
 import { getFYStartMonth } from "@/services/settings";
-import { acAlpha } from "@/utils/accent";
+
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 const preloaded = consumePensionAccountsPreload();
 
@@ -38,8 +39,8 @@ interface AccountSummary {
 
 export default function PensionAccountsScreen() {
   const router = useRouter();
-  const { accent, colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [summaries, setSummaries] = useState<AccountSummary[]>(preloaded?.summaries ?? []);
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [closedAccounts, setClosedAccounts] = useState<FinancialAccount[]>([]);
@@ -144,40 +145,40 @@ export default function PensionAccountsScreen() {
         {/* Overall summary card */}
         <Card className="mx-4 mt-3 mb-2">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Overall Summary
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               {summaries.length} account{summaries.length !== 1 ? "s" : ""}
             </Text>
           </View>
 
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Opening Balance</Text>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-xs text-muted-foreground">Opening Balance</Text>
+            <Text className="text-sm font-semibold text-foreground">
               {formatAmount(totalOpening)}
             </Text>
           </View>
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Closing Balance</Text>
+            <Text className="text-xs text-muted-foreground">Closing Balance</Text>
             <Text
               className="text-sm font-bold"
-              style={{ color: totalBalance >= 0 ? sc.success : sc.danger }}
+              style={{ color: totalBalance >= 0 ? theme.success : theme.danger }}
             >
               {formatAmount(totalBalance)}
             </Text>
           </View>
           {lastContributionDate && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Last contribution</Text>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-xs text-muted-foreground">Last contribution</Text>
+              <Text className="text-sm font-semibold text-foreground">
                 {new Date(lastContributionDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
               </Text>
             </View>
           )}
           <View className="flex-row justify-between">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">YTD Contributions</Text>
-            <Text className="text-sm font-semibold" style={{ color: ytdCredits > 0 ? sc.success : colors.text }}>
+            <Text className="text-xs text-muted-foreground">YTD Contributions</Text>
+            <Text className="text-sm font-semibold" style={{ color: ytdCredits > 0 ? theme.success : colors.text }}>
               {formatAmount(ytdCredits)}
             </Text>
           </View>
@@ -185,11 +186,11 @@ export default function PensionAccountsScreen() {
           {/* Drift indicator — manual ledger adjustments across all pension accounts this month.
               Proxy for how much course-correction was needed — higher = less trust in auto-detected balances. */}
           {adjustmentStats.count > 0 && (
-            <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark flex-row justify-between">
-              <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary">
+            <View className="mt-2 pt-2 border-t border-border flex-row justify-between">
+              <Text className="text-label text-faint-foreground">
                 Manual ledger adjustments
               </Text>
-              <Text className="text-[11px]" style={{ color: sc.warning }}>
+              <Text className="text-label" style={{ color: theme.warning }}>
                 {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
               </Text>
             </View>
@@ -206,16 +207,16 @@ export default function PensionAccountsScreen() {
               <View className="flex-row items-center mb-3">
                 <View
                   className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                 >
-                  <Ionicons name="briefcase-outline" size={18} color={accent[500]} />
+                  <Ionicons name="briefcase-outline" size={18} color={theme.primary} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-base font-bold text-foreground">
                     {account.bank_name} ••••{account.account_identifier}
                   </Text>
                   {account.account_label && (
-                    <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-label text-muted-foreground">
                       {account.account_label}
                     </Text>
                   )}
@@ -227,10 +228,10 @@ export default function PensionAccountsScreen() {
               {!seeded && (
                 <View
                   className="flex-row items-center px-3 py-2 rounded-lg mb-3"
-                  style={{ backgroundColor: sc.warning + "14" }}
+                  style={{ backgroundColor: theme.warning + "14" }}
                 >
-                  <Ionicons name="alert-circle" size={14} color={sc.warning} />
-                  <Text className="text-[10px] font-medium ml-2" style={{ color: sc.warning }}>
+                  <Ionicons name="alert-circle" size={14} color={theme.warning} />
+                  <Text className="text-label font-medium ml-2" style={{ color: theme.warning }}>
                     No opening balance set - showing from ₹0
                   </Text>
                 </View>
@@ -238,54 +239,54 @@ export default function PensionAccountsScreen() {
 
               {/* Balance breakdown */}
               <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Opening Balance</Text>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-xs text-muted-foreground">Opening Balance</Text>
+                <Text className="text-sm font-semibold text-foreground">
                   {formatAmount(opening)}
                 </Text>
               </View>
               {credits > 0 && (
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Contributions (month)</Text>
-                  <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                  <Text className="text-xs text-muted-foreground">Contributions (month)</Text>
+                  <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                     +{formatAmount(credits)}
                   </Text>
                 </View>
               )}
               {account.last_balance_date && (
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Last contribution</Text>
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-xs text-muted-foreground">Last contribution</Text>
+                  <Text className="text-sm font-semibold text-foreground">
                     {new Date(account.last_balance_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                   </Text>
                 </View>
               )}
               <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">YTD Contributions</Text>
-                <Text className="text-sm font-semibold" style={{ color: (ytdPerAccount[account.id] ?? 0) > 0 ? sc.success : colors.text }}>
+                <Text className="text-xs text-muted-foreground">YTD Contributions</Text>
+                <Text className="text-sm font-semibold" style={{ color: (ytdPerAccount[account.id] ?? 0) > 0 ? theme.success : colors.text }}>
                   {formatAmount(ytdPerAccount[account.id] ?? 0)}
                 </Text>
               </View>
               {/* Auto-detected (SMS) balance — crossed out when stale */}
               {account.last_known_balance != null && (
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Auto-detected{autoDetectedStale ? " · stale" : ""}
                   </Text>
                   <Text
-                    className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
-                    style={autoDetectedStale ? { textDecorationLine: "line-through", color: sc.muted } : undefined}
+                    className="text-sm font-semibold text-foreground"
+                    style={autoDetectedStale ? { textDecorationLine: "line-through", color: theme.faintForeground } : undefined}
                   >
                     {formatAmount(account.last_known_balance)}
                   </Text>
                 </View>
               )}
-              <View className="flex-row justify-between pt-2 mt-1 border-t border-border-light dark:border-border-dark">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
+              <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
+                <Text className="text-xs font-semibold text-muted-foreground">
                   Current Balance{account.last_known_balance != null ? " · calculated" : ""}
                 </Text>
                 <Text
                   className="text-sm font-bold"
-                  style={{ color: current >= 0 ? sc.success : sc.danger }}
+                  style={{ color: current >= 0 ? theme.success : theme.danger }}
                 >
                   {formatAmount(current)}
                 </Text>
@@ -293,7 +294,7 @@ export default function PensionAccountsScreen() {
 
               {/* Last updated */}
               {account.last_balance_date && (
-                <Text className="text-[10px] text-text-tertiary mt-1.5">
+                <Text className="text-label text-faint-foreground mt-1.5">
                   SMS balance updated {new Date(account.last_balance_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                 </Text>
               )}
@@ -305,10 +306,10 @@ export default function PensionAccountsScreen() {
         {summaries.length === 0 && closedAccounts.length === 0 && (
           <View className="items-center py-16">
             <Ionicons name="briefcase-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               No pension accounts
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
               Pension accounts will appear here once detected from SMS or added manually.
             </Text>
           </View>
@@ -317,13 +318,13 @@ export default function PensionAccountsScreen() {
         {/* Closed pension accounts */}
         {closedAccounts.length > 0 && (
           <>
-            <View className="border-t border-border-light dark:border-border-dark mx-4 mt-2 mb-3" />
+            <View className="border-t border-border mx-4 mt-2 mb-3" />
             <Pressable
               onPress={() => setClosedExpanded(e => !e)}
               className="flex-row items-center px-4 mb-2"
             >
               <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+              <Text className="text-xs text-muted-foreground flex-1">
                 {closedAccounts.length} closed {closedAccounts.length === 1 ? "account" : "accounts"}
               </Text>
               <Ionicons name={closedExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
@@ -336,14 +337,14 @@ export default function PensionAccountsScreen() {
                 >
                   <View className="flex-1">
                     <View className="flex-row items-center gap-2 mb-0.5">
-                      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-sm text-muted-foreground">
                         {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
                       </Text>
-                      <View className="bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
-                        <Text className="text-[10px] font-semibold text-red-600 dark:text-red-400">Closed</Text>
+                      <View className="bg-danger/10 px-1.5 py-0.5 rounded">
+                        <Text className="text-label font-semibold text-danger">Closed</Text>
                       </View>
                     </View>
-                    <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">{acct.bank_name}</Text>
+                    <Text className="text-xs text-faint-foreground">{acct.bank_name}</Text>
                   </View>
                   <Ionicons name="chevron-forward-outline" size={14} color={colors.textSecondary} />
                 </Pressable>

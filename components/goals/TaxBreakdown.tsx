@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Card } from "@/components/ui";
+import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/expense-validation";
 import type { SalaryCalculation } from "@/services/tax-engine";
 import { TaxRow } from "./salary-helpers";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── Props ────────────────────────────────────────────────
 
@@ -17,7 +18,8 @@ export interface TaxBreakdownProps {
 // ─── Component ────────────────────────────────────────────
 
 export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [compareTab, setCompareTab] = useState<"new" | "old">("new");
 
   return (
@@ -25,21 +27,21 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
       {/* Tax Comparison */}
       <Card title="Tax Comparison" className="mb-4">
         {/* Regime tabs */}
-        <View className="flex-row rounded-lg border border-border-light dark:border-border-dark overflow-hidden mb-3">
+        <View className="flex-row rounded-lg border border-border overflow-hidden mb-3">
           <Pressable
             onPress={() => setCompareTab("new")}
             className={`flex-1 py-2 items-center ${
               compareTab === "new"
                 ? ""
-                : "bg-white dark:bg-surface-dark-alt"
+                : "bg-card"
             }`}
-            style={compareTab === "new" ? { backgroundColor: accent[500] } : undefined}
+            style={compareTab === "new" ? { backgroundColor: theme.primary } : undefined}
           >
             <Text
               className={`text-sm font-medium ${
                 compareTab === "new"
-                  ? "text-white"
-                  : "text-text-secondary dark:text-text-dark-secondary"
+                  ? "text-primary-foreground"
+                  : "text-muted-foreground"
               }`}
             >
               New Regime
@@ -50,15 +52,15 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
             className={`flex-1 py-2 items-center ${
               compareTab === "old"
                 ? ""
-                : "bg-white dark:bg-surface-dark-alt"
+                : "bg-card"
             }`}
-            style={compareTab === "old" ? { backgroundColor: accent[500] } : undefined}
+            style={compareTab === "old" ? { backgroundColor: theme.primary } : undefined}
           >
             <Text
               className={`text-sm font-medium ${
                 compareTab === "old"
-                  ? "text-white"
-                  : "text-text-secondary dark:text-text-dark-secondary"
+                  ? "text-primary-foreground"
+                  : "text-muted-foreground"
               }`}
             >
               Old Regime
@@ -78,11 +80,11 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
           return (
             <>
               {isSelected && (
-                <View className="flex-row items-center mb-2 px-2 py-1.5 rounded-lg bg-[#22C55E14]">
+                <View className="flex-row items-center mb-2 px-2 py-1.5 rounded-lg bg-success/8">
                   <Ionicons
                     name="checkmark-circle"
                     size={16}
-                    color={StatusColors[colorScheme].success}
+                    color={theme.success}
                   />
                   <Text className="text-xs font-medium text-success ml-1">
                     Better regime - saves you{" "}
@@ -108,14 +110,14 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
                 <TaxRow
                   label="Section 87A Rebate"
                   value={`-${formatAmount(tax.rebate87A)}`}
-                  color={StatusColors[colorScheme].success}
+                  color={theme.success}
                 />
               )}
               {tax.marginalRelief > 0 && (
                 <TaxRow
                   label="Marginal Relief"
                   value={`-${formatAmount(tax.marginalRelief)}`}
-                  color={StatusColors[colorScheme].success}
+                  color={theme.success}
                 />
               )}
               {tax.surcharge > 0 && (
@@ -128,11 +130,11 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
                 label="Health & Edu Cess (4%)"
                 value={formatAmount(tax.cess)}
               />
-              <View className="border-t border-border-light dark:border-border-dark my-1" />
+              <View className="border-t border-border my-1" />
               <TaxRow
                 label="Total Tax"
                 value={formatAmount(tax.totalTax)}
-                color={StatusColors[colorScheme].danger}
+                color={theme.danger}
               />
               <TaxRow
                 label="Effective Rate"
@@ -148,37 +150,37 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
       <Card title="Regime Summary" className="mb-4">
         <View className="flex-row">
           <View className="flex-1 items-center py-2">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">
+            <Text className="text-xs text-muted-foreground mb-1">
               New Regime
             </Text>
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-bold text-foreground">
               {formatAmount(calculation.newRegimeTax.totalTax)}
             </Text>
-            <Text className="text-xs text-text-tertiary">
+            <Text className="text-xs text-faint-foreground">
               {calculation.newRegimeTax.effectiveRate}% eff.
             </Text>
             {calculation.selectedRegime === "new" && (
-              <View className="mt-1 px-2 py-0.5 rounded-full bg-[#22C55E14]">
-                <Text className="text-[10px] font-medium text-success">
+              <View className="mt-1 px-2 py-0.5 rounded-full bg-success/8">
+                <Text className="text-label font-medium text-success">
                   BETTER
                 </Text>
               </View>
             )}
           </View>
-          <View className="w-px bg-border-light dark:bg-border-dark" />
+          <View className="w-px bg-border" />
           <View className="flex-1 items-center py-2">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">
+            <Text className="text-xs text-muted-foreground mb-1">
               Old Regime
             </Text>
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-bold text-foreground">
               {formatAmount(calculation.oldRegimeTax.totalTax)}
             </Text>
-            <Text className="text-xs text-text-tertiary">
+            <Text className="text-xs text-faint-foreground">
               {calculation.oldRegimeTax.effectiveRate}% eff.
             </Text>
             {calculation.selectedRegime === "old" && (
-              <View className="mt-1 px-2 py-0.5 rounded-full bg-[#22C55E14]">
-                <Text className="text-[10px] font-medium text-success">
+              <View className="mt-1 px-2 py-0.5 rounded-full bg-success/8">
+                <Text className="text-label font-medium text-success">
                   BETTER
                 </Text>
               </View>

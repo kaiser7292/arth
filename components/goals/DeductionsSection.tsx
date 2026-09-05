@@ -1,9 +1,10 @@
-import { View, Text } from "react-native";
+import { View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Card, Input, CollapsibleSection } from "@/components/ui";
+import { Card, CollapsibleSection, Input, Money, Text } from "@/components/ui";
 import { formatAmount } from "@/utils/expense-validation";
 import type { SalaryCalculation, CapitalGainsTaxResult, BonusTaxResult } from "@/services/tax-engine";
 import { BreakdownRow } from "./salary-helpers";
+import { useTheme } from "@/hooks/use-theme";
 
 // ─── Old Regime Deductions (CTC mode only) ────────────────
 
@@ -41,7 +42,7 @@ export function OldRegimeDeductions({
         icon="document-text-outline"
       >
         <View className="pt-2">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2">
+          <Text className="text-xs text-muted-foreground mb-2">
             These only affect the Old Tax Regime calculation.
           </Text>
           <Input
@@ -114,7 +115,7 @@ export function AnnualDeductions({ calculation }: AnnualDeductionsProps) {
         label="Professional Tax"
         annual={calculation.professionalTaxAnnual}
       />
-      <View className="border-t border-border-light dark:border-border-dark my-1" />
+      <View className="border-t border-border my-1" />
       <BreakdownRow
         label="Total Deductions"
         annual={
@@ -172,7 +173,8 @@ export function AdditionalIncome({
   capitalGainsTaxResult,
   additionalIncomeNet,
 }: AdditionalIncomeProps) {
-  const { accent } = useColorScheme();
+  
+  const theme = useTheme();
   return (
     <Card className="mb-4">
       <CollapsibleSection
@@ -199,8 +201,8 @@ export function AdditionalIncome({
             containerClassName="mb-1"
           />
           {bonusTaxResult && bonusTaxResult.grossBonus > 0 && (
-            <View className="mb-3 px-2 py-2 rounded-lg" style={{ backgroundColor: accent[500] + "14" }}>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <View className="mb-3 px-2 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+              <Text className="text-xs text-muted-foreground">
                 {formatAmount(bonusTaxResult.grossBonus)} gross{" "}
                 <Text className="text-danger">
                   → Tax {formatAmount(bonusTaxResult.taxOnBonus)} ({bonusTaxResult.effectiveRate}%)
@@ -214,10 +216,10 @@ export function AdditionalIncome({
           )}
 
           {/* Divider */}
-          <View className="border-t border-border-light dark:border-border-dark my-3" />
+          <View className="border-t border-border my-3" />
 
           {/* Capital Gains */}
-          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">
+          <Text className="text-xs font-semibold text-muted-foreground mb-2">
             Capital Gains (per asset type)
           </Text>
 
@@ -272,27 +274,27 @@ export function AdditionalIncome({
 
           {/* CG Tax Summary */}
           {capitalGainsTaxResult && capitalGainsTaxResult.items.length > 0 && (
-            <View className="mt-2 px-2 py-2 rounded-lg" style={{ backgroundColor: accent[500] + "14" }}>
+            <View className="mt-2 px-2 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
               {capitalGainsTaxResult.items.map((item) => (
                 <View key={item.label} className="flex-row items-center justify-between py-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+                  <Text className="text-xs text-muted-foreground flex-1">
                     {item.label} ({item.rate})
                   </Text>
                   <Text className="text-xs text-danger w-20 text-right">
-                    -{formatAmount(item.tax)}
+                    <Money value={-item.tax} />
                   </Text>
-                  <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary w-24 text-right">
+                  <Text className="text-xs font-medium text-foreground w-24 text-right">
                     {formatAmount(item.net)}
                   </Text>
                 </View>
               ))}
-              <View className="border-t border-border-light dark:border-border-dark my-1" />
+              <View className="border-t border-border my-1" />
               <View className="flex-row items-center justify-between py-1">
-                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+                <Text className="text-xs font-semibold text-foreground flex-1">
                   Total CG
                 </Text>
                 <Text className="text-xs font-semibold text-danger w-20 text-right">
-                  -{formatAmount(capitalGainsTaxResult.totalTax)}
+                  <Money value={-capitalGainsTaxResult.totalTax} />
                 </Text>
                 <Text className="text-xs font-bold text-success w-24 text-right">
                   {formatAmount(capitalGainsTaxResult.totalNet)}

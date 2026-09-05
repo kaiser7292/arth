@@ -1,6 +1,4 @@
-import { HeaderBackHome } from "@/components/ui/HeaderBackHome";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useStackScreenOptions } from "@/components/ui/stack-options";
 import { Stack } from "expo-router";
 
 /**
@@ -9,19 +7,11 @@ import { Stack } from "expo-router";
  * theme-aware title, accent tint, no shadow.
  */
 export default function SimulatorStackLayout() {
-  const { colorScheme } = useColorScheme();
-  const theme = Colors[colorScheme];
+  const screenOptions = useStackScreenOptions();
 
   return (
     <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.background },
-        headerTitleStyle: { fontWeight: "700", fontSize: 18, color: theme.text },
-        headerTintColor: theme.tint,
-        headerShadowVisible: false,
-        headerTitleAlign: "center",
-        headerLeft: () => <HeaderBackHome />,
-      }}
+      screenOptions={screenOptions}
     >
       <Stack.Screen name="index" options={{ title: "Cash-flow Simulator" }} />
       <Stack.Screen name="[id]" options={{ title: "" }} />

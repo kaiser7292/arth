@@ -1,16 +1,19 @@
 import { CalendarModal } from "@/components/ui/CalendarModal";
+
+import { Text } from "@/components/ui";
 import { TYPE_ICONS } from "@/constants/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Category } from "@/services/category";
 import type { FinancialAccount } from "@/services/financial-account";
 import type { PaymentMode, PaymentModeType } from "@/services/payment-mode";
 import { PAYMENT_MODE_TYPE_LABELS } from "@/services/payment-mode";
-import { ac } from "@/utils/accent";
+
 import { formatDateForDisplay, formatDateForStorage } from "@/utils/expense-validation";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 // ---------------------------------------------------------------------------
 // Searchable Picker List — shared helper for all pickers
@@ -38,7 +41,8 @@ export function SearchablePickerList({
   searchPlaceholder?: string;
 }) {
   const [query, setQuery] = useState("");
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items;
@@ -47,16 +51,16 @@ export function SearchablePickerList({
   }, [items, query]);
 
   return (
-    <View className="mt-2 rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt overflow-hidden">
+    <View className="mt-2 rounded-lg border border-border bg-card overflow-hidden">
       {items.length > 5 && (
-        <View className="flex-row items-center px-3 py-2 border-b border-border-light dark:border-border-dark">
+        <View className="flex-row items-center px-3 py-2 border-b border-border">
           <Ionicons name="search" size={14} color={colors.textSecondary} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder={searchPlaceholder}
             placeholderTextColor={colors.tabIconDefault}
-            className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
+            className="flex-1 ml-2 text-sm text-foreground"
           />
           {query !== "" && (
             <Pressable onPress={() => setQuery("")}>
@@ -69,19 +73,19 @@ export function SearchablePickerList({
         {allowNone && (
           <Pressable
             onPress={() => onSelect(null)}
-            className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark"
-            style={selectedId === null ? { backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+            className="flex-row items-center px-4 py-3 border-b border-border"
+            style={selectedId === null ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
           >
             <Ionicons name="remove-circle-outline" size={18} color={colors.textSecondary} />
-            <Text className="ml-3 text-sm text-text-tertiary">None</Text>
+            <Text className="ml-3 text-sm text-faint-foreground">None</Text>
           </Pressable>
         )}
         {filtered.map((item) => (
           <Pressable
             key={item.id}
             onPress={() => onSelect(item.id)}
-            className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark"
-            style={selectedId === item.id ? { backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+            className="flex-row items-center px-4 py-3 border-b border-border"
+            style={selectedId === item.id ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
           >
             {item.color && (
               <View className="w-6 h-6 rounded-full items-center justify-center mr-2" style={{ backgroundColor: item.color + "14" }}>
@@ -89,8 +93,8 @@ export function SearchablePickerList({
               </View>
             )}
             <View className="flex-1">
-              <Text className="text-sm text-text-primary dark:text-text-dark-primary">{item.label}</Text>
-              {item.subtitle && <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary">{item.subtitle}</Text>}
+              <Text className="text-sm text-foreground">{item.label}</Text>
+              {item.subtitle && <Text className="text-label text-muted-foreground">{item.subtitle}</Text>}
             </View>
             {selectedId === item.id && (
               <Ionicons name="checkmark" size={16} color={colors.blue} />
@@ -98,7 +102,7 @@ export function SearchablePickerList({
           </Pressable>
         ))}
         {filtered.length === 0 && query !== "" && (
-          <Text className="text-xs text-text-tertiary text-center py-4">No matches</Text>
+          <Text className="text-xs text-faint-foreground text-center py-4">No matches</Text>
         )}
       </ScrollView>
     </View>
@@ -126,17 +130,18 @@ export function AccountPicker({
   onToggle,
   onSelect,
 }: AccountPickerProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const router = useRouter();
 
   const accentStyles = useMemo(() => ({
-    selectedBorder: { borderColor: ac(accent, colorScheme, 400, 800), backgroundColor: ac(accent, colorScheme, 50, 700) },
-    highlightBg: { backgroundColor: ac(accent, colorScheme, 50, 700) },
-  }), [accent, colorScheme]);
+    selectedBorder: { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) },
+    highlightBg: { backgroundColor: theme.alpha("primary", 0.1) },
+  }), [colorScheme]);
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+      <Text className="text-sm font-medium text-muted-foreground mb-2">
         Account
       </Text>
       {accounts.length > 0 ? (
@@ -146,14 +151,14 @@ export function AccountPicker({
             className={`flex-row items-center rounded-lg border px-4 py-3 ${
               selectedAccount
                 ? ""
-                : "border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt"
+                : "border-border bg-card"
             }`}
             style={selectedAccount ? accentStyles.selectedBorder : undefined}
           >
             {selectedAccount ? (
               <>
                 <Ionicons name="business-outline" size={18} color={colors.blue} />
-                <Text className="flex-1 ml-3 text-base text-text-primary dark:text-text-dark-primary">
+                <Text className="flex-1 ml-3 text-base text-foreground">
                   {selectedAccount.account_label ??
                     `${selectedAccount.bank_name} ****${selectedAccount.account_identifier}`}
                 </Text>
@@ -161,7 +166,7 @@ export function AccountPicker({
             ) : (
               <>
                 <Ionicons name="business-outline" size={18} color={colors.textSecondary} />
-                <Text className="flex-1 ml-3 text-base text-text-tertiary">
+                <Text className="flex-1 ml-3 text-base text-faint-foreground">
                   Select account (optional)
                 </Text>
               </>
@@ -189,10 +194,10 @@ export function AccountPicker({
       ) : (
         <Pressable
           onPress={() => router.push("/settings/account-add")}
-          className="flex-row items-center rounded-lg border border-dashed border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt px-4 py-3"
+          className="flex-row items-center rounded-lg border border-dashed border-border bg-card px-4 py-3"
         >
           <Ionicons name="add-circle-outline" size={18} color={colors.textSecondary} />
-          <Text className="flex-1 ml-3 text-sm text-text-tertiary">
+          <Text className="flex-1 ml-3 text-sm text-faint-foreground">
             No accounts yet - tap to add one
           </Text>
           <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
@@ -225,42 +230,43 @@ export function DateSelector({
   onCloseDatePicker,
   dateError,
 }: DateSelectorProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const [showCalendar, setShowCalendar] = useState(false);
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+      <Text className="text-sm font-medium text-muted-foreground mb-2">
         Date
       </Text>
       <View className="flex-row items-center">
         <Pressable
           onPress={() => onDateShift(-1)}
-          className="w-10 h-10 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt items-center justify-center"
+          className="w-10 h-10 rounded-lg bg-card items-center justify-center"
         >
           <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
         </Pressable>
         <Pressable
           onPress={onToggleDatePicker}
-          className="flex-1 mx-2 py-2 px-4 rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt items-center"
+          className="flex-1 mx-2 py-2 px-4 rounded-lg border border-border bg-card items-center"
         >
-          <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+          <Text className="text-base font-medium text-foreground">
             {formatDateForDisplay(date)}
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             {date}
           </Text>
         </Pressable>
         <Pressable
           onPress={() => onDateShift(1)}
-          className="w-10 h-10 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt items-center justify-center"
+          className="w-10 h-10 rounded-lg bg-card items-center justify-center"
         >
           <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         </Pressable>
         <Pressable
           onPress={() => setShowCalendar(true)}
           className="ml-2 w-10 h-10 rounded-lg items-center justify-center border"
-          style={{ backgroundColor: ac(accent, colorScheme, 50, 900), borderColor: ac(accent, colorScheme, 200, 700) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.alpha("primary", 0.25) }}
         >
           <Ionicons name="calendar-outline" size={20} color={colors.blue} />
         </Pressable>
@@ -276,11 +282,11 @@ export function DateSelector({
             className={`flex-1 py-2 rounded-lg mr-2 items-center ${
               date === formatDateForStorage(new Date())
                 ? ""
-                : "bg-surface-light-alt dark:bg-surface-dark-alt"
+                : "bg-card"
             }`}
-            style={date === formatDateForStorage(new Date()) ? { backgroundColor: ac(accent, colorScheme, 100, 700) } : undefined}
+            style={date === formatDateForStorage(new Date()) ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
           >
-            <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-sm font-medium text-muted-foreground">
               Today
             </Text>
           </Pressable>
@@ -291,9 +297,9 @@ export function DateSelector({
               onSetDate(formatDateForStorage(yesterday));
               onCloseDatePicker();
             }}
-            className="flex-1 py-2 rounded-lg items-center bg-surface-light-alt dark:bg-surface-dark-alt"
+            className="flex-1 py-2 rounded-lg items-center bg-card"
           >
-            <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-sm font-medium text-muted-foreground">
               Yesterday
             </Text>
           </Pressable>
@@ -339,11 +345,12 @@ export function CategoryPicker({
   onSelect,
   allowNone = false,
 }: CategoryPickerProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+      <Text className="text-sm font-medium text-muted-foreground mb-2">
         Category
       </Text>
       <Pressable
@@ -351,9 +358,9 @@ export function CategoryPicker({
         className={`flex-row items-center rounded-lg border px-4 py-3 ${
           selectedCategory
             ? ""
-            : "border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt"
+            : "border-border bg-card"
         }`}
-        style={selectedCategory ? { borderColor: ac(accent, colorScheme, 400, 800), backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+        style={selectedCategory ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
       >
         {selectedCategory ? (
           <>
@@ -367,14 +374,14 @@ export function CategoryPicker({
                 color={selectedCategory.color}
               />
             </View>
-            <Text className="flex-1 text-base text-text-primary dark:text-text-dark-primary">
+            <Text className="flex-1 text-base text-foreground">
               {selectedCategory.name}
             </Text>
           </>
         ) : (
           <>
             <Ionicons name="pricetags-outline" size={18} color={colors.textSecondary} />
-            <Text className="flex-1 ml-3 text-base text-text-tertiary">
+            <Text className="flex-1 ml-3 text-base text-faint-foreground">
               Select category
             </Text>
           </>
@@ -427,11 +434,12 @@ export function PaymentModePicker({
   onSelect,
   allowNone = false,
 }: PaymentModePickerProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+      <Text className="text-sm font-medium text-muted-foreground mb-2">
         Payment Mode
       </Text>
       <Pressable
@@ -439,9 +447,9 @@ export function PaymentModePicker({
         className={`flex-row items-center rounded-lg border px-4 py-3 ${
           selectedPaymentMode
             ? ""
-            : "border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt"
+            : "border-border bg-card"
         }`}
-        style={selectedPaymentMode ? { borderColor: ac(accent, colorScheme, 400, 800), backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+        style={selectedPaymentMode ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
       >
         {selectedPaymentMode ? (
           <>
@@ -450,17 +458,17 @@ export function PaymentModePicker({
               size={18}
               color={colors.blue}
             />
-            <Text className="flex-1 ml-3 text-base text-text-primary dark:text-text-dark-primary">
+            <Text className="flex-1 ml-3 text-base text-foreground">
               {selectedPaymentMode.name}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               {PAYMENT_MODE_TYPE_LABELS[selectedPaymentMode.type as PaymentModeType]}
             </Text>
           </>
         ) : (
           <>
             <Ionicons name="card-outline" size={18} color={colors.textSecondary} />
-            <Text className="flex-1 ml-3 text-base text-text-tertiary">
+            <Text className="flex-1 ml-3 text-base text-faint-foreground">
               Select payment mode
             </Text>
           </>
@@ -510,7 +518,8 @@ export function MerchantPicker({
   onToggleSuggestions,
   onCloseSuggestions,
 }: MerchantPickerProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   // Filter suggestions based on current input
   const filtered = value.trim().length > 0
@@ -521,10 +530,10 @@ export function MerchantPicker({
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+      <Text className="text-sm font-medium text-muted-foreground mb-2">
         Merchant
       </Text>
-      <View className="flex-row items-center rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt overflow-hidden">
+      <View className="flex-row items-center rounded-lg border border-border bg-card overflow-hidden">
         <View className="flex-1 px-4 py-2">
           <TextInput
             value={value}
@@ -535,7 +544,7 @@ export function MerchantPicker({
             placeholder="e.g., Amazon, Swiggy (optional)"
             placeholderTextColor={colors.tabIconDefault}
             maxLength={100}
-            className="text-base text-text-primary dark:text-text-dark-primary"
+            className="text-base text-foreground"
             onFocus={() => {
               if (merchantNames.length > 0) onToggleSuggestions();
             }}
@@ -555,7 +564,7 @@ export function MerchantPicker({
         )}
       </View>
       {showSuggestions && filtered.length > 0 && (
-        <View className="mt-1 rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt overflow-hidden max-h-48">
+        <View className="mt-1 rounded-lg border border-border bg-card overflow-hidden max-h-48">
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
             {filtered.slice(0, 20).map((name) => (
               <Pressable
@@ -564,12 +573,12 @@ export function MerchantPicker({
                   onChangeText(name);
                   onCloseSuggestions();
                 }}
-                className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark"
-                style={value.toLowerCase() === name.toLowerCase() ? { backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
+                className="flex-row items-center px-4 py-3 border-b border-border"
+                style={value.toLowerCase() === name.toLowerCase() ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
               >
                 <Ionicons name="storefront-outline" size={16} color={colors.textSecondary} />
                 <Text
-                  className="flex-1 ml-3 text-sm text-text-primary dark:text-text-dark-primary"
+                  className="flex-1 ml-3 text-sm text-foreground"
                   numberOfLines={1}
                 >
                   {name}
@@ -596,24 +605,25 @@ interface RightSpendToggleProps {
 }
 
 export function RightSpendToggle({ isRightSpend, onToggle }: RightSpendToggleProps) {
+  const theme = useTheme();
   const isUnavoidable = isRightSpend;
   return (
     <View className="mb-6">
       <Pressable
         onPress={onToggle}
-        className="flex-row items-center justify-between rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt px-4 py-3"
+        className="flex-row items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
       >
         <View className="flex-row items-center">
           <Ionicons
             name={isUnavoidable ? "lock-closed" : "pricetag-outline"}
             size={22}
-            color={isUnavoidable ? "#3B82F6" : "#D97706"}
+            color={isUnavoidable ? theme.primary : theme.warning}
           />
           <View className="ml-3">
-            <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-medium text-foreground">
               {isUnavoidable ? "Unavoidable" : "Discretionary"}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               {isUnavoidable
                 ? "This expense was necessary"
                 : "This could have been avoided"}
@@ -623,7 +633,7 @@ export function RightSpendToggle({ isRightSpend, onToggle }: RightSpendTogglePro
         <Switch
           value={isUnavoidable}
           onValueChange={onToggle}
-          trackColor={{ false: "#767577", true: "#3B82F6" }}
+          trackColor={{ false: "#767577", true: theme.primary }}
           thumbColor="#FFFFFF"
         />
       </Pressable>

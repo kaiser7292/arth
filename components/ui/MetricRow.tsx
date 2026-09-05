@@ -1,4 +1,5 @@
-import { View, Text } from "react-native";
+import { View } from "react-native";
+import { Text } from "./Text";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -34,19 +35,19 @@ export function MetricRow({
         )}
         <View className="flex-1">
           <Text
-            className={`text-sm ${bold ? "font-semibold text-text-primary dark:text-text-dark-primary" : "text-text-secondary dark:text-text-dark-secondary"}`}
+            className={`text-sm ${bold ? "font-semibold text-foreground" : "text-muted-foreground"}`}
           >
             {label}
           </Text>
           {sublabel && (
-            <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary">
+            <Text className="text-xs text-faint-foreground">
               {sublabel}
             </Text>
           )}
         </View>
       </View>
       <Text
-        className={`text-sm ${bold ? "font-bold" : "font-semibold"} text-text-primary dark:text-text-dark-primary`}
+        className={`text-sm ${bold ? "font-bold" : "font-semibold"} text-foreground`}
         style={color ? { color } : undefined}
       >
         {value}

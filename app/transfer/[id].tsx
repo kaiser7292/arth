@@ -1,18 +1,19 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
 import { getTransferById, deleteTransfer } from "@/services/account-transfer";
 import { getActiveAccounts, getAllAccounts } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import type { AccountTransfer } from "@/services/account-transfer";
 import type { FinancialAccount } from "@/services/financial-account";
+import { useTheme } from "@/hooks/use-theme";
 
 function formatDate(dateStr: string): string {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -28,9 +29,9 @@ function accountLabel(acct: FinancialAccount | undefined): string {
 export default function TransferDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const alert = useAlert();
-  const sc = StatusColors[colorScheme];
 
   const [transfer, setTransfer] = useState<AccountTransfer | null>(null);
   const [accountMap, setAccountMap] = useState<Map<string, FinancialAccount>>(new Map());
@@ -86,11 +87,11 @@ export default function TransferDetailScreen() {
     <ScreenContainer padTop={false}>
       <Stack.Screen
         options={{
-          title: "Transfer Details",
+          title: "Transfer",
           headerBackTitle: "Back",
           headerRight: () => (
             <Pressable onPress={handleDelete} hitSlop={8}>
-              <Ionicons name="trash-outline" size={20} color={sc.danger} />
+              <Ionicons name="trash-outline" size={20} color={theme.danger} />
             </Pressable>
           ),
         }}
@@ -101,46 +102,46 @@ export default function TransferDetailScreen() {
           <>
             {/* Amount card */}
             <Card className="mx-4 mt-3 mb-2">
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Amount
               </Text>
-              <Text className="text-2xl font-bold" style={{ color: accent[500] }}>
+              <Text className="text-2xl font-bold" style={{ color: theme.primary }}>
                 {formatAmount(transfer.amount)}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1">
+              <Text className="text-xs text-muted-foreground mt-1">
                 {formatDate(transfer.date)}
               </Text>
             </Card>
 
             {/* From → To card */}
             <Card className="mx-4 mb-2">
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 Accounts
               </Text>
               <View className="flex-row items-center">
                 <View className="flex-1">
-                  <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-0.5">
+                  <Text className="text-label text-faint-foreground uppercase tracking-wider mb-0.5">
                     From
                   </Text>
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-semibold text-foreground">
                     {accountLabel(fromAcct)}
                   </Text>
                   {fromAcct?.bank_name && (
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       {fromAcct.bank_name}
                     </Text>
                   )}
                 </View>
                 <Ionicons name="arrow-forward" size={20} color={colors.textSecondary} style={{ marginHorizontal: 12 }} />
                 <View className="flex-1">
-                  <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-0.5">
+                  <Text className="text-label text-faint-foreground uppercase tracking-wider mb-0.5">
                     To
                   </Text>
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-semibold text-foreground">
                     {accountLabel(toAcct)}
                   </Text>
                   {toAcct?.bank_name && (
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       {toAcct.bank_name}
                     </Text>
                   )}
@@ -151,10 +152,10 @@ export default function TransferDetailScreen() {
             {/* Description card */}
             {transfer.description ? (
               <Card className="mx-4 mb-2">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-1">
+                <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                   Note
                 </Text>
-                <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm text-foreground">
                   {transfer.description}
                 </Text>
               </Card>
@@ -162,7 +163,7 @@ export default function TransferDetailScreen() {
 
             {/* Source badge */}
             <View className="mx-4 mb-2">
-              <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">
+              <Text className="text-xs text-faint-foreground">
                 Source: {transfer.source === "sms_auto" ? "Auto-detected from SMS" : "Manual entry"}
               </Text>
             </View>
@@ -170,7 +171,7 @@ export default function TransferDetailScreen() {
         ) : (
           <View className="items-center py-16">
             <Ionicons name="swap-horizontal-outline" size={40} color={colors.textSecondary} />
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-3">
+            <Text className="text-sm text-muted-foreground mt-3">
               Transfer not found
             </Text>
           </View>

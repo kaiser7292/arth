@@ -12,11 +12,13 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
-import { View, Text, Pressable, Modal } from "react-native";
+import { Text } from "./Text";
+import { View, Pressable, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
+import { useTheme } from "@/hooks/use-theme";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTH_NAMES = [
@@ -97,7 +99,8 @@ export function CalendarModal({
   maximumDate,
   minimumDate,
 }: CalendarModalProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   // Parse selected date
   const [selY, selM, selD] = useMemo(() => {
@@ -248,12 +251,12 @@ export function CalendarModal({
         onPress={onClose}
       >
         <Pressable
-          className="bg-surface-light dark:bg-surface-dark-alt rounded-t-2xl"
+          className="bg-background rounded-t-2xl"
           onPress={() => {}} // Prevent dismiss
         >
           {/* Handle bar */}
           <View className="items-center pt-3 pb-2">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
 
           {/* Header */}
@@ -276,7 +279,7 @@ export function CalendarModal({
                   accessibilityLabel="Pick month"
                   accessibilityRole="button"
                 >
-                  <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-lg font-bold text-foreground">
                     {MONTH_NAMES[viewMonth]}
                   </Text>
                 </Pressable>
@@ -289,7 +292,7 @@ export function CalendarModal({
                   accessibilityLabel="Pick year"
                   accessibilityRole="button"
                 >
-                  <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-lg font-bold text-foreground">
                     {viewYear}
                   </Text>
                 </Pressable>
@@ -326,7 +329,7 @@ export function CalendarModal({
                 accessibilityLabel="Pick year"
                 accessibilityRole="button"
               >
-                <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-lg font-bold text-foreground">
                   {viewYear}
                 </Text>
               </Pressable>
@@ -346,7 +349,7 @@ export function CalendarModal({
               >
                 <Ionicons name="chevron-back" size={22} color={colors.textSecondary} />
               </Pressable>
-              <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-lg font-bold text-foreground">
                 {yearPageAnchor} – {yearPageAnchor + 11}
               </Text>
               <Pressable
@@ -369,7 +372,7 @@ export function CalendarModal({
               <View className="flex-row px-4 mb-1">
                 {WEEKDAYS.map((wd) => (
                   <View key={wd} className="flex-1 items-center">
-                    <Text className="text-xs font-semibold text-text-tertiary uppercase">
+                    <Text className="text-xs font-semibold text-faint-foreground uppercase">
                       {wd}
                     </Text>
                   </View>
@@ -384,7 +387,7 @@ export function CalendarModal({
                       if (!cell.current) {
                         return (
                           <View key={colIdx} className="flex-1 h-11 items-center justify-center">
-                            <Text className="text-sm text-text-tertiary/30">{cell.day}</Text>
+                            <Text className="text-sm text-faint-foreground/30">{cell.day}</Text>
                           </View>
                         );
                       }
@@ -409,21 +412,21 @@ export function CalendarModal({
                             }`}
                             style={
                               isSelected
-                                ? { backgroundColor: accent[500] }
+                                ? { backgroundColor: theme.primary }
                                 : isToday
-                                  ? { borderColor: accent[300] }
+                                  ? { borderColor: theme.alpha("primary", 0.25) }
                                   : undefined
                             }
                           >
                             <Text
                               className={`text-sm ${
                                 isSelected
-                                  ? "font-bold text-white"
+                                  ? "font-bold text-primary-foreground"
                                   : isDisabled
-                                    ? "text-text-tertiary/40"
+                                    ? "text-faint-foreground/40"
                                     : isToday
-                                      ? "font-bold text-text-primary dark:text-text-dark-primary"
-                                      : "font-medium text-text-primary dark:text-text-dark-primary"
+                                      ? "font-bold text-foreground"
+                                      : "font-medium text-foreground"
                               }`}
                             >
                               {cell.day}
@@ -464,21 +467,21 @@ export function CalendarModal({
                           }`}
                           style={
                             isSelected
-                              ? { backgroundColor: accent[500] }
+                              ? { backgroundColor: theme.primary }
                               : isCurrentMonth
-                                ? { borderColor: accent[300] }
+                                ? { borderColor: theme.alpha("primary", 0.25) }
                                 : undefined
                           }
                         >
                           <Text
                             className={`text-sm ${
                               isSelected
-                                ? "font-bold text-white"
+                                ? "font-bold text-primary-foreground"
                                 : isDisabled
-                                  ? "text-text-tertiary/40"
+                                  ? "text-faint-foreground/40"
                                   : isCurrentMonth
-                                    ? "font-bold text-text-primary dark:text-text-dark-primary"
-                                    : "font-medium text-text-primary dark:text-text-dark-primary"
+                                    ? "font-bold text-foreground"
+                                    : "font-medium text-foreground"
                             }`}
                           >
                             {MONTH_NAMES_SHORT[monthIdx]}
@@ -516,21 +519,21 @@ export function CalendarModal({
                           }`}
                           style={
                             isSelected
-                              ? { backgroundColor: accent[500] }
+                              ? { backgroundColor: theme.primary }
                               : isCurrentYear
-                                ? { borderColor: accent[300] }
+                                ? { borderColor: theme.alpha("primary", 0.25) }
                                 : undefined
                           }
                         >
                           <Text
                             className={`text-sm ${
                               isSelected
-                                ? "font-bold text-white"
+                                ? "font-bold text-primary-foreground"
                                 : isDisabled
-                                  ? "text-text-tertiary/40"
+                                  ? "text-faint-foreground/40"
                                   : isCurrentYear
-                                    ? "font-bold text-text-primary dark:text-text-dark-primary"
-                                    : "font-medium text-text-primary dark:text-text-dark-primary"
+                                    ? "font-bold text-foreground"
+                                    : "font-medium text-foreground"
                             }`}
                           >
                             {year}
@@ -549,20 +552,20 @@ export function CalendarModal({
             <Pressable
               onPress={handleTodayPress}
               className="flex-1 py-3 rounded-xl items-center"
-              style={{ backgroundColor: ac(accent, colorScheme, 50, 800) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.1) }}
             >
               <Text
                 className="text-sm font-semibold"
-                style={{ color: ac(accent, colorScheme, 600, 200) }}
+                style={{ color: theme.primary }}
               >
                 Today
               </Text>
             </Pressable>
             <Pressable
               onPress={onClose}
-              className="flex-1 py-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark items-center"
+              className="flex-1 py-3 rounded-xl bg-background items-center"
             >
-              <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm font-semibold text-muted-foreground">
                 Cancel
               </Text>
             </Pressable>

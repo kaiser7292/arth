@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { View, Text, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
+import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer } from "@/components/ui";
+import { LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { settingsStorage } from "@/services/storage";
@@ -28,7 +28,8 @@ import { getPersonsByIds } from "@/services/hisaab";
 import type { HisaabPerson } from "@/services/hisaab";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Insight drill-down list.
@@ -47,8 +48,8 @@ export default function InsightFilteredListScreen() {
     expenseIds?: string;
     title?: string;
   }>();
-  const { colors, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const ids = useMemo(
     () => (expenseIds ? expenseIds.split(",").filter((s) => s.length > 0) : []),
@@ -211,7 +212,7 @@ export default function InsightFilteredListScreen() {
         {title && (
           <View className="px-4 pt-3 pb-2">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary"
+              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               numberOfLines={2}
             >
               {title}
@@ -220,35 +221,35 @@ export default function InsightFilteredListScreen() {
         )}
 
         {/* ── Summary card ──────────────────────────────────────────── */}
-        <View className="mx-4 my-2 p-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt">
+        <View className="mx-4 my-2 p-4 rounded-xl bg-card">
           <View className="flex-row items-center justify-between">
-            <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-sm font-medium text-muted-foreground">
               Total
             </Text>
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-lg font-bold text-foreground">
               {formatAmount(total)}
             </Text>
           </View>
 
           {hasAdjustments ? (
             // Expanded breakdown when adjustments exist
-            <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark">
+            <View className="mt-2 pt-2 border-t border-border">
               {/* Gross row */}
               <View className="flex-row items-center justify-between mb-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {expenses.length} {expenses.length === 1 ? "transaction" : "transactions"} · gross
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {formatAmount(grossTotal)}
                 </Text>
               </View>
               {/* Split deduction */}
               {splitDeduction > 0 && (
                 <View className="flex-row items-center justify-between mb-1">
-                  <Text className="text-xs" style={{ color: sc.warning }}>
+                  <Text className="text-xs" style={{ color: theme.warning }}>
                     🤝 Others' share (split)
                   </Text>
-                  <Text className="text-xs font-medium" style={{ color: sc.warning }}>
+                  <Text className="text-xs font-medium" style={{ color: theme.warning }}>
                     −{formatAmount(splitDeduction)}
                   </Text>
                 </View>
@@ -256,26 +257,26 @@ export default function InsightFilteredListScreen() {
               {/* Refund deduction */}
               {refundDeduction > 0 && (
                 <View className="flex-row items-center justify-between mb-1">
-                  <Text className="text-xs" style={{ color: sc.success }}>
+                  <Text className="text-xs" style={{ color: theme.success }}>
                     ↩ Refunds
                   </Text>
-                  <Text className="text-xs font-medium" style={{ color: sc.success }}>
+                  <Text className="text-xs font-medium" style={{ color: theme.success }}>
                     −{formatAmount(refundDeduction)}
                   </Text>
                 </View>
               )}
               {/* Net line */}
-              <View className="flex-row items-center justify-between pt-1.5 border-t border-border-light dark:border-border-dark mt-0.5">
-                <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+              <View className="flex-row items-center justify-between pt-1.5 border-t border-border mt-0.5">
+                <Text className="text-xs font-semibold text-foreground">
                   Net counted
                 </Text>
-                <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-xs font-bold text-foreground">
                   {formatAmount(total)}
                 </Text>
               </View>
             </View>
           ) : (
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {expenses.length} {expenses.length === 1 ? "transaction" : "transactions"}
             </Text>
           )}
@@ -283,21 +284,22 @@ export default function InsightFilteredListScreen() {
 
         {/* ── Transaction list ──────────────────────────────────────── */}
         {loading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={colors.blue} />
-          </View>
+          <LoadingState />
         ) : expenses.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
             <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               No transactions
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center mt-2">
+            <Text className="text-sm text-muted-foreground text-center mt-2">
               The expenses that fed this insight may have been deleted.
             </Text>
           </View>
         ) : (
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={sortedExpenses}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (

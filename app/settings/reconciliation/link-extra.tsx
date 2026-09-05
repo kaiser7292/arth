@@ -1,10 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator, FlatList, Pressable, Text, TextInput, View,
-} from "react-native";
-import { ScreenContainer } from "@/components/ui";
+import { ActivityIndicator, FlatList, Pressable, TextInput, View } from "react-native";
+import { ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   getItemsEnriched,
@@ -12,6 +11,7 @@ import {
   deleteItem,
   type ReconciliationItemEnriched,
 } from "@/services/reconciliation/reconciliation-crud";
+import { useTheme } from "@/hooks/use-theme";
 
 // mode="find_missing" — initiated from Extra tab: show unmatched statement rows to pair with
 // mode="find_extra"   — initiated from Missing tab: show extra Arth entries to pair with
@@ -33,7 +33,8 @@ export default function LinkExtraScreen() {
     amount: string;
   }>();
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<ReconciliationItemEnriched[]>([]);
@@ -128,13 +129,13 @@ export default function LinkExtraScreen() {
       return (
         <Pressable
           onPress={() => handlePick(item)}
-          className="flex-row items-center py-3.5 border-b border-border-light dark:border-border-dark"
+          className="flex-row items-center py-3.5 border-b border-border"
         >
           <View className="flex-1">
-            <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+            <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
               {item.stmt_narration || "(no narration)"}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {formatDate(item.stmt_date)} · {item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.stmt_amount)}
               {diff > 0 && diff <= 10 && ` · ₹${diff.toFixed(2)} diff`}
             </Text>
@@ -142,7 +143,7 @@ export default function LinkExtraScreen() {
           {linking ? (
             <ActivityIndicator size="small" />
           ) : (
-            <Ionicons name="git-merge-outline" size={18} color={accent[500]} />
+            <Ionicons name="git-merge-outline" size={18} color={theme.primary} />
           )}
         </Pressable>
       );
@@ -156,25 +157,25 @@ export default function LinkExtraScreen() {
       return (
         <Pressable
           onPress={() => handlePick(item)}
-          className="flex-row items-center py-3.5 border-b border-border-light dark:border-border-dark"
+          className="flex-row items-center py-3.5 border-b border-border"
         >
           <View className="flex-1">
             <View className="flex-row items-center">
-              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary flex-1" numberOfLines={1}>
+              <Text className="text-sm font-medium text-foreground flex-1" numberOfLines={1}>
                 {item.arth_description || "(no description)"}
               </Text>
               <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F59E0B22" }}>
-                <Text className="text-[10px] font-semibold uppercase" style={{ color: "#F59E0B" }}>
+                <Text className="text-label font-semibold uppercase" style={{ color: theme.warning }}>
                   {item.matched_transfer_id ? "Transfer" : "Expense"}
                 </Text>
               </View>
             </View>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {item.arth_date ? formatDate(item.arth_date) : ""} · {amountStr(arthAmt)}
               {diff > 0 && diff <= 10 && ` · ₹${diff.toFixed(2)} diff`}
             </Text>
             {meta.length > 0 && (
-              <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-0.5" numberOfLines={1}>
+              <Text className="text-xs text-faint-foreground mt-0.5" numberOfLines={1}>
                 {meta.join(" · ")}
               </Text>
             )}
@@ -182,7 +183,7 @@ export default function LinkExtraScreen() {
           {linking ? (
             <ActivityIndicator size="small" />
           ) : (
-            <Ionicons name="git-merge-outline" size={18} color={accent[500]} />
+            <Ionicons name="git-merge-outline" size={18} color={theme.primary} />
           )}
         </Pressable>
       );
@@ -200,7 +201,7 @@ export default function LinkExtraScreen() {
   return (
     <ScreenContainer padTop={false}>
       <View className="px-4 pt-3 pb-2">
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+        <Text className="text-xs text-muted-foreground mb-3">
           {headerText}
         </Text>
         <View
@@ -213,7 +214,7 @@ export default function LinkExtraScreen() {
             onChangeText={setQuery}
             placeholder={searchPlaceholder}
             placeholderTextColor={colors.textSecondary}
-            className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
+            className="flex-1 ml-2 text-sm text-foreground"
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -226,13 +227,16 @@ export default function LinkExtraScreen() {
         </View>
       ) : (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={renderCandidate}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
           ListEmptyComponent={
             <View className="items-center py-12">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 {query
                   ? `No results for "${query}"`
                   : mode === "find_missing"

@@ -1,28 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-  TextInput,
-  Modal,
-  KeyboardAvoidingView,
-} from "react-native";
+import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { getReminderDetail, stopRecurringRule, updateRecurringRule } from "@/services/expense";
 import type { ReminderDetail } from "@/services/expense";
 import type { RecurringFrequency } from "@/services/recurring-rules";
-import { StatusColors } from "@/constants/theme";
+
 import { formatDate, todayIso } from "@/utils/date";
 import { formatAmount } from "@/utils/format";
 import { getErrorMessage } from "@/utils/error-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/hooks/use-theme";
 
 const FREQUENCIES: RecurringFrequency[] = ["weekly", "monthly", "quarterly", "yearly", "last_day_of_month", "nth_weekday"];
 const FREQ_LABEL: Record<RecurringFrequency, string> = {
@@ -64,7 +56,8 @@ export default function RecurringRuleDetailScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { ruleId } = useLocalSearchParams<{ ruleId: string }>();
 
@@ -197,7 +190,7 @@ export default function RecurringRuleDetailScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-base text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-base text-muted-foreground">
             Reminder not found.
           </Text>
         </View>
@@ -218,10 +211,10 @@ export default function RecurringRuleDetailScreen() {
   const stateColor = !rule.is_active
     ? colors.textSecondary
     : isOverdue
-      ? StatusColors[colorScheme].danger
+      ? theme.danger
       : isDueSoon
-        ? StatusColors[colorScheme].warning
-        : StatusColors[colorScheme].success;
+        ? theme.warning
+        : theme.success;
 
   const stateLabel = !rule.is_active
     ? "Stopped"
@@ -238,30 +231,30 @@ export default function RecurringRuleDetailScreen() {
         {/* Hero */}
         <View
           className="mx-4 mt-4 p-4 rounded-2xl"
-          style={{ backgroundColor: accent[500] + "14" }}
+          style={{ backgroundColor: theme.alpha("primary", 0.08) }}
         >
           <View className="flex-row items-start">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: accent[500] + "28" }}
+              style={{ backgroundColor: theme.alpha("primary", 0.16) }}
             >
-              <Ionicons name="repeat-outline" size={20} color={accent[500]} />
+              <Ionicons name="repeat-outline" size={20} color={theme.primary} />
             </View>
             <View className="flex-1">
               <Text
-                className="text-base font-bold text-text-primary dark:text-text-dark-primary"
+                className="text-base font-bold text-foreground"
                 numberOfLines={2}
               >
                 {name}
               </Text>
               {merchant && merchant !== name && (
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   {merchant}
                 </Text>
               )}
               <View className="flex-row items-center mt-1.5 flex-wrap gap-2">
-                <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: accent[500] + "22" }}>
-                  <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
+                <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.alpha("primary", 0.13) }}>
+                  <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
                     {ruleFrequencyLabel(rule.frequency, rule.repeat_ordinal, rule.repeat_weekday)}
                   </Text>
                 </View>
@@ -285,9 +278,9 @@ export default function RecurringRuleDetailScreen() {
         {/* Dates */}
         <Card className="mx-4 mt-3">
           {rule.next_due_date && (
-            <View className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark">
+            <View className="flex-row items-center py-2 border-b border-border">
               <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-3 w-28">
+              <Text className="text-xs text-muted-foreground ml-3 w-28">
                 Next due
               </Text>
               <Text
@@ -298,22 +291,22 @@ export default function RecurringRuleDetailScreen() {
               </Text>
             </View>
           )}
-          <View className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark">
+          <View className="flex-row items-center py-2 border-b border-border">
             <Ionicons name="play-outline" size={16} color={colors.textSecondary} />
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-3 w-28">
+            <Text className="text-xs text-muted-foreground ml-3 w-28">
               Started
             </Text>
-            <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary flex-1 text-right">
+            <Text className="text-sm font-medium text-foreground flex-1 text-right">
               {formatDate(rule.start_date)}
             </Text>
           </View>
           {rule.end_date && (
-            <View className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark">
+            <View className="flex-row items-center py-2 border-b border-border">
               <Ionicons name="stop-outline" size={16} color={colors.textSecondary} />
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-3 w-28">
+              <Text className="text-xs text-muted-foreground ml-3 w-28">
                 Ends
               </Text>
-              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary flex-1 text-right">
+              <Text className="text-sm font-medium text-foreground flex-1 text-right">
                 {formatDate(rule.end_date)}
               </Text>
             </View>
@@ -321,10 +314,10 @@ export default function RecurringRuleDetailScreen() {
           {rule.notes && (
             <View className="flex-row items-start py-2">
               <Ionicons name="document-text-outline" size={16} color={colors.textSecondary} />
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-3 w-28">
+              <Text className="text-xs text-muted-foreground ml-3 w-28">
                 Notes
               </Text>
-              <Text className="text-sm text-text-primary dark:text-text-dark-primary flex-1 text-right">
+              <Text className="text-sm text-foreground flex-1 text-right">
                 {rule.notes}
               </Text>
             </View>
@@ -337,21 +330,21 @@ export default function RecurringRuleDetailScreen() {
         {/* Source expense link */}
         {source && (
           <View className="mx-4 mt-3">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2 px-1">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
               Source expense
             </Text>
             <Pressable
               onPress={() => router.push(`/expense/${source.id}`)}
-              className="flex-row items-center px-4 py-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt"
+              className="flex-row items-center px-4 py-3 rounded-xl bg-card"
               accessibilityRole="button"
               accessibilityLabel="Open source expense"
             >
               <Ionicons name="receipt-outline" size={18} color={colors.textSecondary} />
               <View className="flex-1 ml-3">
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
                   {source.description ?? source.merchant_name ?? "Expense"}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   {formatDate(source.date)} · {formatAmount(source.amount)}
                 </Text>
               </View>
@@ -362,41 +355,41 @@ export default function RecurringRuleDetailScreen() {
 
         {/* Fulfillment history */}
         <View className="mx-4 mt-4">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2 px-1">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
             History · {history.length} cycle{history.length !== 1 ? "s" : ""} fulfilled
           </Text>
           {history.length === 0 ? (
-            <View className="items-center py-8 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt">
+            <View className="items-center py-8 rounded-xl bg-card">
               <Ionicons name="time-outline" size={32} color={colors.textSecondary} />
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-2">
+              <Text className="text-sm text-muted-foreground mt-2">
                 No cycles fulfilled yet
               </Text>
             </View>
           ) : (
-            <View className="rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden">
+            <View className="rounded-xl bg-card overflow-hidden">
               {history.map((entry, i) => (
                 <Pressable
                   key={entry.fulfillmentId}
                   onPress={() => router.push(`/expense/${entry.expense.id}`)}
-                  className={`flex-row items-center px-4 py-3 ${i < history.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""}`}
+                  className={`flex-row items-center px-4 py-3 ${i < history.length - 1 ? "border-b border-border" : ""}`}
                   accessibilityRole="button"
                   accessibilityLabel={`Open expense for ${entry.cycleDueDate}`}
                 >
                   <View
                     className="w-8 h-8 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: StatusColors[colorScheme].success + "18" }}
+                    style={{ backgroundColor: theme.success + "18" }}
                   >
-                    <Ionicons name="checkmark" size={16} color={StatusColors[colorScheme].success} />
+                    <Ionicons name="checkmark" size={16} color={theme.success} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                    <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
                       {entry.expense.merchant_name ?? entry.expense.description ?? "Expense"}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       Cycle due {formatDate(entry.cycleDueDate)} · Paid {formatDate(entry.expense.date)}
                     </Text>
                   </View>
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mr-2">
+                  <Text className="text-sm font-semibold text-foreground mr-2">
                     {formatAmount(entry.expense.amount)}
                   </Text>
                   <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
@@ -411,7 +404,7 @@ export default function RecurringRuleDetailScreen() {
           {rule.is_active === 1 && (
             <Pressable
               onPress={openEdit}
-              className="flex-row items-center justify-center py-3.5 rounded-xl border border-border-light dark:border-border-dark"
+              className="flex-row items-center justify-center py-3.5 rounded-xl border border-border"
               style={{ backgroundColor: colors.surface }}
               accessibilityRole="button"
               accessibilityLabel="Edit this reminder"
@@ -426,12 +419,12 @@ export default function RecurringRuleDetailScreen() {
             <Pressable
               onPress={handleStop}
               className="flex-row items-center justify-center py-3.5 rounded-xl"
-              style={{ backgroundColor: StatusColors[colorScheme].danger + "14" }}
+              style={{ backgroundColor: theme.danger + "14" }}
               accessibilityRole="button"
               accessibilityLabel="Stop this reminder"
             >
-              <Ionicons name="pause-outline" size={18} color={StatusColors[colorScheme].danger} />
-              <Text className="text-sm font-semibold ml-2" style={{ color: StatusColors[colorScheme].danger }}>
+              <Ionicons name="pause-outline" size={18} color={theme.danger} />
+              <Text className="text-sm font-semibold ml-2" style={{ color: theme.danger }}>
                 Stop reminder
               </Text>
             </Pressable>
@@ -454,10 +447,10 @@ export default function RecurringRuleDetailScreen() {
           >
             {/* Handle */}
             <View className="items-center pt-3 pb-1">
-              <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+              <View className="w-10 h-1 rounded-full bg-border" />
             </View>
             <View className="flex-row items-center justify-between px-5 pb-3">
-              <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">Edit Reminder</Text>
+              <Text className="text-base font-bold text-foreground">Edit Reminder</Text>
               <Pressable onPress={() => setEditVisible(false)} hitSlop={8}>
                 <Ionicons name="close" size={20} color={colors.textSecondary} />
               </Pressable>
@@ -467,14 +460,14 @@ export default function RecurringRuleDetailScreen() {
 
               {/* Next due date */}
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Next due date
                 </Text>
                 <Pressable
                   onPress={() => setNextDuePicker(true)}
-                  className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-xl px-4 py-3"
+                  className="flex-row items-center justify-between border border-border rounded-xl px-4 py-3"
                 >
-                  <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm text-foreground">
                     {editNextDue ? formatDate(editNextDue) : "Not set"}
                   </Text>
                   <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
@@ -483,7 +476,7 @@ export default function RecurringRuleDetailScreen() {
 
               {/* Frequency */}
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Frequency
                 </Text>
                 <View className="flex-row flex-wrap gap-2">
@@ -495,11 +488,11 @@ export default function RecurringRuleDetailScreen() {
                         onPress={() => setEditFrequency(f)}
                         className="px-4 py-2 rounded-full border"
                         style={{
-                          backgroundColor: active ? accent[500] + "18" : colors.surface,
-                          borderColor: active ? accent[500] : colors.border,
+                          backgroundColor: active ? theme.alpha("primary", 0.09) : colors.surface,
+                          borderColor: active ? theme.primary : colors.border,
                         }}
                       >
-                        <Text className="text-sm font-medium" style={{ color: active ? accent[500] : colors.textSecondary }}>
+                        <Text className="text-sm font-medium" style={{ color: active ? theme.primary : colors.textSecondary }}>
                           {FREQ_LABEL[f]}
                         </Text>
                       </Pressable>
@@ -512,7 +505,7 @@ export default function RecurringRuleDetailScreen() {
               {editFrequency === "nth_weekday" && (
                 <>
                   <View>
-                    <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                    <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                       Which occurrence
                     </Text>
                     <View className="flex-row flex-wrap gap-2">
@@ -524,11 +517,11 @@ export default function RecurringRuleDetailScreen() {
                             onPress={() => setEditRepeatOrdinal(o.value)}
                             className="px-4 py-2 rounded-full border"
                             style={{
-                              backgroundColor: active ? accent[500] + "18" : colors.surface,
-                              borderColor: active ? accent[500] : colors.border,
+                              backgroundColor: active ? theme.alpha("primary", 0.09) : colors.surface,
+                              borderColor: active ? theme.primary : colors.border,
                             }}
                           >
-                            <Text className="text-sm font-medium" style={{ color: active ? accent[500] : colors.textSecondary }}>
+                            <Text className="text-sm font-medium" style={{ color: active ? theme.primary : colors.textSecondary }}>
                               {o.label}
                             </Text>
                           </Pressable>
@@ -537,7 +530,7 @@ export default function RecurringRuleDetailScreen() {
                     </View>
                   </View>
                   <View>
-                    <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                    <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                       Day of week
                     </Text>
                     <View className="flex-row flex-wrap gap-2">
@@ -549,11 +542,11 @@ export default function RecurringRuleDetailScreen() {
                             onPress={() => setEditRepeatWeekday(w.value)}
                             className="px-4 py-2 rounded-full border"
                             style={{
-                              backgroundColor: active ? accent[500] + "18" : colors.surface,
-                              borderColor: active ? accent[500] : colors.border,
+                              backgroundColor: active ? theme.alpha("primary", 0.09) : colors.surface,
+                              borderColor: active ? theme.primary : colors.border,
                             }}
                           >
-                            <Text className="text-sm font-medium" style={{ color: active ? accent[500] : colors.textSecondary }}>
+                            <Text className="text-sm font-medium" style={{ color: active ? theme.primary : colors.textSecondary }}>
                               {w.label}
                             </Text>
                           </Pressable>
@@ -566,15 +559,15 @@ export default function RecurringRuleDetailScreen() {
 
               {/* End date */}
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   End date (optional)
                 </Text>
                 <View className="flex-row gap-2">
                   <Pressable
                     onPress={() => setEndDatePicker(true)}
-                    className="flex-1 flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-xl px-4 py-3"
+                    className="flex-1 flex-row items-center justify-between border border-border rounded-xl px-4 py-3"
                   >
-                    <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm text-foreground">
                       {editEndDate ? formatDate(editEndDate) : "No end date"}
                     </Text>
                     <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
@@ -582,7 +575,7 @@ export default function RecurringRuleDetailScreen() {
                   {editEndDate && (
                     <Pressable
                       onPress={() => setEditEndDate(null)}
-                      className="w-11 items-center justify-center border border-border-light dark:border-border-dark rounded-xl"
+                      className="w-11 items-center justify-center border border-border rounded-xl"
                     >
                       <Ionicons name="close" size={18} color={colors.textSecondary} />
                     </Pressable>
@@ -592,7 +585,7 @@ export default function RecurringRuleDetailScreen() {
 
               {/* Amount */}
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Expected amount (optional)
                 </Text>
                 <TextInput
@@ -601,13 +594,13 @@ export default function RecurringRuleDetailScreen() {
                   keyboardType="decimal-pad"
                   placeholder="e.g. 15000"
                   placeholderTextColor={colors.textSecondary}
-                  className="border border-border-light dark:border-border-dark rounded-xl px-4 py-3 text-sm text-text-primary dark:text-text-dark-primary"
+                  className="border border-border rounded-xl px-4 py-3 text-sm text-foreground"
                 />
               </View>
 
               {/* Notes */}
               <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Notes (optional)
                 </Text>
                 <TextInput
@@ -617,7 +610,7 @@ export default function RecurringRuleDetailScreen() {
                   placeholderTextColor={colors.textSecondary}
                   multiline
                   numberOfLines={2}
-                  className="border border-border-light dark:border-border-dark rounded-xl px-4 py-3 text-sm text-text-primary dark:text-text-dark-primary"
+                  className="border border-border rounded-xl px-4 py-3 text-sm text-foreground"
                   style={{ minHeight: 64, textAlignVertical: "top" }}
                 />
               </View>
@@ -628,18 +621,18 @@ export default function RecurringRuleDetailScreen() {
             <View className="flex-row px-5 pt-3 gap-3">
               <Pressable
                 onPress={() => setEditVisible(false)}
-                className="flex-1 py-3 rounded-xl items-center border border-border-light dark:border-border-dark"
+                className="flex-1 py-3 rounded-xl items-center border border-border"
                 style={{ backgroundColor: colors.surface }}
               >
-                <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+                <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handleSave}
                 disabled={saving}
                 className="flex-1 py-3 rounded-xl items-center"
-                style={{ backgroundColor: accent[500], opacity: saving ? 0.6 : 1 }}
+                style={{ backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }}
               >
-                <Text className="text-sm font-semibold text-white">{saving ? "Saving…" : "Save"}</Text>
+                <Text className="text-sm font-semibold text-primary-foreground">{saving ? "Saving…" : "Save"}</Text>
               </Pressable>
             </View>
           </View>

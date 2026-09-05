@@ -1,15 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-  TextInput,
-} from "react-native";
+import { View, FlatList, Pressable, ActivityIndicator, TextInput } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer } from "@/components/ui";
+import { EmptyState, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -17,6 +10,7 @@ import {
   listUnrecognisedSms,
   type UnrecognisedSmsRow,
 } from "@/services/sms/user-sms-templates";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.6.0 — Browser for pending_sms rows that never became expenses.
@@ -35,8 +29,9 @@ import {
 export default function UnrecognisedSmsScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme, accent } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = theme.primary;
 
   const [rows, setRows] = useState<UnrecognisedSmsRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +124,7 @@ export default function UnrecognisedSmsScreen() {
     <ScreenContainer padTop={false}>
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             Bank SMS from the last 30 days that Arth couldn't read. Tap "Teach" to build a template.
           </Text>
         </View>
@@ -183,11 +178,12 @@ export default function UnrecognisedSmsScreen() {
         </View>
 
         {loading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={accentColor} />
-          </View>
+          <LoadingState />
         ) : (
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={displayRows}
             keyExtractor={(item) => item.row.id}
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
@@ -199,7 +195,7 @@ export default function UnrecognisedSmsScreen() {
                     size={16}
                     color={colors.textSecondary}
                   />
-                  <Text className="text-xs font-semibold ml-2 text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs font-semibold ml-2 text-muted-foreground">
                     {item.row.address}
                   </Text>
                   {item.count > 1 && (
@@ -207,17 +203,17 @@ export default function UnrecognisedSmsScreen() {
                       className="ml-2 px-2 py-0.5 rounded-full"
                       style={{ backgroundColor: accentColor + "18" }}
                     >
-                      <Text className="text-[10px] font-bold" style={{ color: accentColor }}>
+                      <Text className="text-label font-bold" style={{ color: accentColor }}>
                         ×{item.count}
                       </Text>
                     </View>
                   )}
-                  <Text className="text-xs text-text-tertiary ml-auto">
+                  <Text className="text-xs text-faint-foreground ml-auto">
                     {formatDate(item.row.sms_date)}
                   </Text>
                 </View>
                 <Text
-                  className="text-sm text-text-primary dark:text-text-dark-primary my-2"
+                  className="text-sm text-foreground my-2"
                   numberOfLines={3}
                 >
                   {item.row.body}
@@ -240,21 +236,15 @@ export default function UnrecognisedSmsScreen() {
               </Card>
             )}
             ListEmptyComponent={
-              <View className="items-center justify-center mt-16 px-8">
-                <Ionicons
-                  name={query ? "search-outline" : "checkmark-done-circle-outline"}
-                  size={48}
-                  color={colors.textSecondary}
-                />
-                <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
-                  {query ? "No matches" : "All SMS were recognised"}
-                </Text>
-                <Text className="text-sm text-text-tertiary text-center mt-2">
-                  {query
+              <EmptyState
+                icon={query ? "search-outline" : "checkmark-done-circle-outline"}
+                title={query ? "No matches" : "All SMS were recognised"}
+                subtitle={
+                  query
                     ? "Try a different search term, or clear the search."
-                    : "Every bank SMS from the last 30 days either became an expense or was intentionally skipped (OTPs, balance enquiries)."}
-                </Text>
-              </View>
+                    : "Every bank SMS from the last 30 days either became an expense or was intentionally skipped (OTPs, balance enquiries)."
+                }
+              />
             }
           />
         )}

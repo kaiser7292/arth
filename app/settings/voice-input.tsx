@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from "react-native";
-import { Card, ScreenContainer } from "@/components/ui";
+import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import * as Speech from "expo-speech";
 import { VoiceQuality } from "expo-speech";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getVoiceSettings, saveVoiceSettings } from "@/services/voice-settings";
 import type { VoiceSettings } from "@/services/voice-settings";
+import { useTheme } from "@/hooks/use-theme";
 
 interface DisplayVoice {
   identifier: string;
@@ -87,8 +88,9 @@ function buildDisplayVoices(raw: Speech.Voice[]): DisplayVoice[] {
 }
 
 export default function VoiceInputSettingsScreen() {
-  const { accent, colors } = useColorScheme();
-  const accentColor = accent[500];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = theme.primary;
 
   const [settings, setSettings] = useState<VoiceSettings>(getVoiceSettings);
   const [voices, setVoices] = useState<DisplayVoice[]>([]);
@@ -147,10 +149,10 @@ export default function VoiceInputSettingsScreen() {
         <Card title="Behaviour" className="mb-4">
           <View className="flex-row items-center justify-between py-1">
             <View className="flex-1 mr-4">
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm font-semibold text-foreground">
                 Speak back questions
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+              <Text className="text-xs text-muted-foreground mt-0.5">
                 {settings.speakBack
                   ? "Arth reads follow-up questions aloud while listening"
                   : "Questions appear as text only — silent mode"}
@@ -167,7 +169,7 @@ export default function VoiceInputSettingsScreen() {
 
         {/* Voice sound */}
         <Card title="Voice Sound" className="mb-4">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+          <Text className="text-xs text-muted-foreground mb-3">
             Tap Preview to hear a voice before selecting it. Voices come from your device's
             installed text-to-speech engine.
           </Text>
@@ -175,12 +177,12 @@ export default function VoiceInputSettingsScreen() {
           {loading ? (
             <View className="py-6 items-center">
               <ActivityIndicator color={accentColor} />
-              <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-2">
+              <Text className="text-xs text-faint-foreground mt-2">
                 Loading voices…
               </Text>
             </View>
           ) : voices.length === 0 ? (
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary py-3 text-center">
+            <Text className="text-sm text-muted-foreground py-3 text-center">
               No English voices found. Install Google Text-to-Speech for more options.
             </Text>
           ) : (
@@ -191,7 +193,7 @@ export default function VoiceInputSettingsScreen() {
                 return (
                   <Pressable
                     onPress={() => updateSettings({ voiceIdentifier: null })}
-                    className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+                    className="flex-row items-center py-3 border-b border-border"
                   >
                     <View
                       className="w-5 h-5 rounded-full border-2 items-center justify-center mr-3 flex-shrink-0"
@@ -203,12 +205,12 @@ export default function VoiceInputSettingsScreen() {
                     </View>
                     <View className="flex-1">
                       <Text
-                        className="text-sm font-medium text-text-primary dark:text-text-dark-primary"
+                        className="text-sm font-medium text-foreground"
                         style={isSelected ? { color: accentColor } : undefined}
                       >
                         System Default
                       </Text>
-                      <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-0.5">
+                      <Text className="text-xs text-faint-foreground mt-0.5">
                         Uses your device's default TTS voice
                       </Text>
                     </View>
@@ -224,7 +226,7 @@ export default function VoiceInputSettingsScreen() {
                   <Pressable
                     key={voice.identifier}
                     onPress={() => updateSettings({ voiceIdentifier: voice.identifier })}
-                    className={`flex-row items-center py-3 ${isLast ? "" : "border-b border-border-light dark:border-border-dark"}`}
+                    className={`flex-row items-center py-3 ${isLast ? "" : "border-b border-border"}`}
                   >
                     <View
                       className="w-5 h-5 rounded-full border-2 items-center justify-center mr-3 flex-shrink-0"
@@ -235,7 +237,7 @@ export default function VoiceInputSettingsScreen() {
                       )}
                     </View>
                     <Text
-                      className="text-sm font-medium text-text-primary dark:text-text-dark-primary flex-1"
+                      className="text-sm font-medium text-foreground flex-1"
                       style={isSelected ? { color: accentColor } : undefined}
                     >
                       {voice.friendlyName}
@@ -260,7 +262,7 @@ export default function VoiceInputSettingsScreen() {
               })}
 
               {selectedVoice && (
-                <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-3 text-center">
+                <Text className="text-xs text-faint-foreground mt-3 text-center">
                   Active: {selectedVoice.friendlyName}
                 </Text>
               )}

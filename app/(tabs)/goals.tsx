@@ -1,6 +1,7 @@
-import { Card, ContextualHeader, LoadingState, ScreenContainer } from "@/components/ui";
+import { Card, ContextualHeader, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getBalanceSheetColumn } from "@/services/balance-sheet";
@@ -13,20 +14,22 @@ import { listActiveLoans, getCurrentEMIsByLoanId } from "@/services/loan-account
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { getFYStartMonth } from "@/services/settings";
 import { getBucketsByFY, InvestmentBucket } from "@/services/yearly-plan";
-import { ac } from "@/utils/accent";
+
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 // Consume preload once at module level (single-use, clears the cache slot)
 const preloaded = consumeGoalsPreload();
 
 export default function GoalsScreen() {
   const router = useRouter();
-  const { accent, colors, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const startMonth = getFYStartMonth();
   const currentFY = getCurrentFY(startMonth);
   const fyLabel = getFYLabel(currentFY, startMonth);
@@ -115,27 +118,27 @@ export default function GoalsScreen() {
   const milestoneProgressPct =
     milestoneTotalTarget > 0 ? Math.min(100, (milestoneTotalSaved / milestoneTotalTarget) * 100) : 0;
 
-  const accentColor = ac(accent, colorScheme, 500, 400);
-  const accentBg = ac(accent, colorScheme, 500, 700) + "14";
+  const accentColor = theme.primary;
+  const accentBg = theme.primary + "14";
 
   // Grade pill colours (computed only when cockpit data is available)
   const gradeColorVal = hasCockpit && cockpitData
     ? (cockpitData.healthGrade === "A+" || cockpitData.healthGrade === "A"
-        ? StatusColors[colorScheme].success
+        ? theme.success
         : cockpitData.healthGrade === "B"
           ? accentColor
           : cockpitData.healthGrade === "C"
-            ? StatusColors[colorScheme].warning
-            : StatusColors[colorScheme].danger)
+            ? theme.warning
+            : theme.danger)
     : colors.textSecondary;
   const gradeBgVal = hasCockpit && cockpitData
     ? (cockpitData.healthGrade === "A+" || cockpitData.healthGrade === "A"
-        ? StatusColors[colorScheme].successBg
+        ? theme.alpha("success", 0.08)
         : cockpitData.healthGrade === "B"
           ? accentColor + "14"
           : cockpitData.healthGrade === "C"
-            ? StatusColors[colorScheme].warningBg
-            : StatusColors[colorScheme].dangerBg)
+            ? theme.alpha("warning", 0.08)
+            : theme.alpha("danger", 0.08))
     : colors.border;
 
   // FY end label for on-track signal (e.g. "Mar 2026")
@@ -190,7 +193,7 @@ export default function GoalsScreen() {
           {/* ── FY Header strip ── */}
           <View className="mb-4">
             <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 {fyLabel} · Month {cockpitData?.fiscalMonth ?? "—"} of 12
               </Text>
               {!setupComplete && (
@@ -199,7 +202,7 @@ export default function GoalsScreen() {
                     <View
                       key={i}
                       className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: s.done ? StatusColors[colorScheme].success : colors.border }}
+                      style={{ backgroundColor: s.done ? theme.success : colors.border }}
                     />
                   ))}
                 </View>
@@ -221,23 +224,23 @@ export default function GoalsScreen() {
           {/* ── Setup strip (new users) ── */}
           {!setupComplete && (
             <Card className="mb-4">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+              <Text className="text-xs text-muted-foreground mb-3">
                 Complete these steps to unlock your {fyLabel} plan.
               </Text>
               {setupSteps.map((step, idx) => (
                 <Pressable
                   key={idx}
                   onPress={() => router.push({ pathname: step.route, params: { fy: String(currentFY) } })}
-                  className={`flex-row items-center py-2.5${idx < setupSteps.length - 1 ? " border-b border-border-light dark:border-border-dark" : ""}`}
+                  className={`flex-row items-center py-2.5${idx < setupSteps.length - 1 ? " border-b border-border" : ""}`}
                 >
                   <Ionicons
                     name={step.done ? "checkmark-circle" : "ellipse-outline"}
                     size={18}
-                    color={step.done ? StatusColors[colorScheme].success : colors.textSecondary}
+                    color={step.done ? theme.success : colors.textSecondary}
                     style={{ marginRight: 10 }}
                   />
                   <Text
-                    className={`flex-1 text-sm ${step.done ? "line-through text-text-secondary dark:text-text-dark-secondary" : "text-text-primary dark:text-text-dark-primary font-medium"}`}
+                    className={`flex-1 text-sm ${step.done ? "line-through text-muted-foreground" : "text-foreground font-medium"}`}
                   >
                     {step.label}
                   </Text>
@@ -257,7 +260,7 @@ export default function GoalsScreen() {
                 {/* Header: label + tappable grade pill + chevron */}
                 <View className="flex-row items-center justify-between mb-3">
                   <View className="flex-row items-center gap-2">
-                    <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
                       Financial Health
                     </Text>
                     <Pressable
@@ -278,7 +281,7 @@ export default function GoalsScreen() {
                         className="flex-row items-center gap-1 px-2 py-0.5 rounded-full"
                         style={{ backgroundColor: gradeBgVal }}
                       >
-                        <Text className="text-[10px] font-bold" style={{ color: gradeColorVal }}>
+                        <Text className="text-label font-bold" style={{ color: gradeColorVal }}>
                           Grade {cockpitData.healthGrade}
                         </Text>
                         <Ionicons name="information-circle-outline" size={10} color={gradeColorVal} />
@@ -291,12 +294,12 @@ export default function GoalsScreen() {
                 {/* Metrics: Savings Rate | Monthly Headroom */}
                 <View className="flex-row gap-4 mb-3">
                   <View className="flex-1">
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Savings Rate</Text>
-                    <Text className="text-xl font-bold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-xs text-muted-foreground mb-0.5">Savings Rate</Text>
+                    <Text className="text-xl font-bold text-foreground">
                       {cockpitData.savings.actualRatePct.toFixed(1)}%
                     </Text>
                     {cockpitData.savings.targetRatePct > 0 && (
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         of {cockpitData.savings.targetRatePct.toFixed(0)}% target
                       </Text>
                     )}
@@ -306,23 +309,23 @@ export default function GoalsScreen() {
                     const hNeg  = hRoom < 0;
                     const hZero = hRoom === 0;
                     const hColor = hNeg
-                      ? StatusColors[colorScheme].danger
+                      ? theme.danger
                       : hZero
-                        ? StatusColors[colorScheme].warning
+                        ? theme.warning
                         : undefined;
                     return (
                       <View className="flex-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">
+                        <Text className="text-xs text-muted-foreground mb-0.5">
                           Monthly Headroom
                         </Text>
                         <Text
-                          className="text-xl font-bold text-text-primary dark:text-text-dark-primary"
+                          className="text-xl font-bold text-foreground"
                           style={hColor ? { color: hColor } : undefined}
                         >
                           {hNeg ? `−${formatAmount(Math.abs(hRoom))}` : formatAmount(hRoom)}
                         </Text>
                         <Text
-                          className="text-xs text-text-secondary dark:text-text-dark-secondary"
+                          className="text-xs text-muted-foreground"
                           style={hColor ? { color: hColor } : undefined}
                         >
                           {hNeg ? "commitments exceed income" : hZero ? "all income committed" : "after commitments"}
@@ -346,8 +349,8 @@ export default function GoalsScreen() {
                       style={{
                         width: `${Math.min(100, (cockpitData.savings.totalSaved / cockpitData.savings.targetSavings) * 100)}%`,
                         backgroundColor: cockpitData.savings.isOnTrack
-                          ? StatusColors[colorScheme].success
-                          : StatusColors[colorScheme].warning,
+                          ? theme.success
+                          : theme.warning,
                       }}
                     />
                   </View>
@@ -361,16 +364,16 @@ export default function GoalsScreen() {
                       size={11}
                       color={
                         cockpitData.savings.isOnTrack
-                          ? StatusColors[colorScheme].success
-                          : StatusColors[colorScheme].warning
+                          ? theme.success
+                          : theme.warning
                       }
                     />
                     <Text
-                      className="text-[11px] font-medium"
+                      className="text-label font-medium"
                       style={{
                         color: cockpitData.savings.isOnTrack
-                          ? StatusColors[colorScheme].success
-                          : StatusColors[colorScheme].warning,
+                          ? theme.success
+                          : theme.warning,
                       }}
                     >
                       {cockpitData.savings.isOnTrack
@@ -400,26 +403,26 @@ export default function GoalsScreen() {
             >
               <View
                 className="flex-row items-center p-3 rounded-xl"
-                style={{ backgroundColor: StatusColors[colorScheme].warningBg }}
+                style={{ backgroundColor: theme.alpha("warning", 0.08) }}
               >
-                <Ionicons name="alert-circle-outline" size={18} color={StatusColors[colorScheme].warning} />
+                <Ionicons name="alert-circle-outline" size={18} color={theme.warning} />
                 <View className="flex-1 ml-2.5">
                   <Text
                     className="text-sm font-medium"
-                    style={{ color: StatusColors[colorScheme].warning }}
+                    style={{ color: theme.warning }}
                     numberOfLines={1}
                   >
                     {cockpitData.advisories[0].title}
                   </Text>
                   <Text
                     className="text-xs"
-                    style={{ color: StatusColors[colorScheme].warning, opacity: 0.8 }}
+                    style={{ color: theme.warning, opacity: 0.8 }}
                     numberOfLines={2}
                   >
                     {cockpitData.advisories[0].message}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={14} color={StatusColors[colorScheme].warning} />
+                <Ionicons name="chevron-forward" size={14} color={theme.warning} />
               </View>
             </Pressable>
           )}
@@ -428,23 +431,23 @@ export default function GoalsScreen() {
           {!hasCockpit && setupComplete && (
             <Card className="mb-4">
               <View className="items-center py-6">
-                <Ionicons name="analytics-outline" size={48} color={colorScheme === "dark" ? "#A0A0A0" : "#6B7280"} />
-                <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary mt-3">
+                <Ionicons name="analytics-outline" size={48} color={colorScheme === "dark" ? theme.faintForeground : theme.mutedForeground} />
+                <Text className="text-base font-medium text-foreground mt-3">
                   Building your cockpit...
                 </Text>
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center mt-1">
+                <Text className="text-sm text-muted-foreground text-center mt-1">
                   Add expenses and contributions to see your financial story.
                 </Text>
               </View>
             </Card>
           )}
 
-          {/* ── PLAN section: Investment Buckets + Life Milestones ── */}
-          <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-2">
+          {/* ── PLAN section: Investment + Life Milestones ── */}
+          <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
             Plan
           </Text>
           <View className="flex-row gap-3 mb-4">
-            {/* Investment Buckets */}
+            {/* Investment */}
             <Pressable
               className="flex-1"
               onPress={() => router.push({ pathname: "/goals/investment-buckets", params: { fy: String(currentFY) } })}
@@ -457,16 +460,16 @@ export default function GoalsScreen() {
                   >
                     <Ionicons name="pie-chart-outline" size={16} color={accentColor} />
                   </View>
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1" numberOfLines={1}>
-                    Investment Buckets
+                  <Text className="text-xs font-semibold text-muted-foreground flex-1" numberOfLines={1}>
+                    Investment
                   </Text>
                 </View>
                 {fyBuckets.length > 0 ? (
                   <>
-                    <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-base font-bold text-foreground">
                       {formatAmount(bucketContributed)}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2" numberOfLines={1}>
+                    <Text className="text-xs text-muted-foreground mb-2" numberOfLines={1}>
                       of {formatAmount(bucketTotalTarget)} · {fyBuckets.length} buckets
                     </Text>
                     <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
@@ -477,7 +480,7 @@ export default function GoalsScreen() {
                     </View>
                   </>
                 ) : (
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-sm text-muted-foreground">
                     None added
                   </Text>
                 )}
@@ -497,16 +500,16 @@ export default function GoalsScreen() {
                   >
                     <Ionicons name="flag-outline" size={16} color="#14B8A6" />
                   </View>
-                  <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary flex-1" numberOfLines={1}>
+                  <Text className="text-xs font-semibold text-muted-foreground flex-1" numberOfLines={1}>
                     Life Milestones
                   </Text>
                 </View>
                 {fyMilestones.length > 0 ? (
                   <>
-                    <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-base font-bold text-foreground">
                       {formatAmount(milestoneTotalSaved)}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-2" numberOfLines={1}>
+                    <Text className="text-xs text-muted-foreground mb-2" numberOfLines={1}>
                       of {formatAmount(milestoneTotalTarget)} · {fyMilestones.length} goals
                     </Text>
                     <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
@@ -517,7 +520,7 @@ export default function GoalsScreen() {
                     </View>
                   </>
                 ) : (
-                  <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-sm text-muted-foreground">
                     None added
                   </Text>
                 )}
@@ -526,13 +529,13 @@ export default function GoalsScreen() {
           </View>
 
           {/* ── TRACK section: Loans + Balance Sheet ── */}
-          <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-2">
+          <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
             Track
           </Text>
           <Card className="mb-4">
             <Pressable
               onPress={() => router.push("/goals/loans" as never)}
-              className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+              className="flex-row items-center py-3 border-b border-border"
             >
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -541,10 +544,10 @@ export default function GoalsScreen() {
                 <Ionicons name="cash-outline" size={18} color="#F5945C" />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-medium text-foreground">
                   Loans & Debt
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {activeLoansCount > 0
                     ? `${activeLoansCount} active · ${formatAmount(totalMonthlyEMI)}/mo EMI`
                     : "No active loans"}
@@ -555,19 +558,19 @@ export default function GoalsScreen() {
 
             <Pressable
               onPress={() => router.push("/goals/risk-coverage" as never)}
-              className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+              className="flex-row items-center py-3 border-b border-border"
             >
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
                 style={{ backgroundColor: "#8B5CF614" }}
               >
-                <Ionicons name="shield-checkmark-outline" size={18} color="#8B5CF6" />
+                <Ionicons name="shield-checkmark-outline" size={18} color={TRANSFER_COLOR} />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-medium text-foreground">
                   Risk Coverage
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {insuranceCount > 0
                     ? `${insuranceCount} active ${insuranceCount === 1 ? "policy" : "policies"}${insuranceAdequacy ? ` · ${insuranceAdequacy.gaps.length > 0 ? `${insuranceAdequacy.gaps.length} gap${insuranceAdequacy.gaps.length > 1 ? "s" : ""}` : "All covered"}` : ""}`
                     : "Track your insurance policies"}
@@ -587,10 +590,10 @@ export default function GoalsScreen() {
                 <Ionicons name="scale-outline" size={18} color="#14B8A6" />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-medium text-foreground">
                   Balance Sheet
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {netWorth != null
                     ? `Net worth: ${formatAmount(netWorth)}`
                     : "Assets, liabilities & net worth"}
@@ -601,25 +604,25 @@ export default function GoalsScreen() {
           </Card>
 
           {/* ── ANALYSE section ── */}
-          <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-2">
+          <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
             Analyse
           </Text>
           <Card className="mb-4">
             <Pressable
               onPress={() => router.push("/goals/yoy-comparison")}
-              className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+              className="flex-row items-center py-3 border-b border-border"
             >
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
                 style={{ backgroundColor: "#F59E0B14" }}
               >
-                <Ionicons name="git-compare-outline" size={18} color="#F59E0B" />
+                <Ionicons name="git-compare-outline" size={18} color={theme.warning} />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-medium text-foreground">
                   Year-over-Year
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Compare FY performance
                 </Text>
               </View>
@@ -632,15 +635,15 @@ export default function GoalsScreen() {
             >
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: StatusColors[colorScheme].successBg }}
+                style={{ backgroundColor: theme.alpha("success", 0.08) }}
               >
-                <Ionicons name="calculator-outline" size={18} color={StatusColors[colorScheme].success} />
+                <Ionicons name="calculator-outline" size={18} color={theme.success} />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-medium text-foreground">
                   Income Calculator
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   CTC, tax & capital gains
                 </Text>
               </View>

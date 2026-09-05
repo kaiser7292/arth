@@ -1,14 +1,14 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, KeyboardAvoidingView, Platform, RefreshControl } from "react-native";
+import { View, ScrollView, Pressable, KeyboardAvoidingView, Platform, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, DateInput, PeriodNavigator, FAB } from "@/components/ui";
+import { Card, DateInput, FAB, Input, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
-import { ac } from "@/utils/accent";
+
 import {
   getAccountById,
   getLatestSnapshot,
@@ -22,6 +22,7 @@ import {
   getDematTransferTotals,
 } from "@/services/financial-account";
 import type { FinancialAccount, PortfolioSnapshot, FundSnapshot } from "@/services/financial-account";
+import { useTheme } from "@/hooks/use-theme";
 
 function getCurrentMonth(): string {
   const now = new Date();
@@ -50,9 +51,9 @@ function getDefaultDate(selectedMonth: string): string {
 export default function DematSnapshotsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const alert = useAlert();
-  const sc = StatusColors[colorScheme];
 
   const [account, setAccount] = useState<FinancialAccount | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonth());
@@ -221,39 +222,39 @@ export default function DematSnapshotsScreen() {
         >
           {/* Account name */}
           <View className="px-4 pt-3 pb-1 flex-row items-center">
-            <Ionicons name="trending-up-outline" size={18} color={ac(accent, colorScheme, 500, 300)} style={{ marginRight: 8 }} />
-            <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+            <Ionicons name="trending-up-outline" size={18} color={theme.primary} style={{ marginRight: 8 }} />
+            <Text className="text-base font-semibold text-foreground">
               {accountLabel}
             </Text>
           </View>
 
           {/* Summary card */}
           <Card className="mx-4 mb-3">
-            <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
+            <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
               Current Value
             </Text>
             <View className="flex-row justify-between mb-2">
               <View className="flex-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Portfolio</Text>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-xs text-muted-foreground mb-0.5">Portfolio</Text>
+                <Text className="text-base font-bold text-foreground">
                   {latestPortfolio != null ? formatAmount(latestPortfolio) : "—"}
                 </Text>
               </View>
               <View className="flex-1 items-center">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Idle Cash</Text>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-xs text-muted-foreground mb-0.5">Idle Cash</Text>
+                <Text className="text-base font-bold text-foreground">
                   {latestFund != null ? formatAmount(latestFund) : "—"}
                 </Text>
               </View>
               <View className="flex-1 items-end">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Total</Text>
-                <Text className="text-base font-bold" style={{ color: ac(accent, colorScheme, 500, 300) }}>
+                <Text className="text-xs text-muted-foreground mb-0.5">Total</Text>
+                <Text className="text-base font-bold" style={{ color: theme.primary }}>
                   {latestPortfolio != null ? formatAmount(totalLatest) : "—"}
                 </Text>
               </View>
             </View>
             {latestDate && (
-              <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary mt-1 mb-3">
+              <Text className="text-label text-faint-foreground mt-1 mb-3">
                 As of {formatSnapshotDate(latestDate)}
               </Text>
             )}
@@ -261,23 +262,23 @@ export default function DematSnapshotsScreen() {
             {/* Transfer totals row */}
             {(totalDeposited > 0 || totalWithdrawn > 0) && (
               <>
-                <View className="border-t border-border-light dark:border-border-dark pt-3">
+                <View className="border-t border-border pt-3">
                   <View className="flex-row justify-between">
                     <View className="flex-1">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Deposited</Text>
-                      <Text className="text-sm font-semibold" style={{ color: sc.success }}>
+                      <Text className="text-xs text-muted-foreground mb-0.5">Deposited</Text>
+                      <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                         {formatAmount(totalDeposited)}
                       </Text>
                     </View>
                     <View className="flex-1 items-center">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Withdrawn</Text>
-                      <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
+                      <Text className="text-xs text-muted-foreground mb-0.5">Withdrawn</Text>
+                      <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
                         {totalWithdrawn > 0 ? formatAmount(totalWithdrawn) : "—"}
                       </Text>
                     </View>
                     <View className="flex-1 items-end">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-0.5">Net Invested</Text>
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-xs text-muted-foreground mb-0.5">Net Invested</Text>
+                      <Text className="text-sm font-semibold text-foreground">
                         {formatAmount(netInvested)}
                       </Text>
                     </View>
@@ -290,7 +291,7 @@ export default function DematSnapshotsScreen() {
           {/* Inline add form — appears above the table when FAB is tapped */}
           {showAddForm && (
             <Card className="mx-4 mb-3">
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 Add Snapshot
               </Text>
               <DateInput
@@ -321,17 +322,17 @@ export default function DematSnapshotsScreen() {
               <View className="flex-row">
                 <Pressable
                   onPress={handleCancelAdd}
-                  className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border-light dark:border-border-dark"
+                  className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border"
                 >
-                  <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+                  <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleSaveAdd}
                   disabled={saving}
                   className="flex-1 py-2.5 rounded-lg items-center"
-                  style={{ backgroundColor: ac(accent, colorScheme, 500, 400), opacity: saving ? 0.6 : 1 }}
+                  style={{ backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }}
                 >
-                  <Text className="text-sm font-semibold text-white">
+                  <Text className="text-sm font-semibold text-primary-foreground">
                     {saving ? "Saving…" : "Save Snapshot"}
                   </Text>
                 </Pressable>
@@ -353,14 +354,14 @@ export default function DematSnapshotsScreen() {
             />
 
             {/* Table header */}
-            <View className="flex-row items-center pt-3 pb-1.5 border-b border-border-light dark:border-border-dark">
-              <Text className="flex-1 text-[10px] font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider">
+            <View className="flex-row items-center pt-3 pb-1.5 border-b border-border">
+              <Text className="flex-1 text-label font-semibold text-faint-foreground uppercase tracking-wider">
                 Date
               </Text>
-              <Text className="w-28 text-right text-[10px] font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider">
+              <Text className="w-28 text-right text-label font-semibold text-faint-foreground uppercase tracking-wider">
                 Portfolio
               </Text>
-              <Text className="w-24 text-right text-[10px] font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider">
+              <Text className="w-24 text-right text-label font-semibold text-faint-foreground uppercase tracking-wider">
                 Fund
               </Text>
               <View className="w-16" />
@@ -370,10 +371,10 @@ export default function DematSnapshotsScreen() {
             {allDates.length === 0 ? (
               <View className="items-center py-8">
                 <Ionicons name="calendar-outline" size={28} color={colors.textSecondary} />
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-2">
+                <Text className="text-sm text-muted-foreground mt-2">
                   No snapshots for this month
                 </Text>
-                <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary mt-1">
+                <Text className="text-xs text-faint-foreground mt-1">
                   Tap + to add one
                 </Text>
               </View>
@@ -388,10 +389,10 @@ export default function DematSnapshotsScreen() {
                 return (
                   <View
                     key={date}
-                    className={`flex-row items-center py-2.5 ${!isLast ? "border-b border-border-light dark:border-border-dark" : ""}`}
+                    className={`flex-row items-center py-2.5 ${!isLast ? "border-b border-border" : ""}`}
                   >
                     {/* Date */}
-                    <Text className="flex-1 text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="flex-1 text-xs text-muted-foreground">
                       {formatDay(date)}
                     </Text>
 
@@ -407,7 +408,7 @@ export default function DematSnapshotsScreen() {
                           className="text-xs py-0.5 text-right"
                         />
                       ) : (
-                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs font-semibold text-foreground">
                           {portSnap ? formatAmount(portSnap.portfolio_value) : "—"}
                         </Text>
                       )}
@@ -425,7 +426,7 @@ export default function DematSnapshotsScreen() {
                           className="text-xs py-0.5 text-right"
                         />
                       ) : (
-                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs font-semibold text-foreground">
                           {fundSnap ? formatAmount(fundSnap.fund_value) : "—"}
                         </Text>
                       )}
@@ -442,7 +443,7 @@ export default function DematSnapshotsScreen() {
                             }}
                             hitSlop={6}
                           >
-                            <Ionicons name="checkmark-circle" size={20} color={sc.success} />
+                            <Ionicons name="checkmark-circle" size={20} color={theme.success} />
                           </Pressable>
                           <Pressable
                             onPress={() => {
@@ -479,7 +480,7 @@ export default function DematSnapshotsScreen() {
                             }}
                             hitSlop={6}
                           >
-                            <Ionicons name="trash-outline" size={16} color={sc.danger} />
+                            <Ionicons name="trash-outline" size={16} color={theme.danger} />
                           </Pressable>
                         </>
                       )}

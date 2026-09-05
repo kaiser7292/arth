@@ -1,9 +1,11 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
+import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors, Shadows } from "@/constants/theme";
+import { Shadows } from "@/constants/theme";
 import { MiniTrendSpark } from "./MiniTrendSpark";
 import type { InsightSeverity } from "@/services/insight-engine";
+import { useTheme } from "@/hooks/use-theme";
 
 const SEVERITY_ICONS: Record<InsightSeverity, keyof typeof Ionicons.glyphMap> = {
   celebrate: "sparkles",
@@ -27,20 +29,20 @@ export function InsightCard({
   trendData,
   onPress,
 }: InsightCardProps) {
-  const { colorScheme } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   const severityColor = {
-    celebrate: statusColors.success,
-    info: statusColors.muted,
-    warning: statusColors.warning,
-    critical: statusColors.danger,
+    celebrate: theme.success,
+    info: theme.faintForeground,
+    warning: theme.warning,
+    critical: theme.danger,
   }[severity];
 
   return (
     <Pressable
       onPress={onPress}
-      className="rounded-2xl bg-surface-light-alt dark:bg-surface-dark-alt p-4 mb-3"
+      className="rounded-2xl bg-card p-4 mb-3"
       style={Shadows.card}
       accessibilityLabel={`${severity}: ${title}. ${detail}. Tap for details`}
       accessibilityRole="button"
@@ -54,10 +56,10 @@ export function InsightCard({
             <Ionicons name={SEVERITY_ICONS[severity]} size={16} color={severityColor} />
           </View>
           <View className="flex-1">
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+            <Text className="text-sm font-semibold text-foreground mb-1">
               {title}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary" numberOfLines={2}>
+            <Text className="text-xs text-muted-foreground" numberOfLines={2}>
               {detail}
             </Text>
           </View>
@@ -70,7 +72,7 @@ export function InsightCard({
           <Ionicons
             name="chevron-forward"
             size={16}
-            color={statusColors.muted}
+            color={theme.faintForeground}
           />
         </View>
       </View>

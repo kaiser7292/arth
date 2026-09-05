@@ -1,4 +1,5 @@
-import { ScreenContainer } from "@/components/ui";
+import { Money, ScreenContainer, Text } from "@/components/ui";
+
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
@@ -11,18 +12,20 @@ import type {
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import { ScrollView, Text, View, Pressable } from "react-native";
+import { ScrollView, View, Pressable } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
+import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 
 const SEVERITY_COLORS = {
-  critical: { border: "#EF4444", bg: "#FEF2F2", bgDark: "#3B0000", text: "#991B1B", textDark: "#FCA5A5", icon: "warning-outline" as const },
-  warning:  { border: "#F59E0B", bg: "#FEF9E7", bgDark: "#332B00", text: "#92400E", textDark: "#FBBF24", icon: "alert-circle-outline" as const },
-  info:     { border: "#3B82F6", bg: "#EFF6FF", bgDark: "#1E293B", text: "#1E40AF", textDark: "#93C5FD", icon: "information-circle-outline" as const },
-  celebrate:{ border: "#22C55E", bg: "#F0FDF4", bgDark: "#052E16", text: "#166534", textDark: "#86EFAC", icon: "sparkles-outline" as const },
+  critical: { border: STATUS_COLORS.error, bg: "#FEF2F2", bgDark: "#3B0000", text: "#991B1B", textDark: "#FCA5A5", icon: "warning-outline" as const },
+  warning:  { border: STATUS_COLORS.warning, bg: "#FEF9E7", bgDark: "#332B00", text: "#92400E", textDark: "#FBBF24", icon: "alert-circle-outline" as const },
+  info:     { border: BRAND_COLOR, bg: "#EFF6FF", bgDark: "#1E293B", text: BRAND_COLOR, textDark: "#93C5FD", icon: "information-circle-outline" as const },
+  celebrate:{ border: STATUS_COLORS.success, bg: "#F0FDF4", bgDark: "#052E16", text: "#166534", textDark: "#86EFAC", icon: "sparkles-outline" as const },
 };
 
 function ProgressBar({ pct, color }: { pct: number; color: string }) {
   return (
-    <View className="h-1.5 rounded-full bg-border-light dark:bg-border-dark overflow-hidden mt-1.5">
+    <View className="h-1.5 rounded-full bg-border overflow-hidden mt-1.5">
       <View
         className="h-full rounded-full"
         style={{ width: `${Math.min(100, Math.max(0, pct))}%`, backgroundColor: color }}
@@ -32,12 +35,13 @@ function ProgressBar({ pct, color }: { pct: number; color: string }) {
 }
 
 function StatRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  const theme = useTheme();
   return (
-    <View className="flex-row items-center justify-between py-2 border-b border-border-light dark:border-border-dark">
-      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary flex-1">{label}</Text>
+    <View className="flex-row items-center justify-between py-2 border-b border-border">
+      <Text className="text-sm text-muted-foreground flex-1">{label}</Text>
       <Text
-        className="text-sm font-semibold ml-4 text-text-primary dark:text-text-dark-primary"
-        style={highlight ? { color: "#EF4444" } : undefined}
+        className="text-sm font-semibold ml-4 text-foreground"
+        style={highlight ? { color: theme.danger } : undefined}
       >
         {value}
       </Text>
@@ -47,7 +51,7 @@ function StatRow({ label, value, highlight }: { label: string; value: string; hi
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-2 mt-4">
+    <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2 mt-4">
       {title}
     </Text>
   );
@@ -78,6 +82,7 @@ function SpendingDetail({
   cockpit: FinancialCockpitData;
   isDark: boolean;
 }) {
+  const theme = useTheme();
   const { tension, buckets } = cockpit;
   const behindBuckets = buckets.filter((b) => b.paceStatus === "behind");
   const router = useRouter();
@@ -114,13 +119,13 @@ function SpendingDetail({
         <>
           <SectionHeader title="Course Correction" />
           <Card className="mb-4">
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-2">
+            <Text className="text-sm text-muted-foreground mb-2">
               To protect your investment goals for the rest of this FY, reduce monthly discretionary spending by:
             </Text>
             <Text className="text-2xl font-bold text-danger">
-              -{formatAmount(tension.discretionaryCutNeeded)}/mo
+              <Money value={-tension.discretionaryCutNeeded} />/mo
             </Text>
-            <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary mt-1">
+            <Text className="text-xs text-faint-foreground mt-1">
               Discretionary spend YTD: {formatAmount(tension.discretionarySpendYTD)}
             </Text>
           </Card>
@@ -131,7 +136,7 @@ function SpendingDetail({
         label="View Yearly Plan"
         icon="document-text-outline"
         onPress={() => router.push("/goals/yearly-plan")}
-        color="#EF4444"
+        color={theme.danger}
       />
     </>
   );
@@ -140,11 +145,12 @@ function SpendingDetail({
 // ── Investment detail ────────────────────────────────────────────────────────
 
 function BucketRow({ bucket, isDark }: { bucket: BucketStatus; isDark: boolean }) {
-  const accentColor = bucket.paceStatus === "behind" ? "#F59E0B" : "#22C55E";
+  const theme = useTheme();
+  const accentColor = bucket.paceStatus === "behind" ? theme.warning : theme.success;
   return (
     <Card className="mb-3">
       <View className="flex-row items-center justify-between mb-1.5">
-        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1 mr-2" numberOfLines={1}>
+        <Text className="text-sm font-semibold text-foreground flex-1 mr-2" numberOfLines={1}>
           {bucket.name}
         </Text>
         <Text className="text-xs font-medium" style={{ color: accentColor }}>
@@ -153,18 +159,18 @@ function BucketRow({ bucket, isDark }: { bucket: BucketStatus; isDark: boolean }
       </View>
       <ProgressBar pct={bucket.progressPct} color={accentColor} />
       <View className="flex-row justify-between mt-2">
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-xs text-muted-foreground">
           {formatCompact(bucket.contributed)} saved
         </Text>
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-xs text-muted-foreground">
           {formatCompact(bucket.annualTarget)} target
         </Text>
       </View>
       {bucket.paceStatus === "behind" && bucket.monthlyRequired > 0 && (
-        <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <View className="mt-2 pt-2 border-t border-border">
+          <Text className="text-xs text-muted-foreground">
             Top-up needed:{" "}
-            <Text className="font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="font-semibold text-foreground">
               {formatAmount(bucket.monthlyRequired)}/mo
             </Text>
           </Text>
@@ -181,6 +187,7 @@ function InvestmentDetail({
   cockpit: FinancialCockpitData;
   isDark: boolean;
 }) {
+  const theme = useTheme();
   const router = useRouter();
   const behindBuckets = cockpit.buckets.filter((b) => b.paceStatus === "behind");
   const totalShortfall = behindBuckets.reduce((s, b) => s + b.remainingTarget, 0);
@@ -210,7 +217,7 @@ function InvestmentDetail({
         label="View Investment Buckets"
         icon="pie-chart-outline"
         onPress={() => router.push("/goals/investment-buckets")}
-        color="#F59E0B"
+        color={theme.warning}
       />
     </>
   );
@@ -225,6 +232,7 @@ function MilestoneDetail({
   advisory: Advisory;
   cockpit: FinancialCockpitData;
 }) {
+  const theme = useTheme();
   const router = useRouter();
   const { colors } = useColorScheme();
 
@@ -235,14 +243,14 @@ function MilestoneDetail({
   if (!ms) {
     return (
       <Card className="mb-4">
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-sm text-muted-foreground">
           Milestone details not available.
         </Text>
       </Card>
     );
   }
 
-  const accentColor = ms.status === "completed" ? "#22C55E" : ms.slippageMonths > 6 ? "#EF4444" : "#F59E0B";
+  const accentColor = ms.status === "completed" ? theme.success : ms.slippageMonths > 6 ? theme.danger : theme.warning;
   const remaining = Math.max(0, ms.targetAmount - ms.currentSaved);
 
   return (
@@ -250,7 +258,7 @@ function MilestoneDetail({
       <SectionHeader title="Milestone Status" />
       <Card className="mb-4">
         <View className="flex-row items-center justify-between mb-1.5">
-          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1 mr-2">
+          <Text className="text-sm font-semibold text-foreground flex-1 mr-2">
             {ms.name}
           </Text>
           <Text className="text-sm font-bold" style={{ color: accentColor }}>
@@ -259,10 +267,10 @@ function MilestoneDetail({
         </View>
         <ProgressBar pct={ms.progressPct} color={accentColor} />
         <View className="flex-row justify-between mt-2 mb-3">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             {formatCompact(ms.currentSaved)} saved
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             {formatCompact(ms.targetAmount)} goal
           </Text>
         </View>
@@ -295,8 +303,8 @@ function MilestoneDetail({
           highlight={ms.monthlyPlanned > ms.monthlyRealistic}
         />
         {ms.monthlyPlanned > ms.monthlyRealistic && (
-          <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <View className="mt-2 pt-2 border-t border-border">
+            <Text className="text-xs text-muted-foreground">
               Increase by{" "}
               <Text className="font-semibold text-danger">
                 {formatAmount(ms.monthlyPlanned - ms.monthlyRealistic)}/mo
@@ -314,10 +322,10 @@ function MilestoneDetail({
             {ms.linkedBucketNames.map((name, i) => (
               <View
                 key={i}
-                className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark"
+                className="flex-row items-center py-2 border-b border-border"
               >
                 <Ionicons name="link-outline" size={14} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                <Text className="text-sm text-text-primary dark:text-text-dark-primary">{name}</Text>
+                <Text className="text-sm text-foreground">{name}</Text>
               </View>
             ))}
           </Card>
@@ -341,6 +349,7 @@ function SavingsDetail({
 }: {
   cockpit: FinancialCockpitData;
 }) {
+  const theme = useTheme();
   const router = useRouter();
   const { savings } = cockpit;
   const gap = savings.targetRatePct - savings.actualRatePct;
@@ -364,8 +373,8 @@ function SavingsDetail({
         <StatRow label="Total saved YTD" value={formatAmount(savings.totalSaved)} />
         <StatRow label="Target savings for FY" value={formatAmount(savings.targetSavings)} />
         {monthlyGap > 0 && (
-          <View className="mt-3 pt-2 border-t border-border-light dark:border-border-dark">
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <View className="mt-3 pt-2 border-t border-border">
+            <Text className="text-sm text-muted-foreground">
               To close the gap, save an additional{" "}
               <Text className="font-semibold text-danger">
                 {formatAmount(monthlyGap)}/mo
@@ -380,7 +389,7 @@ function SavingsDetail({
         label="View Yearly Plan"
         icon="document-text-outline"
         onPress={() => router.push("/goals/yearly-plan")}
-        color="#3B82F6"
+        color={theme.primary}
       />
     </>
   );
@@ -393,6 +402,7 @@ function GeneralDetail({
 }: {
   cockpit: FinancialCockpitData;
 }) {
+  const theme = useTheme();
   const router = useRouter();
   const { tension, savings, buckets } = cockpit;
 
@@ -434,9 +444,9 @@ function GeneralDetail({
           "Build an emergency fund buffer",
           "Make a loan prepayment to save on interest",
         ].map((idea, i) => (
-          <View key={i} className="flex-row items-start py-2 border-b border-border-light dark:border-border-dark">
+          <View key={i} className="flex-row items-start py-2 border-b border-border">
             <Text className="text-success mr-2 mt-0.5">-</Text>
-            <Text className="text-sm text-text-primary dark:text-text-dark-primary flex-1">{idea}</Text>
+            <Text className="text-sm text-foreground flex-1">{idea}</Text>
           </View>
         ))}
       </Card>
@@ -445,7 +455,7 @@ function GeneralDetail({
         label="View Investment Buckets"
         icon="pie-chart-outline"
         onPress={() => router.push("/goals/investment-buckets")}
-        color="#22C55E"
+        color={theme.success}
       />
     </>
   );
@@ -471,7 +481,7 @@ export default function AdvisoryDetailScreen() {
       <ScreenContainer padTop={false}>
         <Stack.Screen options={{ title: "Advisory" }} />
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-base text-text-secondary dark:text-text-dark-secondary text-center">
+          <Text className="text-base text-muted-foreground text-center">
             Advisory data not available.
           </Text>
         </View>
@@ -528,7 +538,7 @@ export default function AdvisoryDetailScreen() {
         {/* Detail body */}
         {!cockpitData && (
           <View className="items-center py-8">
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-sm text-muted-foreground">
               Details not available.
             </Text>
           </View>

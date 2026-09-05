@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import { View, FlatList, ActivityIndicator } from "react-native";
 import { Stack, useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
-import { ScreenContainer } from "@/components/ui";
+import { LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getRule } from "@/services/smart-rules";
@@ -15,10 +15,12 @@ import type { Category } from "@/services/category";
 import type { PaymentMode } from "@/services/payment-mode";
 import type { FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function RuleApplicationsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const router = useRouter();
 
   const [ruleName, setRuleName] = useState<string | null>(null);
@@ -65,26 +67,27 @@ export default function RuleApplicationsScreen() {
       <Stack.Screen options={{ title, headerShadowVisible: false }} />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={accent[500]} />
-        </View>
+        <LoadingState />
       ) : expenses.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="sparkles-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-medium text-foreground mt-4">
             No applications yet
           </Text>
-          <Text className="text-sm text-text-tertiary text-center mt-2">
+          <Text className="text-sm text-faint-foreground text-center mt-2">
             Transactions matched by this rule will appear here.
           </Text>
         </View>
       ) : (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={expenses}
           keyExtractor={(e) => e.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}
           ListHeaderComponent={
-            <Text className="text-xs text-text-tertiary mb-3">
+            <Text className="text-xs text-faint-foreground mb-3">
               {expenses.length} transaction{expenses.length === 1 ? "" : "s"} matched by this rule
             </Text>
           }

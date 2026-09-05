@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { View, Text, ScrollView, Pressable, Keyboard } from "react-native";
+import { View, ScrollView, Pressable, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
-import { ScreenContainer, Button, Input } from "@/components/ui";
+import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -15,6 +15,7 @@ import {
   PAYMENT_MODE_TYPE_LABELS,
 } from "@/services/payment-mode";
 import type { PaymentModeType } from "@/services/payment-mode";
+import { useTheme } from "@/hooks/use-theme";
 
 const TYPE_OPTIONS: PaymentModeType[] = [
   "credit_card",
@@ -28,7 +29,8 @@ const TYPE_OPTIONS: PaymentModeType[] = [
 export default function PaymentModeEditScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
   const scrollRef = useRef<ScrollView>(null);
@@ -94,7 +96,7 @@ export default function PaymentModeEditScreen() {
             containerClassName="mb-6"
           />
 
-          <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+          <Text className="text-sm font-medium text-muted-foreground mb-2">
             Type
           </Text>
           <View className="flex-row flex-wrap mb-8">
@@ -105,20 +107,20 @@ export default function PaymentModeEditScreen() {
                 className={`px-4 py-3 rounded-lg mr-2 mb-2 border ${
                   type === t
                     ? ""
-                    : "bg-surface-light-alt dark:bg-surface-dark-alt border-transparent"
+                    : "bg-card border-transparent"
                 }`}
                 style={type === t ? {
-                  backgroundColor: ac(accent, colorScheme, 100, 700),
-                  borderColor: ac(accent, colorScheme, 600, 300),
+                  backgroundColor: theme.alpha("primary", 0.1),
+                  borderColor: theme.primary,
                 } : undefined}
               >
                 <Text
                   className={`text-sm ${
                     type === t
                       ? "font-medium"
-                      : "text-text-secondary dark:text-text-dark-secondary"
+                      : "text-muted-foreground"
                   }`}
-                  style={type === t ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
+                  style={type === t ? { color: theme.primary } : undefined}
                 >
                   {PAYMENT_MODE_TYPE_LABELS[t]}
                 </Text>

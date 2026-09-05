@@ -1,13 +1,14 @@
-import { Card } from "@/components/ui";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+import { Card, Text } from "@/components/ui";
+
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { FinancialAccount } from "@/services/financial-account";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { memo } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
 
 interface PensionSummaryCardProps {
   accounts: FinancialAccount[];
@@ -19,7 +20,8 @@ interface PensionSummaryCardProps {
 
 function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, lastContributionDate, ytdContributions }: PensionSummaryCardProps) {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   if (accounts.length === 0) return null;
 
@@ -42,18 +44,18 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
           <View className="flex-row items-center mb-3">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: acAlpha(accent, 600, 0.08) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
               <Ionicons
                 name="briefcase-outline"
                 size={20}
-                color={ac(accent, colorScheme, 700, 300)}
+                color={theme.primary}
               />
             </View>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
               Pension
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+            <Text className="text-xs text-muted-foreground mr-2">
               {accounts.length} account{accounts.length !== 1 ? "s" : ""}
             </Text>
             <Ionicons
@@ -65,27 +67,27 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
 
           {/* Balance + Contributions */}
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Total Balance</Text>
+            <Text className="text-xs text-muted-foreground">Total Balance</Text>
             <Text
               className="text-sm font-bold"
-              style={{ color: totalBalance >= 0 ? STATUS_COLORS.success : STATUS_COLORS.error }}
+              style={{ color: totalBalance >= 0 ? theme.success : theme.danger }}
             >
               {formatAmount(totalBalance)}
             </Text>
           </View>
           {lastContributionDate && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Last contribution</Text>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-xs text-muted-foreground">Last contribution</Text>
+              <Text className="text-sm font-semibold text-foreground">
                 {new Date(lastContributionDate + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
               </Text>
             </View>
           )}
           <View className="flex-row justify-between">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">YTD Contributions</Text>
+            <Text className="text-xs text-muted-foreground">YTD Contributions</Text>
             <Text
               className="text-sm font-semibold"
-              style={{ color: ytdContributions > 0 ? STATUS_COLORS.success : colors.text }}
+              style={{ color: ytdContributions > 0 ? theme.success : colors.text }}
             >
               {formatAmount(ytdContributions)}
             </Text>

@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Platform } from "react-native";
+import { View, ScrollView, Pressable, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button } from "@/components/ui";
+import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { enableSmsDetection } from "@/services/sms/sms-permissions";
 import { setOnboardingCompletedVersion } from "@/services/settings";
 import { getCurrentAppVersion } from "@/services/onboarding";
 import { logger } from "@/utils/logger";
+import { useTheme } from "@/hooks/use-theme";
 
 const POINTS: Array<{ icon: keyof typeof Ionicons.glyphMap; text: string }> = [
   { icon: "eye-off-outline", text: "Only bank/UPI SMS are read. Personal messages are ignored." },
@@ -19,7 +20,8 @@ const POINTS: Array<{ icon: keyof typeof Ionicons.glyphMap; text: string }> = [
 
 export default function OnboardingSmsConsent() {
   const router = useRouter();
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const [requesting, setRequesting] = useState(false);
 
   const advance = () => router.push("/(onboarding)/accounts-preview" as never);
@@ -53,19 +55,19 @@ export default function OnboardingSmsConsent() {
       >
         <View
           className="w-12 h-12 rounded-full items-center justify-center mb-4"
-          style={{ backgroundColor: ac(accent, colorScheme, 500, 200) + "1F" }}
+          style={{ backgroundColor: theme.primary + "1F" }}
         >
           <Ionicons
             name="mail-unread-outline"
             size={24}
-            color={ac(accent, colorScheme, 500, 200)}
+            color={theme.primary}
           />
         </View>
 
-        <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mb-2">
+        <Text className="text-2xl font-bold text-foreground mb-2">
           Read bank SMS?
         </Text>
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-6 leading-5">
+        <Text className="text-sm text-muted-foreground mb-6 leading-5">
           {Platform.OS === "android"
             ? "The fastest way to set up Arth. We read your bank SMS on this device, match them to accounts, and queue expenses for your review."
             : "SMS auto-detect is only available on Android. You can still log expenses manually or import from Excel."}
@@ -76,10 +78,10 @@ export default function OnboardingSmsConsent() {
             <Ionicons
               name={p.icon}
               size={18}
-              color={ac(accent, colorScheme, 500, 200)}
+              color={theme.primary}
               style={{ marginTop: 2, marginRight: 12 }}
             />
-            <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary leading-5">
+            <Text className="flex-1 text-sm text-foreground leading-5">
               {p.text}
             </Text>
           </View>
@@ -96,7 +98,7 @@ export default function OnboardingSmsConsent() {
               className="mb-3"
             />
             <Pressable onPress={handleSkipStep} className="py-2 items-center mb-1">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 Not now
               </Text>
             </Pressable>
@@ -105,7 +107,7 @@ export default function OnboardingSmsConsent() {
           <Button title="Continue" onPress={advance} className="mb-3" />
         )}
         <Pressable onPress={handleSkipAll} className="py-2 items-center">
-          <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary">
+          <Text className="text-xs text-faint-foreground">
             Skip setup entirely
           </Text>
         </Pressable>

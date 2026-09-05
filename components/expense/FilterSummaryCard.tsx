@@ -1,11 +1,13 @@
 import { useState, useMemo } from "react";
-import { View, Text, Pressable } from "react-native";
+
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Card } from "@/components/ui";
+import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/expense-validation";
 import type { FilteredSummary } from "@/services/expense";
+import { useTheme } from "@/hooks/use-theme";
 
 interface FilterSummaryCardProps {
   summary: FilteredSummary;
@@ -33,7 +35,8 @@ export function FilterSummaryCard({
   natureKind = "realized",
   availableGroupBys = ["category", "account", "payment_mode", "merchant"] as const,
 }: FilterSummaryCardProps) {
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
   const [collapsed, setCollapsed] = useState(true);
   const [showAll, setShowAll] = useState(false);
 
@@ -57,16 +60,16 @@ export function FilterSummaryCard({
         >
           <View className="flex-row items-start justify-between">
             <View className="flex-1">
-              <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
                 Filtered Total
               </Text>
               <Text
                 className="text-2xl font-bold mt-1"
-                style={{ color: ac(accent, colorScheme, 600, 300) }}
+                style={{ color: theme.primary }}
               >
                 {formatAmount(summary.total)}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+              <Text className="text-xs text-muted-foreground mt-0.5">
                 {summary.count} {itemLabel}
               </Text>
               {previousTotal != null && previousTotal > 0 && (() => {
@@ -77,7 +80,7 @@ export function FilterSummaryCard({
                 // Expenses: higher = worse (red), lower = better (green).
                 // Credits: higher = better (green), lower = worse (red).
                 const isGood = isCredit ? isUp : !isUp;
-                const color = isGood ? "#10B981" : "#EF4444";
+                const color = isGood ? theme.success : theme.danger;
                 return (
                   <Text className="text-xs font-medium mt-1" style={{ color }}>
                     {isUp ? "↑" : "↓"} {absDelta.toFixed(0)}% vs previous period
@@ -88,13 +91,13 @@ export function FilterSummaryCard({
             <Ionicons
               name={collapsed ? "chevron-down" : "chevron-up"}
               size={18}
-              color={ac(accent, colorScheme, 500, 300)}
+              color={theme.primary}
             />
           </View>
         </Pressable>
 
         {!collapsed && summary.groups.length > 0 && (
-          <View className="mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+          <View className="mt-3 pt-3 border-t border-border">
             {allowGroupByChange && onChangeGroupBy && availableGroupBys.length > 1 && (
               <View className="flex-row mb-3">
                 {availableGroupBys.map((gb) => {
@@ -105,19 +108,19 @@ export function FilterSummaryCard({
                       key={gb}
                       onPress={() => onChangeGroupBy(gb)}
                       className={`px-3 py-1 rounded-full mr-2 ${
-                        isActive ? "border" : "bg-surface-light-alt dark:bg-surface-dark-alt"
+                        isActive ? "border" : "bg-card"
                       }`}
                       style={
                         isActive
-                          ? { backgroundColor: ac(accent, colorScheme, 100, 700), borderColor: accent[500] }
+                          ? { backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.primary }
                           : undefined
                       }
                     >
                       <Text
                         className={`text-xs ${
-                          isActive ? "font-medium" : "text-text-secondary dark:text-text-dark-secondary"
+                          isActive ? "font-medium" : "text-muted-foreground"
                         }`}
-                        style={isActive ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
+                        style={isActive ? { color: theme.primary } : undefined}
                       >
                         {label}
                       </Text>
@@ -127,7 +130,7 @@ export function FilterSummaryCard({
               </View>
             )}
 
-            <Text className="text-[11px] font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-2">
+            <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-2">
               By {groupLabelHeader}
             </Text>
 
@@ -137,26 +140,26 @@ export function FilterSummaryCard({
                 <View key={group.key ?? "__null__"} className="mb-2">
                   <View className="flex-row items-center justify-between mb-1">
                     <Text
-                      className="text-sm text-text-primary dark:text-text-dark-primary flex-1 pr-2"
+                      className="text-sm text-foreground flex-1 pr-2"
                       numberOfLines={1}
                     >
                       {resolveGroupLabel(group.key)}
                     </Text>
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       {formatAmount(group.total)}
                     </Text>
                   </View>
                   <View className="flex-row items-center">
-                    <View className="flex-1 h-1.5 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden">
+                    <View className="flex-1 h-1.5 rounded-full bg-card overflow-hidden">
                       <View
                         className="h-full rounded-full"
                         style={{
                           width: `${pct}%`,
-                          backgroundColor: accent[500],
+                          backgroundColor: theme.primary,
                         }}
                       />
                     </View>
-                    <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary ml-2 w-10 text-right">
+                    <Text className="text-label text-muted-foreground ml-2 w-10 text-right">
                       {pct.toFixed(0)}%
                     </Text>
                   </View>
@@ -166,7 +169,7 @@ export function FilterSummaryCard({
 
             {summary.groups.length > MAX_VISIBLE_GROUPS && (
               <Pressable onPress={() => setShowAll((v) => !v)} className="mt-1">
-                <Text className="text-xs font-medium" style={{ color: accent[500] }}>
+                <Text className="text-xs font-medium" style={{ color: theme.primary }}>
                   {showAll ? "Show less" : `Show all ${summary.groups.length}`}
                 </Text>
               </Pressable>

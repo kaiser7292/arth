@@ -1,4 +1,5 @@
-import { View, Text, Linking } from "react-native";
+import { View, Linking } from "react-native";
+import { Text } from "./Text";
 
 /**
  * Minimal markdown renderer for in-app help articles.
@@ -128,127 +129,127 @@ function renderInline(
     .filter(Boolean);
   return tokens.map((tok, idx) => {
     const key = `${keyPrefix}-${idx}`;
-    if (tok.startsWith("**") && tok.endsWith("**")) {
-      return (
-        <Text key={key} className="font-semibold text-text-primary dark:text-text-dark-primary">
-          {tok.slice(2, -2)}
-        </Text>
-      );
-    }
-    if (tok.startsWith("`") && tok.endsWith("`")) {
-      return (
-        <Text
-          key={key}
-          className="text-text-primary dark:text-text-dark-primary"
-          style={{ fontFamily: "monospace", fontSize: 13 }}
-        >
-          {tok.slice(1, -1)}
-        </Text>
-      );
-    }
-    // Link: [label](target)
-    const linkMatch = tok.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-    if (linkMatch) {
-      const label = linkMatch[1];
-      const target = linkMatch[2];
-      const isExternal = /^https?:\/\//i.test(target);
-      return (
-        <Text
-          key={key}
-          className="text-primary-600 dark:text-primary-400 underline"
-          onPress={() => {
-            if (isExternal) {
-              Linking.openURL(target).catch(() => {
-                // If the OS can't open it, silently swallow — not worth
-                // surfacing an alert for a dead link in a help article.
-              });
-            } else if (onArticlePress) {
-              onArticlePress(target);
-            }
-          }}
-          accessibilityRole="link"
-        >
-          {label}
-        </Text>
-      );
-    }
-    return (
-      <Text key={key} className="text-text-primary dark:text-text-dark-primary">
-        {tok}
-      </Text>
-    );
-  });
+ if (tok.startsWith("**") && tok.endsWith("**")) {
+ return (
+ <Text key={key} className="font-semibold text-foreground">
+ {tok.slice(2, -2)}
+ </Text>
+ );
+ }
+ if (tok.startsWith("`") && tok.endsWith("`")) {
+ return (
+ <Text
+ key={key}
+ className="text-foreground"
+ style={{ fontFamily: "monospace", fontSize: 13 }}
+ >
+ {tok.slice(1, -1)}
+ </Text>
+ );
+ }
+ // Link: [label](target)
+ const linkMatch = tok.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+ if (linkMatch) {
+ const label = linkMatch[1];
+ const target = linkMatch[2];
+ const isExternal = /^https?:\/\//i.test(target);
+ return (
+ <Text
+ key={key}
+ className="text-primary-600 underline"
+ onPress={() => {
+ if (isExternal) {
+ Linking.openURL(target).catch(() => {
+ // If the OS can't open it, silently swallow — not worth
+ // surfacing an alert for a dead link in a help article.
+ });
+ } else if (onArticlePress) {
+ onArticlePress(target);
+ }
+ }}
+ accessibilityRole="link"
+ >
+ {label}
+ </Text>
+ );
+ }
+ return (
+ <Text key={key} className="text-foreground">
+ {tok}
+ </Text>
+ );
+ });
 }
 
 export function SimpleMarkdown({ body, onArticlePress }: SimpleMarkdownProps) {
-  const blocks = parseBlocks(body);
+ const blocks = parseBlocks(body);
 
-  return (
-    <View>
-      {blocks.map((block, idx) => {
-        const key = `block-${idx}`;
-        if (block.type === "h1") {
-          return (
-            <Text
-              key={key}
-              className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mb-3 mt-1"
-            >
-              {block.text}
-            </Text>
-          );
-        }
-        if (block.type === "h2") {
-          return (
-            <Text
-              key={key}
-              className="text-lg font-bold text-text-primary dark:text-text-dark-primary mb-2 mt-5"
-            >
-              {block.text}
-            </Text>
-          );
-        }
-        if (block.type === "h3") {
-          return (
-            <Text
-              key={key}
-              className="text-base font-semibold text-text-primary dark:text-text-dark-primary mb-2 mt-4"
-            >
-              {block.text}
-            </Text>
-          );
-        }
-        if (block.type === "paragraph") {
-          return (
-            <Text
-              key={key}
-              className="text-sm text-text-primary dark:text-text-dark-primary leading-6 mb-3"
-            >
-              {renderInline(block.text, key, onArticlePress)}
-            </Text>
-          );
-        }
-        if (block.type === "bullet-list") {
-          return (
-            <View key={key} className="mb-3">
-              {block.items.map((item, i) => (
-                <View key={`${key}-${i}`} className="mb-1.5">
-                  <View className="flex-row">
-                    <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mr-2">
-                      •
-                    </Text>
-                    <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary leading-6">
-                      {renderInline(item.text, `${key}-${i}`, onArticlePress)}
+ return (
+ <View>
+ {blocks.map((block, idx) => {
+ const key = `block-${idx}`;
+ if (block.type === "h1") {
+ return (
+ <Text
+ key={key}
+ className="text-2xl font-bold text-foreground mb-3 mt-1"
+ >
+ {block.text}
+ </Text>
+ );
+ }
+ if (block.type === "h2") {
+ return (
+ <Text
+ key={key}
+ className="text-lg font-bold text-foreground mb-2 mt-5"
+ >
+ {block.text}
+ </Text>
+ );
+ }
+ if (block.type === "h3") {
+ return (
+ <Text
+ key={key}
+ className="text-base font-semibold text-foreground mb-2 mt-4"
+ >
+ {block.text}
+ </Text>
+ );
+ }
+ if (block.type === "paragraph") {
+ return (
+ <Text
+ key={key}
+ className="text-sm text-foreground leading-6 mb-3"
+ >
+ {renderInline(block.text, key, onArticlePress)}
+ </Text>
+ );
+ }
+ if (block.type === "bullet-list") {
+ return (
+ <View key={key} className="mb-3">
+ {block.items.map((item, i) => (
+ <View key={`${key}-${i}`} className="mb-1.5">
+ <View className="flex-row">
+ <Text className="text-sm text-muted-foreground mr-2">
+ •
+ </Text>
+ <Text className="flex-1 text-sm text-foreground leading-6">
+ {renderInline(item.text, `${key}-${i}`, onArticlePress)}
                     </Text>
                   </View>
                   {item.subBullets.length > 0 && (
                     <View className="ml-5 mt-1">
                       {item.subBullets.map((sub, j) => (
                         <View key={`${key}-${i}-sub-${j}`} className="flex-row mb-1">
-                          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mr-2">
-                            ◦
-                          </Text>
-                          <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary leading-6">
-                            {renderInline(sub, `${key}-${i}-sub-${j}`, onArticlePress)}
+ <Text className="text-sm text-muted-foreground mr-2">
+ ◦
+ </Text>
+ <Text className="flex-1 text-sm text-foreground leading-6">
+ {renderInline(sub, `${key}-${i}-sub-${j}`, onArticlePress)}
                           </Text>
                         </View>
                       ))}
@@ -264,23 +265,23 @@ export function SimpleMarkdown({ body, onArticlePress }: SimpleMarkdownProps) {
             <View key={key} className="mb-3">
               {block.items.map((item, i) => (
                 <View key={`${key}-${i}`} className="mb-1.5">
-                  <View className="flex-row">
-                    <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mr-2 w-5">
-                      {item.num}.
-                    </Text>
-                    <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary leading-6">
-                      {renderInline(item.text, `${key}-${i}`, onArticlePress)}
+ <View className="flex-row">
+ <Text className="text-sm text-muted-foreground mr-2 w-5">
+ {item.num}.
+ </Text>
+ <Text className="flex-1 text-sm text-foreground leading-6">
+ {renderInline(item.text, `${key}-${i}`, onArticlePress)}
                     </Text>
                   </View>
                   {item.subBullets.length > 0 && (
                     <View className="ml-7 mt-1">
                       {item.subBullets.map((sub, j) => (
                         <View key={`${key}-${i}-sub-${j}`} className="flex-row mb-1">
-                          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mr-2">
-                            •
-                          </Text>
-                          <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary leading-6">
-                            {renderInline(sub, `${key}-${i}-sub-${j}`, onArticlePress)}
+ <Text className="text-sm text-muted-foreground mr-2">
+ •
+ </Text>
+ <Text className="flex-1 text-sm text-foreground leading-6">
+ {renderInline(sub, `${key}-${i}-sub-${j}`, onArticlePress)}
                           </Text>
                         </View>
                       ))}

@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
-import { View, Text, Pressable, FlatList, ActivityIndicator } from "react-native";
+import { View, Pressable, FlatList, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, FAB } from "@/components/ui";
+import { EmptyState, FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -15,7 +15,8 @@ import {
   type UserSmsTemplate,
 } from "@/services/sms/user-sms-templates";
 import { clearUnrecognisedSms } from "@/services/sms/sms-parser";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.7.0 — Smart SMS Templates list.
@@ -31,8 +32,9 @@ import { StatusColors } from "@/constants/theme";
 export default function SmartSmsTemplatesListScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme, accent } = useColorScheme();
-  const accentColor = colorScheme === "dark" ? accent[400] : accent[500];
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const accentColor = theme.primary;
 
   const [templates, setTemplates] = useState<UserSmsTemplate[]>([]);
   const [matchCounts, setMatchCounts] = useState<Record<string, number>>({});
@@ -137,17 +139,18 @@ export default function SmartSmsTemplatesListScreen() {
     <ScreenContainer padTop={false}>
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             Teach Arth to read SMS from any bank by pasting a sample and tapping the amount, merchant, and card number. Your templates are device-local.
           </Text>
         </View>
 
         {loading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={accentColor} />
-          </View>
+          <LoadingState />
         ) : (
           <FlatList
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={7}
             data={templates}
             keyExtractor={(t) => t.id}
             ListHeaderComponent={
@@ -167,12 +170,12 @@ export default function SmartSmsTemplatesListScreen() {
                     color={accentColor}
                   />
                   <View className="flex-1 ml-3">
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       {unrecognisedCount > 0
                         ? `Browse unrecognised SMS (${unrecognisedCount})`
                         : "No unrecognised SMS"}
                     </Text>
-                    <Text className="text-xs text-text-tertiary mt-0.5">
+                    <Text className="text-xs text-faint-foreground mt-0.5">
                       {unrecognisedCount > 0
                         ? "Last 30 days of bank SMS that didn't parse. Tap any to teach Arth."
                         : "Arth has read every bank SMS from the last 30 days."}
@@ -200,9 +203,9 @@ export default function SmartSmsTemplatesListScreen() {
                         },
                       ]);
                     }}
-                    className="mt-2 pt-2 border-t border-border-light dark:border-border-dark"
+                    className="mt-2 pt-2 border-t border-border"
                   >
-                    <Text className="text-xs font-medium text-center" style={{ color: StatusColors[colorScheme].danger }}>
+                    <Text className="text-xs font-medium text-center" style={{ color: theme.danger }}>
                       Clear all unrecognised messages
                     </Text>
                   </Pressable>
@@ -220,28 +223,28 @@ export default function SmartSmsTemplatesListScreen() {
                     }
                   >
                     <View className="flex-row items-center mb-1">
-                      <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+                      <Text className="text-base font-semibold text-foreground flex-1">
                         {item.template_id ?? `${item.bank_name} template`}
                       </Text>
-                      <View className="px-2 py-0.5 bg-surface-light-alt dark:bg-surface-dark-alt rounded">
-                        <Text className="text-xs text-text-tertiary capitalize">
+                      <View className="px-2 py-0.5 bg-card rounded">
+                        <Text className="text-xs text-faint-foreground capitalize">
                           {item.tx_type}
                         </Text>
                       </View>
                     </View>
-                    <Text className="text-xs text-text-tertiary mb-2">
+                    <Text className="text-xs text-faint-foreground mb-2">
                       {item.bank_name}
                     </Text>
                     {item.sample_sms && (
                       <Text
-                        className="text-xs text-text-secondary dark:text-text-dark-secondary"
+                        className="text-xs text-muted-foreground"
                         numberOfLines={2}
                       >
                         {item.sample_sms}
                       </Text>
                     )}
                   </Pressable>
-                  <View className="flex-row mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+                  <View className="flex-row mt-3 pt-3 border-t border-border">
                     <Pressable
                       onPress={() => router.push(`/settings/sms-templates/${item.id}` as never)}
                       hitSlop={4}
@@ -279,7 +282,7 @@ export default function SmartSmsTemplatesListScreen() {
                         size={16}
                         color={diagnosingId === item.id ? colors.textSecondary : colors.textSecondary}
                       />
-                      <Text className="text-xs mt-0.5 text-text-tertiary">
+                      <Text className="text-xs mt-0.5 text-faint-foreground">
                         {diagnosingId === item.id ? "Scanning…" : "Diagnose"}
                       </Text>
                     </Pressable>
@@ -288,27 +291,19 @@ export default function SmartSmsTemplatesListScreen() {
                       hitSlop={4}
                       className="flex-1 items-center py-1"
                     >
-                      <Ionicons name="trash-outline" size={16} color={StatusColors[colorScheme].danger} />
-                      <Text className="text-xs mt-0.5" style={{ color: StatusColors[colorScheme].danger }}>Delete</Text>
+                      <Ionicons name="trash-outline" size={16} color={theme.danger} />
+                      <Text className="text-xs mt-0.5" style={{ color: theme.danger }}>Delete</Text>
                     </Pressable>
                   </View>
                 </Card>
               );
             }}
             ListEmptyComponent={
-              <View className="items-center justify-center mt-16 px-8">
-                <Ionicons
-                  name="construct-outline"
-                  size={48}
-                  color={colors.textSecondary}
-                />
-                <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
-                  No templates yet
-                </Text>
-                <Text className="text-sm text-text-tertiary text-center mt-2">
-                  If your bank's SMS isn't being detected, tap the button below to teach Arth how to read it.
-                </Text>
-              </View>
+              <EmptyState
+                icon="construct-outline"
+                title={"No templates yet"}
+                subtitle={"If your bank's SMS isn't being detected, tap the button below to teach Arth how to read it."}
+              />
             }
           />
         )}

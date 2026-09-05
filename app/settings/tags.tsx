@@ -1,11 +1,11 @@
 import { useState, useCallback } from "react";
-import { View, Text, FlatList, Pressable, TextInput } from "react-native";
+import { View, FlatList, Pressable, TextInput } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, FAB, Button } from "@/components/ui";
+import { Button, Card, EmptyState, FAB, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getTags,
@@ -17,10 +17,12 @@ import {
 } from "@/services/tags";
 import type { Tag } from "@/services/tags";
 import { getErrorMessage } from "@/utils/error-message";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function TagsSettingsScreen() {
   const alert = useAlert();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [tags, setTags] = useState<Tag[]>([]);
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
   const [showAdd, setShowAdd] = useState(false);
@@ -121,14 +123,14 @@ export default function TagsSettingsScreen() {
 
     if (isEditing) {
       return (
-        <View className="py-3 border-b border-border-light dark:border-border-dark">
+        <View className="py-3 border-b border-border">
           <TextInput
             value={editName}
             onChangeText={setEditName}
             autoFocus
             maxLength={50}
-            className="text-base text-text-primary dark:text-text-dark-primary border rounded-lg px-3 py-2 mb-2"
-            style={{ borderColor: accent[500] }}
+            className="text-base text-foreground border rounded-lg px-3 py-2 mb-2"
+            style={{ borderColor: theme.primary }}
           />
           {/* Color picker */}
           <View className="flex-row flex-wrap mb-2">
@@ -171,22 +173,22 @@ export default function TagsSettingsScreen() {
       <Pressable
         onPress={() => handleStartEdit(item)}
         onLongPress={() => handleDelete(item)}
-        className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+        className="flex-row items-center py-3 border-b border-border"
       >
         <View
           className="w-4 h-4 rounded-full mr-3"
           style={{ backgroundColor: item.color }}
         />
         <View className="flex-1">
-          <Text className="text-base text-text-primary dark:text-text-dark-primary">
+          <Text className="text-base text-foreground">
             {item.name}
           </Text>
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             {count} {count === 1 ? "expense" : "expenses"}
           </Text>
         </View>
         <Pressable onPress={() => handleDelete(item)} className="p-2">
-          <Ionicons name="trash-outline" size={18} color={StatusColors[colorScheme].danger} />
+          <Ionicons name="trash-outline" size={18} color={theme.danger} />
         </Pressable>
       </Pressable>
     );
@@ -196,7 +198,7 @@ export default function TagsSettingsScreen() {
     <ScreenContainer padTop={false} keyboardAware>
       {/* Count */}
       <View className="px-4 py-3">
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-sm text-muted-foreground">
           {tags.length} {tags.length === 1 ? "tag" : "tags"}
         </Text>
       </View>
@@ -211,7 +213,7 @@ export default function TagsSettingsScreen() {
             placeholderTextColor={colors.tabIconDefault}
             autoFocus
             maxLength={50}
-            className="text-base text-text-primary dark:text-text-dark-primary border border-border-light dark:border-border-dark rounded-lg px-3 py-2 mb-3"
+            className="text-base text-foreground border border-border rounded-lg px-3 py-2 mb-3"
           />
           {/* Color picker */}
           <View className="flex-row flex-wrap mb-3">
@@ -235,16 +237,16 @@ export default function TagsSettingsScreen() {
           <View className="flex-row gap-3">
             <Pressable
               onPress={() => { setShowAdd(false); setNewTagName(""); }}
-              className="flex-1 py-2.5 rounded-xl border border-border-light dark:border-border-dark items-center"
+              className="flex-1 py-2.5 rounded-xl border border-border items-center"
             >
-              <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+              <Text className="text-sm font-medium text-muted-foreground">Cancel</Text>
             </Pressable>
             <Pressable
               onPress={handleAdd}
               className="flex-1 py-2.5 rounded-xl items-center"
-              style={{ backgroundColor: accent[500] }}
+              style={{ backgroundColor: theme.primary }}
             >
-              <Text className="text-sm font-semibold text-white">Create Tag</Text>
+              <Text className="text-sm font-semibold text-primary-foreground">Create Tag</Text>
             </Pressable>
           </View>
         </Card>
@@ -252,20 +254,19 @@ export default function TagsSettingsScreen() {
 
       {/* Tag list */}
       <FlatList
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={7}
         data={tags}
         keyExtractor={(item) => item.id}
         renderItem={renderTag}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
         ListEmptyComponent={
-          <View className="items-center py-16">
-            <Ionicons name="pricetags-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
-              No tags yet
-            </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
-              Tags let you label expenses (e.g. "work trip", "birthday", "tax deductible"). Create one to get started.
-            </Text>
-          </View>
+          <EmptyState
+            icon="pricetags-outline"
+            title={"No tags yet"}
+            subtitle={"Tags let you label expenses (e.g. \"work trip\", \"birthday\", \"tax deductible\"). Create one to get started."}
+          />
         }
       />
 

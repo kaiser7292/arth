@@ -1,13 +1,8 @@
 import { useState, useCallback, useRef } from "react";
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useBackOverride } from "@/hooks/use-back-override";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  KeyboardAvoidingView,
-} from "react-native";
+import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
 import { useAlert } from "@/hooks/use-alert";
 import {
   useLocalSearchParams,
@@ -15,7 +10,7 @@ import {
   useRouter,
 } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, Input, Button, FAB, PeriodNavigator, LoadingState } from "@/components/ui";
+import { Button, Card, FAB, Input, LoadingState, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import {
   getYearlyPlanByFY,
   getInvestmentBuckets,
@@ -32,17 +27,19 @@ import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth, getDataVersion } from "@/services/settings";
 import { formatAmount } from "@/utils/expense-validation";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { acAlpha } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
 import { getFinancialCockpit, type FinancialCockpitData } from "@/services/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
+import { useTheme } from "@/hooks/use-theme";
 
 type ViewMode = "buckets" | "add_bucket";
 
 export default function InvestmentBucketsScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const { fy } = useLocalSearchParams<{ fy?: string }>();
   const startMonth = getFYStartMonth();
   const initialFY = fy ? parseInt(fy, 10) : getCurrentFY(startMonth);
@@ -369,7 +366,7 @@ export default function InvestmentBucketsScreen() {
 
                 {/* Milestone Picker */}
                 <View className="mb-4">
-                  <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1.5">
+                  <Text className="text-xs font-medium text-muted-foreground mb-1.5">
                     Link to Life Milestone (optional)
                   </Text>
                   <ScrollView
@@ -380,14 +377,14 @@ export default function InvestmentBucketsScreen() {
                       onPress={() => setSelectedMilestoneId(null)}
                       className="mr-2 px-3 py-2 rounded-lg border"
                       style={{
-                        borderColor: selectedMilestoneId === null ? colors.blue : "#E5E5E3",
-                        backgroundColor: selectedMilestoneId === null ? acAlpha(accent, 500, 0.08) : "transparent",
+                        borderColor: selectedMilestoneId === null ? colors.blue : theme.border,
+                        backgroundColor: selectedMilestoneId === null ? theme.alpha("primary", 0.08) : "transparent",
                       }}
                     >
                       <Text
                         className="text-xs font-medium"
                         style={{
-                          color: selectedMilestoneId === null ? colors.blue : "#6B7280",
+                          color: selectedMilestoneId === null ? colors.blue : theme.mutedForeground,
                         }}
                       >
                         None
@@ -399,14 +396,14 @@ export default function InvestmentBucketsScreen() {
                         onPress={() => setSelectedMilestoneId(ms.id)}
                         className="mr-2 px-3 py-2 rounded-lg border"
                         style={{
-                          borderColor: selectedMilestoneId === ms.id ? colors.blue : "#E5E5E3",
-                          backgroundColor: selectedMilestoneId === ms.id ? acAlpha(accent, 500, 0.08) : "transparent",
+                          borderColor: selectedMilestoneId === ms.id ? colors.blue : theme.border,
+                          backgroundColor: selectedMilestoneId === ms.id ? theme.alpha("primary", 0.08) : "transparent",
                         }}
                       >
                         <Text
                           className="text-xs font-medium"
                           style={{
-                            color: selectedMilestoneId === ms.id ? colors.blue : "#6B7280",
+                            color: selectedMilestoneId === ms.id ? colors.blue : theme.mutedForeground,
                           }}
                           numberOfLines={1}
                         >
@@ -463,10 +460,10 @@ export default function InvestmentBucketsScreen() {
             <Card className="mb-4">
               <View className="items-center py-2">
                 <Ionicons name="copy-outline" size={28} color={colors.blue} />
-                <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary mt-2">
+                <Text className="text-base font-semibold text-foreground mt-2">
                   No buckets for {fyLabel}
                 </Text>
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center">
+                <Text className="text-sm text-muted-foreground mt-1 text-center">
                   You have {prevYearBuckets.length} bucket{prevYearBuckets.length > 1 ? "s" : ""} from FY {getFYLabel(selectedFY - 1, startMonth)}.
                 </Text>
 
@@ -475,11 +472,11 @@ export default function InvestmentBucketsScreen() {
                     {/* Previous year buckets preview */}
                     <View className="w-full mt-3 mb-3">
                       {prevYearBuckets.map((b) => (
-                        <View key={b.id} className="flex-row items-center justify-between py-1.5 border-b border-border-light dark:border-border-dark">
-                          <Text className="text-sm text-text-primary dark:text-text-dark-primary flex-1 mr-2" numberOfLines={1}>
+                        <View key={b.id} className="flex-row items-center justify-between py-1.5 border-b border-border">
+                          <Text className="text-sm text-foreground flex-1 mr-2" numberOfLines={1}>
                             {b.name}
                           </Text>
-                          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                          <Text className="text-sm font-semibold text-foreground">
                             {formatAmount(b.annual_target)}
                           </Text>
                         </View>
@@ -529,13 +526,13 @@ export default function InvestmentBucketsScreen() {
                       const hike = hikeStr ? parseFloat(hikeStr) : 0;
                       const newTarget = isNaN(hike) ? b.annual_target : Math.round(b.annual_target * (1 + hike / 100));
                       return (
-                        <View key={b.id} className="flex-row items-center py-2 border-b border-border-light dark:border-border-dark">
+                        <View key={b.id} className="flex-row items-center py-2 border-b border-border">
                           <View className="flex-1 mr-2">
-                            <Text className="text-sm text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                            <Text className="text-sm text-foreground" numberOfLines={1}>
                               {b.name}
                             </Text>
-                            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                              {formatAmount(b.annual_target)} → <Text className="font-semibold" style={{ color: accent[500] }}>{formatAmount(newTarget)}</Text>
+                            <Text className="text-xs text-muted-foreground">
+                              {formatAmount(b.annual_target)} → <Text className="font-semibold" style={{ color: theme.primary }}>{formatAmount(newTarget)}</Text>
                             </Text>
                           </View>
                           <View className="w-20">
@@ -552,10 +549,10 @@ export default function InvestmentBucketsScreen() {
 
                     {/* Totals preview */}
                     <View className="mt-2 mb-3">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         Previous total: {formatAmount(prevYearBuckets.reduce((s, b) => s + b.annual_target, 0))}
                       </Text>
-                      <Text className="text-xs font-semibold" style={{ color: accent[500] }}>
+                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
                         New total: {formatAmount(prevYearBuckets.reduce((s, b) => {
                           const h = bucketHikes[b.id] ? parseFloat(bucketHikes[b.id]) : 0;
                           return s + Math.round(b.annual_target * (1 + (isNaN(h) ? 0 : h) / 100));
@@ -581,15 +578,15 @@ export default function InvestmentBucketsScreen() {
           <Card className="mb-4">
             <View className="flex-row mb-3">
               <View className="flex-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Total Goal
                 </Text>
-                <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-base font-bold text-foreground">
                   {formatAmount(totalTarget)}
                 </Text>
               </View>
               <View className="flex-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Invested
                 </Text>
                 <Text className="text-base font-bold text-success">
@@ -597,7 +594,7 @@ export default function InvestmentBucketsScreen() {
                 </Text>
               </View>
               <View className="flex-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Remaining
                 </Text>
                 <Text className="text-base font-bold text-danger">
@@ -607,13 +604,13 @@ export default function InvestmentBucketsScreen() {
             </View>
 
             {/* Overall progress */}
-            <View className="h-3 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+            <View className="h-3 rounded-full bg-border overflow-hidden">
               <View
                 className="h-3 rounded-full"
-                style={{ width: `${overallPct}%`, backgroundColor: accent[500] }}
+                style={{ width: `${overallPct}%`, backgroundColor: theme.primary }}
               />
             </View>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-1 text-right">
+            <Text className="text-xs text-muted-foreground mt-1 text-right">
               {overallPct.toFixed(1)}% of annual investment goal
             </Text>
 
@@ -622,10 +619,10 @@ export default function InvestmentBucketsScreen() {
               <View
                 className="mt-3 py-2 px-3 rounded-lg"
                 style={{
-                  backgroundColor: (cockpit.waterfall.breathingRoomMonthly > 0 ? "#14B8A6" : StatusColors[colorScheme].danger) + "0A",
+                  backgroundColor: (cockpit.waterfall.breathingRoomMonthly > 0 ? "#14B8A6" : theme.danger) + "0A",
                 }}
               >
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary text-center">
+                <Text className="text-xs text-muted-foreground text-center">
                   {cockpit.waterfall.breathingRoomMonthly > 0
                     ? `Surplus supports ${Math.min(999, Math.round((cockpit.waterfall.breathingRoomMonthly / (totalRemaining > 0 && cockpit.monthsRemaining > 0 ? totalRemaining / cockpit.monthsRemaining : 1)) * 100))}% of remaining investment commitments`
                     : "Warning: No surplus available for investments"
@@ -640,10 +637,10 @@ export default function InvestmentBucketsScreen() {
             <Card className="mb-4">
               <View className="items-center py-4">
                 <Ionicons name="pie-chart-outline" size={48} color={colors.textSecondary} />
-                <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary mt-2">
+                <Text className="text-base font-medium text-foreground mt-2">
                   No investment buckets
                 </Text>
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-4">
+                <Text className="text-sm text-muted-foreground mt-1 text-center px-4">
                   Add your first bucket to start tracking investments
                 </Text>
               </View>
@@ -682,8 +679,8 @@ export default function InvestmentBucketsScreen() {
                           className="w-7 h-7 rounded-full items-center justify-center mr-2"
                           style={{
                             backgroundColor: isComplete
-                              ? StatusColors[colorScheme].successBg
-                              : acAlpha(accent, 500, 0.08),
+                              ? theme.alpha("success", 0.08)
+                              : theme.alpha("primary", 0.08),
                           }}
                         >
                           <Ionicons
@@ -693,12 +690,12 @@ export default function InvestmentBucketsScreen() {
                                 : "wallet-outline"
                             }
                             size={16}
-                            color={isComplete ? StatusColors[colorScheme].success : colors.blue}
+                            color={isComplete ? theme.success : colors.blue}
                           />
                         </View>
                         <View className="flex-1">
                           <Text
-                            className="text-sm font-medium text-text-primary dark:text-text-dark-primary"
+                            className="text-sm font-medium text-foreground"
                             numberOfLines={1}
                           >
                             {bucket.name}
@@ -710,7 +707,7 @@ export default function InvestmentBucketsScreen() {
                                 size={10}
                                 color={colors.textSecondary}
                               />
-                              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-1" numberOfLines={1}>
+                              <Text className="text-xs text-muted-foreground ml-1" numberOfLines={1}>
                                 {milestones.find((m) => m.id === bucket.linked_milestone_id)?.name ?? "Linked milestone"}
                               </Text>
                             </View>
@@ -732,15 +729,15 @@ export default function InvestmentBucketsScreen() {
                     {/* Goal / Done / Left */}
                     <View className="flex-row mb-2">
                       <View className="flex-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Goal
                         </Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-semibold text-foreground">
                           {formatAmount(bucket.annual_target)}
                         </Text>
                       </View>
                       <View className="flex-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Done
                         </Text>
                         <Text className="text-sm font-semibold text-success">
@@ -748,7 +745,7 @@ export default function InvestmentBucketsScreen() {
                         </Text>
                       </View>
                       <View className="flex-1">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           Left
                         </Text>
                         <Text className="text-sm font-semibold text-danger">
@@ -758,16 +755,16 @@ export default function InvestmentBucketsScreen() {
                     </View>
 
                     {/* Progress bar */}
-                    <View className="h-2 rounded-full bg-border-light dark:bg-border-dark overflow-hidden">
+                    <View className="h-2 rounded-full bg-border overflow-hidden">
                       <View
                         className="h-2 rounded-full"
                         style={{
                           width: `${pct}%`,
-                          backgroundColor: isComplete ? StatusColors[colorScheme].success : colors.blue,
+                          backgroundColor: isComplete ? theme.success : colors.blue,
                         }}
                       />
                     </View>
-                    <Text className="text-xs text-text-tertiary mt-1 text-right">
+                    <Text className="text-xs text-faint-foreground mt-1 text-right">
                       {pct.toFixed(0)}%
                     </Text>
 
@@ -776,8 +773,8 @@ export default function InvestmentBucketsScreen() {
                       const bs = cockpit.buckets.find((b) => b.id === bucket.id);
                       if (!bs || isComplete) return null;
                       return (
-                        <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark">
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <View className="mt-2 pt-2 border-t border-border">
+                          <Text className="text-xs text-muted-foreground">
                             {formatAmount(Math.round(bs.monthlyRequired))}/mo needed
                           </Text>
                         </View>
@@ -790,7 +787,7 @@ export default function InvestmentBucketsScreen() {
           )}
 
           {buckets.length > 0 && (
-            <Text className="text-xs text-text-tertiary text-center mb-4">
+            <Text className="text-xs text-faint-foreground text-center mb-4">
               Tap to view details. Long-press for reset/delete options.
             </Text>
           )}

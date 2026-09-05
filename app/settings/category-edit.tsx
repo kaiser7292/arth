@@ -1,23 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  TextInput,
-  Modal,
-  FlatList,
-  Switch,
-  Dimensions,
-  Keyboard,
-} from "react-native";
+import { View, ScrollView, Pressable, TextInput, Modal, FlatList, Switch, Dimensions, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Button, Input } from "@/components/ui";
+import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
+
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import {
@@ -25,6 +14,7 @@ import {
   createCategory,
   updateCategory,
 } from "@/services/category";
+import { useTheme } from "@/hooks/use-theme";
 
 const ICON_OPTIONS = [
   // Transport & Travel
@@ -163,6 +153,7 @@ interface PickerDrawerProps {
 
 function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) {
   const { colors } = useColorScheme();
+  const theme = useTheme();
 
   return (
     <Modal
@@ -181,10 +172,10 @@ function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) 
         >
           {/* Handle + header */}
           <View className="items-center pt-2 pb-1">
-            <View className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
           <View className="flex-row items-center justify-between px-4 pb-2">
-            <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-semibold text-foreground">
               {title}
             </Text>
             <Pressable onPress={onClose} className="p-1">
@@ -204,7 +195,8 @@ function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) 
 export default function CategoryEditScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
   const scrollRef = useRef<ScrollView>(null);
@@ -278,11 +270,11 @@ export default function CategoryEditScreen() {
       className={`w-12 h-12 rounded-lg items-center justify-center m-1 ${
         icon === iconName
           ? "border-2"
-          : "bg-surface-light-alt dark:bg-surface-dark-alt"
+          : "bg-card"
       }`}
       style={icon === iconName ? {
-        backgroundColor: ac(accent, colorScheme, 100, 700),
-        borderColor: ac(accent, colorScheme, 600, 300),
+        backgroundColor: theme.alpha("primary", 0.1),
+        borderColor: theme.primary,
       } : undefined}
     >
       <Ionicons
@@ -291,7 +283,7 @@ export default function CategoryEditScreen() {
         color={icon === iconName ? colors.blue : "#6B7280"}
       />
     </Pressable>
-  ), [icon, accent, colorScheme, colors.blue]);
+  ), [icon, colorScheme, colors.blue]);
 
   return (
     <ScreenContainer padTop={false} keyboardAware>
@@ -307,12 +299,12 @@ export default function CategoryEditScreen() {
           />
 
           {/* Icon picker — tap to open drawer */}
-          <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+          <Text className="text-sm font-medium text-muted-foreground mb-2">
             Icon
           </Text>
           <Pressable
             onPress={() => setShowIconDrawer(true)}
-            className="flex-row items-center px-4 py-3 rounded-lg border border-border-light dark:border-border-dark mb-6"
+            className="flex-row items-center px-4 py-3 rounded-lg border border-border mb-6"
           >
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
@@ -324,19 +316,19 @@ export default function CategoryEditScreen() {
                 color={color}
               />
             </View>
-            <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary">
+            <Text className="flex-1 text-sm text-foreground">
               {icon.replace(/-outline$/, "").replace(/-/g, " ")}
             </Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
           </Pressable>
 
           {/* Color picker — tap to open drawer */}
-          <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+          <Text className="text-sm font-medium text-muted-foreground mb-2">
             Color
           </Text>
           <Pressable
             onPress={() => setShowColorDrawer(true)}
-            className="flex-row items-center px-4 py-3 rounded-lg border border-border-light dark:border-border-dark mb-6"
+            className="flex-row items-center px-4 py-3 rounded-lg border border-border mb-6"
           >
             <View
               className="w-10 h-10 rounded-full mr-3 items-center justify-center"
@@ -344,19 +336,19 @@ export default function CategoryEditScreen() {
             >
               <Ionicons name="checkmark" size={18} color="#FFFFFF" />
             </View>
-            <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary">
+            <Text className="flex-1 text-sm text-foreground">
               {color}
             </Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
           </Pressable>
 
           {/* Unavoidable toggle */}
-          <View className="flex-row items-center justify-between px-1 py-3 mb-6 border-b border-border-light dark:border-border-dark">
+          <View className="flex-row items-center justify-between px-1 py-3 mb-6 border-b border-border">
             <View className="flex-1 mr-3">
-              <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm font-medium text-foreground">
                 Unavoidable Expense
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+              <Text className="text-xs text-muted-foreground mt-0.5">
                 Rent, insurance, EMIs - expenses you can't skip
               </Text>
             </View>
@@ -383,6 +375,9 @@ export default function CategoryEditScreen() {
         title="Choose Icon"
       >
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={ICON_OPTIONS}
           keyExtractor={(item) => item}
           numColumns={6}
@@ -406,7 +401,7 @@ export default function CategoryEditScreen() {
                 key={c}
                 onPress={() => { setColor(c); setShowCustomColor(false); setShowColorDrawer(false); }}
                 className={`w-12 h-12 rounded-full m-1.5 items-center justify-center ${
-                  color === c && !showCustomColor ? "border-2 border-gray-900 dark:border-white" : ""
+                  color === c && !showCustomColor ? "border-2 border-foreground" : ""
                 }`}
                 style={{ backgroundColor: c }}
               >
@@ -420,7 +415,7 @@ export default function CategoryEditScreen() {
           {showCustomColor ? (
             <View className="flex-row items-center mb-2">
               <View
-                className="w-10 h-10 rounded-full mr-3 border border-border-light dark:border-border-dark"
+                className="w-10 h-10 rounded-full mr-3 border border-border"
                 style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(customHex) ? customHex : "#CCCCCC" }}
               />
               <TextInput
@@ -434,7 +429,7 @@ export default function CategoryEditScreen() {
                 placeholderTextColor={colors.tabIconDefault}
                 maxLength={7}
                 autoCapitalize="characters"
-                className="flex-1 px-3 py-2 rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark-alt text-text-primary dark:text-text-dark-primary text-sm font-mono"
+                className="flex-1 px-3 py-2 rounded-lg border border-border bg-card text-foreground text-sm font-mono"
               />
               <Pressable
                 onPress={() => { setShowCustomColor(false); setCustomHex(""); }}
@@ -452,7 +447,7 @@ export default function CategoryEditScreen() {
               className="flex-row items-center"
             >
               <Ionicons name="color-palette-outline" size={16} color={colors.textSecondary} />
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-1">
+              <Text className="text-xs text-muted-foreground ml-1">
                 Custom hex color
               </Text>
             </Pressable>

@@ -1,11 +1,13 @@
 import { memo } from "react";
-import { View, Text, Pressable } from "react-native";
+import { Text } from "@/components/ui";
+import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
 import type { BreachedAccount } from "@/services/min-balance";
-import { StatusColors } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * v15.5.0 — Home screen card shown when a savings account drops below
@@ -24,8 +26,9 @@ export interface MinBalanceAlertProps {
 
 function MinBalanceAlertImpl({ breach, onDismiss }: MinBalanceAlertProps) {
   const router = useRouter();
-  const { colors, colorScheme } = useColorScheme();
-  const dangerColor = StatusColors[colorScheme].danger;
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+  const dangerColor = theme.danger;
 
   const { account, currentBalance, threshold, shortfall } = breach;
   const accountLabel = account.account_label || `${account.bank_name} •••${account.account_identifier}`;
@@ -55,7 +58,7 @@ function MinBalanceAlertImpl({ breach, onDismiss }: MinBalanceAlertProps) {
           >
             {accountLabel} is below minimum
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-xs text-muted-foreground mt-0.5">
             {formatAmount(currentBalance)} of min {formatAmount(threshold)} · shortfall {formatAmount(shortfall)}
           </Text>
         </View>

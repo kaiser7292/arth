@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import Svg, { Polyline } from "react-native-svg";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 interface MiniTrendSparkProps {
   data: number[];
@@ -15,8 +16,9 @@ export function MiniTrendSpark({
   height = 20,
   color,
 }: MiniTrendSparkProps) {
-  const { accent } = useColorScheme();
-  const strokeColor = color ?? accent[500];
+  
+  const theme = useTheme();
+  const strokeColor = color ?? theme.primary;
 
   if (data.length < 2) return null;
 

@@ -1,11 +1,13 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
+import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount } from "@/utils/format";
 import { formatDisplayDate as formatDate } from "@/utils/date";
+import { useTheme } from "@/hooks/use-theme";
 
 interface LearningNudgeProps {
   merchant: string;
@@ -24,8 +26,8 @@ export function LearningNudge({
   onDeny,
   onDismiss,
 }: LearningNudgeProps) {
-  const { colorScheme, accent } = useColorScheme();
-  const statusColors = StatusColors[colorScheme];
+  
+  const theme = useTheme();
 
   const handleConfirm = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -40,23 +42,23 @@ export function LearningNudge({
   return (
     <View
       className="rounded-2xl p-4 mb-3"
-      style={{ backgroundColor: accent[50] + "40" }}
+      style={{ backgroundColor: theme.alpha("primary", 0.25) }}
       accessibilityLabel={`Pattern suggestion: ${merchant} looks like a monthly expense. Confirm or deny.`}
     >
       <View className="flex-row items-start mb-2">
-        <Ionicons name="bulb-outline" size={18} color={accent[600]} style={{ marginRight: 8, marginTop: 1 }} />
-        <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary flex-1">
+        <Ionicons name="bulb-outline" size={18} color={theme.primary} style={{ marginRight: 8, marginTop: 1 }} />
+        <Text className="text-sm font-medium text-foreground flex-1">
           This looks like a monthly expense. Is it?
         </Text>
       </View>
 
       {evidence.length > 0 && (
         <View className="ml-7 mb-3">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">
+          <Text className="text-xs text-muted-foreground mb-1">
             Similar payments:
           </Text>
           {evidence.slice(0, 3).map((e, i) => (
-            <Text key={i} className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text key={i} className="text-xs text-muted-foreground">
               · {formatAmount(e.amount)} on {formatDate(e.date)}
             </Text>
           ))}
@@ -67,28 +69,28 @@ export function LearningNudge({
         <Pressable
           onPress={handleConfirm}
           className="px-3.5 py-2 rounded-full border"
-          style={{ borderColor: accent[500], backgroundColor: accent[500] + "10" }}
+          style={{ borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.06) }}
           accessibilityLabel="Yes, monthly"
           accessibilityRole="button"
         >
-          <Text className="text-xs font-medium" style={{ color: accent[600] }}>
+          <Text className="text-xs font-medium" style={{ color: theme.primary }}>
             Yes, monthly
           </Text>
         </Pressable>
         <Pressable
           onPress={handleDeny}
-          className="px-3.5 py-2 rounded-full border border-border-light dark:border-border-dark"
+          className="px-3.5 py-2 rounded-full border border-border"
           accessibilityLabel="No, one-time"
           accessibilityRole="button"
         >
-          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs font-medium text-muted-foreground">
             No, one-time
           </Text>
         </Pressable>
       </View>
 
       <Pressable onPress={onDismiss} className="mt-2 ml-7">
-        <Text className="text-xs text-text-tertiary">
+        <Text className="text-xs text-faint-foreground">
           Don't ask again for this
         </Text>
       </Pressable>

@@ -1,7 +1,9 @@
-import { View, Text } from "react-native";
+import { View } from "react-native";
+import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import type { ConfidenceLevel } from "@/services/analytics-forecast";
+import { useTheme } from "@/hooks/use-theme";
 
 const CONFIDENCE_CONFIG: Record<ConfidenceLevel, { dots: number; label: string }> = {
   learning: { dots: 0, label: "Learning" },
@@ -17,15 +19,15 @@ interface ConfidenceDotsProps {
 }
 
 export function ConfidenceDots({ level, showLabel = true }: ConfidenceDotsProps) {
-  const { colorScheme, accent, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const config = CONFIDENCE_CONFIG[level];
-  const statusColors = StatusColors[colorScheme];
 
   const fillColor = level === "learning"
-    ? statusColors.muted
+    ? theme.faintForeground
     : level === "low"
-      ? statusColors.warning
-      : accent[500];
+      ? theme.warning
+      : theme.primary;
 
   const emptyColor = colors.border;
 
@@ -35,7 +37,7 @@ export function ConfidenceDots({ level, showLabel = true }: ConfidenceDotsProps)
       accessibilityLabel={`Confidence: ${config.label}, ${config.dots} out of 5`}
     >
       {showLabel && (
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-1">
+        <Text className="text-xs text-muted-foreground mr-1">
           Confidence: {config.label}
         </Text>
       )}

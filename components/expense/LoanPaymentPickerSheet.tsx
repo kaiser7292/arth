@@ -1,25 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  Modal,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, Pressable,  ScrollView,  Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
-import { Input } from "@/components/ui";
-import { ac, acAlpha } from "@/utils/accent";
+
+import { Input, Sheet, Text } from "@/components/ui";
+
 import { formatAmount } from "@/utils/format";
 import {
   listActiveLoans,
@@ -35,6 +21,7 @@ import { computePrepaymentImpact } from "@/services/loan-engine";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatDate } from "@/utils/date";
 import { getDatabase } from "@/database";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * LoanPaymentPickerSheet — picker for linking an expense to a loan.
@@ -80,9 +67,8 @@ export function LoanPaymentPickerSheet({
   onSubmit,
   onClose,
 }: Props) {
-  const { colors, accent, colorScheme } = useColorScheme();
-  const insets = useSafeAreaInsets();
-  const slideAnim = useSharedValue(500);
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const [step, setStep] = useState<Step>("loan");
   const [loans, setLoans] = useState<Array<LoanAccount & { bank_name: string }>>([]);
@@ -134,7 +120,7 @@ export function LoanPaymentPickerSheet({
 
   useEffect(() => {
     if (!visible) return;
-    slideAnim.value = withTiming(0, { duration: 250 });
+
     setStep("loan");
     setSelectedLoan(null);
     setChosenKind("emi");
@@ -165,17 +151,13 @@ export function LoanPaymentPickerSheet({
       }
       setLoading(false);
     })();
-  }, [visible, slideAnim]);
+  }, [visible]);
 
   const handleClose = useCallback(() => {
-    slideAnim.value = withTiming(500, { duration: 200 }, () => {
-      runOnJS(onClose)();
-    });
-  }, [slideAnim, onClose]);
+    onClose();
+  }, [onClose]);
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: slideAnim.value }],
-  }));
+
 
   const handlePickLoan = useCallback(
     async (loan: LoanAccount) => {
@@ -229,13 +211,11 @@ export function LoanPaymentPickerSheet({
 
   const handlePickInstallment = (scheduleEntryId: string) => {
     if (!selectedLoan) return;
-    slideAnim.value = withTiming(500, { duration: 200 }, () => {
-      runOnJS(onSubmit)({
+    onSubmit({
         loan_account_id: selectedLoan.id,
         kind: "emi",
         schedule_entry_id: scheduleEntryId,
       });
-    });
   };
 
   const handlePickStrategy = (strategy: "reduce_tenure" | "reduce_emi") => {
@@ -312,8 +292,7 @@ export function LoanPaymentPickerSheet({
       overrideExpanded && Number.isFinite(gstNum) && gstNum >= 0
         ? gstNum
         : autoGst;
-    slideAnim.value = withTiming(500, { duration: 200 }, () => {
-      runOnJS(onSubmit)({
+    onSubmit({
         loan_account_id: selectedLoan.id,
         kind: "prepayment",
         strategy: chosenStrategy,
@@ -321,10 +300,8 @@ export function LoanPaymentPickerSheet({
         prepayment_charge: charge < 0 ? 0 : charge,
         gst_on_charge: gst < 0 ? 0 : gst,
       });
-    });
   }, [
     selectedLoan,
-    slideAnim,
     onSubmit,
     chosenStrategy,
     prepaymentKind,
@@ -348,527 +325,495 @@ export function LoanPaymentPickerSheet({
     .sort((a, b) => a.due_date.localeCompare(b.due_date));
 
   return (
-    <Modal transparent animationType="none" visible={visible} onRequestClose={handleClose}>
-      <Pressable
-        className="flex-1 bg-black/40"
-        onPress={handleClose}
-        accessibilityLabel="Close"
-        accessibilityRole="button"
-      />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
-      >
-      <Animated.View
-        style={[
-          animStyle,
-          {
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            maxHeight: "90%",
-            paddingBottom: Math.max(insets.bottom, 8),
-          },
-        ]}
-      >
-        <View className="items-center pt-3 pb-1">
-          <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
-        </View>
-
-        <View className="px-5 pb-3">
-          <View className="flex-row items-center">
-            {step !== "loan" && (
-              <Pressable
-                onPress={() => {
-                  if (step === "prepayment_details") {
-                    // If this loan took the trivial-path skip, go back to
-                    // the earlier step — else the strategy picker. Uses the
-                    // live currentEmi (not the sanctioned emi_amount) to
-                    // stay consistent with the forward-direction gate.
-                    if (
-                      selectedLoan &&
-                      expenseAmount > 0 &&
-                      currentEmi > 0 &&
-                      expenseAmount < currentEmi
-                    ) {
-                      if (eligibleInstallments.length > 0) setStep("emi_installment");
-                      else setStep("loan");
-                    } else {
-                      setStep("prepayment_strategy");
-                    }
-                  } else if (step === "prepayment_strategy" && eligibleInstallments.length > 0) {
-                    setStep("emi_installment");
+    <Sheet visible={visible} onClose={handleClose}>
+      <View className="px-5 pb-3">
+        <View className="flex-row items-center">
+          {step !== "loan" && (
+            <Pressable
+              onPress={() => {
+                if (step === "prepayment_details") {
+                  // If this loan took the trivial-path skip, go back to
+                  // the earlier step — else the strategy picker. Uses the
+                  // live currentEmi (not the sanctioned emi_amount) to
+                  // stay consistent with the forward-direction gate.
+                  if (
+                    selectedLoan &&
+                    expenseAmount > 0 &&
+                    currentEmi > 0 &&
+                    expenseAmount < currentEmi
+                  ) {
+                    if (eligibleInstallments.length > 0) setStep("emi_installment");
+                    else setStep("loan");
                   } else {
-                    setStep("loan");
-                    setSelectedLoan(null);
+                    setStep("prepayment_strategy");
                   }
-                }}
-                className="mr-2"
-                accessibilityRole="button"
-                accessibilityLabel="Back"
-              >
-                <Ionicons name="chevron-back" size={20} color={colors.text} />
-              </Pressable>
-            )}
-            <Text className="text-base font-bold flex-1" style={{ color: colors.text }}>
-              {step === "loan"
-                ? "Mark as Loan Payment"
-                : step === "emi_installment"
-                  ? selectedLoan
-                    ? `${selectedLoan.agreement_id ?? "Loan"} - pick installment`
-                    : "Pick installment"
-                  : step === "prepayment_strategy"
-                    ? "Prepayment strategy"
-                    : "Payment details"}
-            </Text>
-          </View>
-          <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
-            {formatAmount(expenseAmount)} on {formatDate(expenseDate)}
+                } else if (step === "prepayment_strategy" && eligibleInstallments.length > 0) {
+                  setStep("emi_installment");
+                } else {
+                  setStep("loan");
+                  setSelectedLoan(null);
+                }
+              }}
+              className="mr-2"
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+            >
+              <Ionicons name="chevron-back" size={20} color={colors.text} />
+            </Pressable>
+          )}
+          <Text className="text-base font-bold flex-1" style={{ color: colors.text }}>
+            {step === "loan"
+              ? "Mark as Loan Payment"
+              : step === "emi_installment"
+                ? selectedLoan
+                  ? `${selectedLoan.agreement_id ?? "Loan"} - pick installment`
+                  : "Pick installment"
+                : step === "prepayment_strategy"
+                  ? "Prepayment strategy"
+                  : "Payment details"}
           </Text>
         </View>
+        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+          {formatAmount(expenseAmount)} on {formatDate(expenseDate)}
+        </Text>
+      </View>
 
-        <ScrollView
-          className="px-5"
-          contentContainerStyle={{ paddingBottom: 8 }}
-          showsVerticalScrollIndicator={false}
-          alwaysBounceVertical={false}
-          scrollEnabled={
-            step === "loan" ? loans.length > 3 :
-            step === "emi_installment" ? eligibleInstallments.length > 5 :
-            step === "prepayment_strategy" ? false :
-            true
-          }
-        >
-          {loading && (
-            <View className="px-5 py-8 items-center">
-              <Text className="text-sm" style={{ color: colors.textSecondary }}>
-                Loading…
-              </Text>
-            </View>
-          )}
+      <ScrollView
+        className="px-5"
+        contentContainerStyle={{ paddingBottom: 8 }}
+        showsVerticalScrollIndicator={false}
+        alwaysBounceVertical={false}
+        scrollEnabled={
+          step === "loan" ? loans.length > 3 :
+          step === "emi_installment" ? eligibleInstallments.length > 5 :
+          step === "prepayment_strategy" ? false :
+          true
+        }
+      >
+        {loading && (
+          <View className="px-5 py-8 items-center">
+            <Text className="text-sm" style={{ color: colors.textSecondary }}>
+              Loading…
+            </Text>
+          </View>
+        )}
 
-          {/* STEP 1 — pick loan */}
-          {step === "loan" && !loading && (
-            <>
-              {loans.length === 0 ? (
-                <View className="px-5 py-8 items-center">
-                  <Ionicons name="cash-outline" size={40} color={colors.textSecondary} />
-                  <Text
-                    className="text-sm mt-3 text-center"
-                    style={{ color: colors.textSecondary }}
+        {/* STEP 1 — pick loan */}
+        {step === "loan" && !loading && (
+          <>
+            {loans.length === 0 ? (
+              <View className="px-5 py-8 items-center">
+                <Ionicons name="cash-outline" size={40} color={colors.textSecondary} />
+                <Text
+                  className="text-sm mt-3 text-center"
+                  style={{ color: colors.textSecondary }}
+                >
+                  No active loans yet. Add one from Goals → Loans.
+                </Text>
+              </View>
+            ) : (
+              loans.map((l) => (
+                <Pressable
+                  key={l.id}
+                  onPress={() => handlePickLoan(l)}
+                  className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select ${l.bank_name} loan`}
+                >
+                  <View
+                    className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                    style={{ backgroundColor: theme.alpha("primary", 0.08) }}
                   >
-                    No active loans yet. Add one from Goals → Loans.
+                    <Ionicons
+                      name="cash-outline"
+                      size={18}
+                      color={theme.primary}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className="text-sm font-semibold"
+                      style={{ color: colors.text }}
+                    >
+                      {l.bank_name} · {l.loan_type}
+                    </Text>
+                    <Text
+                      className="text-xs mt-0.5"
+                      style={{ color: colors.textSecondary }}
+                    >
+                      EMI {formatAmount(l.emi_amount)} · {l.tenure_months}mo @ {l.interest_rate_pa}%
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </Pressable>
+              ))
+            )}
+          </>
+        )}
+
+        {/* STEP 2a — pick installment (EMI) */}
+        {step === "emi_installment" && !loading && (
+          <>
+            {eligibleInstallments.length === 0 ? (
+              <>
+                <Text
+                  className="text-sm mb-3"
+                  style={{ color: colors.textSecondary }}
+                >
+                  No scheduled installments near this date. You can record this as a prepayment instead.
+                </Text>
+                <Pressable
+                  onPress={() => handlePickKind("prepayment")}
+                  className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                  style={{
+                    backgroundColor: theme.alpha("primary", 0.08),
+                    borderWidth: 1,
+                    borderColor: theme.alpha("primary", 0.25),
+                  }}
+                >
+                  <Ionicons
+                    name="trending-down-outline"
+                    size={18}
+                    color={theme.primary}
+                  />
+                  <Text
+                    className="text-sm font-semibold ml-3 flex-1"
+                    style={{ color: theme.primary }}
+                  >
+                    Record as prepayment
                   </Text>
-                </View>
-              ) : (
-                loans.map((l) => (
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Pressable
+                  onPress={() => handlePickKind("prepayment")}
+                  className="flex-row items-center py-3 px-4 rounded-xl mb-3"
+                  style={{
+                    backgroundColor: theme.alpha("primary", 0.05),
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Ionicons
+                    name="trending-down-outline"
+                    size={18}
+                    color={theme.primary}
+                  />
+                  <View className="flex-1 ml-3">
+                    <Text
+                      className="text-sm font-semibold"
+                      style={{ color: colors.text }}
+                    >
+                      This is a prepayment, not an EMI
+                    </Text>
+                    <Text
+                      className="text-xs mt-0.5"
+                      style={{ color: colors.textSecondary }}
+                    >
+                      Over-and-above the schedule
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </Pressable>
+
+                <Text
+                  className="text-xs font-semibold uppercase tracking-wider mb-2"
+                  style={{ color: colors.textSecondary }}
+                >
+                  Scheduled installments
+                </Text>
+                {eligibleInstallments.map((s) => (
                   <Pressable
-                    key={l.id}
-                    onPress={() => handlePickLoan(l)}
+                    key={s.id}
+                    onPress={() => handlePickInstallment(s.id)}
                     className="flex-row items-center py-3 px-4 rounded-xl mb-2"
                     style={{
                       backgroundColor: colors.surface,
                       borderWidth: 1,
                       borderColor: colors.border,
                     }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select ${l.bank_name} loan`}
                   >
-                    <View
-                      className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
-                    >
-                      <Ionicons
-                        name="cash-outline"
-                        size={18}
-                        color={ac(accent, colorScheme, 600, 200)}
-                      />
-                    </View>
                     <View className="flex-1">
                       <Text
                         className="text-sm font-semibold"
                         style={{ color: colors.text }}
                       >
-                        {l.bank_name} · {l.loan_type}
+                        #{s.installment_num} · Due {formatDate(s.due_date)}
                       </Text>
                       <Text
                         className="text-xs mt-0.5"
                         style={{ color: colors.textSecondary }}
                       >
-                        EMI {formatAmount(l.emi_amount)} · {l.tenure_months}mo @ {l.interest_rate_pa}%
+                        EMI {formatAmount(s.emi_amount)}
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
                   </Pressable>
-                ))
-              )}
-            </>
-          )}
+                ))}
+              </>
+            )}
+          </>
+        )}
 
-          {/* STEP 2a — pick installment (EMI) */}
-          {step === "emi_installment" && !loading && (
-            <>
-              {eligibleInstallments.length === 0 ? (
-                <>
+        {/* STEP 2b — pick prepayment strategy (design-system aligned: circle
+            icon + title + sublabel + chevron, matches loan detail ActionTile) */}
+        {step === "prepayment_strategy" && !loading && (
+          <>
+            <Text
+              className="text-sm mb-3"
+              style={{ color: colors.textSecondary }}
+            >
+              How should we apply this prepayment of {formatAmount(expenseAmount)}?
+            </Text>
+            <StrategyTile
+              icon="calendar-clear-outline"
+              label="Reduce tenure"
+              sublabel="Keep EMI same. Loan ends earlier. Saves the most interest."
+              recommended
+              onPress={() => handlePickStrategy("reduce_tenure")}
+              colors={colors}
+              colorScheme={colorScheme}
+            />
+            <StrategyTile
+              icon="trending-down-outline"
+              label="Reduce EMI"
+              sublabel="Keep remaining months same. Lower EMI going forward."
+              onPress={() => handlePickStrategy("reduce_emi")}
+              colors={colors}
+              colorScheme={colorScheme}
+            />
+          </>
+        )}
+
+        {/* STEP 3 — prepayment payment details: kind + auto-derived charge (v17.5.13).
+            Was: two manual text inputs asking the user to type the charge + GST.
+            Now: auto-computed from the loan's configured prepayment_charge_pct_early/late
+            + threshold_emis + gst_pct via computePrepaymentImpact. Preview card mirrors
+            the standalone PrepaymentSheet for consistency. */}
+        {step === "prepayment_details" && !loading && (
+          <>
+            <Text
+              className="text-sm mb-3"
+              style={{ color: colors.textSecondary }}
+            >
+              Review this prepayment of {formatAmount(expenseAmount)} before saving.
+            </Text>
+
+            {/* Kind toggle */}
+            <Text
+              className="text-xs font-semibold uppercase tracking-wider mb-2"
+              style={{ color: colors.textSecondary }}
+            >
+              Type
+            </Text>
+            <View className="flex-row mb-4">
+              <KindChip
+                label="Part payment"
+                selected={prepaymentKind === "part_payment"}
+                onPress={() => setPrepaymentKind("part_payment")}
+                colors={colors}
+                colorScheme={colorScheme}
+              />
+              <KindChip
+                label="Foreclosure"
+                selected={prepaymentKind === "foreclosure"}
+                onPress={() => setPrepaymentKind("foreclosure")}
+                colors={colors}
+                colorScheme={colorScheme}
+              />
+            </View>
+
+            {/* Preview — mirrors the PrepaymentSheet preview. Values are
+                computed from the loan's configured charge rate + GST. */}
+            {impact && (
+              <View
+                className="p-3 rounded-xl mb-3"
+                style={{
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <Text
+                  className="text-xs font-semibold uppercase tracking-wider mb-2"
+                  style={{ color: colors.textSecondary }}
+                >
+                  Preview
+                </Text>
+                <PreviewRow
+                  label="Prepayment"
+                  value={formatAmount(expenseAmount)}
+                  colors={colors}
+                />
+                <PreviewRow
+                  label="Charge"
+                  value={impact.charge > 0 ? `− ${formatAmount(impact.charge)}` : "- waived"}
+                  color={
+                    impact.charge > 0
+                      ? theme.danger
+                      : theme.success
+                  }
+                  colors={colors}
+                />
+                <PreviewRow
+                  label="GST (on charge)"
+                  value={impact.gst > 0 ? `− ${formatAmount(impact.gst)}` : "-"}
+                  colors={colors}
+                />
+                <View className="border-t border-border my-2" />
+                <PreviewRow
+                  label="Net applied to principal"
+                  value={formatAmount(impact.netApplied)}
+                  bold
+                  colors={colors}
+                />
+                <View className="border-t border-border my-2" />
+                <PreviewRow
+                  label="Interest saved"
+                  value={formatAmount(impact.interestSavedTotal)}
+                  color={theme.success}
+                  colors={colors}
+                />
+                {chosenStrategy === "reduce_tenure" && impact.monthsSaved > 0 && (
+                  <PreviewRow
+                    label="Months saved"
+                    value={`${impact.monthsSaved}`}
+                    color={theme.success}
+                    colors={colors}
+                  />
+                )}
+                {chosenStrategy === "reduce_emi" && impact.newEMI && (
+                  <PreviewRow
+                    label="New EMI"
+                    value={formatAmount(Math.round(impact.newEMI))}
+                    colors={colors}
+                  />
+                )}
+              </View>
+            )}
+            {/* v17.5.15 — optional manual override for charge + GST.
+                Same grammar as the override panel on the standalone
+                PrepaymentSheet so the two flows feel symmetric. */}
+            {impact && (
+              <View className="mb-3">
+                <Pressable
+                  onPress={() => {
+                    const next = !overrideExpanded;
+                    setOverrideExpanded(next);
+                    if (next && chargeOverride === "" && gstOverride === "") {
+                      setChargeOverride(String(impact.charge));
+                      setGstOverride(String(impact.gst));
+                    }
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    overrideExpanded ? "Hide override charges" : "Override charges"
+                  }
+                  className="flex-row items-center py-2"
+                >
+                  <Ionicons
+                    name={overrideExpanded ? "chevron-down" : "chevron-forward"}
+                    size={14}
+                    color={colors.textSecondary}
+                  />
                   <Text
-                    className="text-sm mb-3"
+                    className="text-xs ml-1"
                     style={{ color: colors.textSecondary }}
                   >
-                    No scheduled installments near this date. You can record this as a prepayment instead.
+                    Override charges (optional)
                   </Text>
-                  <Pressable
-                    onPress={() => handlePickKind("prepayment")}
-                    className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                </Pressable>
+                {overrideExpanded && (
+                  <View
+                    className="p-3 rounded-xl"
                     style={{
-                      backgroundColor: acAlpha(accent, 500, 0.08),
-                      borderWidth: 1,
-                      borderColor: ac(accent, colorScheme, 200, 700),
-                    }}
-                  >
-                    <Ionicons
-                      name="trending-down-outline"
-                      size={18}
-                      color={ac(accent, colorScheme, 600, 200)}
-                    />
-                    <Text
-                      className="text-sm font-semibold ml-3 flex-1"
-                      style={{ color: ac(accent, colorScheme, 700, 100) }}
-                    >
-                      Record as prepayment
-                    </Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                  </Pressable>
-                </>
-              ) : (
-                <>
-                  <Pressable
-                    onPress={() => handlePickKind("prepayment")}
-                    className="flex-row items-center py-3 px-4 rounded-xl mb-3"
-                    style={{
-                      backgroundColor: acAlpha(accent, 500, 0.05),
+                      backgroundColor: colors.surface,
                       borderWidth: 1,
                       borderColor: colors.border,
                     }}
                   >
-                    <Ionicons
-                      name="trending-down-outline"
-                      size={18}
-                      color={ac(accent, colorScheme, 600, 200)}
+                    <Input
+                      label="Charge"
+                      value={chargeOverride}
+                      onChangeText={setChargeOverride}
+                      keyboardType="decimal-pad"
+                      placeholder={String(Math.round(impact.charge))}
+                      containerClassName="mb-2"
                     />
-                    <View className="flex-1 ml-3">
-                      <Text
-                        className="text-sm font-semibold"
-                        style={{ color: colors.text }}
-                      >
-                        This is a prepayment, not an EMI
-                      </Text>
-                      <Text
-                        className="text-xs mt-0.5"
-                        style={{ color: colors.textSecondary }}
-                      >
-                        Over-and-above the schedule
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                  </Pressable>
-
-                  <Text
-                    className="text-xs font-semibold uppercase tracking-wider mb-2"
-                    style={{ color: colors.textSecondary }}
-                  >
-                    Scheduled installments
-                  </Text>
-                  {eligibleInstallments.map((s) => (
-                    <Pressable
-                      key={s.id}
-                      onPress={() => handlePickInstallment(s.id)}
-                      className="flex-row items-center py-3 px-4 rounded-xl mb-2"
-                      style={{
-                        backgroundColor: colors.surface,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                      }}
-                    >
-                      <View className="flex-1">
-                        <Text
-                          className="text-sm font-semibold"
-                          style={{ color: colors.text }}
-                        >
-                          #{s.installment_num} · Due {formatDate(s.due_date)}
-                        </Text>
-                        <Text
-                          className="text-xs mt-0.5"
-                          style={{ color: colors.textSecondary }}
-                        >
-                          EMI {formatAmount(s.emi_amount)}
-                        </Text>
-                      </View>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={16}
-                        color={colors.textSecondary}
-                      />
-                    </Pressable>
-                  ))}
-                </>
-              )}
-            </>
-          )}
-
-          {/* STEP 2b — pick prepayment strategy (design-system aligned: circle
-              icon + title + sublabel + chevron, matches loan detail ActionTile) */}
-          {step === "prepayment_strategy" && !loading && (
-            <>
-              <Text
-                className="text-sm mb-3"
-                style={{ color: colors.textSecondary }}
-              >
-                How should we apply this prepayment of {formatAmount(expenseAmount)}?
-              </Text>
-              <StrategyTile
-                icon="calendar-clear-outline"
-                label="Reduce tenure"
-                sublabel="Keep EMI same. Loan ends earlier. Saves the most interest."
-                recommended
-                onPress={() => handlePickStrategy("reduce_tenure")}
-                accent={accent}
-                colors={colors}
-                colorScheme={colorScheme}
-              />
-              <StrategyTile
-                icon="trending-down-outline"
-                label="Reduce EMI"
-                sublabel="Keep remaining months same. Lower EMI going forward."
-                onPress={() => handlePickStrategy("reduce_emi")}
-                accent={accent}
-                colors={colors}
-                colorScheme={colorScheme}
-              />
-            </>
-          )}
-
-          {/* STEP 3 — prepayment payment details: kind + auto-derived charge (v17.5.13).
-              Was: two manual text inputs asking the user to type the charge + GST.
-              Now: auto-computed from the loan's configured prepayment_charge_pct_early/late
-              + threshold_emis + gst_pct via computePrepaymentImpact. Preview card mirrors
-              the standalone PrepaymentSheet for consistency. */}
-          {step === "prepayment_details" && !loading && (
-            <>
-              <Text
-                className="text-sm mb-3"
-                style={{ color: colors.textSecondary }}
-              >
-                Review this prepayment of {formatAmount(expenseAmount)} before saving.
-              </Text>
-
-              {/* Kind toggle */}
-              <Text
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
-              >
-                Type
-              </Text>
-              <View className="flex-row mb-4">
-                <KindChip
-                  label="Part payment"
-                  selected={prepaymentKind === "part_payment"}
-                  onPress={() => setPrepaymentKind("part_payment")}
-                  accent={accent}
-                  colors={colors}
-                  colorScheme={colorScheme}
-                />
-                <KindChip
-                  label="Foreclosure"
-                  selected={prepaymentKind === "foreclosure"}
-                  onPress={() => setPrepaymentKind("foreclosure")}
-                  accent={accent}
-                  colors={colors}
-                  colorScheme={colorScheme}
-                />
-              </View>
-
-              {/* Preview — mirrors the PrepaymentSheet preview. Values are
-                  computed from the loan's configured charge rate + GST. */}
-              {impact && (
-                <View
-                  className="p-3 rounded-xl mb-3"
-                  style={{
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <Text
-                    className="text-xs font-semibold uppercase tracking-wider mb-2"
-                    style={{ color: colors.textSecondary }}
-                  >
-                    Preview
-                  </Text>
-                  <PreviewRow
-                    label="Prepayment"
-                    value={formatAmount(expenseAmount)}
-                    colors={colors}
-                  />
-                  <PreviewRow
-                    label="Charge"
-                    value={impact.charge > 0 ? `− ${formatAmount(impact.charge)}` : "- waived"}
-                    color={
-                      impact.charge > 0
-                        ? StatusColors[colorScheme].danger
-                        : StatusColors[colorScheme].success
-                    }
-                    colors={colors}
-                  />
-                  <PreviewRow
-                    label="GST (on charge)"
-                    value={impact.gst > 0 ? `− ${formatAmount(impact.gst)}` : "-"}
-                    colors={colors}
-                  />
-                  <View className="border-t border-border-light dark:border-border-dark my-2" />
-                  <PreviewRow
-                    label="Net applied to principal"
-                    value={formatAmount(impact.netApplied)}
-                    bold
-                    colors={colors}
-                  />
-                  <View className="border-t border-border-light dark:border-border-dark my-2" />
-                  <PreviewRow
-                    label="Interest saved"
-                    value={formatAmount(impact.interestSavedTotal)}
-                    color={StatusColors[colorScheme].success}
-                    colors={colors}
-                  />
-                  {chosenStrategy === "reduce_tenure" && impact.monthsSaved > 0 && (
-                    <PreviewRow
-                      label="Months saved"
-                      value={`${impact.monthsSaved}`}
-                      color={StatusColors[colorScheme].success}
-                      colors={colors}
-                    />
-                  )}
-                  {chosenStrategy === "reduce_emi" && impact.newEMI && (
-                    <PreviewRow
-                      label="New EMI"
-                      value={formatAmount(Math.round(impact.newEMI))}
-                      colors={colors}
-                    />
-                  )}
-                </View>
-              )}
-              {/* v17.5.15 — optional manual override for charge + GST.
-                  Same grammar as the override panel on the standalone
-                  PrepaymentSheet so the two flows feel symmetric. */}
-              {impact && (
-                <View className="mb-3">
-                  <Pressable
-                    onPress={() => {
-                      const next = !overrideExpanded;
-                      setOverrideExpanded(next);
-                      if (next && chargeOverride === "" && gstOverride === "") {
-                        setChargeOverride(String(impact.charge));
-                        setGstOverride(String(impact.gst));
-                      }
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      overrideExpanded ? "Hide override charges" : "Override charges"
-                    }
-                    className="flex-row items-center py-2"
-                  >
-                    <Ionicons
-                      name={overrideExpanded ? "chevron-down" : "chevron-forward"}
-                      size={14}
-                      color={colors.textSecondary}
+                    <Input
+                      label="GST on charge"
+                      value={gstOverride}
+                      onChangeText={setGstOverride}
+                      keyboardType="decimal-pad"
+                      placeholder={String(Math.round(impact.gst))}
+                      containerClassName="mb-1"
                     />
                     <Text
-                      className="text-xs ml-1"
+                      className="text-label mt-1"
                       style={{ color: colors.textSecondary }}
                     >
-                      Override charges (optional)
+                      Your values override the auto-computed ones. Leave blank to use the auto figures.
                     </Text>
-                  </Pressable>
-                  {overrideExpanded && (
-                    <View
-                      className="p-3 rounded-xl"
-                      style={{
-                        backgroundColor: colors.surface,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                      }}
-                    >
-                      <Input
-                        label="Charge"
-                        value={chargeOverride}
-                        onChangeText={setChargeOverride}
-                        keyboardType="decimal-pad"
-                        placeholder={String(Math.round(impact.charge))}
-                        containerClassName="mb-2"
-                      />
-                      <Input
-                        label="GST on charge"
-                        value={gstOverride}
-                        onChangeText={setGstOverride}
-                        keyboardType="decimal-pad"
-                        placeholder={String(Math.round(impact.gst))}
-                        containerClassName="mb-1"
-                      />
-                      <Text
-                        className="text-[11px] mt-1"
-                        style={{ color: colors.textSecondary }}
-                      >
-                        Your values override the auto-computed ones. Leave blank to use the auto figures.
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-              <Text
-                className="text-xs mb-4"
-                style={{ color: colors.textSecondary }}
-              >
-                Charges are auto-computed from your loan's configured rates.
-                The expense amount of {formatAmount(expenseAmount)} covers
-                principal only; any charge shown above is over and above.
-              </Text>
-
-              <Pressable
-                onPress={handleSubmitPrepaymentDetails}
-                accessibilityRole="button"
-                accessibilityLabel="Save prepayment"
-                className="py-3 rounded-xl items-center mb-2"
-                style={{ backgroundColor: accent[500] }}
-              >
-                <Text className="text-sm font-bold" style={{ color: "#FFFFFF" }}>
-                  Save prepayment
-                </Text>
-              </Pressable>
-            </>
-          )}
-        </ScrollView>
-
-        <View className="px-5 pt-3">
-          <Pressable
-            onPress={handleClose}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel"
-            className="py-3 rounded-xl items-center"
-            style={{
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
+                  </View>
+                )}
+              </View>
+            )}
             <Text
-              className="text-sm font-semibold"
+              className="text-xs mb-4"
               style={{ color: colors.textSecondary }}
             >
-              Cancel
+              Charges are auto-computed from your loan's configured rates.
+              The expense amount of {formatAmount(expenseAmount)} covers
+              principal only; any charge shown above is over and above.
             </Text>
-          </Pressable>
-        </View>
-      </Animated.View>
-      </KeyboardAvoidingView>
-    </Modal>
+
+            <Pressable
+              onPress={handleSubmitPrepaymentDetails}
+              accessibilityRole="button"
+              accessibilityLabel="Save prepayment"
+              className="py-3 rounded-xl items-center mb-2"
+              style={{ backgroundColor: theme.primary }}
+            >
+              <Text className="text-sm font-bold" style={{ color: "#FFFFFF" }}>
+                Save prepayment
+              </Text>
+            </Pressable>
+          </>
+        )}
+      </ScrollView>
+
+      <View className="px-5 pt-3">
+        <Pressable
+          onPress={handleClose}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel"
+          className="py-3 rounded-xl items-center"
+          style={{
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <Text
+            className="text-sm font-semibold"
+            style={{ color: colors.textSecondary }}
+          >
+            Cancel
+          </Text>
+        </Pressable>
+      </View>
+    </Sheet>
   );
 }
 
@@ -914,17 +859,16 @@ function KindChip({
   label,
   selected,
   onPress,
-  accent,
   colors,
   colorScheme,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
-  accent: ReturnType<typeof useColorScheme>["accent"];
   colors: ReturnType<typeof useColorScheme>["colors"];
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
 }) {
+  const theme = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -935,9 +879,9 @@ function KindChip({
       style={
         selected
           ? {
-              backgroundColor: ac(accent, colorScheme, 100, 700),
+              backgroundColor: theme.alpha("primary", 0.1),
               borderWidth: 1,
-              borderColor: accent[500],
+              borderColor: theme.primary,
             }
           : {
               backgroundColor: colors.surface,
@@ -950,7 +894,7 @@ function KindChip({
         className="text-xs"
         style={
           selected
-            ? { color: ac(accent, colorScheme, 700, 100), fontWeight: "600" }
+            ? { color: theme.primary, fontWeight: "600" }
             : { color: colors.textSecondary }
         }
       >
@@ -971,7 +915,6 @@ function StrategyTile({
   sublabel,
   recommended,
   onPress,
-  accent,
   colors,
   colorScheme,
 }: {
@@ -980,10 +923,10 @@ function StrategyTile({
   sublabel: string;
   recommended?: boolean;
   onPress: () => void;
-  accent: ReturnType<typeof useColorScheme>["accent"];
   colors: ReturnType<typeof useColorScheme>["colors"];
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
 }) {
+  const theme = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -1001,9 +944,9 @@ function StrategyTile({
       >
         <View
           className="w-10 h-10 rounded-full items-center justify-center mr-3"
-          style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+          style={{ backgroundColor: theme.alpha("primary", 0.08) }}
         >
-          <Ionicons name={icon} size={20} color={ac(accent, colorScheme, 600, 300)} />
+          <Ionicons name={icon} size={20} color={theme.primary} />
         </View>
         <View className="flex-1">
           <View className="flex-row items-center">
@@ -1013,11 +956,11 @@ function StrategyTile({
             {recommended && (
               <View
                 className="ml-2 px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: acAlpha(accent, 500, 0.12) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.12) }}
               >
                 <Text
-                  className="text-[10px] font-semibold uppercase"
-                  style={{ color: ac(accent, colorScheme, 700, 200) }}
+                  className="text-label font-semibold uppercase"
+                  style={{ color: theme.primary }}
                 >
                   Recommended
                 </Text>

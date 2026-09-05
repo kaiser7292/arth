@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import { View, ScrollView, Pressable, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomSheet } from "@/components/ui/BottomSheet";
-import { Input, DateInput } from "@/components/ui";
+import { DateInput, Input, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
-import { ac } from "@/utils/accent";
+
+
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   addPolicy,
@@ -16,6 +15,7 @@ import {
   type PolicyType,
   type PremiumFrequency,
 } from "@/services/insurance-policy";
+import { useTheme } from "@/hooks/use-theme";
 
 interface Props {
   visible: boolean;
@@ -41,7 +41,8 @@ const FREQ_OPTIONS: Array<{ value: PremiumFrequency; label: string }> = [
 ];
 
 export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const isEdit = !!policy;
 
   const [policyType, setPolicyType] = useState<PolicyType>("term");
@@ -143,15 +144,15 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pb-2">
-        <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+        <Text className="text-base font-bold text-foreground">
           {isEdit ? "Edit Policy" : "Add Policy"}
         </Text>
         {isEdit && (
           <Pressable onPress={handleDelete} hitSlop={8}>
-            <Ionicons name="trash-outline" size={18} color={StatusColors[colorScheme].danger} />
+            <Ionicons name="trash-outline" size={18} color={theme.danger} />
           </Pressable>
         )}
       </View>
@@ -163,7 +164,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         {/* Policy type chips */}
-        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1.5 mt-2">
+        <Text className="text-xs font-semibold text-muted-foreground mb-1.5 mt-2">
           Policy Type
         </Text>
         <View className="flex-row flex-wrap gap-2 mb-3">
@@ -173,13 +174,13 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
               onPress={() => setPolicyType(t.value)}
               className="px-3 py-1.5 rounded-full border"
               style={{
-                borderColor: policyType === t.value ? ac(accent, colorScheme, 500, 400) : colors.border,
-                backgroundColor: policyType === t.value ? ac(accent, colorScheme, 500, 400) + "18" : "transparent",
+                borderColor: policyType === t.value ? theme.primary : colors.border,
+                backgroundColor: policyType === t.value ? theme.primary + "18" : "transparent",
               }}
             >
               <Text
                 className="text-xs font-medium"
-                style={{ color: policyType === t.value ? ac(accent, colorScheme, 500, 400) : colors.textSecondary }}
+                style={{ color: policyType === t.value ? theme.primary : colors.textSecondary }}
               >
                 {t.label}
               </Text>
@@ -224,7 +225,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
         />
 
         {/* Premium frequency chips */}
-        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1.5">
+        <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
           Premium Frequency
         </Text>
         <View className="flex-row flex-wrap gap-2 mb-3">
@@ -234,13 +235,13 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
               onPress={() => setPremiumFreq(f.value)}
               className="px-3 py-1.5 rounded-full border"
               style={{
-                borderColor: premiumFreq === f.value ? ac(accent, colorScheme, 500, 400) : colors.border,
-                backgroundColor: premiumFreq === f.value ? ac(accent, colorScheme, 500, 400) + "18" : "transparent",
+                borderColor: premiumFreq === f.value ? theme.primary : colors.border,
+                backgroundColor: premiumFreq === f.value ? theme.primary + "18" : "transparent",
               }}
             >
               <Text
                 className="text-xs font-medium"
-                style={{ color: premiumFreq === f.value ? ac(accent, colorScheme, 500, 400) : colors.textSecondary }}
+                style={{ color: premiumFreq === f.value ? theme.primary : colors.textSecondary }}
               >
                 {f.label}
               </Text>
@@ -277,9 +278,9 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
               <Ionicons
                 name={coversFamily ? "checkbox" : "square-outline"}
                 size={20}
-                color={coversFamily ? ac(accent, colorScheme, 500, 400) : colors.textSecondary}
+                color={coversFamily ? theme.primary : colors.textSecondary}
               />
-              <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm text-foreground">
                 Family floater policy
               </Text>
             </Pressable>
@@ -313,13 +314,13 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
           onPress={handleSave}
           disabled={saving}
           className="py-3 rounded-xl items-center"
-          style={{ backgroundColor: ac(accent, colorScheme, 500, 400), opacity: saving ? 0.6 : 1 }}
+          style={{ backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }}
         >
-          <Text className="text-sm font-bold text-white">
+          <Text className="text-sm font-bold text-primary-foreground">
             {saving ? "Saving…" : isEdit ? "Update Policy" : "Add Policy"}
           </Text>
         </Pressable>
       </View>
-    </BottomSheet>
+    </Sheet>
   );
 }

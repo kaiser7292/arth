@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, ScrollView } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, LoadingState } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { getYearlyPlans, getBucketsByFY } from "@/services/yearly-plan";
 import { getExpenseTotal } from "@/services/expense";
 import { getSavingsSnapshot } from "@/services/savings-tracker";
@@ -20,11 +20,13 @@ import { formatAmount, formatCompact } from "@/utils/format";
 import { calculateYoYComparison } from "@/utils/yoy-comparison";
 import type { YoYComparison, YoYCategory, FYData } from "@/utils/yoy-comparison";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { StatusColors } from "@/constants/theme";
+
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function YoYComparisonScreen() {
   const { colorScheme, colors } = useColorScheme();
+  const theme = useTheme();
   const [comparison, setComparison] = useState<YoYComparison | null>(null);
   const [previousFYLabel, setPreviousFYLabel] = useState("");
   const [currentFYLabel, setCurrentFYLabel] = useState("");
@@ -202,10 +204,10 @@ export default function YoYComparisonScreen() {
         {noData ? (
           <View className="flex-1 items-center justify-center py-20">
             <Ionicons name="git-compare-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               Not enough data
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
               Year-over-year comparison requires plans for at least 2 financial years.
             </Text>
           </View>
@@ -217,10 +219,10 @@ export default function YoYComparisonScreen() {
               style={{
                 backgroundColor:
                   comparison.overallTrend === "improved"
-                    ? StatusColors[colorScheme].successBg
+                    ? theme.alpha("success", 0.08)
                     : comparison.overallTrend === "declined"
-                      ? StatusColors[colorScheme].dangerBg
-                      : StatusColors[colorScheme].warningBg,
+                      ? theme.alpha("danger", 0.08)
+                      : theme.alpha("warning", 0.08),
               }}
             >
               <View className="flex-row items-center">
@@ -235,21 +237,21 @@ export default function YoYComparisonScreen() {
                   size={24}
                   color={
                     comparison.overallTrend === "improved"
-                      ? StatusColors[colorScheme].success
+                      ? theme.success
                       : comparison.overallTrend === "declined"
-                        ? StatusColors[colorScheme].danger
-                        : StatusColors[colorScheme].warning
+                        ? theme.danger
+                        : theme.warning
                   }
                 />
                 <View className="ml-3">
-                  <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-lg font-bold text-foreground">
                     {comparison.overallTrend === "improved"
                       ? "Financial Progress"
                       : comparison.overallTrend === "declined"
                         ? "Areas Need Attention"
                         : "Mixed Results"}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {previousFYLabel} vs {currentFYLabel}
                   </Text>
                 </View>
@@ -282,6 +284,7 @@ function CategoryCard({
   currLabel: string;
 }) {
   const { colorScheme } = useColorScheme();
+  const theme = useTheme();
   const c = category;
 
   const fmt = (v: number) =>
@@ -321,8 +324,8 @@ function CategoryCard({
     <Card className="mb-3">
       {/* Category header */}
       <View className="flex-row items-center mb-3">
-        <Ionicons name={icon} size={16} color={StatusColors[colorScheme].muted} style={{ marginRight: 6 }} />
-        <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+        <Ionicons name={icon} size={16} color={theme.faintForeground} style={{ marginRight: 6 }} />
+        <Text className="text-sm font-bold text-foreground">
           {c.label}
         </Text>
       </View>
@@ -330,26 +333,26 @@ function CategoryCard({
       {/* Column headers */}
       <View className="flex-row mb-1.5">
         <View className="flex-1" />
-        <Text className="w-20 text-[10px] font-semibold text-text-tertiary text-right">
+        <Text className="w-20 text-label font-semibold text-faint-foreground text-right">
           {prevLabel}
         </Text>
-        <Text className="w-20 text-[10px] font-semibold text-text-tertiary text-right">
+        <Text className="w-20 text-label font-semibold text-faint-foreground text-right">
           {currLabel}
         </Text>
-        <Text className="w-16 text-[10px] font-semibold text-text-tertiary text-right">
+        <Text className="w-16 text-label font-semibold text-faint-foreground text-right">
           Change
         </Text>
       </View>
 
       {/* Planned row */}
-      <View className="flex-row items-center py-1.5 border-b border-border-light dark:border-border-dark">
-        <Text className="flex-1 text-xs text-text-secondary dark:text-text-dark-secondary">
+      <View className="flex-row items-center py-1.5 border-b border-border">
+        <Text className="flex-1 text-xs text-muted-foreground">
           Planned
         </Text>
-        <Text className="w-20 text-xs text-text-secondary dark:text-text-dark-secondary text-right">
+        <Text className="w-20 text-xs text-muted-foreground text-right">
           {fmt(c.prevPlanned)}
         </Text>
-        <Text className="w-20 text-xs font-medium text-text-primary dark:text-text-dark-primary text-right">
+        <Text className="w-20 text-xs font-medium text-foreground text-right">
           {fmt(c.currPlanned)}
         </Text>
         <ChangeBadge value={plannedChangePct} lowerIsBetter={c.lowerIsBetter} />
@@ -357,13 +360,13 @@ function CategoryCard({
 
       {/* Actual row */}
       <View className="flex-row items-center py-1.5">
-        <Text className="flex-1 text-xs font-medium text-text-primary dark:text-text-dark-primary">
+        <Text className="flex-1 text-xs font-medium text-foreground">
           Actual
         </Text>
-        <Text className="w-20 text-xs text-text-secondary dark:text-text-dark-secondary text-right">
+        <Text className="w-20 text-xs text-muted-foreground text-right">
           {fmt(c.prevActual)}
         </Text>
-        <Text className="w-20 text-xs font-bold text-text-primary dark:text-text-dark-primary text-right">
+        <Text className="w-20 text-xs font-bold text-foreground text-right">
           {fmt(c.currActual)}
         </Text>
         <ChangeBadge value={actualChangePct} lowerIsBetter={c.lowerIsBetter} />
@@ -375,19 +378,19 @@ function CategoryCard({
           className="mt-2 px-3 py-1.5 rounded-lg flex-row items-center justify-between"
           style={{
             backgroundColor: currGap.isGood
-              ? StatusColors[colorScheme].successBg
-              : StatusColors[colorScheme].dangerBg,
+              ? theme.alpha("success", 0.08)
+              : theme.alpha("danger", 0.08),
           }}
         >
-          <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-label text-muted-foreground">
             Plan vs Actual ({currLabel})
           </Text>
           <Text
-            className="text-[10px] font-bold"
+            className="text-label font-bold"
             style={{
               color: currGap.isGood
-                ? StatusColors[colorScheme].success
-                : StatusColors[colorScheme].danger,
+                ? theme.success
+                : theme.danger,
             }}
           >
             {currGap.diff > 0 ? "+" : ""}{c.isAmount ? formatCompact(currGap.diff) : `${currGap.diff.toFixed(1)}pp`}
@@ -401,10 +404,11 @@ function CategoryCard({
 
 function ChangeBadge({ value, lowerIsBetter }: { value: number; lowerIsBetter: boolean }) {
   const { colorScheme } = useColorScheme();
+  const theme = useTheme();
   if (value === 0) return <View className="w-16" />;
 
   const isGood = lowerIsBetter ? value < 0 : value > 0;
-  const color = isGood ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger;
+  const color = isGood ? theme.success : theme.danger;
 
   return (
     <View className="w-16 flex-row items-center justify-end">
@@ -413,7 +417,7 @@ function ChangeBadge({ value, lowerIsBetter }: { value: number; lowerIsBetter: b
         style={{ backgroundColor: color + "14" }}
       >
         <Ionicons name={value > 0 ? "arrow-up" : "arrow-down"} size={8} color={color} />
-        <Text className="text-[10px] font-medium ml-0.5" style={{ color }}>
+        <Text className="text-label font-medium ml-0.5" style={{ color }}>
           {Math.abs(value)}%
         </Text>
       </View>

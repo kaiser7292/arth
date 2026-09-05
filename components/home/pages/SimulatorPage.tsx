@@ -1,25 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-  TextInput,
-  Modal,
-  KeyboardAvoidingView,
-} from "react-native";
-import { useRouter } from "expo-router";
+import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView, Platform } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card } from "@/components/ui";
+import { Card, LoadingState, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/hooks/use-alert";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
-import { StatusColors } from "@/constants/theme";
-import { ac } from "@/utils/accent";
+
+
 import { logger } from "@/utils/logger";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import {
@@ -31,10 +21,18 @@ import {
   getScenarioOverviewsBatch,
   deleteScenario,
   archiveScenario,
+  restoreScenario,
   duplicateScenario,
+  duplicateScenarioFullSetup,
   updateScenario,
 } from "@/services/simulator";
 import type { SimulationScenario, ScenarioOverview } from "@/services/simulator";
+import { useTheme } from "@/hooks/use-theme";
+
+/**
+ * Scenario list — entry point from the Home card.
+ * Lazy-initialises the default scenario on first mount.
+ */
 
 function endOfMonthIso(): string {
   const d = new Date();
@@ -56,11 +54,21 @@ interface ScenarioCardData {
   overview: ScenarioOverview | null;
 }
 
+/**
+ * The cash-flow scenario list.
+ *
+ * The single implementation, rendered by the Home swipe-pager and by app/simulator/index.tsx.
+ *
+ * This body came from the ROUTE, which had become the superset: it grew a duplicate-scenario
+ * modal offering "upcoming only" vs "full setup", while the pager copy still called
+ * duplicateScenario directly and silently lacked the choice. That is precisely the drift this
+ * consolidation exists to stop.
+ */
 export function SimulatorPage() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
-  const sc = StatusColors[colorScheme];
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const [active, setActive] = useState<ScenarioCardData[]>([]);
   const [archived, setArchived] = useState<SimulationScenario[]>([]);
@@ -68,13 +76,24 @@ export function SimulatorPage() {
   const [createSheetVisible, setCreateSheetVisible] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
+  const [duplicatePending, setDuplicatePending] = useState<{ id: string; name: string } | null>(null);
+  const [duplicateMode, setDuplicateMode] = useState<"upcoming" | "full">("upcoming");
+  const [duplicating, setDuplicating] = useState(false);
+
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       await purgeRetention(DEFAULT_USER_ID);
+      // v16.0.4 — no longer auto-create a default scenario on open. Scenarios
+      // are strictly user-initiated. The simulator home shows an empty state
+      // until the user taps "+ New scenario".
       const [activeList, archivedList] = await Promise.all([
         listActiveScenarios(DEFAULT_USER_ID),
         listArchivedScenarios(DEFAULT_USER_ID, 90),
       ]);
+
+      // v17.5.3 — batch overview fetch. Computes baseline once across all
+      // scenarios instead of once per scenario (was 4 queries × N).
       const overviews = await getScenarioOverviewsBatch(
         activeList.map((s) => s.id),
         DEFAULT_USER_ID,
@@ -93,7 +112,15 @@ export function SimulatorPage() {
     }
   }, []);
 
-  useDataRefresh(load);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const handleOpenScenario = useCallback(
     (scenarioId: string) => {
@@ -108,6 +135,8 @@ export function SimulatorPage() {
       if (!trimmed) return;
       try {
         if (copyFromScenarioId) {
+          // v16.0.1 — use duplicateScenario (copies upcoming entries only),
+          // then rename + re-horizon the copy to what the user picked.
           const id = await duplicateScenario(copyFromScenarioId);
           await updateScenario(id, { name: trimmed, horizon_date: horizon });
           setCreateSheetVisible(false);
@@ -126,27 +155,40 @@ export function SimulatorPage() {
   );
 
   const handleDuplicate = useCallback(
-    async (scenarioId: string) => {
-      try {
-        const id = await duplicateScenario(scenarioId);
-        await load();
-        router.push(`/simulator/${id}` as never);
-      } catch (e) {
-        alert("Couldn't duplicate", e instanceof Error ? e.message : String(e));
-      }
+    (scenarioId: string) => {
+      const scenario = active.find((a) => a.scenario.id === scenarioId);
+      setDuplicateMode("upcoming");
+      setDuplicatePending({ id: scenarioId, name: scenario?.scenario.name ?? "Scenario" });
     },
-    [load, alert, router],
+    [active],
   );
+
+  const executeDuplicate = useCallback(async () => {
+    if (!duplicatePending) return;
+    setDuplicating(true);
+    try {
+      const id = duplicateMode === "full"
+        ? await duplicateScenarioFullSetup(duplicatePending.id)
+        : await duplicateScenario(duplicatePending.id);
+      setDuplicatePending(null);
+      await load();
+      router.push(`/simulator/${id}` as never);
+    } catch (e) {
+      alert("Couldn't duplicate", e instanceof Error ? e.message : String(e));
+    } finally {
+      setDuplicating(false);
+    }
+  }, [duplicatePending, duplicateMode, load, alert, router]);
 
   const handleArchive = useCallback(
     (s: SimulationScenario) => {
       alert(
-        "Archive scenario?",
-        `"${s.name}" will move to the archived list. You can still view it for 90 days.`,
+        "Mark as done?",
+        `"${s.name}" will move to the Completed list. You can restore it at any time.`,
         [
           { text: "Cancel", style: "cancel" },
           {
-            text: "Archive",
+            text: "Mark done",
             onPress: async () => {
               await archiveScenario(s.id);
               await load();
@@ -181,11 +223,8 @@ export function SimulatorPage() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color={colors.textSecondary} />
-        <Text className="text-sm mt-2" style={{ color: colors.textSecondary }}>
-          Loading simulator…
-        </Text>
+      <View style={{ flex: 1 }}>
+        <LoadingState message="Loading simulator…" icon="pulse-outline" />
       </View>
     );
   }
@@ -198,13 +237,14 @@ export function SimulatorPage() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 64 }}
       >
+        {/* v16.0.5 — empty state for a fresh simulator home. */}
         {showEmptyState ? (
           <View className="items-center justify-center px-6 pt-20 pb-8">
             <View
               className="w-16 h-16 rounded-full items-center justify-center mb-4"
-              style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.1) }}
             >
-              <Ionicons name="pulse-outline" size={32} color={accent[500]} />
+              <Ionicons name="pulse-outline" size={32} color={theme.primary} />
             </View>
             <Text className="text-lg font-bold text-center" style={{ color: colors.text }}>
               Plan your next month
@@ -216,12 +256,12 @@ export function SimulatorPage() {
             <Pressable
               onPress={() => setCreateSheetVisible(true)}
               className="mt-6 py-3 px-6 rounded-xl flex-row items-center"
-              style={{ backgroundColor: accent[500] }}
+              style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
               accessibilityLabel="Create your first scenario"
             >
               <Ionicons name="add" size={18} color="#fff" />
-              <Text className="text-sm font-semibold text-white ml-1.5">
+              <Text className="text-sm font-semibold text-primary-foreground ml-1.5">
                 New scenario
               </Text>
             </Pressable>
@@ -245,6 +285,10 @@ export function SimulatorPage() {
             </View>
 
             {active.map(({ scenario, overview }) => {
+              // v16.0.5 — fold hisaab inclusions into the preview numbers
+              // so list cards agree with the detail screen. Inclusion net
+              // is constant across the window (not a cash-flow event), so
+              // it lifts start and end by the same amount.
               const hisaabNet = (overview?.hisaabIncluded ?? []).reduce(
                 (s, h) => s + (h.amount_sign === "positive" ? h.amount : -h.amount),
                 0,
@@ -252,12 +296,13 @@ export function SimulatorPage() {
               const netWorthEnd = (overview?.simulation.netWorthEnd ?? 0) + hisaabNet;
               const netWorthStart = (overview?.simulation.netWorthStart ?? 0) + hisaabNet;
               const delta = netWorthEnd - netWorthStart;
-              const deltaColor = delta >= 0 ? sc.success : sc.danger;
+              const deltaColor = delta >= 0 ? theme.success : theme.danger;
               const warnings = overview?.simulation.warnings ?? [];
 
               return (
                 <Card key={scenario.id} className="mx-4 mt-2">
                   <Pressable onPress={() => handleOpenScenario(scenario.id)} accessibilityRole="button">
+                    {/* Header — name, default chip, horizon, warning chip */}
                     <View className="flex-row items-center">
                       <Text
                         className="text-base font-bold flex-1"
@@ -269,9 +314,9 @@ export function SimulatorPage() {
                       {scenario.is_default === 1 && (
                         <View
                           className="ml-2 px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: ac(accent, colorScheme, 100, 800) }}
+                          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                         >
-                          <Text className="text-[9px] font-semibold" style={{ color: accent[500] }}>
+                          <Text className="text-label font-semibold" style={{ color: theme.primary }}>
                             DEFAULT
                           </Text>
                         </View>
@@ -291,20 +336,21 @@ export function SimulatorPage() {
                       {warnings.length > 0 && (
                         <View
                           className="ml-2 flex-row items-center px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: sc.danger + "14" }}
+                          style={{ backgroundColor: theme.danger + "14" }}
                         >
-                          <Ionicons name="warning-outline" size={10} color={sc.danger} />
-                          <Text className="text-[9px] font-semibold ml-1" style={{ color: sc.danger }}>
+                          <Ionicons name="warning-outline" size={10} color={theme.danger} />
+                          <Text className="text-label font-semibold ml-1" style={{ color: theme.danger }}>
                             {warnings.length} {warnings.length === 1 ? "issue" : "issues"}
                           </Text>
                         </View>
                       )}
                     </View>
 
+                    {/* Hero — today → horizon */}
                     <View className="mt-4 flex-row items-end justify-between">
                       <View className="flex-1">
                         <Text
-                          className="text-[10px] font-semibold uppercase"
+                          className="text-label font-semibold uppercase"
                           style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
                           numberOfLines={1}
                         >
@@ -317,7 +363,7 @@ export function SimulatorPage() {
                       <Ionicons name="arrow-forward" size={14} color={colors.textSecondary} style={{ marginBottom: 2, marginHorizontal: 6 }} />
                       <View className="flex-1 items-end">
                         <Text
-                          className="text-[10px] font-semibold uppercase"
+                          className="text-label font-semibold uppercase"
                           style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
                           numberOfLines={1}
                         >
@@ -338,7 +384,7 @@ export function SimulatorPage() {
                           size={10}
                           color={deltaColor}
                         />
-                        <Text className="text-[10px] font-semibold ml-1" style={{ color: deltaColor }}>
+                        <Text className="text-label font-semibold ml-1" style={{ color: deltaColor }}>
                           {delta >= 0 ? "+" : ""}
                           {formatAmount(Math.round(delta))}
                         </Text>
@@ -346,7 +392,10 @@ export function SimulatorPage() {
                     </View>
                   </Pressable>
 
-                  <View className="flex-row mt-4 gap-2 pt-3 border-t border-border-light dark:border-border-dark">
+                  {/* Secondary actions — always visible. v16.0.5:
+                      no more default-scenario exemption; any active scenario
+                      can be duplicated / archived / deleted from the list. */}
+                  <View className="flex-row mt-4 gap-2 pt-3 border-t border-border">
                     <Pressable
                       onPress={() => handleDuplicate(scenario.id)}
                       className="flex-1 py-2 items-center rounded-lg"
@@ -359,21 +408,22 @@ export function SimulatorPage() {
                     </Pressable>
                     <Pressable
                       onPress={() => handleArchive(scenario)}
-                      className="flex-1 py-2 items-center rounded-lg"
-                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-                      accessibilityLabel="Archive scenario"
+                      className="flex-1 py-2 items-center rounded-lg flex-row justify-center gap-1"
+                      style={{ backgroundColor: theme.success + "14", borderWidth: 1, borderColor: theme.success + "40" }}
+                      accessibilityLabel="Mark scenario as done"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
-                        Archive
+                      <Ionicons name="checkmark" size={13} color={theme.success} />
+                      <Text className="text-xs font-semibold" style={{ color: theme.success }}>
+                        Mark done
                       </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => handleDelete(scenario)}
                       className="flex-1 py-2 items-center rounded-lg"
-                      style={{ backgroundColor: sc.danger + "14" }}
+                      style={{ backgroundColor: theme.danger + "14" }}
                       accessibilityLabel="Delete scenario"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: sc.danger }}>
+                      <Text className="text-xs font-semibold" style={{ color: theme.danger }}>
                         Delete
                       </Text>
                     </Pressable>
@@ -385,12 +435,12 @@ export function SimulatorPage() {
             <Pressable
               onPress={() => setCreateSheetVisible(true)}
               className="mx-4 mt-4 py-3 rounded-xl items-center flex-row justify-center"
-              style={{ backgroundColor: accent[500] }}
+              style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
               accessibilityLabel="Create new scenario"
             >
               <Ionicons name="add" size={18} color="#fff" />
-              <Text className="text-sm font-semibold text-white ml-1.5">
+              <Text className="text-sm font-semibold text-primary-foreground ml-1.5">
                 New scenario
               </Text>
             </Pressable>
@@ -403,7 +453,7 @@ export function SimulatorPage() {
               onPress={() => setShowArchived((v) => !v)}
               className="mx-4 flex-row items-center"
               accessibilityRole="button"
-              accessibilityLabel={showArchived ? "Hide archived" : "Show archived"}
+              accessibilityLabel={showArchived ? "Hide completed" : "Show completed"}
             >
               <Ionicons
                 name={showArchived ? "chevron-down" : "chevron-forward"}
@@ -414,20 +464,38 @@ export function SimulatorPage() {
                 className="ml-1 text-xs font-semibold uppercase tracking-wider"
                 style={{ color: colors.textSecondary }}
               >
-                Archived · {archived.length}
+                Completed · {archived.length}
               </Text>
             </Pressable>
             {showArchived && archived.map((s) => (
-              <View key={s.id} style={{ opacity: 0.7 }}>
+              <View key={s.id} style={{ opacity: 0.8 }}>
                 <Card className="mx-4 mt-2">
-                  <Pressable onPress={() => handleOpenScenario(s.id)}>
-                    <Text className="text-sm font-semibold" style={{ color: colors.text }}>
-                      {s.name}
-                    </Text>
-                    <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                      Horizon · {prettyDate(s.horizon_date)}
-                    </Text>
-                  </Pressable>
+                  <View className="flex-row items-center">
+                    <View
+                      className="w-6 h-6 rounded-full items-center justify-center mr-3"
+                      style={{ backgroundColor: theme.success + "22" }}
+                    >
+                      <Ionicons name="checkmark" size={13} color={theme.success} />
+                    </View>
+                    <Pressable className="flex-1" onPress={() => handleOpenScenario(s.id)}>
+                      <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                        {s.name}
+                      </Text>
+                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                        Horizon · {prettyDate(s.horizon_date)}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={async () => { await restoreScenario(s.id); await load(); }}
+                      className="px-3 py-1.5 rounded-lg ml-2"
+                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                      accessibilityLabel="Restore scenario"
+                    >
+                      <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
+                        Restore
+                      </Text>
+                    </Pressable>
+                  </View>
                 </Card>
               </View>
             ))}
@@ -441,11 +509,91 @@ export function SimulatorPage() {
         onCreate={handleCreate}
         onClose={() => setCreateSheetVisible(false)}
       />
+
+      {/* Duplicate mode picker */}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={duplicatePending !== null}
+        onRequestClose={() => setDuplicatePending(null)}
+      >
+        <Pressable className="flex-1 bg-black/40" onPress={() => setDuplicatePending(null)} />
+        <View
+          style={{
+            position: "absolute", left: 0, right: 0, bottom: 0,
+            backgroundColor: colors.surface,
+            borderTopLeftRadius: 20, borderTopRightRadius: 20,
+            paddingBottom: 28, paddingHorizontal: 20,
+          }}
+        >
+          <View className="items-center pt-3 pb-1">
+            <View className="w-10 h-1 rounded-full bg-border" />
+          </View>
+          <Text className="text-base font-bold text-foreground pt-2 pb-4">
+            Duplicate "{duplicatePending?.name}"
+          </Text>
+
+          {(["upcoming", "full"] as const).map((mode) => {
+            const isActive = duplicateMode === mode;
+            return (
+              <Pressable
+                key={mode}
+                onPress={() => setDuplicateMode(mode)}
+                className="flex-row items-start p-4 rounded-xl mb-3"
+                style={{
+                  backgroundColor: isActive ? theme.alpha("primary", 0.07) : colors.surface,
+                  borderWidth: 1.5,
+                  borderColor: isActive ? theme.primary : colors.border,
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isActive }}
+              >
+                <View
+                  className="w-5 h-5 rounded-full border-2 items-center justify-center mt-0.5 mr-3"
+                  style={{ borderColor: isActive ? theme.primary : colors.border, backgroundColor: isActive ? theme.primary : "transparent" }}
+                >
+                  {isActive && <View className="w-2 h-2 rounded-full bg-white" />}
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold" style={{ color: isActive ? theme.primary : colors.text }}>
+                    {mode === "upcoming" ? "Upcoming only" : "Full setup"}
+                  </Text>
+                  <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                    {mode === "upcoming"
+                      ? "Copy only future entries. Dates keep as-is."
+                      : "Copy all entries and reset them to upcoming."}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+
+          <View className="flex-row gap-3 pt-1">
+            <Pressable
+              onPress={() => setDuplicatePending(null)}
+              className="flex-1 py-3 rounded-xl items-center border border-border"
+              style={{ backgroundColor: colors.surface }}
+            >
+              <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
+            </Pressable>
+            <Pressable
+              onPress={executeDuplicate}
+              disabled={duplicating}
+              className="flex-1 py-3 rounded-xl items-center"
+              style={{ backgroundColor: theme.primary, opacity: duplicating ? 0.6 : 1 }}
+            >
+              <Text className="text-sm font-semibold text-primary-foreground">{duplicating ? "Copying…" : "Duplicate"}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-// ── NewScenarioSheet (inline) ──
+// ═══════════════════════════════════════════════════════════════════════
+// NewScenarioSheet (inline)
+// ═══════════════════════════════════════════════════════════════════════
 
 function NewScenarioSheet({
   visible,
@@ -458,7 +606,8 @@ function NewScenarioSheet({
   onCreate: (name: string, horizon: string, copyFromScenarioId: string | null) => void;
   onClose: () => void;
 }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [horizon, setHorizon] = useState(endOfMonthIso());
@@ -488,6 +637,7 @@ function NewScenarioSheet({
         accessibilityLabel="Close"
       />
       <KeyboardAvoidingView
+        // v16.0.6 — `padding` on both platforms (see EntryEditSheet note).
         behavior="padding"
         keyboardVerticalOffset={0}
         style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
@@ -502,7 +652,7 @@ function NewScenarioSheet({
           }}
         >
           <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
           <View className="px-5 pb-3">
             <Text className="text-base font-bold" style={{ color: colors.text }}>
@@ -519,88 +669,89 @@ function NewScenarioSheet({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 8 }}
           >
-            <View className="px-5 pb-3">
-              <Text
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
-              >
-                Name
+          <View className="px-5 pb-3">
+            <Text
+              className="text-xs font-semibold uppercase tracking-wider mb-2"
+              style={{ color: colors.textSecondary }}
+            >
+              Name
+            </Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="e.g. With Goa trip"
+              placeholderTextColor={colors.textSecondary}
+              className="border border-border rounded-lg px-3 py-3 text-sm"
+              style={{ color: colors.text }}
+            />
+          </View>
+          <View className="px-5 pb-3">
+            <Text
+              className="text-xs font-semibold uppercase tracking-wider mb-2"
+              style={{ color: colors.textSecondary }}
+            >
+              Horizon
+            </Text>
+            <Pressable
+              onPress={() => setPicker(true)}
+              className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
+            >
+              <Text className="text-sm" style={{ color: colors.text }}>
+                {prettyDate(horizon)}
               </Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g. With Goa trip"
-                placeholderTextColor={colors.textSecondary}
-                className="border border-border-light dark:border-border-dark rounded-lg px-3 py-3 text-sm"
-                style={{ color: colors.text }}
-              />
-            </View>
-            <View className="px-5 pb-3">
-              <Text
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
-              >
-                Horizon
-              </Text>
-              <Pressable
-                onPress={() => setPicker(true)}
-                className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
-              >
-                <Text className="text-sm" style={{ color: colors.text }}>
-                  {prettyDate(horizon)}
-                </Text>
-                <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
-              </Pressable>
-            </View>
+              <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+            </Pressable>
+          </View>
 
-            {existingScenarios.length > 0 && (
-              <View className="px-5 pb-3">
-                <Text
-                  className="text-xs font-semibold uppercase tracking-wider mb-2"
-                  style={{ color: colors.textSecondary }}
+          {/* v16.0.1 — copy entries from an existing scenario */}
+          {existingScenarios.length > 0 && (
+            <View className="px-5 pb-3">
+              <Text
+                className="text-xs font-semibold uppercase tracking-wider mb-2"
+                style={{ color: colors.textSecondary }}
+              >
+                Copy entries from (optional)
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                <Pressable
+                  onPress={() => setCopyFrom(null)}
+                  className="px-3 py-2 rounded-full"
+                  style={{
+                    backgroundColor: copyFrom === null ? theme.primary + "26" : colors.surface,
+                    borderWidth: 1,
+                    borderColor: copyFrom === null ? theme.primary : colors.border,
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: copyFrom === null }}
                 >
-                  Copy entries from (optional)
-                </Text>
-                <View className="flex-row flex-wrap gap-2">
-                  <Pressable
-                    onPress={() => setCopyFrom(null)}
-                    className="px-3 py-2 rounded-full"
-                    style={{
-                      backgroundColor: copyFrom === null ? ac(accent, colorScheme, 500, 300) + "26" : colors.surface,
-                      borderWidth: 1,
-                      borderColor: copyFrom === null ? ac(accent, colorScheme, 500, 300) : colors.border,
-                    }}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: copyFrom === null }}
-                  >
-                    <Text className="text-xs font-semibold" style={{ color: copyFrom === null ? colors.text : colors.textSecondary }}>
-                      Start fresh
-                    </Text>
-                  </Pressable>
-                  {existingScenarios.map((s) => {
-                    const isActive = copyFrom === s.id;
-                    return (
-                      <Pressable
-                        key={s.id}
-                        onPress={() => setCopyFrom(s.id)}
-                        className="px-3 py-2 rounded-full"
-                        style={{
-                          backgroundColor: isActive ? ac(accent, colorScheme, 500, 300) + "26" : colors.surface,
-                          borderWidth: 1,
-                          borderColor: isActive ? ac(accent, colorScheme, 500, 300) : colors.border,
-                        }}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: isActive }}
-                      >
-                        <Text className="text-xs font-semibold" style={{ color: isActive ? colors.text : colors.textSecondary }} numberOfLines={1}>
-                          {s.name}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                  <Text className="text-xs font-semibold" style={{ color: copyFrom === null ? colors.text : colors.textSecondary }}>
+                    Start fresh
+                  </Text>
+                </Pressable>
+                {existingScenarios.map((s) => {
+                  const active = copyFrom === s.id;
+                  return (
+                    <Pressable
+                      key={s.id}
+                      onPress={() => setCopyFrom(s.id)}
+                      className="px-3 py-2 rounded-full"
+                      style={{
+                        backgroundColor: active ? theme.primary + "26" : colors.surface,
+                        borderWidth: 1,
+                        borderColor: active ? theme.primary : colors.border,
+                      }}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                    >
+                      <Text className="text-xs font-semibold" style={{ color: active ? colors.text : colors.textSecondary }} numberOfLines={1}>
+                        {s.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
-            )}
+            </View>
+          )}
           </ScrollView>
 
           <View className="flex-row px-5 pt-3 gap-3">
@@ -617,9 +768,9 @@ function NewScenarioSheet({
               onPress={() => onCreate(name, horizon, copyFrom)}
               disabled={!canSave}
               className="flex-1 py-3 rounded-xl items-center"
-              style={{ backgroundColor: accent[500], opacity: canSave ? 1 : 0.5 }}
+              style={{ backgroundColor: theme.primary, opacity: canSave ? 1 : 0.5 }}
             >
-              <Text className="text-sm font-semibold text-white">Create</Text>
+              <Text className="text-sm font-semibold text-primary-foreground">Create</Text>
             </Pressable>
           </View>
         </View>

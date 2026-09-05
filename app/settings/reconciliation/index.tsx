@@ -1,13 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
+
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
-import { FAB, ProgressBar, ScreenContainer } from "@/components/ui";
+import { ActivityIndicator, FlatList, Pressable, View } from "react-native";
+import { FAB, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getSessions, deleteSession, type ReconciliationSession } from "@/services/reconciliation/reconciliation-crud";
+import { useTheme, type Theme } from "@/hooks/use-theme";
 
 function statusLabel(status: string): string {
   if (status === "completed") return "Completed";
@@ -15,10 +17,13 @@ function statusLabel(status: string): string {
   return "Abandoned";
 }
 
-function statusColor(status: string, accent: any, colors: any): string {
-  if (status === "completed") return "#22C55E";
-  if (status === "in_progress") return accent[500];
-  return colors.textSecondary;
+/** Takes the theme as an argument: this is a plain helper, not a component, so it must not
+ *  call a hook. It is invoked from inside map callbacks, where a conditional hook call would
+ *  break hook order. */
+function statusColor(status: string, theme: Theme): string {
+  if (status === "completed") return theme.success;
+  if (status === "in_progress") return theme.primary;
+  return theme.mutedForeground;
 }
 
 function formatDate(iso: string): string {
@@ -29,7 +34,8 @@ function formatDate(iso: string): string {
 
 export default function ReconciliationHubScreen() {
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const alert = useAlert();
 
   const [sessions, setSessions] = useState<ReconciliationSession[]>([]);
@@ -74,7 +80,7 @@ export default function ReconciliationHubScreen() {
 
   const renderItem = ({ item }: { item: ReconciliationSession }) => {
     const account = accounts[item.account_id];
-    const color = statusColor(item.status, accent, colors);
+    const color = statusColor(item.status, theme);
     const matchRatio = item.total_stmt_count
       ? (item.matched_count ?? 0) / item.total_stmt_count
       : null;
@@ -85,7 +91,7 @@ export default function ReconciliationHubScreen() {
     return (
       <Pressable
         onPress={() => router.push(`/settings/reconciliation/${item.id}`)}
-        className="py-3.5 border-b border-border-light dark:border-border-dark"
+        className="py-3.5 border-b border-border"
       >
         <View className="flex-row items-center">
           <View
@@ -99,10 +105,10 @@ export default function ReconciliationHubScreen() {
             />
           </View>
           <View className="flex-1 min-w-0">
-            <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+            <Text className="text-base font-medium text-foreground" numberOfLines={1}>
               {account ? (account.account_label || account.bank_name) : "Unknown account"}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {item.stmt_start_date && item.stmt_end_date
                 ? `${formatDate(item.stmt_start_date)} – ${formatDate(item.stmt_end_date)}`
                 : formatDate(item.created_at)}
@@ -113,7 +119,7 @@ export default function ReconciliationHubScreen() {
               {statusLabel(item.status)}
             </Text>
             {item.import_format && (
-              <Text className="text-[10px] text-text-tertiary uppercase mt-0.5">
+              <Text className="text-label text-faint-foreground uppercase mt-0.5">
                 {item.import_format}
               </Text>
             )}
@@ -127,7 +133,7 @@ export default function ReconciliationHubScreen() {
         {matchRatio !== null && (
           <View className="mt-2 ml-12 mr-10">
             <ProgressBar value={matchRatio} height={3} animated={false} />
-            <Text className="text-[10px] text-text-tertiary dark:text-text-dark-tertiary mt-1">
+            <Text className="text-label text-faint-foreground mt-1">
               {matchLabel}
             </Text>
           </View>
@@ -145,21 +151,24 @@ export default function ReconciliationHubScreen() {
       ) : sessions.length === 0 ? (
         <View className="flex-1 items-center justify-center pb-16 px-10">
           <Ionicons name="checkmark-done-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-semibold text-text-primary dark:text-text-dark-primary mt-4 text-center">
+          <Text className="text-lg font-semibold text-foreground mt-4 text-center">
             No reconciliations yet
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center">
+          <Text className="text-sm text-muted-foreground mt-1 text-center">
             Import a bank statement to match it against your Arth ledger and spot any gaps.
           </Text>
         </View>
       ) : (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={sessions}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
           ListHeaderComponent={
-            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mt-5 mb-1">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-5 mb-1">
               {sessions.length} session{sessions.length !== 1 ? "s" : ""}
             </Text>
           }

@@ -1,10 +1,13 @@
 import { memo } from "react";
-import { View, Text } from "react-native";
+
+import { Text } from "@/components/ui";
+import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { formatAmount } from "@/utils/format";
 
 import { StatusPill } from "@/components/ui/StatusPill";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ActionSuggestionCardProps {
   suggestion: string;
@@ -17,24 +20,25 @@ function ActionSuggestionCardBase({
   savingsAmount,
   difficulty,
 }: ActionSuggestionCardProps) {
-  const { accent, colorScheme } = useColorScheme();
+  
+  const theme = useTheme();
 
-  const difficultyColor = difficulty === "Easy" ? "#22C55E" : difficulty === "Medium" ? "#F59E0B" : "#EF4444";
+  const difficultyColor = difficulty === "Easy" ? theme.success : difficulty === "Medium" ? theme.warning : theme.danger;
 
   return (
     <View
       className="rounded-2xl p-4 mb-3"
-      style={{ backgroundColor: accent[50] + "50", borderWidth: 1, borderColor: accent[200] }}
+      style={{ backgroundColor: theme.alpha("primary", 0.31), borderWidth: 1, borderColor: theme.alpha("primary", 0.25) }}
       accessibilityLabel={`Suggestion: ${suggestion}. Potential savings: ${formatAmount(savingsAmount)} per month. Difficulty: ${difficulty}`}
     >
       <View className="flex-row items-start">
-        <Ionicons name="bulb" size={18} color={accent[600]} style={{ marginRight: 8, marginTop: 1 }} />
+        <Ionicons name="bulb" size={18} color={theme.primary} style={{ marginRight: 8, marginTop: 1 }} />
         <View className="flex-1">
-          <Text className="text-sm text-text-primary dark:text-text-dark-primary leading-5">
+          <Text className="text-sm text-foreground leading-5">
             {suggestion}
           </Text>
           {savingsAmount > 0 && (
-            <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary mt-1">
+            <Text className="text-sm font-bold text-foreground mt-1">
               Save {formatAmount(savingsAmount)}/month
             </Text>
           )}

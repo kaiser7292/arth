@@ -1,12 +1,13 @@
 import { memo } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card } from "@/components/ui";
+import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
+import { useTheme } from "@/hooks/use-theme";
 
 interface DematSummaryCardProps {
   totalPortfolio: number;
@@ -20,7 +21,8 @@ function DematSummaryCardImpl({
   accountCount,
 }: DematSummaryCardProps) {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   if (accountCount === 0) return null;
 
@@ -39,18 +41,18 @@ function DematSummaryCardImpl({
           <View className="flex-row items-center mb-3">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: acAlpha(accent, 600, 0.08) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
               <Ionicons
                 name="trending-up-outline"
                 size={20}
-                color={ac(accent, colorScheme, 700, 300)}
+                color={theme.primary}
               />
             </View>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
               Demat Accounts
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+            <Text className="text-xs text-muted-foreground mr-2">
               {accountCount} account{accountCount !== 1 ? "s" : ""}
             </Text>
             <Ionicons
@@ -62,12 +64,12 @@ function DematSummaryCardImpl({
 
           {/* Portfolio Value */}
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               Portfolio Value
             </Text>
             <Text
               className="text-sm font-bold"
-              style={{ color: totalPortfolio > 0 ? STATUS_COLORS.success : colors.text }}
+              style={{ color: totalPortfolio > 0 ? theme.success : colors.text }}
             >
               {formatAmount(totalPortfolio)}
             </Text>
@@ -76,10 +78,10 @@ function DematSummaryCardImpl({
           {/* Fund Balance */}
           {totalFund > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Idle Cash / Fund
               </Text>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm font-semibold text-foreground">
                 {formatAmount(totalFund)}
               </Text>
             </View>
@@ -87,11 +89,11 @@ function DematSummaryCardImpl({
 
           {/* Total */}
           {totalFund > 0 && (
-            <View className="flex-row justify-between pt-1 mt-1 border-t border-border-light dark:border-border-dark">
-              <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+            <View className="flex-row justify-between pt-1 mt-1 border-t border-border">
+              <Text className="text-xs font-medium text-muted-foreground">
                 Total
               </Text>
-              <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm font-bold text-foreground">
                 {formatAmount(total)}
               </Text>
             </View>

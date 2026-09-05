@@ -1,13 +1,14 @@
 import { memo } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card } from "@/components/ui";
+import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac, acAlpha } from "@/utils/accent";
+
 import { formatAmount } from "@/utils/format";
-import { STATUS_COLORS } from "@/constants/semantic-colors";
+
 import type { FinancialAccount } from "@/services/financial-account";
+import { useTheme, type Theme } from "@/hooks/use-theme";
 
 interface CreditCardDashboardProps {
   accounts: FinancialAccount[];
@@ -15,15 +16,19 @@ interface CreditCardDashboardProps {
   computedBalances: Record<string, number | null>;
 }
 
-function getUtilColor(pct: number): string {
-  if (pct > 75) return STATUS_COLORS.error;
-  if (pct > 50) return STATUS_COLORS.warning;
-  return STATUS_COLORS.success;
+/** Takes the theme as an argument. This is a plain helper, not a component, so it must not
+ *  call a hook: it is invoked conditionally, and a hook that runs on some renders and not
+ *  others changes the hook count between renders, which React throws on. */
+function getUtilColor(pct: number, theme: Theme): string {
+  if (pct > 75) return theme.danger;
+  if (pct > 50) return theme.warning;
+  return theme.success;
 }
 
 function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: CreditCardDashboardProps) {
   const router = useRouter();
-  const { accent, colorScheme, colors } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   if (accounts.length === 0) return null;
 
@@ -73,7 +78,7 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
   const totalUtilized = Array.from(utilizedByBank.values()).reduce((sum, v) => sum + v, 0);
   const totalAvailable = totalLimit - totalUtilized;
   const overallUtil = totalLimit > 0 ? (totalUtilized / totalLimit) * 100 : null;
-  const overallUtilColor = overallUtil != null ? getUtilColor(overallUtil) : STATUS_COLORS.muted;
+  const overallUtilColor = overallUtil != null ? getUtilColor(overallUtil, theme) : theme.faintForeground;
 
   return (
     <View>
@@ -88,18 +93,18 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
           <View className="flex-row items-center mb-3">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
               <Ionicons
                 name="card-outline"
                 size={20}
-                color={ac(accent, colorScheme, 600, 300)}
+                color={theme.primary}
               />
             </View>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
               Credit Cards
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+            <Text className="text-xs text-muted-foreground mr-2">
               {accounts.length} card{accounts.length !== 1 ? "s" : ""}
             </Text>
             <Ionicons
@@ -111,20 +116,20 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
 
           {/* Three-line breakdown: Limit, Utilized, Remaining */}
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Credit Limit</Text>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-xs text-muted-foreground">Credit Limit</Text>
+            <Text className="text-sm font-semibold text-foreground">
               {formatAmount(totalLimit)}
             </Text>
           </View>
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Utilized</Text>
-            <Text className="text-sm font-semibold" style={{ color: totalUtilized > 0 ? STATUS_COLORS.error : colors.text }}>
+            <Text className="text-xs text-muted-foreground">Utilized</Text>
+            <Text className="text-sm font-semibold" style={{ color: totalUtilized > 0 ? theme.danger : colors.text }}>
               {formatAmount(totalUtilized)}
             </Text>
           </View>
           <View className="flex-row justify-between mb-2">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Remaining</Text>
-            <Text className="text-sm font-bold" style={{ color: STATUS_COLORS.success }}>
+            <Text className="text-xs text-muted-foreground">Remaining</Text>
+            <Text className="text-sm font-bold" style={{ color: theme.success }}>
               {formatAmount(totalAvailable)}
             </Text>
           </View>
@@ -132,7 +137,7 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
           {/* Utilization bar */}
           {overallUtil != null && (
             <View>
-              <View className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700">
+              <View className="h-1.5 rounded-full bg-border">
                 <View
                   className="h-1.5 rounded-full"
                   style={{
@@ -141,7 +146,7 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
                   }}
                 />
               </View>
-              <Text className="text-[10px] mt-0.5" style={{ color: overallUtilColor }}>
+              <Text className="text-label mt-0.5" style={{ color: overallUtilColor }}>
                 {Math.round(overallUtil)}% used
               </Text>
             </View>

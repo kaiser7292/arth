@@ -1,11 +1,12 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
-import { SwipeableRow } from "@/components/ui";
+
+
+import { SwipeableRow, Text } from "@/components/ui";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import type { Expense } from "@/services/expense";
+import { useTheme } from "@/hooks/use-theme";
 
 interface ReviewQueueItemProps {
   expense: Expense;
@@ -30,12 +31,13 @@ export function ReviewQueueItem({
   onSplit,
   onPaidForFamily,
 }: ReviewQueueItemProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const isForecast = expense.nature === "forecast";
   const isCredit = expense.nature === "credit";
   const sourceIcon = SOURCE_ICONS[expense.source] ?? "document-outline";
-  const creditGreen = StatusColors[colorScheme].success;
-  const creditGreenBg = StatusColors[colorScheme].successBg;
+  const creditGreen = theme.success;
+  const creditGreenBg = theme.alpha("success", 0.08);
 
   const displayDate = isForecast && expense.due_date
     ? expense.due_date
@@ -55,14 +57,14 @@ export function ReviewQueueItem({
     >
       <Pressable
         onPress={() => onTap(expense.id)}
-        className="flex-row items-center px-4 py-3.5 bg-white dark:bg-surface-dark-alt border-b border-border-light dark:border-border-dark"
+        className="flex-row items-center px-4 py-3.5 bg-card border-b border-border"
       >
         {/* Source/nature icon */}
         <View
           className="w-10 h-10 rounded-full items-center justify-center mr-3"
           style={{
             backgroundColor: isForecast
-              ? StatusColors[colorScheme].warningBg
+              ? theme.alpha("warning", 0.08)
               : isCredit
                 ? creditGreenBg
                 : colors.blue + "14",
@@ -71,14 +73,14 @@ export function ReviewQueueItem({
           <Ionicons
             name={isForecast ? "time-outline" : isCredit ? "arrow-down-circle-outline" : sourceIcon}
             size={20}
-            color={isForecast ? StatusColors[colorScheme].warning : isCredit ? creditGreen : colors.blue}
+            color={isForecast ? theme.warning : isCredit ? creditGreen : colors.blue}
           />
         </View>
 
         {/* Left: Merchant + metadata */}
         <View className="flex-1 mr-3">
           <Text
-            className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
+            className="text-sm font-semibold text-foreground"
             numberOfLines={1}
           >
             {expense.description || expense.merchant_name || "Bank transaction"}
@@ -89,7 +91,7 @@ export function ReviewQueueItem({
                 className="px-1.5 py-0.5 rounded mr-1.5"
                 style={{ backgroundColor: creditGreenBg }}
               >
-                <Text className="text-[10px] font-semibold" style={{ color: creditGreen }}>
+                <Text className="text-label font-semibold" style={{ color: creditGreen }}>
                   CREDIT
                 </Text>
               </View>
@@ -102,19 +104,19 @@ export function ReviewQueueItem({
                     expense.forecast_type === "repayment"
                       ? colors.blue + "14"
                       : isOverdue
-                        ? StatusColors[colorScheme].dangerBg
-                        : StatusColors[colorScheme].warningBg,
+                        ? theme.alpha("danger", 0.08)
+                        : theme.alpha("warning", 0.08),
                 }}
               >
                 <Text
-                  className="text-[10px] font-semibold"
+                  className="text-label font-semibold"
                   style={{
                     color:
                       expense.forecast_type === "repayment"
                         ? colors.blue
                         : isOverdue
-                          ? StatusColors[colorScheme].danger
-                          : StatusColors[colorScheme].warning,
+                          ? theme.danger
+                          : theme.warning,
                   }}
                 >
                   {expense.forecast_type === "repayment"
@@ -126,7 +128,7 @@ export function ReviewQueueItem({
               </View>
             )}
             <Text
-              className="text-xs text-text-secondary dark:text-text-dark-secondary"
+              className="text-xs text-muted-foreground"
               numberOfLines={1}
             >
               {datePrefix}{formatDateForDisplay(displayDate)}
@@ -144,10 +146,10 @@ export function ReviewQueueItem({
                   onPaidForFamily(expense.id, expense.amount);
                 }}
                 className="w-9 h-9 rounded-lg items-center justify-center mr-1"
-                style={{ backgroundColor: StatusColors[colorScheme].warningBg }}
+                style={{ backgroundColor: theme.alpha("warning", 0.08) }}
                 hitSlop={4}
               >
-                <Ionicons name="home-outline" size={16} color={StatusColors[colorScheme].warning} />
+                <Ionicons name="home-outline" size={16} color={theme.warning} />
               </Pressable>
             )}
             {onSplit && (
@@ -157,7 +159,7 @@ export function ReviewQueueItem({
                   onSplit(expense.id, expense.amount);
                 }}
                 className="w-9 h-9 rounded-lg items-center justify-center"
-                style={{ backgroundColor: ac(accent, colorScheme, 50, 900) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 hitSlop={4}
               >
                 <Ionicons name="people-outline" size={16} color={colors.blue} />
@@ -172,7 +174,7 @@ export function ReviewQueueItem({
             className="text-sm font-bold"
             style={isCredit ? { color: creditGreen } : undefined}
           >
-            <Text className={isCredit ? "" : "text-text-primary dark:text-text-dark-primary"}>
+            <Text className={isCredit ? "" : "text-foreground"}>
               {isCredit ? "+" : ""}{formatAmount(expense.amount)}
             </Text>
           </Text>

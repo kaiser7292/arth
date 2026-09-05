@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
+
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, SectionList, Text, TextInput, View } from "react-native";
-import { LoadingState } from "@/components/ui";
+import { FlatList, Pressable, SectionList, TextInput, View } from "react-native";
+import { LoadingState, Text } from "@/components/ui";
 import { VaultIcon } from "@/components/ui/VaultIcon";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { ac } from "@/utils/accent";
+
 import {
   VAULT_CATEGORY_GROUPS,
   VAULT_CATEGORY_ICONS,
@@ -16,10 +17,22 @@ import {
   searchVaultEntries,
 } from "@/services/vault";
 import { consumeVaultPreload } from "@/services/home-preload";
+import { useTheme } from "@/hooks/use-theme";
 
-export function VaultPage() {
+/**
+ * The Vault list.
+ *
+ * The single implementation. `app/vault/index.tsx` is a thin route around this, and the Home
+ * swipe-pager renders it directly - previously each had its own near-identical 190-line copy, so
+ * every change to the vault had to be made twice or the two silently drifted.
+ *
+ * The route and the pager differ only in chrome: the route wraps this in a ScreenContainer and
+ * offers a FAB, while the pager has no room for one and uses an inline add row instead.
+ */
+export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean } = {}) {
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -73,20 +86,20 @@ export function VaultPage() {
     return (
       <Pressable
         onPress={() => router.push(`/vault/${item.id}`)}
-        className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+        className="flex-row items-center py-3 border-b border-border"
       >
         <View className="flex-1 min-w-0">
-          <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+          <Text className="text-base font-medium text-foreground">
             {item.title}
           </Text>
           {(item.email || item.username || item.phone) && (
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5" numberOfLines={1}>
+            <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
               {item.email || item.username || item.phone}
             </Text>
           )}
         </View>
         {needsLink && (
-          <View className="w-2 h-2 rounded-full mr-2 shrink-0" style={{ backgroundColor: "#F59E0B" }} />
+          <View className="w-2 h-2 rounded-full mr-2 shrink-0" style={{ backgroundColor: theme.warning }} />
         )}
         <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
       </Pressable>
@@ -110,7 +123,7 @@ export function VaultPage() {
           onChangeText={handleSearch}
           placeholder="Search vault..."
           placeholderTextColor={colors.textSecondary}
-          className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
+          className="flex-1 ml-2 text-sm text-foreground"
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -121,34 +134,38 @@ export function VaultPage() {
         )}
       </View>
 
-      {/* Add button row */}
-      <Pressable
-        onPress={() => router.push("/vault/add")}
-        className="mx-4 mb-2 flex-row items-center justify-center py-2 rounded-lg border border-border-light dark:border-border-dark"
-      >
-        <Ionicons name="add" size={16} color={colors.textSecondary} />
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary ml-1">Add entry</Text>
-      </Pressable>
+      {showInlineAdd && (
+        <Pressable
+          onPress={() => router.push("/vault/add")}
+          className="mx-4 mb-2 flex-row items-center justify-center py-2 rounded-lg border border-border"
+        >
+          <Ionicons name="add" size={16} color={colors.textSecondary} />
+          <Text className="text-sm text-muted-foreground ml-1">Add entry</Text>
+        </Pressable>
+      )}
 
       {empty && !query ? (
         <View className="flex-1 items-center justify-center pb-16">
           <VaultIcon size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-semibold text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-semibold text-foreground mt-4">
             Vault is empty
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-10">
+          <Text className="text-sm text-muted-foreground mt-1 text-center px-10">
             Store your banking logins, card PINs, subscriptions, and any other credentials here — all encrypted on your device.
           </Text>
         </View>
       ) : searching || query.length > 0 ? (
         <FlatList
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={7}
           data={entries}
           keyExtractor={(item) => item.id}
           renderItem={renderEntry}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
           ListEmptyComponent={
             <View className="items-center py-12">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 No results for "{query}"
               </Text>
             </View>
@@ -163,13 +180,13 @@ export function VaultPage() {
             <View className="flex-row items-center px-4 pt-5 pb-1">
               <View
                 className="w-5 h-5 rounded-md items-center justify-center mr-2"
-                style={{ backgroundColor: ac(accent, colorScheme, 500, 300) + "22" }}
+                style={{ backgroundColor: theme.primary + "22" }}
               >
-                <Ionicons name={section.icon as any} size={11} color={ac(accent, colorScheme, 500, 300)} />
+                <Ionicons name={section.icon as any} size={11} color={theme.primary} />
               </View>
               <Text
                 className="text-xs font-semibold uppercase tracking-wider"
-                style={{ color: ac(accent, colorScheme, 600, 400) }}
+                style={{ color: theme.primary }}
               >
                 {section.title}
               </Text>

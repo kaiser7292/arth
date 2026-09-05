@@ -1,9 +1,11 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
+import { Text } from "@/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { StatusColors } from "@/constants/theme";
+
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import type { DuplicateGroup } from "@/services/duplicate-detection";
+import { useTheme } from "@/hooks/use-theme";
 
 interface DuplicateGroupCardProps {
   group: DuplicateGroup;
@@ -31,7 +33,8 @@ export function DuplicateGroupCard({
   readOnly,
   onRestore,
 }: DuplicateGroupCardProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   // Sort: latest first (the one to keep on auto-resolve)
   const sorted = [...group.expenses].sort(
@@ -39,12 +42,12 @@ export function DuplicateGroupCard({
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
-  const warn = StatusColors[colorScheme].warning;
-  const success = StatusColors[colorScheme].success;
-  const danger = StatusColors[colorScheme].danger;
+  const warn = theme.warning;
+  const success = theme.success;
+  const danger = theme.danger;
 
   return (
-    <View className="mx-4 my-2.5 rounded-2xl bg-surface-light-alt dark:bg-surface-dark-alt border border-border-light dark:border-border-dark overflow-hidden">
+    <View className="mx-4 my-2.5 rounded-2xl bg-card border border-border overflow-hidden">
       {/* ── Header ────────────────────────────────────────────────── */}
       <View className="px-4 pt-4 pb-3">
         <View className="flex-row items-center mb-2">
@@ -54,17 +57,17 @@ export function DuplicateGroupCard({
           >
             <Ionicons name="copy-outline" size={16} color={warn} />
           </View>
-          <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-sm font-bold text-foreground">
             Possible Duplicate
           </Text>
           <View className="ml-auto px-2 py-0.5 rounded-full" style={{ backgroundColor: warn + "14" }}>
-            <Text className="text-[11px] font-semibold" style={{ color: warn }}>
+            <Text className="text-label font-semibold" style={{ color: warn }}>
               #{index + 1}
             </Text>
           </View>
         </View>
         <Text
-          className="text-xs text-text-secondary dark:text-text-dark-secondary leading-5"
+          className="text-xs text-muted-foreground leading-5"
           numberOfLines={3}
         >
           {group.reason}
@@ -72,7 +75,7 @@ export function DuplicateGroupCard({
       </View>
 
       {/* ── Entries ────────────────────────────────────────────────── */}
-      <View className="border-t border-border-light dark:border-border-dark">
+      <View className="border-t border-border">
         {sorted.map((expense, i) => {
           const isFirst = i === 0;
           const statusColor =
@@ -91,7 +94,7 @@ export function DuplicateGroupCard({
           return (
             <View
               key={expense.id}
-              className={`px-4 py-3 flex-row items-center ${i < sorted.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""}`}
+              className={`px-4 py-3 flex-row items-center ${i < sorted.length - 1 ? "border-b border-border" : ""}`}
             >
               {/* Lane indicator — keep vs reject */}
               <View
@@ -114,17 +117,17 @@ export function DuplicateGroupCard({
               >
                 <View className="flex-row items-center justify-between">
                   <Text
-                    className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1 mr-2"
+                    className="text-sm font-semibold text-foreground flex-1 mr-2"
                     numberOfLines={1}
                   >
                     {expense.description ?? expense.merchant_name ?? "No details"}
                   </Text>
-                  <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary shrink-0">
+                  <Text className="text-sm font-bold text-foreground shrink-0">
                     {formatAmount(expense.amount)}
                   </Text>
                 </View>
                 <View className="flex-row items-center mt-1">
-                  <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-faint-foreground">
                     {formatDateForDisplay(expense.date)}
                   </Text>
                   <View className="w-1 h-1 rounded-full mx-1.5" style={{ backgroundColor: colors.textSecondary + "66" }} />
@@ -132,13 +135,13 @@ export function DuplicateGroupCard({
                     className="px-1.5 py-0.5 rounded-full"
                     style={{ backgroundColor: `${statusColor}14` }}
                   >
-                    <Text className="text-[10px] font-semibold" style={{ color: statusColor }}>
+                    <Text className="text-label font-semibold" style={{ color: statusColor }}>
                       {statusLabel}
                     </Text>
                   </View>
                   {isFirst && (
                     <View className="ml-1.5 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: success + "14" }}>
-                      <Text className="text-[10px] font-semibold" style={{ color: success }}>
+                      <Text className="text-label font-semibold" style={{ color: success }}>
                         LATEST
                       </Text>
                     </View>
@@ -166,7 +169,7 @@ export function DuplicateGroupCard({
 
       {/* ── Actions ────────────────────────────────────────────────── */}
       {readOnly ? (
-        <View className="flex-row px-4 py-3 border-t border-border-light dark:border-border-dark">
+        <View className="flex-row px-4 py-3 border-t border-border">
           <Pressable
             onPress={() => onRestore?.(group)}
             className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl"
@@ -181,7 +184,7 @@ export function DuplicateGroupCard({
           </Pressable>
         </View>
       ) : (
-        <View className="flex-row px-4 py-3 border-t border-border-light dark:border-border-dark gap-2">
+        <View className="flex-row px-4 py-3 border-t border-border gap-2">
           <Pressable
             onPress={() => onKeepBoth?.(group)}
             className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl"
@@ -211,7 +214,7 @@ export function DuplicateGroupCard({
 
       {/* ── Footnote ───────────────────────────────────────────────── */}
       <View className="px-4 pb-3 -mt-1">
-        <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary">
+        <Text className="text-label text-faint-foreground">
           {readOnly
             ? "You marked this group as 'not duplicates'. Restore to flag it again on the next scan."
             : "Auto-Resolve keeps the latest and rejects the rest. Use the trash icons to manually keep whichever entry you prefer. Keep Both marks them as not duplicates."}

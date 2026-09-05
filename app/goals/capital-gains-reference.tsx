@@ -1,22 +1,24 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card } from "@/components/ui";
+import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ac, acAlpha } from "@/utils/accent";
-import { StatusColors } from "@/constants/theme";
+
+
 import {
   CAPITAL_GAINS_RATES,
   CAPITAL_GAINS_FY,
   type CapitalGainsRate,
 } from "@/services/capital-gains";
+import { useTheme } from "@/hooks/use-theme";
 
 function RateCard({ rate }: { rate: CapitalGainsRate }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   return (
     <Card className="mb-3">
       {/* Header */}
       <View className="flex-row items-center mb-3">
-        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
           <Ionicons
             name={rate.icon as keyof typeof Ionicons.glyphMap}
             size={20}
@@ -24,10 +26,10 @@ function RateCard({ rate }: { rate: CapitalGainsRate }) {
           />
         </View>
         <View className="flex-1">
-          <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-sm font-bold text-foreground">
             {rate.assetClass}
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             Holding period for LTCG: {rate.holdingPeriod}
           </Text>
         </View>
@@ -35,16 +37,16 @@ function RateCard({ rate }: { rate: CapitalGainsRate }) {
 
       {/* Rates row */}
       <View className="flex-row mb-2">
-        <View className="flex-1 items-center py-2 mr-1 rounded-lg" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
-          <Text className="text-[10px] font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-0.5">
+        <View className="flex-1 items-center py-2 mr-1 rounded-lg" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
+          <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-0.5">
             LTCG
           </Text>
           <Text className="text-sm font-bold text-success">
             {rate.ltcgRate}
           </Text>
         </View>
-        <View className="flex-1 items-center py-2 ml-1 rounded-lg" style={{ backgroundColor: StatusColors[colorScheme].dangerBg }}>
-          <Text className="text-[10px] font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-0.5">
+        <View className="flex-1 items-center py-2 ml-1 rounded-lg" style={{ backgroundColor: theme.alpha("danger", 0.08) }}>
+          <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-0.5">
             STCG
           </Text>
           <Text className="text-sm font-bold text-danger">
@@ -55,27 +57,28 @@ function RateCard({ rate }: { rate: CapitalGainsRate }) {
 
       {/* Exemption */}
       {rate.exemption && (
-        <View className="flex-row items-start mb-2 px-2 py-1.5 rounded-lg" style={{ backgroundColor: StatusColors[colorScheme].warningBg }}>
+        <View className="flex-row items-start mb-2 px-2 py-1.5 rounded-lg" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
           <Ionicons
             name="shield-checkmark-outline"
             size={14}
-            color={StatusColors[colorScheme].warning}
+            color={theme.warning}
             style={{ marginTop: 1 }}
           />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-1.5 flex-1">
+          <Text className="text-xs text-muted-foreground ml-1.5 flex-1">
             {rate.exemption}
           </Text>
         </View>
       )}
 
       {/* Notes */}
-      <Text className="text-xs text-text-tertiary leading-4">{rate.notes}</Text>
+      <Text className="text-xs text-faint-foreground leading-4">{rate.notes}</Text>
     </Card>
   );
 }
 
 export default function CapitalGainsReferenceScreen() {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   return (
     <ScreenContainer padTop={false}>
       <ScrollView
@@ -86,32 +89,32 @@ export default function CapitalGainsReferenceScreen() {
         <View className="px-4 py-4">
           {/* Header */}
           <View className="items-center mb-4">
-            <View className="w-14 h-14 rounded-full items-center justify-center mb-2" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+            <View className="w-14 h-14 rounded-full items-center justify-center mb-2" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
               <Ionicons
                 name="library-outline"
                 size={28}
                 color={colors.blue}
               />
             </View>
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-lg font-bold text-foreground">
               Capital Gains Tax Rates
             </Text>
-            <View className="mt-1 px-3 py-1 rounded-full" style={{ backgroundColor: ac(accent, colorScheme, 50, 700) }}>
-              <Text className="text-xs font-semibold" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+            <View className="mt-1 px-3 py-1 rounded-full" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+              <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
                 FY {CAPITAL_GAINS_FY}
               </Text>
             </View>
           </View>
 
           {/* Disclaimer */}
-          <View className="flex-row items-start mb-4 px-3 py-2.5 rounded-lg border border-border-light dark:border-border-dark" style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}>
+          <View className="flex-row items-start mb-4 px-3 py-2.5 rounded-lg border border-border" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
             <Ionicons
               name="information-circle-outline"
               size={16}
               color={colors.textSecondary}
               style={{ marginTop: 1 }}
             />
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-2 flex-1 leading-4">
+            <Text className="text-xs text-muted-foreground ml-2 flex-1 leading-4">
               This is a quick reference guide. Rates are as per Union Budget
               2024 and applicable for FY {CAPITAL_GAINS_FY}. Surcharge and cess
               apply on top. Consult a CA for specific tax advice.
@@ -159,13 +162,14 @@ function TermRow({
   term: string;
   definition: string;
 }) {
-  const { accent, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
+  const theme = useTheme();
   return (
     <View className="flex-row items-start py-1.5">
-      <Text className="text-xs font-bold w-20" style={{ color: ac(accent, colorScheme, 500, 200) }}>
+      <Text className="text-xs font-bold w-20" style={{ color: theme.primary }}>
         {term}
       </Text>
-      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+      <Text className="text-xs text-muted-foreground flex-1">
         {definition}
       </Text>
     </View>

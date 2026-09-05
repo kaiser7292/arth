@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from "react";
-import { View, Text, Pressable, ScrollView, RefreshControl } from "react-native";
+import { View, Pressable, ScrollView, RefreshControl } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Card, FAB, LoadingState } from "@/components/ui";
+import { Card, FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -22,7 +22,8 @@ import { consumeLoansPreload } from "@/services/home-preload";
 import { logger } from "@/utils/logger";
 import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
-import { ac, acAlpha } from "@/utils/accent";
+
+import { useTheme } from "@/hooks/use-theme";
 
 const preloaded = consumeLoansPreload();
 
@@ -40,7 +41,8 @@ const LOAN_TYPE_LABEL: Record<string, string> = {
 export default function LoansListScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const [loans, setLoans] = useState<Array<LoanAccount & {
     bank_name: string;
     outstanding: number;
@@ -183,14 +185,14 @@ export default function LoansListScreen() {
             <View className="items-center py-8">
               <View
                 className="w-14 h-14 rounded-full items-center justify-center mb-3"
-                style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
               >
                 <Ionicons name="cash-outline" size={28} color={colors.blue} />
               </View>
-              <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+              <Text className="text-base font-semibold text-foreground mb-1">
                 No loans yet
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary text-center px-6">
+              <Text className="text-sm text-muted-foreground text-center px-6">
                 Add a loan to track amortization, outstanding principal, and plan prepayments.
               </Text>
             </View>
@@ -199,7 +201,7 @@ export default function LoansListScreen() {
 
         {activeLoans.length > 0 && (
           <>
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Active
             </Text>
             {activeLoans.map((loan) => (
@@ -219,7 +221,7 @@ export default function LoansListScreen() {
               className="flex-row items-center mt-4 mb-2"
             >
               <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider flex-1">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1">
                 {closedLoans.length} settled / closed {closedLoans.length === 1 ? "loan" : "loans"}
               </Text>
               <Ionicons name={closedLoansExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
@@ -251,7 +253,8 @@ function LoanCard({
   loan: LoanAccount & { bank_name: string; outstanding: number; current_emi: number; remaining_months: number | null };
   onPress: () => void;
 }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
   const progress =
     loan.principal_disbursed > 0
       ? Math.min(100, ((loan.principal_disbursed - loan.outstanding) / loan.principal_disbursed) * 100)
@@ -262,20 +265,20 @@ function LoanCard({
         <View className="flex-row items-start mb-2">
           <View
             className="w-10 h-10 rounded-full items-center justify-center mr-3"
-            style={{ backgroundColor: acAlpha(accent, 500, 0.08) }}
+            style={{ backgroundColor: theme.alpha("primary", 0.08) }}
           >
             <Ionicons name="cash-outline" size={20} color={colors.blue} />
           </View>
           <View className="flex-1">
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-base font-bold text-foreground">
               {loan.bank_name} · {LOAN_TYPE_LABEL[loan.loan_type] ?? loan.loan_type}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+            <Text className="text-xs text-muted-foreground mt-0.5">
               {loan.tenure_months}mo @ {loan.interest_rate_pa}% · EMI {formatAmount(Math.round(loan.current_emi))}
             </Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               Outstanding
             </Text>
             <Text className="text-sm font-bold text-danger">
@@ -296,11 +299,11 @@ function LoanCard({
             style={{
               height: 4,
               width: `${progress}%`,
-              backgroundColor: ac(accent, colorScheme, 500, 400),
+              backgroundColor: theme.primary,
             }}
           />
         </View>
-        <Text className="text-xs text-text-tertiary mt-1">
+        <Text className="text-xs text-faint-foreground mt-1">
           {progress.toFixed(0)}% paid{loan.remaining_months != null ? ` · ${loan.remaining_months > 0 ? `${loan.remaining_months}mo remaining` : "Fully paid"}` : ""} · Disbursed {formatDate(loan.disbursement_date)}
         </Text>
       </Card>
