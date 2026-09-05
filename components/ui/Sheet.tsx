@@ -99,9 +99,6 @@ export function Sheet({
 
   const pan = Gesture.Pan()
     .enabled(draggable && !reduceMotion)
-    // Let a vertical drag win over a ScrollView only once it is clearly a drag, so scrolling
-    // sheet content still works.
-    .activeOffsetY([-12, 12])
     .onStart(() => {
       dragStart.value = translateY.value;
     })
@@ -146,8 +143,7 @@ export function Sheet({
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
         >
-          <GestureDetector gesture={pan}>
-            <Animated.View
+          <Animated.View
               onLayout={(e) => setHeight(e.nativeEvent.layout.height || SCREEN_H * 0.5)}
               style={[
                 sheetStyle,
@@ -164,15 +160,25 @@ export function Sheet({
                 },
               ]}
             >
-              <View className="items-center pt-3 pb-1">
-                <View
-                  className="w-10 h-1 rounded-full"
-                  style={{ backgroundColor: theme.border }}
-                />
-              </View>
+              {/*
+                Only the grab area is draggable.
+                A pan across the whole panel competes with every ScrollView and FlatList inside a
+                sheet: react-native-gesture-handler has no way to know the list is not already at
+                its top, so a downward swipe over content got claimed by the sheet instead of
+                scrolling. Restricting the gesture to the handle removes the conflict entirely,
+                and matches how a sheet is normally dragged anyway. The area is padded to roughly
+                40px so it stays an easy target.
+              */}
+              <GestureDetector gesture={pan}>
+                <View className="items-center pt-3 pb-3" hitSlop={8}>
+                  <View
+                    className="w-10 h-1 rounded-full"
+                    style={{ backgroundColor: theme.border }}
+                  />
+                </View>
+              </GestureDetector>
               {children}
             </Animated.View>
-          </GestureDetector>
         </KeyboardAvoidingView>
       </GestureHandlerRootView>
     </Modal>

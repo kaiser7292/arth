@@ -347,7 +347,6 @@ export default function BudgetScreen() {
           { key: "split", label: "Spending Split" },
           { key: "monthly", label: "Monthly Summary" },
         ]}
-        tabWidth={120}
         activeIndex={activePageIndex}
         onIndexChange={(i) => {
           setActivePageIndex(i);

@@ -15,7 +15,11 @@ interface SwipePagerProps {
   onIndexChange: (index: number) => void;
   children: React.ReactNode[];
   trailing?: React.ReactNode;
-  /** Width of each tab label cell. Defaults to 80. Increase for longer labels. */
+  /**
+   * MINIMUM width of each tab cell. Defaults to 80. Tabs grow past it to fit their label, so a
+   * long one is never truncated - this used to be a fixed width, which clipped "Monthly Summary"
+   * to "Monthly Su...".
+   */
   tabWidth?: number;
 }
 
@@ -27,6 +31,10 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
   const tabStripRef = useRef<ScrollView>(null);
   // Dimensions of the content area (below tab strip)
   const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
+  // Measured tab geometry. Tabs are sized by their label, so the underline cannot be derived from
+  // a constant - it has to follow what actually got laid out.
+  const [tabs, setTabs] = useState<{ x: number; width: number }[]>([]);
+  const measured = tabs.length === pages.length && tabs.every((t) => t && t.width > 0);
   const scrollX = useRef(new Animated.Value(0)).current;
 
   // Scroll content to active page whenever activeIndex changes (from tab tap)
@@ -34,8 +42,9 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
     if (contentSize.width === 0) return;
     contentRef.current?.scrollTo({ x: activeIndex * contentSize.width, animated: true });
     // Keep tab strip centred on active tab
-    tabStripRef.current?.scrollTo({ x: Math.max(0, (activeIndex - 1) * tw), animated: true });
-  }, [activeIndex, contentSize.width, tw]);
+    const prev = tabs[activeIndex - 1];
+    tabStripRef.current?.scrollTo({ x: prev ? prev.x : 0, animated: true });
+  }, [activeIndex, contentSize.width, tabs]);
 
   const handleTabPress = useCallback(
     (index: number) => {
@@ -50,21 +59,39 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
       const newIndex = Math.round(e.nativeEvent.contentOffset.x / contentSize.width);
       if (newIndex !== activeIndex) {
         onIndexChange(newIndex);
-        tabStripRef.current?.scrollTo({ x: Math.max(0, (newIndex - 1) * tw), animated: true });
+        const prev = tabs[newIndex - 1];
+        tabStripRef.current?.scrollTo({ x: prev ? prev.x : 0, animated: true });
       }
     },
-    [activeIndex, contentSize.width, onIndexChange],
+    [activeIndex, contentSize.width, onIndexChange, tabs],
   );
 
-  // Underline translates across the tab strip in sync with page scroll
-  const underlineX =
-    contentSize.width > 0
-      ? scrollX.interpolate({
-          inputRange: pages.map((_, i) => i * contentSize.width),
-          outputRange: pages.map((_, i) => i * tw),
-          extrapolate: "clamp",
-        })
-      : new Animated.Value(activeIndex * tw);
+  /**
+   * Underline geometry, interpolated from measured tabs so it matches whatever width each label
+   * needed.
+   *
+   * `width` cannot be animated with the native driver, which the page scroll uses, so the bar is
+   * 1px wide and scaled. scaleX grows it about its own centre, hence positioning by tab centre.
+   */
+  const INSET = 14;
+  const canAnimate = measured && contentSize.width > 0 && pages.length > 1;
+  const inputRange = pages.map((_, i) => i * contentSize.width);
+
+  const underlineX = canAnimate
+    ? scrollX.interpolate({
+        inputRange,
+        outputRange: tabs.map((t) => t.x + t.width / 2 - 0.5),
+        extrapolate: "clamp",
+      })
+    : new Animated.Value(measured ? tabs[activeIndex].x + tabs[activeIndex].width / 2 - 0.5 : 0);
+
+  const underlineScale = canAnimate
+    ? scrollX.interpolate({
+        inputRange,
+        outputRange: tabs.map((t) => Math.max(1, t.width - INSET * 2)),
+        extrapolate: "clamp",
+      })
+    : new Animated.Value(measured ? Math.max(1, tabs[activeIndex].width - INSET * 2) : 1);
 
   return (
     <View style={{ flex: 1 }}>
@@ -74,7 +101,8 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
           ref={tabStripRef}
           horizontal
           showsHorizontalScrollIndicator={false}
-          scrollEnabled={pages.length > 4}
+          // Intrinsic widths can overflow with as few as three long labels.
+          scrollEnabled
           style={{ flex: 1 }}
           contentContainerStyle={{ position: "relative" }}
         >
@@ -82,7 +110,15 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
             <Pressable
               key={page.key}
               onPress={() => handleTabPress(index)}
-              style={{ width: tw, height: 40, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}
+              onLayout={(e) => {
+                const { x, width } = e.nativeEvent.layout;
+                setTabs((prev) => {
+                  const next = [...prev];
+                  next[index] = { x, width };
+                  return next;
+                });
+              }}
+              style={{ minWidth: tw, height: 40, alignItems: "center", justifyContent: "center", paddingHorizontal: 14 }}
               hitSlop={8}
             >
               <Text
@@ -103,12 +139,13 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
             style={{
               position: "absolute",
               bottom: 0,
+              left: 0,
               height: 2,
-              width: tw - 28, // 14px margin each side
-              marginHorizontal: 14,
+              width: 1,
+              opacity: measured ? 1 : 0,
               backgroundColor: theme.primary,
               borderRadius: 2,
-              transform: [{ translateX: underlineX }],
+              transform: [{ translateX: underlineX }, { scaleX: underlineScale }],
             }}
           />
         </ScrollView>
