@@ -872,7 +872,7 @@ export default function HomeScreen() {
         {visitedHomePages.has(1) ? <InsightsPage /> : <View style={{ flex: 1 }} />}
         {visitedHomePages.has(2) ? <ReviewQueuePage /> : <View style={{ flex: 1 }} />}
         {visitedHomePages.has(3) ? <SimulatorPage /> : <View style={{ flex: 1 }} />}
-        {visitedHomePages.has(4) ? <VaultPage /> : <View style={{ flex: 1 }} />}
+        {visitedHomePages.has(4) ? <VaultPage showInlineAdd /> : <View style={{ flex: 1 }} />}
       </SwipePager>
 
       <AccountPickerSheet

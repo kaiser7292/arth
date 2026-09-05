@@ -19,7 +19,17 @@ import {
 import { consumeVaultPreload } from "@/services/home-preload";
 import { useTheme } from "@/hooks/use-theme";
 
-export function VaultPage() {
+/**
+ * The Vault list.
+ *
+ * The single implementation. `app/vault/index.tsx` is a thin route around this, and the Home
+ * swipe-pager renders it directly - previously each had its own near-identical 190-line copy, so
+ * every change to the vault had to be made twice or the two silently drifted.
+ *
+ * The route and the pager differ only in chrome: the route wraps this in a ScreenContainer and
+ * offers a FAB, while the pager has no room for one and uses an inline add row instead.
+ */
+export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean } = {}) {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -124,14 +134,15 @@ export function VaultPage() {
         )}
       </View>
 
-      {/* Add button row */}
-      <Pressable
-        onPress={() => router.push("/vault/add")}
-        className="mx-4 mb-2 flex-row items-center justify-center py-2 rounded-lg border border-border"
-      >
-        <Ionicons name="add" size={16} color={colors.textSecondary} />
-        <Text className="text-sm text-muted-foreground ml-1">Add entry</Text>
-      </Pressable>
+      {showInlineAdd && (
+        <Pressable
+          onPress={() => router.push("/vault/add")}
+          className="mx-4 mb-2 flex-row items-center justify-center py-2 rounded-lg border border-border"
+        >
+          <Ionicons name="add" size={16} color={colors.textSecondary} />
+          <Text className="text-sm text-muted-foreground ml-1">Add entry</Text>
+        </Pressable>
+      )}
 
       {empty && !query ? (
         <View className="flex-1 items-center justify-center pb-16">

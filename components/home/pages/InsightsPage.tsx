@@ -17,6 +17,13 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 
+/**
+ * The Analytics dashboard.
+ *
+ * The single implementation, rendered both by the Home swipe-pager and by app/insights/index.tsx.
+ * Each previously kept its own ~190-line copy that had already drifted - only this one had
+ * pull-to-refresh, and the two carried different comments explaining the same guard.
+ */
 export function InsightsPage() {
   const router = useRouter();
   const { colors } = useColorScheme();
