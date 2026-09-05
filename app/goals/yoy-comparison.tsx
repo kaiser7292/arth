@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +13,7 @@ import {
 } from "@/services/life-milestone";
 import { listAllLoans, getSchedule, getPrepayments } from "@/services/loan-accounts";
 import { getCurrentFY, getFYRange, getFYLabel } from "@/utils/fiscal-year";
+import { getDataVersion } from "@/services/settings";
 import { toIsoDate as formatDate } from "@/utils/date";
 import { getFYStartMonth } from "@/services/settings";
 import { formatAmount, formatCompact } from "@/utils/format";
@@ -29,6 +30,7 @@ export default function YoYComparisonScreen() {
   const [currentFYLabel, setCurrentFYLabel] = useState("");
   const [noData, setNoData] = useState(false);
   const [loading, setLoading] = useState(true);
+  const lastVersionRef = useRef<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -37,6 +39,9 @@ export default function YoYComparisonScreen() {
   );
 
   async function loadData() {
+    const currentVersion = getDataVersion();
+    if (lastVersionRef.current === currentVersion) return;
+    lastVersionRef.current = currentVersion;
     setLoading(true);
     try {
       const startMonth = getFYStartMonth();

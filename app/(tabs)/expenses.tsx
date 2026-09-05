@@ -21,6 +21,7 @@ import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from
 import type { DematTarget } from "@/services/demat-transfer";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { getDataVersion } from "@/services/settings";
 import {
   getExpensesPaginated,
   getFilteredExpenseSummary,
@@ -227,8 +228,15 @@ export default function ExpensesScreen() {
     expensesLenRef.current = expenses.length;
   }, [expenses.length]);
 
+  const lastVersionRef = useRef<number | null>(null);
+
   const loadExpenses = useCallback(
     async (reset = true) => {
+      if (reset) {
+        const currentVersion = getDataVersion();
+        if (lastVersionRef.current === currentVersion) return;
+        lastVersionRef.current = currentVersion;
+      }
       if (loading) return;
       setLoading(true);
       try {

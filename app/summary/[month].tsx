@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,6 +7,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { StatusColors } from "@/constants/theme";
 import { getCategories } from "@/services/category";
 import { getBudgetsForMonth } from "@/services/budget";
+import { getDataVersion } from "@/services/settings";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getExpenseTotal,
@@ -44,9 +45,13 @@ export default function MonthlySummaryScreen() {
   const { colorScheme, colors } = useColorScheme();
   const [month, setMonth] = useState(monthParam ?? "");
   const [data, setData] = useState<SummaryData | null>(null);
+  const lastVersionRef = useRef<number | null>(null);
 
   const loadData = useCallback(async () => {
     if (!month) return;
+    const currentVersion = getDataVersion();
+    if (lastVersionRef.current === currentVersion) return;
+    lastVersionRef.current = currentVersion;
 
     const { startDate, endDate } = getMonthDateRange(month);
 

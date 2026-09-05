@@ -297,23 +297,27 @@ export async function getBudgetVsActual(
   );
 
   // 2. Actual totals per category — mirrors getExpenseTotalsByCategory:
-  //    effectiveAmountSql (refund-adjusted), status='approved', NOT_INVESTMENT_LINKED.
+  //    refund-adjusted, approved, not investment/loan-linked.
+  //    Pre-aggregate refunds via LEFT JOIN instead of a correlated subquery per row.
   const actualRows = await db.getAllAsync<{ category_id: string; total: number }>(
-    `SELECT category_id,
-            SUM(MAX(expenses.amount - COALESCE((
-              SELECT SUM(r.amount) FROM expenses r
-              WHERE r.refund_of_expense_id = expenses.id
-                AND r.nature = 'credit' AND r.status = 'approved' AND r.deleted_at IS NULL
-            ), 0), 0)) as total
-     FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
-       AND deleted_at IS NULL
-       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
-       AND date >= ? AND date <= ?
-       AND category_id IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
-       AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
-     GROUP BY category_id`,
+    `SELECT e.category_id,
+            SUM(MAX(e.amount - COALESCE(refunds.refund_total, 0), 0)) AS total
+     FROM expenses e
+     LEFT JOIN (
+       SELECT refund_of_expense_id, SUM(amount) AS refund_total
+       FROM expenses
+       WHERE nature = 'credit' AND status = 'approved' AND deleted_at IS NULL
+         AND refund_of_expense_id IS NOT NULL
+       GROUP BY refund_of_expense_id
+     ) refunds ON refunds.refund_of_expense_id = e.id
+     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
+       AND e.deleted_at IS NULL
+       AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)
+       AND e.date >= ? AND e.date <= ?
+       AND e.category_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id)
+       AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = e.id)
+     GROUP BY e.category_id`,
     userId, startDate, endDate,
   );
   const actualMap = new Map(actualRows.map((r) => [r.category_id, r.total]));
@@ -373,19 +377,22 @@ export async function getBudgetVsActual(
       userId, startMonth, endMonth,
     );
     const monthActuals = await db.getAllAsync<{ month: string; total: number }>(
-      `SELECT strftime('%Y-%m', date) as month,
-              SUM(MAX(expenses.amount - COALESCE((
-                SELECT SUM(r.amount) FROM expenses r
-                WHERE r.refund_of_expense_id = expenses.id
-                  AND r.nature = 'credit' AND r.status = 'approved' AND r.deleted_at IS NULL
-              ), 0), 0)) as total
-       FROM expenses
-       WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
-         AND deleted_at IS NULL AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
-         AND date >= ? AND date <= ?
-         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
-         AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
-       GROUP BY strftime('%Y-%m', date) ORDER BY month`,
+      `SELECT strftime('%Y-%m', e.date) AS month,
+              SUM(MAX(e.amount - COALESCE(refunds.refund_total, 0), 0)) AS total
+       FROM expenses e
+       LEFT JOIN (
+         SELECT refund_of_expense_id, SUM(amount) AS refund_total
+         FROM expenses
+         WHERE nature = 'credit' AND status = 'approved' AND deleted_at IS NULL
+           AND refund_of_expense_id IS NOT NULL
+         GROUP BY refund_of_expense_id
+       ) refunds ON refunds.refund_of_expense_id = e.id
+       WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
+         AND e.deleted_at IS NULL AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)
+         AND e.date >= ? AND e.date <= ?
+         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id)
+         AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = e.id)
+       GROUP BY strftime('%Y-%m', e.date) ORDER BY month`,
       userId, startDate, endDate,
     );
 

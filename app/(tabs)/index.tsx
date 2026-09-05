@@ -25,7 +25,8 @@ import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useForecastActions } from "@/hooks/use-forecast-actions";
-import { getAccountCreditsTotal, getComputedBalances, computeUnseededBalance } from "@/services/account-balance";
+import { getComputedBalances, computeUnseededBalance } from "@/services/account-balance";
+import { getDatabase } from "@/database";
 import { getBudgetsForMonth, getCurrentMonth } from "@/services/budget";
 import { scanAllDuplicatesCached } from "@/services/duplicate-detection";
 import type { Expense } from "@/services/expense";
@@ -243,15 +244,37 @@ export default function HomeScreen() {
       const fyStart = `${fyRange.start.getFullYear()}-${String(fyRange.start.getMonth() + 1).padStart(2, "0")}-01`;
 
       for (const acct of pensionAccts) {
-        const credits = await getAccountCreditsTotal(acct.id, startDate, endDate);
-        pensionCreditTotalsMap[acct.id] = credits;
-
         if (acct.last_balance_date && (!lastContributionDate || acct.last_balance_date > lastContributionDate)) {
           lastContributionDate = acct.last_balance_date;
         }
+      }
 
-        const ytdCreditsForAcct = await getAccountCreditsTotal(acct.id, fyStart, today);
-        ytdCredits += ytdCreditsForAcct;
+      if (pensionAccts.length > 0) {
+        const db = getDatabase();
+        const ids = pensionAccts.map((a) => a.id);
+        const ph = ids.map(() => "?").join(",");
+
+        const [monthRows, ytdRows] = await Promise.all([
+          db.getAllAsync<{ account_id: string; total: number }>(
+            `SELECT account_id, COALESCE(SUM(amount), 0) AS total
+             FROM expenses WHERE account_id IN (${ph}) AND deleted_at IS NULL
+               AND nature = 'credit' AND status = 'approved'
+               AND date >= ? AND date <= ?
+             GROUP BY account_id`,
+            ...ids, startDate, endDate,
+          ),
+          db.getAllAsync<{ account_id: string; total: number }>(
+            `SELECT account_id, COALESCE(SUM(amount), 0) AS total
+             FROM expenses WHERE account_id IN (${ph}) AND deleted_at IS NULL
+               AND nature = 'credit' AND status = 'approved'
+               AND date >= ? AND date <= ?
+             GROUP BY account_id`,
+            ...ids, fyStart, today,
+          ),
+        ]);
+
+        for (const r of monthRows) pensionCreditTotalsMap[r.account_id] = r.total;
+        for (const r of ytdRows) ytdCredits += r.total;
       }
 
       setPensionCreditTotals(pensionCreditTotalsMap);
