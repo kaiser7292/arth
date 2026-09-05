@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { Text } from "./Text";
-import { View, Pressable, Modal, FlatList } from "react-native";
+import { Sheet } from "./Sheet";
+import { View, Pressable, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -168,24 +169,7 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
       </View>
 
       {/* Picker Modal — bottom sheet */}
-      <Modal
-        visible={showPicker}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowPicker(false)}
-      >
-        <Pressable
-          className="flex-1 bg-black/40 justify-end"
-          onPress={() => setShowPicker(false)}
-        >
-          <Pressable
-            className="bg-background rounded-t-2xl max-h-[70%]"
-            onPress={() => {}} // Prevent dismiss when tapping inside
-          >
-            {/* Handle bar */}
-            <View className="items-center pt-3 pb-2">
-              <View className="w-10 h-1 rounded-full bg-border" />
-            </View>
+      <Sheet visible={showPicker} onClose={() => setShowPicker(false)} maxHeightPct={70}>
 
             {isMonth ? (
               <MonthPickerContent
@@ -216,9 +200,7 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
                 Cancel
               </Text>
             </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      </Sheet>
     </>
   );
 }

@@ -21,7 +21,7 @@ import { RefundTargetSheet } from "@/components/expense/RefundTargetSheet";
 import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
 import { SplitSheet } from "@/components/expense/SplitSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
-import { Button, Input, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
+import { Button, Input, LoadingState, ScreenContainer, Sheet, Text, useToast } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TYPE_ICONS } from "@/constants/icons";
 
@@ -3305,24 +3305,7 @@ export default function ExpenseDetailScreen() {
       )}
 
       {/* Rule picker sheet */}
-      <Modal
-        transparent
-        animationType="slide"
-        visible={rulePickerVisible}
-        onRequestClose={() => setRulePickerVisible(false)}
-      >
-        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} onPress={() => setRulePickerVisible(false)} />
-        <View
-          style={{
-            position: "absolute", left: 0, right: 0, bottom: 0,
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 20, borderTopRightRadius: 20,
-            maxHeight: "70%", paddingBottom: 28,
-          }}
-        >
-          <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}>
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
-          </View>
+      <Sheet visible={rulePickerVisible} onClose={() => setRulePickerVisible(false)} maxHeightPct={70}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Apply rule</Text>
             <Pressable onPress={() => setRulePickerVisible(false)} hitSlop={8}>
@@ -3372,8 +3355,7 @@ export default function ExpenseDetailScreen() {
               ))}
             </ScrollView>
           )}
-        </View>
-      </Modal>
+      </Sheet>
 
     </ScreenContainer>
   );

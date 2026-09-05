@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal } from "react-native";
+import { View, Pressable, ScrollView, ActivityIndicator, TextInput } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, LoadingState, Sheet, Text } from "@/components/ui";
@@ -510,24 +510,8 @@ export function SimulatorPage() {
       />
 
       {/* Duplicate mode picker */}
-      <Modal
-        transparent
-        animationType="slide"
-        visible={duplicatePending !== null}
-        onRequestClose={() => setDuplicatePending(null)}
-      >
-        <Pressable className="flex-1 bg-black/40" onPress={() => setDuplicatePending(null)} />
-        <View
-          style={{
-            position: "absolute", left: 0, right: 0, bottom: 0,
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 20, borderTopRightRadius: 20,
-            paddingBottom: 28, paddingHorizontal: 20,
-          }}
-        >
-          <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 rounded-full bg-border" />
-          </View>
+      <Sheet visible={duplicatePending !== null} onClose={() => setDuplicatePending(null)}>
+        <View className="px-5">
           <Text className="text-base font-bold text-foreground pt-2 pb-4">
             Duplicate "{duplicatePending?.name}"
           </Text>
@@ -585,7 +569,7 @@ export function SimulatorPage() {
             </Pressable>
           </View>
         </View>
-      </Modal>
+      </Sheet>
     </View>
   );
 }

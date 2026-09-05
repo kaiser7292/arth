@@ -1,6 +1,6 @@
 import { HisaabInclusionSheet } from "@/components/simulator/HisaabInclusionSheet";
 import { StaleEntryResolveSheet } from "@/components/simulator/StaleEntryResolveSheet";
-import { Card, FAB, ScreenContainer, Text } from "@/components/ui";
+import { Card, FAB, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -1372,24 +1372,8 @@ export default function ScenarioDetailScreen() {
       />
 
       {/* Menu */}
-      <Modal transparent visible={menuVisible} animationType="fade" onRequestClose={() => setMenuVisible(false)}>
-        <Pressable
-          className="flex-1 bg-black/40 items-center justify-end"
-          onPress={() => setMenuVisible(false)}
-          accessibilityLabel="Close menu"
-        >
-          <View
-            className="w-full pb-8 pt-2"
-            style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-            }}
-            onStartShouldSetResponder={() => true}
-          >
-            <View className="items-center pt-1 pb-2">
-              <View className="w-10 h-1 rounded-full bg-border" />
-            </View>
+      <Sheet visible={menuVisible} onClose={() => setMenuVisible(false)}>
+        <View className="pb-2">
             <MenuItem icon="pencil-outline" label="Rename" onPress={() => { setMenuVisible(false); setRenameVisible(true); }} />
             <MenuItem icon="refresh-outline" label="Re-seed from reminders" onPress={handleReseed} />
             {/* v16.0.5 — isDefault guard dropped. The v16.0.0 auto-created
@@ -1397,9 +1381,8 @@ export default function ScenarioDetailScreen() {
                 to re-create it. */}
             <MenuItem icon="checkmark-circle-outline" label="Mark done" onPress={handleArchive} />
             <MenuItem icon="trash-outline" label="Delete scenario" danger onPress={handleDeleteScenario} />
-          </View>
-        </Pressable>
-      </Modal>
+        </View>
+      </Sheet>
     </ScreenContainer>
   );
 }

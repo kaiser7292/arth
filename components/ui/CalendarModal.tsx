@@ -11,9 +11,10 @@
  * Uses accent palette, NativeWind classes, and haptic feedback.
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Text } from "./Text";
-import { View, Pressable, Modal } from "react-native";
+import { Sheet } from "./Sheet";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -119,13 +120,18 @@ export function CalendarModal({
     Math.floor((selY - 1) / 12) * 12 + 1,
   );
 
-  // Reset view when modal opens
+  // Reset the view each time it opens. This ran off Modal's onShow; Sheet does not expose
+  // one, and an effect on `visible` is the same moment for this purpose.
   const handleOpen = useCallback(() => {
     setViewYear(selY);
     setViewMonth(selM - 1);
     setMode("day");
     setYearPageAnchor(Math.floor((selY - 1) / 12) * 12 + 1);
   }, [selY, selM]);
+
+  useEffect(() => {
+    if (visible) handleOpen();
+  }, [visible, handleOpen]);
 
   // Max/min date boundaries
   const maxDate = maximumDate === null ? null : (maximumDate ?? new Date());
@@ -239,25 +245,7 @@ export function CalendarModal({
   }, [yearPageAnchor, maxStr, isYearDisabled]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      onShow={handleOpen}
-    >
-      <Pressable
-        className="flex-1 bg-black/40 justify-end"
-        onPress={onClose}
-      >
-        <Pressable
-          className="bg-background rounded-t-2xl"
-          onPress={() => {}} // Prevent dismiss
-        >
-          {/* Handle bar */}
-          <View className="items-center pt-3 pb-2">
-            <View className="w-10 h-1 rounded-full bg-border" />
-          </View>
+    <Sheet visible={visible} onClose={onClose}>
 
           {/* Header */}
           {mode === "day" && (
@@ -570,8 +558,6 @@ export function CalendarModal({
               </Text>
             </Pressable>
           </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    </Sheet>
   );
 }
