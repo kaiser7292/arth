@@ -25,7 +25,7 @@ export function FilterChip({ label, active = false, onPress, spacing = "md" }: F
   return (
     <Pressable
       onPress={onPress}
-      className={`px-3 py-1.5 rounded-full ${mr} ${active ? "border" : "bg-surface-light-alt dark:bg-surface-dark-alt"}`}
+      className={`px-3 py-1.5 rounded-full ${mr} ${active ? "border" : "bg-card"}`}
       style={
         active
           ? { backgroundColor: ac(accent, colorScheme, 100, 700), borderColor: accent[500] }
@@ -35,7 +35,7 @@ export function FilterChip({ label, active = false, onPress, spacing = "md" }: F
       accessibilityState={{ selected: active }}
     >
       <Text
-        className={`text-xs ${active ? "font-medium" : "text-text-secondary dark:text-text-dark-secondary"}`}
+        className={`text-xs ${active ? "font-medium" : "text-muted-foreground"}`}
         style={active ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
       >
         {label}

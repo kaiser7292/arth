@@ -21,8 +21,8 @@ const baseClasses: Record<ButtonVariant, { container: string; text: string }> = 
     text: "text-white font-semibold",
   },
   secondary: {
-    container: "bg-surface-light-alt dark:bg-surface-dark-alt",
-    text: "text-text-primary dark:text-text-dark-primary font-semibold",
+    container: "bg-card",
+    text: "text-foreground font-semibold",
   },
   outline: {
     container: "border",

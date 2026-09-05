@@ -23,7 +23,7 @@ export function ScreenContainer({
   children,
   ...props
 }: ScreenContainerProps) {
-  const baseClasses = `flex-1 bg-surface-light dark:bg-surface-dark ${centered ? "items-center justify-center" : ""} ${className}`;
+  const baseClasses = `flex-1 bg-background ${centered ? "items-center justify-center" : ""} ${className}`;
 
   const inner = keyboardAware ? (
     <KeyboardAvoidingView

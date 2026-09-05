@@ -46,7 +46,7 @@ export function LoadingState({
           <Ionicons name={icon} size={28} color={accent[500]} />
         </View>
       </Animated.View>
-      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+      <Text className="text-sm text-muted-foreground">
         {message}
       </Text>
     </View>

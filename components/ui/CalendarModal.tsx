@@ -248,12 +248,12 @@ export function CalendarModal({
         onPress={onClose}
       >
         <Pressable
-          className="bg-surface-light dark:bg-surface-dark-alt rounded-t-2xl"
+          className="bg-background rounded-t-2xl"
           onPress={() => {}} // Prevent dismiss
         >
           {/* Handle bar */}
           <View className="items-center pt-3 pb-2">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
 
           {/* Header */}
@@ -276,7 +276,7 @@ export function CalendarModal({
                   accessibilityLabel="Pick month"
                   accessibilityRole="button"
                 >
-                  <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-lg font-bold text-foreground">
                     {MONTH_NAMES[viewMonth]}
                   </Text>
                 </Pressable>
@@ -289,7 +289,7 @@ export function CalendarModal({
                   accessibilityLabel="Pick year"
                   accessibilityRole="button"
                 >
-                  <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-lg font-bold text-foreground">
                     {viewYear}
                   </Text>
                 </Pressable>
@@ -326,7 +326,7 @@ export function CalendarModal({
                 accessibilityLabel="Pick year"
                 accessibilityRole="button"
               >
-                <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-lg font-bold text-foreground">
                   {viewYear}
                 </Text>
               </Pressable>
@@ -346,7 +346,7 @@ export function CalendarModal({
               >
                 <Ionicons name="chevron-back" size={22} color={colors.textSecondary} />
               </Pressable>
-              <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-lg font-bold text-foreground">
                 {yearPageAnchor} – {yearPageAnchor + 11}
               </Text>
               <Pressable
@@ -369,7 +369,7 @@ export function CalendarModal({
               <View className="flex-row px-4 mb-1">
                 {WEEKDAYS.map((wd) => (
                   <View key={wd} className="flex-1 items-center">
-                    <Text className="text-xs font-semibold text-text-tertiary uppercase">
+                    <Text className="text-xs font-semibold text-faint-foreground uppercase">
                       {wd}
                     </Text>
                   </View>
@@ -384,7 +384,7 @@ export function CalendarModal({
                       if (!cell.current) {
                         return (
                           <View key={colIdx} className="flex-1 h-11 items-center justify-center">
-                            <Text className="text-sm text-text-tertiary/30">{cell.day}</Text>
+                            <Text className="text-sm text-faint-foreground/30">{cell.day}</Text>
                           </View>
                         );
                       }
@@ -420,10 +420,10 @@ export function CalendarModal({
                                 isSelected
                                   ? "font-bold text-white"
                                   : isDisabled
-                                    ? "text-text-tertiary/40"
+                                    ? "text-faint-foreground/40"
                                     : isToday
-                                      ? "font-bold text-text-primary dark:text-text-dark-primary"
-                                      : "font-medium text-text-primary dark:text-text-dark-primary"
+                                      ? "font-bold text-foreground"
+                                      : "font-medium text-foreground"
                               }`}
                             >
                               {cell.day}
@@ -475,10 +475,10 @@ export function CalendarModal({
                               isSelected
                                 ? "font-bold text-white"
                                 : isDisabled
-                                  ? "text-text-tertiary/40"
+                                  ? "text-faint-foreground/40"
                                   : isCurrentMonth
-                                    ? "font-bold text-text-primary dark:text-text-dark-primary"
-                                    : "font-medium text-text-primary dark:text-text-dark-primary"
+                                    ? "font-bold text-foreground"
+                                    : "font-medium text-foreground"
                             }`}
                           >
                             {MONTH_NAMES_SHORT[monthIdx]}
@@ -527,10 +527,10 @@ export function CalendarModal({
                               isSelected
                                 ? "font-bold text-white"
                                 : isDisabled
-                                  ? "text-text-tertiary/40"
+                                  ? "text-faint-foreground/40"
                                   : isCurrentYear
-                                    ? "font-bold text-text-primary dark:text-text-dark-primary"
-                                    : "font-medium text-text-primary dark:text-text-dark-primary"
+                                    ? "font-bold text-foreground"
+                                    : "font-medium text-foreground"
                             }`}
                           >
                             {year}
@@ -560,9 +560,9 @@ export function CalendarModal({
             </Pressable>
             <Pressable
               onPress={onClose}
-              className="flex-1 py-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark items-center"
+              className="flex-1 py-3 rounded-xl bg-card dark:bg-surface-dark items-center"
             >
-              <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm font-semibold text-muted-foreground">
                 Cancel
               </Text>
             </Pressable>

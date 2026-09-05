@@ -110,7 +110,7 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
     <>
       <View
         className={`flex-row items-center justify-between px-4 py-2 ${
-          isBar ? "border-b border-border-light dark:border-border-dark" : ""
+          isBar ? "border-b border-border" : ""
         }`}
       >
         <Pressable
@@ -176,12 +176,12 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
           onPress={() => setShowPicker(false)}
         >
           <Pressable
-            className="bg-surface-light dark:bg-surface-dark-alt rounded-t-2xl max-h-[70%]"
+            className="bg-background rounded-t-2xl max-h-[70%]"
             onPress={() => {}} // Prevent dismiss when tapping inside
           >
             {/* Handle bar */}
             <View className="items-center pt-3 pb-2">
-              <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+              <View className="w-10 h-1 rounded-full bg-border" />
             </View>
 
             {isMonth ? (
@@ -207,9 +207,9 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
             {/* Cancel */}
             <Pressable
               onPress={() => setShowPicker(false)}
-              className="mx-4 mb-6 py-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark items-center"
+              className="mx-4 mb-6 py-3 rounded-xl bg-card dark:bg-surface-dark items-center"
             >
-              <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm font-semibold text-muted-foreground">
                 Cancel
               </Text>
             </Pressable>
@@ -249,7 +249,7 @@ function MonthPickerContent({
 
   return (
     <View className="px-4 pt-2 pb-3">
-      <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary mb-3">
+      <Text className="text-base font-bold text-foreground mb-3">
         Select Month
       </Text>
       {/* Year header with arrows */}
@@ -263,7 +263,7 @@ function MonthPickerContent({
         >
           <Ionicons name="chevron-back" size={22} color={colors.textSecondary} />
         </Pressable>
-        <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+        <Text className="text-lg font-bold text-foreground">
           {pickerYear}
         </Text>
         <Pressable
@@ -310,7 +310,7 @@ function MonthPickerContent({
                   className={`text-sm ${
                     isSelected
                       ? "font-bold text-white"
-                      : "font-medium text-text-primary dark:text-text-dark-primary"
+                      : "font-medium text-foreground"
                   }`}
                 >
                   {name}
@@ -350,7 +350,7 @@ function FYPickerContent({
 
   return (
     <View className="pt-2 pb-3">
-      <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary px-4 mb-3">
+      <Text className="text-base font-bold text-foreground px-4 mb-3">
         Select Financial Year
       </Text>
       <FlatList
@@ -363,13 +363,13 @@ function FYPickerContent({
             <Pressable
               onPress={() => onChange(item)}
               className={`mx-4 mb-2 py-3 px-4 rounded-xl flex-row items-center justify-between ${
-                isSelected ? "" : "bg-surface-light-alt dark:bg-surface-dark-alt"
+                isSelected ? "" : "bg-card"
               }`}
               style={isSelected ? { backgroundColor: accent[500] } : undefined}
             >
               <Text
                 className={`text-base ${
-                  isSelected ? "font-bold text-white" : "font-medium text-text-primary dark:text-text-dark-primary"
+                  isSelected ? "font-bold text-white" : "font-medium text-foreground"
                 }`}
               >
                 {getFYLabel(item, fyStartMonth)}

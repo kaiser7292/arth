@@ -68,12 +68,12 @@ export function CollapsibleSection({
               style={{ marginRight: 8 }}
             />
           )}
-          <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-sm font-semibold text-foreground">
             {title}
           </Text>
           {badge !== undefined && badge > 0 && (
-            <View className="ml-2 px-1.5 py-0.5 rounded-full bg-muted-light/10 dark:bg-muted-dark/10">
-              <Text className="text-[10px] font-bold text-secondary-light dark:text-secondary-dark">
+            <View className="ml-2 px-1.5 py-0.5 rounded-full bg-muted-light/10">
+              <Text className="text-[10px] font-bold text-secondary-light">
                 {badge}
               </Text>
             </View>

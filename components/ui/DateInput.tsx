@@ -46,7 +46,7 @@ export function DateInput({
   return (
     <View className={containerClassName}>
       {label && (
-        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1.5">
+        <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
           {label}
         </Text>
       )}
@@ -55,7 +55,7 @@ export function DateInput({
         accessibilityLabel={label || "Pick a date"}
         accessibilityRole="button"
         className={`flex-row items-center rounded-lg border px-3 py-3 bg-white dark:bg-surface-dark-alt ${
-          error ? "border-danger" : "border-border-light dark:border-border-dark"
+          error ? "border-danger" : "border-border"
         }`}
       >
         <Text

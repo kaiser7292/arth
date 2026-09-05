@@ -47,7 +47,7 @@ export function Input({
   return (
     <View className={containerClassName}>
       {label && (
-        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1.5">
+        <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
           {label}
         </Text>
       )}
@@ -57,12 +57,12 @@ export function Input({
         onBlur={handleBlur}
         keyboardType={formula ? "default" : keyboardType}
         accessibilityLabel={label || props.placeholder}
-        className={`rounded-lg border px-3 py-3 text-base text-text-primary dark:text-text-dark-primary bg-white dark:bg-surface-dark-alt ${
+        className={`rounded-lg border px-3 py-3 text-base text-foreground bg-white dark:bg-surface-dark-alt ${
           error
             ? "border-danger"
             : inFormula
             ? "border-blue-400 dark:border-blue-500"
-            : "border-border-light dark:border-border-dark"
+            : "border-border"
         } ${className}`}
         placeholderTextColor={colors.tabIconDefault}
         {...props}

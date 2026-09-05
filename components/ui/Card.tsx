@@ -16,13 +16,13 @@ export function Card({
 }: CardProps) {
   return (
     <View
-      className={`rounded-2xl bg-surface-light-alt dark:bg-surface-dark-alt p-5 ${
-        elevated ? "" : "border border-border-light dark:border-border-dark"
+      className={`rounded-2xl bg-card p-5 ${
+        elevated ? "" : "border border-border"
       } ${className}`}
       style={elevated ? Shadows.card : undefined}
     >
       {title && (
-        <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary mb-3" accessibilityRole="header">
+        <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-3" accessibilityRole="header">
           {title}
         </Text>
       )}

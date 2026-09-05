@@ -45,7 +45,7 @@ export function ProgressBar({
 
   return (
     <View
-      className="w-full rounded-full overflow-hidden bg-border-light dark:bg-border-dark"
+      className="w-full rounded-full overflow-hidden bg-border"
       style={[{ height }, trackColor ? { backgroundColor: trackColor } : undefined]}
       accessibilityLabel={`Progress: ${Math.round(clampedValue * 100)}%`}
       accessibilityRole="progressbar"

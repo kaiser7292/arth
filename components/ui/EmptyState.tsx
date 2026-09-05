@@ -22,11 +22,11 @@ export function EmptyState({
   return (
     <View className={`items-center justify-center px-6 py-12 ${fillScreen ? "flex-1" : ""}`}>
       <Ionicons name={icon} size={48} color={colors.textSecondary} />
-      <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4 text-center">
+      <Text className="text-lg font-medium text-foreground mt-4 text-center">
         {title}
       </Text>
       {subtitle && (
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center">
+        <Text className="text-sm text-muted-foreground mt-1 text-center">
           {subtitle}
         </Text>
       )}

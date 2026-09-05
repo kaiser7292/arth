@@ -13,7 +13,7 @@ export function SectionHeader({ title, action }: SectionHeaderProps) {
   const { colors } = useColorScheme();
   return (
     <View className="flex-row items-center justify-between mb-3">
-      <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary">
+      <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
         {title}
       </Text>
       {action && (
