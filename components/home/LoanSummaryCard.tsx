@@ -38,10 +38,10 @@ function LoanSummaryCardImpl({ summary }: LoanSummaryCardProps) {
                 color={ac(accent, colorScheme, 700, 300)}
               />
             </View>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
               Loans
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+            <Text className="text-xs text-muted-foreground mr-2">
               {summary.activeCount} active
             </Text>
             <Ionicons
@@ -53,7 +53,7 @@ function LoanSummaryCardImpl({ summary }: LoanSummaryCardProps) {
 
           {/* Total Outstanding */}
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               Total Outstanding
             </Text>
             <Text
@@ -67,10 +67,10 @@ function LoanSummaryCardImpl({ summary }: LoanSummaryCardProps) {
           {/* Total Monthly EMI */}
           {summary.totalMonthlyEMI > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Monthly EMI
               </Text>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm font-semibold text-foreground">
                 {formatAmount(summary.totalMonthlyEMI)}
               </Text>
             </View>
@@ -78,11 +78,11 @@ function LoanSummaryCardImpl({ summary }: LoanSummaryCardProps) {
 
           {/* Next EMI Due */}
           {summary.nextDue && (
-            <View className="flex-row justify-between pt-1 mt-1 border-t border-border-light dark:border-border-dark">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <View className="flex-row justify-between pt-1 mt-1 border-t border-border">
+              <Text className="text-xs text-muted-foreground">
                 Next EMI · {summary.nextDue.bankName}
               </Text>
-              <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs font-medium text-muted-foreground">
                 {formatDate(summary.nextDue.dueDate)} · {formatAmount(summary.nextDue.amount)}
               </Text>
             </View>

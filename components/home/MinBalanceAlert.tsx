@@ -55,7 +55,7 @@ function MinBalanceAlertImpl({ breach, onDismiss }: MinBalanceAlertProps) {
           >
             {accountLabel} is below minimum
           </Text>
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+          <Text className="text-xs text-muted-foreground mt-0.5">
             {formatAmount(currentBalance)} of min {formatAmount(threshold)} · shortfall {formatAmount(shortfall)}
           </Text>
         </View>

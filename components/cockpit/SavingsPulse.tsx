@@ -27,7 +27,7 @@ export function SavingsPulse({ data }: SavingsPulseProps) {
         >
           {data.actualRatePct.toFixed(1)}%
         </Text>
-        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+        <Text className="text-xs text-muted-foreground">
           savings rate
         </Text>
       </View>
@@ -41,7 +41,7 @@ export function SavingsPulse({ data }: SavingsPulseProps) {
             color={StatusColors[colorScheme].muted}
             style={{ marginRight: 4 }}
           />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             Saved: {formatAmount(Math.round(data.totalSaved))}
           </Text>
         </View>
@@ -53,7 +53,7 @@ export function SavingsPulse({ data }: SavingsPulseProps) {
             color={StatusColors[colorScheme].muted}
             style={{ marginRight: 4 }}
           />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             Avg: {formatAmount(Math.round(data.avgMonthlySavings))}/mo
           </Text>
         </View>
@@ -66,7 +66,7 @@ export function SavingsPulse({ data }: SavingsPulseProps) {
             color={StatusColors[colorScheme].muted}
             style={{ marginRight: 4 }}
           />
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-xs text-muted-foreground">
             Year-end: {data.projectedYearEndRate.toFixed(1)}%
           </Text>
         </View>

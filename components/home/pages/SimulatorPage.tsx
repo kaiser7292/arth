@@ -346,7 +346,7 @@ export function SimulatorPage() {
                     </View>
                   </Pressable>
 
-                  <View className="flex-row mt-4 gap-2 pt-3 border-t border-border-light dark:border-border-dark">
+                  <View className="flex-row mt-4 gap-2 pt-3 border-t border-border">
                     <Pressable
                       onPress={() => handleDuplicate(scenario.id)}
                       className="flex-1 py-2 items-center rounded-lg"
@@ -502,7 +502,7 @@ function NewScenarioSheet({
           }}
         >
           <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
           <View className="px-5 pb-3">
             <Text className="text-base font-bold" style={{ color: colors.text }}>
@@ -531,7 +531,7 @@ function NewScenarioSheet({
                 onChangeText={setName}
                 placeholder="e.g. With Goa trip"
                 placeholderTextColor={colors.textSecondary}
-                className="border border-border-light dark:border-border-dark rounded-lg px-3 py-3 text-sm"
+                className="border border-border rounded-lg px-3 py-3 text-sm"
                 style={{ color: colors.text }}
               />
             </View>
@@ -544,7 +544,7 @@ function NewScenarioSheet({
               </Text>
               <Pressable
                 onPress={() => setPicker(true)}
-                className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
               >
                 <Text className="text-sm" style={{ color: colors.text }}>
                   {prettyDate(horizon)}

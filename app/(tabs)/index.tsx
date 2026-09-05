@@ -380,7 +380,7 @@ export default function HomeScreen() {
               <Text className="text-sm font-semibold" style={{ color: StatusColors[colorScheme].warning }}>
                 Back up your data
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+              <Text className="text-xs text-muted-foreground mt-0.5">
                 No backup for 30+ days. Tap to create one.
               </Text>
             </View>
@@ -428,10 +428,10 @@ export default function HomeScreen() {
                       <Ionicons name="clipboard-outline" size={18} color={ac(accent, colorScheme, 500, 300)} />
                     </View>
                     <View>
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm font-semibold text-foreground">
                         Action Required
                       </Text>
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         Tap to review and resolve
                       </Text>
                     </View>
@@ -444,7 +444,7 @@ export default function HomeScreen() {
                 {lines.map((line) => (
                   <View key={line.label} className="flex-row items-center ml-12 mb-0.5">
                     <Ionicons name={line.icon} size={12} color={ac(accent, colorScheme, 400, 400)} style={{ marginRight: 6 }} />
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {line.count} {line.label}
                     </Text>
                   </View>
@@ -460,8 +460,8 @@ export default function HomeScreen() {
           <Card className="mx-4 mt-3">
             <View className="flex-row items-center justify-between mb-3">
               <View>
-                <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">Total Spent</Text>
-                <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-xs text-faint-foreground">Total Spent</Text>
+                <Text className="text-2xl font-bold text-foreground">
                   {formatAmount(totalSpent)}
                 </Text>
               </View>
@@ -480,7 +480,7 @@ export default function HomeScreen() {
                       ? `${formatAmount(remaining)} remaining`
                       : `${formatAmount(Math.abs(remaining))} over`}
                   </Text>
-                  <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-faint-foreground">
                     {daysRemaining} days left
                   </Text>
                 </View>
@@ -510,7 +510,7 @@ export default function HomeScreen() {
           <Card className="mx-4 mt-3">
             <View className="flex-row items-center mb-2">
               <Ionicons name="repeat-outline" size={18} color={accent[500]} />
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2">
+              <Text className="text-sm font-semibold text-foreground ml-2">
                 Reminders
               </Text>
               <View className="ml-2 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: accent[500] + "1A" }}>
@@ -539,7 +539,7 @@ export default function HomeScreen() {
               return (
                 <View
                   key={r.rule.id}
-                  className={`py-2 ${i < dueReminders.length - 1 ? "border-b border-border-light dark:border-border-dark" : ""}`}
+                  className={`py-2 ${i < dueReminders.length - 1 ? "border-b border-border" : ""}`}
                 >
                   {/* Row header: name + due date + action button */}
                   <View className="flex-row items-center justify-between">
@@ -550,7 +550,7 @@ export default function HomeScreen() {
                       accessibilityLabel={`Open reminder details for ${description}`}
                     >
                       <Text
-                        className="text-sm text-text-primary dark:text-text-dark-primary"
+                        className="text-sm text-foreground"
                         numberOfLines={1}
                       >
                         {description}
@@ -606,7 +606,7 @@ export default function HomeScreen() {
                           className="px-3 py-1.5 rounded-lg border"
                           style={{ borderColor: colors.border }}
                         >
-                          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">Skip</Text>
+                          <Text className="text-xs font-semibold text-muted-foreground">Skip</Text>
                         </Pressable>
                         <Pressable
                           onPress={() => setLinkSheetFor({ ruleId: r.rule.id, description })}
@@ -629,7 +629,7 @@ export default function HomeScreen() {
                     >
                       <Ionicons name="checkmark-circle" size={14} color={StatusColors[colorScheme].success} />
                       <View className="flex-1 mx-2">
-                        <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                        <Text className="text-xs font-medium text-foreground" numberOfLines={1}>
                           {matchedExpense.merchant_name ?? matchedExpense.description ?? "Expense"} · {matchedExpense.date}
                         </Text>
                         <Text className="text-[11px]" style={{ color: StatusColors[colorScheme].success }}>
@@ -696,7 +696,7 @@ export default function HomeScreen() {
             >
               <View className="flex-row items-center flex-1">
                 <Ionicons name="time-outline" size={18} color={StatusColors[colorScheme].warning} />
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary ml-2">
+                <Text className="text-sm font-semibold text-foreground ml-2">
                   Upcoming Dues
                 </Text>
                 <View className="ml-2 px-1.5 py-0.5 rounded-full bg-[#F59E0B14]">
@@ -722,7 +722,7 @@ export default function HomeScreen() {
                   const today = new Date().toISOString().split("T")[0];
                   const isOverdue = f.due_date != null && f.due_date < today;
                   return (
-                    <View key={f.id} className="border-t border-border-light dark:border-border-dark">
+                    <View key={f.id} className="border-t border-border">
                       <Pressable
                         onPress={() => router.push(`/expense/${f.id}`)}
                         accessibilityLabel={`${f.description || f.merchant_name || "Upcoming expense"}, ${formatAmount(f.amount)}`}
@@ -741,12 +741,12 @@ export default function HomeScreen() {
                         </View>
                         <View className="flex-1">
                           <Text
-                            className="text-sm text-text-primary dark:text-text-dark-primary"
+                            className="text-sm text-foreground"
                             numberOfLines={1}
                           >
                             {f.description || f.merchant_name || "Upcoming expense"}
                           </Text>
-                          <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">
+                          <Text className="text-xs text-faint-foreground">
                             {isOverdue ? "Overdue" : "Due"}: {formatDateForDisplay(f.due_date!)}
                           </Text>
                         </View>
@@ -792,7 +792,7 @@ export default function HomeScreen() {
 
         {/* ── People & Money ── */}
         <View className="mx-4 mt-5 mb-1">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary dark:text-text-dark-secondary">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">
             People & Money
           </Text>
         </View>
@@ -807,7 +807,7 @@ export default function HomeScreen() {
                   <Ionicons name="people-outline" size={20} color={colors.blue} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-semibold text-foreground">
                     Hisaab - Family Ledger
                   </Text>
                   {hisaabSummary.netBalance !== 0 ? (
@@ -824,7 +824,7 @@ export default function HomeScreen() {
                       )}
                     </View>
                   ) : (
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       Track shared expenses with family & friends
                     </Text>
                   )}
@@ -839,7 +839,7 @@ export default function HomeScreen() {
         {/* ── Your Accounts ── */}
         {(ccAccounts.length > 0 || bankAccounts.length > 0 || walletAccounts.length > 0 || dematSummary.accountCount > 0 || (loansSummary && loansSummary.activeCount > 0)) && (
           <View className="mx-4 mt-5 mb-1">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-text-tertiary dark:text-text-dark-secondary">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">
               Your Accounts
             </Text>
           </View>

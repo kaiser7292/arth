@@ -606,9 +606,9 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
       <BottomSheet visible={visible} onClose={handleCancel} maxHeightPct={40}>
         <View className="flex-1 items-center justify-center px-6 py-12">
           <Ionicons name="checkmark-circle" size={56} color={accentColor} />
-          <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary mt-4">Transfer saved</Text>
+          <Text className="text-lg font-bold text-foreground mt-4">Transfer saved</Text>
           {session.amount != null && fromLbl && toLbl && (
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-2 text-center">
+            <Text className="text-sm text-muted-foreground mt-2 text-center">
               ₹{session.amount.toLocaleString("en-IN")} from {fromLbl} to {toLbl}
             </Text>
           )}
@@ -621,7 +621,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     <BottomSheet visible={visible} onClose={handleCancel} maxHeightPct={70}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pt-5 pb-3">
-        <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+        <Text className="text-lg font-bold text-foreground">
           {isTransfer ? "Voice Transfer" : "Voice Expense"}
         </Text>
         <Pressable onPress={handleCancel} className="p-1">
@@ -653,11 +653,11 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
 
         {/* Question (silent mode) or state label */}
         {currentQuestion && !voiceSettings.speakBack ? (
-          <Text className="mt-3 text-base font-semibold text-text-primary dark:text-text-dark-primary text-center px-8" numberOfLines={4}>
+          <Text className="mt-3 text-base font-semibold text-foreground text-center px-8" numberOfLines={4}>
             {currentQuestion}
           </Text>
         ) : (
-          <Text className="mt-3 text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+          <Text className="mt-3 text-sm font-medium text-muted-foreground">
             {voiceState === "listening" ? "Listening…"
               : voiceState === "speaking" ? "Speaking…"
               : "Tap mic to retry"}
@@ -666,7 +666,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
 
         {/* Hint on first open */}
         {voiceState === "listening" && !hasAnyData && !currentQuestion && (
-          <Text className="mt-1.5 text-xs text-text-tertiary text-center px-8">
+          <Text className="mt-1.5 text-xs text-faint-foreground text-center px-8">
             {isTransfer
               ? 'Try: "transfer 500 from HDFC to SBI"'
               : 'Try: "450 at Swiggy for lunch, UPI, HDFC"'}
@@ -675,7 +675,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
 
         {/* What was heard — always visible when non-empty */}
         {lastHeard ? (
-          <Text className="mt-2 text-xs italic text-text-tertiary text-center px-10" numberOfLines={2}>
+          <Text className="mt-2 text-xs italic text-faint-foreground text-center px-10" numberOfLines={2}>
             Heard: &ldquo;{lastHeard}&rdquo;
           </Text>
         ) : null}
@@ -685,61 +685,61 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
       {hasAnyData && (
         <View className="flex-row flex-wrap gap-2 justify-center px-6 pb-2">
           {session.amount != null && (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm ml-1.5 font-medium text-foreground">
                 ₹{session.amount.toLocaleString("en-IN")}
               </Text>
             </View>
           )}
           {session.merchant ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">{session.merchant}</Text>
+              <Text className="text-sm ml-1.5 font-medium text-foreground">{session.merchant}</Text>
             </View>
           ) : null}
           {catLbl ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">{catLbl}</Text>
+              <Text className="text-sm ml-1.5 font-medium text-foreground">{catLbl}</Text>
             </View>
           ) : null}
           {pmLabel ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">{pmLabel}</Text>
+              <Text className="text-sm ml-1.5 font-medium text-foreground">{pmLabel}</Text>
             </View>
           ) : null}
           {acctLbl ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">{acctLbl}</Text>
+              <Text className="text-sm ml-1.5 font-medium text-foreground">{acctLbl}</Text>
             </View>
           ) : null}
           {personLbl ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">Split · {personLbl}</Text>
+              <Text className="text-sm ml-1.5 font-medium text-foreground">Split · {personLbl}</Text>
             </View>
           ) : null}
           {session.dateIso ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm ml-1.5 font-medium text-foreground">
                 {session.dateIso === new Date(Date.now() - 864e5).toISOString().slice(0, 10) ? "Yesterday" : session.dateIso}
               </Text>
             </View>
           ) : null}
           {fromLbl ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">From · {fromLbl}</Text>
+              <Text className="text-sm ml-1.5 font-medium text-foreground">From · {fromLbl}</Text>
             </View>
           ) : null}
           {toLbl ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-surface-light-alt dark:bg-surface-dark-alt">
+            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-text-primary dark:text-text-dark-primary">To · {toLbl}</Text>
+              <Text className="text-sm ml-1.5 font-medium text-foreground">To · {toLbl}</Text>
             </View>
           ) : null}
         </View>

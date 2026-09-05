@@ -271,8 +271,8 @@ export default function BudgetScreen() {
 
       {/* Widget management panel (only on Overview page) */}
       {activePageIndex === 0 && showWidgetManager && (
-        <View className="mx-4 mt-2 mb-1 p-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt border border-border-light dark:border-border-dark">
-          <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-2">
+        <View className="mx-4 mt-2 mb-1 p-3 rounded-xl bg-card border border-border">
+          <Text className="text-xs font-semibold text-muted-foreground mb-2">
             Manage Widgets
           </Text>
           {WIDGET_CONFIG.map((w) => (
@@ -282,7 +282,7 @@ export default function BudgetScreen() {
             >
               <View className="flex-row items-center flex-1">
                 <Ionicons name={w.icon} size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm text-foreground">
                   {w.label}
                 </Text>
               </View>
@@ -296,8 +296,8 @@ export default function BudgetScreen() {
             </View>
           ))}
 
-          <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+          <View className="mt-2 pt-2 border-t border-border">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Sort categories by
             </Text>
             <View className="flex-row flex-wrap gap-2">
@@ -387,10 +387,10 @@ export default function BudgetScreen() {
             }
           >
             <View className="flex-row items-center justify-between mb-2 mt-2">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 Total Spent
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 Budget
               </Text>
             </View>
@@ -398,7 +398,7 @@ export default function BudgetScreen() {
               <Text className="text-2xl font-bold" style={{ color: overallColor }}>
                 {formatAmount(totalSpent)}
               </Text>
-              <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-2xl font-bold text-foreground">
                 {formatAmount(totalBudget)}
               </Text>
             </View>
@@ -409,13 +409,13 @@ export default function BudgetScreen() {
 
             <View className="flex-row justify-between mt-3">
               <View>
-                <Text className="text-xs text-text-tertiary">Days left</Text>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-xs text-faint-foreground">Days left</Text>
+                <Text className="text-sm font-semibold text-foreground">
                   {daysRemaining}
                 </Text>
               </View>
               <View className="items-center">
-                <Text className="text-xs text-text-tertiary">Remaining</Text>
+                <Text className="text-xs text-faint-foreground">Remaining</Text>
                 <Text
                   className="text-sm font-semibold"
                   style={{
@@ -429,8 +429,8 @@ export default function BudgetScreen() {
                 </Text>
               </View>
               <View className="items-end">
-                <Text className="text-xs text-text-tertiary">Per day</Text>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-xs text-faint-foreground">Per day</Text>
+                <Text className="text-sm font-semibold text-foreground">
                   {formatAmount(perDayRemaining)}
                 </Text>
               </View>
@@ -481,7 +481,7 @@ export default function BudgetScreen() {
                   <>
                     <View className="flex-row justify-between mb-2 mt-2">
                       <View>
-                        <Text className="text-xs text-text-tertiary">Projected Spend</Text>
+                        <Text className="text-xs text-faint-foreground">Projected Spend</Text>
                         <Text
                           className="text-lg font-bold"
                           style={{ color: v2Forecast.projectedTotal <= totalBudget ? colors.text : StatusColors[colorScheme].danger }}
@@ -490,7 +490,7 @@ export default function BudgetScreen() {
                         </Text>
                       </View>
                       <View className="items-end">
-                        <Text className="text-xs text-text-tertiary">
+                        <Text className="text-xs text-faint-foreground">
                           {(v2Forecast.breathingRoom ?? 0) >= 0 ? "Projected Savings" : "Projected Deficit"}
                         </Text>
                         <Text
@@ -514,20 +514,20 @@ export default function BudgetScreen() {
                     {/* Fixed/Variable split */}
                     <View className="flex-row justify-between mt-3">
                       <View>
-                        <Text className="text-xs text-text-tertiary">Fixed</Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs text-faint-foreground">Fixed</Text>
+                        <Text className="text-sm font-semibold text-foreground">
                           {formatAmount(v2Forecast.fixedDone.total + v2Forecast.fixedPending.total)}
                         </Text>
                       </View>
                       <View className="items-center">
-                        <Text className="text-xs text-text-tertiary">Variable</Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs text-faint-foreground">Variable</Text>
+                        <Text className="text-sm font-semibold text-foreground">
                           {formatAmount(v2Forecast.variable.projected)}
                         </Text>
                       </View>
                       <View className="items-end">
-                        <Text className="text-xs text-text-tertiary">Daily Pace</Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs text-faint-foreground">Daily Pace</Text>
+                        <Text className="text-sm font-semibold text-foreground">
                           {formatAmount(v2Forecast.variable.dailyPace)}/day
                         </Text>
                       </View>
@@ -536,20 +536,20 @@ export default function BudgetScreen() {
                     {/* Days info */}
                     <View className="flex-row justify-between mt-2">
                       <View>
-                        <Text className="text-xs text-text-tertiary">Days Elapsed</Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs text-faint-foreground">Days Elapsed</Text>
+                        <Text className="text-sm font-semibold text-foreground">
                           {v2Forecast.variable.daysElapsed}
                         </Text>
                       </View>
                       <View className="items-center">
-                        <Text className="text-xs text-text-tertiary">Days Left</Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-xs text-faint-foreground">Days Left</Text>
+                        <Text className="text-sm font-semibold text-foreground">
                           {v2Forecast.variable.daysLeft}
                         </Text>
                       </View>
                       <View className="items-end">
-                        <Text className="text-xs text-text-tertiary">Confidence</Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary capitalize">
+                        <Text className="text-xs text-faint-foreground">Confidence</Text>
+                        <Text className="text-sm font-semibold text-foreground capitalize">
                           {v2Forecast.confidence}
                         </Text>
                       </View>
@@ -560,13 +560,13 @@ export default function BudgetScreen() {
                     {/* Fallback: naive projection if V2 not available */}
                     <View className="flex-row justify-between mb-2 mt-2">
                       <View>
-                        <Text className="text-xs text-text-tertiary">Projected Spend</Text>
+                        <Text className="text-xs text-faint-foreground">Projected Spend</Text>
                         <Text className="text-lg font-bold" style={{ color: compliance.monthlyOnTrack ? colors.text : StatusColors[colorScheme].danger }}>
                           {formatAmount(Math.round(compliance.projectedMonthEnd))}
                         </Text>
                       </View>
                       <View className="items-end">
-                        <Text className="text-xs text-text-tertiary">
+                        <Text className="text-xs text-faint-foreground">
                           {compliance.monthlyProjectedSavings >= 0 ? "Projected Savings" : "Projected Deficit"}
                         </Text>
                         <Text className="text-lg font-bold" style={{ color: compliance.monthlyProjectedSavings >= 0 ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger }}>
@@ -584,12 +584,12 @@ export default function BudgetScreen() {
                     />
                     <View className="flex-row justify-between mt-2">
                       <View>
-                        <Text className="text-xs text-text-tertiary">Daily Rate</Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">{formatAmount(Math.round(compliance.dailySpendRate))}/day</Text>
+                        <Text className="text-xs text-faint-foreground">Daily Rate</Text>
+                        <Text className="text-sm font-semibold text-foreground">{formatAmount(Math.round(compliance.dailySpendRate))}/day</Text>
                       </View>
                       <View className="items-end">
-                        <Text className="text-xs text-text-tertiary">Days Left</Text>
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">{compliance.daysRemaining}</Text>
+                        <Text className="text-xs text-faint-foreground">Days Left</Text>
+                        <Text className="text-sm font-semibold text-foreground">{compliance.daysRemaining}</Text>
                       </View>
                     </View>
                   </>
@@ -600,7 +600,7 @@ export default function BudgetScreen() {
                 {/* Past month: Actual results with rolling surplus */}
                 <View className="flex-row justify-between mb-2 mt-2">
                   <View>
-                    <Text className="text-xs text-text-tertiary">Total Spent</Text>
+                    <Text className="text-xs text-faint-foreground">Total Spent</Text>
                     <Text
                       className="text-lg font-bold"
                       style={{ color: totalSpent <= totalBudget ? colors.text : StatusColors[colorScheme].danger }}
@@ -609,7 +609,7 @@ export default function BudgetScreen() {
                     </Text>
                   </View>
                   <View className="items-end">
-                    <Text className="text-xs text-text-tertiary">
+                    <Text className="text-xs text-faint-foreground">
                       {totalBudget - totalSpent >= 0 ? "Saved" : "Overspent"}
                     </Text>
                     <Text
@@ -632,20 +632,20 @@ export default function BudgetScreen() {
 
                 <View className="flex-row justify-between mt-2">
                   <View>
-                    <Text className="text-xs text-text-tertiary">Budget</Text>
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-xs text-faint-foreground">Budget</Text>
+                    <Text className="text-sm font-semibold text-foreground">
                       {formatAmount(totalBudget)}
                     </Text>
                   </View>
                   <View className="items-center">
-                    <Text className="text-xs text-text-tertiary">Avg/Day</Text>
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-xs text-faint-foreground">Avg/Day</Text>
+                    <Text className="text-sm font-semibold text-foreground">
                       {formatAmount(Math.round(totalSpent / daysTotal))}
                     </Text>
                   </View>
                   <View className="items-end">
-                    <Text className="text-xs text-text-tertiary">Days</Text>
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-xs text-faint-foreground">Days</Text>
+                    <Text className="text-sm font-semibold text-foreground">
                       {daysTotal}
                     </Text>
                   </View>
@@ -653,7 +653,7 @@ export default function BudgetScreen() {
 
                 {/* Rolling surplus/deficit from FY start */}
                 {rollingSurplus !== 0 && (
-                  <View className="mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+                  <View className="mt-3 pt-3 border-t border-border">
                     <View className="flex-row items-center justify-between">
                       <View className="flex-row items-center">
                         <Ionicons
@@ -661,7 +661,7 @@ export default function BudgetScreen() {
                           size={14}
                           color={rollingSurplus >= 0 ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger}
                         />
-                        <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary ml-1">
+                        <Text className="text-xs font-semibold text-foreground ml-1">
                           Rolling {rollingSurplus >= 0 ? "Surplus" : "Deficit"} (FY)
                         </Text>
                       </View>
@@ -674,7 +674,7 @@ export default function BudgetScreen() {
                           : `-${formatAmount(Math.abs(rollingSurplus))}`}
                       </Text>
                     </View>
-                    <Text className="text-xs text-text-tertiary mt-1">
+                    <Text className="text-xs text-faint-foreground mt-1">
                       Cumulative savings vs budget from FY start to this month
                     </Text>
                   </View>
@@ -684,14 +684,14 @@ export default function BudgetScreen() {
 
             {/* Annual Projection (if yearly plan exists) — only for current month */}
             {isCurrentMonth && compliance && compliance.annualOnTrack !== null && (
-              <View className="mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+              <View className="mt-3 pt-3 border-t border-border">
                 <View className="flex-row items-center mb-2">
                   <Ionicons
                     name="calendar-outline"
                     size={14}
                     color={compliance.annualOnTrack ? StatusColors[colorScheme].success : StatusColors[colorScheme].danger}
                   />
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary ml-1">
+                  <Text className="text-xs font-semibold text-foreground ml-1">
                     Annual Projection
                   </Text>
                   <View className="ml-auto">
@@ -703,19 +703,19 @@ export default function BudgetScreen() {
                 </View>
                 <View className="flex-row justify-between">
                   <View>
-                    <Text className="text-xs text-text-tertiary">Projected</Text>
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-xs text-faint-foreground">Projected</Text>
+                    <Text className="text-sm font-semibold text-foreground">
                       {formatAmount(Math.round(compliance.annualProjectedSpend ?? 0))}
                     </Text>
                   </View>
                   <View className="items-center">
-                    <Text className="text-xs text-text-tertiary">Annual Budget</Text>
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-xs text-faint-foreground">Annual Budget</Text>
+                    <Text className="text-sm font-semibold text-foreground">
                       {formatAmount(compliance.annualBudget ?? 0)}
                     </Text>
                   </View>
                   <View className="items-end">
-                    <Text className="text-xs text-text-tertiary">
+                    <Text className="text-xs text-faint-foreground">
                       {(compliance.annualProjectedSavings ?? 0) >= 0 ? "Under Budget" : "Over Budget"}
                     </Text>
                     <Text
@@ -746,7 +746,7 @@ export default function BudgetScreen() {
               <Text className="text-sm font-semibold" style={{ color: ac(accent, colorScheme, 600, 200) }}>
                 {uncategorizedCount} uncategorized ({formatAmount(uncategorized)})
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Tap to review and assign categories
               </Text>
             </View>
@@ -757,10 +757,10 @@ export default function BudgetScreen() {
         {/* Category list */}
         {hiddenCount > 0 && (
           <View className="px-4 pt-2 pb-1 flex-row items-center justify-between">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Categories
             </Text>
-            <Text className="text-xs text-text-tertiary">
+            <Text className="text-xs text-faint-foreground">
               {hiddenCount} empty hidden
             </Text>
           </View>
@@ -781,7 +781,7 @@ export default function BudgetScreen() {
                     params: { categoryId: item.category.id, month },
                   })
                 }
-                className="px-4 py-3 border-b border-border-light dark:border-border-dark"
+                className="px-4 py-3 border-b border-border"
               >
                 <View className="flex-row items-center mb-2">
                   <View
@@ -795,7 +795,7 @@ export default function BudgetScreen() {
                     />
                   </View>
                   <Text
-                    className="flex-1 text-sm font-medium text-text-primary dark:text-text-dark-primary"
+                    className="flex-1 text-sm font-medium text-foreground"
                     numberOfLines={1}
                   >
                     {item.category.name}
@@ -804,7 +804,7 @@ export default function BudgetScreen() {
                     {formatAmount(item.spent)}
                   </Text>
                   {item.budget > 0 && (
-                    <Text className="text-xs text-text-tertiary ml-1">
+                    <Text className="text-xs text-faint-foreground ml-1">
                       / {formatAmount(item.budget)}
                     </Text>
                   )}
@@ -816,12 +816,12 @@ export default function BudgetScreen() {
 
                 {item.budget > 0 && (
                   <View className="flex-row justify-between mt-1">
-                    <Text className="text-xs text-text-tertiary">
+                    <Text className="text-xs text-faint-foreground">
                       {remaining >= 0
                         ? `${formatAmount(remaining)} left`
                         : `${formatAmount(Math.abs(remaining))} over`}
                     </Text>
-                    <Text className="text-xs text-text-tertiary">
+                    <Text className="text-xs text-faint-foreground">
                       {Math.round(pct * 100)}%
                     </Text>
                   </View>
@@ -850,10 +850,10 @@ export default function BudgetScreen() {
         ) : (
           <View className="flex-1 items-center justify-center py-20">
             <Ionicons name="calculator-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               No budget data
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
               {"Set up budgets in Settings > Budget Configuration"}
             </Text>
           </View>
@@ -873,11 +873,11 @@ export default function BudgetScreen() {
           >
             <Pressable onPress={() => {}} style={{ borderRadius: 16, overflow: "hidden" }}>
               <View
-                className="rounded-2xl border border-border-light dark:border-border-dark"
+                className="rounded-2xl border border-border"
                 style={{ backgroundColor: colorScheme === "dark" ? "#1C2230" : "#fff" }}
               >
                 {/* Category row */}
-                <View className="flex-row items-center gap-3 px-4 py-3 border-b border-border-light dark:border-border-dark">
+                <View className="flex-row items-center gap-3 px-4 py-3 border-b border-border">
                   <View
                     className="w-9 h-9 rounded-full items-center justify-center"
                     style={{ backgroundColor: (quickBudgetRow?.category.color ?? "#000") + "20" }}
@@ -889,10 +889,10 @@ export default function BudgetScreen() {
                     />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       {quickBudgetRow?.category.name}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       {formatAmount(quickBudgetRow?.spent ?? 0)} spent · {monthLabel} only
                     </Text>
                   </View>
@@ -900,14 +900,14 @@ export default function BudgetScreen() {
 
                 {/* Amount input */}
                 <View className="px-4 pt-4 pb-2">
-                  <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-2">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                     Budget amount
                   </Text>
                   <View
                     className="flex-row items-center rounded-xl border px-3"
                     style={{ borderColor: colors.blue, backgroundColor: colorScheme === "dark" ? "#0D1117" : "#F8F9FA" }}
                   >
-                    <Text className="text-lg font-semibold text-text-secondary dark:text-text-dark-secondary mr-1">₹</Text>
+                    <Text className="text-lg font-semibold text-muted-foreground mr-1">₹</Text>
                     <TextInput
                       ref={quickBudgetInputRef}
                       value={quickBudgetAmount}
@@ -926,18 +926,18 @@ export default function BudgetScreen() {
                       }}
                     />
                   </View>
-                  <Text className="text-xs text-text-tertiary mt-2">
+                  <Text className="text-xs text-faint-foreground mt-2">
                     Won't affect other months. Use Settings › Budget Config to set recurring budgets.
                   </Text>
                 </View>
 
                 {/* Actions */}
-                <View className="flex-row border-t border-border-light dark:border-border-dark">
+                <View className="flex-row border-t border-border">
                   <Pressable
                     onPress={() => setQuickBudgetRow(null)}
-                    className="flex-1 py-3 items-center border-r border-border-light dark:border-border-dark"
+                    className="flex-1 py-3 items-center border-r border-border"
                   >
-                    <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+                    <Text className="text-sm font-medium text-muted-foreground">Cancel</Text>
                   </Pressable>
                   <Pressable
                     onPress={async () => {

@@ -96,10 +96,10 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
                 color={ac(accent, colorScheme, 600, 300)}
               />
             </View>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
               Credit Cards
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+            <Text className="text-xs text-muted-foreground mr-2">
               {accounts.length} card{accounts.length !== 1 ? "s" : ""}
             </Text>
             <Ionicons
@@ -111,19 +111,19 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
 
           {/* Three-line breakdown: Limit, Utilized, Remaining */}
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Credit Limit</Text>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-xs text-muted-foreground">Credit Limit</Text>
+            <Text className="text-sm font-semibold text-foreground">
               {formatAmount(totalLimit)}
             </Text>
           </View>
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Utilized</Text>
+            <Text className="text-xs text-muted-foreground">Utilized</Text>
             <Text className="text-sm font-semibold" style={{ color: totalUtilized > 0 ? STATUS_COLORS.error : colors.text }}>
               {formatAmount(totalUtilized)}
             </Text>
           </View>
           <View className="flex-row justify-between mb-2">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Remaining</Text>
+            <Text className="text-xs text-muted-foreground">Remaining</Text>
             <Text className="text-sm font-bold" style={{ color: STATUS_COLORS.success }}>
               {formatAmount(totalAvailable)}
             </Text>

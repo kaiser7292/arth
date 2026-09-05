@@ -84,10 +84,10 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
             >
               <Ionicons name="wallet-outline" size={20} color={ac(accent, colorScheme, 700, 300)} />
             </View>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
               Bank Accounts
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+            <Text className="text-xs text-muted-foreground mr-2">
               {accounts.length} account{accounts.length !== 1 ? "s" : ""}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
@@ -95,8 +95,8 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
 
           {/* Opening balance */}
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Opening Balance</Text>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-xs text-muted-foreground">Opening Balance</Text>
+            <Text className="text-sm font-semibold text-foreground">
               {formatAmount(opening)}
             </Text>
           </View>
@@ -104,7 +104,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           {/* Expenses */}
           {expenses > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Expenses</Text>
+              <Text className="text-xs text-muted-foreground">Expenses</Text>
               <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
                 −{formatAmount(expenses)}
               </Text>
@@ -114,7 +114,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           {/* Credits */}
           {credits > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Credits / Refunds</Text>
+              <Text className="text-xs text-muted-foreground">Credits / Refunds</Text>
               <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                 +{formatAmount(credits)}
               </Text>
@@ -124,7 +124,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           {/* Transfers Out */}
           {transfersOut > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers Out</Text>
+              <Text className="text-xs text-muted-foreground">Transfers Out</Text>
               <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
                 −{formatAmount(transfersOut)}
               </Text>
@@ -134,7 +134,7 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           {/* Transfers In */}
           {transfersIn > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers In</Text>
+              <Text className="text-xs text-muted-foreground">Transfers In</Text>
               <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                 +{formatAmount(transfersIn)}
               </Text>
@@ -142,8 +142,8 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
           )}
 
           {/* Divider + Closing */}
-          <View className="flex-row justify-between pt-2 mt-1 border-t border-border-light dark:border-border-dark">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
+          <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
+            <Text className="text-xs font-semibold text-muted-foreground">
               Closing Balance
             </Text>
             <Text

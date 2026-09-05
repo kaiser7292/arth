@@ -50,10 +50,10 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
                 color={ac(accent, colorScheme, 700, 300)}
               />
             </View>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary flex-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
               Pension
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mr-2">
+            <Text className="text-xs text-muted-foreground mr-2">
               {accounts.length} account{accounts.length !== 1 ? "s" : ""}
             </Text>
             <Ionicons
@@ -65,7 +65,7 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
 
           {/* Balance + Contributions */}
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Total Balance</Text>
+            <Text className="text-xs text-muted-foreground">Total Balance</Text>
             <Text
               className="text-sm font-bold"
               style={{ color: totalBalance >= 0 ? STATUS_COLORS.success : STATUS_COLORS.error }}
@@ -75,14 +75,14 @@ function PensionSummaryCardImpl({ accounts, computedBalances, creditTotals, last
           </View>
           {lastContributionDate && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Last contribution</Text>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-xs text-muted-foreground">Last contribution</Text>
+              <Text className="text-sm font-semibold text-foreground">
                 {new Date(lastContributionDate + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
               </Text>
             </View>
           )}
           <View className="flex-row justify-between">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">YTD Contributions</Text>
+            <Text className="text-xs text-muted-foreground">YTD Contributions</Text>
             <Text
               className="text-sm font-semibold"
               style={{ color: ytdContributions > 0 ? STATUS_COLORS.success : colors.text }}

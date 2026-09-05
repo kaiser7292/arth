@@ -73,14 +73,14 @@ export function VaultPage() {
     return (
       <Pressable
         onPress={() => router.push(`/vault/${item.id}`)}
-        className="flex-row items-center py-3 border-b border-border-light dark:border-border-dark"
+        className="flex-row items-center py-3 border-b border-border"
       >
         <View className="flex-1 min-w-0">
-          <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+          <Text className="text-base font-medium text-foreground">
             {item.title}
           </Text>
           {(item.email || item.username || item.phone) && (
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5" numberOfLines={1}>
+            <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
               {item.email || item.username || item.phone}
             </Text>
           )}
@@ -110,7 +110,7 @@ export function VaultPage() {
           onChangeText={handleSearch}
           placeholder="Search vault..."
           placeholderTextColor={colors.textSecondary}
-          className="flex-1 ml-2 text-sm text-text-primary dark:text-text-dark-primary"
+          className="flex-1 ml-2 text-sm text-foreground"
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -124,19 +124,19 @@ export function VaultPage() {
       {/* Add button row */}
       <Pressable
         onPress={() => router.push("/vault/add")}
-        className="mx-4 mb-2 flex-row items-center justify-center py-2 rounded-lg border border-border-light dark:border-border-dark"
+        className="mx-4 mb-2 flex-row items-center justify-center py-2 rounded-lg border border-border"
       >
         <Ionicons name="add" size={16} color={colors.textSecondary} />
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary ml-1">Add entry</Text>
+        <Text className="text-sm text-muted-foreground ml-1">Add entry</Text>
       </Pressable>
 
       {empty && !query ? (
         <View className="flex-1 items-center justify-center pb-16">
           <VaultIcon size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-semibold text-text-primary dark:text-text-dark-primary mt-4">
+          <Text className="text-lg font-semibold text-foreground mt-4">
             Vault is empty
           </Text>
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-10">
+          <Text className="text-sm text-muted-foreground mt-1 text-center px-10">
             Store your banking logins, card PINs, subscriptions, and any other credentials here — all encrypted on your device.
           </Text>
         </View>
@@ -148,7 +148,7 @@ export function VaultPage() {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
           ListEmptyComponent={
             <View className="items-center py-12">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 No results for "{query}"
               </Text>
             </View>

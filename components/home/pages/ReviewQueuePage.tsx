@@ -625,7 +625,7 @@ export function ReviewQueuePage() {
       )}
 
       {/* Filter chips */}
-      <View className="border-b border-border-light dark:border-border-dark">
+      <View className="border-b border-border">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -644,7 +644,7 @@ export function ReviewQueuePage() {
                   setShowCategoryPicker(false);
                 }}
                 className={`flex-row items-center px-3 py-1.5 rounded-full ${
-                  isActive ? "border" : "bg-surface-light-alt dark:bg-surface-dark-alt"
+                  isActive ? "border" : "bg-card"
                 }`}
                 style={isActive ? { backgroundColor: ac(accent, colorScheme, 100, 700), borderColor: accent[500] } : undefined}
               >
@@ -655,7 +655,7 @@ export function ReviewQueuePage() {
                   style={{ marginRight: 4 }}
                 />
                 <Text
-                  className={`text-xs ${isActive ? "font-semibold" : "text-text-secondary dark:text-text-dark-secondary"}`}
+                  className={`text-xs ${isActive ? "font-semibold" : "text-muted-foreground"}`}
                   style={isActive ? { color: ac(accent, colorScheme, 500, 200) } : undefined}
                 >
                   {opt.label}
@@ -698,11 +698,11 @@ export function ReviewQueuePage() {
             return (
               <Pressable
                 onPress={() => toggleSection(item.key)}
-                className="flex-row items-center justify-between px-4 py-2.5 bg-surface-light-alt dark:bg-surface-dark"
+                className="flex-row items-center justify-between px-4 py-2.5 bg-card dark:bg-surface-dark"
               >
                 <View className="flex-row items-center">
                   <Ionicons name={item.icon} size={14} color={item.color} />
-                  <Text className="text-xs font-semibold tracking-wider uppercase text-text-secondary dark:text-text-dark-secondary ml-1.5">
+                  <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground ml-1.5">
                     {item.title}
                   </Text>
                   <View className="ml-1.5 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: StatusColors[colorScheme].muted + "14" }}>
@@ -814,7 +814,7 @@ export function ReviewQueuePage() {
           if (item.type === "uncat_select_all") {
             return (
               <View className="flex-row items-center justify-between px-4 py-2">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {selectedUncat.size > 0
                     ? `${selectedUncat.size} selected (${formatAmount(
                         uncategorizedItems
@@ -846,7 +846,7 @@ export function ReviewQueuePage() {
                   }
                 }}
                 onLongPress={() => toggleUncatSelect(exp.id)}
-                className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark"
+                className="flex-row items-center px-4 py-3 border-b border-border"
               >
                 <Pressable onPress={() => toggleUncatSelect(exp.id)} hitSlop={8} className="mr-3">
                   <View
@@ -863,20 +863,20 @@ export function ReviewQueuePage() {
                   <Ionicons name="help-circle-outline" size={20} color={StatusColors[colorScheme].muted} />
                 </View>
                 <View className="flex-1 mr-3">
-                  <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary" numberOfLines={1}>
+                  <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
                     {exp.description || exp.merchant_name || "No description"}
                   </Text>
                   {pm && (
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5" numberOfLines={1}>
+                    <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
                       {pm.name}
                     </Text>
                   )}
                 </View>
                 <View className="items-end shrink-0">
-                  <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-sm font-bold text-foreground">
                     {formatAmount(exp.amount)}
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                  <Text className="text-xs text-muted-foreground mt-0.5">
                     {new Date(exp.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                   </Text>
                 </View>
@@ -907,10 +907,10 @@ export function ReviewQueuePage() {
               <View className="w-16 h-16 rounded-full items-center justify-center mb-4" style={{ backgroundColor: StatusColors[colorScheme].successBg }}>
                 <Ionicons name="checkmark-done" size={32} color={StatusColors[colorScheme].success} />
               </View>
-              <Text className="text-lg font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-lg font-semibold text-foreground">
                 All caught up!
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+              <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
                 {activeFilter === "all"
                   ? "No pending items to review."
                   : `No ${FILTER_OPTIONS.find((f) => f.key === activeFilter)?.label.toLowerCase() ?? ""} items.`}
@@ -939,7 +939,7 @@ export function ReviewQueuePage() {
       {/* Bottom bar for uncategorized */}
       {selectedUncat.size > 0 && !showCategoryPicker && (
         <View
-          className="absolute bottom-0 left-0 right-0 px-4 py-3 border-t border-border-light dark:border-border-dark"
+          className="absolute bottom-0 left-0 right-0 px-4 py-3 border-t border-border"
           style={{ backgroundColor: colors.background }}
         >
           <Pressable
@@ -958,11 +958,11 @@ export function ReviewQueuePage() {
       {/* Category picker overlay */}
       {showCategoryPicker && (
         <View
-          className="absolute bottom-0 left-0 right-0 border-t border-border-light dark:border-border-dark"
+          className="absolute bottom-0 left-0 right-0 border-t border-border"
           style={{ backgroundColor: colors.background, maxHeight: "50%" }}
         >
-          <View className="flex-row items-center justify-between px-4 py-3 border-b border-border-light dark:border-border-dark">
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+          <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+            <Text className="text-sm font-semibold text-foreground">
               Choose Category
             </Text>
             <Pressable onPress={() => setShowCategoryPicker(false)}>
@@ -977,7 +977,7 @@ export function ReviewQueuePage() {
             renderItem={({ item: cat }) => (
               <Pressable
                 onPress={() => handleAssignCategory(cat.id)}
-                className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark"
+                className="flex-row items-center px-4 py-3 border-b border-border"
               >
                 <View
                   className="w-8 h-8 rounded-full items-center justify-center mr-3"
@@ -989,7 +989,7 @@ export function ReviewQueuePage() {
                     color={cat.color}
                   />
                 </View>
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary flex-1">
+                <Text className="text-sm font-medium text-foreground flex-1">
                   {cat.name}
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />

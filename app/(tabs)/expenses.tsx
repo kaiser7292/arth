@@ -775,16 +775,16 @@ export default function ExpensesScreen() {
             }
             // manual transfers with no linked expense: all info is in the row, no drilldown
           }}
-          className="flex-row items-center px-4 py-3 border-b border-border-light dark:border-border-dark"
+          className="flex-row items-center px-4 py-3 border-b border-border"
         >
           <View className="flex-1">
             <Text className="text-sm font-medium" style={{ color: colors.text }}>
               {item.description || "Transfer"}
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               {accountName} → {toAccountName}
             </Text>
-            <Text className="text-[10px] text-text-tertiary">{item.date}</Text>
+            <Text className="text-[10px] text-faint-foreground">{item.date}</Text>
           </View>
           <View className="items-end">
             <Text className="text-sm font-bold" style={{ color: accent[500] }}>
@@ -875,7 +875,7 @@ export default function ExpensesScreen() {
         return (
           <View className="px-4 pt-4 pb-1.5">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary"
+              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               style={{ letterSpacing: 0.6 }}
             >
               {item.label}
@@ -938,7 +938,7 @@ export default function ExpensesScreen() {
       />
       {/* Search bar */}
       <View className="px-4 pt-3 pb-2">
-        <View className="flex-row items-center rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt px-3 py-2">
+        <View className="flex-row items-center rounded-lg bg-card px-3 py-2">
           <Ionicons name="search" size={18} color={colors.textSecondary} />
           <TextInput
             value={search}
@@ -948,7 +948,7 @@ export default function ExpensesScreen() {
             placeholderTextColor={colors.tabIconDefault}
             maxLength={100}
             accessibilityLabel="Search expenses"
-            className="flex-1 ml-2 text-base text-text-primary dark:text-text-dark-primary"
+            className="flex-1 ml-2 text-base text-foreground"
             returnKeyType={nlEnabled ? "go" : "search"}
             blurOnSubmit={false}
           />
@@ -1009,7 +1009,7 @@ export default function ExpensesScreen() {
             maxLength={30}
             onSubmitEditing={confirmSaveView}
             returnKeyType="done"
-            className="flex-1 text-sm text-text-primary dark:text-text-dark-primary bg-surface-light-alt dark:bg-surface-dark-alt rounded-lg px-3 py-2 mr-2"
+            className="flex-1 text-sm text-foreground bg-card rounded-lg px-3 py-2 mr-2"
           />
           <Pressable onPress={confirmSaveView} className="px-3 py-2 rounded-lg" style={{ backgroundColor: accent[500] }}>
             <Text className="text-xs font-medium text-white">Save</Text>
@@ -1025,7 +1025,7 @@ export default function ExpensesScreen() {
         <View className="px-4 pb-2">
           <Pressable
             onPress={() => setShowViewsPicker(!showViewsPicker)}
-            className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+            className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card"
           >
             <View className="flex-row items-center">
               <Ionicons name="bookmark-outline" size={14} color={accent[500]} style={{ marginRight: 6 }} />
@@ -1037,18 +1037,18 @@ export default function ExpensesScreen() {
           </Pressable>
 
           {showViewsPicker && (
-            <View className="mt-1 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden">
+            <View className="mt-1 rounded-lg bg-card overflow-hidden">
               {savedViews.map((view) => {
                 const isActive = activeViewId === view.id;
                 const isDefault = getDefaultFilterViewId() === view.id;
                 return (
-                  <View key={view.id} className="flex-row items-center border-b border-border-light dark:border-border-dark">
+                  <View key={view.id} className="flex-row items-center border-b border-border">
                     <Pressable
                       onPress={() => { applyFilterView(view); setShowViewsPicker(false); }}
                       className="flex-1 flex-row items-center px-3 py-2.5"
                     >
                       {isDefault && <Ionicons name="star" size={11} color="#F59E0B" style={{ marginRight: 5 }} />}
-                      <Text className={`text-sm flex-1 ${isActive ? "font-semibold" : "text-text-primary dark:text-text-dark-primary"}`} style={isActive ? { color: accent[500] } : undefined}>
+                      <Text className={`text-sm flex-1 ${isActive ? "font-semibold" : "text-foreground"}`} style={isActive ? { color: accent[500] } : undefined}>
                         {view.name}
                       </Text>
                       {isActive && <Ionicons name="checkmark" size={14} color={accent[500]} />}
@@ -1077,7 +1077,7 @@ export default function ExpensesScreen() {
       <View className="px-4 pb-2">
         <Pressable
           onPress={() => setShowDatePicker(!showDatePicker)}
-          className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt"
+          className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card"
         >
           <View className="flex-row items-center">
             <Ionicons name="calendar-outline" size={14} color={accent[500]} style={{ marginRight: 6 }} />
@@ -1090,7 +1090,7 @@ export default function ExpensesScreen() {
 
         {showDatePicker && (
           <ScrollView
-            className="mt-1 rounded-lg bg-surface-light-alt dark:bg-surface-dark-alt overflow-hidden"
+            className="mt-1 rounded-lg bg-card overflow-hidden"
             style={{ maxHeight: 300 }}
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
@@ -1104,10 +1104,10 @@ export default function ExpensesScreen() {
                     setDatePreset(preset);
                     if (preset !== "custom") setShowDatePicker(false);
                   }}
-                  className="flex-row items-center justify-between px-3 py-3 border-b border-border-light dark:border-border-dark"
+                  className="flex-row items-center justify-between px-3 py-3 border-b border-border"
                 >
                   <Text
-                    className="text-sm text-text-primary dark:text-text-dark-primary"
+                    className="text-sm text-foreground"
                     style={isSelected ? { color: accent[500], fontWeight: "600" } : undefined}
                   >
                     {DATE_PRESET_LABELS[preset]}
@@ -1193,7 +1193,7 @@ export default function ExpensesScreen() {
             if (!cat) return null;
             return (
               <Pressable key={`cat-${id}`} onPress={() => setFilterCategoryIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-text-tertiary">{cat.name}</Text>
+                <Text className="text-[10px] text-faint-foreground">{cat.name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
@@ -1203,7 +1203,7 @@ export default function ExpensesScreen() {
             if (!pm) return null;
             return (
               <Pressable key={`pm-${id}`} onPress={() => setFilterPaymentModeIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-text-tertiary">{pm.name}</Text>
+                <Text className="text-[10px] text-faint-foreground">{pm.name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
@@ -1213,14 +1213,14 @@ export default function ExpensesScreen() {
             if (!acct) return null;
             return (
               <Pressable key={`acct-${id}`} onPress={() => setFilterAccountIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-text-tertiary">{acct.bank_name}</Text>
+                <Text className="text-[10px] text-faint-foreground">{acct.bank_name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
           })}
           {filterMerchantNames.map((name) => (
             <Pressable key={`merchant-${name}`} onPress={() => setFilterMerchantNames((prev) => prev.filter((x) => x !== name))} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-text-tertiary">{name}</Text>
+              <Text className="text-[10px] text-faint-foreground">{name}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           ))}
@@ -1229,32 +1229,32 @@ export default function ExpensesScreen() {
             if (!rule) return null;
             return (
               <Pressable key={`rule-${rid}`} onPress={() => setFilterRuleIds((prev) => prev.filter((x) => x !== rid))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-[10px] text-text-tertiary">Rule: {rule.name}</Text>
+                <Text className="text-[10px] text-faint-foreground">Rule: {rule.name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
           })}
           {filterRefundedStatus !== "" && (
             <Pressable onPress={() => setFilterRefundedStatus("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-text-tertiary">{filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded"}</Text>
+              <Text className="text-[10px] text-faint-foreground">{filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded"}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           {filterStatus !== "" && (
             <Pressable onPress={() => setFilterStatus("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-text-tertiary">{filterStatus === "pending_review" ? "Pending Review" : "Approved"}</Text>
+              <Text className="text-[10px] text-faint-foreground">{filterStatus === "pending_review" ? "Pending Review" : "Approved"}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           {filterAvoidability !== "" && (
             <Pressable onPress={() => setFilterAvoidability("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-text-tertiary">{filterAvoidability === "avoidable" ? "Avoidable" : "Unavoidable"}</Text>
+              <Text className="text-[10px] text-faint-foreground">{filterAvoidability === "avoidable" ? "Avoidable" : "Unavoidable"}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
           {search !== "" && (
             <Pressable onPress={() => setSearch("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-[10px] text-text-tertiary">"{search}"</Text>
+              <Text className="text-[10px] text-faint-foreground">"{search}"</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}
@@ -1297,16 +1297,16 @@ export default function ExpensesScreen() {
                   onRefresh={() => loadExpenses(true)}
                   ListHeaderComponent={
                     transfers.length > 0 ? (
-                      <View className="mx-4 my-2 p-4 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt">
+                      <View className="mx-4 my-2 p-4 rounded-xl bg-card">
                         <View className="flex-row items-center justify-between">
-                          <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+                          <Text className="text-sm font-medium text-muted-foreground">
                             Total transfers
                           </Text>
                           <Text className="text-lg font-bold" style={{ color: TRANSFER_COLOR }}>
                             {formatAmount(transfers.reduce((sum, t) => sum + t.amount, 0))}
                           </Text>
                         </View>
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                        <Text className="text-xs text-muted-foreground mt-0.5">
                           {transfers.length} {transfers.length === 1 ? "transfer" : "transfers"}
                         </Text>
                       </View>
@@ -1385,7 +1385,7 @@ export default function ExpensesScreen() {
                   ListFooterComponent={
                     loading ? (
                       <View className="py-4 items-center">
-                        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-sm text-muted-foreground">
                           Loading expenses...
                         </Text>
                       </View>
@@ -1494,7 +1494,7 @@ export default function ExpensesScreen() {
         <View className="absolute left-0 right-0 bottom-0 top-0 justify-end" style={{ backgroundColor: "rgba(0,0,0,0.4)", zIndex: 100 }}>
           <Pressable className="flex-1" onPress={() => setBulkPickerType(null)} />
           <View className="rounded-t-2xl px-4 pt-4 pb-8" style={{ backgroundColor: colors.background }}>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mb-3">Set Date</Text>
+            <Text className="text-sm font-semibold text-foreground mb-3">Set Date</Text>
             <DateInput
               label=""
               value=""
@@ -1711,10 +1711,10 @@ export default function ExpensesScreen() {
           }}
         >
           <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
           <View className="flex-row items-center justify-between px-5 pb-3 pt-1">
-            <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">Sort by</Text>
+            <Text className="text-base font-bold text-foreground">Sort by</Text>
             <Pressable onPress={() => setShowSortSheet(false)} hitSlop={8}>
               <Ionicons name="close" size={20} color={colors.textSecondary} />
             </Pressable>
