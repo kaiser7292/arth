@@ -34,7 +34,23 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
   // Measured tab geometry. Tabs are sized by their label, so the underline cannot be derived from
   // a constant - it has to follow what actually got laid out.
   const [tabs, setTabs] = useState<{ x: number; width: number }[]>([]);
+  // Mirror of `tabs` for effects and callbacks to read WITHOUT depending on it. Every
+  // onLayout makes a new array, so having the scroll effect depend on `tabs` meant each
+  // measurement re-ran the effect and re-issued a programmatic scroll.
+  const tabsRef = useRef<{ x: number; width: number }[]>([]);
+  const [stripWidth, setStripWidth] = useState(0);
   const measured = tabs.length === pages.length && tabs.every((t) => t && t.width > 0);
+  const totalTabsWidth = tabs.reduce((sum, t) => sum + (t ? t.width : 0), 0);
+  /**
+   * Whether the strip actually needs to scroll.
+   *
+   * This used to be `scrollEnabled={pages.length > 4}` and I changed it to always-on when
+   * tabs became content-sized. That broke tapping: on Android a scrollable horizontal
+   * ScrollView intercepts touches from its children, so on a 3-tab strip that never needed
+   * to scroll, the strip swallowed the tap and only swiping the page still worked.
+   * Measuring the overflow keeps long strips scrollable and short ones tappable.
+   */
+  const overflows = measured && stripWidth > 0 && totalTabsWidth > stripWidth + 1;
   const scrollX = useRef(new Animated.Value(0)).current;
 
   // Scroll content to active page whenever activeIndex changes (from tab tap)
@@ -42,9 +58,9 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
     if (contentSize.width === 0) return;
     contentRef.current?.scrollTo({ x: activeIndex * contentSize.width, animated: true });
     // Keep tab strip centred on active tab
-    const prev = tabs[activeIndex - 1];
+    const prev = tabsRef.current[activeIndex - 1];
     tabStripRef.current?.scrollTo({ x: prev ? prev.x : 0, animated: true });
-  }, [activeIndex, contentSize.width, tabs]);
+  }, [activeIndex, contentSize.width]);
 
   const handleTabPress = useCallback(
     (index: number) => {
@@ -59,11 +75,11 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
       const newIndex = Math.round(e.nativeEvent.contentOffset.x / contentSize.width);
       if (newIndex !== activeIndex) {
         onIndexChange(newIndex);
-        const prev = tabs[newIndex - 1];
+        const prev = tabsRef.current[newIndex - 1];
         tabStripRef.current?.scrollTo({ x: prev ? prev.x : 0, animated: true });
       }
     },
-    [activeIndex, contentSize.width, onIndexChange, tabs],
+    [activeIndex, contentSize.width, onIndexChange],
   );
 
   /**
@@ -101,10 +117,14 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
           ref={tabStripRef}
           horizontal
           showsHorizontalScrollIndicator={false}
-          // Intrinsic widths can overflow with as few as three long labels.
-          scrollEnabled
+          scrollEnabled={overflows}
           style={{ flex: 1 }}
-          contentContainerStyle={{ position: "relative" }}
+          onLayout={(e) => setStripWidth(e.nativeEvent.layout.width)}
+          contentContainerStyle={{
+            position: "relative",
+            flexGrow: 1,
+            justifyContent: overflows ? "flex-start" : "center",
+          }}
         >
           {pages.map((page, index) => (
             <Pressable
@@ -112,6 +132,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
               onPress={() => handleTabPress(index)}
               onLayout={(e) => {
                 const { x, width } = e.nativeEvent.layout;
+                tabsRef.current[index] = { x, width };
                 setTabs((prev) => {
                   const next = [...prev];
                   next[index] = { x, width };

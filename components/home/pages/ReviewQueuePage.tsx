@@ -66,8 +66,14 @@ const FILTER_OPTIONS: { key: SectionFilter; label: string; icon: keyof typeof Io
  * Top padding is deliberately NOT applied here. The route sits in a headerless stack and supplies
  * a ScreenContainer that pads for the status bar; the pager sits under Home's own header and must
  * not pad again.
+ *
+ * `showHeader` is the same story for chrome. The route's stack is headerless, so the route
+ * version drew its own bar with back / home / rescan; the pager version never had one because
+ * Home already supplies a header. Unifying the two kept the route's bar, which then showed up
+ * inside Home as a second header with a back button that had nowhere to go. It belongs to the
+ * route only.
  */
-export function ReviewQueuePage() {
+export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean } = {}) {
   const alert = useAlert();
   const router = useRouter();
   const { colors, colorScheme } = useColorScheme();
@@ -658,7 +664,8 @@ export function ReviewQueuePage() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Header */}
+      {/* Header - route only; inside the Home pager this would be a second header. */}
+      {showHeader && (
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <View className="flex-row items-center -ml-2">
           <Pressable onPress={() => router.back()} className="p-2">
@@ -694,6 +701,7 @@ export function ReviewQueuePage() {
           />
         </Pressable>
       </View>
+      )}
 
       {/* Context help chip */}
       <View className="px-4 py-3">

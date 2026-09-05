@@ -10,11 +10,14 @@ import { ReviewQueuePage } from "@/components/home/pages/ReviewQueuePage";
  *
  * ScreenContainer pads for the status bar here because this stack is headerless; the pager sits
  * under Home's header and renders the page without it.
+ *
+ * showHeader for the same reason: this stack draws no header, so the page supplies the back /
+ * home / rescan bar here and only here.
  */
 export default function ReviewQueueScreen() {
   return (
     <ScreenContainer>
-      <ReviewQueuePage />
+      <ReviewQueuePage showHeader />
     </ScreenContainer>
   );
 }
