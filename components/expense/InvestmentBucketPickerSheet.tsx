@@ -1,14 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { Text } from "@/components/ui";
-import { View, Pressable, Modal, ScrollView } from "react-native";
+import { Sheet, Text } from "@/components/ui";
+import { View, Pressable,  ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
@@ -43,15 +37,13 @@ export function InvestmentBucketPickerSheet({
 }: Props) {
   const { colors } = useColorScheme();
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFY, setCurrentFY] = useState<string>("");
-  const slideAnim = useSharedValue(400);
 
   useEffect(() => {
     if (!visible) return;
-    slideAnim.value = withTiming(0, { duration: 250 });
+
     (async () => {
       setLoading(true);
       try {
@@ -72,176 +64,147 @@ export function InvestmentBucketPickerSheet({
       }
       setLoading(false);
     })();
-  }, [visible, slideAnim]);
+  }, [visible]);
 
   const handleClose = useCallback(() => {
-    slideAnim.value = withTiming(400, { duration: 200 }, () => {
-      runOnJS(onClose)();
-    });
-  }, [slideAnim, onClose]);
+    onClose();
+  }, [onClose]);
 
   const handlePick = useCallback(
     (bucketId: string) => {
-      slideAnim.value = withTiming(400, { duration: 200 }, () => {
-        runOnJS(onPick)(bucketId);
-      });
+      onPick(bucketId);
     },
-    [slideAnim, onPick],
+    [onPick],
   );
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: slideAnim.value }],
-  }));
+
 
   if (!visible) return null;
 
   const startMonth = getFYStartMonth();
 
   return (
-    <Modal transparent animationType="none" visible={visible} onRequestClose={handleClose}>
-      <Pressable
-        className="flex-1 bg-black/40"
-        onPress={handleClose}
-        accessibilityLabel="Close"
-        accessibilityRole="button"
-      />
-      <Animated.View
-        style={[
-          animStyle,
-          {
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            maxHeight: "85%",
-            paddingBottom: Math.max(insets.bottom, 8),
-          },
-        ]}
-      >
-        <View className="items-center pt-3 pb-1">
-          <View className="w-10 h-1 rounded-full bg-border" />
-        </View>
+    <Sheet visible={visible} onClose={handleClose}>
+      <View className="px-5 pb-3">
+        <Text className="text-base font-bold" style={{ color: colors.text }}>
+          Mark as investment
+        </Text>
+        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+          Pick a bucket to credit this {formatAmount(expenseAmount)}. It won't count toward
+          your budget; it counts toward your bucket goal.
+        </Text>
+      </View>
 
-        <View className="px-5 pb-3">
-          <Text className="text-base font-bold" style={{ color: colors.text }}>
-            Mark as investment
-          </Text>
-          <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
-            Pick a bucket to credit this {formatAmount(expenseAmount)}. It won't count toward
-            your budget; it counts toward your bucket goal.
+      {loading ? (
+        <View className="px-5 py-8 items-center">
+          <Text className="text-sm" style={{ color: colors.textSecondary }}>
+            Loading buckets…
           </Text>
         </View>
-
-        {loading ? (
-          <View className="px-5 py-8 items-center">
-            <Text className="text-sm" style={{ color: colors.textSecondary }}>
-              Loading buckets…
-            </Text>
-          </View>
-        ) : buckets.length === 0 ? (
-          <View className="px-5 py-8 items-center">
-            <Ionicons name="wallet-outline" size={40} color={colors.textSecondary} />
-            <Text className="text-sm mt-3 text-center" style={{ color: colors.textSecondary }}>
-              No active investment buckets. Create one from the Goals tab → Investment buckets.
-            </Text>
-          </View>
-        ) : (
-          <ScrollView
-            className="px-5"
-            contentContainerStyle={{ paddingBottom: 8 }}
-            showsVerticalScrollIndicator={false}
-            scrollEnabled={buckets.length > 4}
-            alwaysBounceVertical={false}
-          >
-            {buckets.map((b) => {
-              const fyNum = parseInt(b.financial_year ?? "0", 10);
-              const fyLabel = fyNum > 0 ? getFYLabel(fyNum, startMonth) : "No FY";
-              const isCurrent = b.financial_year === currentFY;
-              const progress =
-                b.annual_target > 0
-                  ? Math.min(100, (b.current_contributed / b.annual_target) * 100)
-                  : 0;
-              return (
-                <Pressable
-                  key={b.id}
-                  onPress={() => handlePick(b.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Credit ${b.name} bucket. ${formatAmount(b.current_contributed)} of ${formatAmount(b.annual_target)} so far.`}
-                  className="py-3 px-4 rounded-xl mb-2"
-                  style={{
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <View className="flex-row items-center mb-2">
-                    <View
-                      className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                    >
-                      <Ionicons
-                        name="trending-up-outline"
-                        size={18}
-                        color={theme.primary}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text
-                        className="text-sm font-semibold"
-                        style={{ color: colors.text }}
-                      >
-                        {b.name}
-                      </Text>
-                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                        {fyLabel}
-                        {isCurrent ? " · Current FY" : ""}
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+      ) : buckets.length === 0 ? (
+        <View className="px-5 py-8 items-center">
+          <Ionicons name="wallet-outline" size={40} color={colors.textSecondary} />
+          <Text className="text-sm mt-3 text-center" style={{ color: colors.textSecondary }}>
+            No active investment buckets. Create one from the Goals tab → Investment buckets.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          className="px-5"
+          contentContainerStyle={{ paddingBottom: 8 }}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={buckets.length > 4}
+          alwaysBounceVertical={false}
+        >
+          {buckets.map((b) => {
+            const fyNum = parseInt(b.financial_year ?? "0", 10);
+            const fyLabel = fyNum > 0 ? getFYLabel(fyNum, startMonth) : "No FY";
+            const isCurrent = b.financial_year === currentFY;
+            const progress =
+              b.annual_target > 0
+                ? Math.min(100, (b.current_contributed / b.annual_target) * 100)
+                : 0;
+            return (
+              <Pressable
+                key={b.id}
+                onPress={() => handlePick(b.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Credit ${b.name} bucket. ${formatAmount(b.current_contributed)} of ${formatAmount(b.annual_target)} so far.`}
+                className="py-3 px-4 rounded-xl mb-2"
+                style={{
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <View className="flex-row items-center mb-2">
+                  <View
+                    className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                    style={{ backgroundColor: theme.alpha("primary", 0.1) }}
+                  >
+                    <Ionicons
+                      name="trending-up-outline"
+                      size={18}
+                      color={theme.primary}
+                    />
                   </View>
-                  {b.annual_target > 0 && (
-                    <>
+                  <View className="flex-1">
+                    <Text
+                      className="text-sm font-semibold"
+                      style={{ color: colors.text }}
+                    >
+                      {b.name}
+                    </Text>
+                    <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                      {fyLabel}
+                      {isCurrent ? " · Current FY" : ""}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </View>
+                {b.annual_target > 0 && (
+                  <>
+                    <View
+                      style={{
+                        height: 4,
+                        backgroundColor: colors.border,
+                        borderRadius: 2,
+                        overflow: "hidden",
+                        marginTop: 4,
+                      }}
+                    >
                       <View
                         style={{
                           height: 4,
-                          backgroundColor: colors.border,
-                          borderRadius: 2,
-                          overflow: "hidden",
-                          marginTop: 4,
+                          width: `${progress}%`,
+                          backgroundColor: theme.primary,
                         }}
-                      >
-                        <View
-                          style={{
-                            height: 4,
-                            width: `${progress}%`,
-                            backgroundColor: theme.primary,
-                          }}
-                        />
-                      </View>
-                      <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>
-                        {formatAmount(b.current_contributed)} of {formatAmount(b.annual_target)} ({progress.toFixed(0)}%)
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
+                      />
+                    </View>
+                    <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>
+                      {formatAmount(b.current_contributed)} of {formatAmount(b.annual_target)} ({progress.toFixed(0)}%)
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
-        <View className="px-5 pt-3">
-          <Pressable
-            onPress={handleClose}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel"
-            className="py-3 rounded-xl items-center"
-            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-          >
-            <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
-              Cancel
-            </Text>
-          </Pressable>
-        </View>
-      </Animated.View>
-    </Modal>
+      <View className="px-5 pt-3">
+        <Pressable
+          onPress={handleClose}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel"
+          className="py-3 rounded-xl items-center"
+          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+        >
+          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+            Cancel
+          </Text>
+        </Pressable>
+      </View>
+    </Sheet>
   );
 }

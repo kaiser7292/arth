@@ -1,14 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
-import { Text } from "@/components/ui";
-import { View, TextInput, Pressable, Modal, FlatList, ActivityIndicator } from "react-native";
+import { Sheet, Text } from "@/components/ui";
+import { View, TextInput, Pressable,  FlatList, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
@@ -81,7 +75,6 @@ export function StaleEntryResolveSheet({
 }: Props) {
   const { colors } = useColorScheme();
   const theme = useTheme();
-  const slideAnim = useSharedValue(400);
 
   const [mode, setMode] = useState<"root" | "reschedule" | "link">("root");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -95,14 +88,12 @@ export function StaleEntryResolveSheet({
     setMode("root");
     setSelectedIds(new Set());
     setSearchQuery("");
-    slideAnim.value = withTiming(0, { duration: 240 });
-  }, [visible, slideAnim]);
+
+  }, [visible]);
 
   const handleClose = useCallback(() => {
-    slideAnim.value = withTiming(400, { duration: 180 }, () => {
-      runOnJS(onClose)();
-    });
-  }, [slideAnim, onClose]);
+    onClose();
+  }, [onClose]);
 
   const loadCandidates = useCallback(async () => {
     if (!entry) return;
@@ -144,9 +135,7 @@ export function StaleEntryResolveSheet({
     if (mode === "link") void loadCandidates();
   }, [mode, loadCandidates]);
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: slideAnim.value }],
-  }));
+
 
   const query = searchQuery.toLowerCase().trim();
   const filteredCandidates = useMemo(() => {
@@ -228,223 +217,183 @@ export function StaleEntryResolveSheet({
   };
 
   return (
-    <Modal transparent animationType="none" visible={visible} onRequestClose={handleClose}>
-      <Pressable
-        className="flex-1 bg-black/40"
-        onPress={handleClose}
-        accessibilityLabel="Close"
-        accessibilityRole="button"
-      />
-      <Animated.View
-        style={[
-          animStyle,
-          {
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            maxHeight: "85%",
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-          },
-        ]}
-        className="pb-8"
-      >
-        <View className="items-center pt-3 pb-1">
-          <View className="w-10 h-1 rounded-full bg-border" />
-        </View>
+    <Sheet visible={visible} onClose={handleClose}>
+      <View className="px-5 pb-3">
+        <Text className="text-base font-bold" style={{ color: colors.text }}>
+          {headerLabel}
+        </Text>
+        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+          {formatAmount(entry.amount)} planned for {prettyDate(entry.date)}
+          {entry.date < todayIso() ? " · that date has passed" : ""}
+        </Text>
+      </View>
 
-        <View className="px-5 pb-3">
-          <Text className="text-base font-bold" style={{ color: colors.text }}>
-            {headerLabel}
-          </Text>
-          <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
-            {formatAmount(entry.amount)} planned for {prettyDate(entry.date)}
-            {entry.date < todayIso() ? " · that date has passed" : ""}
-          </Text>
-        </View>
-
-        {mode === "root" && (
-          <View className="px-5 pb-4">
-            <Pressable
-              onPress={() => setMode("link")}
-              className="flex-row items-center py-3 px-4 rounded-xl mb-2"
-              style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.33) }}
-              accessibilityRole="button"
-            >
-              <Ionicons name="checkmark-circle-outline" size={20} color={theme.primary} />
-              <View className="flex-1 ml-3">
-                <Text className="text-sm font-semibold" style={{ color: colors.text }}>
-                  It happened - link to transactions
-                </Text>
-                <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                  Select one or more matching transactions from your ledger.
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
-
-            <Pressable
-              onPress={() => setReschedulePickerVisible(true)}
-              className="flex-row items-center py-3 px-4 rounded-xl mb-2"
-              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-              accessibilityRole="button"
-            >
-              <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
-              <View className="flex-1 ml-3">
-                <Text className="text-sm font-semibold" style={{ color: colors.text }}>
-                  Reschedule
-                </Text>
-                <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                  It'll happen later than planned. Pick a new date.
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
-
-            <Pressable
-              onPress={async () => {
-                await onRemove(entry.id);
-                handleClose();
-              }}
-              className="flex-row items-center py-3 px-4 rounded-xl"
-              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-              accessibilityRole="button"
-            >
-              <Ionicons name="trash-outline" size={20} color={theme.danger} />
-              <View className="flex-1 ml-3">
-                <Text className="text-sm font-semibold" style={{ color: colors.text }}>
-                  Remove
-                </Text>
-                <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                  It didn't happen and it won't.
-                </Text>
-              </View>
-            </Pressable>
-          </View>
-        )}
-
-        {mode === "link" && (
-          <View className="px-5 pb-4 flex-1">
-            {/* Search */}
-            <View className="flex-row items-center mb-2 border rounded-lg px-3 py-2" style={{ borderColor: colors.border }}>
-              <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
-              <TextInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search by merchant, description, amount..."
-                placeholderTextColor={colors.textSecondary}
-                className="flex-1 ml-2 text-sm text-foreground"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {searchQuery.length > 0 && (
-                <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>
-                  <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-            </View>
-
-            <Text className="text-label mb-1.5" style={{ color: colors.textSecondary }}>
-              Showing transactions from last 30 days ({filteredCandidates.length}{query ? ` of ${candidates.length}` : ""})
-            </Text>
-
-            {loadingCandidates ? (
-              <View className="items-center py-6">
-                <ActivityIndicator color={colors.textSecondary} />
-              </View>
-            ) : filteredCandidates.length === 0 ? (
-              <Text className="text-sm py-4" style={{ color: colors.textSecondary }}>
-                {query ? "No transactions match your search." : "No recent transactions to pick from. Try Reschedule or Remove."}
+      {mode === "root" && (
+        <View className="px-5 pb-4">
+          <Pressable
+            onPress={() => setMode("link")}
+            className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+            style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.33) }}
+            accessibilityRole="button"
+          >
+            <Ionicons name="checkmark-circle-outline" size={20} color={theme.primary} />
+            <View className="flex-1 ml-3">
+              <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                It happened - link to transactions
               </Text>
-            ) : (
-              <FlatList
-                initialNumToRender={12}
-                maxToRenderPerBatch={10}
-                windowSize={7}
-                data={filteredCandidates}
-                keyExtractor={(item) => item.id}
-                renderItem={renderCandidate}
-                style={{ maxHeight: 280 }}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              />
-            )}
+              <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                Select one or more matching transactions from your ledger.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+          </Pressable>
 
-            {/* Running total + variance */}
-            {selectedIds.size > 0 && (
-              <View
-                className="mt-3 px-3 py-2.5 rounded-xl"
-                style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.2) }}
-              >
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-xs" style={{ color: colors.textSecondary }}>
-                    Selected: {formatAmount(selectedTotal)} ({selectedIds.size})
-                  </Text>
-                  <Text className="text-xs" style={{ color: colors.textSecondary }}>
-                    Planned: {formatAmount(entry.amount)}
-                  </Text>
-                </View>
-                <View className="flex-row items-center mt-1">
-                  <Ionicons
-                    name={variance > 0 ? "trending-up" : variance < 0 ? "trending-down" : "checkmark-circle"}
-                    size={12}
-                    color={variance > 0 ? theme.danger : variance < 0 ? theme.success : colors.textSecondary}
-                  />
-                  <Text
-                    className="text-xs font-semibold ml-1"
-                    style={{ color: variance > 0 ? theme.danger : variance < 0 ? theme.success : colors.textSecondary }}
-                  >
-                    {variance === 0 ? "Exact match" : variance > 0 ? `${formatAmount(variance)} over` : `${formatAmount(Math.abs(variance))} under`}
-                  </Text>
-                </View>
-              </View>
-            )}
+          <Pressable
+            onPress={() => setReschedulePickerVisible(true)}
+            className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+            accessibilityRole="button"
+          >
+            <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
+            <View className="flex-1 ml-3">
+              <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                Reschedule
+              </Text>
+              <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                It'll happen later than planned. Pick a new date.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+          </Pressable>
 
-            {/* Link Selected button */}
-            {selectedIds.size > 0 && (
-              <Pressable
-                onPress={async () => {
-                  await onLinkFulfillment(entry.id, Array.from(selectedIds));
-                  handleClose();
-                }}
-                className="mt-3 py-3 rounded-xl items-center"
-                style={{ backgroundColor: theme.primary }}
-                accessibilityRole="button"
-              >
-                <Text className="text-sm font-bold text-primary-foreground">
-                  Link Selected ({selectedIds.size})
-                </Text>
+          <Pressable
+            onPress={async () => {
+              await onRemove(entry.id);
+              handleClose();
+            }}
+            className="flex-row items-center py-3 px-4 rounded-xl"
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+            accessibilityRole="button"
+          >
+            <Ionicons name="trash-outline" size={20} color={theme.danger} />
+            <View className="flex-1 ml-3">
+              <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                Remove
+              </Text>
+              <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                It didn't happen and it won't.
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+      )}
+
+      {mode === "link" && (
+        <View className="px-5 pb-4 flex-1">
+          {/* Search */}
+          <View className="flex-row items-center mb-2 border rounded-lg px-3 py-2" style={{ borderColor: colors.border }}>
+            <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search by merchant, description, amount..."
+              placeholderTextColor={colors.textSecondary}
+              className="flex-1 ml-2 text-sm text-foreground"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>
+                <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
               </Pressable>
             )}
+          </View>
 
+          <Text className="text-label mb-1.5" style={{ color: colors.textSecondary }}>
+            Showing transactions from last 30 days ({filteredCandidates.length}{query ? ` of ${candidates.length}` : ""})
+          </Text>
+
+          {loadingCandidates ? (
+            <View className="items-center py-6">
+              <ActivityIndicator color={colors.textSecondary} />
+            </View>
+          ) : filteredCandidates.length === 0 ? (
+            <Text className="text-sm py-4" style={{ color: colors.textSecondary }}>
+              {query ? "No transactions match your search." : "No recent transactions to pick from. Try Reschedule or Remove."}
+            </Text>
+          ) : (
+            <FlatList
+              initialNumToRender={12}
+              maxToRenderPerBatch={10}
+              windowSize={7}
+              data={filteredCandidates}
+              keyExtractor={(item) => item.id}
+              renderItem={renderCandidate}
+              style={{ maxHeight: 280 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            />
+          )}
+
+          {/* Running total + variance */}
+          {selectedIds.size > 0 && (
+            <View
+              className="mt-3 px-3 py-2.5 rounded-xl"
+              style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.2) }}
+            >
+              <View className="flex-row justify-between items-center">
+                <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                  Selected: {formatAmount(selectedTotal)} ({selectedIds.size})
+                </Text>
+                <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                  Planned: {formatAmount(entry.amount)}
+                </Text>
+              </View>
+              <View className="flex-row items-center mt-1">
+                <Ionicons
+                  name={variance > 0 ? "trending-up" : variance < 0 ? "trending-down" : "checkmark-circle"}
+                  size={12}
+                  color={variance > 0 ? theme.danger : variance < 0 ? theme.success : colors.textSecondary}
+                />
+                <Text
+                  className="text-xs font-semibold ml-1"
+                  style={{ color: variance > 0 ? theme.danger : variance < 0 ? theme.success : colors.textSecondary }}
+                >
+                  {variance === 0 ? "Exact match" : variance > 0 ? `${formatAmount(variance)} over` : `${formatAmount(Math.abs(variance))} under`}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Link Selected button */}
+          {selectedIds.size > 0 && (
             <Pressable
-              onPress={() => { setMode("root"); setSelectedIds(new Set()); setSearchQuery(""); }}
-              className="mt-2 py-2.5 rounded-lg items-center"
-              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+              onPress={async () => {
+                await onLinkFulfillment(entry.id, Array.from(selectedIds));
+                handleClose();
+              }}
+              className="mt-3 py-3 rounded-xl items-center"
+              style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
             >
-              <Text className="text-sm" style={{ color: colors.textSecondary }}>
-                Back
+              <Text className="text-sm font-bold text-primary-foreground">
+                Link Selected ({selectedIds.size})
               </Text>
             </Pressable>
-          </View>
-        )}
-      </Animated.View>
+          )}
 
-      <CalendarModal
-        visible={reschedulePickerVisible}
-        onClose={() => setReschedulePickerVisible(false)}
-        value={entry.date >= todayIso() ? entry.date : todayIso()}
-        onChange={async (d) => {
-          setReschedulePickerVisible(false);
-          await onReschedule(entry.id, d);
-          handleClose();
-        }}
-        maximumDate={null}
-        minimumDate={new Date()}
-      />
-    </Modal>
+          <Pressable
+            onPress={() => { setMode("root"); setSelectedIds(new Set()); setSearchQuery(""); }}
+            className="mt-2 py-2.5 rounded-lg items-center"
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+            accessibilityRole="button"
+          >
+            <Text className="text-sm" style={{ color: colors.textSecondary }}>
+              Back
+            </Text>
+          </Pressable>
+        </View>
+      )}
+    </Sheet>
   );
 }
