@@ -2,7 +2,7 @@
   "expo": {
     "name": "Arth",
     "slug": "artha",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "artha",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "android": {
       "package": "com.souravbaid.artha",
-      "versionCode": 30000,
+      "versionCode": 30001,
       "adaptiveIcon": {
         "backgroundColor": "#134E4A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
