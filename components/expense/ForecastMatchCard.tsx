@@ -23,7 +23,7 @@ export function ForecastMatchCard({
   const { forecast, realized } = pair;
 
   return (
-    <View className="mx-4 my-2 rounded-xl bg-white dark:bg-surface-dark-alt border border-border overflow-hidden">
+    <View className="mx-4 my-2 rounded-xl bg-card border border-border overflow-hidden">
       {/* Header */}
       <View className="flex-row items-center px-3 py-2 bg-[#F59E0B14]">
         <Ionicons name="git-compare-outline" size={14} color={StatusColors[colorScheme].warning} />

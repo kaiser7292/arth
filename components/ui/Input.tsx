@@ -57,11 +57,11 @@ export function Input({
         onBlur={handleBlur}
         keyboardType={formula ? "default" : keyboardType}
         accessibilityLabel={label || props.placeholder}
-        className={`rounded-lg border px-3 py-3 text-base text-foreground bg-white dark:bg-surface-dark-alt ${
+        className={`rounded-lg border px-3 py-3 text-base text-foreground bg-card ${
           error
             ? "border-danger"
             : inFormula
-            ? "border-blue-400 dark:border-blue-500"
+            ? "border-primary"
             : "border-border"
         } ${className}`}
         placeholderTextColor={colors.tabIconDefault}

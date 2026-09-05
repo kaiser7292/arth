@@ -279,7 +279,7 @@ export default function CreditCardsScreen() {
 
                 {/* Utilization bar — inline % at the right, sits under the 3-number summary */}
                 <View className="flex-row items-center mb-2">
-                  <View className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 mr-2">
+                  <View className="flex-1 h-1.5 rounded-full bg-border mr-2">
                     <View
                       className="h-1.5 rounded-full"
                       style={{ width: `${Math.min(overallUtil, 100)}%`, backgroundColor: overallUtilColor }}
@@ -408,7 +408,7 @@ export default function CreditCardsScreen() {
 
                     {/* Utilization bar — inline % on the right, right under the 3-number block */}
                     <View className="flex-row items-center mb-2">
-                      <View className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 mr-2">
+                      <View className="flex-1 h-1.5 rounded-full bg-border mr-2">
                         <View
                           className="h-1.5 rounded-full"
                           style={{ width: `${Math.min(bankUtil, 100)}%`, backgroundColor: bankUtilColor }}
@@ -598,8 +598,8 @@ export default function CreditCardsScreen() {
                       <Text className="text-sm text-muted-foreground">
                         {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
                       </Text>
-                      <View className="bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
-                        <Text className="text-[10px] font-semibold text-red-600 dark:text-red-400">Closed</Text>
+                      <View className="bg-danger/10 px-1.5 py-0.5 rounded">
+                        <Text className="text-[10px] font-semibold text-danger">Closed</Text>
                       </View>
                     </View>
                     <Text className="text-xs text-faint-foreground">{acct.bank_name}</Text>

@@ -47,7 +47,7 @@ export function SearchablePickerList({
   }, [items, query]);
 
   return (
-    <View className="mt-2 rounded-lg border border-border bg-white dark:bg-surface-dark-alt overflow-hidden">
+    <View className="mt-2 rounded-lg border border-border bg-card overflow-hidden">
       {items.length > 5 && (
         <View className="flex-row items-center px-3 py-2 border-b border-border">
           <Ionicons name="search" size={14} color={colors.textSecondary} />
@@ -146,7 +146,7 @@ export function AccountPicker({
             className={`flex-row items-center rounded-lg border px-4 py-3 ${
               selectedAccount
                 ? ""
-                : "border-border bg-white dark:bg-surface-dark-alt"
+                : "border-border bg-card"
             }`}
             style={selectedAccount ? accentStyles.selectedBorder : undefined}
           >
@@ -189,7 +189,7 @@ export function AccountPicker({
       ) : (
         <Pressable
           onPress={() => router.push("/settings/account-add")}
-          className="flex-row items-center rounded-lg border border-dashed border-border bg-white dark:bg-surface-dark-alt px-4 py-3"
+          className="flex-row items-center rounded-lg border border-dashed border-border bg-card px-4 py-3"
         >
           <Ionicons name="add-circle-outline" size={18} color={colors.textSecondary} />
           <Text className="flex-1 ml-3 text-sm text-faint-foreground">
@@ -242,7 +242,7 @@ export function DateSelector({
         </Pressable>
         <Pressable
           onPress={onToggleDatePicker}
-          className="flex-1 mx-2 py-2 px-4 rounded-lg border border-border bg-white dark:bg-surface-dark-alt items-center"
+          className="flex-1 mx-2 py-2 px-4 rounded-lg border border-border bg-card items-center"
         >
           <Text className="text-base font-medium text-foreground">
             {formatDateForDisplay(date)}
@@ -351,7 +351,7 @@ export function CategoryPicker({
         className={`flex-row items-center rounded-lg border px-4 py-3 ${
           selectedCategory
             ? ""
-            : "border-border bg-white dark:bg-surface-dark-alt"
+            : "border-border bg-card"
         }`}
         style={selectedCategory ? { borderColor: ac(accent, colorScheme, 400, 800), backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
       >
@@ -439,7 +439,7 @@ export function PaymentModePicker({
         className={`flex-row items-center rounded-lg border px-4 py-3 ${
           selectedPaymentMode
             ? ""
-            : "border-border bg-white dark:bg-surface-dark-alt"
+            : "border-border bg-card"
         }`}
         style={selectedPaymentMode ? { borderColor: ac(accent, colorScheme, 400, 800), backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
       >
@@ -524,7 +524,7 @@ export function MerchantPicker({
       <Text className="text-sm font-medium text-muted-foreground mb-2">
         Merchant
       </Text>
-      <View className="flex-row items-center rounded-lg border border-border bg-white dark:bg-surface-dark-alt overflow-hidden">
+      <View className="flex-row items-center rounded-lg border border-border bg-card overflow-hidden">
         <View className="flex-1 px-4 py-2">
           <TextInput
             value={value}
@@ -555,7 +555,7 @@ export function MerchantPicker({
         )}
       </View>
       {showSuggestions && filtered.length > 0 && (
-        <View className="mt-1 rounded-lg border border-border bg-white dark:bg-surface-dark-alt overflow-hidden max-h-48">
+        <View className="mt-1 rounded-lg border border-border bg-card overflow-hidden max-h-48">
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
             {filtered.slice(0, 20).map((name) => (
               <Pressable
@@ -601,7 +601,7 @@ export function RightSpendToggle({ isRightSpend, onToggle }: RightSpendTogglePro
     <View className="mb-6">
       <Pressable
         onPress={onToggle}
-        className="flex-row items-center justify-between rounded-lg border border-border bg-white dark:bg-surface-dark-alt px-4 py-3"
+        className="flex-row items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
       >
         <View className="flex-row items-center">
           <Ionicons

@@ -132,7 +132,7 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
           {/* Utilization bar */}
           {overallUtil != null && (
             <View>
-              <View className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700">
+              <View className="h-1.5 rounded-full bg-border">
                 <View
                   className="h-1.5 rounded-full"
                   style={{

@@ -31,7 +31,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
             className={`flex-1 py-2 items-center ${
               compareTab === "new"
                 ? ""
-                : "bg-white dark:bg-surface-dark-alt"
+                : "bg-card"
             }`}
             style={compareTab === "new" ? { backgroundColor: accent[500] } : undefined}
           >
@@ -50,7 +50,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
             className={`flex-1 py-2 items-center ${
               compareTab === "old"
                 ? ""
-                : "bg-white dark:bg-surface-dark-alt"
+                : "bg-card"
             }`}
             style={compareTab === "old" ? { backgroundColor: accent[500] } : undefined}
           >

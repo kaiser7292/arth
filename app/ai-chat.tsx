@@ -336,7 +336,7 @@ export default function AIChatScreen() {
     >
       {/* Header */}
       <View
-        className="flex-row items-center px-4 pt-14 pb-3 border-b border-border-light dark:border-border-dark"
+        className="flex-row items-center px-4 pt-14 pb-3 border-b border-border"
         style={{ backgroundColor: colors.background }}
       >
         <Pressable onPress={() => router.back()} hitSlop={12} className="mr-3">
@@ -349,7 +349,7 @@ export default function AIChatScreen() {
           <Ionicons name="sparkles" size={16} color={accentColor} />
         </View>
         <View className="flex-1">
-          <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary">
+          <Text className="text-base font-semibold text-foreground">
             Arth AI
           </Text>
           <Text
@@ -374,7 +374,7 @@ export default function AIChatScreen() {
       {loadState === "checking" || loadState === "loading" ? (
         <View className="flex-1 items-center justify-center gap-3">
           <ActivityIndicator size="large" color={accentColor} />
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             {loadState === "loading"
               ? "Loading AI model… (first time takes a few seconds)"
               : "Checking model…"}
@@ -383,10 +383,10 @@ export default function AIChatScreen() {
       ) : loadState === "disabled" ? (
         <View className="flex-1 items-center justify-center px-8 gap-4">
           <Ionicons name="sparkles-outline" size={40} color={colors.textSecondary} />
-          <Text className="text-base font-semibold text-center text-text-primary dark:text-text-dark-primary">
+          <Text className="text-base font-semibold text-center text-foreground">
             Arth AI is disabled
           </Text>
-          <Text className="text-sm text-center text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-center text-muted-foreground">
             Enable it in Settings → Arth AI to get started.
           </Text>
           <Pressable
@@ -400,10 +400,10 @@ export default function AIChatScreen() {
       ) : loadState === "no_model" ? (
         <View className="flex-1 items-center justify-center px-8 gap-4">
           <Ionicons name="download-outline" size={40} color={colors.textSecondary} />
-          <Text className="text-base font-semibold text-center text-text-primary dark:text-text-dark-primary">
+          <Text className="text-base font-semibold text-center text-foreground">
             Model not downloaded yet
           </Text>
-          <Text className="text-sm text-center text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-center text-muted-foreground">
             Download the AI model (~880 MB) to start chatting. Wi-Fi recommended.
           </Text>
           <Pressable
@@ -432,10 +432,10 @@ export default function AIChatScreen() {
                 >
                   <Ionicons name="sparkles" size={28} color={accentColor} />
                 </View>
-                <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+                <Text className="text-base font-semibold text-foreground mb-1">
                   Ask about your finances
                 </Text>
-                <Text className="text-sm text-center text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-sm text-center text-muted-foreground">
                   Everything runs privately on your phone.
                 </Text>
               </View>
@@ -539,10 +539,10 @@ export default function AIChatScreen() {
                 <Pressable
                   key={s}
                   onPress={() => sendMessage(s)}
-                  className="border border-border-light dark:border-border-dark rounded-full px-3 py-2"
+                  className="border border-border rounded-full px-3 py-2"
                   style={{ backgroundColor: colors.surface }}
                 >
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {s}
                   </Text>
                 </Pressable>
@@ -552,11 +552,11 @@ export default function AIChatScreen() {
 
           {/* Input bar */}
           <View
-            className="flex-row items-end px-3 pb-6 pt-2 border-t border-border-light dark:border-border-dark"
+            className="flex-row items-end px-3 pb-6 pt-2 border-t border-border"
             style={{ backgroundColor: colors.background }}
           >
             <TextInput
-              className="flex-1 rounded-2xl px-4 py-3 mr-2 text-sm text-text-primary dark:text-text-dark-primary"
+              className="flex-1 rounded-2xl px-4 py-3 mr-2 text-sm text-foreground"
               style={{
                 backgroundColor: colorScheme === "dark" ? "#1c2128" : "#f3f4f6",
                 maxHeight: 120,

@@ -200,7 +200,7 @@ export function MultiSplitSheet({
 
         <Animated.View
           style={[animatedStyle, { paddingBottom: Math.max(insets.bottom, 8) }]}
-          className="bg-white dark:bg-surface-dark-alt rounded-t-3xl px-5 pt-3"
+          className="bg-card rounded-t-3xl px-5 pt-3"
         >
           <View className="items-center mb-4">
             <View className="w-10 h-1 rounded-full bg-border" />
@@ -224,7 +224,7 @@ export function MultiSplitSheet({
                     onPress={() => handleSelectPerson(person.id)}
                     className="flex-row items-center p-4 rounded-xl border border-border"
                   >
-                    <View className="w-10 h-10 rounded-full bg-card dark:bg-surface-dark items-center justify-center mr-3">
+                    <View className="w-10 h-10 rounded-full bg-background items-center justify-center mr-3">
                       <Text className="text-base font-bold text-muted-foreground">
                         {person.name.charAt(0).toUpperCase()}
                       </Text>
@@ -358,7 +358,7 @@ export function MultiSplitSheet({
 
                 {/* Summary */}
                 {splits.length > 0 && (
-                  <View className="bg-card dark:bg-surface-dark rounded-2xl p-4 gap-2 mt-1">
+                  <View className="bg-background rounded-2xl p-4 gap-2 mt-1">
                     <View className="flex-row justify-between">
                       <Text className="text-xs text-muted-foreground">Total splits</Text>
                       <Text className="text-xs font-semibold text-foreground">
@@ -429,7 +429,7 @@ export function MultiSplitSheet({
             <Pressable
               onPress={handleConfirm}
               disabled={!canConfirm}
-              className={`mt-4 items-center py-4 rounded-2xl ${!canConfirm ? "bg-gray-300 dark:bg-gray-700" : ""}`}
+              className={`mt-4 items-center py-4 rounded-2xl ${!canConfirm ? "bg-border" : ""}`}
               style={canConfirm ? { backgroundColor: accent[500] } : undefined}
             >
               <Text className="text-base font-bold text-white">Confirm Split</Text>

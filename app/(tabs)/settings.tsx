@@ -538,7 +538,7 @@ export default function SettingsScreen() {
                     <Pressable
                       key={item.type}
                       onPress={() => toggleCleanupObject(item.type)}
-                      className={`flex-row items-center justify-between rounded-lg px-3 py-2.5 mb-1.5 border ${checked ? "border-[#FECACA] dark:border-[#7F1D1D] bg-[#DC262608]" : "border-border"}`}
+                      className={`flex-row items-center justify-between rounded-lg px-3 py-2.5 mb-1.5 border ${checked ? "border-danger/30 bg-[#DC262608]" : "border-border"}`}
                     >
                       <View className="flex-row items-center flex-1">
                         <Ionicons name={checked ? "checkbox" : "square-outline"} size={20} color={checked ? StatusColors[colorScheme].danger : colors.textSecondary} />

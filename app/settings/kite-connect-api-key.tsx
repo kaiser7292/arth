@@ -117,17 +117,17 @@ export default function KiteConnectApiKeyScreen() {
         />
       </View>
 
-      <View className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-        <Text className="text-xs text-blue-700 dark:text-blue-400 mb-2 font-semibold">
+      <View className="mb-6 p-4 bg-primary/10 rounded-lg border border-primary/30">
+        <Text className="text-xs text-primary mb-2 font-semibold">
           Where to get your API key:
         </Text>
-        <Text className="text-xs text-blue-600 dark:text-blue-500 mb-1">
+        <Text className="text-xs text-primary mb-1">
           1. Visit https://developers.kite.trade/apps
         </Text>
-        <Text className="text-xs text-blue-600 dark:text-blue-500 mb-1">
+        <Text className="text-xs text-primary mb-1">
           2. Create a new app or select existing
         </Text>
-        <Text className="text-xs text-blue-600 dark:text-blue-500">
+        <Text className="text-xs text-primary">
           3. Copy the API key from the app details
         </Text>
       </View>

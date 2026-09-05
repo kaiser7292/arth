@@ -181,7 +181,7 @@ function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) 
         >
           {/* Handle + header */}
           <View className="items-center pt-2 pb-1">
-            <View className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
           <View className="flex-row items-center justify-between px-4 pb-2">
             <Text className="text-base font-semibold text-foreground">
@@ -406,7 +406,7 @@ export default function CategoryEditScreen() {
                 key={c}
                 onPress={() => { setColor(c); setShowCustomColor(false); setShowColorDrawer(false); }}
                 className={`w-12 h-12 rounded-full m-1.5 items-center justify-center ${
-                  color === c && !showCustomColor ? "border-2 border-gray-900 dark:border-white" : ""
+                  color === c && !showCustomColor ? "border-2 border-foreground" : ""
                 }`}
                 style={{ backgroundColor: c }}
               >
@@ -434,7 +434,7 @@ export default function CategoryEditScreen() {
                 placeholderTextColor={colors.tabIconDefault}
                 maxLength={7}
                 autoCapitalize="characters"
-                className="flex-1 px-3 py-2 rounded-lg border border-border bg-white dark:bg-surface-dark-alt text-foreground text-sm font-mono"
+                className="flex-1 px-3 py-2 rounded-lg border border-border bg-card text-foreground text-sm font-mono"
               />
               <Pressable
                 onPress={() => { setShowCustomColor(false); setCustomHex(""); }}

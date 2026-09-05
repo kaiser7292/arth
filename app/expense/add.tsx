@@ -557,7 +557,7 @@ export default function AddExpenseScreen() {
                     <Text className="text-xs text-muted-foreground">
                       My budget: {"\u20B9"}{splitPreview.myBudgetAmount.toLocaleString("en-IN")}
                     </Text>
-                    <Text className="text-xs text-orange-600 dark:text-orange-300">
+                    <Text className="text-xs text-warning">
                       {splitPreview.hisaabType === "debit" ? "They owe" : "I owe"}: {"\u20B9"}{splitPreview.hisaabAmount.toLocaleString("en-IN")}
                     </Text>
                   </View>
@@ -566,7 +566,7 @@ export default function AddExpenseScreen() {
               ) : (
                 <Pressable
                   onPress={() => setShowSplitSheet(true)}
-                  className="flex-row items-center rounded-lg border border-border bg-white dark:bg-surface-dark-alt px-4 py-3"
+                  className="flex-row items-center rounded-lg border border-border bg-card px-4 py-3"
                 >
                   <Ionicons name="people-outline" size={20} color={colors.textSecondary} />
                   <Text className="ml-3 text-base font-medium text-foreground">

@@ -431,7 +431,7 @@ export default function SmsScanRunsScreen() {
           )}
 
           {/* Full raw SMS body */}
-          <View className="bg-card dark:bg-surface-dark rounded-lg p-2.5 mb-2">
+          <View className="bg-background rounded-lg p-2.5 mb-2">
             <Text className="text-xs text-foreground leading-[18px]" selectable>
               {detail.sms_body_preview ?? "No SMS body available"}
             </Text>

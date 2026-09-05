@@ -1244,8 +1244,8 @@ const loadData = useCallback(async () => {
                         </Text>
                       )}
                       {(entry.source === "sms_auto" || (isTransfer && !!entry.rawSourceText)) && (
-                        <View className="ml-1.5 px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900">
-                          <Text className="text-[8px] font-semibold text-blue-600 dark:text-blue-300">SMS</Text>
+                        <View className="ml-1.5 px-1 py-0.5 rounded bg-primary/15">
+                          <Text className="text-[8px] font-semibold text-primary">SMS</Text>
                         </View>
                       )}
                       {entry.isRefund && (
@@ -1259,8 +1259,8 @@ const loadData = useCallback(async () => {
                         </View>
                       )}
                       {isTransfer && entry.linkedExpenseId && (
-                        <View className="ml-1.5 px-1 py-0.5 rounded bg-orange-100 dark:bg-orange-900">
-                          <Text className="text-[8px] font-semibold text-orange-600 dark:text-orange-300">RECLASSIFIED</Text>
+                        <View className="ml-1.5 px-1 py-0.5 rounded bg-warning/15">
+                          <Text className="text-[8px] font-semibold text-warning">RECLASSIFIED</Text>
                         </View>
                       )}
                       {entry.type === "credit" && entry.linkedHisaabPersonName && (

@@ -735,7 +735,7 @@ function MiniMonthPicker({
 
       <Pressable
         onPress={onCancel}
-        className="py-3 rounded-xl bg-card dark:bg-surface-dark items-center"
+        className="py-3 rounded-xl bg-background items-center"
       >
         <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
       </Pressable>

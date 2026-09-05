@@ -207,7 +207,7 @@ export function PeriodNavigator(props: PeriodNavigatorProps) {
             {/* Cancel */}
             <Pressable
               onPress={() => setShowPicker(false)}
-              className="mx-4 mb-6 py-3 rounded-xl bg-card dark:bg-surface-dark items-center"
+              className="mx-4 mb-6 py-3 rounded-xl bg-background items-center"
             >
               <Text className="text-sm font-semibold text-muted-foreground">
                 Cancel

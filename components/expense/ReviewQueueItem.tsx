@@ -55,7 +55,7 @@ export function ReviewQueueItem({
     >
       <Pressable
         onPress={() => onTap(expense.id)}
-        className="flex-row items-center px-4 py-3.5 bg-white dark:bg-surface-dark-alt border-b border-border"
+        className="flex-row items-center px-4 py-3.5 bg-card border-b border-border"
       >
         {/* Source/nature icon */}
         <View

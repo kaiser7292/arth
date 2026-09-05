@@ -54,7 +54,7 @@ export function DateInput({
         onPress={() => setShowPicker(true)}
         accessibilityLabel={label || "Pick a date"}
         accessibilityRole="button"
-        className={`flex-row items-center rounded-lg border px-3 py-3 bg-white dark:bg-surface-dark-alt ${
+        className={`flex-row items-center rounded-lg border px-3 py-3 bg-card ${
           error ? "border-danger" : "border-border"
         }`}
       >

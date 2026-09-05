@@ -190,7 +190,7 @@ export function SplitSheet({
         {/* Sheet */}
         <Animated.View
           style={[animatedStyle, { paddingBottom: Math.max(insets.bottom, 8) }]}
-          className="bg-white dark:bg-surface-dark-alt rounded-t-3xl px-5 pt-3"
+          className="bg-card rounded-t-3xl px-5 pt-3"
         >
           {/* Handle */}
           <View className="items-center mb-4">
@@ -251,7 +251,7 @@ export function SplitSheet({
                     }}
                     className="flex-row items-center p-4 rounded-xl border border-border"
                   >
-                    <View className="w-10 h-10 rounded-full bg-card dark:bg-surface-dark items-center justify-center mr-3">
+                    <View className="w-10 h-10 rounded-full bg-background items-center justify-center mr-3">
                       <Text className="text-base font-bold text-muted-foreground">
                         {person.name.charAt(0).toUpperCase()}
                       </Text>
@@ -298,7 +298,7 @@ export function SplitSheet({
                     }`}
                     style={splitMode === item.mode ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 900) } : undefined}
                   >
-                    <View className="w-9 h-9 rounded-lg bg-card dark:bg-surface-dark items-center justify-center mr-3">
+                    <View className="w-9 h-9 rounded-lg bg-background items-center justify-center mr-3">
                       <Ionicons
                         name={item.icon as keyof typeof Ionicons.glyphMap}
                         size={18}
@@ -343,7 +343,7 @@ export function SplitSheet({
                       }`}
                       style={selectedPersonId === person.id ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 900) } : undefined}
                     >
-                      <View className="w-10 h-10 rounded-full bg-card dark:bg-surface-dark items-center justify-center mr-3">
+                      <View className="w-10 h-10 rounded-full bg-background items-center justify-center mr-3">
                         <Text className="text-base font-bold text-muted-foreground">
                           {person.name.charAt(0).toUpperCase()}
                         </Text>
@@ -426,7 +426,7 @@ export function SplitSheet({
                           className={`flex-1 items-center py-2 rounded-lg ${
                             percentage === pct
                               ? ""
-                              : "bg-card dark:bg-surface-dark"
+                              : "bg-background"
                           }`}
                           style={percentage === pct ? { backgroundColor: accent[500] } : undefined}
                         >
@@ -459,7 +459,7 @@ export function SplitSheet({
                 )}
 
                 {/* Summary card */}
-                <View className="bg-card dark:bg-surface-dark rounded-2xl p-4 gap-3">
+                <View className="bg-background rounded-2xl p-4 gap-3">
                   <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
                     Split Summary
                   </Text>
@@ -491,7 +491,7 @@ export function SplitSheet({
 
                   <View className="flex-row justify-between items-center">
                     <View className="flex-row items-center">
-                      <View className="w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900 items-center justify-center mr-2">
+                      <View className="w-6 h-6 rounded-full bg-warning/15 items-center justify-center mr-2">
                         <Ionicons name="people" size={12} color={StatusColors[colorScheme].warning} />
                       </View>
                       <Text className="text-sm text-foreground">
@@ -499,7 +499,7 @@ export function SplitSheet({
                         {preview.hisaabType === "debit" ? " owes you" : " - you owe"}
                       </Text>
                     </View>
-                    <Text className="text-base font-bold text-orange-600 dark:text-orange-300">
+                    <Text className="text-base font-bold text-warning">
                       {formatAmount(preview.hisaabAmount)}
                     </Text>
                   </View>
@@ -509,7 +509,7 @@ export function SplitSheet({
                 <View className="flex-row gap-2">
                   <Pressable
                     onPress={() => setStep("paidBy")}
-                    className="flex-1 items-center py-2 rounded-lg bg-card dark:bg-surface-dark"
+                    className="flex-1 items-center py-2 rounded-lg bg-background"
                   >
                     <Text className="text-xs text-muted-foreground">
                       {paidBy === "me" ? "I paid" : `${selectedPerson?.name} paid`}
@@ -517,7 +517,7 @@ export function SplitSheet({
                   </Pressable>
                   <Pressable
                     onPress={() => setStep("mode")}
-                    className="flex-1 items-center py-2 rounded-lg bg-card dark:bg-surface-dark"
+                    className="flex-1 items-center py-2 rounded-lg bg-background"
                   >
                     <Text className="text-xs text-muted-foreground">
                       {SPLIT_MODES.find((m) => m.mode === splitMode)?.label}
@@ -525,7 +525,7 @@ export function SplitSheet({
                   </Pressable>
                   <Pressable
                     onPress={() => setStep("person")}
-                    className="flex-1 items-center py-2 rounded-lg bg-card dark:bg-surface-dark"
+                    className="flex-1 items-center py-2 rounded-lg bg-background"
                   >
                     <Text className="text-xs text-muted-foreground">
                       {selectedPerson?.name ?? "Pick person"}
@@ -543,7 +543,7 @@ export function SplitSheet({
               disabled={!selectedPersonId || (splitMode === "exact" && !exactAmount)}
               className={`mt-4 items-center py-4 rounded-2xl ${
                 !selectedPersonId || (splitMode === "exact" && !exactAmount)
-                  ? "bg-gray-300 dark:bg-gray-700"
+                  ? "bg-border"
                   : ""
               }`}
               style={!selectedPersonId || (splitMode === "exact" && !exactAmount) ? undefined : { backgroundColor: accent[500] }}

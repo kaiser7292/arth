@@ -353,8 +353,8 @@ export default function AuditLogScreen() {
                 </Text>
               </View>
               {item.sourceType === "sms" && (
-                <View className="px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900 mr-1.5">
-                  <Text className="text-[8px] font-semibold text-blue-600 dark:text-blue-300">SMS</Text>
+                <View className="px-1 py-0.5 rounded bg-primary/15 mr-1.5">
+                  <Text className="text-[8px] font-semibold text-primary">SMS</Text>
                 </View>
               )}
               <Ionicons

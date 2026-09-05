@@ -251,7 +251,7 @@ export default function ImportExcelScreen() {
         <View className="flex-row bg-card rounded-xl p-1 mt-2 mb-4">
           <Pressable
             onPress={() => handleModeChange("expenses")}
-            className={`flex-1 py-2.5 rounded-lg items-center ${importMode === "expenses" ? "bg-white dark:bg-surface-dark shadow-sm" : ""}`}
+            className={`flex-1 py-2.5 rounded-lg items-center ${importMode === "expenses" ? "bg-card shadow-sm" : ""}`}
           >
             <Text
               className={`text-sm font-semibold ${importMode === "expenses" ? "text-foreground" : "text-muted-foreground"}`}
@@ -261,7 +261,7 @@ export default function ImportExcelScreen() {
           </Pressable>
           <Pressable
             onPress={() => handleModeChange("hisaab")}
-            className={`flex-1 py-2.5 rounded-lg items-center ${importMode === "hisaab" ? "bg-white dark:bg-surface-dark shadow-sm" : ""}`}
+            className={`flex-1 py-2.5 rounded-lg items-center ${importMode === "hisaab" ? "bg-card shadow-sm" : ""}`}
           >
             <Text
               className={`text-sm font-semibold ${importMode === "hisaab" ? "text-foreground" : "text-muted-foreground"}`}
@@ -290,7 +290,7 @@ export default function ImportExcelScreen() {
         {step === "pick" && (
           <View>
             {/* Template download card */}
-            <View className="rounded-lg border border-border bg-white dark:bg-surface-dark-alt p-4 mb-4">
+            <View className="rounded-lg border border-border bg-card p-4 mb-4">
               <View className="flex-row items-center mb-3">
                 <View className="w-10 h-10 rounded-full bg-[#22C55E14] items-center justify-center mr-3">
                   <Ionicons name="download-outline" size={20} color={StatusColors[colorScheme].success} />
@@ -331,9 +331,9 @@ export default function ImportExcelScreen() {
                     return (
                       <View
                         key={col}
-                        className="px-2 py-1 rounded bg-card dark:bg-surface-dark mr-1.5 mb-1.5"
+                        className="px-2 py-1 rounded bg-background mr-1.5 mb-1.5"
                       >
-                        <Text className="text-xs text-foreground dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           {col}
                           {isRequired && (
                             <Text className="text-danger"> *</Text>
@@ -612,7 +612,7 @@ export default function ImportExcelScreen() {
                     <Text className="text-xs text-muted-foreground">
                       Debits / Credits
                     </Text>
-                    <Text className="text-xs text-foreground dark:text-text-dark-secondary">
+                    <Text className="text-xs text-muted-foreground">
                       {formatAmount(person.debits)} / {formatAmount(person.credits)}
                     </Text>
                   </View>

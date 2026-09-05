@@ -130,7 +130,7 @@ function renderInline(
     const key = `${keyPrefix}-${idx}`;
  if (tok.startsWith("**") && tok.endsWith("**")) {
  return (
- <Text key={key} className="font-semibold text-foreground dark:text-text-dark-primary">
+ <Text key={key} className="font-semibold text-foreground">
  {tok.slice(2, -2)}
  </Text>
  );
@@ -139,7 +139,7 @@ function renderInline(
  return (
  <Text
  key={key}
- className="text-text-primary dark:text-text-dark-primary"
+ className="text-foreground"
  style={{ fontFamily: "monospace", fontSize: 13 }}
  >
  {tok.slice(1, -1)}
@@ -173,7 +173,7 @@ function renderInline(
  );
  }
  return (
- <Text key={key} className="text-text-primary dark:text-text-dark-primary">
+ <Text key={key} className="text-foreground">
  {tok}
  </Text>
  );

@@ -423,9 +423,9 @@ export default function AccountDetailScreen() {
           <View className="px-4 py-4">
           {/* Closed account banner */}
           {account.closed_at && (
-            <View className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 mb-3 flex-row items-center gap-3">
+            <View className="bg-warning/10 border border-warning/30 rounded-xl px-4 py-3 mb-3 flex-row items-center gap-3">
               <Ionicons name="lock-closed-outline" size={18} color="#D97706" />
-              <Text className="text-sm text-amber-700 dark:text-amber-400 flex-1">
+              <Text className="text-sm text-warning flex-1">
                 This account is closed. History is read-only.
               </Text>
             </View>

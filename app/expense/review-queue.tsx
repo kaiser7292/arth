@@ -782,7 +782,7 @@ export default function ReviewQueueScreen() {
             return (
               <Pressable
                 onPress={() => toggleSection(item.key)}
-                className="flex-row items-center justify-between px-4 py-2.5 bg-card dark:bg-surface-dark"
+                className="flex-row items-center justify-between px-4 py-2.5 bg-background"
               >
                 <View className="flex-row items-center">
                   <Ionicons name={item.icon} size={14} color={item.color} />

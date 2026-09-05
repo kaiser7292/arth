@@ -339,8 +339,8 @@ export default function PensionAccountsScreen() {
                       <Text className="text-sm text-muted-foreground">
                         {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
                       </Text>
-                      <View className="bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
-                        <Text className="text-[10px] font-semibold text-red-600 dark:text-red-400">Closed</Text>
+                      <View className="bg-danger/10 px-1.5 py-0.5 rounded">
+                        <Text className="text-[10px] font-semibold text-danger">Closed</Text>
                       </View>
                     </View>
                     <Text className="text-xs text-faint-foreground">{acct.bank_name}</Text>

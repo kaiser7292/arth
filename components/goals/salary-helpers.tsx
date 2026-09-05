@@ -33,7 +33,7 @@ export function Toggle({
             className={`flex-1 py-2.5 items-center ${
               value === opt.value
                 ? ""
-                : "bg-white dark:bg-surface-dark-alt"
+                : "bg-card"
             }`}
             style={value === opt.value ? { backgroundColor: accent[500] } : undefined}
           >
@@ -72,7 +72,7 @@ export function StatePicker({
       </Text>
       <Pressable
         onPress={() => setExpanded(!expanded)}
-        className="flex-row items-center justify-between rounded-lg border border-border bg-white dark:bg-surface-dark-alt px-3 py-3"
+        className="flex-row items-center justify-between rounded-lg border border-border bg-card px-3 py-3"
       >
         <Text className="text-base text-foreground">
           {value ?? "Select state"}
@@ -84,7 +84,7 @@ export function StatePicker({
         />
       </Pressable>
       {expanded && (
-        <View className="mt-1 rounded-lg border border-border bg-white dark:bg-surface-dark-alt max-h-48">
+        <View className="mt-1 rounded-lg border border-border bg-card max-h-48">
           <ScrollView nestedScrollEnabled>
             {STATE_LIST.map((state) => (
               <Pressable

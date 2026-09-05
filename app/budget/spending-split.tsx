@@ -122,7 +122,7 @@ export default function SpendingSplitScreen() {
         {split && split.totalSpent > 0 ? (
           <>
             {/* Donut chart */}
-            <View className="mx-4 mt-3 mb-2 p-4 rounded-lg bg-white dark:bg-surface-dark-alt border border-border items-center">
+            <View className="mx-4 mt-3 mb-2 p-4 rounded-lg bg-card border border-border items-center">
               <DonutChart
                 segments={[
                   {
@@ -148,7 +148,7 @@ export default function SpendingSplitScreen() {
             </View>
 
             {/* Summary metrics */}
-            <View className="mx-4 mb-2 p-4 rounded-lg bg-white dark:bg-surface-dark-alt border border-border">
+            <View className="mx-4 mb-2 p-4 rounded-lg bg-card border border-border">
               {/* Unavoidable row */}
               <Pressable
                 onPress={() => router.push({ pathname: "/budget/transactions" as never, params: { filterMonth: month, filterAvoidability: "unavoidable", title: "Unavoidable Expenses" } })}
@@ -255,7 +255,7 @@ export default function SpendingSplitScreen() {
 
             {/* Unavoidable categories */}
             <View
-              className="mx-4 mb-2 p-4 rounded-lg bg-white dark:bg-surface-dark-alt border border-border"
+              className="mx-4 mb-2 p-4 rounded-lg bg-card border border-border"
               onLayout={(e) => { sectionY.current.unavoidable = e.nativeEvent.layout.y; }}
             >
               <View className="flex-row items-center mb-3">
@@ -282,7 +282,7 @@ export default function SpendingSplitScreen() {
 
             {/* Discretionary categories */}
             <View
-              className="mx-4 mb-4 p-4 rounded-lg bg-white dark:bg-surface-dark-alt border border-border"
+              className="mx-4 mb-4 p-4 rounded-lg bg-card border border-border"
               onLayout={(e) => { sectionY.current.discretionary = e.nativeEvent.layout.y; }}
             >
               <View className="flex-row items-center mb-3">
