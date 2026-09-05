@@ -1,6 +1,7 @@
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { Colors, Shadows } from "@/constants/theme";
+import { Shadows } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 import { setHasLandedOnHome } from "@/services/biometric-lock";
 import { getPendingExpenseCount } from "@/services/expense";
 import { subscribeDataVersion } from "@/services/settings";
@@ -13,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const { colors } = useColorScheme();
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -79,7 +81,7 @@ export default function TabLayout() {
             <Ionicons name="receipt-outline" size={size} color={color} />
           ),
           tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: Colors.budget.over, fontSize: 10 },
+          tabBarBadgeStyle: { backgroundColor: theme.danger, fontSize: 10 },
         }}
       />
       <Tabs.Screen

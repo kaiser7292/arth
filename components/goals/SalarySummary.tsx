@@ -20,7 +20,7 @@ export interface SalarySummaryProps {
 }
 
 export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandChange }: SalarySummaryProps) {
-  const { accent, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
   const [showCorrectionInput, setShowCorrectionInput] = useState(false);
 
@@ -119,7 +119,7 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
 }
 
 export function SalarySummary({ calculation }: { calculation: SalaryCalculation | null }) {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
 
   if (!calculation) {
@@ -256,7 +256,7 @@ export function SalaryFooter({
   onSaveComplete,
   onCapitalGainsReference,
 }: SalaryFooterProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const parsedManualFtr = parseFloat(manualInHand ?? "") || 0;

@@ -4,7 +4,6 @@ import { Text } from "@/components/ui";
 import { ALLOWED_DEEP_LINK_SCREENS } from "@/constants/routes";
 import { initDatabase } from "@/database";
 import { AlertProvider } from "@/hooks/use-alert";
-import { AccentProvider } from "@/hooks/use-color-scheme";
 import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
 import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
@@ -468,7 +467,6 @@ export default function RootLayout(): React.JSX.Element {
 
   return (
     <ErrorBoundary>
-    <AccentProvider>
     <AlertProvider>
     <GestureHandlerRootView style={{ flex: 1 }}>
     <>
@@ -539,7 +537,6 @@ export default function RootLayout(): React.JSX.Element {
     </>
     </GestureHandlerRootView>
     </AlertProvider>
-    </AccentProvider>
     </ErrorBoundary>
   );
 }

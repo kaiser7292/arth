@@ -100,7 +100,7 @@ const NATURE_TABS: SwipePagerPage[] = [
 export default function ExpensesScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -818,7 +818,7 @@ export default function ExpensesScreen() {
         </Pressable>
       );
     },
-    [accountMap, colors, accent, alert, loadExpenses, router],
+    [accountMap, colors, alert, loadExpenses, router],
   );
 
   // Group expenses by date for display. Each entry is either a date header
@@ -918,7 +918,7 @@ export default function ExpensesScreen() {
         </View>
       );
     },
-    [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, accent, colors],
+    [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, colors],
   );
 
   return (

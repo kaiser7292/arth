@@ -69,59 +69,62 @@ describe("contrast", () => {
 });
 
 /**
- * The migration invariant.
+ * The bridge is gone.
  *
- * During the sweep both the legacy colour surfaces and the new token roles are live at once. If
- * they ever resolve to DIFFERENT values, the app renders half-old/half-new and there is no way to
- * tell from a screenshot which commit caused it. These tests make that divergence impossible.
+ * These replace the "legacy bridge" tests, which asserted that the old colour surfaces and
+ * useTheme() resolved to identical values while both were live. That invariant existed to keep the
+ * branch bisectable during the sweep; now the point is that the old surfaces no longer exist at
+ * all. TypeScript already proves it - the app compiles with them deleted - and these keep them
+ * from creeping back.
  */
-describe("legacy bridge", () => {
-  const { Colors, StatusColors } = require("../../constants/theme");
-  const { STATUS_COLORS, CHART_COLORS, TRANSFER_COLOR } = require("../../constants/semantic-colors");
-  const { LIGHT, DARK, BRAND_RAMP, toHex } = require("../../constants/brand");
-  const { getTheme } = require("../../hooks/use-theme");
+describe("bridge removed", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const root = path.join(__dirname, "..", "..");
 
-  it("resolves Colors[scheme] to the same values as useTheme()", () => {
-    for (const scheme of ["light", "dark"] as const) {
-      const t = getTheme(scheme);
-      expect(Colors[scheme].text).toBe(t.foreground);
-      expect(Colors[scheme].textSecondary).toBe(t.mutedForeground);
-      expect(Colors[scheme].background).toBe(t.background);
-      expect(Colors[scheme].surface).toBe(t.card);
-      expect(Colors[scheme].border).toBe(t.border);
-      expect(Colors[scheme].tint).toBe(t.primary);
-      expect(Colors[scheme].tabIconSelected).toBe(t.primary);
-    }
+  it.each([
+    "utils/accent.ts",
+    "constants/accent-palettes.ts",
+  ])("deleted %s", (rel) => {
+    expect(fs.existsSync(path.join(root, rel))).toBe(false);
   });
 
-  it("resolves StatusColors[scheme] to the same values as useTheme()", () => {
-    for (const scheme of ["light", "dark"] as const) {
-      const t = getTheme(scheme);
-      expect(StatusColors[scheme].success).toBe(t.success);
-      expect(StatusColors[scheme].danger).toBe(t.danger);
-      expect(StatusColors[scheme].warning).toBe(t.warning);
-    }
+  it("leaves constants/theme.ts with elevation only", () => {
+    const mod = require("../../constants/theme");
+    expect(Object.keys(mod)).toEqual(["Shadows"]);
   });
 
-  it("ends the two-greens split between theme.ts and semantic-colors.ts", () => {
-    // These disagreed in production (#22C55E vs #10B981) under a comment claiming they matched.
-    expect(STATUS_COLORS.success).toBe(StatusColors.light.success);
-    expect(STATUS_COLORS.error).toBe(StatusColors.light.danger);
-    expect(STATUS_COLORS.warning).toBe(StatusColors.light.warning);
-  });
-
-  it("points the legacy accent ramp at the single brand ramp", () => {
-    expect(Colors.primary).toBe(BRAND_RAMP);
-    // The brand's darkest shade is the Android adaptive-icon background in app.json — the app and
-    // its launcher icon finally share a colour.
-    expect(BRAND_RAMP[900]).toBe("#134E4A");
+  it("keeps the brand ramp anchored to the launcher icon", () => {
+    const { BRAND_RAMP, LIGHT, DARK } = require("../../constants/brand");
+    // app.json paints the Android adaptive icon background with the ramp's darkest shade, so the
+    // app and its launcher icon share a colour rather than merely resembling one.
+    const appJson = JSON.parse(fs.readFileSync(path.join(root, "app.json"), "utf8"));
+    expect(BRAND_RAMP[900]).toBe(appJson.expo.android.adaptiveIcon.backgroundColor.toUpperCase());
     expect(LIGHT.primary).toBe(BRAND_RAMP[700]);
     expect(DARK.primary).toBe(BRAND_RAMP[400]);
   });
 
-  it("derives chart and transfer colours from tokens, not literals", () => {
-    expect(CHART_COLORS.axisMuted).toBe(LIGHT.faintForeground);
-    expect(TRANSFER_COLOR).toBe(toHex(require("../../constants/design-tokens.js").DATA.transfer));
+  it("has no accent, ac() or StatusColors call sites left in the UI", () => {
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const f = path.join(dir, e.name);
+        if (e.isDirectory()) walk(f);
+        else if (f.endsWith(".tsx")) files.push(f);
+      }
+    };
+    for (const d of ["app", "components"]) walk(path.join(root, d));
+
+    const offenders: string[] = [];
+    for (const f of files) {
+      const src = fs.readFileSync(f, "utf8");
+      // Comments still mention "accent" descriptively; only code references matter.
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*/g, "");
+      if (/accent\[/.test(code) || /acAlpha\(/.test(code) || /StatusColors/.test(code)) {
+        offenders.push(path.relative(root, f));
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });
 

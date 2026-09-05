@@ -36,7 +36,7 @@ type DurationUnit = "years" | "months";
 export default function MilestonesScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const [milestones, setMilestones] = useState<LifeMilestone[]>([]);
   const [milestoneStatuses, setMilestoneStatuses] = useState<MilestoneStatus[]>([]);
@@ -636,7 +636,7 @@ function MilestoneCard({
   onEdit: () => void;
   onToggleComplete: () => void;
 }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const remaining = Math.max(
     milestone.target_amount - milestone.current_saved,

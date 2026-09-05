@@ -115,7 +115,7 @@ function shortMonth(yyyyMM: string): string {
 
 export default function BudgetVsActualScreen() {
   const router = useRouter();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
 
   const [period, setPeriod] = useState<Period>("this_month");
@@ -312,7 +312,6 @@ export default function BudgetVsActualScreen() {
                 maxMonth={showMonthPicker === "start" ? customEndMonth : undefined}
                 minMonth={showMonthPicker === "end" ? customStartMonth : undefined}
                 label={showMonthPicker === "start" ? "Start Month" : "End Month"}
-                accent={accent}
                 colors={colors}
                 onSelect={(v) => {
                   if (showMonthPicker === "start") setCustomStartMonth(v);
@@ -511,7 +510,6 @@ export default function BudgetVsActualScreen() {
                     key={row.categoryId}
                     row={row}
                     isCurrentMonth={isCurrentMonth}
-                    accent={accent}
                     colors={colors}
                     onPress={() => drillDown(row)}
                   />
@@ -566,13 +564,11 @@ export default function BudgetVsActualScreen() {
 function CategoryRow({
   row,
   isCurrentMonth,
-  accent,
   colors,
   onPress,
 }: {
   row: BudgetVsActualRow;
   isCurrentMonth: boolean;
-  accent: any;
   colors: any;
   onPress: () => void;
 }) {
@@ -646,7 +642,6 @@ function MiniMonthPicker({
   minMonth,
   maxMonth,
   label,
-  accent,
   colors,
   onSelect,
   onCancel,
@@ -655,7 +650,6 @@ function MiniMonthPicker({
   minMonth?: string;
   maxMonth?: string;
   label: string;
-  accent: any;
   colors: any;
   onSelect: (v: string) => void;
   onCancel: () => void;

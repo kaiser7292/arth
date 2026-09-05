@@ -13,7 +13,8 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Shadows, StatusColors } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
+import { Shadows } from "@/constants/theme";
 import { logger } from "@/utils/logger";
 
 /* ── Types (mirrors React Native Alert API) ── */
@@ -49,7 +50,8 @@ interface AlertState {
 export function AlertProvider({ children }: { children: React.ReactNode }) {
   const [alertState, setAlertState] = useState<AlertState | null>(null);
   const [loadingIdx, setLoadingIdx] = useState<number | null>(null);
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
+  const theme = useTheme();
 
   const backdropOpacity = useSharedValue(0);
   const cardScale = useSharedValue(0.9);
@@ -229,14 +231,16 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
                   let textColor: string;
 
                   if (isDestructive) {
-                    bgColor = StatusColors[colorScheme].danger;
+                    bgColor = theme.danger;
                     textColor = "#FFFFFF";
                   } else if (isCancel) {
-                    bgColor = isDark ? "#2A2A2C" : "#F3F4F6";
-                    textColor = isDark ? "#A0A0A0" : "#6B7280";
+                    bgColor = theme.background;
+                    textColor = theme.mutedForeground;
                   } else {
-                    bgColor = accent[500];
-                    textColor = "#FFFFFF";
+                    // Was accent[500] with a white label - about 2.5:1, and 1.9:1 in dark where
+                    // the brand is a light teal. primaryForeground flips to dark ink there.
+                    bgColor = theme.primary;
+                    textColor = theme.primaryForeground;
                   }
 
                   return (

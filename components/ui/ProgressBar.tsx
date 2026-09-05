@@ -24,7 +24,7 @@ export function ProgressBar({
   height = 8,
   animated = true,
 }: ProgressBarProps) {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
   const resolvedColor = color ?? colors.tint;
   const clampedValue = Math.min(Math.max(value, 0), 1);

@@ -41,7 +41,7 @@ export function SearchablePickerList({
   searchPlaceholder?: string;
 }) {
   const [query, setQuery] = useState("");
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const filtered = useMemo(() => {
@@ -130,14 +130,14 @@ export function AccountPicker({
   onToggle,
   onSelect,
 }: AccountPickerProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const router = useRouter();
 
   const accentStyles = useMemo(() => ({
     selectedBorder: { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) },
     highlightBg: { backgroundColor: theme.alpha("primary", 0.1) },
-  }), [accent, colorScheme]);
+  }), [colorScheme]);
 
   return (
     <View className="mb-4">
@@ -230,7 +230,7 @@ export function DateSelector({
   onCloseDatePicker,
   dateError,
 }: DateSelectorProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const [showCalendar, setShowCalendar] = useState(false);
 
@@ -345,7 +345,7 @@ export function CategoryPicker({
   onSelect,
   allowNone = false,
 }: CategoryPickerProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
 
   return (
@@ -434,7 +434,7 @@ export function PaymentModePicker({
   onSelect,
   allowNone = false,
 }: PaymentModePickerProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
 
   return (
@@ -518,7 +518,7 @@ export function MerchantPicker({
   onToggleSuggestions,
   onCloseSuggestions,
 }: MerchantPickerProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
 
   // Filter suggestions based on current input

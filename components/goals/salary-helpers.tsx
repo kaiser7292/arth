@@ -21,7 +21,6 @@ export function Toggle({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const { accent } = useColorScheme();
   const theme = useTheme();
   return (
     <View className="mb-3">
@@ -65,7 +64,7 @@ export function StatePicker({
   value: string | null;
   onChange: (v: string | null) => void;
 }) {
-  const { accent, colors } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
 

@@ -54,7 +54,7 @@ const MONTH_NAMES_SHORT = [
 // ═══════════════════════════════════════════════
 
 export function PeriodNavigator(props: PeriodNavigatorProps) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const uiTheme = useTheme();
   const [showPicker, setShowPicker] = useState(false);
 
@@ -238,7 +238,7 @@ function MonthPickerContent({
   maxMonth?: string;
   onChange: (v: string) => void;
 }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const uiTheme = useTheme();
   const theme = useTheme();
   const [y, m] = value.split("-").map(Number);
@@ -339,7 +339,7 @@ function FYPickerContent({
   value: number;
   onChange: (v: number) => void;
 }) {
-  const { accent, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const uiTheme = useTheme();
   const theme = useTheme();
   const fyStartMonth = getFYStartMonth();

@@ -6,7 +6,6 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors } from "@/constants/theme";
 import {
   isLockEnabled,
   setLockEnabled,
@@ -23,10 +22,9 @@ import { useAlert } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function SecuritySettingsScreen() {
-  const { colorScheme } = useColorScheme();
-  const uiTheme = useTheme();
-  const theme = Colors[colorScheme];
-  const accentColor = uiTheme.primary;
+  
+  const theme = useTheme();
+  const accentColor = theme.primary;
   const router = useRouter();
   const alert = useAlert();
 
@@ -173,7 +171,7 @@ export default function SecuritySettingsScreen() {
 
               <Card className="mb-4">
                 <Pressable onPress={onLockNow} className="flex-row items-center py-3">
-                  <Ionicons name="log-out-outline" size={20} color={theme.text} />
+                  <Ionicons name="log-out-outline" size={20} color={theme.foreground} />
                   <View className="flex-1 ml-3">
                     <Text className="text-base text-foreground font-semibold">
                       Lock Now
@@ -182,7 +180,7 @@ export default function SecuritySettingsScreen() {
                       Immediately lock Arth
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+                  <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
                 </Pressable>
               </Card>
             </>

@@ -91,7 +91,7 @@ export default function ScenarioDetailScreen() {
   const router = useRouter();
   const alert = useAlert();
   const navigation = useNavigation();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const [overview, setOverview] = useState<ScenarioOverview | null>(null);
@@ -1457,7 +1457,7 @@ function EntryGroup({
   total?: number;
   direction?: "out" | "in";
 }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   if (items.length === 0) return null;
   const groupTotal = total ?? items.reduce((s, e) => s + e.amount, 0);
@@ -1599,7 +1599,7 @@ function RenameScenarioModal({
   onSave: (name: string) => void;
   onClose: () => void;
 }) {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
   const [name, setName] = useState(initialName);
   useEffect(() => {

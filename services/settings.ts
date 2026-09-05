@@ -1,11 +1,8 @@
-import type { AccentThemeId } from "@/constants/accent-palettes";
-import { DEFAULT_ACCENT_THEME } from "@/constants/accent-palettes";
 import { settingsStorage as storage } from "./storage";
 
 const KEYS = {
   FISCAL_YEAR_START_MONTH: "fiscal_year_start_month",
   THEME: "theme",
-  ACCENT_THEME: "accent_theme",
   BUDGET_WIDGETS_VISIBLE: "budget_widgets_visible",
   BUDGET_CATEGORY_SORT: "budget_category_sort",
   DATA_VERSION: "data_version",
@@ -119,16 +116,7 @@ export function subscribeDataVersion(callback: () => void): { remove: () => void
   return { remove: () => listener.remove() };
 }
 
-/**
- * Accent is locked to ocean (blue). Picker was removed in v1.11.
- */
-export function getAccentTheme(): AccentThemeId {
-  return DEFAULT_ACCENT_THEME;
-}
 
-export function setAccentTheme(_theme: AccentThemeId): void {
-  // no-op — accent is fixed to ocean
-}
 
 // Backup staleness tracking ----------------------------------------------------
 

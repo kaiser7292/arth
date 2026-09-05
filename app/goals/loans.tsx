@@ -41,7 +41,7 @@ const LOAN_TYPE_LABEL: Record<string, string> = {
 export default function LoansListScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const [loans, setLoans] = useState<Array<LoanAccount & {
     bank_name: string;
@@ -253,7 +253,7 @@ function LoanCard({
   loan: LoanAccount & { bank_name: string; outstanding: number; current_emi: number; remaining_months: number | null };
   onPress: () => void;
 }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const progress =
     loan.principal_disbursed > 0

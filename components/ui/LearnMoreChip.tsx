@@ -28,7 +28,7 @@ interface Props {
 
 export function LearnMoreChip({ contextKey, label = "Learn more", subtle = false }: Props) {
   const router = useRouter();
-  const { accent, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const uiTheme = useTheme();
   const theme = useTheme();
 
@@ -76,7 +76,7 @@ export function LearnMoreChip({ contextKey, label = "Learn more", subtle = false
  */
 export function LearnMoreRow({ contextKey, label = "Learn more" }: Props) {
   const router = useRouter();
-  const { accent, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const uiTheme = useTheme();
   const theme = useTheme();
 

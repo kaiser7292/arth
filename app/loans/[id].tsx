@@ -44,7 +44,7 @@ export default function LoanDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const [loan, setLoan] = useState<LoanAccount | null>(null);
@@ -314,7 +314,6 @@ export default function LoanDetailScreen() {
               label="Foreclose quote"
               sublabel="See total to close the loan today"
               onPress={() => setForeclosureSheetVisible(true)}
-              accent={accent}
               colors={colors}
               colorScheme={colorScheme}
             />
@@ -326,7 +325,6 @@ export default function LoanDetailScreen() {
                 pathname: "/loans/[id]/correction",
                 params: { id: loan.id }
               } as never)}
-              accent={accent}
               colors={colors}
               colorScheme={colorScheme}
             />
@@ -337,7 +335,6 @@ export default function LoanDetailScreen() {
           label="Edit loan details"
           sublabel="Change rate, tenure, EMI day, fees…"
           onPress={() => router.push({ pathname: "/loans/add", params: { loanId: loan.id } } as never)}
-          accent={accent}
           colors={colors}
           colorScheme={colorScheme}
         />
@@ -366,7 +363,6 @@ export default function LoanDetailScreen() {
               ],
             );
           }}
-          accent={accent}
           colors={colors}
           colorScheme={colorScheme}
           danger
@@ -832,7 +828,6 @@ function ActionTile({
   label,
   sublabel,
   onPress,
-  accent,
   colors,
   colorScheme,
   danger,
@@ -841,7 +836,6 @@ function ActionTile({
   label: string;
   sublabel?: string;
   onPress: () => void;
-  accent: ReturnType<typeof useColorScheme>["accent"];
   colors: ReturnType<typeof useColorScheme>["colors"];
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
   danger?: boolean;

@@ -22,7 +22,6 @@ interface FilterChipProps {
  * reads as a single control.
  */
 export function FilterChip({ label, active = false, onPress, spacing = "md" }: FilterChipProps) {
-  const { accent } = useColorScheme();
   const theme = useTheme();
   const mr = spacing === "sm" ? "mr-1.5" : "mr-2";
   return (

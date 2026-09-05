@@ -25,7 +25,7 @@ export default function VaultEntryScreen() {
   const { entryId } = useLocalSearchParams<{ entryId: string }>();
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
 
   const [entry, setEntry] = useState<VaultEntry | null>(null);
@@ -218,7 +218,6 @@ export default function VaultEntryScreen() {
             value={customFields.card_holder}
             onCopy={() => handleCopy("Cardholder Name", customFields.card_holder)}
             copied={copiedField === "Cardholder Name"}
-            accent={accent}
           />
         )}
         {isCard && customFields.card_number && (
@@ -229,7 +228,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowCardNumber((p) => !p)}
             onCopy={() => handleCopy("Card Number", formatCardNumber(customFields.card_number))}
             copied={copiedField === "Card Number"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -239,7 +237,6 @@ export default function VaultEntryScreen() {
             value={customFields.expiry}
             onCopy={() => handleCopy("Expiry", customFields.expiry)}
             copied={copiedField === "Expiry"}
-            accent={accent}
           />
         )}
         {isCard && customFields.cvv && (
@@ -250,7 +247,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowCvv((p) => !p)}
             onCopy={() => handleCopy("CVV", customFields.cvv)}
             copied={copiedField === "CVV"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -262,7 +258,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowPin((p) => !p)}
             onCopy={() => handleCopy("PIN", pin)}
             copied={copiedField === "PIN"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -274,7 +269,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowStatementPwd((p) => !p)}
             onCopy={() => handleCopy("Statement PDF Password", customFields.statement_password)}
             copied={copiedField === "Statement PDF Password"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -286,7 +280,6 @@ export default function VaultEntryScreen() {
             value={entry.username}
             onCopy={() => handleCopy("UPI ID", entry.username!)}
             copied={copiedField === "UPI ID"}
-            accent={accent}
           />
         )}
         {isUpi && entry.phone && (
@@ -295,7 +288,6 @@ export default function VaultEntryScreen() {
             value={entry.phone}
             onCopy={() => handleCopy("Phone", entry.phone!)}
             copied={copiedField === "Phone"}
-            accent={accent}
           />
         )}
         {isUpi && pin && (
@@ -306,7 +298,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowPin((p) => !p)}
             onCopy={() => handleCopy("UPI PIN", pin)}
             copied={copiedField === "UPI PIN"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -318,7 +309,6 @@ export default function VaultEntryScreen() {
             value={entry.username}
             onCopy={() => handleCopy("Username", entry.username!)}
             copied={copiedField === "Username"}
-            accent={accent}
           />
         )}
 
@@ -328,7 +318,6 @@ export default function VaultEntryScreen() {
             value={entry.email}
             onCopy={() => handleCopy("Email", entry.email!)}
             copied={copiedField === "Email"}
-            accent={accent}
           />
         )}
 
@@ -338,7 +327,6 @@ export default function VaultEntryScreen() {
             value={entry.phone}
             onCopy={() => handleCopy("Phone", entry.phone!)}
             copied={copiedField === "Phone"}
-            accent={accent}
           />
         )}
 
@@ -350,7 +338,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowPassword((p) => !p)}
             onCopy={() => handleCopy("Password", password)}
             copied={copiedField === "Password"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -363,7 +350,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowSecondaryPassword((p) => !p)}
             onCopy={() => handleCopy("Transaction / Profile Password", customFields.secondary_password)}
             copied={copiedField === "Transaction / Profile Password"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -376,7 +362,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowMpin((p) => !p)}
             onCopy={() => handleCopy("MPIN", customFields.mpin)}
             copied={copiedField === "MPIN"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -390,7 +375,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowPin((p) => !p)}
             onCopy={() => handleCopy("PIN", pin)}
             copied={copiedField === "PIN"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -404,7 +388,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowTpin((p) => !p)}
             onCopy={() => handleCopy("Trading PIN / TPIN", customFields.tpin)}
             copied={copiedField === "Trading PIN / TPIN"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -418,7 +401,6 @@ export default function VaultEntryScreen() {
             onToggle={() => setShowStatementPwd((p) => !p)}
             onCopy={() => handleCopy("Statement PDF Password", customFields.statement_password)}
             copied={copiedField === "Statement PDF Password"}
-            accent={accent}
             colors={colors}
           />
         )}
@@ -429,7 +411,6 @@ export default function VaultEntryScreen() {
             value={entry.url}
             onCopy={() => handleCopy("URL", entry.url!)}
             copied={copiedField === "URL"}
-            accent={accent}
           />
         )}
 
@@ -475,13 +456,11 @@ function FieldRow({
   value,
   onCopy,
   copied,
-  accent,
 }: {
   label: string;
   value: string;
   onCopy?: () => void;
   copied?: boolean;
-  accent: any;
 }) {
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -518,7 +497,6 @@ function SecretRow({
   onToggle,
   onCopy,
   copied,
-  accent,
   colors,
 }: {
   label: string;
@@ -527,7 +505,6 @@ function SecretRow({
   onToggle: () => void;
   onCopy: () => void;
   copied: boolean;
-  accent: any;
   colors: any;
 }) {
   const theme = useTheme();

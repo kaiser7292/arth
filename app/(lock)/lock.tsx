@@ -1,4 +1,3 @@
-import { Colors } from "@/constants/theme";
 
 import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -32,10 +31,9 @@ import { useTheme } from "@/hooks/use-theme";
  */
 export default function LockScreen() {
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
-  const uiTheme = useTheme();
-  const theme = Colors[colorScheme];
-  const accentColor = uiTheme.primary;
+  
+  const theme = useTheme();
+  const accentColor = theme.primary;
 
   const [biometricLabel, setBiometricLabel] = useState<string>("Biometric");
   const [inFlight, setInFlight] = useState(false);
@@ -112,7 +110,7 @@ export default function LockScreen() {
         style={{
           fontSize: 24,
           fontWeight: "700",
-          color: theme.text,
+          color: theme.foreground,
           marginBottom: 8,
         }}
       >
@@ -121,7 +119,7 @@ export default function LockScreen() {
       <Text
         style={{
           fontSize: 14,
-          color: theme.textSecondary,
+          color: theme.mutedForeground,
           textAlign: "center",
           marginBottom: 32,
         }}
@@ -156,7 +154,7 @@ export default function LockScreen() {
       {lastError && (
         <Text
           style={{
-            color: uiTheme.danger,
+            color: theme.danger,
             fontSize: 13,
             textAlign: "center",
             marginTop: 16,
@@ -170,7 +168,7 @@ export default function LockScreen() {
       {failCount >= 3 && (
         <Text
           style={{
-            color: theme.textSecondary,
+            color: theme.mutedForeground,
             fontSize: 12,
             textAlign: "center",
             marginTop: 24,

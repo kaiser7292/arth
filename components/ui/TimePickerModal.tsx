@@ -36,7 +36,7 @@ interface ColumnProps {
 }
 
 function Column({ data, selectedIndex, onSelect, formatItem }: ColumnProps) {
-  const { accent, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const scrollingRef = useRef(false);
@@ -102,7 +102,7 @@ function Column({ data, selectedIndex, onSelect, formatItem }: ColumnProps) {
         </Pressable>
       );
     },
-    [selectedIndex, formatItem, accent, colorScheme, onSelect],
+    [selectedIndex, formatItem, colorScheme, onSelect],
   );
 
   const paddingVertical = (VISIBLE_ITEMS - 1) / 2 * ITEM_HEIGHT;
@@ -145,7 +145,7 @@ export function TimePickerModal({
   initialHour = 12,
   initialMinute = 0,
 }: TimePickerModalProps) {
-  const { accent, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const init12 = to12Hour(initialHour);

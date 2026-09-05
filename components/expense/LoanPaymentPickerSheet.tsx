@@ -73,7 +73,7 @@ export function LoanPaymentPickerSheet({
   onSubmit,
   onClose,
 }: Props) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useSharedValue(500);
@@ -625,7 +625,6 @@ export function LoanPaymentPickerSheet({
                 sublabel="Keep EMI same. Loan ends earlier. Saves the most interest."
                 recommended
                 onPress={() => handlePickStrategy("reduce_tenure")}
-                accent={accent}
                 colors={colors}
                 colorScheme={colorScheme}
               />
@@ -634,7 +633,6 @@ export function LoanPaymentPickerSheet({
                 label="Reduce EMI"
                 sublabel="Keep remaining months same. Lower EMI going forward."
                 onPress={() => handlePickStrategy("reduce_emi")}
-                accent={accent}
                 colors={colors}
                 colorScheme={colorScheme}
               />
@@ -667,7 +665,6 @@ export function LoanPaymentPickerSheet({
                   label="Part payment"
                   selected={prepaymentKind === "part_payment"}
                   onPress={() => setPrepaymentKind("part_payment")}
-                  accent={accent}
                   colors={colors}
                   colorScheme={colorScheme}
                 />
@@ -675,7 +672,6 @@ export function LoanPaymentPickerSheet({
                   label="Foreclosure"
                   selected={prepaymentKind === "foreclosure"}
                   onPress={() => setPrepaymentKind("foreclosure")}
-                  accent={accent}
                   colors={colors}
                   colorScheme={colorScheme}
                 />
@@ -908,14 +904,12 @@ function KindChip({
   label,
   selected,
   onPress,
-  accent,
   colors,
   colorScheme,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
-  accent: ReturnType<typeof useColorScheme>["accent"];
   colors: ReturnType<typeof useColorScheme>["colors"];
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
 }) {
@@ -966,7 +960,6 @@ function StrategyTile({
   sublabel,
   recommended,
   onPress,
-  accent,
   colors,
   colorScheme,
 }: {
@@ -975,7 +968,6 @@ function StrategyTile({
   sublabel: string;
   recommended?: boolean;
   onPress: () => void;
-  accent: ReturnType<typeof useColorScheme>["accent"];
   colors: ReturnType<typeof useColorScheme>["colors"];
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
 }) {

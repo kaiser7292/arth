@@ -50,7 +50,7 @@ export default function LedgerScreen() {
     toDate?: string;
   }>();
   const router = useRouter();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const [person, setPerson] = useState<HisaabPerson | null>(null);
@@ -922,7 +922,7 @@ function EntryCard({
   categoryMap?: Map<string, string>;
   accountMap?: Map<string, string>;
 }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const isDebit = entry.type === "debit";
   const isSettlement = entry.type === "settlement";

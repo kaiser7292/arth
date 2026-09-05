@@ -12,7 +12,7 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 
 function RateCard({ rate }: { rate: CapitalGainsRate }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   return (
     <Card className="mb-3">
@@ -77,7 +77,7 @@ function RateCard({ rate }: { rate: CapitalGainsRate }) {
 }
 
 export default function CapitalGainsReferenceScreen() {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   return (
     <ScreenContainer padTop={false}>
@@ -162,7 +162,7 @@ function TermRow({
   term: string;
   definition: string;
 }) {
-  const { accent, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
   return (
     <View className="flex-row items-start py-1.5">

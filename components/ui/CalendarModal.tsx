@@ -99,7 +99,7 @@ export function CalendarModal({
   maximumDate,
   minimumDate,
 }: CalendarModalProps) {
-  const { colors, accent } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
 
   // Parse selected date

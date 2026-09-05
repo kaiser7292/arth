@@ -57,7 +57,7 @@ interface ScenarioCardData {
 export default function SimulatorListScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const [active, setActive] = useState<ScenarioCardData[]>([]);
@@ -596,7 +596,7 @@ function NewScenarioSheet({
   onCreate: (name: string, horizon: string, copyFromScenarioId: string | null) => void;
   onClose: () => void;
 }) {
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState("");

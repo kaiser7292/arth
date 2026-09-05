@@ -195,7 +195,7 @@ function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) 
 export default function CategoryEditScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, accent, colorScheme } = useColorScheme();
+  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEditing = !!id;
@@ -283,7 +283,7 @@ export default function CategoryEditScreen() {
         color={icon === iconName ? colors.blue : "#6B7280"}
       />
     </Pressable>
-  ), [icon, accent, colorScheme, colors.blue]);
+  ), [icon, colorScheme, colors.blue]);
 
   return (
     <ScreenContainer padTop={false} keyboardAware>
