@@ -82,9 +82,9 @@ const TYPE = {
   display: ["28px", { lineHeight: "34px", letterSpacing: "-0.025em" }],
   title: ["22px", { lineHeight: "28px", letterSpacing: "-0.02em" }],
   heading: ["17px", { lineHeight: "24px", letterSpacing: "-0.01em" }],
-  body: ["15px", { lineHeight: "22px" }],
-  meta: ["13px", { lineHeight: "18px" }],
-  label: ["11.5px", { lineHeight: "16px" }],
+  body: ["15px", { lineHeight: "21px" }],
+  meta: ["13px", { lineHeight: "17px" }],
+  label: ["11.5px", { lineHeight: "14px" }],
 };
 
 /**
@@ -103,8 +103,14 @@ const TYPE = {
  * New code should prefer the semantic names.
  */
 const SCALE_OVERRIDES = {
-  xs: ["13px", { lineHeight: "18px" }], // was 12px x 1591 uses
-  sm: ["15px", { lineHeight: "22px" }], // was 14px x 1132 uses
+  // Leading is held near Tailwind's original (16px / 20px) on purpose.
+  //
+  // The first version raised line-height along with font size - xs 16->18, sm 20->22 - and the
+  // leading grew MORE than the glyphs did, 13% and 10%. Across 2,723 text elements that is what
+  // pushed whole screens down, not the letters themselves. sm now consumes exactly the vertical
+  // space it always did while rendering a point larger; xs takes one extra pixel.
+  xs: ["13px", { lineHeight: "17px" }], // was 12px/16px x 1591 uses
+  sm: ["15px", { lineHeight: "20px" }], // was 14px/20px x 1132 uses
 };
 
 /** Card surfaces get `card`; controls and chips get `control`. Resolves the lg/xl/2xl free-for-all. */

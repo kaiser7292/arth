@@ -349,10 +349,10 @@ function CategoryCard({
         <Text className="flex-1 text-xs text-muted-foreground">
           Planned
         </Text>
-        <Text className="w-20 text-xs text-muted-foreground text-right">
+        <Text className="w-24 text-xs text-muted-foreground text-right">
           {fmt(c.prevPlanned)}
         </Text>
-        <Text className="w-20 text-xs font-medium text-foreground text-right">
+        <Text className="w-24 text-xs font-medium text-foreground text-right">
           {fmt(c.currPlanned)}
         </Text>
         <ChangeBadge value={plannedChangePct} lowerIsBetter={c.lowerIsBetter} />
@@ -363,10 +363,10 @@ function CategoryCard({
         <Text className="flex-1 text-xs font-medium text-foreground">
           Actual
         </Text>
-        <Text className="w-20 text-xs text-muted-foreground text-right">
+        <Text className="w-24 text-xs text-muted-foreground text-right">
           {fmt(c.prevActual)}
         </Text>
-        <Text className="w-20 text-xs font-bold text-foreground text-right">
+        <Text className="w-24 text-xs font-bold text-foreground text-right">
           {fmt(c.currActual)}
         </Text>
         <ChangeBadge value={actualChangePct} lowerIsBetter={c.lowerIsBetter} />

@@ -312,25 +312,6 @@ export default function HomeScreen() {
   // the account list / balance map change, so as soon as a credit pushes
   // the balance back above min, the alert disappears.
   const [dismissTick, setDismissTick] = useState(0);
-  /**
-   * Spendable cash: the closing balance of every savings and wallet account.
-   *
-   * Deliberately NOT net worth. Net worth needs credit-card utilisation and loan outstanding
-   * signed correctly, and a wrong headline figure on the first screen is worse than no headline at
-   * all - the Balance Sheet screen already computes net worth properly. This reuses
-   * getComputedBalances, the same balance engine the reconciliation screens read, so the hero can
-   * never disagree with the account cards below it.
-   */
-  const availableCash = useMemo(
-    () =>
-      [...bankAccounts, ...walletAccounts].reduce(
-        (sum, a) => sum + (computedBalanceMap[a.id] ?? 0),
-        0,
-      ),
-    [bankAccounts, walletAccounts, computedBalanceMap],
-  );
-  const cashAccountCount = bankAccounts.length + walletAccounts.length;
-
   const minBalanceBreaches = useMemo(() => {
     if (!getFlag("v15_min_balance_alert")) return [];
     const all = detectBreaches(bankAccounts, computedBalanceMap);
@@ -391,20 +372,6 @@ export default function HomeScreen() {
             />
           }
         >
-        {/* Hero - what the screen is actually about. Leads with a figure rather than a warning. */}
-        {cashAccountCount > 0 && (
-          <View className="px-4 pt-4 pb-2">
-            <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
-              Available now
-            </Text>
-            <Money value={availableCash} className="text-hero font-bold text-foreground mt-1" />
-            <Text className="text-meta text-muted-foreground mt-1.5">
-              across {cashAccountCount} account{cashAccountCount === 1 ? "" : "s"}
-              {totalSpent > 0 ? ` · ${formatAmount(totalSpent)} spent this month` : ""}
-            </Text>
-          </View>
-        )}
-
         {/* Stale backup warning */}
         {showBackupReminder && (
           <Pressable
