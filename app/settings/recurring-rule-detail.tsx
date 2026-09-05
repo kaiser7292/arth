@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, ScreenContainer, Text } from "@/components/ui";
+import { Card, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -434,21 +434,7 @@ export default function RecurringRuleDetailScreen() {
       </ScrollView>
 
       {/* Edit sheet */}
-      <Modal transparent animationType="slide" visible={editVisible} onRequestClose={() => setEditVisible(false)}>
-        <Pressable className="flex-1 bg-black/40" onPress={() => setEditVisible(false)} />
-        <KeyboardAvoidingView behavior="padding" style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
-          <View
-            style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              paddingBottom: Math.max(insets.bottom, 12),
-            }}
-          >
-            {/* Handle */}
-            <View className="items-center pt-3 pb-1">
-              <View className="w-10 h-1 rounded-full bg-border" />
-            </View>
+      <Sheet visible={editVisible} onClose={() => setEditVisible(false)}>
             <View className="flex-row items-center justify-between px-5 pb-3">
               <Text className="text-base font-bold text-foreground">Edit Reminder</Text>
               <Pressable onPress={() => setEditVisible(false)} hitSlop={8}>
@@ -635,9 +621,7 @@ export default function RecurringRuleDetailScreen() {
                 <Text className="text-sm font-semibold text-primary-foreground">{saving ? "Saving…" : "Save"}</Text>
               </Pressable>
             </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      </Sheet>
 
       {/* Calendar pickers */}
       <CalendarModal

@@ -3,7 +3,7 @@ import { View, ScrollView, Pressable, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
-import { Card, EmptyState, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, LoadingState, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
@@ -294,19 +294,7 @@ export default function BudgetVsActualScreen() {
         )}
 
         {/* ── Month picker modal ────────────────────── */}
-        <Modal
-          visible={showMonthPicker !== null}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowMonthPicker(null)}
-        >
-          <Pressable
-            className="flex-1 justify-end"
-            style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-            onPress={() => setShowMonthPicker(null)}
-          >
-            <Pressable onPress={() => {}} className="rounded-t-2xl overflow-hidden"
-              style={{ backgroundColor: colors.surface }}>
+        <Sheet visible={showMonthPicker !== null} onClose={() => setShowMonthPicker(null)}>
               <MiniMonthPicker
                 value={showMonthPicker === "start" ? customStartMonth : customEndMonth}
                 maxMonth={showMonthPicker === "start" ? customEndMonth : undefined}
@@ -321,9 +309,7 @@ export default function BudgetVsActualScreen() {
                 }}
                 onCancel={() => setShowMonthPicker(null)}
               />
-            </Pressable>
-          </Pressable>
-        </Modal>
+        </Sheet>
 
         {!hasAnyData ? (
           <EmptyState

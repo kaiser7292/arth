@@ -289,7 +289,7 @@ export function StaleEntryResolveSheet({
       )}
 
       {mode === "link" && (
-        <View className="px-5 pb-4 flex-1">
+        <View className="px-5 pb-4">
           {/* Search */}
           <View className="flex-row items-center mb-2 border rounded-lg px-3 py-2" style={{ borderColor: colors.border }}>
             <Ionicons name="search-outline" size={16} color={colors.textSecondary} />

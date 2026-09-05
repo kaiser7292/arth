@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { View, ScrollView, Pressable, TextInput, Modal, FlatList, Switch, Dimensions, Keyboard } from "react-native";
+import { View, ScrollView, Pressable, TextInput, FlatList, Switch, useWindowDimensions, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, Input, ScreenContainer, Text } from "@/components/ui";
+import { Button, Input, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatError } from "@/utils/error-message";
@@ -141,8 +141,6 @@ const COLOR_OPTIONS = [
   "#334155",
 ];
 
-const SCREEN_HEIGHT = Dimensions.get("window").height;
-const DRAWER_HEIGHT = SCREEN_HEIGHT * 0.55;
 
 interface PickerDrawerProps {
   visible: boolean;
@@ -154,26 +152,13 @@ interface PickerDrawerProps {
 function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) {
   const { colors } = useColorScheme();
   const theme = useTheme();
+  // Both pickers render a scrollable (an icon grid, a colour list), which needs a definite
+  // height to scroll against - inside Sheet's auto-height panel a flex-1 child collapses to
+  // nothing. Read live rather than at module scope so it survives a rotation.
+  const drawerHeight = useWindowDimensions().height * 0.55;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View className="flex-1 justify-end">
-        {/* Backdrop */}
-        <Pressable className="flex-1" onPress={onClose} />
-        {/* Drawer */}
-        <View
-          style={{ height: DRAWER_HEIGHT, backgroundColor: colors.background }}
-          className="rounded-t-2xl"
-        >
-          {/* Handle + header */}
-          <View className="items-center pt-2 pb-1">
-            <View className="w-10 h-1 rounded-full bg-border" />
-          </View>
+    <Sheet visible={visible} onClose={onClose}>
           <View className="flex-row items-center justify-between px-4 pb-2">
             <Text className="text-base font-semibold text-foreground">
               {title}
@@ -183,12 +168,10 @@ function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) 
             </Pressable>
           </View>
           {/* Content */}
-          <View className="flex-1 px-4 pb-4">
+          <View style={{ height: drawerHeight }} className="px-4 pb-4">
             {children}
           </View>
-        </View>
-      </View>
-    </Modal>
+    </Sheet>
   );
 }
 

@@ -607,7 +607,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   if (transferDone) {
     return (
       <Sheet visible={visible} onClose={handleCancel} maxHeightPct={40}>
-        <View className="flex-1 items-center justify-center px-6 py-12">
+        <View className="items-center justify-center px-6 py-12">
           <Ionicons name="checkmark-circle" size={56} color={accentColor} />
           <Text className="text-lg font-bold text-foreground mt-4">Transfer saved</Text>
           {session.amount != null && fromLbl && toLbl && (

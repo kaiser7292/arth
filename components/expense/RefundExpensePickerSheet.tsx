@@ -146,11 +146,11 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
 
       {/* List */}
       {loading ? (
-        <View className="flex-1 items-center justify-center py-10">
+        <View className="items-center justify-center py-10">
           <ActivityIndicator color={tint} />
         </View>
       ) : expenses.length === 0 ? (
-        <View className="flex-1 items-center justify-center py-10 px-5">
+        <View className="items-center justify-center py-10 px-5">
           <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />
           <Text className="text-sm mt-3 text-center" style={{ color: colors.textSecondary }}>
             {query.length > 0 ? "No expenses match your search." : "No expenses found."}

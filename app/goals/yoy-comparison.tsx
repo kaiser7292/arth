@@ -332,27 +332,27 @@ function CategoryCard({
 
       {/* Column headers */}
       <View className="flex-row mb-1.5">
-        <View className="w-16" />
-        <Text className="flex-1 text-label font-semibold text-faint-foreground text-right">
+        <View className="flex-1" />
+        <Text className="w-20 text-label font-semibold text-faint-foreground text-right">
           {prevLabel}
         </Text>
-        <Text className="flex-1 text-label font-semibold text-faint-foreground text-right">
+        <Text className="w-20 text-label font-semibold text-faint-foreground text-right">
           {currLabel}
         </Text>
-        <Text className="w-16 text-label font-semibold text-faint-foreground text-right">
+        <Text className="w-16 ml-2 text-label font-semibold text-faint-foreground text-right">
           Change
         </Text>
       </View>
 
       {/* Planned row */}
       <View className="flex-row items-center py-1.5 border-b border-border">
-        <Text className="w-16 text-xs text-muted-foreground">
+        <Text className="flex-1 text-xs text-muted-foreground">
           Planned
         </Text>
-        <Text className="flex-1 text-xs text-muted-foreground text-right">
+        <Text className="w-20 text-xs text-muted-foreground text-right">
           {fmt(c.prevPlanned)}
         </Text>
-        <Text className="flex-1 text-xs font-medium text-foreground text-right">
+        <Text className="w-20 text-xs font-medium text-foreground text-right">
           {fmt(c.currPlanned)}
         </Text>
         <ChangeBadge value={plannedChangePct} lowerIsBetter={c.lowerIsBetter} />
@@ -360,13 +360,13 @@ function CategoryCard({
 
       {/* Actual row */}
       <View className="flex-row items-center py-1.5">
-        <Text className="w-16 text-xs font-medium text-foreground">
+        <Text className="flex-1 text-xs font-medium text-foreground">
           Actual
         </Text>
-        <Text className="flex-1 text-xs text-muted-foreground text-right">
+        <Text className="w-20 text-xs text-muted-foreground text-right">
           {fmt(c.prevActual)}
         </Text>
-        <Text className="flex-1 text-xs font-bold text-foreground text-right">
+        <Text className="w-20 text-xs font-bold text-foreground text-right">
           {fmt(c.currActual)}
         </Text>
         <ChangeBadge value={actualChangePct} lowerIsBetter={c.lowerIsBetter} />
@@ -405,13 +405,13 @@ function CategoryCard({
 function ChangeBadge({ value, lowerIsBetter }: { value: number; lowerIsBetter: boolean }) {
   const { colorScheme } = useColorScheme();
   const theme = useTheme();
-  if (value === 0) return <View className="w-16" />;
+  if (value === 0) return <View className="w-16 ml-2" />;
 
   const isGood = lowerIsBetter ? value < 0 : value > 0;
   const color = isGood ? theme.success : theme.danger;
 
   return (
-    <View className="w-16 flex-row items-center justify-end">
+    <View className="w-16 ml-2 flex-row items-center justify-end">
       <View
         className="flex-row items-center px-1.5 py-0.5 rounded-full"
         style={{ backgroundColor: color + "14" }}
