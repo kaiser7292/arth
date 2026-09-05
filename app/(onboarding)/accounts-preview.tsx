@@ -64,10 +64,10 @@ export default function OnboardingAccountsPreview() {
         contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mb-2">
+        <Text className="text-2xl font-bold text-foreground mb-2">
           Your accounts
         </Text>
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-6 leading-5">
+        <Text className="text-sm text-muted-foreground mb-6 leading-5">
           {loading
             ? "Looking for accounts in your recent SMS..."
             : accounts.length > 0
@@ -91,7 +91,7 @@ export default function OnboardingAccountsPreview() {
                   key={acct.id}
                   className={`flex-row items-center px-4 py-3 ${
                     i < accounts.length - 1
-                      ? "border-b border-border-light dark:border-border-dark"
+                      ? "border-b border-border"
                       : ""
                   }`}
                 >
@@ -106,10 +106,10 @@ export default function OnboardingAccountsPreview() {
                     />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-base font-medium text-foreground">
                       {label}
                     </Text>
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-xs text-muted-foreground mt-0.5">
                       {sub}
                     </Text>
                   </View>
@@ -144,7 +144,7 @@ export default function OnboardingAccountsPreview() {
       <View className="px-6 pb-6 pt-2">
         <Button title="Continue" onPress={handleContinue} className="mb-3" />
         <Pressable onPress={handleSkip} className="py-3 items-center">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             Skip setup
           </Text>
         </Pressable>

@@ -62,10 +62,10 @@ export default function OnboardingSmsConsent() {
           />
         </View>
 
-        <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mb-2">
+        <Text className="text-2xl font-bold text-foreground mb-2">
           Read bank SMS?
         </Text>
-        <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-6 leading-5">
+        <Text className="text-sm text-muted-foreground mb-6 leading-5">
           {Platform.OS === "android"
             ? "The fastest way to set up Arth. We read your bank SMS on this device, match them to accounts, and queue expenses for your review."
             : "SMS auto-detect is only available on Android. You can still log expenses manually or import from Excel."}
@@ -79,7 +79,7 @@ export default function OnboardingSmsConsent() {
               color={ac(accent, colorScheme, 500, 200)}
               style={{ marginTop: 2, marginRight: 12 }}
             />
-            <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary leading-5">
+            <Text className="flex-1 text-sm text-foreground leading-5">
               {p.text}
             </Text>
           </View>
@@ -96,7 +96,7 @@ export default function OnboardingSmsConsent() {
               className="mb-3"
             />
             <Pressable onPress={handleSkipStep} className="py-2 items-center mb-1">
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-sm text-muted-foreground">
                 Not now
               </Text>
             </Pressable>
@@ -105,7 +105,7 @@ export default function OnboardingSmsConsent() {
           <Button title="Continue" onPress={advance} className="mb-3" />
         )}
         <Pressable onPress={handleSkipAll} className="py-2 items-center">
-          <Text className="text-xs text-text-tertiary dark:text-text-dark-tertiary">
+          <Text className="text-xs text-faint-foreground">
             Skip setup entirely
           </Text>
         </Pressable>

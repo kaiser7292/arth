@@ -315,7 +315,7 @@ export default function LedgerScreen() {
           >
             <View className="px-4 py-4">
               <Card title="Record Settlement" className="mb-4">
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mb-3">
+                <Text className="text-sm text-muted-foreground mb-3">
                   Current balance:{" "}
                   <Text
                     className={`font-bold ${balance >= 0 ? "text-success" : "text-danger"}`}
@@ -349,7 +349,7 @@ export default function LedgerScreen() {
                 />
 
                 {/* Optional: which account received the money */}
-                <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
+                <Text className="text-xs font-medium text-muted-foreground mb-1">
                   Received in (optional)
                 </Text>
                 <Pressable
@@ -435,7 +435,7 @@ export default function LedgerScreen() {
                 className="mb-4"
               >
                 {/* Type selector */}
-                <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-2">
+                <Text className="text-xs font-medium text-muted-foreground mb-2">
                   Type
                 </Text>
                 <View className="flex-row mb-3">
@@ -444,7 +444,7 @@ export default function LedgerScreen() {
                     className={`flex-1 py-2 rounded-l-lg items-center border ${
                       formType === "debit"
                         ? "bg-[#EF444414]"
-                        : "bg-transparent border-border-light dark:border-border-dark"
+                        : "bg-transparent border-border"
                     }`}
                     style={formType === "debit" ? { borderColor: StatusColors[colorScheme].danger } : undefined}
                   >
@@ -452,7 +452,7 @@ export default function LedgerScreen() {
                       className={`text-sm font-medium ${
                         formType === "debit"
                           ? "text-danger"
-                          : "text-text-secondary dark:text-text-dark-secondary"
+                          : "text-muted-foreground"
                       }`}
                     >
                       Debit (they owe)
@@ -463,7 +463,7 @@ export default function LedgerScreen() {
                     className={`flex-1 py-2 rounded-r-lg items-center border border-l-0 ${
                       formType === "credit"
                         ? "bg-success/8"
-                        : "bg-transparent border-border-light dark:border-border-dark"
+                        : "bg-transparent border-border"
                     }`}
                     style={formType === "credit" ? { borderColor: StatusColors[colorScheme].success } : undefined}
                   >
@@ -471,7 +471,7 @@ export default function LedgerScreen() {
                       className={`text-sm font-medium ${
                         formType === "credit"
                           ? "text-success"
-                          : "text-text-secondary dark:text-text-dark-secondary"
+                          : "text-muted-foreground"
                       }`}
                     >
                       Credit (they paid)
@@ -539,7 +539,7 @@ export default function LedgerScreen() {
           {/* Balance Header */}
           <Card className="mb-4">
             <View className="items-center py-2">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-1">
+              <Text className="text-xs text-muted-foreground mb-1">
                 {personName || person?.name}
               </Text>
               <Text
@@ -548,7 +548,7 @@ export default function LedgerScreen() {
                 {isPositive ? "+" : ""}
                 {formatAmount(balance)}
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1">
+              <Text className="text-sm text-muted-foreground mt-1">
                 {balance === 0
                   ? "All settled up"
                   : isPositive
@@ -587,13 +587,13 @@ export default function LedgerScreen() {
                   </Text>
                 </Pressable>
                 {person?.phone && (
-                  <View className="flex-row items-center px-3 py-1.5 rounded-full bg-border-light/40 dark:bg-border-dark/40">
+                  <View className="flex-row items-center px-3 py-1.5 rounded-full bg-border/40">
                     <Ionicons
                       name="call-outline"
                       size={14}
                       color={colors.textSecondary}
                     />
-                    <Text className="text-xs text-text-secondary dark:text-text-dark-secondary ml-1">
+                    <Text className="text-xs text-muted-foreground ml-1">
                       {person.phone}
                     </Text>
                   </View>
@@ -783,7 +783,7 @@ export default function LedgerScreen() {
                   </View>
                 )}
                 {/* Net change */}
-                <View className="flex-row items-center justify-between py-1 mt-1 pt-2 border-t border-border-light dark:border-border-dark">
+                <View className="flex-row items-center justify-between py-1 mt-1 pt-2 border-t border-border">
                   <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
                     Net change in range
                   </Text>
@@ -818,7 +818,7 @@ export default function LedgerScreen() {
 
           {/* Entry count */}
           {sortedEntries.length > 0 && (
-            <Text className="text-xs text-text-tertiary mb-2">
+            <Text className="text-xs text-faint-foreground mb-2">
               {sortedEntries.length} {sortedEntries.length === 1 ? "entry" : "entries"}
               {filterActive ? " (filtered)" : ""}
             </Text>
@@ -829,10 +829,10 @@ export default function LedgerScreen() {
             <Card className="mb-4">
               <View className="items-center py-4">
                 <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
-                <Text className="text-base font-medium text-text-primary dark:text-text-dark-primary mt-2">
+                <Text className="text-base font-medium text-foreground mt-2">
                   {filterActive ? "No entries in this range" : "No entries yet"}
                 </Text>
-                <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center">
+                <Text className="text-sm text-muted-foreground mt-1 text-center">
                   {filterActive ? "Try a different date range" : "Add a debit or credit to start tracking"}
                 </Text>
               </View>
@@ -871,7 +871,7 @@ export default function LedgerScreen() {
           )}
 
           {sortedEntries.length > 0 && (
-            <Text className="text-xs text-text-tertiary text-center mt-2">
+            <Text className="text-xs text-faint-foreground text-center mt-2">
               Tap to view/edit. Long-press to delete.
             </Text>
           )}
@@ -956,18 +956,18 @@ function EntryCard({
           {/* Description + date */}
           <View className="flex-1">
             <Text
-              className="text-sm font-medium text-text-primary dark:text-text-dark-primary"
+              className="text-sm font-medium text-foreground"
               numberOfLines={1}
             >
               {entry.description || label}
             </Text>
             {(entry.category_id || entry.merchant_name || accountMap?.get(entry.id)) && (
-              <Text className="text-[10px] text-text-tertiary" numberOfLines={1}>
+              <Text className="text-[10px] text-faint-foreground" numberOfLines={1}>
                 {[entry.category_id ? categoryMap?.get(entry.category_id) : null, entry.merchant_name, accountMap?.get(entry.id)].filter(Boolean).join(" · ")}
               </Text>
             )}
             <View className="flex-row items-center">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 {entry.date}
                 {isSettlement && " · Settlement"}
                 {entry.status !== "confirmed" &&

@@ -278,7 +278,7 @@ export default function HisaabPersonsScreen() {
             <Card className="mb-4">
               <View className="flex-row mb-2">
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Owed to You
                   </Text>
                   <Text className="text-base font-bold text-success">
@@ -286,7 +286,7 @@ export default function HisaabPersonsScreen() {
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     You Owe
                   </Text>
                   <Text className="text-base font-bold text-danger">
@@ -294,7 +294,7 @@ export default function HisaabPersonsScreen() {
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Net
                   </Text>
                   <Text
@@ -339,7 +339,7 @@ export default function HisaabPersonsScreen() {
           ))}
 
           {persons.length > 0 && (
-            <Text className="text-xs text-text-tertiary text-center mt-2 mb-4">
+            <Text className="text-xs text-faint-foreground text-center mt-2 mb-4">
               Tap to view ledger. Long-press to remove.
             </Text>
           )}
@@ -408,12 +408,12 @@ function PersonCard({
             {/* Name + metadata */}
             <View className="flex-1">
               <Text
-                className="text-sm font-medium text-text-primary dark:text-text-dark-primary"
+                className="text-sm font-medium text-foreground"
                 numberOfLines={1}
               >
                 {person.name}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 {person.entryCount} entries
                 {person.lastEntryDate
                   ? ` · Last: ${person.lastEntryDate}`
@@ -431,7 +431,7 @@ function PersonCard({
                 {isPositive ? "+" : ""}
                 {formatAmount(balance)}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 {isPositive
                   ? balance === 0
                     ? "Settled"
@@ -451,7 +451,7 @@ function PersonCard({
         {/* Notes */}
         {person.notes && (
           <Text
-            className="text-xs text-text-tertiary mt-2"
+            className="text-xs text-faint-foreground mt-2"
             numberOfLines={1}
           >
             {person.notes}

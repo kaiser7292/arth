@@ -130,7 +130,7 @@ export function ForeclosureQuoteSheet({
         ]}
       >
         <View className="items-center pt-3 pb-1">
-          <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+          <View className="w-10 h-1 rounded-full bg-border" />
         </View>
         <View className="px-5 pb-3">
           <Text className="text-base font-bold" style={{ color: colors.text }}>
@@ -153,14 +153,14 @@ export function ForeclosureQuoteSheet({
               color={quote.prepaymentCharge === 0 ? "success" : undefined}
             />
             {quote.gst > 0 && <Row label="GST" value={formatMoney(quote.gst)} />}
-            <View className="border-t border-border-light dark:border-border-dark my-2" />
+            <View className="border-t border-border my-2" />
             <Row
               label="Total to pay"
               value={formatMoney(quote.totalToPay)}
               bold
               color="danger"
             />
-            <View className="border-t border-border-light dark:border-border-dark my-2" />
+            <View className="border-t border-border my-2" />
             <Row
               label="Interest saved vs running to term"
               value={formatMoney(quote.interestSavedVsTerm)}

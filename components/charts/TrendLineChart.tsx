@@ -70,7 +70,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
   if (maxValue === 0) {
     return (
       <View className="items-center py-4">
-        <Text className="text-xs text-text-tertiary">No portfolio data yet</Text>
+        <Text className="text-xs text-faint-foreground">No portfolio data yet</Text>
       </View>
     );
   }
@@ -283,7 +283,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
 
       {/* Legend — shows latest value per series */}
       {showLegend && isMulti && (
-        <View className="flex-row flex-wrap mt-3 pt-2 border-t border-border-light dark:border-border-dark">
+        <View className="flex-row flex-wrap mt-3 pt-2 border-t border-border">
           {expandedSeries.map((s, si) => {
             const latestVal = s.data[s.data.length - 1]?.total ?? 0;
             return (

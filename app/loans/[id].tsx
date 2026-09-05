@@ -142,7 +142,7 @@ export default function LoanDetailScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-base text-text-secondary dark:text-text-dark-secondary text-center">
+          <Text className="text-base text-muted-foreground text-center">
             Loan not found.
           </Text>
         </View>
@@ -170,12 +170,12 @@ export default function LoanDetailScreen() {
       >
         {/* Hero */}
         <Card className="mb-4">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-1">
+          <Text className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
             {bankName} · {loan.loan_type}
           </Text>
           <View className="flex-row items-end justify-between mb-2">
             <View>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 Outstanding
               </Text>
               <Text className="text-3xl font-bold text-danger">
@@ -183,10 +183,10 @@ export default function LoanDetailScreen() {
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 EMI
               </Text>
-              <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-base font-bold text-foreground">
                 {formatMoney(Math.round(nextEMI?.emi_amount ?? loan.emi_amount))}
               </Text>
             </View>
@@ -211,7 +211,7 @@ export default function LoanDetailScreen() {
               }}
             />
           </View>
-          <Text className="text-xs text-text-tertiary">
+          <Text className="text-xs text-faint-foreground">
             {progressPct.toFixed(0)}% paid · {formatMoney(principalPaid)} of {formatMoney(loan.principal_disbursed)}
           </Text>
 
@@ -425,7 +425,7 @@ export default function LoanDetailScreen() {
                   key={p.id}
                   className={`flex-row items-center py-3 ${
                     idx < prepayments.length - 1
-                      ? "border-b border-border-light dark:border-border-dark"
+                      ? "border-b border-border"
                       : ""
                   }`}
                 >
@@ -487,7 +487,7 @@ export default function LoanDetailScreen() {
                     <View className="flex-1 mr-3">
                       <View className="flex-row items-center">
                         <Text
-                          className="text-sm font-semibold text-text-primary dark:text-text-dark-primary shrink"
+                          className="text-sm font-semibold text-foreground shrink"
                           numberOfLines={1}
                         >
                           {p.kind === "foreclosure" ? "Foreclosure" : "Part payment"}
@@ -508,7 +508,7 @@ export default function LoanDetailScreen() {
                       </View>
                       {p.prepayment_charge > 0 && (
                         <Text
-                          className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+                          className="text-xs text-muted-foreground mt-0.5"
                           numberOfLines={1}
                         >
                           Charge {formatMoney(p.prepayment_charge + p.gst_on_charge)}
@@ -516,7 +516,7 @@ export default function LoanDetailScreen() {
                       )}
                       {p.linked_expense_id && (
                         <Text
-                          className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+                          className="text-xs text-muted-foreground mt-0.5"
                           numberOfLines={1}
                         >
                           Linked from expense · manage there
@@ -532,7 +532,7 @@ export default function LoanDetailScreen() {
                       >
                         {formatMoney(p.amount)}
                       </Text>
-                      <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                      <Text className="text-[11px] text-muted-foreground mt-0.5">
                         {formatDate(p.prepayment_date)}
                       </Text>
                     </View>
@@ -601,7 +601,7 @@ export default function LoanDetailScreen() {
                 key={c.id}
                 className={`flex-row items-center py-3 ${
                   idx < corrections.length - 1
-                    ? "border-b border-border-light dark:border-border-dark"
+                    ? "border-b border-border"
                     : ""
                 }`}
               >
@@ -629,13 +629,13 @@ export default function LoanDetailScreen() {
                   </View>
                   <View className="flex-1 mr-3">
                     <Text
-                      className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
+                      className="text-sm font-semibold text-foreground"
                       numberOfLines={1}
                     >
                       Correction
                     </Text>
                     <Text
-                      className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+                      className="text-xs text-muted-foreground mt-0.5"
                       numberOfLines={1}
                     >
                       EMI {formatMoney(Math.round(c.emi_amount))}
@@ -643,7 +643,7 @@ export default function LoanDetailScreen() {
                     </Text>
                     {c.reason && (
                       <Text
-                        className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5"
+                        className="text-xs text-muted-foreground mt-0.5"
                         numberOfLines={1}
                       >
                         {c.reason}
@@ -652,11 +652,11 @@ export default function LoanDetailScreen() {
                   </View>
                   <View className="items-end shrink-0">
                     <Text
-                      className="text-sm font-bold text-text-primary dark:text-text-dark-primary"
+                      className="text-sm font-bold text-foreground"
                     >
                       {formatMoney(Math.round(c.outstanding_principal))}
                     </Text>
-                    <Text className="text-[11px] text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                    <Text className="text-[11px] text-muted-foreground mt-0.5">
                       {formatDate(c.effective_date)}
                     </Text>
                   </View>
@@ -698,7 +698,7 @@ export default function LoanDetailScreen() {
 
         {/* Schedule */}
         <Card title="Amortization Schedule" className="mb-4">
-          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+          <Text className="text-xs text-muted-foreground mb-3">
             {showFullSchedule
               ? `All ${schedule.length} installments`
               : `First 5 and last 5 of ${schedule.length} installments`}
@@ -709,27 +709,27 @@ export default function LoanDetailScreen() {
               onPress={() => setLinkInstallment(e)}
               className={`flex-row items-center py-2 ${
                 i < visibleSchedule.length - 1
-                  ? "border-b border-border-light dark:border-border-dark"
+                  ? "border-b border-border"
                   : ""
               }`}
               accessibilityRole="button"
               accessibilityLabel={`Installment ${e.installment_num}, ${e.status}`}
             >
               <View style={{ width: 36 }}>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   #{e.installment_num}
                 </Text>
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-medium text-foreground">
                   {formatDate(e.due_date)}
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   P {formatMoney(Math.round(e.principal_component))} · I {formatMoney(Math.round(e.interest_component))}
                 </Text>
               </View>
               <View style={{ alignItems: "flex-end" }}>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-sm font-semibold text-foreground">
                   {formatMoney(Math.round(e.emi_amount))}
                 </Text>
                 <Text

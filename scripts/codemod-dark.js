@@ -16,6 +16,22 @@
  */
 const fs = require("fs");
 const path = require("path");
+const babel = require("@babel/parser");
+
+/**
+ * A text scanner cannot reliably tell a template literal from a backtick that appears inside a
+ * regex literal or a comment (app/ai-chat.tsx line 57 contains exactly that). Rather than chase
+ * every lexical edge case, validate the result: nothing is written unless it still parses as
+ * TSX. A file whose transform would not parse is reported and left untouched.
+ */
+function parses(code) {
+  try {
+    babel.parse(code, { sourceType: "module", plugins: ["typescript", "jsx"] });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** Legacy light token -> new semantic token. */
 const RENAME = {
@@ -67,6 +83,7 @@ const split = (tok) => {
 
 const stats = { files: 0, renamed: 0, darkRemoved: 0, dead: 0 };
 const orphans = [];
+const unparseable = [];
 const unknownDark = new Map();
 
 /** Rewrite one whitespace-separated class string. */
@@ -258,6 +275,10 @@ for (const file of files) {
   }
 
   if (changed) {
+    if (!parses(out)) {
+      unparseable.push(file);
+      continue;
+    }
     stats.files++;
     if (WRITE) fs.writeFileSync(file, out, "utf8");
   }
@@ -269,6 +290,11 @@ console.log("  light tokens renamed " + stats.renamed);
 console.log("  dark: classes removed " + stats.darkRemoved);
 console.log("  dead classes removed  " + stats.dead);
 console.log("  orphans left for hand edit " + orphans.length);
+if (unparseable.length) {
+  console.log("");
+  console.log("  SKIPPED - transform would not parse, left untouched for hand editing:");
+  for (const f of unparseable) console.log("    " + f);
+}
 
 if (unknownDark.size) {
   console.log("\nOther dark: classes seen (not in scope, left alone):");

@@ -281,13 +281,13 @@ export default function PrepaymentForm() {
                   label="GST (on charge)"
                   value={impact.gst > 0 ? `− ${formatMoney(impact.gst)}` : "-"}
                 />
-                <View className="border-t border-border-light dark:border-border-dark my-2" />
+                <View className="border-t border-border my-2" />
                 <ImpactRow
                   label="Net applied to principal"
                   value={formatMoney(impact.netApplied)}
                   bold
                 />
-                <View className="border-t border-border-light dark:border-border-dark my-2" />
+                <View className="border-t border-border my-2" />
                 <ImpactRow
                   label="Interest saved"
                   value={formatMoney(impact.interestSavedTotal)}

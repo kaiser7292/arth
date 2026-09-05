@@ -254,11 +254,11 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
       >
         <Pressable
           onPress={() => {}}
-          className="bg-surface-light dark:bg-surface-dark rounded-t-2xl"
+          className="bg-background rounded-t-2xl"
         >
           {/* Handle bar */}
           <View className="items-center pt-3 pb-2">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
 
           {step === "range" ? (
@@ -266,10 +266,10 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
             <View>
               {/* Title */}
               <View className="px-5 pb-3">
-                <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-lg font-bold text-foreground">
                   Statement Period
                 </Text>
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                <Text className="text-xs text-muted-foreground mt-0.5">
                   Choose the date range for your statement
                 </Text>
               </View>
@@ -338,7 +338,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                   {/* Preview of selected range */}
                   {selectedPreset !== "custom" && (
                     <View className="mt-1 px-1">
-                      <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-faint-foreground">
                         {getPresetRange(selectedPreset).startDate} → {getPresetRange(selectedPreset).endDate}
                       </Text>
                     </View>
@@ -373,9 +373,9 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
               {/* Cancel */}
               <Pressable
                 onPress={handleClose}
-                className="mx-5 mb-6 py-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt items-center"
+                className="mx-5 mb-6 py-3 rounded-xl bg-card items-center"
               >
-                <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-sm font-semibold text-muted-foreground">
                   Cancel
                 </Text>
               </Pressable>
@@ -396,10 +396,10 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                   <Ionicons name="chevron-back" size={18} color={accent[500]} />
                 </Pressable>
                 <View className="flex-1">
-                  <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-lg font-bold text-foreground">
                     Export Format
                   </Text>
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                  <Text className="text-xs text-muted-foreground mt-0.5">
                     {dateRange?.label ?? "All Time"}
                   </Text>
                 </View>
@@ -420,10 +420,10 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                       accessibilityRole="button"
                       className={`flex-row items-center py-3.5 px-4 mb-2 rounded-xl border ${
                         isDisabled
-                          ? "border-border-light dark:border-border-dark opacity-40"
+                          ? "border-border opacity-40"
                           : isActive
                             ? ""
-                            : "border-border-light dark:border-border-dark"
+                            : "border-border"
                       }`}
                       style={isActive ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 900) } : undefined}
                     >
@@ -438,10 +438,10 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                         )}
                       </View>
                       <View className="flex-1">
-                        <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                        <Text className="text-sm font-semibold text-foreground">
                           {option.label}
                         </Text>
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                        <Text className="text-xs text-muted-foreground">
                           {isActive ? "Generating..." : option.subtitle}
                         </Text>
                       </View>
@@ -455,9 +455,9 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
               <Pressable
                 onPress={handleClose}
                 disabled={exporting}
-                className="mx-5 mb-6 py-3 rounded-xl bg-surface-light-alt dark:bg-surface-dark-alt items-center"
+                className="mx-5 mb-6 py-3 rounded-xl bg-card items-center"
               >
-                <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-sm font-semibold text-muted-foreground">
                   Cancel
                 </Text>
               </Pressable>

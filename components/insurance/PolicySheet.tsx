@@ -146,7 +146,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
     <BottomSheet visible={visible} onClose={onClose}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pb-2">
-        <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+        <Text className="text-base font-bold text-foreground">
           {isEdit ? "Edit Policy" : "Add Policy"}
         </Text>
         {isEdit && (
@@ -163,7 +163,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         {/* Policy type chips */}
-        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1.5 mt-2">
+        <Text className="text-xs font-semibold text-muted-foreground mb-1.5 mt-2">
           Policy Type
         </Text>
         <View className="flex-row flex-wrap gap-2 mb-3">
@@ -224,7 +224,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
         />
 
         {/* Premium frequency chips */}
-        <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary mb-1.5">
+        <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
           Premium Frequency
         </Text>
         <View className="flex-row flex-wrap gap-2 mb-3">
@@ -279,7 +279,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
                 size={20}
                 color={coversFamily ? ac(accent, colorScheme, 500, 400) : colors.textSecondary}
               />
-              <Text className="text-sm text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm text-foreground">
                 Family floater policy
               </Text>
             </Pressable>

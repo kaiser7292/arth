@@ -394,7 +394,7 @@ export default function SimulatorListScreen() {
                   {/* Secondary actions — always visible. v16.0.5:
                       no more default-scenario exemption; any active scenario
                       can be duplicated / archived / deleted from the list. */}
-                  <View className="flex-row mt-4 gap-2 pt-3 border-t border-border-light dark:border-border-dark">
+                  <View className="flex-row mt-4 gap-2 pt-3 border-t border-border">
                     <Pressable
                       onPress={() => handleDuplicate(scenario.id)}
                       className="flex-1 py-2 items-center rounded-lg"
@@ -526,9 +526,9 @@ export default function SimulatorListScreen() {
           }}
         >
           <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
-          <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary pt-2 pb-4">
+          <Text className="text-base font-bold text-foreground pt-2 pb-4">
             Duplicate "{duplicatePending?.name}"
           </Text>
 
@@ -570,10 +570,10 @@ export default function SimulatorListScreen() {
           <View className="flex-row gap-3 pt-1">
             <Pressable
               onPress={() => setDuplicatePending(null)}
-              className="flex-1 py-3 rounded-xl items-center border border-border-light dark:border-border-dark"
+              className="flex-1 py-3 rounded-xl items-center border border-border"
               style={{ backgroundColor: colors.surface }}
             >
-              <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+              <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
             </Pressable>
             <Pressable
               onPress={executeDuplicate}
@@ -650,7 +650,7 @@ function NewScenarioSheet({
           }}
         >
           <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
           <View className="px-5 pb-3">
             <Text className="text-base font-bold" style={{ color: colors.text }}>
@@ -679,7 +679,7 @@ function NewScenarioSheet({
               onChangeText={setName}
               placeholder="e.g. With Goa trip"
               placeholderTextColor={colors.textSecondary}
-              className="border border-border-light dark:border-border-dark rounded-lg px-3 py-3 text-sm"
+              className="border border-border rounded-lg px-3 py-3 text-sm"
               style={{ color: colors.text }}
             />
           </View>
@@ -692,7 +692,7 @@ function NewScenarioSheet({
             </Text>
             <Pressable
               onPress={() => setPicker(true)}
-              className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+              className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
             >
               <Text className="text-sm" style={{ color: colors.text }}>
                 {prettyDate(horizon)}

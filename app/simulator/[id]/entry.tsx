@@ -330,7 +330,7 @@ export default function SimulatorEntryForm() {
               </Text>
               <Pressable
                 onPress={() => setPersonPickerVisible(prev => !prev)}
-                className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
                 style={{ borderColor: colors.border }}
               >
                 <Text className="text-sm flex-1" numberOfLines={1} style={{ color: selectedPerson ? colors.text : colors.textSecondary }}>
@@ -386,7 +386,7 @@ export default function SimulatorEntryForm() {
             </Text>
             <Pressable
               onPress={() => setDatePickerVisible(true)}
-              className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+              className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
               style={{ borderColor: colors.border }}
             >
               <Text className="text-sm" style={{ color: colors.text }}>
@@ -406,7 +406,7 @@ export default function SimulatorEntryForm() {
             </Text>
             <Pressable
               onPress={() => setAccountPickerVisible(prev => !prev)}
-              className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+              className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
               style={{ borderColor: colors.border }}
             >
               <Text className="text-sm flex-1" numberOfLines={1} style={{ color: selectedAccount ? colors.text : colors.textSecondary }}>
@@ -457,7 +457,7 @@ export default function SimulatorEntryForm() {
               </Text>
               <Pressable
                 onPress={() => setToAccountPickerVisible(prev => !prev)}
-                className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
                 style={{ borderColor: colors.border }}
               >
                 <Text className="text-sm flex-1" numberOfLines={1} style={{ color: toAccountId ? colors.text : colors.textSecondary }}>
@@ -510,7 +510,7 @@ export default function SimulatorEntryForm() {
               </Text>
               <Pressable
                 onPress={() => setCategoryPickerVisible(prev => !prev)}
-                className="flex-row items-center justify-between border border-border-light dark:border-border-dark rounded-lg px-3 py-3"
+                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
                 style={{ borderColor: colors.border }}
               >
                 <Text className="text-sm flex-1" numberOfLines={1} style={{ color: selectedCategory ? colors.text : colors.textSecondary }}>
@@ -571,7 +571,7 @@ export default function SimulatorEntryForm() {
                 }}
                 placeholder={direction === "out" ? "e.g. Netflix" : "e.g. Bonus"}
                 placeholderTextColor={colors.textSecondary}
-                className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 text-sm"
+                className="border border-border rounded-lg px-3 py-2.5 text-sm"
                 style={{ color: colors.text, borderColor: colors.border }}
               />
               {merchantSuggestions.length > 0 && (
@@ -613,7 +613,7 @@ export default function SimulatorEntryForm() {
               onFocus={scrollToBottom}
               placeholder="Any note"
               placeholderTextColor={colors.textSecondary}
-              className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 text-sm"
+              className="border border-border rounded-lg px-3 py-2.5 text-sm"
               style={{ color: colors.text, borderColor: colors.border, minHeight: 48 }}
               multiline
             />

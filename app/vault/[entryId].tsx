@@ -124,7 +124,7 @@ export default function VaultEntryScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center">
-          <Text className="text-text-secondary dark:text-text-dark-secondary">Entry not found.</Text>
+          <Text className="text-muted-foreground">Entry not found.</Text>
         </View>
       </ScreenContainer>
     );
@@ -177,10 +177,10 @@ export default function VaultEntryScreen() {
               />
             </View>
             <View className="flex-1">
-              <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-lg font-bold text-foreground">
                 {entry.title}
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 {VAULT_CATEGORY_LABELS[entry.category as keyof typeof VAULT_CATEGORY_LABELS]}
                 {" · "}
                 {LOGIN_METHOD_LABELS[entry.login_method as keyof typeof LOGIN_METHOD_LABELS]}
@@ -192,16 +192,16 @@ export default function VaultEntryScreen() {
           <View className="flex-row gap-2">
             <Pressable
               onPress={() => router.push({ pathname: "/vault/add", params: { id: entry.id } })}
-              className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl border border-border-light dark:border-border-dark"
+              className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl border border-border"
             >
               <Ionicons name="pencil-outline" size={14} color={colors.textSecondary} />
-              <Text className="text-sm font-medium text-text-secondary dark:text-text-dark-secondary ml-1.5">
+              <Text className="text-sm font-medium text-muted-foreground ml-1.5">
                 Edit
               </Text>
             </Pressable>
             <Pressable
               onPress={handleDelete}
-              className="flex-row items-center justify-center px-4 py-2.5 rounded-xl border border-border-light dark:border-border-dark"
+              className="flex-row items-center justify-center px-4 py-2.5 rounded-xl border border-border"
             >
               <Ionicons name="trash-outline" size={14} color="#EF4444" />
             </Pressable>
@@ -433,7 +433,7 @@ export default function VaultEntryScreen() {
         {entry.notes && (
           <View className="mt-2">
             <View className="flex-row items-center justify-between mb-1.5">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Notes
               </Text>
               <Pressable onPress={() => handleCopy("Notes", entry.notes!)} hitSlop={8}>
@@ -445,14 +445,14 @@ export default function VaultEntryScreen() {
               </Pressable>
             </View>
             <Card>
-              <Text selectable className="text-sm text-text-primary dark:text-text-dark-primary leading-5">
+              <Text selectable className="text-sm text-foreground leading-5">
                 {entry.notes}
               </Text>
             </Card>
           </View>
         )}
 
-        <Text className="text-[10px] text-text-tertiary text-center mt-6">
+        <Text className="text-[10px] text-faint-foreground text-center mt-6">
           Added {new Date(entry.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
           {entry.updated_at ? ` · Updated ${new Date(entry.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : ""}
         </Text>
@@ -483,14 +483,14 @@ function FieldRow({
   const { colors } = useColorScheme();
   return (
     <View className="mb-3">
-      <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-1.5">
+      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
         {label}
       </Text>
       <View
-        className="flex-row items-center border border-border-light dark:border-border-dark rounded-xl px-4 py-3"
+        className="flex-row items-center border border-border rounded-xl px-4 py-3"
         style={{ backgroundColor: colors.surface }}
       >
-        <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary" selectable>
+        <Text className="flex-1 text-sm text-foreground" selectable>
           {value}
         </Text>
         {onCopy && (
@@ -528,14 +528,14 @@ function SecretRow({
 }) {
   return (
     <View className="mb-3">
-      <Text className="text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary mb-1.5">
+      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
         {label}
       </Text>
       <View
-        className="flex-row items-center border border-border-light dark:border-border-dark rounded-xl px-4 py-3"
+        className="flex-row items-center border border-border rounded-xl px-4 py-3"
         style={{ backgroundColor: colors.surface }}
       >
-        <Text className="flex-1 text-sm text-text-primary dark:text-text-dark-primary font-mono tracking-widest">
+        <Text className="flex-1 text-sm text-foreground font-mono tracking-widest">
           {show ? value : "•".repeat(Math.min(value.length, 12))}
         </Text>
         <Pressable onPress={onToggle} hitSlop={8} className="mr-3">

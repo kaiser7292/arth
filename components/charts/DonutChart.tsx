@@ -36,7 +36,7 @@ function DonutChartBase({
   if (total === 0) {
     return (
       <View className="items-center py-4">
-        <Text className="text-xs text-text-tertiary">No data</Text>
+        <Text className="text-xs text-faint-foreground">No data</Text>
       </View>
     );
   }
@@ -111,15 +111,15 @@ function DonutChartBase({
             height: size * 0.6,
             borderRadius: (size * 0.6) / 2,
           }}
-          className="bg-surface-light dark:bg-surface-dark-alt items-center justify-center"
+          className="bg-background items-center justify-center"
         >
           {centerValue && (
-            <Text className="text-lg font-bold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-lg font-bold text-foreground">
               {centerValue}
             </Text>
           )}
           {centerLabel && (
-            <Text className="text-[10px] text-text-tertiary">{centerLabel}</Text>
+            <Text className="text-[10px] text-faint-foreground">{centerLabel}</Text>
           )}
         </View>
       </View>
@@ -140,7 +140,7 @@ function DonutChartBase({
                     className="w-3 h-3 rounded-full mr-1"
                     style={{ backgroundColor: segment.color }}
                   />
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     {segment.label} ({Math.round((segment.value / total) * 100)}%)
                     {onSegmentPress ? " ›" : ""}
                   </Text>

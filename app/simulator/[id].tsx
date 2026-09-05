@@ -514,7 +514,7 @@ export default function ScenarioDetailScreen() {
 
           {/* Warnings strip — overdraft, min balance breach, CC over limit */}
           {simulation.warnings.length > 0 && (
-            <View className="mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+            <View className="mt-3 pt-3 border-t border-border">
               <Text className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: sc.danger }}>
                 Warnings
               </Text>
@@ -543,7 +543,7 @@ export default function ScenarioDetailScreen() {
                       {isCCOverLimit && `Credit card over limit by ${formatAmount(warning.amount)} on ${prettyDate(warning.firstTriggerDate)}`}
                     </Text>
                     {isOverdraft && topSavingsAccount && (
-                      <View className="mt-1 pt-1 border-t border-border-light dark:border-border-dark">
+                      <View className="mt-1 pt-1 border-t border-border">
                         <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
                           Recommendation: Transfer from <Text className="font-semibold" style={{ color: colors.text }}>{topSavingsAccount.label}</Text>
                         </Text>
@@ -558,7 +558,7 @@ export default function ScenarioDetailScreen() {
           {/* STARTING BALANCE — collapsible drawer. Closed by default. */}
           <Pressable
             onPress={() => setExpandStarting((v) => !v)}
-            className="flex-row items-center justify-between mt-4 pt-3 py-2 border-t border-border-light dark:border-border-dark"
+            className="flex-row items-center justify-between mt-4 pt-3 py-2 border-t border-border"
             accessibilityRole="button"
             accessibilityLabel={
               expandStarting
@@ -681,7 +681,7 @@ export default function ScenarioDetailScreen() {
                     itself is shown as-is. Overpaid cards (balance < 0)
                     get flipped to the Money available section at the top. */}
                 {(oweAccounts.length > 0 || hisaabOweRows.length > 0) && (
-                  <View className="mt-2 mb-1 pt-2 border-t border-border-light dark:border-border-dark">
+                  <View className="mt-2 mb-1 pt-2 border-t border-border">
                     <View className="flex-row items-center justify-between mb-1">
                       <Text
                         className="text-[10px] font-semibold uppercase tracking-wider"
@@ -732,7 +732,7 @@ export default function ScenarioDetailScreen() {
                 {/* Include hisaab launcher */}
                 <Pressable
                   onPress={() => setHisaabSheetVisible(true)}
-                  className="mt-2 pt-2 border-t border-border-light dark:border-border-dark flex-row items-center justify-between py-1.5"
+                  className="mt-2 pt-2 border-t border-border flex-row items-center justify-between py-1.5"
                   accessibilityRole="button"
                   accessibilityLabel="Include hisaab balances in this scenario"
                 >
@@ -748,7 +748,7 @@ export default function ScenarioDetailScreen() {
                 </Pressable>
 
                 {/* Net reconciliation */}
-                <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark flex-row items-center justify-between">
+                <View className="mt-2 pt-2 border-t border-border flex-row items-center justify-between">
                   <Text className="text-xs font-semibold" style={{ color: colors.text }}>
                     Net starting balance
                   </Text>
@@ -767,7 +767,7 @@ export default function ScenarioDetailScreen() {
               all accounts with their remaining balance till horizon date. */}
           <Pressable
             onPress={() => setExpandProjected((v) => !v)}
-            className="flex-row items-center justify-between mt-4 pt-3 py-2 border-t border-border-light dark:border-border-dark"
+            className="flex-row items-center justify-between mt-4 pt-3 py-2 border-t border-border"
             accessibilityRole="button"
             accessibilityLabel={
               expandProjected
@@ -861,7 +861,7 @@ export default function ScenarioDetailScreen() {
                 )}
                 {owedRows.length > 0 && (
                   <View
-                    className={availRows.length > 0 ? "pt-3 border-t border-border-light dark:border-border-dark" : undefined}
+                    className={availRows.length > 0 ? "pt-3 border-t border-border" : undefined}
                   >
                     <View className="flex-row items-center justify-between mb-1">
                       <Text
@@ -903,7 +903,7 @@ export default function ScenarioDetailScreen() {
               <Pressable
                 key={e.id}
                 onPress={() => setStaleSheetEntry(e)}
-                className="flex-row items-center py-2 border-t border-border-light dark:border-border-dark"
+                className="flex-row items-center py-2 border-t border-border"
                 accessibilityRole="button"
                 accessibilityLabel={`Resolve stale entry ${e.description ?? e.merchant_name ?? "entry"}`}
               >
@@ -1180,7 +1180,7 @@ export default function ScenarioDetailScreen() {
                 </Text>
               </View>
             </View>
-            <Pressable onPress={() => setExpandSummary(!expandSummary)} className="mt-2 pt-2 border-t border-border-light dark:border-border-dark items-center">
+            <Pressable onPress={() => setExpandSummary(!expandSummary)} className="mt-2 pt-2 border-t border-border items-center">
               <Text className="text-xs font-medium" style={{ color: accent[500] }}>
                 {expandSummary ? "Hide breakdown" : "Show breakdown"}
               </Text>
@@ -1188,7 +1188,7 @@ export default function ScenarioDetailScreen() {
             {expandSummary && (
               <View className="mt-2">
                 {fulfilledSummary.entries.map((item) => (
-                  <View key={item.entryId} className="flex-row items-center py-1.5 border-t border-border-light dark:border-border-dark">
+                  <View key={item.entryId} className="flex-row items-center py-1.5 border-t border-border">
                     <Text className="text-xs flex-1" style={{ color: colors.text }} numberOfLines={1}>
                       {item.description || item.merchant_name || "Entry"}
                     </Text>
@@ -1395,7 +1395,7 @@ export default function ScenarioDetailScreen() {
             onStartShouldSetResponder={() => true}
           >
             <View className="items-center pt-1 pb-2">
-              <View className="w-10 h-1 rounded-full bg-border-light dark:bg-border-dark" />
+              <View className="w-10 h-1 rounded-full bg-border" />
             </View>
             <MenuItem icon="pencil-outline" label="Rename" onPress={() => { setMenuVisible(false); setRenameVisible(true); }} />
             <MenuItem icon="refresh-outline" label="Re-seed from reminders" onPress={handleReseed} />
@@ -1635,7 +1635,7 @@ function RenameScenarioModal({
           <TextInput
             value={name}
             onChangeText={setName}
-            className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 text-sm"
+            className="border border-border rounded-lg px-3 py-2.5 text-sm"
             style={{ color: colors.text }}
             autoFocus
           />

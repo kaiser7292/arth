@@ -29,7 +29,7 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
   if (maxValue === 0) {
     return (
       <View className="items-center py-4">
-        <Text className="text-xs text-text-tertiary">No spending data yet</Text>
+        <Text className="text-xs text-faint-foreground">No spending data yet</Text>
       </View>
     );
   }
@@ -59,8 +59,8 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
                 <Text
                   className={`text-[9px] mb-1 ${
                     isSelected
-                      ? "font-semibold text-text-primary dark:text-text-dark-primary"
-                      : "text-text-secondary dark:text-text-dark-secondary"
+                      ? "font-semibold text-foreground"
+                      : "text-muted-foreground"
                   }`}
                   numberOfLines={1}
                 >
@@ -80,8 +80,8 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
               <Text
                 className={`text-[10px] mt-1 ${
                   isSelected
-                    ? "font-semibold text-text-primary dark:text-text-dark-primary"
-                    : "text-text-tertiary"
+                    ? "font-semibold text-foreground"
+                    : "text-faint-foreground"
                 }`}
               >
                 {label}
@@ -98,7 +98,7 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
             className="h-[1px] flex-1"
             style={{ backgroundColor: "#9CA3AF" }}
           />
-          <Text className="text-[9px] text-text-tertiary ml-2">
+          <Text className="text-[9px] text-faint-foreground ml-2">
             Budget: {formatAmount(budgetAmount)}
           </Text>
         </View>

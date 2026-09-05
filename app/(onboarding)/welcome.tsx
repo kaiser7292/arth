@@ -43,15 +43,15 @@ export default function OnboardingWelcome() {
         showsVerticalScrollIndicator={false}
       >
         <Text
-          className="text-3xl font-bold text-text-primary dark:text-text-dark-primary mb-2"
+          className="text-3xl font-bold text-foreground mb-2"
           style={{ color: ac(accent, colorScheme, 500, 200) }}
         >
           अर्थ
         </Text>
-        <Text className="text-2xl font-bold text-text-primary dark:text-text-dark-primary mb-3">
+        <Text className="text-2xl font-bold text-foreground mb-3">
           Welcome to Arth
         </Text>
-        <Text className="text-base text-text-secondary dark:text-text-dark-secondary mb-6 leading-6">
+        <Text className="text-base text-muted-foreground mb-6 leading-6">
           A private finance tracker that respects your data and your time.
         </Text>
 
@@ -68,10 +68,10 @@ export default function OnboardingWelcome() {
               />
             </View>
             <View className="flex-1">
-              <Text className="text-base font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+              <Text className="text-base font-semibold text-foreground mb-1">
                 {b.title}
               </Text>
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary leading-5">
+              <Text className="text-sm text-muted-foreground leading-5">
                 {b.body}
               </Text>
             </View>
@@ -86,7 +86,7 @@ export default function OnboardingWelcome() {
           className="mb-3"
         />
         <Pressable onPress={handleSkip} className="py-3 items-center">
-          <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+          <Text className="text-sm text-muted-foreground">
             Skip for now
           </Text>
         </Pressable>
