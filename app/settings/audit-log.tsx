@@ -1,4 +1,5 @@
 import { Card, FilterChip, ScreenContainer, Text } from "@/components/ui";
+import { BRAND_COLOR } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -105,7 +106,7 @@ function actionColor(a: AuditActionType, sc: StatusPalette): string {
     case "deleted":
       return sc.danger;
     case "edited":
-      return "#3B82F6";
+      return BRAND_COLOR;
     case "marked_as_transfer":
     case "reclassified_by_rule":
     case "refunded":

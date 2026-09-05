@@ -1,4 +1,5 @@
 import { Card, ScreenContainer, Text } from "@/components/ui";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
     getContextualArticles,
@@ -62,14 +63,14 @@ export default function HelpCenterScreen() {
           <Ionicons
             name="search"
             size={18}
-            color={colorScheme === "dark" ? "#A0A0A0" : "#6B7280"}
+            color={colorScheme === "dark" ? STATUS_COLORS.muted : STATUS_COLORS.neutral}
             style={{ marginRight: 8 }}
           />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Ask anything - e.g. how do I back up"
-            placeholderTextColor={colorScheme === "dark" ? "#A0A0A0" : "#9CA3AF"}
+            placeholderTextColor={colorScheme === "dark" ? STATUS_COLORS.muted : STATUS_COLORS.muted}
             className="flex-1 text-sm text-foreground"
             autoCorrect={false}
             returnKeyType="search"
@@ -79,7 +80,7 @@ export default function HelpCenterScreen() {
               <Ionicons
                 name="close-circle"
                 size={18}
-                color={colorScheme === "dark" ? "#A0A0A0" : "#6B7280"}
+                color={colorScheme === "dark" ? STATUS_COLORS.muted : STATUS_COLORS.neutral}
               />
             </Pressable>
           )}

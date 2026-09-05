@@ -78,7 +78,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
           return (
             <>
               {isSelected && (
-                <View className="flex-row items-center mb-2 px-2 py-1.5 rounded-lg bg-[#22C55E14]">
+                <View className="flex-row items-center mb-2 px-2 py-1.5 rounded-lg bg-success/8">
                   <Ionicons
                     name="checkmark-circle"
                     size={16}
@@ -158,7 +158,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
               {calculation.newRegimeTax.effectiveRate}% eff.
             </Text>
             {calculation.selectedRegime === "new" && (
-              <View className="mt-1 px-2 py-0.5 rounded-full bg-[#22C55E14]">
+              <View className="mt-1 px-2 py-0.5 rounded-full bg-success/8">
                 <Text className="text-label font-medium text-success">
                   BETTER
                 </Text>
@@ -177,7 +177,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
               {calculation.oldRegimeTax.effectiveRate}% eff.
             </Text>
             {calculation.selectedRegime === "old" && (
-              <View className="mt-1 px-2 py-0.5 rounded-full bg-[#22C55E14]">
+              <View className="mt-1 px-2 py-0.5 rounded-full bg-success/8">
                 <Text className="text-label font-medium text-success">
                   BETTER
                 </Text>

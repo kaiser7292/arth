@@ -1,4 +1,5 @@
 import { CalendarModal } from "@/components/ui/CalendarModal";
+import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "@/components/ui";
 import { TYPE_ICONS } from "@/constants/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -608,7 +609,7 @@ export function RightSpendToggle({ isRightSpend, onToggle }: RightSpendTogglePro
           <Ionicons
             name={isUnavoidable ? "lock-closed" : "pricetag-outline"}
             size={22}
-            color={isUnavoidable ? "#3B82F6" : "#D97706"}
+            color={isUnavoidable ? BRAND_COLOR : STATUS_COLORS.warning}
           />
           <View className="ml-3">
             <Text className="text-base font-medium text-foreground">
@@ -624,7 +625,7 @@ export function RightSpendToggle({ isRightSpend, onToggle }: RightSpendTogglePro
         <Switch
           value={isUnavoidable}
           onValueChange={onToggle}
-          trackColor={{ false: "#767577", true: "#3B82F6" }}
+          trackColor={{ false: "#767577", true: BRAND_COLOR }}
           thumbColor="#FFFFFF"
         />
       </Pressable>

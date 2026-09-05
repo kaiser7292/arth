@@ -272,7 +272,7 @@ export default function ImportExcelScreen() {
         </Text>
 
         {error && (
-          <View className="bg-[#EF444414] rounded-lg p-3 mb-4">
+          <View className="bg-danger/8 rounded-lg p-3 mb-4">
             <Text className="text-danger text-sm">{error}</Text>
             <Pressable onPress={() => setError(null)} className="mt-1">
               <Text className="text-xs text-danger underline">Dismiss</Text>
@@ -286,7 +286,7 @@ export default function ImportExcelScreen() {
             {/* Template download card */}
             <View className="rounded-lg border border-border bg-card p-4 mb-4">
               <View className="flex-row items-center mb-3">
-                <View className="w-10 h-10 rounded-full bg-[#22C55E14] items-center justify-center mr-3">
+                <View className="w-10 h-10 rounded-full bg-success/8 items-center justify-center mr-3">
                   <Ionicons name="download-outline" size={20} color={StatusColors[colorScheme].success} />
                 </View>
                 <View className="flex-1">
@@ -492,7 +492,7 @@ export default function ImportExcelScreen() {
             )}
 
             {(preview.uniqueCategories.length > 0 || preview.uniquePaymentModes.length > 0) && (
-              <View className="mt-4 p-3 rounded-lg bg-[#F59E0B14]">
+              <View className="mt-4 p-3 rounded-lg bg-warning/8">
                 <Text className="text-sm font-medium mb-1" style={{ color: StatusColors[colorScheme].warning }}>
                   New items will be auto-created
                 </Text>
@@ -615,7 +615,7 @@ export default function ImportExcelScreen() {
             ))}
 
             {/* Auto-create notice */}
-            <View className="mt-3 p-3 rounded-lg bg-[#F59E0B14]">
+            <View className="mt-3 p-3 rounded-lg bg-warning/8">
               <Text className="text-sm font-medium mb-1" style={{ color: StatusColors[colorScheme].warning }}>
                 Persons will be auto-created
               </Text>
@@ -683,7 +683,7 @@ export default function ImportExcelScreen() {
                 </Text>
               </View>
               {forecastResult.errors.length > 0 && (
-                <View className="mt-2 p-2 rounded bg-[#EF444414]">
+                <View className="mt-2 p-2 rounded bg-danger/8">
                   <Text className="text-xs text-danger">
                     {forecastResult.errors.length} error(s)
                   </Text>
@@ -738,7 +738,7 @@ export default function ImportExcelScreen() {
               )}
             </View>
             {importResult.errors.length > 0 && (
-              <View className="w-full mt-4 p-3 rounded-lg bg-[#EF444414]">
+              <View className="w-full mt-4 p-3 rounded-lg bg-danger/8">
                 <Text className="text-sm font-medium text-danger mb-1">
                   {importResult.errors.length} error{importResult.errors.length > 1 ? "s" : ""}
                 </Text>
@@ -795,7 +795,7 @@ export default function ImportExcelScreen() {
               )}
             </View>
             {hisaabResult.errors.length > 0 && (
-              <View className="w-full mt-4 p-3 rounded-lg bg-[#EF444414]">
+              <View className="w-full mt-4 p-3 rounded-lg bg-danger/8">
                 <Text className="text-sm font-medium text-danger mb-1">
                   {hisaabResult.errors.length} error{hisaabResult.errors.length > 1 ? "s" : ""}
                 </Text>

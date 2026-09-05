@@ -437,7 +437,7 @@ export default function LedgerScreen() {
                     onPress={() => setFormType("debit")}
                     className={`flex-1 py-2 rounded-l-lg items-center border ${
                       formType === "debit"
-                        ? "bg-[#EF444414]"
+                        ? "bg-danger/8"
                         : "bg-transparent border-border"
                     }`}
                     style={formType === "debit" ? { borderColor: StatusColors[colorScheme].danger } : undefined}

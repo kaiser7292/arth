@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { BORDER_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useBackOverride } from "@/hooks/use-back-override";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
@@ -372,7 +373,7 @@ export default function MilestonesScreen() {
                       >
                         <Text
                           className="text-sm font-medium capitalize"
-                          style={{ color: formDurationUnit === unit ? colors.blue : "#6B7280" }}
+                          style={{ color: formDurationUnit === unit ? colors.blue : STATUS_COLORS.neutral }}
                         >
                           {unit}
                         </Text>
@@ -389,13 +390,13 @@ export default function MilestonesScreen() {
                           onPress={() => { setFormDurationYears(d); setFormDurationMonths("0"); }}
                           className="mr-2 px-4 py-2 rounded-lg border"
                           style={{
-                            borderColor: formDurationYears === d && formDurationMonths === "0" ? colors.blue : "#E5E5E3",
+                            borderColor: formDurationYears === d && formDurationMonths === "0" ? colors.blue : BORDER_COLOR,
                             backgroundColor: formDurationYears === d && formDurationMonths === "0" ? acAlpha(accent, 500, 0.08) : "transparent",
                           }}
                         >
                           <Text
                             className="text-sm font-medium"
-                            style={{ color: formDurationYears === d && formDurationMonths === "0" ? colors.blue : "#6B7280" }}
+                            style={{ color: formDurationYears === d && formDurationMonths === "0" ? colors.blue : STATUS_COLORS.neutral }}
                           >
                             {d}yr
                           </Text>
@@ -417,13 +418,13 @@ export default function MilestonesScreen() {
                           onPress={() => { setFormDurationMonths(d); setFormDurationYears("0"); }}
                           className="mr-2 px-4 py-2 rounded-lg border"
                           style={{
-                            borderColor: formDurationMonths === d && formDurationYears === "0" ? colors.blue : "#E5E5E3",
+                            borderColor: formDurationMonths === d && formDurationYears === "0" ? colors.blue : BORDER_COLOR,
                             backgroundColor: formDurationMonths === d && formDurationYears === "0" ? acAlpha(accent, 500, 0.08) : "transparent",
                           }}
                         >
                           <Text
                             className="text-sm font-medium"
-                            style={{ color: formDurationMonths === d && formDurationYears === "0" ? colors.blue : "#6B7280" }}
+                            style={{ color: formDurationMonths === d && formDurationYears === "0" ? colors.blue : STATUS_COLORS.neutral }}
                           >
                             {d}mo
                           </Text>

@@ -26,7 +26,7 @@ export function ForecastMatchCard({
   return (
     <View className="mx-4 my-2 rounded-xl bg-card border border-border overflow-hidden">
       {/* Header */}
-      <View className="flex-row items-center px-3 py-2 bg-[#F59E0B14]">
+      <View className="flex-row items-center px-3 py-2 bg-warning/8">
         <Ionicons name="git-compare-outline" size={14} color={StatusColors[colorScheme].warning} />
         <Text className="text-xs font-semibold ml-1.5 uppercase tracking-wide" style={{ color: StatusColors[colorScheme].warning }}>
           Possible Match
@@ -36,7 +36,7 @@ export function ForecastMatchCard({
       {/* Forecast card */}
       <View className="px-3 py-2.5 border-b border-border">
         <View className="flex-row items-center mb-1">
-          <View className="px-1.5 py-0.5 rounded bg-[#F59E0B14] mr-2">
+          <View className="px-1.5 py-0.5 rounded bg-warning/8 mr-2">
             <Text className="text-label font-bold" style={{ color: StatusColors[colorScheme].warning }}>FORECAST</Text>
           </View>
           <Text className="text-xs text-faint-foreground">
@@ -84,7 +84,7 @@ export function ForecastMatchCard({
       <View className="flex-row px-2 py-2.5">
         <Pressable
           onPress={() => onRealize(forecast.id, realized.id)}
-          className="flex-1 flex-row items-center justify-center py-2 mx-1 rounded-lg bg-[#22C55E14]"
+          className="flex-1 flex-row items-center justify-center py-2 mx-1 rounded-lg bg-success/8"
         >
           <Ionicons name="checkmark-circle" size={16} color={StatusColors[colorScheme].success} />
           <Text className="text-xs font-semibold ml-1" style={{ color: StatusColors[colorScheme].success }}>

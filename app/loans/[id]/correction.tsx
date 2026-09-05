@@ -1,4 +1,5 @@
 import { Button, Input, ScreenContainer, Text } from "@/components/ui";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -251,7 +252,7 @@ export default function CorrectionForm() {
               <Pressable
                 onPress={handleDeactivate}
                 className="mb-3 py-3 rounded-xl items-center"
-                style={{ backgroundColor: "#EF4444" }}
+                style={{ backgroundColor: STATUS_COLORS.error }}
               >
                 <Text className="text-sm font-medium text-white">Deactivate This Correction</Text>
               </Pressable>

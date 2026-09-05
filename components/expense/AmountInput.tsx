@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { View } from "react-native";
 import type { TextInputProps } from "react-native";
 import { Input, Text } from "@/components/ui";
@@ -106,7 +107,7 @@ export function AmountInput({
       {inFormula && hasExpr && (
         <Text
           className="text-base font-semibold mt-1"
-          style={{ color: formulaValid ? colors.tint : "#EF4444" }}
+          style={{ color: formulaValid ? colors.tint : STATUS_COLORS.error }}
         >
           {formulaValid
             ? `= ${formatAmount(formulaResult!)}`

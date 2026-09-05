@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { View, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -259,7 +260,7 @@ export default function BudgetScreen() {
         rightActions={activePageIndex === 0 ? [{
           icon: "apps-outline",
           onPress: () => setShowWidgetManager((v) => !v),
-          color: showWidgetManager ? colors.blue : "#6B7280",
+          color: showWidgetManager ? colors.blue : STATUS_COLORS.neutral,
         }] : []}
       />
       {/* Month selector */}

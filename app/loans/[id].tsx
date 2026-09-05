@@ -1,4 +1,5 @@
 import { ForeclosureQuoteSheet } from "@/components/loans/ForeclosureQuoteSheet";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { LinkInstallmentSheet } from "@/components/loans/LinkInstallmentSheet";
 import { Button, Card, LoadingState, MetricRow, ScreenContainer, Text } from "@/components/ui";
 import { StatusColors } from "@/constants/theme";
@@ -844,8 +845,8 @@ function ActionTile({
   danger?: boolean;
 }) {
   const circleBg = danger ? "#DC262616" : acAlpha(accent, 500, 0.08);
-  const iconColor = danger ? "#DC2626" : ac(accent, colorScheme, 600, 300);
-  const labelColor = danger ? "#DC2626" : colors.text;
+  const iconColor = danger ? STATUS_COLORS.error : ac(accent, colorScheme, 600, 300);
+  const labelColor = danger ? STATUS_COLORS.error : colors.text;
   return (
     <Pressable
       onPress={onPress}

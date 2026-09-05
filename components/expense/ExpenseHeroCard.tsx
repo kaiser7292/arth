@@ -1,4 +1,5 @@
 import { StatusColors } from "@/constants/theme";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ac } from "@/utils/accent";
@@ -101,7 +102,7 @@ export default function ExpenseHeroCard({
           </View>
         )}
         {status === "pending_review" && (
-          <View className="px-2.5 py-1 rounded-full bg-[#F59E0B14]">
+          <View className="px-2.5 py-1 rounded-full bg-warning/8">
             <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: StatusColors[colorScheme].warning }}>
               Pending Review
             </Text>
@@ -182,18 +183,18 @@ export default function ExpenseHeroCard({
       {categoryName && (
         <View
           className="flex-row items-center px-3 py-1.5 rounded-full mt-3"
-          style={{ backgroundColor: (categoryColor ?? "#6B7280") + "14" }}
+          style={{ backgroundColor: (categoryColor ?? STATUS_COLORS.neutral) + "14" }}
         >
           {categoryIcon && (
             <Ionicons
               name={categoryIcon as keyof typeof Ionicons.glyphMap}
               size={14}
-              color={categoryColor ?? "#6B7280"}
+              color={categoryColor ?? STATUS_COLORS.neutral}
             />
           )}
           <Text
             className="text-xs font-semibold ml-1.5"
-            style={{ color: categoryColor ?? "#6B7280" }}
+            style={{ color: categoryColor ?? STATUS_COLORS.neutral }}
           >
             {categoryName}
           </Text>

@@ -699,7 +699,7 @@ export default function HomeScreen() {
                 <Text className="text-sm font-semibold text-foreground ml-2">
                   Upcoming Dues
                 </Text>
-                <View className="ml-2 px-1.5 py-0.5 rounded-full bg-[#F59E0B14]">
+                <View className="ml-2 px-1.5 py-0.5 rounded-full bg-warning/8">
                   <Text className="text-xs font-bold" style={{ color: StatusColors[colorScheme].warning }}>
                     {upcomingDues.length}
                   </Text>

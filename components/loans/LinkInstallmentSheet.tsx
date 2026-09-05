@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "@/components/ui";
 import { ActivityIndicator, FlatList, Modal, Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -233,10 +234,10 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
               onPress={handleUnlink}
               disabled={working}
               className="flex-row items-center justify-center py-3 rounded-xl"
-              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: "#DC2626" }}
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: STATUS_COLORS.error }}
             >
-              <Ionicons name="unlink-outline" size={18} color="#DC2626" />
-              <Text className="text-sm font-semibold ml-2" style={{ color: "#DC2626" }}>
+              <Ionicons name="unlink-outline" size={18} color={STATUS_COLORS.error} />
+              <Text className="text-sm font-semibold ml-2" style={{ color: STATUS_COLORS.error }}>
                 Unlink
               </Text>
             </Pressable>

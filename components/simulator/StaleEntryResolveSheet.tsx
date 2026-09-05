@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "@/components/ui";
 import { View, TextInput, Pressable, Modal, FlatList, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -49,9 +50,9 @@ function prettyDate(ymd: string): string {
 
 function natureBadge(nature: string): { label: string; color: string } {
   switch (nature) {
-    case "credit": return { label: "Credit", color: "#22C55E" };
-    case "ledger_adjustment": return { label: "Adjustment", color: "#F59E0B" };
-    default: return { label: "Expense", color: "#6B7280" };
+    case "credit": return { label: "Credit", color: STATUS_COLORS.success };
+    case "ledger_adjustment": return { label: "Adjustment", color: STATUS_COLORS.warning };
+    default: return { label: "Expense", color: STATUS_COLORS.neutral };
   }
 }
 
@@ -306,7 +307,7 @@ export function StaleEntryResolveSheet({
               style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
               accessibilityRole="button"
             >
-              <Ionicons name="trash-outline" size={20} color={"#DC2626"} />
+              <Ionicons name="trash-outline" size={20} color={STATUS_COLORS.error} />
               <View className="flex-1 ml-3">
                 <Text className="text-sm font-semibold" style={{ color: colors.text }}>
                   Remove
@@ -381,11 +382,11 @@ export function StaleEntryResolveSheet({
                   <Ionicons
                     name={variance > 0 ? "trending-up" : variance < 0 ? "trending-down" : "checkmark-circle"}
                     size={12}
-                    color={variance > 0 ? "#EF4444" : variance < 0 ? "#22C55E" : colors.textSecondary}
+                    color={variance > 0 ? STATUS_COLORS.error : variance < 0 ? STATUS_COLORS.success : colors.textSecondary}
                   />
                   <Text
                     className="text-xs font-semibold ml-1"
-                    style={{ color: variance > 0 ? "#EF4444" : variance < 0 ? "#22C55E" : colors.textSecondary }}
+                    style={{ color: variance > 0 ? STATUS_COLORS.error : variance < 0 ? STATUS_COLORS.success : colors.textSecondary }}
                   >
                     {variance === 0 ? "Exact match" : variance > 0 ? `${formatAmount(variance)} over` : `${formatAmount(Math.abs(variance))} under`}
                   </Text>

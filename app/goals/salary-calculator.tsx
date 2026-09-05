@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, ScrollView, Pressable, KeyboardAvoidingView, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -676,8 +677,8 @@ export default function SalaryCalculatorScreen() {
 
             {/* ─── Draft Indicator ────────────────────── */}
             {isDraft && (
-              <View className="flex-row items-center mb-3 px-3 py-2.5 rounded-lg bg-[#F59E0B14]">
-                <Ionicons name="document-outline" size={16} color="#F59E0B" />
+              <View className="flex-row items-center mb-3 px-3 py-2.5 rounded-lg bg-warning/8">
+                <Ionicons name="document-outline" size={16} color={STATUS_COLORS.warning} />
                 <Text className="text-xs font-medium ml-2" style={{ color: StatusColors[colorScheme].warning }}>
                   Draft - not yet saved to your plan
                 </Text>
@@ -700,7 +701,7 @@ export default function SalaryCalculatorScreen() {
                 ════════════════════════════════════════════ */}
             {inputMode === "direct" && (
               <>
-              <View className="flex-row items-center px-3 py-2.5 rounded-lg mb-3 bg-[#3B82F614]">
+              <View className="flex-row items-center px-3 py-2.5 rounded-lg mb-3 bg-primary/8">
                 <Ionicons name="information-circle-outline" size={16} color={colors.blue} />
                 <Text className="text-xs text-muted-foreground ml-2 flex-1">
                   All amounts here are considered post-tax. No tax rates will be applied.

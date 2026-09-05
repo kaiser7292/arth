@@ -1,4 +1,5 @@
 import { ScreenContainer, Text } from "@/components/ui";
+import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
@@ -14,10 +15,10 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { ScrollView, View, Pressable } from "react-native";
 
 const SEVERITY_COLORS = {
-  critical: { border: "#EF4444", bg: "#FEF2F2", bgDark: "#3B0000", text: "#991B1B", textDark: "#FCA5A5", icon: "warning-outline" as const },
-  warning:  { border: "#F59E0B", bg: "#FEF9E7", bgDark: "#332B00", text: "#92400E", textDark: "#FBBF24", icon: "alert-circle-outline" as const },
-  info:     { border: "#3B82F6", bg: "#EFF6FF", bgDark: "#1E293B", text: "#1E40AF", textDark: "#93C5FD", icon: "information-circle-outline" as const },
-  celebrate:{ border: "#22C55E", bg: "#F0FDF4", bgDark: "#052E16", text: "#166534", textDark: "#86EFAC", icon: "sparkles-outline" as const },
+  critical: { border: STATUS_COLORS.error, bg: "#FEF2F2", bgDark: "#3B0000", text: "#991B1B", textDark: "#FCA5A5", icon: "warning-outline" as const },
+  warning:  { border: STATUS_COLORS.warning, bg: "#FEF9E7", bgDark: "#332B00", text: "#92400E", textDark: "#FBBF24", icon: "alert-circle-outline" as const },
+  info:     { border: BRAND_COLOR, bg: "#EFF6FF", bgDark: "#1E293B", text: BRAND_COLOR, textDark: "#93C5FD", icon: "information-circle-outline" as const },
+  celebrate:{ border: STATUS_COLORS.success, bg: "#F0FDF4", bgDark: "#052E16", text: "#166534", textDark: "#86EFAC", icon: "sparkles-outline" as const },
 };
 
 function ProgressBar({ pct, color }: { pct: number; color: string }) {
@@ -37,7 +38,7 @@ function StatRow({ label, value, highlight }: { label: string; value: string; hi
       <Text className="text-sm text-muted-foreground flex-1">{label}</Text>
       <Text
         className="text-sm font-semibold ml-4 text-foreground"
-        style={highlight ? { color: "#EF4444" } : undefined}
+        style={highlight ? { color: STATUS_COLORS.error } : undefined}
       >
         {value}
       </Text>
@@ -131,7 +132,7 @@ function SpendingDetail({
         label="View Yearly Plan"
         icon="document-text-outline"
         onPress={() => router.push("/goals/yearly-plan")}
-        color="#EF4444"
+        color={STATUS_COLORS.error}
       />
     </>
   );
@@ -140,7 +141,7 @@ function SpendingDetail({
 // ── Investment detail ────────────────────────────────────────────────────────
 
 function BucketRow({ bucket, isDark }: { bucket: BucketStatus; isDark: boolean }) {
-  const accentColor = bucket.paceStatus === "behind" ? "#F59E0B" : "#22C55E";
+  const accentColor = bucket.paceStatus === "behind" ? STATUS_COLORS.warning : STATUS_COLORS.success;
   return (
     <Card className="mb-3">
       <View className="flex-row items-center justify-between mb-1.5">
@@ -210,7 +211,7 @@ function InvestmentDetail({
         label="View Investment Buckets"
         icon="pie-chart-outline"
         onPress={() => router.push("/goals/investment-buckets")}
-        color="#F59E0B"
+        color={STATUS_COLORS.warning}
       />
     </>
   );
@@ -242,7 +243,7 @@ function MilestoneDetail({
     );
   }
 
-  const accentColor = ms.status === "completed" ? "#22C55E" : ms.slippageMonths > 6 ? "#EF4444" : "#F59E0B";
+  const accentColor = ms.status === "completed" ? STATUS_COLORS.success : ms.slippageMonths > 6 ? STATUS_COLORS.error : STATUS_COLORS.warning;
   const remaining = Math.max(0, ms.targetAmount - ms.currentSaved);
 
   return (
@@ -380,7 +381,7 @@ function SavingsDetail({
         label="View Yearly Plan"
         icon="document-text-outline"
         onPress={() => router.push("/goals/yearly-plan")}
-        color="#3B82F6"
+        color={BRAND_COLOR}
       />
     </>
   );
@@ -445,7 +446,7 @@ function GeneralDetail({
         label="View Investment Buckets"
         icon="pie-chart-outline"
         onPress={() => router.push("/goals/investment-buckets")}
-        color="#22C55E"
+        color={STATUS_COLORS.success}
       />
     </>
   );

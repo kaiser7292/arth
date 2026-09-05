@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "@/components/ui";
 import { Animated, Pressable, View } from "react-native";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -579,7 +580,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     }
   };
 
-  const indicatorColor = voiceState === "listening" ? "#EF4444"
+  const indicatorColor = voiceState === "listening" ? STATUS_COLORS.error
     : voiceState === "speaking" ? accentColor
     : colors.textSecondary;
 

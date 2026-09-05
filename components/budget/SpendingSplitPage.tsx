@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,8 +21,8 @@ import { getFYStartMonth } from "@/services/settings";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
-const UNAVOIDABLE_COLOR = "#3B82F6";
-const DISCRETIONARY_COLOR = "#D97706";
+const UNAVOIDABLE_COLOR = BRAND_COLOR;
+const DISCRETIONARY_COLOR = STATUS_COLORS.warning;
 
 interface SpendingSplitPageProps {
   month: string;

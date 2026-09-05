@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { BRAND_COLOR, STATUS_COLORS, TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { Text } from "@/components/ui";
 import { View, Pressable, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -59,10 +60,10 @@ function tokenize(body: string): Token[] {
 }
 
 export const FIELD_COLORS: Record<TaggedField, { bg: string; text: string; label: string }> = {
-  amount: { bg: "#3B82F6", text: "#FFFFFF", label: "Amount" },
-  account: { bg: "#F59E0B", text: "#1A1A1A", label: "Account" },
-  merchant: { bg: "#10B981", text: "#FFFFFF", label: "Merchant" },
-  date: { bg: "#8B5CF6", text: "#FFFFFF", label: "Date" },
+  amount: { bg: BRAND_COLOR, text: "#FFFFFF", label: "Amount" },
+  account: { bg: STATUS_COLORS.warning, text: "#1A1A1A", label: "Account" },
+  merchant: { bg: STATUS_COLORS.success, text: "#FFFFFF", label: "Merchant" },
+  date: { bg: TRANSFER_COLOR, text: "#FFFFFF", label: "Date" },
   balance: { bg: "#0EA5E9", text: "#FFFFFF", label: "Balance" },
   ref: { bg: "#F43F5E", text: "#FFFFFF", label: "Ref / Note" },
 };

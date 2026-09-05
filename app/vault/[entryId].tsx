@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
@@ -203,7 +204,7 @@ export default function VaultEntryScreen() {
               onPress={handleDelete}
               className="flex-row items-center justify-center px-4 py-2.5 rounded-xl border border-border"
             >
-              <Ionicons name="trash-outline" size={14} color="#EF4444" />
+              <Ionicons name="trash-outline" size={14} color={STATUS_COLORS.error} />
             </Pressable>
           </View>
         </Card>

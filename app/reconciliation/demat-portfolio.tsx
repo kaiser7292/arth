@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { STATUS_COLORS, TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,13 +23,13 @@ import type { TrendSeries } from "@/components/charts/TrendLineChart";
 
 const ACCOUNT_COLORS = [
   "#6366F1", // indigo
-  "#F59E0B", // amber
+  STATUS_COLORS.warning, // amber
   "#EC4899", // pink
   "#14B8A6", // teal
-  "#8B5CF6", // violet
+  TRANSFER_COLOR, // violet
   "#F97316", // orange
   "#06B6D4", // cyan
-  "#EF4444", // red
+  STATUS_COLORS.error, // red
 ];
 
 const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

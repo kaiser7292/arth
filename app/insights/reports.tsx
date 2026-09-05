@@ -1,4 +1,5 @@
 import { View, ScrollView, Pressable } from "react-native";
+import { BRAND_COLOR } from "@/constants/semantic-colors";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -86,7 +87,7 @@ export default function ReportsHubScreen() {
 
           <ReportCard
             icon="umbrella-outline"
-            iconColor="#3B82F6"
+            iconColor={BRAND_COLOR}
             iconBg="#3B82F614"
             title="Retirement readiness"
             description="Corpus target, SIP plan, phase roadmap, risk assessment, scenarios"

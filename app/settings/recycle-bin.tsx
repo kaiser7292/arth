@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { View, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
@@ -318,7 +319,7 @@ export default function RecycleBinScreen() {
       onPress={() => router.push(`/expense/${item.id}`)}
       rightElement={
         <View className="flex-row items-center ml-2">
-          <View className="px-1.5 py-0.5 rounded mr-2 bg-[#EF444414]">
+          <View className="px-1.5 py-0.5 rounded mr-2 bg-danger/8">
             <Text className="text-label font-semibold" style={{ color: StatusColors[colorScheme].danger }}>REJECTED</Text>
           </View>
           <Pressable onPress={() => confirm("Re-approve", `Approve "${item.description || item.merchant_name || "Expense"}"?`, "Approve", false, async () => {
@@ -577,7 +578,7 @@ export default function RecycleBinScreen() {
                   <View className="ml-1.5 px-1.5 py-0.5 rounded-full"
                     style={{ backgroundColor: isActive ? accent[500] + "20" : "#6B728014" }}>
                     <Text className="text-label font-bold"
-                      style={{ color: isActive ? ac(accent, colorScheme, 500, 200) : "#6B7280" }}>
+                      style={{ color: isActive ? ac(accent, colorScheme, 500, 200) : STATUS_COLORS.neutral }}>
                       {count}
                     </Text>
                   </View>

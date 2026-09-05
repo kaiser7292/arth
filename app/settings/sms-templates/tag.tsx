@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { View, TextInput, ScrollView, Pressable, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -662,8 +663,8 @@ export default function TagSmsTemplateScreen() {
               className="mt-2 p-2.5 rounded-lg flex-row items-start"
               style={{ backgroundColor: "#EF444415" }}
             >
-              <Ionicons name="warning-outline" size={14} color="#EF4444" style={{ marginTop: 2 }} />
-              <Text className="text-xs ml-2 flex-1" style={{ color: "#EF4444" }}>
+              <Ionicons name="warning-outline" size={14} color={STATUS_COLORS.error} style={{ marginTop: 2 }} />
+              <Text className="text-xs ml-2 flex-1" style={{ color: STATUS_COLORS.error }}>
                 {compileError}
               </Text>
             </View>
@@ -829,7 +830,7 @@ export default function TagSmsTemplateScreen() {
               className="mt-3 p-2.5 rounded-lg flex-row items-start"
               style={{ backgroundColor: "#F59E0B18" }}
             >
-              <Ionicons name="information-circle-outline" size={14} color="#F59E0B" style={{ marginTop: 2 }} />
+              <Ionicons name="information-circle-outline" size={14} color={STATUS_COLORS.warning} style={{ marginTop: 2 }} />
               <Text className="text-xs ml-2 flex-1" style={{ color: colors.text }}>
                 You already have a "{duplicateFound.label}" template for this bank + type. Tap Save to add this as a second format, or tap the template in the list to edit it.
               </Text>
@@ -1050,8 +1051,8 @@ export default function TagSmsTemplateScreen() {
               {testResult.ok ? (
                 <>
                   <View className="flex-row items-center mb-1">
-                    <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                    <Text className="text-xs font-semibold ml-1" style={{ color: "#10B981" }}>
+                    <Ionicons name="checkmark-circle" size={16} color={STATUS_COLORS.success} />
+                    <Text className="text-xs font-semibold ml-1" style={{ color: STATUS_COLORS.success }}>
                       Matched
                     </Text>
                   </View>
@@ -1063,8 +1064,8 @@ export default function TagSmsTemplateScreen() {
                 </>
               ) : (
                 <View className="flex-row items-center">
-                  <Ionicons name="close-circle" size={16} color="#EF4444" />
-                  <Text className="text-xs font-semibold ml-1" style={{ color: "#EF4444" }}>
+                  <Ionicons name="close-circle" size={16} color={STATUS_COLORS.error} />
+                  <Text className="text-xs font-semibold ml-1" style={{ color: STATUS_COLORS.error }}>
                     No match. Try tagging just the number part (long-press a token for char selection).
                   </Text>
                 </View>

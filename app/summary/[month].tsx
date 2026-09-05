@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { View, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -309,7 +310,7 @@ export default function MonthlySummaryScreen() {
                       className="h-full rounded-full"
                       style={{
                         width: `${tc.pctOfTotal}%`,
-                        backgroundColor: tc.category?.color ?? "#6B7280",
+                        backgroundColor: tc.category?.color ?? STATUS_COLORS.neutral,
                       }}
                     />
                   </View>

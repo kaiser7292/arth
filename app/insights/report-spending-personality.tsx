@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { BRAND_COLOR } from "@/constants/semantic-colors";
 import { View, ScrollView, Pressable, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -449,7 +450,7 @@ export default function SpendingPersonalityReportScreen() {
           <Pressable
             onPress={handleExportPDF}
             className="rounded-xl p-3.5 items-center flex-row justify-center gap-2"
-            style={{ backgroundColor: "#0F766E" }}
+            style={{ backgroundColor: BRAND_COLOR }}
             disabled={exporting}
             accessibilityRole="button"
           >

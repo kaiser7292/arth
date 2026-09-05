@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { logger } from "@/utils/logger";
 import { View, ScrollView, Pressable, Keyboard, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
@@ -424,7 +425,7 @@ export default function AccountDetailScreen() {
           {/* Closed account banner */}
           {account.closed_at && (
             <View className="bg-warning/10 border border-warning/30 rounded-xl px-4 py-3 mb-3 flex-row items-center gap-3">
-              <Ionicons name="lock-closed-outline" size={18} color="#D97706" />
+              <Ionicons name="lock-closed-outline" size={18} color={STATUS_COLORS.warning} />
               <Text className="text-sm text-warning flex-1">
                 This account is closed. History is read-only.
               </Text>
@@ -874,7 +875,7 @@ export default function AccountDetailScreen() {
                     <Ionicons
                       name={isLinked ? "checkbox" : "square-outline"}
                       size={22}
-                      color={isLinked ? colors.blue : "#9CA3AF"}
+                      color={isLinked ? colors.blue : STATUS_COLORS.muted}
                     />
                     <Text
                       className={`text-sm ml-3 ${

@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "@/components/ui";
 import { View, Pressable } from "react-native";
 import type { MonthlyTotal } from "@/services/expense";
@@ -97,7 +98,7 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
         <View className="flex-row items-center mt-2">
           <View
             className="h-[1px] flex-1"
-            style={{ backgroundColor: "#9CA3AF" }}
+            style={{ backgroundColor: STATUS_COLORS.muted }}
           />
           <Text className="text-label text-faint-foreground ml-2">
             Budget: {formatAmount(budgetAmount)}

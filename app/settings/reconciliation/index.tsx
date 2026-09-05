@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, View } from "react-native";
@@ -16,7 +17,7 @@ function statusLabel(status: string): string {
 }
 
 function statusColor(status: string, accent: any, colors: any): string {
-  if (status === "completed") return "#22C55E";
+  if (status === "completed") return STATUS_COLORS.success;
   if (status === "in_progress") return accent[500];
   return colors.textSecondary;
 }

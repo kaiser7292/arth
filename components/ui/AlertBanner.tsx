@@ -1,4 +1,5 @@
 import { View, Pressable } from "react-native";
+import { BRAND_COLOR } from "@/constants/semantic-colors";
 import { Text } from "./Text";
 import { Ionicons } from "@expo/vector-icons";
 import type { AlertSeverity } from "@/utils/course-correction";
@@ -15,7 +16,7 @@ const SEVERITY_CONFIG_BASE = {
   info: {
     bg: "#EFF6FF",
     bgDark: "#1E293B",
-    text: "#1E40AF",
+    text: BRAND_COLOR,
     textDark: "#93C5FD",
     icon: "information-circle-outline" as const,
   },
@@ -40,7 +41,7 @@ export function AlertBanner({ severity, message, onDismiss }: AlertBannerProps) 
   const severityConfig = {
     info: {
       ...SEVERITY_CONFIG_BASE.info,
-      border: "#3B82F6",
+      border: BRAND_COLOR,
     },
     warning: {
       ...SEVERITY_CONFIG_BASE.warning,

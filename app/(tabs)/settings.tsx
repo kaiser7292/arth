@@ -1,4 +1,5 @@
 import { Card, ContextualHeader, DateInput, LearnMoreChip, ScreenContainer, Text } from "@/components/ui";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { StatusColors } from "@/constants/theme";
@@ -487,7 +488,7 @@ export default function SettingsScreen() {
                 <Pressable
                   key={option.scope}
                   onPress={() => handleCleanupScopeSelect(option.scope)}
-                  className={`px-3 py-1.5 rounded-full border ${cleanupScope === option.scope ? "bg-[#EF444414]" : "border-border"}`}
+                  className={`px-3 py-1.5 rounded-full border ${cleanupScope === option.scope ? "bg-danger/8" : "border-border"}`}
                   style={cleanupScope === option.scope ? { borderColor: StatusColors[colorScheme].danger } : undefined}
                 >
                   <Text className={`text-xs font-medium ${cleanupScope === option.scope ? "text-danger" : "text-foreground"}`}>
@@ -538,7 +539,7 @@ export default function SettingsScreen() {
                     <Pressable
                       key={item.type}
                       onPress={() => toggleCleanupObject(item.type)}
-                      className={`flex-row items-center justify-between rounded-lg px-3 py-2.5 mb-1.5 border ${checked ? "border-danger/30 bg-[#DC262608]" : "border-border"}`}
+                      className={`flex-row items-center justify-between rounded-lg px-3 py-2.5 mb-1.5 border ${checked ? "border-danger/30 bg-danger/3" : "border-border"}`}
                     >
                       <View className="flex-row items-center flex-1">
                         <Ionicons name={checked ? "checkbox" : "square-outline"} size={20} color={checked ? StatusColors[colorScheme].danger : colors.textSecondary} />
@@ -616,7 +617,7 @@ export default function SettingsScreen() {
                         style={customMode ? { borderColor: accent[500], backgroundColor: ac(accent, colorScheme, 50, 700) } : undefined}
                       >
                         <View className="flex-row items-center">
-                          <Ionicons name="calendar-outline" size={16} color={customMode ? colors.blue : "#6B7280"} />
+                          <Ionicons name="calendar-outline" size={16} color={customMode ? colors.blue : STATUS_COLORS.neutral} />
                           <Text className={`text-sm ml-2 ${customMode ? "font-medium" : "text-foreground"}`} style={customMode ? { color: ac(accent, colorScheme, 500, 200) } : undefined}>Custom Range</Text>
                         </View>
                         <Ionicons name={customMode ? "chevron-up" : "chevron-down"} size={14} color={colors.textSecondary} />

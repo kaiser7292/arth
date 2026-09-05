@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { BRAND_COLOR, STATUS_COLORS, TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { View, ScrollView, Pressable, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -25,7 +26,7 @@ import {
 function gradeColor(grade: string, colorScheme: "light" | "dark") {
   const s = StatusColors[colorScheme];
   if (grade.startsWith("A")) return s.success;
-  if (grade.startsWith("B")) return "#3B82F6";
+  if (grade.startsWith("B")) return BRAND_COLOR;
   if (grade.startsWith("C")) return s.warning;
   return s.danger;
 }
@@ -427,7 +428,7 @@ export default function FinancialHealthReportScreen() {
               {/* Stacked bar */}
               <View className="flex-row h-3 rounded-full overflow-hidden mb-3">
                 {report.categoryBreakdown.slice(0, 7).map((c, i) => {
-                  const barColors = ["#2563EB", "#22C55E", "#F59E0B", "#8B5CF6", "#EC4899", "#0EA5E9", "#6B7280"];
+                  const barColors = [BRAND_COLOR, STATUS_COLORS.success, STATUS_COLORS.warning, TRANSFER_COLOR, "#EC4899", "#0EA5E9", STATUS_COLORS.neutral];
                   return (
                     <View
                       key={c.categoryId}
@@ -438,7 +439,7 @@ export default function FinancialHealthReportScreen() {
               </View>
               {/* Legend — tap to navigate */}
               {report.categoryBreakdown.slice(0, 7).map((c, i) => {
-                const barColors = ["#2563EB", "#22C55E", "#F59E0B", "#8B5CF6", "#EC4899", "#0EA5E9", "#6B7280"];
+                const barColors = [BRAND_COLOR, STATUS_COLORS.success, STATUS_COLORS.warning, TRANSFER_COLOR, "#EC4899", "#0EA5E9", STATUS_COLORS.neutral];
                 return (
                   <Pressable
                     key={c.categoryId}
@@ -482,7 +483,7 @@ export default function FinancialHealthReportScreen() {
             <SectionHeader title="Fixed vs Discretionary" />
             <Card>
               <View className="flex-row h-2.5 rounded-full overflow-hidden mb-3">
-                <View style={{ flex: report.fixedVsDiscretionary.fixed, backgroundColor: "#6B7280" }} />
+                <View style={{ flex: report.fixedVsDiscretionary.fixed, backgroundColor: STATUS_COLORS.neutral }} />
                 <View style={{ flex: report.fixedVsDiscretionary.discretionary, backgroundColor: tint }} />
               </View>
               <Pressable
@@ -490,7 +491,7 @@ export default function FinancialHealthReportScreen() {
                 className="flex-row items-center justify-between py-2 border-b border-border"
               >
                 <View className="flex-row items-center gap-2">
-                  <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#6B7280" }} />
+                  <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS.neutral }} />
                   <Text className="text-xs font-semibold text-foreground">
                     Fixed / Essential
                   </Text>
@@ -570,7 +571,7 @@ export default function FinancialHealthReportScreen() {
           <Pressable
             onPress={handleExportPDF}
             className="rounded-xl p-3.5 items-center flex-row justify-center gap-2"
-            style={{ backgroundColor: "#0F766E" }}
+            style={{ backgroundColor: BRAND_COLOR }}
             disabled={exporting}
             accessibilityRole="button"
             accessibilityLabel="Download PDF"

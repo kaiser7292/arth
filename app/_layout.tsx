@@ -1,4 +1,5 @@
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "@/components/ui";
 import { ALLOWED_DEEP_LINK_SCREENS } from "@/constants/routes";
 import { initDatabase } from "@/database";
@@ -41,7 +42,7 @@ class ErrorBoundary extends React.Component<
     if (this.state.error) {
       return (
         <View style={{ flex: 1, backgroundColor: "#111111", padding: 32, paddingTop: 80 }}>
-          <Text style={{ color: "#EF4444", fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
+          <Text style={{ color: STATUS_COLORS.error, fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
             Something went wrong
           </Text>
           <Text style={{ color: "#FFFFFF", fontSize: 14, marginBottom: 24 }}>
@@ -58,7 +59,7 @@ class ErrorBoundary extends React.Component<
               <Text style={{ color: "#FFFFFF", fontSize: 14, marginBottom: 8 }}>
                 {this.state.error.message}
               </Text>
-              <Text style={{ color: "#6B7280", fontSize: 12 }}>
+              <Text style={{ color: STATUS_COLORS.neutral, fontSize: 12 }}>
                 {this.state.error.stack}
               </Text>
             </ScrollView>
@@ -120,7 +121,7 @@ function SplashScreen({ step }: { step: string }) {
               cy="200"
               r="152"
               fill="none"
-              stroke="#F59E0B"
+              stroke={STATUS_COLORS.warning}
               strokeWidth="5.5"
             />
             <Circle
@@ -128,10 +129,10 @@ function SplashScreen({ step }: { step: string }) {
               cy="200"
               r="139"
               fill="none"
-              stroke="#F59E0B"
+              stroke={STATUS_COLORS.warning}
               strokeWidth="1.2"
             />
-            <G fill="#F59E0B" opacity={0.6}>
+            <G fill={STATUS_COLORS.warning} opacity={0.6}>
               <Circle cx="200" cy="55" r="2.3"/>
               <Circle cx="271" cy="75" r="2.3"/>
               <Circle cx="325" cy="129" r="2.3"/>
@@ -154,13 +155,13 @@ function SplashScreen({ step }: { step: string }) {
       <Text style={{ fontSize: 36, fontWeight: "bold", color: isDark ? "#FFFFFF" : "#111111", letterSpacing: 2 }}>
         अर्थ
       </Text>
-      <Text style={{ fontSize: 16, fontWeight: "600", color: isDark ? "#D1D5DB" : "#6B7280", marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>
+      <Text style={{ fontSize: 16, fontWeight: "600", color: isDark ? "#D1D5DB" : STATUS_COLORS.neutral, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>
         Arth
       </Text>
-      <Text style={{ fontSize: 13, color: isDark ? "#6B7280" : "#9CA3AF", marginTop: 12, fontStyle: "italic" }}>
+      <Text style={{ fontSize: 13, color: isDark ? STATUS_COLORS.neutral : STATUS_COLORS.muted, marginTop: 12, fontStyle: "italic" }}>
         your finances, your way
       </Text>
-      <Text style={{ fontSize: 12, color: isDark ? "#6B7280" : "#9CA3AF", marginTop: 32 }}>
+      <Text style={{ fontSize: 12, color: isDark ? STATUS_COLORS.neutral : STATUS_COLORS.muted, marginTop: 32 }}>
         {step}
       </Text>
     </View>
@@ -429,7 +430,7 @@ export default function RootLayout(): React.JSX.Element {
   if (initError) {
     return (
       <View style={{ flex: 1, backgroundColor: "#111111", padding: 32, paddingTop: 80 }}>
-        <Text style={{ color: "#EF4444", fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
+        <Text style={{ color: STATUS_COLORS.error, fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
           Database Init Failed
         </Text>
         <Text style={{ color: "#FFFFFF", fontSize: 14, marginBottom: 24 }}>
@@ -445,7 +446,7 @@ export default function RootLayout(): React.JSX.Element {
           onPress={() => BackHandler.exitApp()}
           style={{ borderWidth: 1, borderColor: "#374151", padding: 14, borderRadius: 10, alignItems: "center" }}
         >
-          <Text style={{ color: "#9CA3AF", fontWeight: "600" }}>Close App</Text>
+          <Text style={{ color: STATUS_COLORS.muted, fontWeight: "600" }}>Close App</Text>
         </TouchableOpacity>
         {__DEV__ && (
           <ScrollView style={{ marginTop: 16 }}>

@@ -292,7 +292,7 @@ export default function BackupRestoreScreen() {
               <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </Pressable>
 
-            <View className="mt-4 p-3 rounded-lg bg-[#F59E0B14]">
+            <View className="mt-4 p-3 rounded-lg bg-warning/8">
               <Text className="text-sm font-medium mb-1" style={{ color: StatusColors[colorScheme].warning }}>
                 Keep your password safe
               </Text>
@@ -489,7 +489,7 @@ export default function BackupRestoreScreen() {
           <View className="items-center py-8">
             <View
               className={`w-16 h-16 rounded-full items-center justify-center mb-4 ${
-                backupResult.success ? "bg-success/8" : "bg-[#EF444414]"
+                backupResult.success ? "bg-success/8" : "bg-danger/8"
               }`}
             >
               <Ionicons
@@ -575,7 +575,7 @@ export default function BackupRestoreScreen() {
               <View>
                 <Button title="Select Backup File" onPress={handlePickFile} variant="outline" />
                 {fileError && (
-                  <View className="mt-3 p-3 rounded-lg bg-[#EF444414]">
+                  <View className="mt-3 p-3 rounded-lg bg-danger/8">
                     <Text className="text-sm text-danger font-medium">{fileError}</Text>
                   </View>
                 )}
@@ -620,7 +620,7 @@ export default function BackupRestoreScreen() {
                   </>
                 )}
 
-                <View className="p-3 rounded-lg bg-[#EF444414] mb-4">
+                <View className="p-3 rounded-lg bg-danger/8 mb-4">
                   <Text className="text-sm text-danger font-medium">
                     Warning: Restoring will replace ALL current data.
                   </Text>
@@ -645,7 +645,7 @@ export default function BackupRestoreScreen() {
           <View className="items-center py-8">
             <View
               className={`w-16 h-16 rounded-full items-center justify-center mb-4 ${
-                restoreResult.success ? "bg-success/8" : "bg-[#EF444414]"
+                restoreResult.success ? "bg-success/8" : "bg-danger/8"
               }`}
             >
               <Ionicons

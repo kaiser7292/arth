@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { View, FlatList, Pressable } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
@@ -120,13 +121,13 @@ export default function PaymentModesScreen() {
         <Ionicons
           name={item.is_active === 1 ? "eye-outline" : "eye-off-outline"}
           size={18}
-          color={item.is_active === 1 ? colors.blue : "#9CA3AF"}
+          color={item.is_active === 1 ? colors.blue : STATUS_COLORS.muted}
         />
       </Pressable>
 
       {/* Delete button */}
       <Pressable onPress={() => handleDelete(item)} className="p-2">
-        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+        <Ionicons name="trash-outline" size={18} color={STATUS_COLORS.error} />
       </Pressable>
     </Pressable>
   );

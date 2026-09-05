@@ -1,4 +1,5 @@
 import { TextInput, View } from "react-native";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "./Text";
 import type { TextInputProps } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -72,7 +73,7 @@ export function Input({
       {inFormula && hasExpr && (
         <Text
           className="text-xs mt-1 ml-1"
-          style={{ color: formulaValid ? colors.tint : "#EF4444" }}
+          style={{ color: formulaValid ? colors.tint : STATUS_COLORS.error }}
         >
           {formulaValid
             ? `= ${formatAmount(formulaResult!)}`

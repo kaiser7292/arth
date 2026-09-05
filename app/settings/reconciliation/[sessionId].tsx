@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { STATUS_COLORS, TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, View, ScrollView } from "react-native";
@@ -353,7 +354,7 @@ export default function ReconciliationSessionScreen() {
               </View>
               {item.matched_transfer_id && (
                 <View className="ml-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#8B5CF622" }}>
-                  <Text className="text-label font-semibold uppercase" style={{ color: "#8B5CF6" }}>Transfer</Text>
+                  <Text className="text-label font-semibold uppercase" style={{ color: TRANSFER_COLOR }}>Transfer</Text>
                 </View>
               )}
             </View>
@@ -566,7 +567,7 @@ export default function ReconciliationSessionScreen() {
                     width: session.total_stmt_count
                       ? `${Math.min(100, (matched.length / session.total_stmt_count) * 100)}%`
                       : "0%",
-                    backgroundColor: session.status === "completed" ? "#22C55E" : accent[500],
+                    backgroundColor: session.status === "completed" ? STATUS_COLORS.success : accent[500],
                   }}
                 />
               </View>
@@ -576,8 +577,8 @@ export default function ReconciliationSessionScreen() {
             </View>
             {session.status === "completed" && session.completed_at && (
               <View className="flex-row items-center mt-2">
-                <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
-                <Text className="text-xs font-semibold ml-1" style={{ color: "#22C55E" }}>
+                <Ionicons name="checkmark-circle" size={14} color={STATUS_COLORS.success} />
+                <Text className="text-xs font-semibold ml-1" style={{ color: STATUS_COLORS.success }}>
                   Reconciled on {new Date(session.completed_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                 </Text>
               </View>
@@ -605,7 +606,7 @@ export default function ReconciliationSessionScreen() {
                     <Text className="text-xs text-muted-foreground">Difference</Text>
                     <Text
                       className="text-xs font-bold"
-                      style={{ color: Math.abs(balanceDiff) < 1 ? "#22C55E" : "#EF4444" }}
+                      style={{ color: Math.abs(balanceDiff) < 1 ? STATUS_COLORS.success : STATUS_COLORS.error }}
                     >
                       {Math.abs(balanceDiff) < 1 ? "✓ Match" : amountStr(Math.abs(balanceDiff))}
                     </Text>
@@ -718,7 +719,7 @@ export default function ReconciliationSessionScreen() {
                         )}
                       </View>
                       <View className="ml-3 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F59E0B22" }}>
-                        <Text className="text-label font-semibold uppercase" style={{ color: "#F59E0B" }}>
+                        <Text className="text-label font-semibold uppercase" style={{ color: STATUS_COLORS.warning }}>
                           {item.matched_transfer_id ? "Transfer" : "Expense"}
                         </Text>
                       </View>
@@ -786,7 +787,7 @@ export default function ReconciliationSessionScreen() {
             onPress={handleMarkReconciled}
             disabled={markingDone}
             className="py-4 rounded-2xl items-center"
-            style={{ backgroundColor: missing.length === 0 ? "#22C55E" : accent[500] }}
+            style={{ backgroundColor: missing.length === 0 ? STATUS_COLORS.success : accent[500] }}
           >
             {markingDone ? (
               <ActivityIndicator color="#fff" />

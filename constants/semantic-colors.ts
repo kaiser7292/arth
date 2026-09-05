@@ -56,5 +56,17 @@ export const CHART_COLORS = {
   pointStroke: LIGHT.card,
 } as const;
 
+/**
+ * Brand and chrome colours as scheme-independent constants, for icon `color=` props and inline
+ * styles where no theme object is in scope (module-level arrays, helper functions).
+ *
+ * These are deliberately NOT scheme-aware, because the raw hex literals they replace were not
+ * either — swapping in a scheme-aware value here would change dark-mode rendering in the same
+ * commit that changes the palette, making a device regression impossible to attribute. Making them
+ * scheme-aware is per-screen work for the redesign, where useTheme() can be introduced properly.
+ */
+export const BRAND_COLOR = LIGHT.primary;
+export const BORDER_COLOR = LIGHT.border;
+
 /** Transfers between owned accounts — distinct from spend (red) or credits (green). */
 export const TRANSFER_COLOR = DATA_HEX.transfer;

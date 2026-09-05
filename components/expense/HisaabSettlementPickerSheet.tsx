@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { STATUS_COLORS } from "@/constants/semantic-colors";
 import { Text } from "@/components/ui";
 import { View, Pressable, Modal, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -141,9 +142,9 @@ export function HisaabSettlementPickerSheet({
               const owesYou = p.balance > 0;
               const youOwe = p.balance < 0;
               const balanceColor = owesYou
-                ? "#16A34A"
+                ? STATUS_COLORS.success
                 : youOwe
-                  ? "#DC2626"
+                  ? STATUS_COLORS.error
                   : colors.textSecondary;
               const balanceLabel = owesYou
                 ? `Owes you ${formatAmount(p.balance)}`

@@ -71,7 +71,7 @@ import {
   type FilterViewState,
   type DatePreset,
 } from "@/services/saved-filter-views";
-import { TRANSFER_COLOR } from "@/constants/semantic-colors";
+import { STATUS_COLORS, TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { StatusColors } from "@/constants/theme";
 import { settingsStorage } from "@/services/storage";
 import { Modal } from "react-native";
@@ -979,7 +979,7 @@ export default function ExpensesScreen() {
             <Ionicons
               name={isVoiceSearching ? "radio-button-on" : "mic-outline"}
               size={18}
-              color={isVoiceSearching ? "#EF4444" : colors.textSecondary}
+              color={isVoiceSearching ? STATUS_COLORS.error : colors.textSecondary}
             />
           </Pressable>
           <Pressable
@@ -991,7 +991,7 @@ export default function ExpensesScreen() {
             <Ionicons
               name="options-outline"
               size={20}
-              color={hasActiveFilters ? colors.blue : "#9CA3AF"}
+              color={hasActiveFilters ? colors.blue : STATUS_COLORS.muted}
             />
           </Pressable>
         </View>
@@ -1047,7 +1047,7 @@ export default function ExpensesScreen() {
                       onPress={() => { applyFilterView(view); setShowViewsPicker(false); }}
                       className="flex-1 flex-row items-center px-3 py-2.5"
                     >
-                      {isDefault && <Ionicons name="star" size={11} color="#F59E0B" style={{ marginRight: 5 }} />}
+                      {isDefault && <Ionicons name="star" size={11} color={STATUS_COLORS.warning} style={{ marginRight: 5 }} />}
                       <Text className={`text-sm flex-1 ${isActive ? "font-semibold" : "text-foreground"}`} style={isActive ? { color: accent[500] } : undefined}>
                         {view.name}
                       </Text>
@@ -1057,7 +1057,7 @@ export default function ExpensesScreen() {
                       onPress={() => handleSetDefault(view.id)}
                       className="px-2 py-2.5"
                     >
-                      <Ionicons name={isDefault ? "star" : "star-outline"} size={14} color="#F59E0B" />
+                      <Ionicons name={isDefault ? "star" : "star-outline"} size={14} color={STATUS_COLORS.warning} />
                     </Pressable>
                     <Pressable
                       onPress={() => { handleDeleteView(view.id, view.name); }}
@@ -1278,7 +1278,7 @@ export default function ExpensesScreen() {
             )}
             {activeViewId && (
               <Pressable onPress={() => handleSetDefault(activeViewId)}>
-                <Ionicons name={getDefaultFilterViewId() === activeViewId ? "star" : "star-outline"} size={16} color="#F59E0B" />
+                <Ionicons name={getDefaultFilterViewId() === activeViewId ? "star" : "star-outline"} size={16} color={STATUS_COLORS.warning} />
               </Pressable>
             )}
           </View>
