@@ -473,6 +473,8 @@ export default function RootLayout(): React.JSX.Element {
       <StatusBar style="auto" />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* Was unregistered, so it fell through to expo-router's default chrome. */}
+        <Stack.Screen name="transfer" options={{ headerShown: false }} />
         <Stack.Screen
           name="settings"
           options={{ headerShown: false }}

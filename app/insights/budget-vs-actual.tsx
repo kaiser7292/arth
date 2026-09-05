@@ -654,6 +654,7 @@ function MiniMonthPicker({
   onSelect: (v: string) => void;
   onCancel: () => void;
 }) {
+  const theme = useTheme();
   const [y, m] = value.split("-").map(Number);
   const [pickerYear, setPickerYear] = useState(y);
   const now = new Date();
@@ -689,7 +690,6 @@ function MiniMonthPicker({
       {/* Month grid */}
       <View className="flex-row flex-wrap mb-4">
         {MONTH_SHORT.map((name, idx) => {
-  const theme = useTheme();
           const monthNum = idx + 1;
           const monthVal = `${pickerYear}-${String(monthNum).padStart(2, "0")}`;
           const isSelected = pickerYear === y && monthNum === m;

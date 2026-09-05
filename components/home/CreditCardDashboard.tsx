@@ -8,7 +8,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
 
 import type { FinancialAccount } from "@/services/financial-account";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, type Theme } from "@/hooks/use-theme";
 
 interface CreditCardDashboardProps {
   accounts: FinancialAccount[];
@@ -16,8 +16,10 @@ interface CreditCardDashboardProps {
   computedBalances: Record<string, number | null>;
 }
 
-function getUtilColor(pct: number): string {
-  const theme = useTheme();
+/** Takes the theme as an argument. This is a plain helper, not a component, so it must not
+ *  call a hook: it is invoked conditionally, and a hook that runs on some renders and not
+ *  others changes the hook count between renders, which React throws on. */
+function getUtilColor(pct: number, theme: Theme): string {
   if (pct > 75) return theme.danger;
   if (pct > 50) return theme.warning;
   return theme.success;
@@ -76,7 +78,7 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
   const totalUtilized = Array.from(utilizedByBank.values()).reduce((sum, v) => sum + v, 0);
   const totalAvailable = totalLimit - totalUtilized;
   const overallUtil = totalLimit > 0 ? (totalUtilized / totalLimit) * 100 : null;
-  const overallUtilColor = overallUtil != null ? getUtilColor(overallUtil) : theme.faintForeground;
+  const overallUtilColor = overallUtil != null ? getUtilColor(overallUtil, theme) : theme.faintForeground;
 
   return (
     <View>

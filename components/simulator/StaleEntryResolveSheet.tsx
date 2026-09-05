@@ -16,7 +16,7 @@ import { todayIso, addDays } from "@/utils/date";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import type { SimulationEntry } from "@/services/simulator";
 import { getDatabase } from "@/database";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, type Theme } from "@/hooks/use-theme";
 
 interface Candidate {
   id: string;
@@ -49,8 +49,10 @@ function prettyDate(ymd: string): string {
   return dt.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-function natureBadge(nature: string): { label: string; color: string } {
-  const theme = useTheme();
+/** Takes the theme as an argument. This is a plain helper, not a component, so it must not
+ *  call a hook: it is invoked conditionally, and a hook that runs on some renders and not
+ *  others changes the hook count between renders, which React throws on. */
+function natureBadge(nature: string, theme: Theme): { label: string; color: string } {
   switch (nature) {
     case "credit": return { label: "Credit", color: theme.success };
     case "ledger_adjustment": return { label: "Adjustment", color: theme.warning };
@@ -178,7 +180,7 @@ export function StaleEntryResolveSheet({
 
   const renderCandidate = ({ item: c }: { item: Candidate }) => {
     const isSelected = selectedIds.has(c.id);
-    const badge = natureBadge(c.nature);
+    const badge = natureBadge(c.nature, theme);
     const acctStr = candidateAccountStr(c);
     const showDescription = !!(c.description && c.merchant && c.description !== c.merchant);
     const metaParts: string[] = [prettyDate(c.date)];

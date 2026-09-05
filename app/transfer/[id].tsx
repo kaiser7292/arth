@@ -87,7 +87,7 @@ export default function TransferDetailScreen() {
     <ScreenContainer padTop={false}>
       <Stack.Screen
         options={{
-          title: "Transfer Details",
+          title: "Transfer",
           headerBackTitle: "Back",
           headerRight: () => (
             <Pressable onPress={handleDelete} hitSlop={8}>

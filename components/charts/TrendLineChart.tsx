@@ -42,6 +42,13 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
   const [width, setWidth] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
+  // All hooks stay above every early return - this component returns early twice, and a
+  // hook behind either one runs on some renders and not others, which React throws on.
+  // Pre-existing: an empty series or an all-zero chart took an early path and skipped it.
+  const handlePress = useCallback((index: number) => {
+    setSelectedIndex((prev) => (prev === index ? null : index));
+  }, []);
+
   const allSeries: TrendSeries[] = series && series.length > 0
     ? series
     : data && color
@@ -104,10 +111,6 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
   };
 
   const isMulti = allSeries.length > 1;
-
-  const handlePress = useCallback((index: number) => {
-    setSelectedIndex((prev) => (prev === index ? null : index));
-  }, []);
 
   // Determine which x-axis labels to show: first, last, and evenly-spaced middle ones
   const getVisibleLabels = (): number[] => {
