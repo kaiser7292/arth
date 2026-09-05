@@ -302,8 +302,8 @@ export default function PeriodComparisonScreen() {
                 <Card className="mx-4">
                   <View className="flex-row items-center pb-2 border-b border-border mb-1">
                     <Text className="flex-1 text-xs font-semibold text-faint-foreground">Category</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R1</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R2</Text>
+                    <Text className="flex-1 min-w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R1</Text>
+                    <Text className="flex-1 min-w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R2</Text>
                     <Text className="w-14 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
                   </View>
                   {data.byCategory.map((c) => (
@@ -315,7 +315,7 @@ export default function PeriodComparisonScreen() {
                         {c.categoryName}
                       </Text>
                       <Pressable
-                        className="w-[76px] ml-1"
+                        className="flex-1 min-w-[76px] ml-1"
                         onPress={() => drillInto(data.range1.start, data.range1.end, { type: "category", categoryId: c.categoryId }, `${c.categoryName} · ${shortRangeLabel(data.range1.start, data.range1.end)}`)}
                       >
                         <Text className="text-xs text-right" style={{ color: theme.primary }}>
@@ -323,7 +323,7 @@ export default function PeriodComparisonScreen() {
                         </Text>
                       </Pressable>
                       <Pressable
-                        className="w-[76px] ml-1"
+                        className="flex-1 min-w-[76px] ml-1"
                         onPress={() => drillInto(data.range2.start, data.range2.end, { type: "category", categoryId: c.categoryId }, `${c.categoryName} · ${shortRangeLabel(data.range2.start, data.range2.end)}`)}
                       >
                         <Text className="text-xs font-medium text-right" style={{ color: theme.primary }}>
@@ -353,8 +353,8 @@ export default function PeriodComparisonScreen() {
                 <Card className="mx-4">
                   <View className="flex-row items-center pb-2 border-b border-border mb-1">
                     <Text className="flex-1 text-xs font-semibold text-faint-foreground">Merchant</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R1</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R2</Text>
+                    <Text className="flex-1 min-w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R1</Text>
+                    <Text className="flex-1 min-w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R2</Text>
                     <Text className="w-14 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
                   </View>
                   {(showAllMerchants ? data.byMerchant : data.byMerchant.slice(0, 10)).map((m) => (
@@ -366,7 +366,7 @@ export default function PeriodComparisonScreen() {
                         {m.merchantName}
                       </Text>
                       <Pressable
-                        className="w-[76px] ml-1"
+                        className="flex-1 min-w-[76px] ml-1"
                         onPress={() => drillInto(data.range1.start, data.range1.end, { type: "merchant", merchantName: m.merchantName }, `${m.merchantName} · ${shortRangeLabel(data.range1.start, data.range1.end)}`)}
                       >
                         <Text className="text-xs text-right" style={{ color: theme.primary }}>
@@ -374,7 +374,7 @@ export default function PeriodComparisonScreen() {
                         </Text>
                       </Pressable>
                       <Pressable
-                        className="w-[76px] ml-1"
+                        className="flex-1 min-w-[76px] ml-1"
                         onPress={() => drillInto(data.range2.start, data.range2.end, { type: "merchant", merchantName: m.merchantName }, `${m.merchantName} · ${shortRangeLabel(data.range2.start, data.range2.end)}`)}
                       >
                         <Text className="text-xs font-medium text-right" style={{ color: theme.primary }}>
@@ -414,8 +414,8 @@ export default function PeriodComparisonScreen() {
                 <Card className="mx-4">
                   <View className="flex-row items-center pb-2 border-b border-border mb-1">
                     <Text className="flex-1 text-xs font-semibold text-faint-foreground">Method</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R1</Text>
-                    <Text className="w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R2</Text>
+                    <Text className="flex-1 min-w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R1</Text>
+                    <Text className="flex-1 min-w-[76px] text-xs font-semibold text-faint-foreground text-right ml-1">R2</Text>
                     <Text className="w-14 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
                   </View>
                   {data.byPaymentMode.map((pm) => (
@@ -427,7 +427,7 @@ export default function PeriodComparisonScreen() {
                         {pm.paymentModeName}
                       </Text>
                       <Pressable
-                        className="w-[76px] ml-1"
+                        className="flex-1 min-w-[76px] ml-1"
                         onPress={() => drillInto(data.range1.start, data.range1.end, { type: "paymentMode", paymentModeId: pm.paymentModeId }, `${pm.paymentModeName} · ${shortRangeLabel(data.range1.start, data.range1.end)}`)}
                       >
                         <Text className="text-xs text-right" style={{ color: theme.primary }}>
@@ -435,7 +435,7 @@ export default function PeriodComparisonScreen() {
                         </Text>
                       </Pressable>
                       <Pressable
-                        className="w-[76px] ml-1"
+                        className="flex-1 min-w-[76px] ml-1"
                         onPress={() => drillInto(data.range2.start, data.range2.end, { type: "paymentMode", paymentModeId: pm.paymentModeId }, `${pm.paymentModeName} · ${shortRangeLabel(data.range2.start, data.range2.end)}`)}
                       >
                         <Text className="text-xs font-medium text-right" style={{ color: theme.primary }}>

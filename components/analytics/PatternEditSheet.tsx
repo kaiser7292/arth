@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Text } from "@/components/ui";
-import { View, Pressable, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Sheet, Text } from "@/components/ui";
+import { View, Pressable, ScrollView, TextInput } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { Button } from "@/components/ui/Button";
@@ -30,7 +29,6 @@ const FREQUENCIES: { value: RecurringFrequency; label: string }[] = [
 export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheetProps) {
   const { colors } = useColorScheme();
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
 
   const [amount, setAmount] = useState(String(Math.round(pattern.amount)));
   const [frequency, setFrequency] = useState<RecurringFrequency>(pattern.frequency as RecurringFrequency);
@@ -61,23 +59,8 @@ export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheet
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <Pressable className="flex-1 bg-black/40" onPress={onClose} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
-      >
-      <View
-        className="bg-card rounded-t-3xl px-5 pt-4"
-        style={{ maxHeight: "92%", paddingBottom: Math.max(insets.bottom, 8) }}
-      >
-        {/* Handle */}
-        <View className="w-10 h-1 rounded-full bg-border self-center mb-4" />
+    <Sheet visible={visible} onClose={onClose}>
+      <View className="px-5">
 
         <Text className="text-lg font-bold text-foreground mb-4">
           Edit Pattern
@@ -171,8 +154,7 @@ export function PatternEditSheet({ visible, pattern, onClose }: PatternEditSheet
           </Text>
         </View>
       </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    </Sheet>
   );
 }
 

@@ -1227,16 +1227,16 @@ const loadData = useCallback(async () => {
                       )}
                     </View>
                     {isTransfer && entry.counterAccountName && (
-                      <Text className="text-label mt-0.5" style={{ color: transferColor }}>
+                      <Text className="text-meta mt-0.5" style={{ color: transferColor }}>
                         {entry.type === "transfer_in" ? "From" : "To"} {entry.counterAccountName}
                       </Text>
                     )}
                     <View className="flex-row items-center mt-0.5">
-                      <Text className="text-label text-muted-foreground">
+                      <Text className="text-meta text-muted-foreground">
                         {formatEntryDate(entry.date)}
                       </Text>
                       {poolSiblings.length > 1 && entry.cardLast4 && (
-                        <Text className="text-label text-faint-foreground ml-1.5">
+                        <Text className="text-meta text-faint-foreground ml-1.5">
                           · {"••••"} {entry.cardLast4}
                         </Text>
                       )}
@@ -1284,7 +1284,7 @@ const loadData = useCallback(async () => {
                       style={{ color: isTransfer ? transferColor : entryColor }}
                     />
                     {entry.splitPersonName && (
-                      <Text className="text-label text-muted-foreground mt-0.5">
+                      <Text className="text-meta text-muted-foreground mt-0.5">
                         Split w/ {entry.splitPersonName}
                       </Text>
                     )}

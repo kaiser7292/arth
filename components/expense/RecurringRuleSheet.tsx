@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 import { Sheet, Text } from "@/components/ui";
-import { View, Pressable,  TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Pressable, TextInput, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -380,6 +380,43 @@ export function RecurringRuleSheet({
           </Text>
         </Pressable>
       </View>
+      {/*
+        Restored: the sheet migration replaced everything between <Modal> and </Modal> and
+        dropped both of these, which sat after the panel. startPickerVisible /
+        endPickerVisible were still being set to true by the Starts and Until rows, so both
+        rows did nothing at all.
+      */}
+      {/* Start date picker - no maximum (a reminder can start in the future) */}
+      <CalendarModal
+        visible={startPickerVisible}
+        onClose={() => setStartPickerVisible(false)}
+        value={startDate}
+        onChange={(d) => {
+          setStartDate(d);
+          setStartTouched(true);
+          setStartPickerVisible(false);
+        }}
+        maximumDate={null}
+      />
+
+      {/* End date picker - minimum is the start date */}
+      <CalendarModal
+        visible={endPickerVisible}
+        onClose={() => setEndPickerVisible(false)}
+        value={endDate || startDate}
+        onChange={(d) => {
+          setEndDate(d);
+          setEndPickerVisible(false);
+        }}
+        maximumDate={null}
+        minimumDate={(() => {
+          const parts = startDate.split("-").map(Number);
+          if (parts.length === 3 && !parts.some(isNaN)) {
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+          }
+          return undefined;
+        })()}
+      />
     </Sheet>
   );
 }

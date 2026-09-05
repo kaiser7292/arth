@@ -394,6 +394,23 @@ export function StaleEntryResolveSheet({
           </Pressable>
         </View>
       )}
+      {/*
+        Restored: the sheet migration replaced everything between <Modal> and </Modal> and
+        dropped this, which sat after the panel. reschedulePickerVisible was still being set
+        to true by the Reschedule row, so the row simply did nothing.
+      */}
+      <CalendarModal
+        visible={reschedulePickerVisible}
+        onClose={() => setReschedulePickerVisible(false)}
+        value={entry.date >= todayIso() ? entry.date : todayIso()}
+        onChange={async (d) => {
+          setReschedulePickerVisible(false);
+          await onReschedule(entry.id, d);
+          handleClose();
+        }}
+        maximumDate={null}
+        minimumDate={new Date()}
+      />
     </Sheet>
   );
 }

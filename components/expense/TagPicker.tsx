@@ -185,7 +185,15 @@ export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen
             windowSize={7}
             data={filteredTags}
             keyExtractor={(item) => item.id}
-            scrollEnabled={false}
+            /*
+              Capped and self-scrolling. This was scrollEnabled={false} with no height limit, so
+              it laid out every tag inline and the picker grew without bound - opening it shoved
+              the rest of the expense form down by however many tags the user happens to have.
+              nestedScrollEnabled lets it scroll inside the form's own ScrollView on Android.
+            */
+            style={{ maxHeight: 220 }}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
               <Pressable
                 onPress={() => handleAddTag(item)}

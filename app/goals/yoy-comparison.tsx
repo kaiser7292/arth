@@ -332,11 +332,11 @@ function CategoryCard({
 
       {/* Column headers */}
       <View className="flex-row mb-1.5">
-        <View className="flex-1" />
-        <Text className="w-20 text-label font-semibold text-faint-foreground text-right">
+        <View className="w-16" />
+        <Text className="flex-1 text-label font-semibold text-faint-foreground text-right">
           {prevLabel}
         </Text>
-        <Text className="w-20 text-label font-semibold text-faint-foreground text-right">
+        <Text className="flex-1 text-label font-semibold text-faint-foreground text-right">
           {currLabel}
         </Text>
         <Text className="w-16 text-label font-semibold text-faint-foreground text-right">
@@ -346,13 +346,13 @@ function CategoryCard({
 
       {/* Planned row */}
       <View className="flex-row items-center py-1.5 border-b border-border">
-        <Text className="flex-1 text-xs text-muted-foreground">
+        <Text className="w-16 text-xs text-muted-foreground">
           Planned
         </Text>
-        <Text className="w-20 text-xs text-muted-foreground text-right">
+        <Text className="flex-1 text-xs text-muted-foreground text-right">
           {fmt(c.prevPlanned)}
         </Text>
-        <Text className="w-20 text-xs font-medium text-foreground text-right">
+        <Text className="flex-1 text-xs font-medium text-foreground text-right">
           {fmt(c.currPlanned)}
         </Text>
         <ChangeBadge value={plannedChangePct} lowerIsBetter={c.lowerIsBetter} />
@@ -360,13 +360,13 @@ function CategoryCard({
 
       {/* Actual row */}
       <View className="flex-row items-center py-1.5">
-        <Text className="flex-1 text-xs font-medium text-foreground">
+        <Text className="w-16 text-xs font-medium text-foreground">
           Actual
         </Text>
-        <Text className="w-20 text-xs text-muted-foreground text-right">
+        <Text className="flex-1 text-xs text-muted-foreground text-right">
           {fmt(c.prevActual)}
         </Text>
-        <Text className="w-20 text-xs font-bold text-foreground text-right">
+        <Text className="flex-1 text-xs font-bold text-foreground text-right">
           {fmt(c.currActual)}
         </Text>
         <ChangeBadge value={actualChangePct} lowerIsBetter={c.lowerIsBetter} />

@@ -104,6 +104,34 @@ export default function ExpenseDetailScreen() {
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const scrollRef = useRef<ScrollView>(null);
+  const tagsSectionRef = useRef<View>(null);
+
+  /**
+   * Scroll so the Tags section sits near the top of the viewport.
+   *
+   * measureLayout against the ScrollView's inner content node gives the section's offset within
+   * the scrollable content, which a plain onLayout cannot - the section is nested several views
+   * deep, so its layout.y is relative to its parent, not to the scroll content.
+   */
+  const scrollTagsIntoView = useCallback(() => {
+    const run = () => {
+      const inner = scrollRef.current?.getInnerViewNode?.();
+      if (!inner || !tagsSectionRef.current) return;
+      tagsSectionRef.current.measureLayout(
+        inner,
+        (_x: number, y: number) => {
+          scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+        },
+        () => {},
+      );
+    };
+    // Once for the layout the picker just added, once after the keyboard settles.
+    requestAnimationFrame(run);
+    const sub = Keyboard.addListener("keyboardDidShow", () => {
+      run();
+      sub.remove();
+    });
+  }, []);
 
   // Expense data
   const [expense, setExpense] = useState<Expense | null>(null);
@@ -2374,7 +2402,7 @@ export default function ExpenseDetailScreen() {
               )}
 
               {/* 4b. Tags */}
-              <View className="mx-4 mt-3">
+              <View className="mx-4 mt-3" ref={tagsSectionRef} collapsable={false}>
                 <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                   Tags
                 </Text>
@@ -2382,14 +2410,14 @@ export default function ExpenseDetailScreen() {
                   expenseId={expense.id}
                   onOpen={() => {
                     setTagPickerOpen(true);
-                    const sub = Keyboard.addListener("keyboardDidShow", () => {
-                      scrollRef.current?.scrollToEnd({ animated: true });
-                      sub.remove();
-                    });
-                    // Fallback if keyboard is already visible
-                    setTimeout(() => {
-                      scrollRef.current?.scrollToEnd({ animated: true });
-                    }, 400);
+                    /*
+                      Bring the Tags section to the top of the viewport, not the bottom of the
+                      form. This was scrollToEnd, but Tags is followed by several more sections
+                      on this screen (forecast actions, group legs, investment link, danger
+                      zone), so ending up at the end scrolled far past the picker that just
+                      opened - the "form goes up way too much" report.
+                    */
+                    scrollTagsIntoView();
                   }}
                   onClose={() => setTagPickerOpen(false)}
                 />

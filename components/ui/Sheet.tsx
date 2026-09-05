@@ -56,8 +56,10 @@ export interface SheetProps {
  * silently. The panel then grew to its full content height, the inner ScrollView never shrank or
  * scrolled, and where the sheet landed followed its content instead of the screen.
  *
- * So maxHeight is computed in PIXELS from the live window height. A percentage only works when
- * every ancestor happens to have a definite height; pixels always work.
+ * So maxHeight is computed in PIXELS, from the Modal container's own measured height. A
+ * percentage only works when every ancestor happens to have a definite height; pixels always
+ * work. Measuring the container rather than the window also means the cap tracks a
+ * keyboard-resized window without any extra wiring.
  *
  * react-native-gesture-handler was already a dependency and used in exactly two places, so nothing
  * new is pulled in. The gesture root is re-declared INSIDE the Modal deliberately - on Android a
@@ -84,6 +86,9 @@ export function Sheet({
   const translateY = useSharedValue(winH);
   const dragStart = useSharedValue(0);
   const [height, setHeight] = useState(0);
+  // The Modal's own container, which is what the panel is actually capped against. Measuring it
+  // rather than the window means the cap follows a keyboard-resized window for free.
+  const [containerH, setContainerH] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
@@ -156,13 +161,17 @@ export function Sheet({
       animationType="none"
       visible={visible}
       onRequestClose={close}
-      // Without these the Modal gets its own inset-shrunk window, which no longer matches the
-      // window height the pixel maxHeight below is computed against.
-      statusBarTranslucent
-      navigationBarTranslucent
+      // Deliberately NOT statusBarTranslucent. That makes the Modal window fullscreen on
+      // Android, and a fullscreen window ignores adjustResize - the keyboard then covers the
+      // bottom of the sheet instead of shrinking it, which hides exactly the fields a sheet
+      // puts last (Notes, Until). The cap below measures the container rather than the window,
+      // so it stays correct without needing the window to be fullscreen.
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+        <View
+          style={{ flex: 1, justifyContent: "flex-end" }}
+          onLayout={(e) => setContainerH(e.nativeEvent.layout.height)}
+        >
           <Animated.View
             style={[
               StyleSheet.absoluteFillObject,
@@ -191,7 +200,7 @@ export function Sheet({
                   backgroundColor: theme.card,
                   borderTopLeftRadius: 20,
                   borderTopRightRadius: 20,
-                  maxHeight: Math.round(winH * (maxHeightPct / 100)),
+                  maxHeight: Math.round((containerH || winH) * (maxHeightPct / 100)),
                   // Safe-area pad belongs on the PANEL, not on a wrapper around the children.
                   // The hand-rolled sheets did it this way, and it matters: an extra non-flex View
                   // between a height-capped panel and content that ends in a pinned action row

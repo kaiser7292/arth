@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, LoadingState, Text } from "@/components/ui";
+import { Card, LoadingState, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/hooks/use-alert";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
@@ -608,7 +607,6 @@ function NewScenarioSheet({
 }) {
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [horizon, setHorizon] = useState(endOfMonthIso());
   const [picker, setPicker] = useState(false);
@@ -630,151 +628,126 @@ function NewScenarioSheet({
     : null;
 
   return (
-    <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
-      <Pressable
-        className="flex-1 bg-black/40"
-        onPress={onClose}
-        accessibilityLabel="Close"
-      />
-      <KeyboardAvoidingView
-        // v16.0.6 — `padding` on both platforms (see EntryEditSheet note).
-        behavior="padding"
-        keyboardVerticalOffset={0}
-        style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
+    <Sheet visible={visible} onClose={onClose}>
+      <View className="px-5 pb-3">
+        <Text className="text-base font-bold" style={{ color: colors.text }}>
+          New scenario
+        </Text>
+        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+          {copyFromScenario
+            ? `Will be a copy of "${copyFromScenario.name}"`
+            : "Starts fresh, seeded with your active reminders + open CC bills."}
+        </Text>
+      </View>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 8 }}
       >
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            maxHeight: "92%",
-            paddingBottom: Math.max(insets.bottom, 8),
-          }}
+      <View className="px-5 pb-3">
+        <Text
+          className="text-xs font-semibold uppercase tracking-wider mb-2"
+          style={{ color: colors.textSecondary }}
         >
-          <View className="items-center pt-3 pb-1">
-            <View className="w-10 h-1 rounded-full bg-border" />
-          </View>
-          <View className="px-5 pb-3">
-            <Text className="text-base font-bold" style={{ color: colors.text }}>
-              New scenario
-            </Text>
-            <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
-              {copyFromScenario
-                ? `Will be a copy of "${copyFromScenario.name}"`
-                : "Starts fresh, seeded with your active reminders + open CC bills."}
-            </Text>
-          </View>
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 8 }}
-          >
-          <View className="px-5 pb-3">
-            <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
-            >
-              Name
-            </Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="e.g. With Goa trip"
-              placeholderTextColor={colors.textSecondary}
-              className="border border-border rounded-lg px-3 py-3 text-sm"
-              style={{ color: colors.text }}
-            />
-          </View>
-          <View className="px-5 pb-3">
-            <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
-            >
-              Horizon
-            </Text>
-            <Pressable
-              onPress={() => setPicker(true)}
-              className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
-            >
-              <Text className="text-sm" style={{ color: colors.text }}>
-                {prettyDate(horizon)}
-              </Text>
-              <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
-            </Pressable>
-          </View>
+          Name
+        </Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="e.g. With Goa trip"
+          placeholderTextColor={colors.textSecondary}
+          className="border border-border rounded-lg px-3 py-3 text-sm"
+          style={{ color: colors.text }}
+        />
+      </View>
+      <View className="px-5 pb-3">
+        <Text
+          className="text-xs font-semibold uppercase tracking-wider mb-2"
+          style={{ color: colors.textSecondary }}
+        >
+          Horizon
+        </Text>
+        <Pressable
+          onPress={() => setPicker(true)}
+          className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
+        >
+          <Text className="text-sm" style={{ color: colors.text }}>
+            {prettyDate(horizon)}
+          </Text>
+          <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+        </Pressable>
+      </View>
 
-          {/* v16.0.1 — copy entries from an existing scenario */}
-          {existingScenarios.length > 0 && (
-            <View className="px-5 pb-3">
-              <Text
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
-              >
-                Copy entries from (optional)
+      {/* v16.0.1 — copy entries from an existing scenario */}
+      {existingScenarios.length > 0 && (
+        <View className="px-5 pb-3">
+          <Text
+            className="text-xs font-semibold uppercase tracking-wider mb-2"
+            style={{ color: colors.textSecondary }}
+          >
+            Copy entries from (optional)
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            <Pressable
+              onPress={() => setCopyFrom(null)}
+              className="px-3 py-2 rounded-full"
+              style={{
+                backgroundColor: copyFrom === null ? theme.primary + "26" : colors.surface,
+                borderWidth: 1,
+                borderColor: copyFrom === null ? theme.primary : colors.border,
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: copyFrom === null }}
+            >
+              <Text className="text-xs font-semibold" style={{ color: copyFrom === null ? colors.text : colors.textSecondary }}>
+                Start fresh
               </Text>
-              <View className="flex-row flex-wrap gap-2">
+            </Pressable>
+            {existingScenarios.map((s) => {
+              const active = copyFrom === s.id;
+              return (
                 <Pressable
-                  onPress={() => setCopyFrom(null)}
+                  key={s.id}
+                  onPress={() => setCopyFrom(s.id)}
                   className="px-3 py-2 rounded-full"
                   style={{
-                    backgroundColor: copyFrom === null ? theme.primary + "26" : colors.surface,
+                    backgroundColor: active ? theme.primary + "26" : colors.surface,
                     borderWidth: 1,
-                    borderColor: copyFrom === null ? theme.primary : colors.border,
+                    borderColor: active ? theme.primary : colors.border,
                   }}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: copyFrom === null }}
+                  accessibilityState={{ selected: active }}
                 >
-                  <Text className="text-xs font-semibold" style={{ color: copyFrom === null ? colors.text : colors.textSecondary }}>
-                    Start fresh
+                  <Text className="text-xs font-semibold" style={{ color: active ? colors.text : colors.textSecondary }} numberOfLines={1}>
+                    {s.name}
                   </Text>
                 </Pressable>
-                {existingScenarios.map((s) => {
-                  const active = copyFrom === s.id;
-                  return (
-                    <Pressable
-                      key={s.id}
-                      onPress={() => setCopyFrom(s.id)}
-                      className="px-3 py-2 rounded-full"
-                      style={{
-                        backgroundColor: active ? theme.primary + "26" : colors.surface,
-                        borderWidth: 1,
-                        borderColor: active ? theme.primary : colors.border,
-                      }}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                    >
-                      <Text className="text-xs font-semibold" style={{ color: active ? colors.text : colors.textSecondary }} numberOfLines={1}>
-                        {s.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          )}
-          </ScrollView>
-
-          <View className="flex-row px-5 pt-3 gap-3">
-            <Pressable
-              onPress={onClose}
-              className="flex-1 py-3 rounded-xl items-center"
-              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-            >
-              <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
-                Cancel
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => onCreate(name, horizon, copyFrom)}
-              disabled={!canSave}
-              className="flex-1 py-3 rounded-xl items-center"
-              style={{ backgroundColor: theme.primary, opacity: canSave ? 1 : 0.5 }}
-            >
-              <Text className="text-sm font-semibold text-primary-foreground">Create</Text>
-            </Pressable>
+              );
+            })}
           </View>
         </View>
-      </KeyboardAvoidingView>
+      )}
+      </ScrollView>
+
+      <View className="flex-row px-5 pt-3 gap-3">
+        <Pressable
+          onPress={onClose}
+          className="flex-1 py-3 rounded-xl items-center"
+          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+        >
+          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+            Cancel
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onCreate(name, horizon, copyFrom)}
+          disabled={!canSave}
+          className="flex-1 py-3 rounded-xl items-center"
+          style={{ backgroundColor: theme.primary, opacity: canSave ? 1 : 0.5 }}
+        >
+          <Text className="text-sm font-semibold text-primary-foreground">Create</Text>
+        </Pressable>
+      </View>
 
       <CalendarModal
         visible={picker}
@@ -787,6 +760,6 @@ function NewScenarioSheet({
         minimumDate={new Date()}
         maximumDate={null}
       />
-    </Modal>
+    </Sheet>
   );
 }

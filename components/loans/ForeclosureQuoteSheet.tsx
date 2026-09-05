@@ -22,7 +22,7 @@ import { useTheme } from "@/hooks/use-theme";
  * principal outstanding + accrued interest + charge + GST, minus what the
  * user would've paid if they ran to term.
  *
- * If the user wants to actually foreclose, they tap "Record foreclosure" —
+ * If the user wants to actually foreclose, they tap "Foreclose" —
  * the parent records it as a prepayment with kind='foreclosure'.
  */
 
@@ -144,7 +144,7 @@ export function ForeclosureQuoteSheet({
         </View>
         <View className="flex-1">
           <Button
-            title="Record Foreclosure"
+            title="Foreclose"
             onPress={() =>
               onForeclose({
                 prepayment_date: today,
