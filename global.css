@@ -23,7 +23,7 @@
   --radius-sheet: 20px;
 }
 
-/* Selector MUST be `.dark:root` — see the header of this file. */
+/* Selector MUST be `.dark:root`, and MUST stay outside @layer base. See file header. */
 .dark:root {
   --color-background: 13 17 19;
   --color-card: 22 28 31;

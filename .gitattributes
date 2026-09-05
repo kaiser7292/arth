@@ -1,0 +1,2 @@
+# global.css is generated; keep it LF so the staleness check is byte-stable across platforms.
+global.css text eol=lf
