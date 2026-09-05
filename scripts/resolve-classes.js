@@ -17,23 +17,59 @@ const { cssToReactNativeRuntime } = require("react-native-css-interop/dist/css-t
 const ROOT = path.join(__dirname, "..");
 const config = require(path.join(ROOT, "tailwind.config.js"));
 
-/** The highest-frequency class strings in the codebase, by measured occurrence count. */
+/** The semantic tokens the app now uses, with their measured occurrence counts. */
 const PROBES = [
-  ["text-text-secondary dark:text-text-dark-secondary", 1132],
-  ["text-text-primary dark:text-text-dark-primary", 844],
-  ["border-border-light dark:border-border-dark", 474],
-  ["bg-surface-light-alt dark:bg-surface-dark-alt", 150],
-  ["bg-border-light dark:bg-border-dark", 72],
-  ["bg-surface-light dark:bg-surface-dark", 41],
-  ["text-text-tertiary", 90],
-  ["bg-white dark:bg-surface-dark-alt", 31],
-  ["text-success", null],
-  ["text-danger", null],
-  ["bg-primary", null],
-  ["bg-primary/10", null],
   ["text-foreground", null],
   ["text-muted-foreground", null],
+  ["text-faint-foreground", null],
+  ["bg-background", null],
+  ["bg-card", null],
+  ["border-border", null],
+  ["bg-primary", null],
+  ["bg-primary/10", null],
+  ["text-primary", null],
+  ["text-accent", null],
+  ["text-success", null],
+  ["text-danger", null],
+  ["text-warning", null],
+  ["bg-danger/10", null],
 ];
+
+/**
+ * Classes that must no longer appear anywhere in source. They were deleted from tailwind.config,
+ * so any survivor compiles to nothing and renders an unstyled element — invisible to tsc, invisible
+ * to the test suite, and visible only as a wrong colour on a device.
+ */
+const FORBIDDEN = [
+  "dark:",
+  "text-text-primary",
+  "text-text-secondary",
+  "text-text-tertiary",
+  "bg-surface-light",
+  "bg-surface-dark",
+  "bg-border-light",
+  "border-border-light",
+  "rounded-button",
+  "text-micro",
+];
+
+function scanForbidden() {
+  const hits = [];
+  const walkSrc = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const f = path.join(dir, e.name);
+      if (e.isDirectory()) walkSrc(f);
+      else if (f.endsWith(".tsx")) {
+        const text = fs.readFileSync(f, "utf8");
+        for (const bad of FORBIDDEN) {
+          if (text.includes(bad)) hits.push({ file: f, cls: bad });
+        }
+      }
+    }
+  };
+  for (const d of ["app", "components"]) if (fs.existsSync(d)) walkSrc(d);
+  return hits;
+}
 
 const args = process.argv.slice(2);
 const probes = args.length ? args.map((a) => [a, null]) : PROBES;
@@ -94,9 +130,20 @@ postcss([tailwind({ ...config, content: [{ raw: classes.join(" "), extension: "h
           "  " + r.light.padEnd(10) + " " + r.dark.padEnd(10) + " " + r.name + redundant,
       );
     }
-    if (bad) {
-      console.error("\n" + bad + " probe(s) failed to resolve or disagreed across the pair.");
+    const forbidden = scanForbidden();
+    if (forbidden.length) {
+      console.error("");
+      console.error("FORBIDDEN classes still in source — these compile to nothing and render");
+      console.error("an unstyled element, which tsc and the test suite cannot see:");
+      for (const h of forbidden.slice(0, 25)) console.error("  " + h.file + "   " + h.cls);
+      if (forbidden.length > 25) console.error("  ... and " + (forbidden.length - 25) + " more");
+    }
+    if (bad || forbidden.length) {
+      console.error("");
+      console.error(bad + forbidden.length + " problem(s) found.");
       process.exit(1);
     }
-    console.log("\nAll probes resolve, and every legacy pair now maps to one scheme-aware token.");
+    console.log("");
+    console.log("Every token resolves in both schemes, and no legacy or dark: class survives");
+    console.log("anywhere in app/ or components/.");
   });

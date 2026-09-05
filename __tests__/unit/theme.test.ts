@@ -124,3 +124,48 @@ describe("legacy bridge", () => {
     expect(TRANSFER_COLOR).toBe(toHex(require("../../constants/design-tokens.js").DATA.transfer));
   });
 });
+
+/**
+ * Regression guard for the class sweep.
+ *
+ * The legacy Tailwind keys have been deleted from tailwind.config.js, so any surviving legacy or
+ * `dark:` class now compiles to NOTHING and renders an unstyled element. That failure is invisible
+ * to TypeScript (it is a string), invisible to the rest of the suite (which mocks nativewind), and
+ * shows up only as a wrong colour on a device. This is the only thing that catches it.
+ */
+describe("class sweep", () => {
+  const fs = require("fs");
+  const path = require("path");
+
+  const FORBIDDEN = [
+    "dark:",
+    "text-text-primary",
+    "text-text-secondary",
+    "text-text-tertiary",
+    "bg-surface-light",
+    "bg-surface-dark",
+    "bg-border-light",
+    "border-border-light",
+    "rounded-button",
+    "text-micro",
+  ];
+
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const f = path.join(dir, e.name);
+      if (e.isDirectory()) walk(f);
+      else if (f.endsWith(".tsx")) files.push(f);
+    }
+  };
+  for (const d of ["app", "components"]) walk(path.join(__dirname, "..", "..", d));
+
+  it.each(FORBIDDEN)("has no surviving `%s` class", (cls) => {
+    const hits = files.filter((f) => fs.readFileSync(f, "utf8").includes(cls));
+    expect(hits).toEqual([]);
+  });
+
+  it("scanned the whole UI surface", () => {
+    expect(files.length).toBeGreaterThan(200);
+  });
+});

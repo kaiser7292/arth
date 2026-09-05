@@ -148,7 +148,7 @@ export default function MerchantAnalyticsScreen() {
                     <Text className="text-sm font-bold text-foreground">
                       {formatAmount(item.totalSpent)}
                     </Text>
-                    <Text className="text-micro text-faint-foreground">
+                    <Text className="text-label text-faint-foreground">
                       {grandTotal > 0 ? `${((item.totalSpent / grandTotal) * 100).toFixed(1)}%` : ""}
                     </Text>
                   </View>

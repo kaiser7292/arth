@@ -44,18 +44,9 @@ module.exports = {
         control: RADIUS.control,
         card: RADIUS.card,
         sheet: RADIUS.sheet,
-        // legacy — retained until the sweep completes
-        button: "14px",
       },
 
-      fontSize: {
-        ...TYPE,
-        // legacy — retained until the sweep completes
-        display: ["32px", { lineHeight: "38px" }],
-        headline: ["18px", { lineHeight: "26px" }],
-        caption: ["14px", { lineHeight: "20px" }],
-        micro: ["10px", { lineHeight: "14px" }],
-      },
+      fontSize: TYPE,
 
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
@@ -78,40 +69,10 @@ module.exports = {
           solid: role("accent-solid"),
         },
 
-        /* ---------------------------------------------------------------------------
-         * LEGACY TOKENS — every key below is still referenced by the un-migrated screens.
-         * They are re-pointed at the SAME variables as the new roles so that old and new
-         * class names can never render different colours during the sweep. Deleted in the
-         * final step, at which point any orphaned `dark:` class stops compiling and the
-         * `no-legacy-classes` check in scripts/verify-theme.js catches it.
-         * ------------------------------------------------------------------------- */
-        surface: {
-          light: role("background"),
-          "light-alt": role("card"),
-          dark: role("background"),
-          "dark-alt": role("card"),
-        },
-        border: {
-          DEFAULT: role("border"),
-          light: role("border"),
-          dark: role("border"),
-        },
-        text: {
-          primary: role("foreground"),
-          secondary: role("muted-foreground"),
-          tertiary: role("faint-foreground"),
-          "dark-primary": role("foreground"),
-          "dark-secondary": role("muted-foreground"),
-          "dark-tertiary": role("faint-foreground"),
-        },
+        border: role("border"),
         success: role("success"),
         danger: role("danger"),
         warning: role("warning"),
-        budget: {
-          under: role("success"),
-          warning: role("warning"),
-          over: role("danger"),
-        },
       },
     },
   },

@@ -85,7 +85,7 @@ export function Button({
         accentContainer,
         isPressed && !disabled && !loading ? { opacity: 0.85 } : null,
       ]}
-      className={`flex-row items-center justify-center rounded-button px-6 py-3 ${styles.container} ${disabled ? "opacity-50" : ""} ${className}`}
+      className={`flex-row items-center justify-center rounded-control px-6 py-3 ${styles.container} ${disabled ? "opacity-50" : ""} ${className}`}
     >
       {loading ? (
         <ActivityIndicator
