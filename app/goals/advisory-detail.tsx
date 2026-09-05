@@ -1,4 +1,4 @@
-import { ScreenContainer, Text } from "@/components/ui";
+import { Money, ScreenContainer, Text } from "@/components/ui";
 
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -123,7 +123,7 @@ function SpendingDetail({
               To protect your investment goals for the rest of this FY, reduce monthly discretionary spending by:
             </Text>
             <Text className="text-2xl font-bold text-danger">
-              -{formatAmount(tension.discretionaryCutNeeded)}/mo
+              <Money value={-tension.discretionaryCutNeeded} />/mo
             </Text>
             <Text className="text-xs text-faint-foreground mt-1">
               Discretionary spend YTD: {formatAmount(tension.discretionarySpendYTD)}

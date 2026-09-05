@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Card, CollapsibleSection, Input, Text } from "@/components/ui";
+import { Card, CollapsibleSection, Input, Money, Text } from "@/components/ui";
 import { formatAmount } from "@/utils/expense-validation";
 import type { SalaryCalculation, CapitalGainsTaxResult, BonusTaxResult } from "@/services/tax-engine";
 import { BreakdownRow } from "./salary-helpers";
@@ -281,7 +281,7 @@ export function AdditionalIncome({
                     {item.label} ({item.rate})
                   </Text>
                   <Text className="text-xs text-danger w-20 text-right">
-                    -{formatAmount(item.tax)}
+                    <Money value={-item.tax} />
                   </Text>
                   <Text className="text-xs font-medium text-foreground w-24 text-right">
                     {formatAmount(item.net)}
@@ -294,7 +294,7 @@ export function AdditionalIncome({
                   Total CG
                 </Text>
                 <Text className="text-xs font-semibold text-danger w-20 text-right">
-                  -{formatAmount(capitalGainsTaxResult.totalTax)}
+                  <Money value={-capitalGainsTaxResult.totalTax} />
                 </Text>
                 <Text className="text-xs font-bold text-success w-24 text-right">
                   {formatAmount(capitalGainsTaxResult.totalNet)}

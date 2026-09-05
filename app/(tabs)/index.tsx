@@ -823,7 +823,7 @@ export default function HomeScreen() {
                       )}
                       {hisaabSummary.totalYouOwe > 0 && (
                         <Text className="text-xs text-danger">
-                          -{formatAmount(hisaabSummary.totalYouOwe)} you owe
+                          <Money value={-hisaabSummary.totalYouOwe} /> you owe
                         </Text>
                       )}
                     </View>

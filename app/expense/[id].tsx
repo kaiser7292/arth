@@ -21,7 +21,7 @@ import { RefundTargetSheet } from "@/components/expense/RefundTargetSheet";
 import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
 import { SplitSheet } from "@/components/expense/SplitSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
-import { Button, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Button, Input, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TYPE_ICONS } from "@/constants/icons";
 
@@ -35,33 +35,7 @@ import { getCategories } from "@/services/category";
 import type { DematTarget } from "@/services/demat-transfer";
 import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
 import type { Expense, RecurringFrequency, RecurringRule, SplitConfig } from "@/services/expense";
-import {
-    addLegToExistingGroup,
-    approveExpense,
-    convertToSplitTender,
-    createRecurringRule,
-    deleteExpense,
-    deleteSplitExpense,
-    fulfillReminder,
-    getActiveRecurringRules,
-    getExpenseById,
-    getGroupSiblings,
-    getRecurringRuleForExpense,
-    markForecastAsPaid,
-    markForecastPaidExternally,
-    markRepaymentAsPaid,
-    MAX_PURCHASE_GROUP_LEGS,
-    propagateSharedEdit,
-    realizeForecast,
-    rejectExpense,
-    removeSplit,
-    splitExistingExpense,
-    stopRecurringRule,
-    suggestReminderForExpense,
-    unfulfillReminder,
-    unlinkFromGroup,
-    updateExpense
-} from "@/services/expense";
+import { MAX_PURCHASE_GROUP_LEGS, addLegToExistingGroup, approveExpense, convertToSplitTender, createRecurringRule, deleteExpense, deleteSplitExpense, fulfillReminder, getActiveRecurringRules, getExpenseById, getGroupSiblings, getRecurringRuleForExpense, markForecastAsPaid, markForecastPaidExternally, markRepaymentAsPaid, propagateSharedEdit, realizeForecast, rejectExpense, removeSplit, restoreExpense, splitExistingExpense, stopRecurringRule, suggestReminderForExpense, unfulfillReminder, unlinkFromGroup, updateExpense } from "@/services/expense";
 import {
     getLinkForExpense,
     InvestmentLinkError,
@@ -127,6 +101,7 @@ export default function ExpenseDetailScreen() {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
+  const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -645,6 +620,22 @@ export default function ExpenseDetailScreen() {
                 await deleteExpense(id);
               }
               router.back();
+
+              // Soft delete, so it is recoverable - but the Recycle Bin is buried in Settings.
+              // Split expenses are excluded: restoreExpense does not put the hisaab entry back,
+              // so an Undo there would restore half the record.
+              if (!isSplit) {
+                toast("Expense deleted", {
+                  actionLabel: "Undo",
+                  onAction: () => {
+                    restoreExpense(id).catch((err: unknown) =>
+                      logger.error("Restore expense failed:", err),
+                    );
+                  },
+                });
+              } else {
+                toast("Expense deleted");
+              }
             } catch (e) {
               logger.error("Delete expense failed:", e);
               alert("Error", formatError("Delete expense", e));
