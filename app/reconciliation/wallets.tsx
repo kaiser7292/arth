@@ -126,23 +126,23 @@ export default function WalletsScreen() {
         {/* Overall summary card */}
         <Card className="mx-4 mt-3 mb-2">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Overall Summary
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               {summaries.length} wallet{summaries.length !== 1 ? "s" : ""}
             </Text>
           </View>
 
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Opening Balance</Text>
-            <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+            <Text className="text-xs text-muted-foreground">Opening Balance</Text>
+            <Text className="text-sm font-semibold text-foreground">
               {formatAmount(totalOpening)}
             </Text>
           </View>
           {totalExpenses > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Expenses</Text>
+              <Text className="text-xs text-muted-foreground">Expenses</Text>
               <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
                 −{formatAmount(totalExpenses)}
               </Text>
@@ -150,7 +150,7 @@ export default function WalletsScreen() {
           )}
           {totalCredits > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Top-ups / Refunds</Text>
+              <Text className="text-xs text-muted-foreground">Top-ups / Refunds</Text>
               <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                 +{formatAmount(totalCredits)}
               </Text>
@@ -158,7 +158,7 @@ export default function WalletsScreen() {
           )}
           {totalTransfersOut > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers Out</Text>
+              <Text className="text-xs text-muted-foreground">Transfers Out</Text>
               <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
                 −{formatAmount(totalTransfersOut)}
               </Text>
@@ -166,22 +166,22 @@ export default function WalletsScreen() {
           )}
           {totalTransfersIn > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers In</Text>
+              <Text className="text-xs text-muted-foreground">Transfers In</Text>
               <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                 +{formatAmount(totalTransfersIn)}
               </Text>
             </View>
           )}
-          <View className="flex-row justify-between pt-2 mt-1 border-t border-border-light dark:border-border-dark">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">Closing Balance</Text>
+          <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
+            <Text className="text-xs font-semibold text-muted-foreground">Closing Balance</Text>
             <Text className="text-sm font-bold" style={{ color: totalBalance >= 0 ? sc.success : sc.danger }}>
               {formatAmount(totalBalance)}
             </Text>
           </View>
 
           {adjustmentStats.count > 0 && (
-            <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark flex-row justify-between">
-              <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary">
+            <View className="mt-2 pt-2 border-t border-border flex-row justify-between">
+              <Text className="text-[11px] text-faint-foreground">
                 Manual ledger adjustments
               </Text>
               <Text className="text-[11px]" style={{ color: sc.warning }}>
@@ -205,11 +205,11 @@ export default function WalletsScreen() {
                   <Ionicons name="phone-portrait-outline" size={18} color={accent[500]} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-base font-bold text-foreground">
                     {account.account_label ?? account.bank_name}
                   </Text>
                   {account.account_label && account.account_label !== account.bank_name && (
-                    <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary">
+                    <Text className="text-[10px] text-muted-foreground">
                       {account.bank_name}
                     </Text>
                   )}
@@ -230,14 +230,14 @@ export default function WalletsScreen() {
               )}
 
               <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Opening Balance</Text>
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                <Text className="text-xs text-muted-foreground">Opening Balance</Text>
+                <Text className="text-sm font-semibold text-foreground">
                   {formatAmount(opening)}
                 </Text>
               </View>
               {expenses > 0 && (
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Spent</Text>
+                  <Text className="text-xs text-muted-foreground">Spent</Text>
                   <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
                     −{formatAmount(expenses)}
                   </Text>
@@ -245,7 +245,7 @@ export default function WalletsScreen() {
               )}
               {credits > 0 && (
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Top-ups / Refunds</Text>
+                  <Text className="text-xs text-muted-foreground">Top-ups / Refunds</Text>
                   <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                     +{formatAmount(credits)}
                   </Text>
@@ -253,7 +253,7 @@ export default function WalletsScreen() {
               )}
               {transfersOut > 0 && (
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers Out</Text>
+                  <Text className="text-xs text-muted-foreground">Transfers Out</Text>
                   <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
                     −{formatAmount(transfersOut)}
                   </Text>
@@ -261,7 +261,7 @@ export default function WalletsScreen() {
               )}
               {transfersIn > 0 && (
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Transfers In</Text>
+                  <Text className="text-xs text-muted-foreground">Transfers In</Text>
                   <Text className="text-sm font-semibold" style={{ color: sc.success }}>
                     +{formatAmount(transfersIn)}
                   </Text>
@@ -269,19 +269,19 @@ export default function WalletsScreen() {
               )}
               {account.last_known_balance != null && (
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-xs text-muted-foreground">
                     Auto-detected{autoDetectedStale ? " · stale" : ""}
                   </Text>
                   <Text
-                    className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
+                    className="text-sm font-semibold text-foreground"
                     style={autoDetectedStale ? { textDecorationLine: "line-through", color: sc.muted } : undefined}
                   >
                     {formatAmount(account.last_known_balance)}
                   </Text>
                 </View>
               )}
-              <View className="flex-row justify-between pt-2 mt-1 border-t border-border-light dark:border-border-dark">
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
+              <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
+                <Text className="text-xs font-semibold text-muted-foreground">
                   Current Balance{account.last_known_balance != null ? " · calculated" : ""}
                 </Text>
                 <Text
@@ -293,7 +293,7 @@ export default function WalletsScreen() {
               </View>
 
               {account.last_balance_date && (
-                <Text className="text-[10px] text-text-tertiary mt-1.5">
+                <Text className="text-[10px] text-faint-foreground mt-1.5">
                   SMS balance updated {new Date(account.last_balance_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                 </Text>
               )}
@@ -304,10 +304,10 @@ export default function WalletsScreen() {
         {summaries.length === 0 && closedAccounts.length === 0 && (
           <View className="items-center py-16">
             <Ionicons name="phone-portrait-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               No wallets
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
               Wallets will appear here once detected from SMS or added manually.
             </Text>
           </View>
@@ -316,13 +316,13 @@ export default function WalletsScreen() {
         {/* Closed wallets */}
         {closedAccounts.length > 0 && (
           <>
-            <View className="border-t border-border-light dark:border-border-dark mx-4 mt-2 mb-3" />
+            <View className="border-t border-border mx-4 mt-2 mb-3" />
             <Pressable
               onPress={() => setClosedExpanded(e => !e)}
               className="flex-row items-center px-4 mb-2"
             >
               <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+              <Text className="text-xs text-muted-foreground flex-1">
                 {closedAccounts.length} closed {closedAccounts.length === 1 ? "wallet" : "wallets"}
               </Text>
               <Ionicons name={closedExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
@@ -335,14 +335,14 @@ export default function WalletsScreen() {
                 >
                   <View className="flex-1">
                     <View className="flex-row items-center gap-2 mb-0.5">
-                      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-sm text-muted-foreground">
                         {acct.account_label || acct.bank_name}
                       </Text>
                       <View className="bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
                         <Text className="text-[10px] font-semibold text-red-600 dark:text-red-400">Closed</Text>
                       </View>
                     </View>
-                    <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">{acct.bank_name}</Text>
+                    <Text className="text-xs text-faint-foreground">{acct.bank_name}</Text>
                   </View>
                   <Ionicons name="chevron-forward-outline" size={14} color={colors.textSecondary} />
                 </Pressable>

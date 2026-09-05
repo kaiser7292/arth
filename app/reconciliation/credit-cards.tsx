@@ -233,10 +233,10 @@ export default function CreditCardsScreen() {
         {/* Overall summary card */}
         <Card className="mx-4 mt-3 mb-2">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Overall Summary
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               {ccAccounts.length} card{ccAccounts.length !== 1 ? "s" : ""}
             </Text>
           </View>
@@ -265,16 +265,16 @@ export default function CreditCardsScreen() {
             return (
               <>
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Credit Limit</Text>
-                  <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatAmount(totalLimit)}</Text>
+                  <Text className="text-xs text-muted-foreground">Credit Limit</Text>
+                  <Text className="text-sm font-bold text-foreground">{formatAmount(totalLimit)}</Text>
                 </View>
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Utilized</Text>
-                  <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatAmount(utilized)}</Text>
+                  <Text className="text-xs text-muted-foreground">Utilized</Text>
+                  <Text className="text-sm font-bold text-foreground">{formatAmount(utilized)}</Text>
                 </View>
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Remaining</Text>
-                  <Text className="text-sm font-bold text-text-primary dark:text-text-dark-primary">{formatAmount(remaining)}</Text>
+                  <Text className="text-xs text-muted-foreground">Remaining</Text>
+                  <Text className="text-sm font-bold text-foreground">{formatAmount(remaining)}</Text>
                 </View>
 
                 {/* Utilization bar — inline % at the right, sits under the 3-number summary */}
@@ -293,20 +293,20 @@ export default function CreditCardsScreen() {
                 {/* Reconciliation — everything below is about comparing ledger vs bank */}
                 {totalAutoDetected > 0 && (
                   <>
-                    <View className="h-px bg-border-light dark:bg-border-dark mb-2" />
+                    <View className="h-px bg-border mb-2" />
                     <View className="flex-row justify-between mb-1">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         Bank detected remaining{anyAutoDetectedStaleOrMissing ? " (partial)" : ""}
                       </Text>
                       <Text
-                        className="text-sm font-bold text-text-primary dark:text-text-dark-primary"
+                        className="text-sm font-bold text-foreground"
                         style={anyAutoDetectedStaleOrMissing ? { color: sc.muted } : undefined}
                       >
                         {formatAmount(totalAutoDetected)}
                       </Text>
                     </View>
                     <View className="flex-row justify-between mb-2">
-                      <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">Difference</Text>
+                      <Text className="text-xs font-medium text-muted-foreground">Difference</Text>
                       <Text className="text-sm font-bold" style={{ color: totalDiffColor }}>{totalDiffLabel}</Text>
                     </View>
                   </>
@@ -319,8 +319,8 @@ export default function CreditCardsScreen() {
               Proxy for SMS parser reliability: more adjustments → less trust the app should
               place in auto-detected balances. */}
           {adjustmentStats.count > 0 && (
-            <View className="mt-2 pt-2 border-t border-border-light dark:border-border-dark flex-row justify-between">
-              <Text className="text-[11px] text-text-tertiary dark:text-text-dark-secondary">
+            <View className="mt-2 pt-2 border-t border-border flex-row justify-between">
+              <Text className="text-[11px] text-faint-foreground">
                 Manual ledger adjustments
               </Text>
               <Text className="text-[11px]" style={{ color: sc.warning }}>
@@ -349,10 +349,10 @@ export default function CreditCardsScreen() {
                   <Ionicons name="card-outline" size={18} color={accent[500]} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-text-primary dark:text-text-dark-primary">
+                  <Text className="text-base font-bold text-foreground">
                     {group.bankName}
                   </Text>
-                  <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary">
+                  <Text className="text-[10px] text-muted-foreground">
                     {group.accounts.length} card{group.accounts.length !== 1 ? "s" : ""}
                     {isShared ? " · Shared limit" : ""}
                   </Text>
@@ -382,26 +382,26 @@ export default function CreditCardsScreen() {
                 return (
                   <>
                     <View className="flex-row justify-between mb-1">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         Credit Limit{isShared ? " (shared)" : ""}
                       </Text>
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm font-semibold text-foreground">
                         {formatAmount(group.sharedLimit)}
                       </Text>
                     </View>
                     <View className="flex-row justify-between mb-1">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         Utilized
                       </Text>
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm font-semibold text-foreground">
                         {formatAmount(group.utilized)}
                       </Text>
                     </View>
                     <View className="flex-row justify-between mb-2">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-xs text-muted-foreground">
                         Remaining
                       </Text>
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm font-semibold text-foreground">
                         {formatAmount(remaining)}
                       </Text>
                     </View>
@@ -422,20 +422,20 @@ export default function CreditCardsScreen() {
                     {/* Reconciliation block — only when SMS data exists */}
                     {group.autoDetectedAvailable != null && (
                       <>
-                        <View className="h-px bg-border-light dark:bg-border-dark mb-2" />
+                        <View className="h-px bg-border mb-2" />
                         <View className="flex-row justify-between mb-1">
-                          <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                          <Text className="text-xs text-muted-foreground">
                             Bank detected remaining{group.autoDetectedStale ? " (stale)" : ""}
                           </Text>
                           <Text
-                            className="text-sm font-semibold text-text-primary dark:text-text-dark-primary"
+                            className="text-sm font-semibold text-foreground"
                             style={group.autoDetectedStale ? { textDecorationLine: "line-through", color: sc.muted } : undefined}
                           >
                             {formatAmount(group.autoDetectedAvailable)}
                           </Text>
                         </View>
                         <View className="flex-row justify-between mb-3">
-                          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+                          <Text className="text-xs font-medium text-muted-foreground">
                             Difference
                           </Text>
                           <Text className="text-sm font-bold" style={{ color: diffColor }}>
@@ -449,7 +449,7 @@ export default function CreditCardsScreen() {
               })()}
 
               {/* Per-card breakdown */}
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Per Card Breakdown
               </Text>
               {group.accounts.map((account) => {
@@ -471,11 +471,11 @@ export default function CreditCardsScreen() {
                   <Pressable
                     key={account.id}
                     onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id, month } })}
-                    className="py-3 border-t border-border-light dark:border-border-dark"
+                    className="py-3 border-t border-border"
                   >
                     {/* Card name + chevron */}
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                      <Text className="text-sm font-semibold text-foreground">
                         {"\u2022\u2022\u2022\u2022"} {account.account_identifier}
                         {account.account_label ? ` · ${account.account_label}` : ""}
                       </Text>
@@ -484,18 +484,18 @@ export default function CreditCardsScreen() {
 
                     {/* Per-card visual bifurcation — ledger is pool-level, this is just visibility */}
                     <View className="flex-row justify-between mb-0.5">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Spent this cycle</Text>
-                      <Text className="text-xs text-text-primary dark:text-text-dark-primary">{formatAmount(spent)}</Text>
+                      <Text className="text-xs text-muted-foreground">Spent this cycle</Text>
+                      <Text className="text-xs text-foreground">{formatAmount(spent)}</Text>
                     </View>
                     {credits > 0 && (
                       <View className="flex-row justify-between mb-0.5">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Paid back</Text>
+                        <Text className="text-xs text-muted-foreground">Paid back</Text>
                         <Text className="text-xs" style={{ color: sc.success }}>{"−"}{formatAmount(credits)}</Text>
                       </View>
                     )}
                     {adjNet !== 0 && (
                       <View className="flex-row justify-between mb-0.5">
-                        <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Adjustments</Text>
+                        <Text className="text-xs text-muted-foreground">Adjustments</Text>
                         <Text
                           className="text-xs"
                           style={{ color: adjNet > 0 ? sc.warning : sc.success }}
@@ -504,9 +504,9 @@ export default function CreditCardsScreen() {
                         </Text>
                       </View>
                     )}
-                    <View className="flex-row justify-between mt-1 pt-1.5 border-t border-border-light dark:border-border-dark">
-                      <Text className="text-xs font-semibold text-text-primary dark:text-text-dark-primary">Utilized</Text>
-                      <Text className="text-xs font-bold text-text-primary dark:text-text-dark-primary">{formatAmount(outstanding)}</Text>
+                    <View className="flex-row justify-between mt-1 pt-1.5 border-t border-border">
+                      <Text className="text-xs font-semibold text-foreground">Utilized</Text>
+                      <Text className="text-xs font-bold text-foreground">{formatAmount(outstanding)}</Text>
                     </View>
 
                     {/* Dues */}
@@ -518,12 +518,12 @@ export default function CreditCardsScreen() {
                             Due: {formatAmount(account.total_due!)}
                           </Text>
                           {dueLabel && (
-                            <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary ml-1">
+                            <Text className="text-[10px] text-muted-foreground ml-1">
                               · {dueLabel}
                             </Text>
                           )}
                           {account.min_due != null && (
-                            <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary ml-1">
+                            <Text className="text-[10px] text-muted-foreground ml-1">
                               · min {formatAmount(account.min_due)}
                             </Text>
                           )}
@@ -564,10 +564,10 @@ export default function CreditCardsScreen() {
         {ccAccounts.length === 0 && closedCCs.length === 0 && (
           <View className="items-center py-16">
             <Ionicons name="card-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               No credit cards
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
               Credit cards will appear here once detected from SMS or added manually.
             </Text>
           </View>
@@ -576,13 +576,13 @@ export default function CreditCardsScreen() {
         {/* Closed credit cards */}
         {closedCCs.length > 0 && (
           <>
-            <View className="border-t border-border-light dark:border-border-dark mx-4 mt-2 mb-3" />
+            <View className="border-t border-border mx-4 mt-2 mb-3" />
             <Pressable
               onPress={() => setClosedExpanded(e => !e)}
               className="flex-row items-center px-4 mb-2"
             >
               <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+              <Text className="text-xs text-muted-foreground flex-1">
                 {closedCCs.length} closed {closedCCs.length === 1 ? "card" : "cards"}
               </Text>
               <Ionicons name={closedExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
@@ -595,14 +595,14 @@ export default function CreditCardsScreen() {
                 >
                   <View className="flex-1">
                     <View className="flex-row items-center gap-2 mb-0.5">
-                      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-sm text-muted-foreground">
                         {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
                       </Text>
                       <View className="bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
                         <Text className="text-[10px] font-semibold text-red-600 dark:text-red-400">Closed</Text>
                       </View>
                     </View>
-                    <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">{acct.bank_name}</Text>
+                    <Text className="text-xs text-faint-foreground">{acct.bank_name}</Text>
                   </View>
                   <Ionicons name="chevron-forward-outline" size={14} color={colors.textSecondary} />
                 </Pressable>

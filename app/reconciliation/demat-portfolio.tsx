@@ -141,16 +141,16 @@ export default function DematPortfolioScreen() {
         {/* Aggregate header card */}
         <Card className="mx-4 mt-3 mb-2">
           <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Portfolio Summary
             </Text>
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+            <Text className="text-xs text-muted-foreground">
               {summary.accountCount} account{summary.accountCount !== 1 ? "s" : ""}
             </Text>
           </View>
 
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Portfolio Value</Text>
+            <Text className="text-xs text-muted-foreground">Portfolio Value</Text>
             <Text
               className="text-sm font-bold"
               style={{ color: summary.totalPortfolio > 0 ? sc.success : colors.text }}
@@ -161,7 +161,7 @@ export default function DematPortfolioScreen() {
 
           {summary.totalFund !== 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Idle Cash / Fund</Text>
+              <Text className="text-xs text-muted-foreground">Idle Cash / Fund</Text>
               <Text
                 className="text-sm font-semibold"
                 style={{ color: summary.totalFund < 0 ? sc.danger : colors.text }}
@@ -172,8 +172,8 @@ export default function DematPortfolioScreen() {
           )}
 
           {summary.totalFund !== 0 && (
-            <View className="flex-row justify-between pt-2 mt-1 border-t border-border-light dark:border-border-dark">
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">Total</Text>
+            <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
+              <Text className="text-xs font-semibold text-muted-foreground">Total</Text>
               <Text
                 className="text-sm font-bold"
                 style={{ color: total < 0 ? sc.danger : colors.text }}
@@ -196,7 +196,7 @@ export default function DematPortfolioScreen() {
               >
                 <Ionicons name="chevron-back" size={16} color={colors.textSecondary} />
               </Pressable>
-              <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider">
+              <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider">
                 {formatYearMonth(currentYM)}
               </Text>
               <Pressable
@@ -214,7 +214,7 @@ export default function DematPortfolioScreen() {
             ) : (
               <View className="items-center py-6">
                 <Ionicons name="analytics-outline" size={32} color={colors.textSecondary} />
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2">
+                <Text className="text-xs text-muted-foreground mt-2">
                   No snapshots in {formatYearMonth(currentYM)}
                 </Text>
               </View>
@@ -225,7 +225,7 @@ export default function DematPortfolioScreen() {
         {/* Per-account breakdown */}
         {accounts.length > 0 && (
           <View className="mx-4 mt-3 mb-2">
-            <Text className="text-xs font-semibold text-text-tertiary dark:text-text-dark-secondary uppercase tracking-wider">
+            <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider">
               Accounts
             </Text>
           </View>
@@ -253,11 +253,11 @@ export default function DematPortfolioScreen() {
                     <Ionicons name="trending-up-outline" size={18} color={ACCOUNT_COLORS[idx % ACCOUNT_COLORS.length]} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+                    <Text className="text-sm font-semibold text-foreground">
                       {account.account_label || account.bank_name}
                     </Text>
                     {account.account_number && (
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                      <Text className="text-xs text-muted-foreground mt-0.5">
                         {account.account_number}
                         {snapshotCount > 0 ? ` · ${snapshotCount} snapshot${snapshotCount !== 1 ? "s" : ""}` : ""}
                       </Text>
@@ -274,16 +274,16 @@ export default function DematPortfolioScreen() {
 
                 {/* Row 2: Portfolio + Fund breakdown (only when both exist) */}
                 {showTotal && (
-                  <View className="flex-row mt-2 ml-12 pt-2 border-t border-border-light dark:border-border-dark">
+                  <View className="flex-row mt-2 ml-12 pt-2 border-t border-border">
                     <View className="flex-1">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Portfolio</Text>
-                      <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary mt-0.5">
+                      <Text className="text-xs text-muted-foreground">Portfolio</Text>
+                      <Text className="text-xs font-medium text-foreground mt-0.5">
                         {formatAmount(latestPortfolioValue)}
                       </Text>
                     </View>
                     <View className="flex-1">
-                      <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">Fund</Text>
-                      <Text className="text-xs font-medium text-text-primary dark:text-text-dark-primary mt-0.5">
+                      <Text className="text-xs text-muted-foreground">Fund</Text>
+                      <Text className="text-xs font-medium text-foreground mt-0.5">
                         {formatAmount(latestFundValue)}
                       </Text>
                     </View>
@@ -298,10 +298,10 @@ export default function DematPortfolioScreen() {
         {accounts.length === 0 && closedDemats.length === 0 && (
           <View className="items-center py-16">
             <Ionicons name="trending-up-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-text-primary dark:text-text-dark-primary mt-4">
+            <Text className="text-lg font-medium text-foreground mt-4">
               No demat accounts
             </Text>
-            <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-1 text-center px-8">
+            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
               Demat accounts will appear here once added from Account Master.
             </Text>
           </View>
@@ -310,13 +310,13 @@ export default function DematPortfolioScreen() {
         {/* Closed demat accounts */}
         {closedDemats.length > 0 && (
           <>
-            <View className="border-t border-border-light dark:border-border-dark mx-4 mt-2 mb-3" />
+            <View className="border-t border-border mx-4 mt-2 mb-3" />
             <Pressable
               onPress={() => setClosedExpanded(e => !e)}
               className="flex-row items-center px-4 mb-2"
             >
               <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary flex-1">
+              <Text className="text-xs text-muted-foreground flex-1">
                 {closedDemats.length} closed {closedDemats.length === 1 ? "account" : "accounts"}
               </Text>
               <Ionicons name={closedExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
@@ -329,7 +329,7 @@ export default function DematPortfolioScreen() {
                 >
                   <View className="flex-1">
                     <View className="flex-row items-center gap-2 mb-0.5">
-                      <Text className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-sm text-muted-foreground">
                         {acct.account_label || acct.bank_name}
                       </Text>
                       <View className="bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">
@@ -337,7 +337,7 @@ export default function DematPortfolioScreen() {
                       </View>
                     </View>
                     {acct.account_number && (
-                      <Text className="text-xs text-text-tertiary dark:text-text-dark-secondary">{acct.account_number}</Text>
+                      <Text className="text-xs text-faint-foreground">{acct.account_number}</Text>
                     )}
                   </View>
                   <Ionicons name="chevron-forward-outline" size={14} color={colors.textSecondary} />

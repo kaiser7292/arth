@@ -775,16 +775,16 @@ const loadData = useCallback(async () => {
             )}
 
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+              <Text className="text-xs text-muted-foreground">
                 {isCreditCard ? "Starting utilized" : "Opening Balance"}
               </Text>
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary">
+              <Text className="text-sm font-semibold text-foreground">
                 {formatAmount(opening)}
               </Text>
             </View>
             {totalExpenses > 0 && (
               <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {isCreditCard ? "Spent this cycle" : "Expenses"}
                 </Text>
                 <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
@@ -794,7 +794,7 @@ const loadData = useCallback(async () => {
             )}
             {totalCredits > 0 && (
               <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   {isCreditCard ? "Paid back" : "Credits / Refunds"}
                 </Text>
                 <Text className="text-sm font-semibold" style={{ color: sc.success }}>
@@ -804,7 +804,7 @@ const loadData = useCallback(async () => {
             )}
             {!isCreditCard && totalTransfersOut > 0 && (
               <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Transfers Out
                 </Text>
                 <Text className="text-sm font-semibold" style={{ color: sc.danger }}>
@@ -814,7 +814,7 @@ const loadData = useCallback(async () => {
             )}
             {!isCreditCard && totalTransfersIn > 0 && (
               <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-text-secondary dark:text-text-dark-secondary">
+                <Text className="text-xs text-muted-foreground">
                   Transfers In
                 </Text>
                 <Text className="text-sm font-semibold" style={{ color: sc.success }}>
@@ -822,8 +822,8 @@ const loadData = useCallback(async () => {
                 </Text>
               </View>
             )}
-            <View className="flex-row justify-between pt-2 mt-1 border-t border-border-light dark:border-border-dark">
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
+            <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
+              <Text className="text-xs font-semibold text-muted-foreground">
                 {isCreditCard ? "Utilized" : "Closing Balance"}
               </Text>
               <Text
@@ -839,7 +839,7 @@ const loadData = useCallback(async () => {
             </View>
 
             {/* Reconcile + Vault shortcuts */}
-            <View className="flex-row mt-3 pt-3 border-t border-border-light dark:border-border-dark">
+            <View className="flex-row mt-3 pt-3 border-t border-border">
               <Pressable
                 onPress={() => router.push({
                   pathname: "/settings/reconciliation/new",
@@ -848,7 +848,7 @@ const loadData = useCallback(async () => {
                 className="flex-1 flex-row items-center justify-center"
               >
                 <Ionicons name="checkmark-done-outline" size={14} color={colors.textSecondary} />
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary ml-1.5">
+                <Text className="text-xs font-semibold text-muted-foreground ml-1.5">
                   Reconcile
                 </Text>
               </Pressable>
@@ -872,7 +872,7 @@ const loadData = useCallback(async () => {
                 className="flex-1 flex-row items-center justify-center"
               >
                 <Ionicons name="lock-closed-outline" size={14} color={colors.textSecondary} />
-                <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary ml-1.5">
+                <Text className="text-xs font-semibold text-muted-foreground ml-1.5">
                   Credentials
                 </Text>
               </Pressable>
@@ -885,7 +885,7 @@ const loadData = useCallback(async () => {
           {/* Credit form (inline, for add or edit) */}
           {showAddCredit && (
             <Card className="mx-4 mt-4">
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 {editingCreditId ? "Edit Credit" : "Add Manual Credit"}
               </Text>
               <Input
@@ -896,7 +896,7 @@ const loadData = useCallback(async () => {
                 containerClassName="mb-3"
               />
               <TextInput
-                className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 mb-3 text-sm text-text-primary dark:text-text-dark-primary"
+                className="border border-border rounded-lg px-3 py-2.5 mb-3 text-sm text-foreground"
                 placeholder="Description (e.g. Salary, UPI received)"
                 placeholderTextColor={colors.textSecondary}
                 maxLength={200}
@@ -912,9 +912,9 @@ const loadData = useCallback(async () => {
               <View className="flex-row">
                 <Pressable
                   onPress={handleCancelCreditForm}
-                  className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border-light dark:border-border-dark"
+                  className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border"
                 >
-                  <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+                  <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleSaveCreditForm}
@@ -930,7 +930,7 @@ const loadData = useCallback(async () => {
           {/* Transfer form (inline) */}
           {showAddTransfer && (
             <Card className="mx-4 mt-4">
-              <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-3">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 Add Transfer
               </Text>
 
@@ -963,7 +963,7 @@ const loadData = useCallback(async () => {
               </View>
 
               {/* Account picker */}
-              <Text className="text-[10px] font-medium text-text-secondary dark:text-text-dark-secondary mb-1">
+              <Text className="text-[10px] font-medium text-muted-foreground mb-1">
                 {transferDirection === "in" ? "From Account" : "To Account"}
               </Text>
               <Pressable
@@ -989,7 +989,7 @@ const loadData = useCallback(async () => {
                 containerClassName="mb-3"
               />
               <TextInput
-                className="border border-border-light dark:border-border-dark rounded-lg px-3 py-2.5 mb-3 text-sm text-text-primary dark:text-text-dark-primary"
+                className="border border-border rounded-lg px-3 py-2.5 mb-3 text-sm text-foreground"
                 placeholder="Description (optional)"
                 placeholderTextColor={colors.textSecondary}
                 maxLength={200}
@@ -1005,9 +1005,9 @@ const loadData = useCallback(async () => {
               <View className="flex-row">
                 <Pressable
                   onPress={handleCancelTransferForm}
-                  className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border-light dark:border-border-dark"
+                  className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border"
                 >
-                  <Text className="text-sm font-semibold text-text-secondary dark:text-text-dark-secondary">Cancel</Text>
+                  <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleSaveTransfer}
@@ -1024,13 +1024,13 @@ const loadData = useCallback(async () => {
           {/* Adjust Available inline form */}
           {showAdjust && (
             <Card className="mx-4 mt-4 mb-2">
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-dark-primary mb-1">
+              <Text className="text-sm font-semibold text-foreground mb-1">
                 Adjust available balance
               </Text>
-              <Text className="text-xs text-text-secondary dark:text-text-dark-secondary mb-3">
+              <Text className="text-xs text-muted-foreground mb-3">
                 Current closing: {formatAmount(closing)}. Enter the actual available and we'll add a single adjustment entry dated today.
               </Text>
-              <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1">Actual available</Text>
+              <Text className="text-xs font-medium text-muted-foreground mb-1">Actual available</Text>
               <Input
                 value={adjustActual}
                 onChangeText={setAdjustActual}
@@ -1038,13 +1038,13 @@ const loadData = useCallback(async () => {
                 formula
                 containerClassName="mb-3"
               />
-              <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary mb-1">Reason (optional)</Text>
+              <Text className="text-xs font-medium text-muted-foreground mb-1">Reason (optional)</Text>
               <TextInput
                 value={adjustDescription}
                 onChangeText={setAdjustDescription}
                 placeholder="e.g. Prepayment, untracked spend"
                 placeholderTextColor={colors.textSecondary}
-                className="border rounded-lg px-3 py-2.5 mb-3 text-sm text-text-primary dark:text-text-dark-primary"
+                className="border rounded-lg px-3 py-2.5 mb-3 text-sm text-foreground"
                 style={{ borderColor: colors.border }}
               />
               <View className="flex-row">
@@ -1076,7 +1076,7 @@ const loadData = useCallback(async () => {
 
           {/* Transactions header */}
           <View className="flex-row items-center justify-between mx-4 mt-3 mb-2">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Transactions ({filteredEntries.length}{filteredEntries.length !== entries.length ? ` of ${entries.length}` : ""})
             </Text>
           </View>
@@ -1186,7 +1186,7 @@ const loadData = useCallback(async () => {
                       : undefined
                 }
               >
-                <View className="flex-row items-center mx-4 py-3 border-b border-border-light dark:border-border-dark">
+                <View className="flex-row items-center mx-4 py-3 border-b border-border">
                   {/* Icon */}
                   <View
                     className="w-8 h-8 rounded-full items-center justify-center mr-3"
@@ -1215,7 +1215,7 @@ const loadData = useCallback(async () => {
                   <View className="flex-1">
                     <View className="flex-row items-center">
                       <Text
-                        className="text-sm text-text-primary dark:text-text-dark-primary"
+                        className="text-sm text-foreground"
                         numberOfLines={1}
                         style={{ flex: 1 }}
                       >
@@ -1235,11 +1235,11 @@ const loadData = useCallback(async () => {
                       </Text>
                     )}
                     <View className="flex-row items-center mt-0.5">
-                      <Text className="text-[10px] text-text-secondary dark:text-text-dark-secondary">
+                      <Text className="text-[10px] text-muted-foreground">
                         {formatEntryDate(entry.date)}
                       </Text>
                       {poolSiblings.length > 1 && entry.cardLast4 && (
-                        <Text className="text-[10px] text-text-tertiary dark:text-text-dark-secondary ml-1.5">
+                        <Text className="text-[10px] text-faint-foreground ml-1.5">
                           · {"••••"} {entry.cardLast4}
                         </Text>
                       )}
@@ -1282,7 +1282,7 @@ const loadData = useCallback(async () => {
                       {isDebitSide ? "−" : "+"}{formatAmount(entry.amount)}
                     </Text>
                     {entry.splitPersonName && (
-                      <Text className="text-[9px] text-text-secondary dark:text-text-dark-secondary mt-0.5">
+                      <Text className="text-[9px] text-muted-foreground mt-0.5">
                         Split w/ {entry.splitPersonName}
                       </Text>
                     )}
@@ -1330,7 +1330,7 @@ const loadData = useCallback(async () => {
           {filteredEntries.length === 0 && (
             <View className="items-center py-12">
               <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />
-              <Text className="text-sm text-text-secondary dark:text-text-dark-secondary mt-3">
+              <Text className="text-sm text-muted-foreground mt-3">
                 No transactions this month
               </Text>
             </View>
@@ -1338,7 +1338,7 @@ const loadData = useCallback(async () => {
 
           {/* Cleanup actions — Adjust lives in FAB menu; only Clear remains here. */}
           <View className="mx-4 mt-6 mb-2">
-            <Text className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary uppercase tracking-wider mb-2">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Manage
             </Text>
             <Pressable
