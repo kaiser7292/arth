@@ -30,6 +30,50 @@ import { Circle, G, Rect, Svg } from "react-native-svg";
 import "../global.css";
 import { useTheme } from "@/hooks/use-theme";
 
+/**
+ * The error fallback, split out as a function component.
+ *
+ * ErrorBoundary must stay a class - getDerivedStateFromError has no hook equivalent - and a class
+ * cannot call hooks. Keeping the themed UI in a child function component is the standard way to
+ * give an error boundary access to context.
+ *
+ * A useTheme() call briefly lived in the class's render(). Since this boundary wraps the entire
+ * app, that threw "Invalid hook call" on every launch and crashed the app before anything rendered.
+ */
+function ErrorFallback({ error }: { error: Error }) {
+  const theme = useTheme();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background, padding: 32, paddingTop: 80 }}>
+      <Text style={{ color: theme.danger, fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
+        Something went wrong
+      </Text>
+      <Text style={{ color: theme.foreground, fontSize: 14, marginBottom: 24 }}>
+        Please close and reopen the app to continue.
+      </Text>
+      <TouchableOpacity
+        onPress={() => BackHandler.exitApp()}
+        style={{
+          backgroundColor: theme.primary,
+          padding: 14,
+          borderRadius: 10,
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: theme.primaryForeground, fontWeight: "600" }}>Close App</Text>
+      </TouchableOpacity>
+      {__DEV__ && (
+        <ScrollView style={{ marginTop: 16 }}>
+          <Text style={{ color: theme.foreground, fontSize: 14, marginBottom: 8 }}>
+            {error.message}
+          </Text>
+          <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>{error.stack}</Text>
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { error: Error | null }
@@ -39,34 +83,8 @@ class ErrorBoundary extends React.Component<
     return { error };
   }
   render() {
-  const theme = useTheme();
     if (this.state.error) {
-      return (
-        <View style={{ flex: 1, backgroundColor: "#111111", padding: 32, paddingTop: 80 }}>
-          <Text style={{ color: theme.danger, fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
-            Something went wrong
-          </Text>
-          <Text style={{ color: "#FFFFFF", fontSize: 14, marginBottom: 24 }}>
-            Please close and reopen the app to continue.
-          </Text>
-          <TouchableOpacity
-            onPress={() => BackHandler.exitApp()}
-            style={{ backgroundColor: "#134E4A", padding: 14, borderRadius: 10, alignItems: "center" }}
-          >
-            <Text style={{ color: "#FFFFFF", fontWeight: "600" }}>Close App</Text>
-          </TouchableOpacity>
-          {__DEV__ && (
-            <ScrollView style={{ marginTop: 16 }}>
-              <Text style={{ color: "#FFFFFF", fontSize: 14, marginBottom: 8 }}>
-                {this.state.error.message}
-              </Text>
-              <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>
-                {this.state.error.stack}
-              </Text>
-            </ScrollView>
-          )}
-        </View>
-      );
+      return <ErrorFallback error={this.state.error} />;
     }
     return this.props.children;
   }

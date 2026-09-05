@@ -19,6 +19,13 @@ const babel = require("@babel/parser");
 
 const HOOK = /^use[A-Z]/;
 const FN = new Set(["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"]);
+/**
+ * Class bodies are tracked separately. A hook inside a class method is always illegal - React
+ * throws "Invalid hook call" - and it is invisible to the function-owner check above, because the
+ * method's enclosing function is the class, not a component. This gap let a useTheme() call sit in
+ * the app's ErrorBoundary.render(), which wraps everything and so crashed every launch.
+ */
+const CLASS_BODY = new Set(["ClassMethod", "ClassPrivateMethod", "ClassProperty", "ClassDeclaration", "ClassExpression"]);
 
 function walk(dir, acc = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -49,6 +56,9 @@ for (const file of [...walk("app"), ...walk("components"), ...walk("hooks")]) {
     if (typeof node.type !== "string") return;
 
     let next = stack;
+    if (CLASS_BODY.has(node.type)) {
+      next = stack.concat([{ node, name: null, inClass: true }]);
+    }
     if (FN.has(node.type)) {
       const name =
         (node.id && node.id.name) ||
@@ -63,7 +73,16 @@ for (const file of [...walk("app"), ...walk("components"), ...walk("hooks")]) {
       HOOK.test(node.callee.name)
     ) {
       const owner = next[next.length - 1];
-      if (owner) {
+      const inClass = next.some((f) => f.inClass);
+      if (inClass) {
+        const line = src.slice(0, node.start).split(String.fromCharCode(10)).length;
+        findings.push({
+          rel,
+          line,
+          why: "hook inside a CLASS component - always illegal, React throws on render",
+          hook: node.callee.name,
+        });
+      } else if (owner) {
         const name = owner.name;
         const line = src.slice(0, node.start).split("\n").length;
 
