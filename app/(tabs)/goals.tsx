@@ -1,4 +1,4 @@
-import { Card, ContextualHeader, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Card, ContextualHeader, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -209,15 +209,7 @@ export default function GoalsScreen() {
               )}
             </View>
             {cockpitData && (
-              <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
-                <View
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${(cockpitData.fiscalMonth / 12) * 100}%`,
-                    backgroundColor: accentColor,
-                  }}
-                />
-              </View>
+              <ProgressBar value={((cockpitData.fiscalMonth / 12) * 100) / 100} color={accentColor} height={4} animated={false} />
             )}
           </View>
 
@@ -337,23 +329,9 @@ export default function GoalsScreen() {
 
                 {/* Savings progress bar */}
                 {cockpitData.savings.targetSavings > 0 && (
-                  <View
-                    className="h-1.5 rounded-full overflow-hidden"
-                    style={{
-                      backgroundColor: colors.border,
-                      marginBottom: cockpitData.savings.targetRatePct > 0 && cockpitData.monthsElapsed > 0 ? 8 : 0,
-                    }}
-                  >
-                    <View
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.min(100, (cockpitData.savings.totalSaved / cockpitData.savings.targetSavings) * 100)}%`,
-                        backgroundColor: cockpitData.savings.isOnTrack
+                  <ProgressBar value={(Math.min(100, (cockpitData.savings.totalSaved / cockpitData.savings.targetSavings) * 100)) / 100} color={cockpitData.savings.isOnTrack
                           ? theme.success
-                          : theme.warning,
-                      }}
-                    />
-                  </View>
+                          : theme.warning} height={6} animated={false} />
                 )}
 
                 {/* On-track signal */}

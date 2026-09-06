@@ -1,7 +1,7 @@
 import { ScrollView, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, ScreenContainer, Text } from "@/components/ui";
+import { Card, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import type { HealthGrade, HealthFactor } from "@/utils/financial-cockpit";
@@ -119,12 +119,7 @@ export default function HealthGradeScreen() {
                 {Math.round(healthScore)} / 100
               </Text>
             </View>
-            <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
-              <View
-                className="h-full rounded-full"
-                style={{ width: `${healthScore}%`, backgroundColor: mainColor }}
-              />
-            </View>
+            <ProgressBar value={(healthScore) / 100} color={mainColor} height={8} animated={false} />
           </Card>
 
           {/* Factors breakdown */}
@@ -168,12 +163,7 @@ export default function HealthGradeScreen() {
                         {Math.round(f.score)}/100
                       </Text>
                     </View>
-                    <View className="h-1.5 rounded-full overflow-hidden mb-1.5" style={{ backgroundColor: colors.border }}>
-                      <View
-                        className="h-full rounded-full"
-                        style={{ width: `${Math.max(2, f.score)}%`, backgroundColor: fColor }}
-                      />
-                    </View>
+                    <ProgressBar value={(Math.max(2, f.score)) / 100} color={fColor} height={6} animated={false} className="mb-1.5" />
                     <Text className="text-label text-faint-foreground">{f.detail}</Text>
                   </View>
                 );

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { View, ScrollView, Pressable, Alert, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Card, LoadingState, ScreenContainer, SectionHeader, Sheet, Text } from "@/components/ui";
+import { Card, LoadingState, ProgressBar, ScreenContainer, SectionHeader, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -369,12 +369,7 @@ export default function RetirementReportScreen() {
                 </Text>
               </View>
             </View>
-            <View className="h-2 bg-border rounded-full overflow-hidden mt-3">
-              <View
-                className="h-full rounded-full"
-                style={{ width: `${report.readinessScore}%`, backgroundColor: scoreColor }}
-              />
-            </View>
+            <ProgressBar value={(report.readinessScore) / 100} color={scoreColor} height={8} animated={false} className="mt-3" />
           </Card>
         </View>
 
@@ -572,12 +567,7 @@ export default function RetirementReportScreen() {
                       </Text>
                     </View>
                   </View>
-                  <View className="h-1.5 bg-border rounded-full overflow-hidden mb-1.5">
-                    <View
-                      className="h-full rounded-full"
-                      style={{ width: `${m.progressPct}%`, backgroundColor: m.progressPct >= 50 ? theme.success : theme.warning }}
-                    />
-                  </View>
+                  <ProgressBar value={(m.progressPct) / 100} color={m.progressPct >= 50 ? theme.success : theme.warning} height={6} animated={false} className="mb-1.5" />
                   <View className="flex-row items-center justify-between">
                     <Text className="text-xs text-muted-foreground">
                       {formatAmount(m.currentSaved)} saved · {m.progressPct}%

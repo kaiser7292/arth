@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 
 import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, Text } from "@/components/ui";
+import { Card, ProgressBar, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/expense-validation";
@@ -150,15 +150,7 @@ export function FilterSummaryCard({
                     </Text>
                   </View>
                   <View className="flex-row items-center">
-                    <View className="flex-1 h-1.5 rounded-full bg-card overflow-hidden">
-                      <View
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: theme.primary,
-                        }}
-                      />
-                    </View>
+                    <ProgressBar value={(pct) / 100} color={theme.primary} height={6} animated={false} className="flex-1" />
                     <Text className="text-label text-muted-foreground ml-2 w-10 text-right">
                       {pct.toFixed(0)}%
                     </Text>

@@ -1,4 +1,4 @@
-import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -468,12 +468,7 @@ export default function InvestmentDetailScreen() {
                           {formatAmount(m.total)}
                         </Text>
                       </View>
-                      <View className="h-2 rounded-full bg-border overflow-hidden">
-                        <View
-                          className="h-2 rounded-full"
-                          style={{ width: `${barPct}%`, backgroundColor: theme.primary }}
-                        />
-                      </View>
+                      <ProgressBar value={(barPct) / 100} color={theme.primary} height={8} animated={false} />
                       {m.count > 1 && (
                         <Text className="text-xs text-faint-foreground mt-0.5">
                           {m.count} contributions

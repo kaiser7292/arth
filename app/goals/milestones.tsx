@@ -6,7 +6,7 @@ import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native"
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, Card, DateInput, FAB, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, DateInput, FAB, Input, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 
@@ -522,12 +522,7 @@ export default function MilestonesScreen() {
                   </Text>
                 </View>
               </View>
-              <View className="h-3 rounded-full bg-border overflow-hidden">
-                <View
-                  className="h-3 rounded-full"
-                  style={{ width: `${overallPct}%`, backgroundColor: theme.primary }}
-                />
-              </View>
+              <ProgressBar value={(overallPct) / 100} color={theme.primary} height={12} animated={false} />
               <Text className="text-xs text-muted-foreground mt-1 text-right">
                 {overallPct.toFixed(1)}% overall progress
               </Text>
@@ -759,15 +754,7 @@ function MilestoneCard({
         </View>
 
         {/* Progress bar */}
-        <View className="h-2 rounded-full bg-border overflow-hidden">
-          <View
-            className="h-2 rounded-full"
-            style={{
-              width: `${pct}%`,
-              backgroundColor: isComplete ? theme.success : colors.blue,
-            }}
-          />
-        </View>
+        <ProgressBar value={(pct) / 100} color={isComplete ? theme.success : colors.blue} height={8} animated={false} />
 
         {/* Footer: % + monthly needed */}
         <View className="flex-row items-center justify-between mt-1">

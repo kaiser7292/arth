@@ -16,6 +16,7 @@ export { FilterChip } from "./FilterChip";
 export { Input } from "./Input";
 export { LearnMoreChip, LearnMoreRow } from "./LearnMoreChip";
 export { ListRow } from "./ListRow";
+export { ListSeparator } from "./ListSeparator";
 export { SimpleMarkdown } from "./SimpleMarkdown";
 export { LoadingState } from "./LoadingState";
 export { MetricRow } from "./MetricRow";

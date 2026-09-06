@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, TextInput, View } from "react-native";
-import { ScreenContainer, Text } from "@/components/ui";
+import { ListSeparator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getDatabase } from "@/database";
 import { updateItem } from "@/services/reconciliation/reconciliation-crud";
@@ -222,7 +222,7 @@ export default function ManualLinkScreen() {
     return (
       <Pressable
         onPress={() => handleLink(item)}
-        className="flex-row items-center py-3.5 border-b border-border"
+        className="flex-row items-center py-3.5"
       >
         <View className="flex-1">
           <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
@@ -281,6 +281,7 @@ export default function ManualLinkScreen() {
           windowSize={7}
           data={filtered}
           keyExtractor={(item) => `${item.kind}-${item.id}`}
+          ItemSeparatorComponent={ListSeparator}
           renderItem={renderItem}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
           ListEmptyComponent={

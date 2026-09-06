@@ -10,7 +10,7 @@ import {
   useRouter,
 } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, Card, FAB, Input, LoadingState, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, FAB, Input, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import {
   getYearlyPlanByFY,
   getInvestmentBuckets,
@@ -604,12 +604,7 @@ export default function InvestmentBucketsScreen() {
             </View>
 
             {/* Overall progress */}
-            <View className="h-3 rounded-full bg-border overflow-hidden">
-              <View
-                className="h-3 rounded-full"
-                style={{ width: `${overallPct}%`, backgroundColor: theme.primary }}
-              />
-            </View>
+            <ProgressBar value={(overallPct) / 100} color={theme.primary} height={12} animated={false} />
             <Text className="text-xs text-muted-foreground mt-1 text-right">
               {overallPct.toFixed(1)}% of annual investment goal
             </Text>

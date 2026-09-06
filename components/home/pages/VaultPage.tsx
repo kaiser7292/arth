@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, SectionList, TextInput, View } from "react-native";
-import { LoadingState, Text } from "@/components/ui";
+import { ListSeparator, LoadingState, Text } from "@/components/ui";
 import { VaultIcon } from "@/components/ui/VaultIcon";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -86,7 +86,7 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
     return (
       <Pressable
         onPress={() => router.push(`/vault/${item.id}`)}
-        className="flex-row items-center py-3 border-b border-border"
+        className="flex-row items-center py-3"
       >
         <View className="flex-1 min-w-0">
           <Text className="text-base font-medium text-foreground">
@@ -162,6 +162,7 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
           data={entries}
           keyExtractor={(item) => item.id}
           renderItem={renderEntry}
+          ItemSeparatorComponent={ListSeparator}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
           ListEmptyComponent={
             <View className="items-center py-12">
@@ -176,6 +177,7 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
           sections={sections}
           keyExtractor={(item) => item.id}
           renderItem={renderEntry}
+          ItemSeparatorComponent={ListSeparator}
           renderSectionHeader={({ section }) => (
             <View className="flex-row items-center px-4 pt-5 pb-1">
               <View

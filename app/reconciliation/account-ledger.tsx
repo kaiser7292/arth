@@ -797,41 +797,41 @@ const loadData = useCallback(async () => {
                       : theme.danger,
                 }}
               />
-              <Text className="text-meta text-muted-foreground mt-1">
+              <Text className="text-label text-muted-foreground mt-1">
                 {isCreditCard ? "started at" : "opened at"} {formatAmount(opening)}
               </Text>
             </View>
 
             {totalExpenses > 0 && (
               <View className="flex-row justify-between mb-1">
-                <Text className="text-meta text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   {isCreditCard ? "Spent this cycle" : "Expenses"}
                 </Text>
-                <Money value={-totalExpenses} className="text-body font-semibold" style={{ color: theme.danger }} />
+                <Money value={-totalExpenses} className="text-meta font-semibold" style={{ color: theme.danger }} />
               </View>
             )}
             {totalCredits > 0 && (
               <View className="flex-row justify-between mb-1">
-                <Text className="text-meta text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   {isCreditCard ? "Paid back" : "Credits / Refunds"}
                 </Text>
-                <Money value={totalCredits} signed showPlus className="text-body font-semibold" />
+                <Money value={totalCredits} signed showPlus className="text-meta font-semibold" />
               </View>
             )}
             {!isCreditCard && totalTransfersOut > 0 && (
               <View className="flex-row justify-between mb-1">
-                <Text className="text-meta text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   Transfers Out
                 </Text>
-                <Money value={-totalTransfersOut} className="text-body font-semibold" style={{ color: theme.danger }} />
+                <Money value={-totalTransfersOut} className="text-meta font-semibold" style={{ color: theme.danger }} />
               </View>
             )}
             {!isCreditCard && totalTransfersIn > 0 && (
               <View className="flex-row justify-between mb-1">
-                <Text className="text-meta text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   Transfers In
                 </Text>
-                <Money value={totalTransfersIn} signed showPlus className="text-body font-semibold" />
+                <Money value={totalTransfersIn} signed showPlus className="text-meta font-semibold" />
               </View>
             )}
 
@@ -845,7 +845,7 @@ const loadData = useCallback(async () => {
                 className="flex-1 flex-row items-center justify-center"
               >
                 <Ionicons name="checkmark-done-outline" size={14} color={colors.textSecondary} />
-                <Text className="text-meta font-semibold text-muted-foreground ml-1.5">
+                <Text className="text-label font-semibold text-muted-foreground ml-1.5">
                   Reconcile
                 </Text>
               </Pressable>
@@ -869,7 +869,7 @@ const loadData = useCallback(async () => {
                 className="flex-1 flex-row items-center justify-center"
               >
                 <Ionicons name="lock-closed-outline" size={14} color={colors.textSecondary} />
-                <Text className="text-meta font-semibold text-muted-foreground ml-1.5">
+                <Text className="text-label font-semibold text-muted-foreground ml-1.5">
                   Credentials
                 </Text>
               </Pressable>
@@ -893,7 +893,7 @@ const loadData = useCallback(async () => {
                 containerClassName="mb-3"
               />
               <TextInput
-                className="border border-border rounded-lg px-3 py-2.5 mb-3 text-body text-foreground"
+                className="border border-border rounded-lg px-3 py-2.5 mb-3 text-meta text-foreground"
                 placeholder="Description (e.g. Salary, UPI received)"
                 placeholderTextColor={colors.textSecondary}
                 maxLength={200}
@@ -911,14 +911,14 @@ const loadData = useCallback(async () => {
                   onPress={handleCancelCreditForm}
                   className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border"
                 >
-                  <Text className="text-body font-semibold text-muted-foreground">Cancel</Text>
+                  <Text className="text-meta font-semibold text-muted-foreground">Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleSaveCreditForm}
                   className="flex-1 py-2.5 rounded-lg items-center"
                   style={{ backgroundColor: theme.primary }}
                 >
-                  <Text className="text-body font-semibold text-primary-foreground">{editingCreditId ? "Save" : "Add Credit"}</Text>
+                  <Text className="text-meta font-semibold text-primary-foreground">{editingCreditId ? "Save" : "Add Credit"}</Text>
                 </Pressable>
               </View>
             </Card>
@@ -941,7 +941,7 @@ const loadData = useCallback(async () => {
                     : { borderColor: colors.border }
                   }
                 >
-                  <Text className="text-meta font-medium" style={{ color: transferDirection === "in" ? theme.success : colors.textSecondary }}>
+                  <Text className="text-label font-medium" style={{ color: transferDirection === "in" ? theme.success : colors.textSecondary }}>
                     Money In ↓
                   </Text>
                 </Pressable>
@@ -953,7 +953,7 @@ const loadData = useCallback(async () => {
                     : { borderColor: colors.border }
                   }
                 >
-                  <Text className="text-meta font-medium" style={{ color: transferDirection === "out" ? theme.danger : colors.textSecondary }}>
+                  <Text className="text-label font-medium" style={{ color: transferDirection === "out" ? theme.danger : colors.textSecondary }}>
                     Money Out ↑
                   </Text>
                 </Pressable>
@@ -970,7 +970,7 @@ const loadData = useCallback(async () => {
               >
                 <Ionicons name="wallet-outline" size={16} color={transferAccountId ? theme.primary : colors.textSecondary} />
                 <Text
-                  className="flex-1 text-body ml-2"
+                  className="flex-1 text-meta ml-2"
                   style={{ color: transferAccountId ? colors.text : colors.textSecondary }}
                 >
                   {transferAccountLabel || "Select account"}
@@ -986,7 +986,7 @@ const loadData = useCallback(async () => {
                 containerClassName="mb-3"
               />
               <TextInput
-                className="border border-border rounded-lg px-3 py-2.5 mb-3 text-body text-foreground"
+                className="border border-border rounded-lg px-3 py-2.5 mb-3 text-meta text-foreground"
                 placeholder="Description (optional)"
                 placeholderTextColor={colors.textSecondary}
                 maxLength={200}
@@ -1004,7 +1004,7 @@ const loadData = useCallback(async () => {
                   onPress={handleCancelTransferForm}
                   className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border"
                 >
-                  <Text className="text-body font-semibold text-muted-foreground">Cancel</Text>
+                  <Text className="text-meta font-semibold text-muted-foreground">Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleSaveTransfer}
@@ -1012,7 +1012,7 @@ const loadData = useCallback(async () => {
                   style={{ backgroundColor: transferAccountId ? theme.primary : colors.textSecondary + "40" }}
                   disabled={!transferAccountId}
                 >
-                  <Text className="text-body font-semibold text-primary-foreground">Add Transfer</Text>
+                  <Text className="text-meta font-semibold text-primary-foreground">Add Transfer</Text>
                 </Pressable>
               </View>
             </Card>
@@ -1021,10 +1021,10 @@ const loadData = useCallback(async () => {
           {/* Adjust Available inline form */}
           {showAdjust && (
             <Card className="mx-4 mt-4 mb-2">
-              <Text className="text-body font-semibold text-foreground mb-1">
+              <Text className="text-meta font-semibold text-foreground mb-1">
                 Adjust available balance
               </Text>
-              <Text className="text-meta text-muted-foreground mb-3">
+              <Text className="text-label text-muted-foreground mb-3">
                 Current closing: {formatAmount(closing)}. Enter the actual available and we'll add a single adjustment entry dated today.
               </Text>
               <Text className="text-label font-medium text-muted-foreground mb-1">Actual available</Text>
@@ -1041,7 +1041,7 @@ const loadData = useCallback(async () => {
                 onChangeText={setAdjustDescription}
                 placeholder="e.g. Prepayment, untracked spend"
                 placeholderTextColor={colors.textSecondary}
-                className="border rounded-lg px-3 py-2.5 mb-3 text-body text-foreground"
+                className="border rounded-lg px-3 py-2.5 mb-3 text-meta text-foreground"
                 style={{ borderColor: colors.border }}
               />
               <View className="flex-row">
@@ -1065,7 +1065,7 @@ const loadData = useCallback(async () => {
           {filterMode === "transfers" && (
             <View className="mx-4 mt-3 mb-1 flex-row items-center px-3 py-2 rounded-lg" style={{ backgroundColor: TRANSFER_COLOR + "18" }}>
               <Ionicons name="swap-horizontal-outline" size={14} color={TRANSFER_COLOR} />
-              <Text className="ml-2 text-meta font-medium" style={{ color: TRANSFER_COLOR }}>
+              <Text className="ml-2 text-label font-medium" style={{ color: TRANSFER_COLOR }}>
                 Showing transfers only
               </Text>
             </View>
@@ -1212,7 +1212,7 @@ const loadData = useCallback(async () => {
                   <View className="flex-1">
                     <View className="flex-row items-center">
                       <Text
-                        className="text-body text-foreground"
+                        className="text-meta text-foreground"
                         numberOfLines={1}
                         style={{ flex: 1 }}
                       >
@@ -1223,16 +1223,16 @@ const loadData = useCallback(async () => {
                       )}
                     </View>
                     {isTransfer && entry.counterAccountName && (
-                      <Text className="text-meta mt-0.5" style={{ color: transferColor }}>
+                      <Text className="text-label mt-0.5" style={{ color: transferColor }}>
                         {entry.type === "transfer_in" ? "From" : "To"} {entry.counterAccountName}
                       </Text>
                     )}
                     <View className="flex-row items-center mt-0.5">
-                      <Text className="text-meta text-muted-foreground">
+                      <Text className="text-label text-muted-foreground">
                         {formatEntryDate(entry.date)}
                       </Text>
                       {poolSiblings.length > 1 && entry.cardLast4 && (
-                        <Text className="text-meta text-faint-foreground ml-1.5">
+                        <Text className="text-label text-faint-foreground ml-1.5">
                           · {"••••"} {entry.cardLast4}
                         </Text>
                       )}
@@ -1276,11 +1276,11 @@ const loadData = useCallback(async () => {
                     <Money
                       value={isDebitSide ? -entry.amount : entry.amount}
                       showPlus={!isDebitSide}
-                      className="text-body font-bold"
+                      className="text-meta font-bold"
                       style={{ color: isTransfer ? transferColor : entryColor }}
                     />
                     {entry.splitPersonName && (
-                      <Text className="text-meta text-muted-foreground mt-0.5">
+                      <Text className="text-label text-muted-foreground mt-0.5">
                         Split w/ {entry.splitPersonName}
                       </Text>
                     )}
@@ -1328,7 +1328,7 @@ const loadData = useCallback(async () => {
           {filteredEntries.length === 0 && (
             <View className="items-center py-12">
               <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />
-              <Text className="text-body text-muted-foreground mt-3">
+              <Text className="text-meta text-muted-foreground mt-3">
                 No transactions this month
               </Text>
             </View>
@@ -1344,7 +1344,7 @@ const loadData = useCallback(async () => {
               className="flex-row items-center py-3"
             >
               <Ionicons name="trash-outline" size={16} color={theme.danger} />
-              <Text className="text-body ml-3 flex-1" style={{ color: theme.danger }}>
+              <Text className="text-meta ml-3 flex-1" style={{ color: theme.danger }}>
                 Clear all ledger data
               </Text>
               <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
@@ -1455,10 +1455,10 @@ const loadData = useCallback(async () => {
             >
               <View className="flex-row items-start justify-between mb-3">
                 <View className="flex-1 mr-3">
-                  <Text className="text-heading font-bold" style={{ color: colors.text }}>
+                  <Text className="text-body font-bold" style={{ color: colors.text }}>
                     Source SMS
                   </Text>
-                  <Text className="text-meta mt-0.5" style={{ color: colors.textSecondary }} numberOfLines={2}>
+                  <Text className="text-label mt-0.5" style={{ color: colors.textSecondary }} numberOfLines={2}>
                     {sourceSmsModal.description}
                   </Text>
                 </View>
@@ -1476,7 +1476,7 @@ const loadData = useCallback(async () => {
                   <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
                     Sender
                   </Text>
-                  <Text className="text-meta" style={{ color: colors.text }}>
+                  <Text className="text-label" style={{ color: colors.text }}>
                     {sourceSmsModal.address}
                   </Text>
                 </View>
@@ -1494,7 +1494,7 @@ const loadData = useCallback(async () => {
                 }}
               >
                 <Text
-                  className="text-meta"
+                  className="text-label"
                   style={{ color: colors.text, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}
                   selectable
                 >

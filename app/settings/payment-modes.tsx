@@ -4,7 +4,7 @@ import { View, FlatList, Pressable } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { EmptyState, FAB, ScreenContainer, Text } from "@/components/ui";
+import { EmptyState, FAB, ListSeparator, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
@@ -93,7 +93,7 @@ export default function PaymentModesScreen() {
           params: { id: item.id },
         })
       }
-      className={`flex-row items-center px-4 py-3 border-b border-border ${
+      className={`flex-row items-center px-4 py-3 ${
         item.is_active === 0 ? "opacity-40" : ""
       }`}
     >
@@ -142,6 +142,7 @@ export default function PaymentModesScreen() {
         windowSize={7}
         data={modes}
         keyExtractor={(item) => item.id}
+        ItemSeparatorComponent={ListSeparator}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 80 }}
         ListEmptyComponent={

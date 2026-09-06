@@ -4,7 +4,7 @@ import { View, Pressable, FlatList } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Card, EmptyState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, ListSeparator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getMerchantAnalytics, getMerchantDetail } from "@/services/spending-insights";
 import { getCategories } from "@/services/category";
@@ -123,6 +123,7 @@ export default function MerchantAnalyticsScreen() {
         windowSize={7}
         data={merchants}
         keyExtractor={(item) => item.merchant}
+        ItemSeparatorComponent={ListSeparator}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
         renderItem={({ item, index }) => {
           const isSelected = selectedMerchant === item.merchant;
@@ -135,7 +136,7 @@ export default function MerchantAnalyticsScreen() {
                 onPress={() => handleSelectMerchant(item)}
                 accessibilityLabel={`${item.merchant}, ${formatAmount(item.totalSpent)}`}
                 accessibilityRole="button"
-                className="py-3 border-b border-border"
+                className="py-3"
               >
                 <View className="flex-row items-center justify-between mb-1">
                   <View className="flex-row items-center flex-1">

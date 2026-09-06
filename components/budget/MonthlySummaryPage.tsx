@@ -3,7 +3,7 @@ import { useState, useCallback } from "react";
 import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, Text } from "@/components/ui";
+import { Card, ProgressBar, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { getCategories } from "@/services/category";
@@ -181,20 +181,11 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                 of {formatAmount(data.totalBudget)}
               </Text>
             </View>
-            <View className="h-3 rounded-full bg-border overflow-hidden">
-              <View
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.min(data.budgetCompliancePct, 100)}%`,
-                  backgroundColor:
-                    data.budgetCompliancePct < 70
+            <ProgressBar value={(Math.min(data.budgetCompliancePct, 100)) / 100} color={data.budgetCompliancePct < 70
                       ? theme.success
                       : data.budgetCompliancePct <= 90
                         ? theme.warning
-                        : theme.danger,
-                }}
-              />
-            </View>
+                        : theme.danger} height={12} animated={false} />
             <View className="flex-row justify-between mt-2">
               <Text className="text-xs text-faint-foreground">{data.daysRemaining} days remaining</Text>
               <Text
@@ -293,20 +284,11 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
           </View>
         </View>
         {data.totalSpent > 0 && (
-          <View className="h-2 rounded-full bg-border overflow-hidden mt-3">
-            <View
-              className="h-full rounded-full"
-              style={{
-                width: `${data.rightSpendPct}%`,
-                backgroundColor:
-                  data.rightSpendPct >= 70
+          <ProgressBar value={(data.rightSpendPct) / 100} color={data.rightSpendPct >= 70
                     ? theme.success
                     : data.rightSpendPct >= 40
                       ? theme.warning
-                      : theme.danger,
-              }}
-            />
-          </View>
+                      : theme.danger} height={8} animated={false} className="mt-3" />
         )}
       </Card>
 
@@ -342,15 +324,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                 </Text>
               </View>
               <View className="flex-row items-center">
-                <View className="h-2 flex-1 rounded-full bg-border overflow-hidden">
-                  <View
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${tc.pctOfTotal}%`,
-                      backgroundColor: tc.category?.color ?? theme.mutedForeground,
-                    }}
-                  />
-                </View>
+                <ProgressBar value={(tc.pctOfTotal) / 100} color={tc.category?.color ?? theme.mutedForeground} height={8} animated={false} className="flex-1" />
                 <Text className="text-label text-faint-foreground ml-2 w-10 text-right">
                   {Math.round(tc.pctOfTotal)}%
                 </Text>

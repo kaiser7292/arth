@@ -3,7 +3,7 @@ import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native"
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Ionicons } from "@expo/vector-icons";
-import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   getLifeMilestoneById,
@@ -576,19 +576,11 @@ export default function MilestoneDetailScreen() {
                       </View>
 
                       {/* Progress bar */}
-                      <View className="h-2 rounded-full bg-border overflow-hidden">
-                        <View
-                          className="h-2 rounded-full"
-                          style={{
-                            width: `${pctFY * 100}%`,
-                            backgroundColor: isOverachieved || isFullyCovered
+                      <ProgressBar value={(pctFY * 100) / 100} color={isOverachieved || isFullyCovered
                               ? theme.success
                               : row.isCurrent
                               ? theme.primary
-                              : colors.textSecondary,
-                          }}
-                        />
-                      </View>
+                              : colors.textSecondary} height={8} animated={false} />
 
                       {/* Bar footer */}
                       <View className="flex-row items-center justify-between mt-1">
@@ -692,12 +684,7 @@ export default function MilestoneDetailScreen() {
                           />
                         </View>
                       </View>
-                      <View className="h-1.5 rounded-full bg-border overflow-hidden">
-                        <View
-                          className="h-1.5 rounded-full"
-                          style={{ width: `${bucketPct}%`, backgroundColor: theme.primary }}
-                        />
-                      </View>
+                      <ProgressBar value={(bucketPct) / 100} color={theme.primary} height={6} animated={false} />
                     </Pressable>
                   );
                 })}

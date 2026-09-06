@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, View } from "react-native";
-import { FAB, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { FAB, ListSeparator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
@@ -91,7 +91,7 @@ export default function ReconciliationHubScreen() {
     return (
       <Pressable
         onPress={() => router.push(`/settings/reconciliation/${item.id}`)}
-        className="py-3.5 border-b border-border"
+        className="py-3.5"
       >
         <View className="flex-row items-center">
           <View
@@ -165,6 +165,7 @@ export default function ReconciliationHubScreen() {
           windowSize={7}
           data={sessions}
           keyExtractor={(item) => item.id}
+          ItemSeparatorComponent={ListSeparator}
           renderItem={renderItem}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
           ListHeaderComponent={

@@ -1,4 +1,4 @@
-import { Money, ScreenContainer, Text } from "@/components/ui";
+import { Money, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -23,16 +23,6 @@ const SEVERITY_COLORS = {
   celebrate:{ border: STATUS_COLORS.success, bg: "#F0FDF4", bgDark: "#052E16", text: "#166534", textDark: "#86EFAC", icon: "sparkles-outline" as const },
 };
 
-function ProgressBar({ pct, color }: { pct: number; color: string }) {
-  return (
-    <View className="h-1.5 rounded-full bg-border overflow-hidden mt-1.5">
-      <View
-        className="h-full rounded-full"
-        style={{ width: `${Math.min(100, Math.max(0, pct))}%`, backgroundColor: color }}
-      />
-    </View>
-  );
-}
 
 function StatRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   const theme = useTheme();
@@ -157,7 +147,7 @@ function BucketRow({ bucket, isDark }: { bucket: BucketStatus; isDark: boolean }
           {Math.round(bucket.progressPct)}%
         </Text>
       </View>
-      <ProgressBar pct={bucket.progressPct} color={accentColor} />
+      <ProgressBar value={bucket.progressPct / 100} color={accentColor} height={6} animated={false} className="mt-1.5" />
       <View className="flex-row justify-between mt-2">
         <Text className="text-xs text-muted-foreground">
           {formatCompact(bucket.contributed)} saved
@@ -265,7 +255,7 @@ function MilestoneDetail({
             {Math.round(ms.progressPct)}%
           </Text>
         </View>
-        <ProgressBar pct={ms.progressPct} color={accentColor} />
+        <ProgressBar value={ms.progressPct / 100} color={accentColor} height={6} animated={false} className="mt-1.5" />
         <View className="flex-row justify-between mt-2 mb-3">
           <Text className="text-xs text-muted-foreground">
             {formatCompact(ms.currentSaved)} saved
