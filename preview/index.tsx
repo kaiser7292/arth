@@ -190,6 +190,42 @@ export default function Gallery() {
           </Card>
         </Section>
 
+        <Section title="Compare table" note="Real worst case: 7-digit amounts with paise, a 4-digit change, the longest category name.">
+          <Card>
+            <View className="flex-row items-center pb-2 border-b border-border mb-1">
+              <Text className="flex-1 text-xs font-semibold text-faint-foreground">Category</Text>
+              <Text className="w-16 ml-2 text-xs font-semibold text-faint-foreground text-right">R1</Text>
+              <Text className="w-16 ml-2 text-xs font-semibold text-faint-foreground text-right">R2</Text>
+              <Text className="w-14 ml-2 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
+            </View>
+            {[["Grocery & Supplies", "₹2,83,445", "₹8,680.77", "+4947%"],
+              ["Rent & Utilities", "₹401", "₹20,240", "-100%"],
+              ["Travel & Going Out", "₹4,243.01", "₹0", "0%"]].map((r) => (
+              <View key={r[0]} className="flex-row items-center py-2 border-b border-border">
+                <Text className="flex-1 text-xs text-foreground" numberOfLines={1}>{r[0]}</Text>
+                <Text className="w-16 ml-2 text-label text-right" style={{ color: theme.primary }}>{r[1]}</Text>
+                <Text className="w-16 ml-2 text-label font-medium text-right" style={{ color: theme.primary }}>{r[2]}</Text>
+                <Text className="w-14 ml-2 text-label font-bold text-right" style={{ color: theme.danger }}>{r[3]}</Text>
+              </View>
+            ))}
+          </Card>
+        </Section>
+
+        <Section title="Simulator: planned vs actual" note="Same figures, four columns.">
+          <Card>
+            {[["Surf Salary", "₹2,83,445", "₹2,83,241", "-₹204"],
+              ["KS Lakshith Heights Rent", "₹20,000", "₹20,000", "₹0"],
+              ["Zerodha", "₹17,000", "₹51,000", "+₹34,000"]].map((r) => (
+              <View key={r[0]} className="flex-row items-center py-1.5 border-t border-border">
+                <Text className="text-xs flex-1 mr-1" style={{ color: theme.foreground }} numberOfLines={1}>{r[0]}</Text>
+                <Text className="text-label w-20 ml-2 text-right text-muted-foreground">{r[1]}</Text>
+                <Text className="text-label w-20 ml-2 text-right text-foreground">{r[2]}</Text>
+                <Text className="text-label w-16 ml-2 text-right" style={{ color: theme.danger }}>{r[3]}</Text>
+              </View>
+            ))}
+          </Card>
+        </Section>
+
         <Section title="Numeric table" note="The YoY / Compare shape: label, two figures, a change column.">
           <Card>
             <View className="flex-row mb-1.5">

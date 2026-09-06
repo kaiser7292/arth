@@ -1168,12 +1168,18 @@ export default function ScenarioDetailScreen() {
               <View className="mt-2">
                 {fulfilledSummary.entries.map((item) => (
                   <View key={item.entryId} className="flex-row items-center py-1.5 border-t border-border">
-                    <Text className="text-xs flex-1" style={{ color: colors.text }} numberOfLines={1}>
+                    <Text className="text-xs flex-1 mr-1" style={{ color: colors.text }} numberOfLines={1}>
                       {item.description || item.merchant_name || "Entry"}
                     </Text>
-                    <Text className="text-label w-14 text-right" style={{ color: colors.textSecondary }}>{formatAmount(item.planned)}</Text>
-                    <Text className="text-label w-14 text-right" style={{ color: colors.text }}>{formatAmount(item.actual)}</Text>
-                    <Text className="text-label w-14 text-right" style={{ color: item.variance > 0 ? theme.danger : item.variance < 0 ? theme.success : colors.textSecondary }}>
+                    {/*
+                      w-20 with a gap, not w-14 flush. A full grouped amount is about 60px at
+                      this size, so 56px columns wrapped mid-number - a row read
+                      "₹2,83,44 / 5" over two lines - and with no margin the planned and
+                      actual figures ran into each other.
+                    */}
+                    <Text className="text-label w-20 ml-2 text-right" style={{ color: colors.textSecondary }}>{formatAmount(item.planned)}</Text>
+                    <Text className="text-label w-20 ml-2 text-right" style={{ color: colors.text }}>{formatAmount(item.actual)}</Text>
+                    <Text className="text-label w-16 ml-2 text-right" style={{ color: item.variance > 0 ? theme.danger : item.variance < 0 ? theme.success : colors.textSecondary }}>
                       {item.variance > 0 ? "+" : ""}{formatAmount(item.variance)}
                     </Text>
                   </View>
