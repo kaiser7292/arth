@@ -194,18 +194,18 @@ export default function Gallery() {
           <Card>
             <View className="flex-row items-center pb-2 border-b border-border mb-1">
               <Text className="flex-1 text-xs font-semibold text-faint-foreground">Category</Text>
-              <Text className="w-16 ml-2 text-xs font-semibold text-faint-foreground text-right">R1</Text>
-              <Text className="w-16 ml-2 text-xs font-semibold text-faint-foreground text-right">R2</Text>
-              <Text className="w-14 ml-2 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
+              <Text className="w-20 ml-1.5 text-xs font-semibold text-faint-foreground text-right">R1</Text>
+              <Text className="w-20 ml-1.5 text-xs font-semibold text-faint-foreground text-right">R2</Text>
+              <Text className="w-12 ml-1.5 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
             </View>
-            {[["Grocery & Supplies", "₹2,83,445", "₹8,680.77", "+4947%"],
-              ["Rent & Utilities", "₹401", "₹20,240", "-100%"],
-              ["Travel & Going Out", "₹4,243.01", "₹0", "0%"]].map((r) => (
+            {[["Rent & Utilities", "₹401", "₹20,772.35", "+5080%"],
+              ["Travel & Going Out", "₹89,750.42", "₹53,456.93", "-40%"],
+              ["Grocery & Supplies", "₹3,56,391.44", "₹1,23,456.78", "+107%"]].map((r) => (
               <View key={r[0]} className="flex-row items-center py-2 border-b border-border">
                 <Text className="flex-1 text-xs text-foreground" numberOfLines={1}>{r[0]}</Text>
-                <Text className="w-16 ml-2 text-label text-right" style={{ color: theme.primary }}>{r[1]}</Text>
-                <Text className="w-16 ml-2 text-label font-medium text-right" style={{ color: theme.primary }}>{r[2]}</Text>
-                <Text className="w-14 ml-2 text-label font-bold text-right" style={{ color: theme.danger }}>{r[3]}</Text>
+                <Text className="w-20 ml-1.5 text-label text-right" style={{ color: theme.primary }}>{r[1]}</Text>
+                <Text className="w-20 ml-1.5 text-label font-medium text-right" style={{ color: theme.primary }}>{r[2]}</Text>
+                <Text className="w-12 ml-1.5 text-label font-bold text-right" style={{ color: theme.danger }}>{r[3]}</Text>
               </View>
             ))}
           </Card>
