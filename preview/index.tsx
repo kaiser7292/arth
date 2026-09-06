@@ -147,8 +147,8 @@ export default function Gallery() {
           </View>
         </Section>
 
-        <Section title="Card / rows">
-          <Card>
+        <Section title="Card / rows" note="The Card header is one of the four deferred moves onto the scale.">
+          <Card title="This month">
             <MetricRow label="Closing balance" value="₹1,25,000" />
             <MetricRow label="Spent this cycle" value="₹18,240" />
           </Card>
@@ -222,8 +222,20 @@ export default function Gallery() {
           </Text>
         </Section>
 
-        <Section title="Input / chips">
-          <Input value={text} onChangeText={setText} placeholder="e.g. 1,55,000" />
+        <Section title="Input / chips" note="Input box, its label, its hint and the chip label are the other three.">
+          <Input
+            label="Actual available"
+            value={text}
+            onChangeText={setText}
+            placeholder="e.g. 1,55,000"
+            formula
+          />
+          <Input
+            label="Amount"
+            value="abc"
+            onChangeText={() => {}}
+            error="Enter a valid amount"
+          />
           <View className="flex-row flex-wrap mt-2" style={{ gap: 6 }}>
             <FilterChip label="All" active onPress={() => {}} />
             <FilterChip label="Committed" onPress={() => {}} />
