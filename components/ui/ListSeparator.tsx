@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { COMPONENTS } from "@/constants/design-tokens";
 
 interface ListSeparatorProps {
   /** Left inset, for lists whose rows lead with an icon or avatar the rule should clear. */
@@ -16,5 +17,5 @@ interface ListSeparatorProps {
  * every row did.
  */
 export function ListSeparator({ inset = 0 }: ListSeparatorProps) {
-  return <View className="h-px bg-border" style={inset ? { marginLeft: inset } : undefined} />;
+  return <View className={COMPONENTS.separator} style={inset ? { marginLeft: inset } : undefined} />;
 }

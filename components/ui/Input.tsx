@@ -6,6 +6,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
+import { COMPONENTS } from "@/constants/design-tokens";
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -51,7 +52,7 @@ export function Input({
   return (
     <View className={containerClassName}>
       {label && (
-        <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
+        <Text className={COMPONENTS.input.label}>
           {label}
         </Text>
       )}
@@ -61,7 +62,7 @@ export function Input({
         onBlur={handleBlur}
         keyboardType={formula ? "default" : keyboardType}
         accessibilityLabel={label || props.placeholder}
-        className={`rounded-lg border px-3 py-3 text-base text-foreground bg-card ${
+        className={`${COMPONENTS.input.base} ${
           error
             ? "border-danger"
             : inFormula
@@ -74,7 +75,7 @@ export function Input({
       {/* Formula preview */}
       {inFormula && hasExpr && (
         <Text
-          className="text-xs mt-1 ml-1"
+          className={COMPONENTS.input.hint}
           style={{ color: formulaValid ? colors.tint : theme.danger }}
         >
           {formulaValid
@@ -84,7 +85,7 @@ export function Input({
       )}
       {/* Normal error (suppressed while formula preview is showing) */}
       {error && !inFormula && (
-        <Text className="text-xs text-danger mt-1">{error}</Text>
+        <Text className={COMPONENTS.input.error}>{error}</Text>
       )}
     </View>
   );

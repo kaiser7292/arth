@@ -3,6 +3,7 @@ import { Pressable, ActivityIndicator } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@/hooks/use-theme";
 import { Text } from "./Text";
+import { COMPONENTS } from "@/constants/design-tokens";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
 
@@ -35,6 +36,7 @@ export function Button({
   className = "",
 }: ButtonProps) {
   const theme = useTheme();
+  const B = COMPONENTS.button;
 
   // Press state is tracked manually and applied through a static style array. Pressable's
   // function-form style prop does not reliably merge with a NativeWind className, which once
@@ -75,8 +77,8 @@ export function Button({
       accessibilityLabel={title}
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || loading }}
-      style={[container, isPressed && !disabled && !loading ? { opacity: 0.85 } : null]}
-      className={`flex-row items-center justify-center rounded-control px-6 py-3 ${containerClass} ${disabled ? "opacity-50" : ""} ${className}`}
+      style={[container, isPressed && !disabled && !loading ? { opacity: B.pressedOpacity } : null]}
+      className={`${B.base} ${B.pad} ${containerClass} ${disabled ? B.disabled : ""} ${className}`}
     >
       {loading ? (
         <ActivityIndicator

@@ -2,6 +2,7 @@ import { View, Pressable } from "react-native";
 import { Text } from "./Text";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { COMPONENTS } from "@/constants/design-tokens";
 
 interface ListRowProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -25,12 +26,12 @@ export function ListRow({
   const { colors } = useColorScheme();
   const resolvedColor = iconColor ?? colors.textSecondary;
   const content = (
-    <View className="flex-row items-center py-3" accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title}>
+    <View className={COMPONENTS.listRow.base} accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title}>
       <View
         className="w-9 h-9 rounded-full items-center justify-center mr-3"
         style={{ backgroundColor: `${resolvedColor}18` }}
       >
-        <Ionicons name={icon} size={18} color={resolvedColor} />
+        <Ionicons name={icon} size={COMPONENTS.listRow.icon} color={resolvedColor} />
       </View>
       <View className="flex-1">
         <Text className="text-sm font-medium text-foreground">

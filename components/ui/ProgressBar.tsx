@@ -6,7 +6,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "@/hooks/use-theme";
-import { MOTION } from "@/constants/design-tokens";
+import { COMPONENTS, MOTION } from "@/constants/design-tokens";
 
 interface ProgressBarProps {
   /** 0 to 1. Values outside that are clamped rather than allowed to overflow the track. */
@@ -40,7 +40,7 @@ export function ProgressBar({
   value,
   color,
   trackColor,
-  height = 8,
+  height = COMPONENTS.progress.height,
   animated = true,
   className = "",
 }: ProgressBarProps) {

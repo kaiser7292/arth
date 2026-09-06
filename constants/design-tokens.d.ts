@@ -33,3 +33,23 @@ export declare const DATA: {
   transfer: Channels;
   series: Channels[];
 };
+
+/**
+ * Component shape recipes. Class strings, except where a value lands in a style object.
+ * See the block comment in design-tokens.js for the rules that keep these safe to change.
+ */
+export declare const COMPONENTS: {
+  button: { base: string; pad: string; label: string; pressedOpacity: number; disabled: string };
+  card: { base: string; title: string };
+  input: { base: string; label: string; hint: string; error: string };
+  chip: { base: string; label: string };
+  badge: {
+    sm: { pad: string; label: string; icon: number };
+    md: { pad: string; label: string; icon: number };
+    tintAlpha: number;
+  };
+  listRow: { base: string; icon: number; title: string; subtitle: string };
+  separator: string;
+  sheet: { radius: number; backdrop: string; maxHeightPct: number; handle: string };
+  progress: { height: number };
+};

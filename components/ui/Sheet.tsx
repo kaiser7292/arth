@@ -20,7 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/use-theme";
-import { MOTION } from "@/constants/design-tokens";
+import { COMPONENTS, MOTION } from "@/constants/design-tokens";
 
 /** Drag far enough, or fling hard enough, and the sheet goes. */
 const DISMISS_FRACTION = 0.28;
@@ -74,7 +74,7 @@ export interface SheetProps {
 export function Sheet({
   visible,
   onClose,
-  maxHeightPct = 92,
+  maxHeightPct = COMPONENTS.sheet.maxHeightPct,
   draggable = true,
   children,
 }: SheetProps) {
@@ -175,7 +175,7 @@ export function Sheet({
           <Animated.View
             style={[
               StyleSheet.absoluteFillObject,
-              { backgroundColor: "rgba(0,0,0,0.45)" },
+              { backgroundColor: COMPONENTS.sheet.backdrop },
               backdropStyle,
             ]}
           >
@@ -198,8 +198,8 @@ export function Sheet({
                 sheetStyle,
                 {
                   backgroundColor: theme.card,
-                  borderTopLeftRadius: 20,
-                  borderTopRightRadius: 20,
+                  borderTopLeftRadius: COMPONENTS.sheet.radius,
+                  borderTopRightRadius: COMPONENTS.sheet.radius,
                   maxHeight: Math.round((containerH || winH) * (maxHeightPct / 100)),
                   // Safe-area pad belongs on the PANEL, not on a wrapper around the children.
                   // The hand-rolled sheets did it this way, and it matters: an extra non-flex View
@@ -220,10 +220,7 @@ export function Sheet({
               */}
               <GestureDetector gesture={pan}>
                 <View className="items-center pt-3 pb-3" hitSlop={8}>
-                  <View
-                    className="w-10 h-1 rounded-full"
-                    style={{ backgroundColor: theme.border }}
-                  />
+                  <View className={COMPONENTS.sheet.handle} style={{ backgroundColor: theme.border }} />
                 </View>
               </GestureDetector>
               {children}

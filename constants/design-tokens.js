@@ -109,7 +109,7 @@ const TYPE = {
 const SCALE_OVERRIDES = {};
 
 /** Card surfaces get `card`; controls and chips get `control`. Resolves the lg/xl/2xl free-for-all. */
-const RADIUS = { control: "10px", card: "14px", sheet: "20px" };
+const RADIUS = { control: "10px", card: "16px", sheet: "20px" };
 
 const MOTION = {
   fast: 140,
@@ -137,4 +137,70 @@ const DATA = {
   series: ["15 118 110", "180 83 9", "139 92 246", "37 99 235", "219 39 119", "5 150 105"],
 };
 
-module.exports = { teal, SEMANTIC, TYPE, SCALE_OVERRIDES, RADIUS, MOTION, DATA };
+
+/**
+ * COMPONENT RECIPES - the one place to change how the app looks.
+ *
+ * Colour, type, radius and motion are the tokens above. This is the other half: the SHAPE of
+ * each component - its padding, its label size, how a pressed or disabled state reads. Those
+ * decisions used to be written into each component file, so "make buttons less chunky" or
+ * "tighten the cards" meant hunting through components/ui and hoping you found them all.
+ *
+ * Every value here is a Tailwind class string (or a plain number where the prop is not a class).
+ * Change one line, run `npm run preview`, and see it applied across the whole design system
+ * before you build anything.
+ *
+ * Rules that keep this honest:
+ *   - Recipes describe SHAPE, never colour. Colour comes from a semantic role so both schemes
+ *     stay correct; a hex here would be a light-mode-only decision.
+ *   - Use the radius tokens (rounded-control / rounded-card / rounded-sheet) rather than
+ *     rounded-lg / rounded-2xl, so a radius change is one edit in RADIUS above.
+ *   - Use the type scale (text-label ... text-hero), never text-xs / text-sm.
+ */
+const COMPONENTS = {
+  button: {
+    base: "flex-row items-center justify-center rounded-control",
+    pad: "px-6 py-3",
+    label: "text-body font-semibold",
+    /** Applied on press-in. Kept as a number: it is an opacity, not a class. */
+    pressedOpacity: 0.85,
+    disabled: "opacity-50",
+  },
+  card: {
+    base: "rounded-card bg-card p-5",
+    title: "text-label font-semibold tracking-wider uppercase text-muted-foreground mb-3",
+  },
+  input: {
+    base: "rounded-control border px-3 py-3 text-body text-foreground bg-card",
+    label: "text-label font-semibold text-muted-foreground mb-1.5",
+    hint: "text-label mt-1 ml-1",
+    error: "text-label text-danger mt-1",
+  },
+  chip: {
+    base: "px-3 py-1.5 rounded-full",
+    label: "text-meta",
+  },
+  badge: {
+    sm: { pad: "px-2 py-0.5", label: "text-label font-semibold", icon: 10 },
+    md: { pad: "px-2.5 py-1", label: "text-meta font-semibold", icon: 12 },
+    /** Background alpha for the default tinted tone. */
+    tintAlpha: 0.12,
+  },
+  listRow: {
+    base: "flex-row items-center py-3",
+    icon: 18,
+    title: "text-body text-foreground",
+    subtitle: "text-meta text-muted-foreground",
+  },
+  separator: "h-px bg-border",
+  sheet: {
+    /** Numbers, not classes: these land in a style object on an animated panel. */
+    radius: 20,
+    backdrop: "rgba(0,0,0,0.45)",
+    maxHeightPct: 92,
+    handle: "w-10 h-1 rounded-full",
+  },
+  progress: { height: 8 },
+};
+
+module.exports = { teal, SEMANTIC, TYPE, SCALE_OVERRIDES, RADIUS, MOTION, DATA, COMPONENTS };

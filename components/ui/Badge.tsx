@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { Text } from "./Text";
 import { useTheme } from "@/hooks/use-theme";
 import { withAlpha } from "@/constants/brand";
-import type { SemanticRole } from "@/constants/design-tokens";
+import { COMPONENTS, type SemanticRole } from "@/constants/design-tokens";
 
 export type BadgeVariant =
   | "neutral"
@@ -70,6 +70,7 @@ export function Badge({
   className = "",
 }: BadgeProps) {
   const theme = useTheme();
+  const S = COMPONENTS.badge[size];
   const role = ROLE_FOR[variant];
   const c = color ?? theme[role];
 
@@ -79,15 +80,13 @@ export function Badge({
       : tone === "outline"
         ? "transparent"
         : color
-          ? withAlpha(color, 0.12)
-          : theme.alpha(role, 0.12);
+          ? withAlpha(color, COMPONENTS.badge.tintAlpha)
+          : theme.alpha(role, COMPONENTS.badge.tintAlpha);
   const fg = tone === "solid" ? theme.primaryForeground : c;
 
   return (
     <View
-      className={`flex-row items-center self-start rounded-full ${
-        size === "sm" ? "px-2 py-0.5" : "px-2.5 py-1"
-      } ${className}`}
+      className={`flex-row items-center self-start rounded-full ${S.pad} ${className}`}
       style={{
         backgroundColor: bg,
         borderWidth: tone === "outline" ? 1 : 0,
@@ -97,15 +96,13 @@ export function Badge({
       {icon ? (
         <Ionicons
           name={icon}
-          size={size === "sm" ? 10 : 12}
+          size={S.icon}
           color={fg}
           style={{ marginRight: 4 }}
         />
       ) : null}
       <Text
-        className={`${size === "sm" ? "text-label" : "text-meta"} font-semibold${
-          uppercase ? " uppercase tracking-wider" : ""
-        }`}
+        className={`${S.label}${uppercase ? " uppercase tracking-wider" : ""}`}
         style={{ color: fg }}
       >
         {label}

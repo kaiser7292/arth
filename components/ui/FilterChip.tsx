@@ -3,6 +3,7 @@ import { Text } from "./Text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useTheme } from "@/hooks/use-theme";
+import { COMPONENTS } from "@/constants/design-tokens";
 
 interface FilterChipProps {
   label: string;
@@ -27,7 +28,7 @@ export function FilterChip({ label, active = false, onPress, spacing = "md" }: F
   return (
     <Pressable
       onPress={onPress}
-      className={`px-3 py-1.5 rounded-full ${mr} ${active ? "border" : "bg-card"}`}
+      className={`${COMPONENTS.chip.base} ${mr} ${active ? "border" : "bg-card"}`}
       style={
         active
           ? { backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.primary }
@@ -37,7 +38,7 @@ export function FilterChip({ label, active = false, onPress, spacing = "md" }: F
       accessibilityState={{ selected: active }}
     >
       <Text
-        className={`text-xs ${active ? "font-medium" : "text-muted-foreground"}`}
+        className={`${COMPONENTS.chip.label} ${active ? "font-medium" : "text-muted-foreground"}`}
         style={active ? { color: theme.primary } : undefined}
       >
         {label}

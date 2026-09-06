@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { Text } from "./Text";
 import { Shadows } from "@/constants/theme";
+import { COMPONENTS } from "@/constants/design-tokens";
 
 interface CardProps {
   title?: string;
@@ -17,13 +18,13 @@ export function Card({
 }: CardProps) {
   return (
     <View
-      className={`rounded-2xl bg-card p-5 ${
+      className={`${COMPONENTS.card.base} ${
         elevated ? "" : "border border-border"
       } ${className}`}
       style={elevated ? Shadows.card : undefined}
     >
       {title && (
-        <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-3" accessibilityRole="header">
+        <Text className={COMPONENTS.card.title} accessibilityRole="header">
           {title}
         </Text>
       )}
