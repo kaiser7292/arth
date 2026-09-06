@@ -254,16 +254,38 @@ const loadData = useCallback(async () => {
         // Perf (v14.8.0): parallel fan-out across pool siblings instead of a
         // serial for-await loop. Shared-pool CCs with 5 sibling cards drop
         // from 5 serial queries to 1 round-trip.
+        //
+        // Per account, not per screen: getMonthBalanceSummary returns null when there is a
+        // GAP between the seeded month and the one being viewed, because
+        // getOrCreateMonthBalance chains only one month back and is deliberately not
+        // recursive - making it recursive caused UNIQUE constraint errors and took the whole
+        // ledger down with it. A pension account seeded at 0 in 2022-06 and viewed in 2026-09
+        // has no row for 2026-08, so every total silently stayed 0 and the closing balance
+        // never appeared.
+        //
+        // computeUnseededBalance is the answer .context/ prescribes for exactly this: it
+        // chains forward from the account's earliest activity, so each month opens on the
+        // previous month's closing without any recursion.
         const summaries = await Promise.all(
-          ledgerAccountIds.map((id) => getMonthBalanceSummary(id, month)),
+          ledgerAccountIds.map(async (id) => {
+            const seededSummary = await getMonthBalanceSummary(id, month);
+            if (seededSummary) {
+              return {
+                opening: seededSummary.opening_balance,
+                expenses: seededSummary.expenses,
+                credits: seededSummary.credits,
+                closing: seededSummary.closing_balance,
+              };
+            }
+            return computeUnseededBalance(id, month);
+          }),
         );
         let opening = 0, expenses = 0, credits = 0, closing = 0;
         for (const summary of summaries) {
-          if (!summary) continue;
-          opening += summary.opening_balance;
+          opening += summary.opening;
           expenses += summary.expenses;
           credits += summary.credits;
-          closing += summary.closing_balance;
+          closing += summary.closing;
         }
         balanceData = { opening, expenses, credits, closing };
       } else {

@@ -1049,10 +1049,16 @@ export default function ExpensesScreen() {
             accessibilityRole="button"
             className="ml-2 p-1"
           >
+            {/*
+              A funnel, not sliders. options-outline is the icon for settings, which is why
+              this did not read as a filter. It fills when filters are on, so the active
+              state survives being glanced at rather than depending on colour alone, and it
+              matches the mic beside it at 18px instead of standing 2px taller.
+            */}
             <Ionicons
-              name="options-outline"
-              size={20}
-              color={hasActiveFilters ? colors.blue : theme.faintForeground}
+              name={hasActiveFilters ? "funnel" : "funnel-outline"}
+              size={18}
+              color={hasActiveFilters ? theme.primary : colors.textSecondary}
             />
           </Pressable>
         </View>

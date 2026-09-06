@@ -5,7 +5,6 @@
  * add/edit person form, navigate to ledger detail.
  */
 
-import { ExportFormatPicker } from "@/components/hisaab/ExportFormatPicker";
 import { Button, Card, EmptyState, FAB, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -48,8 +47,6 @@ export default function HisaabPersonsScreen() {
   useBackOverride(viewMode !== "list", backToList);
 
   // Export picker state
-  const [showExportPicker, setShowExportPicker] = useState(false);
-  const [exportPersonId, setExportPersonId] = useState<string | null>(null);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -148,10 +145,6 @@ export default function HisaabPersonsScreen() {
     setViewMode("add_person");
   };
 
-  const handleExportPerson = (pid: string) => {
-    setExportPersonId(pid);
-    setShowExportPicker(true);
-  };
 
   const resetForm = () => {
     setFormName("");
@@ -329,7 +322,6 @@ export default function HisaabPersonsScreen() {
               }
               onLongPress={() => handleDeactivate(p)}
               onEdit={() => handleEdit(p)}
-              onExport={() => handleExportPerson(p.id)}
             />
           ))}
 
@@ -344,19 +336,27 @@ export default function HisaabPersonsScreen() {
       {/* FAB */}
       <FAB icon="person-add-outline" onPress={() => setViewMode("add_person")} />
 
-      {/* Export Format Picker */}
-      {exportPersonId && (
-        <ExportFormatPicker
-          visible={showExportPicker}
-          onClose={() => {
-            setShowExportPicker(false);
-            setExportPersonId(null);
-          }}
-          target={{ type: "person", personId: exportPersonId, userId: DEFAULT_USER_ID }}
-        />
-      )}
+
     </ScreenContainer>
   );
+}
+
+/**
+ * `2026-08-28` is six characters longer than it needs to be, and it was what pushed the meta
+ * line onto a second row. The year is dropped when it is the current one - on a ledger you
+ * are looking at now, it is noise.
+ */
+function prettyDay(iso: string): string {
+  const parts = iso.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return iso;
+  const [y, m, d] = parts;
+  const date = new Date(y, m - 1, d);
+  const sameYear = y === new Date().getFullYear();
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
 }
 
 // ─── Person Card Component ──────────────────────────────
@@ -366,18 +366,19 @@ function PersonCard({
   onPress,
   onLongPress,
   onEdit,
-  onExport,
 }: {
   person: HisaabPersonWithBalance;
   onPress: () => void;
   onLongPress: () => void;
   onEdit: () => void;
-  onExport: () => void;
 }) {
   const { colors } = useColorScheme();
   const theme = useTheme();
   const balance = person.balance ?? 0;
   const isPositive = balance >= 0;
+  // Contact details were captured but never shown anywhere. Phone leads because it is what
+  // you reach for when settling up; both are shown when both exist and there is room.
+  const contact = [person.phone, person.email].filter(Boolean).join(" · ");
 
   return (
     <Pressable onPress={onPress} onLongPress={onLongPress}>
@@ -409,12 +410,22 @@ function PersonCard({
               >
                 {person.name}
               </Text>
-              <Text className="text-xs text-muted-foreground">
+              <Text className="text-xs text-muted-foreground" numberOfLines={1}>
                 {person.entryCount} entries
-                {person.lastEntryDate
-                  ? ` · Last: ${person.lastEntryDate}`
-                  : ""}
+                {person.lastEntryDate ? ` · ${prettyDay(person.lastEntryDate)}` : ""}
               </Text>
+              {contact ? (
+                <View className="flex-row items-center mt-0.5">
+                  <Ionicons
+                    name={person.phone ? "call-outline" : "mail-outline"}
+                    size={11}
+                    color={colors.textSecondary}
+                  />
+                  <Text className="text-label text-muted-foreground ml-1 flex-1" numberOfLines={1}>
+                    {contact}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </View>
 
@@ -435,9 +446,7 @@ function PersonCard({
                   : "you owe"}
               </Text>
             </View>
-            <Pressable onPress={onExport} hitSlop={8} className="mr-2">
-              <Ionicons name="download-outline" size={16} color={colors.textSecondary} />
-            </Pressable>
+
             <Pressable onPress={onEdit} hitSlop={8}>
               <Ionicons name="create-outline" size={16} color={colors.blue} />
             </Pressable>
