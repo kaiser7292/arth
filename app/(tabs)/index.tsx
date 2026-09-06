@@ -10,6 +10,9 @@ import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { ForecastActionBar } from "@/components/expense/ForecastActionBar";
 import { LinkExpenseSheet } from "@/components/expense/LinkExpenseSheet";
+import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
+import { useAlert } from "@/hooks/use-alert";
+import { formatError } from "@/utils/error-message";
 import { BankBalanceSummary } from "@/components/home/BankBalanceSummary";
 import { CreditCardDashboard } from "@/components/home/CreditCardDashboard";
 import { DematSummaryCard } from "@/components/home/DematSummaryCard";
@@ -88,6 +91,7 @@ const preloaded = consumeHomePreload();
 let skipNextHomeLoad = preloaded != null;
 
 export default function HomeScreen() {
+  const alert = useAlert();
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -410,46 +414,18 @@ export default function HomeScreen() {
           />
         ))}
 
-        {/* Action Required Card — unified review queue entry */}
-        {isHomeCardVisible("review_queue") && (pendingCount > 0 || duplicateCount > 0 || uncategorizedCount > 0) && (() => {
-          const totalActionItems = pendingCount + duplicateCount + uncategorizedCount;
-          const lines: { label: string; count: number; icon: keyof typeof Ionicons.glyphMap }[] = [];
-          if (pendingCount > 0) lines.push({ label: "pending review", count: pendingCount, icon: "swap-horizontal-outline" });
-          if (overdueCount > 0) lines.push({ label: "overdue", count: overdueCount, icon: "alert-circle-outline" });
-          if (duplicateCount > 0) lines.push({ label: "possible duplicate" + (duplicateCount !== 1 ? "s" : ""), count: duplicateCount, icon: "copy-outline" });
-          if (uncategorizedCount > 0) lines.push({ label: "uncategorized", count: uncategorizedCount, icon: "help-circle-outline" });
-
-          return (
-            <Pressable
-              onPress={() => router.push("/expense/review-queue")}
-              accessibilityLabel={`${totalActionItems} items need action`}
-              accessibilityRole="button"
-            >
-              {/* A queue, not a metric - so it reads as a strip rather than another equal-weight card. */}
-              <View
-                className="mx-4 mt-3 px-4 py-3 rounded-card flex-row items-center"
-                style={{
-                  backgroundColor: theme.alpha("primary", 0.1),
-                  borderWidth: 1,
-                  borderColor: theme.alpha("primary", 0.22),
-                }}
-              >
-                <View className="flex-1 pr-3">
-                  <Text className="text-body font-semibold text-foreground">
-                    {totalActionItems} {totalActionItems === 1 ? "thing needs" : "things need"} you
-                  </Text>
-                  <Text className="text-meta text-muted-foreground mt-0.5">
-                    {lines.map((l) => `${l.count} ${l.label}`).join(" · ")}
-                  </Text>
-                </View>
-                <Text className="text-meta font-semibold" style={{ color: theme.primary }}>
-                  Review
-                </Text>
-                <Ionicons name="chevron-forward" size={15} color={theme.primary} />
-              </View>
-            </Pressable>
-          );
-        })()}
+        {/* Action Required Card - unified review queue entry */}
+        {isHomeCardVisible("review_queue") && (
+          <ReviewQueueCard
+            counts={{
+              pending: pendingCount,
+              overdue: overdueCount,
+              duplicates: duplicateCount,
+              uncategorized: uncategorizedCount,
+            }}
+            onPress={() => router.push("/expense/review-queue")}
+          />
+        )}
 
         {/* Budget Health Card */}
         {isHomeCardVisible("total_spent") && (
@@ -603,6 +579,7 @@ export default function HomeScreen() {
                               await loadData();
                             } catch (e) {
                               logger.warn("Skip reminder failed", e);
+                              alert("Couldn't skip", formatError("Skip reminder", e));
                             }
                           }}
                           accessibilityRole="button"
@@ -897,8 +874,10 @@ export default function HomeScreen() {
               clearDismissalsForRule(ruleId);
               await loadData();
             } catch (e) {
-              // Alerts for failures handled elsewhere; log-and-continue here.
+              // Surfaced, not swallowed. This used to log and continue, so a failing link was
+              // indistinguishable from a no-op - reported as "nothing happens".
               logger.warn("Couldn't link expense", e);
+              alert("Couldn't link", formatError("Link reminder", e));
             }
           }}
           onLogNew={() => {

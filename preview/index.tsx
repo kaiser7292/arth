@@ -23,6 +23,7 @@ import {
   Text,
 } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
+import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
 import { TYPE } from "@/constants/design-tokens";
 
 const ROLES = [
@@ -240,6 +241,14 @@ export default function Gallery() {
             <FilterChip label="All" active onPress={() => {}} />
             <FilterChip label="Committed" onPress={() => {}} />
             <FilterChip label="Credits" onPress={() => {}} />
+          </View>
+        </Section>
+
+        <Section title="Review strip" note="One kind of item vs several - the total only earns a line when there is something to total.">
+          <View className="-mx-4">
+            <ReviewQueueCard counts={{ pending: 4, overdue: 0, duplicates: 0, uncategorized: 0 }} onPress={() => {}} />
+            <ReviewQueueCard counts={{ pending: 4, overdue: 2, duplicates: 1, uncategorized: 7 }} onPress={() => {}} />
+            <ReviewQueueCard counts={{ pending: 0, overdue: 0, duplicates: 1, uncategorized: 0 }} onPress={() => {}} />
           </View>
         </Section>
 

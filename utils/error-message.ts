@@ -51,7 +51,13 @@ function humanizeError(msg: string): string {
   }
 
   if (lower.includes("no such table") || lower.includes("no such column")) {
-    return "Something went wrong with your app data. Try restarting the app.";
+    // Keep the object name. A schema error is always a bug, and this is the single piece of
+    // information that identifies WHICH one - discarding it meant a report could only ever say
+    // "something went wrong", which is not enough to act on.
+    const what = /no such (?:table|column):\s*([\w.]+)/i.exec(msg)?.[1];
+    return what
+      ? `Something went wrong with your app data (missing: ${what}). Try restarting the app.`
+      : "Something went wrong with your app data. Try restarting the app.";
   }
 
   if (lower.includes("sms permission") || lower.includes("permission")) {
