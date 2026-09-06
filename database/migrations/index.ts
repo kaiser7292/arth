@@ -69,6 +69,7 @@ import migration066 from "./066_applied_rule_manually";
 import migration067 from "./067_smart_rule_applies_to";
 import migration068 from "./068_expense_composite_index";
 import migration069 from "./069_repair_unguarded_columns";
+import migration070 from "./070_repair_reminder_fulfillments_fk";
 
 export interface Migration {
   version: number;
@@ -77,7 +78,7 @@ export interface Migration {
 }
 
 /** All migrations in order. Add new migrations to the end of this array. */
-const migrations: Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006, migration007, migration008, migration009, migration010, migration011, migration012, migration013, migration014, migration015, migration016, migration017, migration018, migration019, migration020, migration021, migration022, migration023, migration024, migration025, migration026, migration027, migration028, migration029, migration030, migration031, migration032, migration033, migration034, migration035, migration036, migration038, migration039, migration040, migration042, migration043, migration044, migration046, migration047, migration048, migration049, migration050, migration051, migration052, migration053, migration054, migration055, migration056, migration057, migration058, migration059, migration060, migration061, migration062, migration063, migration064, migration065, migration066, migration067, migration068, migration069];
+const migrations: Migration[] = [migration001, migration002, migration003, migration004, migration005, migration006, migration007, migration008, migration009, migration010, migration011, migration012, migration013, migration014, migration015, migration016, migration017, migration018, migration019, migration020, migration021, migration022, migration023, migration024, migration025, migration026, migration027, migration028, migration029, migration030, migration031, migration032, migration033, migration034, migration035, migration036, migration038, migration039, migration040, migration042, migration043, migration044, migration046, migration047, migration048, migration049, migration050, migration051, migration052, migration053, migration054, migration055, migration056, migration057, migration058, migration059, migration060, migration061, migration062, migration063, migration064, migration065, migration066, migration067, migration068, migration069, migration070];
 
 /**
  * Run all pending schema migrations.

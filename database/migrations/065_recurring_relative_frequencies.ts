@@ -10,12 +10,21 @@ import type { SQLiteDatabase } from "expo-sqlite";
  *
  * SQLite can't ALTER a CHECK constraint, so we recreate the table via
  * the standard rename → create → copy → drop pattern with foreign_keys OFF.
+ *
+ * legacy_alter_table MUST be ON for the rename. Since SQLite 3.25, RENAME TO also rewrites
+ * every reference to the table in OTHER objects - so without it, reminder_fulfillments'
+ * foreign key followed recurring_expense_rules to ..._old, and the DROP below then left it
+ * pointing at nothing. Inserting a fulfillment failed from then on with
+ * "no such table: main.recurring_expense_rules_old", which is what broke linking an expense
+ * to a reminder. foreign_keys OFF does not prevent this: it disables enforcement, not the
+ * rewrite. Migration 070 repairs databases that ran this before the pragma was added.
  */
 export default {
   version: 65,
   name: "recurring_relative_frequencies",
   up: async (db: SQLiteDatabase) => {
     await db.execAsync("PRAGMA foreign_keys = OFF;");
+    await db.execAsync("PRAGMA legacy_alter_table = ON;");
     try {
       await db.execAsync(`
         ALTER TABLE recurring_expense_rules RENAME TO recurring_expense_rules_old;
@@ -59,6 +68,7 @@ export default {
           WHERE is_active = 1;
       `);
     } finally {
+      await db.execAsync("PRAGMA legacy_alter_table = OFF;");
       await db.execAsync("PRAGMA foreign_keys = ON;");
     }
   },

@@ -18,6 +18,15 @@ import path from "path";
  */
 const DIR = path.join("database", "migrations");
 
+/**
+ * Strip comments before matching. Without this the checks below are satisfied by a comment
+ * that merely MENTIONS the thing - which is exactly what happened: the doc comment added to
+ * 065 explaining the legacy_alter_table bug made the guard pass even with the pragma deleted.
+ */
+function code(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(new RegExp("//[^" + String.fromCharCode(10) + "]*", "g"), "");
+}
+
 /** Grandfathered: written before the rule existed, repaired by 069. Do not add to this list. */
 const LEGACY = new Set([
   "010_purchase_group.ts",
@@ -38,7 +47,7 @@ describe("migrations", () => {
     const offenders: string[] = [];
     for (const file of files) {
       if (LEGACY.has(file)) continue;
-      const src = fs.readFileSync(path.join(DIR, file), "utf8");
+      const src = code(fs.readFileSync(path.join(DIR, file), "utf8"));
       const hasAlter = /ALTER TABLE\s+\w+\s+ADD COLUMN/i.test(src);
       if (hasAlter && !/table_info/i.test(src)) offenders.push(file);
     }
@@ -51,6 +60,33 @@ describe("migrations", () => {
     const missing = [...LEGACY].filter((f) => !files.includes(f));
     expect(missing).toEqual([]);
     expect(LEGACY.size).toBe(7);
+  });
+
+  it("set legacy_alter_table when renaming a LIVE table aside", () => {
+    // Since SQLite 3.25, `ALTER TABLE ... RENAME TO` also REWRITES references to that table
+    // in other objects - including foreign keys in OTHER tables. In the rename/create/copy/
+    // drop pattern used to change a CHECK constraint, that silently repoints other tables'
+    // keys at the temporary ..._old table, and the DROP then leaves them dangling.
+    //
+    // That is what migration 065 did to reminder_fulfillments: every INSERT afterwards failed
+    // with "no such table: main.recurring_expense_rules_old", so an expense could never be
+    // linked to a reminder. `PRAGMA foreign_keys = OFF` does NOT prevent it - it disables
+    // enforcement, not the rewrite. Only legacy_alter_table does.
+    //
+    // Only one DIRECTION is dangerous. `CREATE x_new; DROP x; RENAME x_new -> x` is safe:
+    // nothing references the temporary name, and dropping the live table leaves other
+    // tables' keys pointing at a name the rename then restores. 044 and 054 do it that way.
+    // Renaming a LIVE table aside to a temporary name is what repoints everything at a table
+    // about to be dropped.
+    const TEMP = /_(old|backup|broken\w*|tmp)$/i;
+    const offenders: string[] = [];
+    for (const file of files) {
+      const src = code(fs.readFileSync(path.join(DIR, file), "utf8"));
+      const renames = [...src.matchAll(/ALTER TABLE\s+(\w+)\s+RENAME TO\s+(\w+)/gi)];
+      const movesLiveTableAside = renames.some(([, from, to]) => TEMP.test(to) && !TEMP.test(from));
+      if (movesLiveTableAside && !/PRAGMA\s+legacy_alter_table\s*=\s*ON/i.test(src)) offenders.push(file);
+    }
+    expect(offenders).toEqual([]);
   });
 
   it("register every migration file in the index", () => {
