@@ -193,8 +193,8 @@ export default function Gallery() {
           <Card>
             <View className="flex-row mb-1.5">
               <View className="flex-1" />
-              <Text className="w-20 text-label font-semibold text-faint-foreground text-right">FY24</Text>
-              <Text className="w-20 text-label font-semibold text-faint-foreground text-right">FY25</Text>
+              <Text className="w-20 text-label font-semibold text-faint-foreground text-right">FY 2025-26</Text>
+              <Text className="w-20 ml-2 text-label font-semibold text-faint-foreground text-right">FY 2026-27</Text>
               <Text className="w-16 ml-2 text-label font-semibold text-faint-foreground text-right">Change</Text>
             </View>
             {[["Planned", "₹12,00,000", "₹14,40,000", "+20%"],
@@ -202,7 +202,7 @@ export default function Gallery() {
               <View key={row[0]} className="flex-row items-center py-1.5">
                 <Text className="flex-1 text-xs text-muted-foreground">{row[0]}</Text>
                 <Text className="w-20 text-xs text-muted-foreground text-right">{row[1]}</Text>
-                <Text className="w-20 text-xs font-medium text-foreground text-right">{row[2]}</Text>
+                <Text className="w-20 ml-2 text-xs font-medium text-foreground text-right">{row[2]}</Text>
                 <View className="w-16 ml-2 items-end">
                   <Badge label={row[3]} variant="success" />
                 </View>
