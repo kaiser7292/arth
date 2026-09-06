@@ -60,12 +60,15 @@ export default function MilestonesScreen() {
   const [formDurationYears, setFormDurationYears] = useState("1");
   const [formDurationMonths, setFormDurationMonths] = useState("0");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const lastVersionRef = useRef<number | null>(null);
+  const lastVersionRef = useRef<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const currentVersion = getDataVersion();
-    if (lastVersionRef.current === currentVersion) return;
-    lastVersionRef.current = currentVersion;
+    // Stamp includes what is being VIEWED, not just the data version. Version alone asks
+    // "has anything been written?" - and changing the period writes nothing, so the guard
+    // swallowed the reload and left the previous period's figures on screen.
+    const stamp = `${getDataVersion()}|${currentFY}|${startMonth}`;
+    if (lastVersionRef.current === stamp) return;
+    lastVersionRef.current = stamp;
     try {
       const preload = consumeGoalsPreload();
       const usePreload = preload && preload.fy === String(currentFY);

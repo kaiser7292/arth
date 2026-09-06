@@ -225,7 +225,7 @@ export default function ExpensesScreen() {
     expensesLenRef.current = expenses.length;
   }, [expenses.length]);
 
-  const lastVersionRef = useRef<number | null>(null);
+  const lastVersionRef = useRef<string | null>(null);
 
   /**
    * Signature of everything that changes WHICH rows should be shown.
@@ -252,14 +252,17 @@ export default function ExpensesScreen() {
     summaryGroupBy,
     sortBy,
   ].join("|");
-  const lastFilterSignatureRef = useRef<string | null>(null);
 
   const loadExpenses = useCallback(
     async (reset = true) => {
       if (reset) {
-        const currentVersion = getDataVersion();
-        if (lastVersionRef.current === currentVersion) return;
-        lastVersionRef.current = currentVersion;
+        // Stamp includes the query, not just the data version. Version alone asks "has
+        // anything been written?" - changing a filter writes nothing, so a bare version
+        // guard swallows the reload. This used to be patched by resetting the ref from a
+        // second signature ref in the focus effect; one stamp cannot fall out of step.
+        const stamp = `${getDataVersion()}|${filterSignature}`;
+        if (lastVersionRef.current === stamp) return;
+        lastVersionRef.current = stamp;
       }
       if (loading) return;
       setLoading(true);
@@ -343,7 +346,7 @@ export default function ExpensesScreen() {
         setLoading(false);
       }
     },
-    [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading],
+    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading],
   );
 
   // Load reference data once
@@ -376,11 +379,6 @@ export default function ExpensesScreen() {
   // Reload expenses when screen gains focus or filters change
   useFocusEffect(
     useCallback(() => {
-      // A changed query must bypass the data-version guard; a plain refocus must not.
-      if (lastFilterSignatureRef.current !== filterSignature) {
-        lastFilterSignatureRef.current = filterSignature;
-        lastVersionRef.current = null;
-      }
       loadExpenses(true);
       getPendingExpenseCount(DEFAULT_USER_ID).then(setPendingCount).catch(() => {});
       // eslint-disable-next-line react-hooks/exhaustive-deps

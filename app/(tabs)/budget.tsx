@@ -67,7 +67,6 @@ export default function BudgetScreen() {
   const [quickBudgetRow, setQuickBudgetRow] = useState<BudgetDashboardRow | null>(null);
   const [quickBudgetAmount, setQuickBudgetAmount] = useState("");
   const quickBudgetInputRef = useRef<TextInput>(null);
-  const lastVersionRef = useRef<number | null>(null);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [visitedSplit, setVisitedSplit] = useState(false);
   const [visitedMonthly, setVisitedMonthly] = useState(false);
@@ -108,9 +107,6 @@ export default function BudgetScreen() {
   const daysElapsed = daysTotal - daysRemaining;
 
   const loadData = useCallback(async () => {
-    const currentVersion = getDataVersion();
-    if (lastVersionRef.current === currentVersion) return;
-    lastVersionRef.current = currentVersion;
     try {
       // Pre-compute FY date ranges synchronously so all queries fire in one batch
       const fyStartMonth = getFYStartMonth();
@@ -182,7 +178,10 @@ export default function BudgetScreen() {
     }
   }, [month, startDate, endDate]);
 
-  useDataRefresh(loadData);
+  // Keyed on the viewed period. The previous in-callback guard asked only "has anything
+  // been written?", and changing the month writes nothing - so switching period left the
+  // previous month's numbers on screen.
+  useDataRefresh(loadData, { skipKey: `${month}|${startDate}|${endDate}` });
 
   // monthLabel kept for any non-header usage downstream
   const monthLabel = (() => {

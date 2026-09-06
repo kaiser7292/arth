@@ -63,15 +63,18 @@ export default function YearlyPlanScreen() {
   const [realityCheck, setRealityCheck] = useState<RealityCheckData | null>(null);
   const [savings, setSavings] = useState<SavingsSnapshot | null>(null);
   const [loanForecast, setLoanForecast] = useState<LoanForecastRow[]>([]);
-  const lastVersionRef = useRef<number | null>(null);
+  const lastVersionRef = useRef<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       (async () => {
-        const currentVersion = getDataVersion();
-        if (lastVersionRef.current === currentVersion) return;
-        lastVersionRef.current = currentVersion;
+        // Stamp includes the FY being viewed, not just the data version. Version alone
+        // asks "has anything been written?" - and changing the FY writes nothing, so the
+        // guard swallowed the reload and left the previous year's plan on screen.
+        const stamp = `${getDataVersion()}|${targetFY}`;
+        if (lastVersionRef.current === stamp) return;
+        lastVersionRef.current = stamp;
         try {
           // Use preloaded data on first open (current FY only).
           const preload = consumeYearlyPlanPreload();

@@ -32,7 +32,7 @@ export default function YoYComparisonScreen() {
   const [currentFYLabel, setCurrentFYLabel] = useState("");
   const [noData, setNoData] = useState(false);
   const [loading, setLoading] = useState(true);
-  const lastVersionRef = useRef<number | null>(null);
+  const lastVersionRef = useRef<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -41,9 +41,12 @@ export default function YoYComparisonScreen() {
   );
 
   async function loadData() {
-    const currentVersion = getDataVersion();
-    if (lastVersionRef.current === currentVersion) return;
-    lastVersionRef.current = currentVersion;
+    // Stamp includes what is being VIEWED, not just the data version. Version alone asks
+    // "has anything been written?" - and changing the period writes nothing, so the guard
+    // swallowed the reload and left the previous period's figures on screen.
+    const stamp = `${getDataVersion()}`;
+    if (lastVersionRef.current === stamp) return;
+    lastVersionRef.current = stamp;
     setLoading(true);
     try {
       const startMonth = getFYStartMonth();

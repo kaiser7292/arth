@@ -57,7 +57,7 @@ export default function InvestmentBucketsScreen() {
   useBackOverride(viewMode !== "buckets", backToList);
 
   const [cockpit, setCockpit] = useState<FinancialCockpitData | null>(null);
-  const lastVersionRef = useRef<number | null>(null);
+  const lastVersionRef = useRef<string | null>(null);
 
   // Copy-forward state
   const [prevYearBuckets, setPrevYearBuckets] = useState<InvestmentBucket[]>([]);
@@ -73,9 +73,12 @@ export default function InvestmentBucketsScreen() {
   const [editingBucketId, setEditingBucketId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const currentVersion = getDataVersion();
-    if (lastVersionRef.current === currentVersion) return;
-    lastVersionRef.current = currentVersion;
+    // Stamp includes what is being VIEWED, not just the data version. Version alone asks
+    // "has anything been written?" - and changing the period writes nothing, so the guard
+    // swallowed the reload and left the previous period's figures on screen.
+    const stamp = `${getDataVersion()}|${fyStr}|${selectedFY}`;
+    if (lastVersionRef.current === stamp) return;
+    lastVersionRef.current = stamp;
     try {
       // Use preloaded data on first open (current FY only), then fall back to live fetch.
       const preload = consumeGoalsPreload();
