@@ -156,6 +156,18 @@ const DATA = {
  *   - Use the radius tokens (rounded-control / rounded-card / rounded-sheet) rather than
  *     rounded-lg / rounded-2xl, so a radius change is one edit in RADIUS above.
  *   - Use the type scale (text-label ... text-hero), never text-xs / text-sm.
+ *
+ * PARITY NOTE. These recipes currently record what the app already renders, including the few
+ * places that still use text-xs and rounded-lg. Wiring them up was a refactor, not a redesign -
+ * the app looks byte-identical before and after. Moving them onto the scale is a real visual
+ * decision and therefore the owner's to make, not a side effect of tidying:
+ *
+ *   card.title   text-xs -> text-label     52 card headers, 12px -> 11px
+ *   input.base   rounded-lg -> rounded-control, text-base -> text-body   121 inputs
+ *   input.label / .hint / .error   text-xs -> text-label
+ *   chip.label   text-xs -> text-meta      7 chips, 12px -> 13px (grows)
+ *
+ * Each is one line here. Run `npm run preview` and you can see the result before building.
  */
 const COMPONENTS = {
   button: {
@@ -168,17 +180,17 @@ const COMPONENTS = {
   },
   card: {
     base: "rounded-card bg-card p-5",
-    title: "text-label font-semibold tracking-wider uppercase text-muted-foreground mb-3",
+    title: "text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-3",
   },
   input: {
-    base: "rounded-control border px-3 py-3 text-body text-foreground bg-card",
-    label: "text-label font-semibold text-muted-foreground mb-1.5",
-    hint: "text-label mt-1 ml-1",
-    error: "text-label text-danger mt-1",
+    base: "rounded-lg border px-3 py-3 text-base text-foreground bg-card",
+    label: "text-xs font-semibold text-muted-foreground mb-1.5",
+    hint: "text-xs mt-1 ml-1",
+    error: "text-xs text-danger mt-1",
   },
   chip: {
     base: "px-3 py-1.5 rounded-full",
-    label: "text-meta",
+    label: "text-xs",
   },
   badge: {
     sm: { pad: "px-2 py-0.5", label: "text-label font-semibold", icon: 10 },
