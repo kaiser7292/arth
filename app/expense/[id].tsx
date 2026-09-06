@@ -25,7 +25,7 @@ import { RefundTargetSheet } from "@/components/expense/RefundTargetSheet";
 import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
 import { SplitSheet } from "@/components/expense/SplitSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
-import { Button, Input, LoadingState, ScreenContainer, Sheet, Text, useToast } from "@/components/ui";
+import { Button, IconRow, Input, LoadingState, ScreenContainer, Sheet, Text, useToast } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TYPE_ICONS } from "@/constants/icons";
 
@@ -2351,23 +2351,14 @@ export default function ExpenseDetailScreen() {
 
               {/* 4e. Mark as Transfer (realized savings debits only, shown when not reclassified) */}
               {!transfer && expense.nature === "realized" && expense.account_id && expenseAccount?.account_type === "savings" && (
-                <Pressable
+                <IconRow
+                  icon="swap-horizontal-outline"
+                  title="Mark as Transfer"
+                  subtitle="This was a transfer, not spending"
+                  chevron
                   onPress={() => setTransferPickerVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="swap-horizontal-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Mark as Transfer
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      This was a transfer, not spending
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
+                  className="mx-4 mt-3 bg-card"
+                />
               )}
 
               {/* 4e. Mark as Transfer (credits) — for incoming SMS credits that were
@@ -2408,25 +2399,15 @@ export default function ExpenseDetailScreen() {
                 && expense.account_id
                 && expenseAccount?.account_type !== "credit_card"
                 && !linkedSettlement && (
-                <Pressable
+                <IconRow
+                  icon="people-outline"
+                  title="Mark as Settlement"
+                  subtitle="Someone paid you back from hisaab"
+                  chevron
                   onPress={() => setHisaabSettlementSheetVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
                   accessibilityLabel="Mark this credit as a settlement from a hisaab person"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="people-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Mark as Settlement
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      Someone paid you back from hisaab
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
+                  className="mx-4 mt-3 bg-card"
+                />
               )}
 
               {/*
@@ -2456,25 +2437,15 @@ export default function ExpenseDetailScreen() {
                 && !expense.refund_of_expense_id
                 && !linkedSettlement
                 && !transfer && (
-                <Pressable
+                <IconRow
+                  icon="return-up-back-outline"
+                  title="Tag as Refund"
+                  subtitle="Link to the expense this money came back for"
+                  chevron
                   onPress={() => setRefundExpensePickerVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
                   accessibilityLabel="Tag this credit as a refund for an expense"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="return-up-back-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Tag as Refund
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      Link to the expense this money came back for
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
+                  className="mx-4 mt-3 bg-card"
+                />
               )}
 
               {/* Badge: credit already tagged as refund. Tap expense name to deep-link;
@@ -2537,25 +2508,15 @@ export default function ExpenseDetailScreen() {
                 && !expense.refund_of_expense_id
                 && !expense.purchase_group_id
                 && !investmentLink && (
-                <Pressable
+                <IconRow
+                  icon="trending-up-outline"
+                  title="Mark as Investment"
+                  subtitle="Credits an Investment Bucket instead of counting as spend"
+                  chevron
                   onPress={() => setInvestmentSheetVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
                   accessibilityLabel="Mark this expense as an investment contribution"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="trending-up-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Mark as Investment
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      Credits an Investment Bucket instead of counting as spend
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
+                  className="mx-4 mt-3 bg-card"
+                />
               )}
 
               {/* Investment-linked badge */}
@@ -2585,25 +2546,15 @@ export default function ExpenseDetailScreen() {
                 && !expense.purchase_group_id
                 && !investmentLink
                 && !loanLink && (
-                <Pressable
+                <IconRow
+                  icon="cash-outline"
+                  title="Mark as Loan Payment"
+                  subtitle="EMI or prepayment. Excluded from budget."
+                  chevron
                   onPress={() => setLoanSheetVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
                   accessibilityLabel="Mark this expense as a loan payment"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="cash-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Mark as Loan Payment
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      EMI or prepayment. Excluded from budget.
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
+                  className="mx-4 mt-3 bg-card"
+                />
               )}
 
               {/* Loan-linked badge */}

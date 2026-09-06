@@ -8,6 +8,7 @@ import {
   Card,
   EmptyState,
   FilterChip,
+  IconRow,
   Input,
   ListRow,
   ListSeparator,
@@ -277,6 +278,18 @@ export default function Gallery() {
             <FilterChip label="All" active onPress={() => {}} />
             <FilterChip label="Committed" onPress={() => {}} />
             <FilterChip label="Credits" onPress={() => {}} />
+          </View>
+        </Section>
+
+        <Section title="IconRow" note="Icon, title, second line, optional chevron. Hand-written 52 times across 28 files before this.">
+          <View className="rounded-xl bg-card overflow-hidden">
+            <IconRow icon="swap-horizontal-outline" title="Mark as Transfer" subtitle="This was a transfer, not spending" chevron onPress={() => {}} />
+            <ListSeparator />
+            <IconRow icon="trending-up-outline" title="Mark as Investment" subtitle="Credits a bucket instead of counting as spend" chevron onPress={() => {}} />
+            <ListSeparator />
+            <IconRow icon="trash-outline" title="Delete" subtitle="This cannot be undone" tint={theme.danger} onPress={() => {}} />
+            <ListSeparator />
+            <IconRow icon="checkmark-circle" title="Static row" subtitle="No onPress, so not tappable" tint={theme.success} right={<Text className="text-meta text-muted-foreground">₹1,240</Text>} />
           </View>
         </Section>
 
