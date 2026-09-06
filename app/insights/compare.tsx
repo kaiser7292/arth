@@ -302,9 +302,9 @@ export default function PeriodComparisonScreen() {
                 <Card className="mx-4">
                   <View className="flex-row items-center pb-2 border-b border-border mb-1">
                     <Text className="flex-1 text-xs font-semibold text-faint-foreground">Category</Text>
-                    <Text className="w-20 ml-1.5 text-xs font-semibold text-faint-foreground text-right">R1</Text>
-                    <Text className="w-20 ml-1.5 text-xs font-semibold text-faint-foreground text-right">R2</Text>
-                    <Text className="w-12 ml-1.5 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
+                    <Text className="w-[84px] ml-1.5 text-xs font-semibold text-faint-foreground text-right">R1</Text>
+                    <Text className="w-[84px] ml-1.5 text-xs font-semibold text-faint-foreground text-right">R2</Text>
+                    <Text className="w-14 ml-1.5 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
                   </View>
                   {data.byCategory.map((c) => (
                     <View
@@ -315,22 +315,22 @@ export default function PeriodComparisonScreen() {
                         {c.categoryName}
                       </Text>
                       <Pressable
-                        className="w-20 ml-1.5"
+                        className="w-[84px] ml-1.5"
                         onPress={() => drillInto(data.range1.start, data.range1.end, { type: "category", categoryId: c.categoryId }, `${c.categoryName} · ${shortRangeLabel(data.range1.start, data.range1.end)}`)}
                       >
-                        <Text className="text-label text-right" style={{ color: theme.primary }}>
+                        <Text className="text-label text-right" style={{ color: theme.primary }} numberOfLines={1}>
                           {formatAmount(c.range1Total)}
                         </Text>
                       </Pressable>
                       <Pressable
-                        className="w-20 ml-1.5"
+                        className="w-[84px] ml-1.5"
                         onPress={() => drillInto(data.range2.start, data.range2.end, { type: "category", categoryId: c.categoryId }, `${c.categoryName} · ${shortRangeLabel(data.range2.start, data.range2.end)}`)}
                       >
-                        <Text className="text-label font-medium text-right" style={{ color: theme.primary }}>
+                        <Text className="text-label font-medium text-right" style={{ color: theme.primary }} numberOfLines={1}>
                           {formatAmount(c.range2Total)}
                         </Text>
                       </Pressable>
-                      <View className="w-12 ml-1.5 flex-row items-center justify-end">
+                      <View className="w-14 ml-1.5 flex-row items-center justify-end">
                         <Text className="text-label font-bold" style={{ color: changePctColor(c.deltaPct) }}>
                           {c.deltaPct > 0 ? "+" : ""}{c.deltaPct.toFixed(0)}%
                         </Text>
@@ -352,9 +352,9 @@ export default function PeriodComparisonScreen() {
                 <Card className="mx-4">
                   <View className="flex-row items-center pb-2 border-b border-border mb-1">
                     <Text className="flex-1 text-xs font-semibold text-faint-foreground">Merchant</Text>
-                    <Text className="w-20 ml-1.5 text-xs font-semibold text-faint-foreground text-right">R1</Text>
-                    <Text className="w-20 ml-1.5 text-xs font-semibold text-faint-foreground text-right">R2</Text>
-                    <Text className="w-12 ml-1.5 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
+                    <Text className="w-[84px] ml-1.5 text-xs font-semibold text-faint-foreground text-right">R1</Text>
+                    <Text className="w-[84px] ml-1.5 text-xs font-semibold text-faint-foreground text-right">R2</Text>
+                    <Text className="w-14 ml-1.5 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
                   </View>
                   {(showAllMerchants ? data.byMerchant : data.byMerchant.slice(0, 10)).map((m) => (
                     <View
@@ -365,22 +365,22 @@ export default function PeriodComparisonScreen() {
                         {m.merchantName}
                       </Text>
                       <Pressable
-                        className="w-20 ml-1.5"
+                        className="w-[84px] ml-1.5"
                         onPress={() => drillInto(data.range1.start, data.range1.end, { type: "merchant", merchantName: m.merchantName }, `${m.merchantName} · ${shortRangeLabel(data.range1.start, data.range1.end)}`)}
                       >
-                        <Text className="text-label text-right" style={{ color: theme.primary }}>
+                        <Text className="text-label text-right" style={{ color: theme.primary }} numberOfLines={1}>
                           {formatAmount(m.range1Total)}
                         </Text>
                       </Pressable>
                       <Pressable
-                        className="w-20 ml-1.5"
+                        className="w-[84px] ml-1.5"
                         onPress={() => drillInto(data.range2.start, data.range2.end, { type: "merchant", merchantName: m.merchantName }, `${m.merchantName} · ${shortRangeLabel(data.range2.start, data.range2.end)}`)}
                       >
-                        <Text className="text-label font-medium text-right" style={{ color: theme.primary }}>
+                        <Text className="text-label font-medium text-right" style={{ color: theme.primary }} numberOfLines={1}>
                           {formatAmount(m.range2Total)}
                         </Text>
                       </Pressable>
-                      <View className="w-12 ml-1.5 flex-row items-center justify-end">
+                      <View className="w-14 ml-1.5 flex-row items-center justify-end">
                         <Text className="text-label font-bold" style={{ color: changePctColor(m.deltaPct) }}>
                           {m.deltaPct > 0 ? "+" : ""}{m.deltaPct.toFixed(0)}%
                         </Text>
@@ -412,9 +412,9 @@ export default function PeriodComparisonScreen() {
                 <Card className="mx-4">
                   <View className="flex-row items-center pb-2 border-b border-border mb-1">
                     <Text className="flex-1 text-xs font-semibold text-faint-foreground">Method</Text>
-                    <Text className="w-20 ml-1.5 text-xs font-semibold text-faint-foreground text-right">R1</Text>
-                    <Text className="w-20 ml-1.5 text-xs font-semibold text-faint-foreground text-right">R2</Text>
-                    <Text className="w-12 ml-1.5 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
+                    <Text className="w-[84px] ml-1.5 text-xs font-semibold text-faint-foreground text-right">R1</Text>
+                    <Text className="w-[84px] ml-1.5 text-xs font-semibold text-faint-foreground text-right">R2</Text>
+                    <Text className="w-14 ml-1.5 text-xs font-semibold text-faint-foreground text-right">Chg</Text>
                   </View>
                   {data.byPaymentMode.map((pm) => (
                     <View
@@ -425,22 +425,22 @@ export default function PeriodComparisonScreen() {
                         {pm.paymentModeName}
                       </Text>
                       <Pressable
-                        className="w-20 ml-1.5"
+                        className="w-[84px] ml-1.5"
                         onPress={() => drillInto(data.range1.start, data.range1.end, { type: "paymentMode", paymentModeId: pm.paymentModeId }, `${pm.paymentModeName} · ${shortRangeLabel(data.range1.start, data.range1.end)}`)}
                       >
-                        <Text className="text-label text-right" style={{ color: theme.primary }}>
+                        <Text className="text-label text-right" style={{ color: theme.primary }} numberOfLines={1}>
                           {formatAmount(pm.range1Total)}
                         </Text>
                       </Pressable>
                       <Pressable
-                        className="w-20 ml-1.5"
+                        className="w-[84px] ml-1.5"
                         onPress={() => drillInto(data.range2.start, data.range2.end, { type: "paymentMode", paymentModeId: pm.paymentModeId }, `${pm.paymentModeName} · ${shortRangeLabel(data.range2.start, data.range2.end)}`)}
                       >
-                        <Text className="text-label font-medium text-right" style={{ color: theme.primary }}>
+                        <Text className="text-label font-medium text-right" style={{ color: theme.primary }} numberOfLines={1}>
                           {formatAmount(pm.range2Total)}
                         </Text>
                       </Pressable>
-                      <View className="w-12 ml-1.5 flex-row items-center justify-end">
+                      <View className="w-14 ml-1.5 flex-row items-center justify-end">
                         <Text className="text-label font-bold" style={{ color: changePctColor(pm.deltaPct) }}>
                           {pm.deltaPct > 0 ? "+" : ""}{pm.deltaPct.toFixed(0)}%
                         </Text>
