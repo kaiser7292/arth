@@ -30,6 +30,7 @@ import {
     duplicateEntry,
     fulfillEntryMulti,
     getEntryFulfillments,
+    unlinkEntryFulfillment,
     getFulfilledSummary,
     getScenarioOverview,
     rescheduleEntry,
@@ -39,6 +40,7 @@ import {
 } from "@/services/simulator";
 
 import { todayIso } from "@/utils/date";
+import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
@@ -312,6 +314,22 @@ export default function ScenarioDetailScreen() {
       }
     },
     [router, alert],
+  );
+
+  const handleUnlinkFulfillment = useCallback(
+    async (entryId: string, expenseId: string) => {
+      try {
+        await unlinkEntryFulfillment(entryId, expenseId);
+        // Refresh this entry's expanded list; removing the last link moves the entry out of
+        // the fulfilled section entirely, which load() picks up.
+        const rest = await getEntryFulfillments(entryId);
+        setFulfillmentDetails((prev) => ({ ...prev, [entryId]: rest }));
+        await load(true);
+      } catch (e) {
+        alert("Couldn't unlink", formatError("Unlink transaction", e));
+      }
+    },
+    [load, alert],
   );
 
   const handleFulfill = useCallback(
@@ -1277,6 +1295,21 @@ export default function ScenarioDetailScreen() {
                           <Text className="text-xs font-semibold" style={{ color: colors.text }}>
                             {formatAmount(f.amount)}
                           </Text>
+                          {/*
+                            Unlink lives on the row rather than as one action for the whole
+                            entry, because several transactions can fulfil one planned entry
+                            and the wrong one is what you want to remove. Taking the last one
+                            off un-fulfils the entry, which is handled in the service.
+                          */}
+                          <Pressable
+                            onPress={() => handleUnlinkFulfillment(e.id, f.expense_id)}
+                            hitSlop={10}
+                            className="ml-2 p-1"
+                            accessibilityRole="button"
+                            accessibilityLabel={`Unlink ${f.merchant_name || f.description || "this transaction"}`}
+                          >
+                            <Ionicons name="close-circle-outline" size={16} color={colors.textSecondary} />
+                          </Pressable>
                           <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} style={{ marginLeft: 4 }} />
                         </Pressable>
                       )) : (

@@ -830,6 +830,61 @@ export async function fulfillEntryMulti(
   bumpDataVersion();
 }
 
+/**
+ * Undo a link between a planned entry and one of the transactions claimed to fulfil it.
+ *
+ * Linking was one-way: fulfillEntryMulti could attach transactions but nothing could detach
+ * them, so a wrong link could only be fixed by deleting the entry and re-entering it.
+ *
+ * Removing the LAST link un-fulfils the entry rather than leaving it marked fulfilled with
+ * nothing behind it. It goes back to the state it would have been in: 'stale' if its date has
+ * already passed, 'upcoming' if it has not - the same rule autoMatchEntries uses when it fails
+ * to find a match.
+ *
+ * fulfilled_expense_id is a denormalised pointer to one of the links, so when other links
+ * remain it is re-pointed at a surviving one instead of being left dangling.
+ */
+export async function unlinkEntryFulfillment(
+  entryId: string,
+  expenseId: string,
+): Promise<void> {
+  const db = getDatabase();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `DELETE FROM simulation_entry_fulfillments WHERE entry_id = ? AND expense_id = ?;`,
+      entryId,
+      expenseId,
+    );
+    const remaining = await db.getAllAsync<{ expense_id: string }>(
+      `SELECT expense_id FROM simulation_entry_fulfillments WHERE entry_id = ?;`,
+      entryId,
+    );
+    if (remaining.length > 0) {
+      await db.runAsync(
+        `UPDATE simulation_entries
+         SET fulfilled_expense_id = ?, updated_at = datetime('now')
+         WHERE id = ?;`,
+        remaining[0].expense_id,
+        entryId,
+      );
+      return;
+    }
+    const entry = await db.getFirstAsync<{ date: string }>(
+      `SELECT date FROM simulation_entries WHERE id = ?;`,
+      entryId,
+    );
+    const status = entry && entry.date < todayIso() ? "stale" : "upcoming";
+    await db.runAsync(
+      `UPDATE simulation_entries
+       SET status = ?, fulfilled_expense_id = NULL, updated_at = datetime('now')
+       WHERE id = ?;`,
+      status,
+      entryId,
+    );
+  });
+  bumpDataVersion();
+}
+
 export interface EntryFulfillment {
   id: string;
   expense_id: string;
