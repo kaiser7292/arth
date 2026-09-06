@@ -18,6 +18,7 @@ import { ExpenseForecastTimeline } from "@/components/expense/detail/ExpenseFore
 import { ExpenseRefundCard } from "@/components/expense/detail/ExpenseRefundCard";
 import { LinkedBadgeCard } from "@/components/expense/detail/LinkedBadgeCard";
 import { ExpenseSummaryFields } from "@/components/expense/detail/ExpenseSummaryFields";
+import { useExpenseEditForm } from "@/hooks/use-expense-edit-form";
 import { LoanPaymentPickerSheet } from "@/components/expense/LoanPaymentPickerSheet";
 import { MultiSplitSheet } from "@/components/expense/MultiSplitSheet";
 import { RecurringRuleSheet } from "@/components/expense/RecurringRuleSheet";
@@ -151,15 +152,26 @@ export default function ExpenseDetailScreen() {
   const [editing, setEditing] = useState(false);
 
   // Form state (only used when editing)
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [paymentModeId, setPaymentModeId] = useState<string | null>(null);
-  const [date, setDate] = useState("");
-  const [merchantName, setMerchantName] = useState("");
-  const [isRightSpend, setIsRightSpend] = useState(true);
-  const [errors, setErrors] = useState<ExpenseValidationErrors>({});
-  const [saving, setSaving] = useState(false);
+  // One object so the edit form can be a component, destructured immediately so every
+  // existing reference to `amount`, `date` and the rest keeps working unchanged.
+  const form = useExpenseEditForm();
+  const {
+    amount, setAmount,
+    description, setDescription,
+    categoryId, setCategoryId,
+    paymentModeId, setPaymentModeId,
+    date, setDate,
+    merchantName, setMerchantName,
+    isRightSpend, setIsRightSpend,
+    accountId, setAccountId,
+    errors, setErrors,
+    saving, setSaving,
+    showAccounts, setShowAccounts,
+    showCategories, setShowCategories,
+    showPaymentModes, setShowPaymentModes,
+    showMerchants, setShowMerchants,
+    showDatePicker, setShowDatePicker,
+  } = form;
 
   // Original expense (for detecting category corrections on SMS-sourced expenses)
   const [originalExpense, setOriginalExpense] = useState<Expense | null>(null);
@@ -182,18 +194,12 @@ export default function ExpenseDetailScreen() {
   const [extraLegs, setExtraLegs] = useState<ExtraLeg[]>([]);
 
   // Account state (V4)
-  const [accountId, setAccountId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
-  const [showAccounts, setShowAccounts] = useState(false);
 
   // Picker data
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [merchantNames, setMerchantNames] = useState<string[]>([]);
-  const [showCategories, setShowCategories] = useState(false);
-  const [showPaymentModes, setShowPaymentModes] = useState(false);
-  const [showMerchants, setShowMerchants] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showSplitSheet, setShowSplitSheet] = useState(false);
   const [splitPersonName, setSplitPersonName] = useState<string | null>(null);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
