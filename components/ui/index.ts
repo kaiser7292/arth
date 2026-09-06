@@ -14,8 +14,6 @@ export { FABMenu } from "./FABMenu";
 export type { FABMenuItem } from "./FABMenu";
 export { FilterChip } from "./FilterChip";
 export { Input } from "./Input";
-export { IconRow } from "./IconRow";
-export type { IconRowProps } from "./IconRow";
 export { LearnMoreChip, LearnMoreRow } from "./LearnMoreChip";
 export { ListRow } from "./ListRow";
 export { ListSeparator } from "./ListSeparator";
