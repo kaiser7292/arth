@@ -19,7 +19,8 @@
     "routes:types": "node scripts/regen-route-types.js",
     "audit:hooks": "node scripts/audit-hooks.js",
     "audit:sheets": "node scripts/audit-sheets.js",
-    "verify": "npm run typecheck && npm run audit:hooks && npm run audit:sheets && npm run resolve:classes && npm test"
+    "verify": "npm run typecheck && npm run audit:hooks && npm run audit:sheets && npm run resolve:classes && npm test",
+    "preview": "node scripts/preview-web.js"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -100,4 +101,4 @@
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*|nativewind|react-native-css-interop)"
     ]
   }
-}
+}
