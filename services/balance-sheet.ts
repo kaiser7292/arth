@@ -264,6 +264,7 @@ async function batchBalanceSheetClosings(
        FROM expenses
        WHERE account_id IN (${ph}) AND deleted_at IS NULL
          AND nature = 'credit' AND status = 'approved'
+         AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
          AND date >= ? AND date <= ?
        GROUP BY account_id;`,
       ...ids, startDate, endDate,

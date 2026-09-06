@@ -90,6 +90,9 @@ export async function getCreditsForMonth(
      FROM expenses
      WHERE account_id = ? AND deleted_at IS NULL
        AND nature = 'credit' AND status = 'approved'
+       -- A credit reclassified as a transfer is represented by the transfer row. Without
+       -- this the ledger listed BOTH, and the balance counted the amount twice.
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
      ORDER BY date DESC;`,
     accountId,

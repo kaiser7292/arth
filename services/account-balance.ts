@@ -337,6 +337,7 @@ export async function getAccountCreditsTotal(
     `SELECT SUM(amount) as total FROM expenses
      WHERE account_id = ? AND deleted_at IS NULL
        AND nature = 'credit' AND status = 'approved'
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?;`,
     accountId,
     monthStart,
@@ -821,6 +822,7 @@ export async function getComputedBalanceComponents(
     `SELECT account_id, SUM(amount) as total FROM expenses
      WHERE account_id IN (${placeholders}) AND deleted_at IS NULL
        AND nature = 'credit' AND status = 'approved'
+       AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
      GROUP BY account_id;`,
     ...accountIds,
