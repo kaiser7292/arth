@@ -235,14 +235,16 @@ export default function ForecastDetailScreen() {
                 </Text>
                 {forecast.categoryPaces.slice(0, 5).map((cp) => (
                   <View key={cp.categoryId} className="flex-row items-center justify-between py-1.5">
-                    <Text className="text-xs text-foreground flex-1">
+                    <Text className="text-xs text-foreground flex-1 mr-2" numberOfLines={1}>
                       {categoryNames.get(cp.categoryId) || "Other"}
                     </Text>
-                    <Text className="text-xs text-muted-foreground mr-2">
+                    <Text className="text-xs text-muted-foreground mr-2" numberOfLines={1}>
                       {formatAmount(cp.dailyPace)}/day
                     </Text>
-                    <Text className="text-xs font-bold text-foreground w-16 text-right">
-                      → {formatAmount(cp.projected)}
+                    {/* Non-breaking space between the arrow and the figure — a plain space
+                        let RN wrap the arrow onto its own line when the figure ran long. */}
+                    <Text className="text-xs font-bold text-foreground text-right" numberOfLines={1}>
+                      {"→ "}{formatAmount(cp.projected)}
                     </Text>
                   </View>
                 ))}
