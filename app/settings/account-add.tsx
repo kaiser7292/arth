@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { View, ScrollView, Pressable, Keyboard } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import { Button, DateInput, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -38,11 +38,17 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 export default function AccountAddScreen() {
   const router = useRouter();
   const alert = useAlert();
-  
+  const { presetType } = useLocalSearchParams<{ presetType?: string }>();
+
   const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
 
-  const [accountType, setAccountType] = useState<AccountType>("savings");
+  // Arriving from the /investments add-instrument picker preselects the
+  // matching chip below (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 5) —
+  // this screen still shows every type so a misrouted tap isn't a dead end.
+  const [accountType, setAccountType] = useState<AccountType>(
+    presetType === "demat" || presetType === "pension" ? presetType : "savings",
+  );
 
   // Bank account fields (savings, credit_card, loan)
   const [bankName, setBankName] = useState("");
