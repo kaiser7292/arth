@@ -1295,6 +1295,8 @@ export default function ExpenseDetailScreen() {
   const handleCreateRecurring = useCallback(
     async (input: {
       frequency: RecurringFrequency;
+      repeatOrdinal: number | null;
+      repeatWeekday: number | null;
       startDate: string;
       endDate: string | null;
       notes: string | null;
@@ -1304,6 +1306,8 @@ export default function ExpenseDetailScreen() {
         await createRecurringRule(DEFAULT_USER_ID, {
           source_expense_id: expense.id,
           frequency: input.frequency,
+          repeat_ordinal: input.repeatOrdinal,
+          repeat_weekday: input.repeatWeekday,
           start_date: input.startDate,
           end_date: input.endDate,
           notes: input.notes,

@@ -30,6 +30,7 @@ import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
 import { bumpDataVersion } from "@/services/settings";
 import { todayIso } from "@/utils/date";
+import { addCycle, firstNextDue } from "@/utils/recurrence";
 import { splitExistingExpense } from "./expense-splits";
 import { applyMultiSplit } from "./expense-multi-split";
 import type { Expense, SplitConfig, SplitMode } from "./expense-types";
@@ -91,59 +92,10 @@ export interface ReminderFulfillment {
   fulfilled_at: string;
 }
 
-/** Returns the Nth occurrence of `weekday` in the given UTC month (0-indexed). ordinal -1 = last. */
-function nthWeekdayOfMonth(year: number, month: number, ordinal: number, weekday: number): string {
-  if (ordinal === -1) {
-    const last = new Date(Date.UTC(year, month + 1, 0));
-    while (last.getUTCDay() !== weekday) last.setUTCDate(last.getUTCDate() - 1);
-    return last.toISOString().slice(0, 10);
-  }
-  const first = new Date(Date.UTC(year, month, 1));
-  let diff = weekday - first.getUTCDay();
-  if (diff < 0) diff += 7;
-  first.setUTCDate(first.getUTCDate() + diff + (ordinal - 1) * 7);
-  if (first.getUTCMonth() !== month) {
-    // Requested ordinal doesn't exist this month (e.g. 5th Monday) — use last.
-    return nthWeekdayOfMonth(year, month, -1, weekday);
-  }
-  return first.toISOString().slice(0, 10);
-}
-
-/** Add one cycle of `frequency` to `iso` (YYYY-MM-DD). */
-function addCycle(iso: string, frequency: RecurringFrequency, repeatOrdinal?: number | null, repeatWeekday?: number | null): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d));
-  if (frequency === "weekly") date.setUTCDate(date.getUTCDate() + 7);
-  else if (frequency === "monthly") date.setUTCMonth(date.getUTCMonth() + 1);
-  else if (frequency === "quarterly") date.setUTCMonth(date.getUTCMonth() + 3);
-  else if (frequency === "yearly") date.setUTCFullYear(date.getUTCFullYear() + 1);
-  else if (frequency === "last_day_of_month") {
-    // Last day of the month following the current date's month.
-    date.setUTCMonth(date.getUTCMonth() + 2, 0);
-  } else if (frequency === "nth_weekday" && repeatOrdinal != null && repeatWeekday != null) {
-    const nextMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
-    return nthWeekdayOfMonth(nextMonth.getUTCFullYear(), nextMonth.getUTCMonth(), repeatOrdinal, repeatWeekday);
-  }
-  return date.toISOString().slice(0, 10);
-}
-
 function assertISODate(date: string, field: string): void {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     throw new Error(`${field} must be YYYY-MM-DD`);
   }
-}
-
-/**
- * Compute the first `next_due_date` for a new rule. If start_date is today
- * or in the future, use it as-is. If start_date is in the past, project
- * forward to the first future cycle so the user isn't greeted with a stale
- * "overdue" reminder the moment they turn recurring on.
- */
-function firstNextDue(startDate: string, frequency: RecurringFrequency, repeatOrdinal?: number | null, repeatWeekday?: number | null): string {
-  const today = todayIso();
-  let due = startDate;
-  while (due < today) due = addCycle(due, frequency, repeatOrdinal, repeatWeekday);
-  return due;
 }
 
 export async function createRule(

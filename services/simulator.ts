@@ -22,7 +22,9 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts } from "@/services/financial-account";
 import { bumpDataVersion } from "@/services/settings";
 import { addDays, todayIso } from "@/utils/date";
+import { addCycle } from "@/utils/recurrence";
 import { generateUUID } from "@/utils/uuid";
+import type { RecurringFrequency } from "@/services/recurring-detector";
 import {
     findFulfillmentCandidate,
     runSimulation,
@@ -85,6 +87,17 @@ export interface SimulationEntry {
   /** v16.0.5 — hisaab planned entries */
   hisaab_person_id: string | null;
   hisaab_kind: HisaabKind | null;
+  /**
+   * Recurring simulator entries (migration 071). When set, this row is a
+   * recurring template — expandRecurringEntries() materialises one child row
+   * per cycle (source='manual', seed_source_id=this row's id) up to
+   * repeat_until or the scenario horizon, whichever is sooner. Child rows
+   * never carry a frequency themselves, so expansion doesn't recurse.
+   */
+  frequency: RecurringFrequency | null;
+  repeat_ordinal: number | null;
+  repeat_weekday: number | null;
+  repeat_until: string | null;
 }
 
 /**
@@ -137,6 +150,11 @@ export interface CreateEntryInput {
   /** v16.0.5 — hisaab entry. When set, `hisaab_kind` must also be set. */
   hisaab_person_id?: string | null;
   hisaab_kind?: HisaabKind | null;
+  /** Recurring simulator entries (migration 071). See SimulationEntry.frequency. */
+  frequency?: RecurringFrequency | null;
+  repeat_ordinal?: number | null;
+  repeat_weekday?: number | null;
+  repeat_until?: string | null;
 }
 
 export interface UpdateEntryInput {
@@ -152,6 +170,11 @@ export interface UpdateEntryInput {
   description?: string | null;
   hisaab_person_id?: string | null;
   hisaab_kind?: HisaabKind | null;
+  /** Recurring simulator entries (migration 071). See SimulationEntry.frequency. */
+  frequency?: RecurringFrequency | null;
+  repeat_ordinal?: number | null;
+  repeat_weekday?: number | null;
+  repeat_until?: string | null;
 }
 
 export interface ScenarioOverview {
@@ -413,14 +436,24 @@ export async function duplicateScenario(id: string): Promise<string> {
      WHERE scenario_id = ? AND status = 'upcoming';`,
     id,
   );
+  // Pre-generate ids so a recurring template's already-materialised children
+  // can be relinked to the DUPLICATED template (old id -> new id) instead of
+  // losing the link — otherwise a later expandRecurringEntries call can't
+  // tell they're already covered and inserts a duplicate set of cycles.
+  const idMap = new Map<string, string>();
+  for (const e of entries) idMap.set(e.id, generateUUID());
   for (const e of entries) {
-    const eid = generateUUID();
+    const eid = idMap.get(e.id)!;
+    const newSeedSourceId = e.seed_source_id && idMap.has(e.seed_source_id)
+      ? idMap.get(e.seed_source_id)!
+      : null;
     await db.runAsync(
       `INSERT INTO simulation_entries
          (id, scenario_id, direction, amount, date, originally_planned_for,
           account_id, category_id, merchant_name, description,
-          source, seed_source_id, status, hisaab_person_id, hisaab_kind)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', NULL, 'upcoming', ?, ?);`,
+          source, seed_source_id, status, hisaab_person_id, hisaab_kind,
+          frequency, repeat_ordinal, repeat_weekday, repeat_until)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, 'upcoming', ?, ?, ?, ?, ?, ?);`,
       eid,
       newId,
       e.direction,
@@ -431,8 +464,13 @@ export async function duplicateScenario(id: string): Promise<string> {
       e.category_id,
       e.merchant_name,
       e.description,
+      newSeedSourceId,
       e.hisaab_person_id,
       e.hisaab_kind,
+      e.frequency,
+      e.repeat_ordinal,
+      e.repeat_weekday,
+      e.repeat_until,
     );
   }
   // v16.0.5 — carry hisaab inclusions over into the new scenario. Users
@@ -480,14 +518,22 @@ export async function duplicateScenarioFullSetup(id: string): Promise<string> {
     `SELECT * FROM simulation_entries WHERE scenario_id = ?;`,
     id,
   );
+  // See duplicateScenario — relink a recurring template's children so a
+  // later expandRecurringEntries call doesn't insert a duplicate set of cycles.
+  const idMap = new Map<string, string>();
+  for (const e of entries) idMap.set(e.id, generateUUID());
   for (const e of entries) {
-    const eid = generateUUID();
+    const eid = idMap.get(e.id)!;
+    const newSeedSourceId = e.seed_source_id && idMap.has(e.seed_source_id)
+      ? idMap.get(e.seed_source_id)!
+      : null;
     await db.runAsync(
       `INSERT INTO simulation_entries
          (id, scenario_id, direction, amount, date, originally_planned_for,
           account_id, category_id, merchant_name, description,
-          source, seed_source_id, status, hisaab_person_id, hisaab_kind)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', NULL, 'upcoming', ?, ?);`,
+          source, seed_source_id, status, hisaab_person_id, hisaab_kind,
+          frequency, repeat_ordinal, repeat_weekday, repeat_until)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, 'upcoming', ?, ?, ?, ?, ?, ?);`,
       eid,
       newId,
       e.direction,
@@ -498,8 +544,13 @@ export async function duplicateScenarioFullSetup(id: string): Promise<string> {
       e.category_id,
       e.merchant_name,
       e.description,
+      newSeedSourceId,
       e.hisaab_person_id,
       e.hisaab_kind,
+      e.frequency,
+      e.repeat_ordinal,
+      e.repeat_weekday,
+      e.repeat_until,
     );
   }
   const inclusions = await db.getAllAsync<SimulationHisaabInclusion>(
@@ -592,14 +643,19 @@ export async function createEntry(
   if (input.hisaab_kind && input.hisaab_kind !== "collect" && input.hisaab_kind !== "payback") {
     throw new Error("hisaab_kind must be 'collect' or 'payback'");
   }
+  if (input.frequency === "nth_weekday" && (input.repeat_ordinal == null || input.repeat_weekday == null)) {
+    throw new Error("nth_weekday frequency requires repeat_ordinal and repeat_weekday");
+  }
+  if (input.repeat_until) assertISODate(input.repeat_until, "repeat_until");
   const db = getDatabase();
   const id = generateUUID();
   await db.runAsync(
     `INSERT INTO simulation_entries
        (id, scenario_id, direction, amount, date,
         account_id, from_account_id, to_account_id, category_id, merchant_name, description,
-        source, seed_source_id, status, hisaab_person_id, hisaab_kind)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'upcoming', ?, ?);`,
+        source, seed_source_id, status, hisaab_person_id, hisaab_kind,
+        frequency, repeat_ordinal, repeat_weekday, repeat_until)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'upcoming', ?, ?, ?, ?, ?, ?);`,
     id,
     scenarioId,
     input.direction,
@@ -615,14 +671,96 @@ export async function createEntry(
     input.seed_source_id ?? null,
     input.hisaab_person_id ?? null,
     input.hisaab_kind ?? null,
+    input.frequency ?? null,
+    input.repeat_ordinal ?? null,
+    input.repeat_weekday ?? null,
+    input.repeat_until ?? null,
   );
   // Bump parent scenario's updated_at so "sort by recency" flows work.
   await db.runAsync(
     `UPDATE simulation_scenarios SET updated_at = datetime('now') WHERE id = ?;`,
     scenarioId,
   );
+  if (input.frequency) {
+    await expandRecurringEntries(scenarioId);
+  }
   bumpDataVersion();
   return id;
+}
+
+/**
+ * Materialise concrete child entries for every recurring template
+ * (frequency IS NOT NULL) in the scenario, one row per cycle from the
+ * template's date through min(repeat_until, scenario.horizon_date).
+ * Idempotent: skips a cycle date that already has a child row for that
+ * template (seed_source_id = template id). Children never carry a
+ * frequency themselves, so they are never treated as templates.
+ * Returns the count of newly-created rows.
+ */
+export async function expandRecurringEntries(scenarioId: string): Promise<number> {
+  const db = getDatabase();
+  const scenario = await getScenario(scenarioId);
+  if (!scenario) return 0;
+
+  const templates = await db.getAllAsync<SimulationEntry>(
+    `SELECT * FROM simulation_entries
+     WHERE scenario_id = ? AND frequency IS NOT NULL;`,
+    scenarioId,
+  );
+
+  let added = 0;
+  for (const t of templates) {
+    const limit = t.repeat_until && t.repeat_until < scenario.horizon_date
+      ? t.repeat_until
+      : scenario.horizon_date;
+
+    const existing = await db.getAllAsync<{ date: string }>(
+      `SELECT date FROM simulation_entries WHERE scenario_id = ? AND seed_source_id = ?;`,
+      scenarioId,
+      t.id,
+    );
+    const existingDates = new Set(existing.map((e) => e.date));
+
+    let cycle = addCycle(t.date, t.frequency as RecurringFrequency, t.repeat_ordinal, t.repeat_weekday);
+    let iterations = 0;
+    // Safety cap: a malformed frequency (e.g. nth_weekday missing its ordinal/weekday)
+    // makes addCycle a no-op, which would otherwise loop forever on the same date.
+    while (cycle <= limit && iterations < 1000) {
+      iterations++;
+      const next: string = addCycle(cycle, t.frequency as RecurringFrequency, t.repeat_ordinal, t.repeat_weekday);
+      if (!existingDates.has(cycle)) {
+        const cid = generateUUID();
+        await db.runAsync(
+          `INSERT INTO simulation_entries
+             (id, scenario_id, direction, amount, date,
+              account_id, from_account_id, to_account_id, category_id, merchant_name, description,
+              source, seed_source_id, status, hisaab_person_id, hisaab_kind)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'upcoming', ?, ?);`,
+          cid,
+          scenarioId,
+          t.direction,
+          t.amount,
+          cycle,
+          t.account_id,
+          t.from_account_id,
+          t.to_account_id,
+          t.category_id,
+          t.merchant_name,
+          t.description,
+          t.source,
+          t.id,
+          t.hisaab_person_id,
+          t.hisaab_kind,
+        );
+        existingDates.add(cycle);
+        added++;
+      }
+      if (next <= cycle) break; // stalled cycle math — bail rather than loop forever
+      cycle = next;
+    }
+  }
+  if (added > 0) bumpDataVersion();
+  return added;
 }
 
 export async function updateEntry(
@@ -1014,13 +1152,21 @@ export async function seedScenarioFromReminders(
     merchant: string | null;
     account_id: string | null;
     category_id: string | null;
+    frequency: RecurringFrequency;
+    repeat_ordinal: number | null;
+    repeat_weekday: number | null;
+    end_date: string | null;
   }>(
     `SELECT r.id as rule_id,
             r.next_due_date as due_date,
             e.amount as amount,
             e.merchant_name as merchant,
             e.account_id as account_id,
-            e.category_id as category_id
+            e.category_id as category_id,
+            r.frequency as frequency,
+            r.repeat_ordinal as repeat_ordinal,
+            r.repeat_weekday as repeat_weekday,
+            r.end_date as end_date
      FROM recurring_expense_rules r
      INNER JOIN expenses e ON e.id = r.source_expense_id
      WHERE r.user_id = ?
@@ -1042,6 +1188,11 @@ export async function seedScenarioFromReminders(
       r.rule_id,
     );
     if (existing) continue;
+    // Carrying the rule's own frequency onto the seeded entry (rather than
+    // seeding just this one due date) means expandRecurringEntries below
+    // fills in every remaining cycle up to the scenario horizon, not only
+    // the next one — a "4th Monday" rent reminder should show up every
+    // applicable month within the simulation, not just once.
     await createEntry(scenarioId, {
       direction: "out",
       amount: r.amount,
@@ -1052,9 +1203,17 @@ export async function seedScenarioFromReminders(
       description: r.merchant ? `${r.merchant} · planned from reminder` : "Planned from reminder",
       source: "seeded_reminder",
       seed_source_id: r.rule_id,
+      frequency: r.frequency,
+      repeat_ordinal: r.repeat_ordinal,
+      repeat_weekday: r.repeat_weekday,
+      repeat_until: r.end_date,
     });
     added++;
   }
+
+  // Materialise every remaining cycle (for the reminders just seeded above,
+  // and for any manually-created recurring template already in the scenario).
+  added += await expandRecurringEntries(scenarioId);
 
   // 2. Open CC repayment forecasts within horizon
   const forecasts = await db.getAllAsync<{

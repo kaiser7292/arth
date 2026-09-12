@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import type { RecurringFrequency } from "@/services/expense";
+import { addCycle } from "@/utils/recurrence";
 import { useTheme } from "@/hooks/use-theme";
 
 /**
@@ -28,11 +29,15 @@ interface RecurringRuleSheetProps {
   /** Pre-existing rule state — when non-null, the sheet opens in Edit mode. */
   initial?: {
     frequency: RecurringFrequency;
+    repeatOrdinal?: number | null;
+    repeatWeekday?: number | null;
     endDate: string | null;
     notes: string | null;
   };
   onConfirm: (input: {
     frequency: RecurringFrequency;
+    repeatOrdinal: number | null;
+    repeatWeekday: number | null;
     startDate: string;
     endDate: string | null;
     notes: string | null;
@@ -50,48 +55,42 @@ const FREQUENCY_OPTIONS: {
   { key: "weekly", label: "Weekly", sub: "Every 7 days", icon: "repeat-outline" },
   { key: "quarterly", label: "Quarterly", sub: "Every 3 months", icon: "calendar-number-outline" },
   { key: "yearly", label: "Yearly", sub: "Once a year", icon: "gift-outline" },
+  { key: "last_day_of_month", label: "Last day of month", sub: "e.g. 30th, 31st, or 28/29 Feb", icon: "calendar-clear-outline" },
+  { key: "nth_weekday", label: "Custom weekday", sub: "e.g. 4th Monday of the month", icon: "options-outline" },
 ];
 
-/** Format a Date to YYYY-MM-DD. */
-function toYMD(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+const ORDINAL_OPTS: { value: number; label: string }[] = [
+  { value: 1, label: "1st" },
+  { value: 2, label: "2nd" },
+  { value: 3, label: "3rd" },
+  { value: 4, label: "4th" },
+  { value: -1, label: "Last" },
+];
+const WEEKDAY_OPTS: { value: number; label: string }[] = [
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 0, label: "Sun" },
+];
 
 /**
  * Given the source expense date + a frequency, suggest a start date for the
- * NEXT cycle. The suggestion is what a user would reasonably mean by "starts":
- *  - monthly   → same day next month
- *  - weekly    → 7 days later
- *  - quarterly → same day 3 months later
- *  - yearly    → same day next year
+ * NEXT cycle. Delegates to the shared cycle math (utils/recurrence) so this
+ * sheet doesn't carry its own copy — Custom weekday needs the real
+ * nth-weekday-of-month logic, not a fixed day-count skip.
  * Falls back to the source date if parsing fails.
  */
-function suggestStartDate(sourceYMD: string, freq: RecurringFrequency): string {
-  const parts = sourceYMD.split("-").map(Number);
-  if (parts.length !== 3 || parts.some(isNaN)) return sourceYMD;
-  const [y, m, d] = parts;
-  const base = new Date(y, m - 1, d);
-  if (isNaN(base.getTime())) return sourceYMD;
-
-  const next = new Date(base);
-  switch (freq) {
-    case "weekly":
-      next.setDate(next.getDate() + 7);
-      break;
-    case "monthly":
-      next.setMonth(next.getMonth() + 1);
-      break;
-    case "quarterly":
-      next.setMonth(next.getMonth() + 3);
-      break;
-    case "yearly":
-      next.setFullYear(next.getFullYear() + 1);
-      break;
-  }
-  return toYMD(next);
+function suggestStartDate(
+  sourceYMD: string,
+  freq: RecurringFrequency,
+  repeatOrdinal?: number | null,
+  repeatWeekday?: number | null,
+): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(sourceYMD)) return sourceYMD;
+  return addCycle(sourceYMD, freq, repeatOrdinal, repeatWeekday);
 }
 
 /** Human-friendly date label (e.g. "15 May 2026"). */
@@ -117,6 +116,8 @@ export function RecurringRuleSheet({
   const [frequency, setFrequency] = useState<RecurringFrequency>(
     initial?.frequency ?? "monthly",
   );
+  const [repeatOrdinal, setRepeatOrdinal] = useState<number>(initial?.repeatOrdinal ?? 1);
+  const [repeatWeekday, setRepeatWeekday] = useState<number>(initial?.repeatWeekday ?? 1);
   const [startDate, setStartDate] = useState(defaultStartDate);
   // Track whether the user has manually overridden the suggested start date.
   // Until they do, changing frequency re-seeds the start date.
@@ -129,12 +130,16 @@ export function RecurringRuleSheet({
   useEffect(() => {
     if (visible) {
       const initialFreq = initial?.frequency ?? "monthly";
+      const initialOrdinal = initial?.repeatOrdinal ?? 1;
+      const initialWeekday = initial?.repeatWeekday ?? 1;
       setFrequency(initialFreq);
+      setRepeatOrdinal(initialOrdinal);
+      setRepeatWeekday(initialWeekday);
       // For a new reminder, seed the start date from the source date + frequency.
       // For edit mode, the source-side start is locked (not editable), so just
       // mirror defaultStartDate.
       setStartDate(
-        initial ? defaultStartDate : suggestStartDate(defaultStartDate, initialFreq),
+        initial ? defaultStartDate : suggestStartDate(defaultStartDate, initialFreq, initialOrdinal, initialWeekday),
       );
       setStartTouched(false);
       setEndDate(initial?.endDate ?? "");
@@ -149,10 +154,10 @@ export function RecurringRuleSheet({
       // Only re-seed start if the user hasn't manually picked one yet AND we're
       // in create mode (edit mode doesn't show the Starts field).
       if (!startTouched && !initial) {
-        setStartDate(suggestStartDate(defaultStartDate, f));
+        setStartDate(suggestStartDate(defaultStartDate, f, repeatOrdinal, repeatWeekday));
       }
     },
-    [startTouched, defaultStartDate, initial],
+    [startTouched, defaultStartDate, initial, repeatOrdinal, repeatWeekday],
   );
 
   const handleClose = useCallback(() => {
@@ -164,12 +169,14 @@ export function RecurringRuleSheet({
     const trimmedNotes = notes.trim();
     const payload = {
       frequency,
+      repeatOrdinal: frequency === "nth_weekday" ? repeatOrdinal : null,
+      repeatWeekday: frequency === "nth_weekday" ? repeatWeekday : null,
       startDate,
       endDate: trimmedEnd || null,
       notes: trimmedNotes || null,
     };
     onConfirm(payload);
-  }, [onConfirm, frequency, startDate, endDate, notes]);
+  }, [onConfirm, frequency, repeatOrdinal, repeatWeekday, startDate, endDate, notes]);
 
 
 
@@ -276,6 +283,78 @@ export function RecurringRuleSheet({
           })}
         </View>
 
+        {/* Custom weekday pickers — shown only when nth_weekday is selected */}
+        {frequency === "nth_weekday" && (
+          <>
+            <View className="px-5 pt-1 pb-3">
+              <Text
+                className="text-xs font-semibold uppercase tracking-wider mb-2"
+                style={{ color: colors.textSecondary }}
+              >
+                Which occurrence
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {ORDINAL_OPTS.map((o) => {
+                  const active = repeatOrdinal === o.value;
+                  return (
+                    <Pressable
+                      key={o.value}
+                      onPress={() => {
+                        setRepeatOrdinal(o.value);
+                        if (!startTouched && !initial) {
+                          setStartDate(suggestStartDate(defaultStartDate, frequency, o.value, repeatWeekday));
+                        }
+                      }}
+                      className="px-4 py-2 rounded-full border"
+                      style={{
+                        backgroundColor: active ? theme.primary + "26" : colors.surface,
+                        borderColor: active ? theme.primary : colors.border,
+                      }}
+                    >
+                      <Text className="text-sm font-medium" style={{ color: active ? theme.primary : colors.textSecondary }}>
+                        {o.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+            <View className="px-5 pt-1 pb-3">
+              <Text
+                className="text-xs font-semibold uppercase tracking-wider mb-2"
+                style={{ color: colors.textSecondary }}
+              >
+                Day of week
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {WEEKDAY_OPTS.map((w) => {
+                  const active = repeatWeekday === w.value;
+                  return (
+                    <Pressable
+                      key={w.value}
+                      onPress={() => {
+                        setRepeatWeekday(w.value);
+                        if (!startTouched && !initial) {
+                          setStartDate(suggestStartDate(defaultStartDate, frequency, repeatOrdinal, w.value));
+                        }
+                      }}
+                      className="px-4 py-2 rounded-full border"
+                      style={{
+                        backgroundColor: active ? theme.primary + "26" : colors.surface,
+                        borderColor: active ? theme.primary : colors.border,
+                      }}
+                    >
+                      <Text className="text-sm font-medium" style={{ color: active ? theme.primary : colors.textSecondary }}>
+                        {w.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </>
+        )}
+
         {/* Starts — calendar picker (create mode only; start is locked once rule exists) */}
         {!initial && (
           <View className="px-5 pt-1 pb-3">
@@ -298,7 +377,7 @@ export function RecurringRuleSheet({
             </Pressable>
             {!startTouched && (
               <Text className="text-xs mt-1.5" style={{ color: colors.textSecondary }}>
-                Suggested based on {frequency} cadence - tap to change.
+                Suggested based on {FREQUENCY_OPTIONS.find((o) => o.key === frequency)?.label.toLowerCase() ?? frequency} cadence - tap to change.
               </Text>
             )}
           </View>

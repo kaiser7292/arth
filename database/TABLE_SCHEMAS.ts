@@ -639,6 +639,11 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     // v16.0.9 — simulator transfer accounts (migration 042)
     "from_account_id",
     "to_account_id",
+    // Recurring simulator entries (migration 071)
+    "frequency",
+    "repeat_ordinal",
+    "repeat_weekday",
+    "repeat_until",
   ] as const,
 
   // v16.0.5 — per-scenario hisaab inclusions (migration 026)
