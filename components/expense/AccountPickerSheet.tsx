@@ -27,6 +27,7 @@ const ACCOUNT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   wallet: "phone-portrait-outline",
   loan: "cash-outline",
   demat: "trending-up-outline",
+  pension: "briefcase-outline",
 };
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -35,6 +36,7 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   wallet: "Wallet",
   loan: "Loan",
   demat: "Demat",
+  pension: "Pension",
 };
 
 export function AccountPickerSheet({

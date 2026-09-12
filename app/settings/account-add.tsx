@@ -29,6 +29,9 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   wallet: "Wallet",
   demat: "Demat",
   pension: "Pension",
+  // Not in TYPE_OPTIONS — investment accounts are created through the
+  // dedicated add-investment flow (instrument-specific fields), not here.
+  investment: "Investment",
 };
 
 export default function AccountAddScreen() {

@@ -13,7 +13,15 @@ import { bumpDataVersion } from "@/services/settings";
 import { generateUUID } from "@/utils/uuid";
 import type { ParsedSMS } from "./sms/bank-patterns";
 
-export type AccountType = "savings" | "credit_card" | "loan" | "wallet" | "demat" | "pension";
+export type AccountType = "savings" | "credit_card" | "loan" | "wallet" | "demat" | "pension" | "investment";
+
+/**
+ * Types that add to net worth vs. subtract from it. Single source of truth —
+ * promoted from a file-local copy in simulator-engine.ts so every consumer
+ * shares one list instead of re-deriving it (and forgetting a new type).
+ */
+export const ASSET_ACCOUNT_TYPES: AccountType[] = ["savings", "wallet", "demat", "pension", "investment"];
+export const LIABILITY_ACCOUNT_TYPES: AccountType[] = ["credit_card", "loan"];
 
 export interface FinancialAccount {
   id: string;
@@ -120,7 +128,7 @@ export function inferAccountTypeFromKeywords(
  * Ensures only valid account types are stored in the database.
  */
 export function isValidAccountType(type: string): type is AccountType {
-  return ['savings', 'credit_card', 'loan', 'wallet', 'demat', 'pension'].includes(type);
+  return ['savings', 'credit_card', 'loan', 'wallet', 'demat', 'pension', 'investment'].includes(type);
 }
 
 /**

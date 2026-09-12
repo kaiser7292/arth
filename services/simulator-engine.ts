@@ -9,6 +9,7 @@
  */
 
 import { daysBetween } from "@/utils/date";
+import { ASSET_ACCOUNT_TYPES, LIABILITY_ACCOUNT_TYPES } from "./financial-account";
 import type { AccountType } from "./financial-account";
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -86,14 +87,11 @@ export interface SimulationOutput {
 // Net-worth helper
 // ═══════════════════════════════════════════════════════════════════════
 
-const ASSET_TYPES: AccountType[] = ["savings", "wallet", "demat", "pension"];
-const LIABILITY_TYPES: AccountType[] = ["credit_card", "loan"];
-
 export function netWorthOf(accounts: Map<string, BaselineAccount>): number {
   let total = 0;
   for (const a of accounts.values()) {
-    if (ASSET_TYPES.includes(a.type)) total += a.balance;
-    else if (LIABILITY_TYPES.includes(a.type)) total -= a.balance;
+    if (ASSET_ACCOUNT_TYPES.includes(a.type)) total += a.balance;
+    else if (LIABILITY_ACCOUNT_TYPES.includes(a.type)) total -= a.balance;
   }
   return Math.round(total * 100) / 100;
 }
