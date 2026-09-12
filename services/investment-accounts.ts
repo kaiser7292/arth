@@ -102,6 +102,80 @@ export interface CreateFDInput {
 
 // ─── Create ───────────────────────────────────────────────
 
+interface FDDetails {
+  interest_rate_pa?: number;
+  interest_method?: InterestMethod;
+  compounding_freq?: CompoundingFreq;
+  maturity_date?: string;
+}
+
+/**
+ * Shared by createFDAccount and createFDAccountShell: inserts the
+ * investment_products row and, only when both interest_rate_pa and
+ * maturity_date are present, generates and inserts the maturity schedule.
+ * Does not touch financial_accounts or account_transfers — callers handle
+ * those separately, since the shell path (Mark as Fixed Deposit) supplies the
+ * deposit via reclassifyExpenseAsTransfer instead of a fresh transfer.
+ */
+async function insertFDProductAndSchedule(
+  financialAccountId: string,
+  principal: number,
+  startDate: string,
+  sourceAccountId: string,
+  details: FDDetails,
+): Promise<string> {
+  const db = getDatabase();
+  const productId = generateUUID();
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `INSERT INTO investment_products (
+      id, financial_account_id, instrument, valuation,
+      principal, interest_rate_pa, interest_method, compounding_freq,
+      start_date, maturity_date, payout_mode, source_account_id,
+      auto_credit_on_maturity, status, created_at, updated_at
+    ) VALUES (?, ?, 'fd', 'contract', ?, ?, ?, ?, ?, ?, 'cumulative', ?, 1, 'active', ?, ?);`,
+    productId,
+    financialAccountId,
+    principal,
+    details.interest_rate_pa ?? null,
+    details.interest_method ?? null,
+    details.compounding_freq ?? null,
+    startDate,
+    details.maturity_date ?? null,
+    sourceAccountId,
+    now,
+    now,
+  );
+
+  if (details.interest_rate_pa != null && details.maturity_date != null) {
+    const schedule = generateFDSchedule({
+      principal,
+      interest_rate_pa: details.interest_rate_pa,
+      start_date: startDate,
+      maturity_date: details.maturity_date,
+      interest_method: details.interest_method!,
+      compounding_freq: details.compounding_freq,
+    });
+    for (const entry of schedule) {
+      await db.runAsync(
+        `INSERT INTO investment_schedule_entries (
+          id, product_id, event_num, event_date, kind,
+          principal_component, interest_component, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled');`,
+        entry.id,
+        productId,
+        entry.event_num,
+        entry.event_date,
+        entry.kind,
+        entry.principal_component,
+        entry.interest_component,
+      );
+    }
+  }
+
+  return productId;
+}
+
 export async function createFDAccount(input: CreateFDInput): Promise<string> {
   if (!(Number.isFinite(input.principal) && input.principal > 0)) {
     throw new Error("Principal must be a positive number");
@@ -115,8 +189,6 @@ export async function createFDAccount(input: CreateFDInput): Promise<string> {
   if (input.interest_method === "compound" && !input.compounding_freq) {
     throw new Error("Compounding frequency is required for compound interest");
   }
-
-  const db = getDatabase();
 
   const financialAccountId = await createManualAccount({
     userId: input.user_id,
@@ -144,35 +216,142 @@ export async function createFDAccount(input: CreateFDInput): Promise<string> {
     source: "manual",
   });
 
-  const productId = generateUUID();
-  const now = new Date().toISOString();
+  await insertFDProductAndSchedule(financialAccountId, input.principal, input.start_date, input.source_account_id, {
+    interest_rate_pa: input.interest_rate_pa,
+    interest_method: input.interest_method,
+    compounding_freq: input.compounding_freq,
+    maturity_date: input.maturity_date,
+  });
+
+  bumpDataVersion();
+  return financialAccountId;
+}
+
+export interface CreateFDShellInput {
+  user_id: string;
+  bank_name: string;
+  account_identifier: string;
+  account_label?: string;
+  principal: number;
+  start_date: string;
+  source_account_id: string;
+  interest_rate_pa?: number;
+  interest_method?: InterestMethod;
+  compounding_freq?: CompoundingFreq;
+  maturity_date?: string;
+}
+
+/**
+ * Creates an FD account + investment_products row WITHOUT recording the
+ * initial deposit as a transfer — for the "Mark as Fixed Deposit" quick-create
+ * path (app/expense/[id].tsx), where an SMS-detected debit expense already
+ * exists and becomes the deposit via reclassifyExpenseAsTransfer
+ * (services/account-transfer.ts) right after this call, instead of a second,
+ * duplicate transfer.
+ *
+ * Unlike createFDAccount, interest_rate_pa/maturity_date are optional here —
+ * an SMS debit alert rarely carries them. Provide both or neither (a partial
+ * pair is rejected as ambiguous); if omitted, the product has no schedule and
+ * currentFDValue reads as the plain principal until completeFDDetails fills
+ * them in later.
+ */
+export async function createFDAccountShell(input: CreateFDShellInput): Promise<string> {
+  if (!(Number.isFinite(input.principal) && input.principal > 0)) {
+    throw new Error("Principal must be a positive number");
+  }
+  const hasRate = input.interest_rate_pa != null;
+  const hasMaturity = input.maturity_date != null;
+  if (hasRate !== hasMaturity) {
+    throw new Error("Provide both interest rate and maturity date, or leave both blank");
+  }
+  if (hasRate && !(input.interest_rate_pa! > 0)) {
+    throw new Error("Interest rate must be a positive number");
+  }
+  if (hasMaturity && input.maturity_date! <= input.start_date) {
+    throw new Error("Maturity date must be after the start date");
+  }
+  if (hasRate && input.interest_method === "compound" && !input.compounding_freq) {
+    throw new Error("Compounding frequency is required for compound interest");
+  }
+
+  const financialAccountId = await createManualAccount({
+    userId: input.user_id,
+    bankName: input.bank_name,
+    accountType: "investment",
+    accountIdentifier: input.account_identifier,
+    accountLabel: input.account_label ?? `${input.bank_name} FD`,
+    initialBalance: input.principal,
+  });
+
+  await insertFDProductAndSchedule(financialAccountId, input.principal, input.start_date, input.source_account_id, {
+    interest_rate_pa: input.interest_rate_pa,
+    interest_method: input.interest_method,
+    compounding_freq: input.compounding_freq,
+    maturity_date: input.maturity_date,
+  });
+
+  bumpDataVersion();
+  return financialAccountId;
+}
+
+/**
+ * Fills in the interest rate/method/maturity of an FD created without them
+ * (createFDAccountShell) and generates its schedule — a no-op-safe one-shot:
+ * refuses if the schedule already exists (i.e. this was already completed).
+ */
+export async function completeFDDetails(
+  financialAccountId: string,
+  details: {
+    interest_rate_pa: number;
+    interest_method: InterestMethod;
+    compounding_freq?: CompoundingFreq;
+    maturity_date: string;
+  },
+): Promise<void> {
+  const db = getDatabase();
+  const product = await getInvestmentProduct(financialAccountId);
+  if (!product || product.valuation !== "contract") {
+    throw new Error("This account is not a fixed deposit");
+  }
+  if (product.principal == null || !product.start_date) {
+    throw new Error("This fixed deposit has no principal or start date recorded");
+  }
+  if (!(details.interest_rate_pa > 0)) {
+    throw new Error("Interest rate must be a positive number");
+  }
+  if (details.maturity_date <= product.start_date) {
+    throw new Error("Maturity date must be after the start date");
+  }
+  if (details.interest_method === "compound" && !details.compounding_freq) {
+    throw new Error("Compounding frequency is required for compound interest");
+  }
+
+  const existingSchedule = await db.getFirstAsync<{ id: string }>(
+    "SELECT id FROM investment_schedule_entries WHERE product_id = ? LIMIT 1;",
+    product.id,
+  );
+  if (existingSchedule) {
+    throw new Error("This fixed deposit's schedule has already been generated");
+  }
+
   await db.runAsync(
-    `INSERT INTO investment_products (
-      id, financial_account_id, instrument, valuation,
-      principal, interest_rate_pa, interest_method, compounding_freq,
-      start_date, maturity_date, payout_mode, source_account_id,
-      auto_credit_on_maturity, status, created_at, updated_at
-    ) VALUES (?, ?, 'fd', 'contract', ?, ?, ?, ?, ?, ?, 'cumulative', ?, 1, 'active', ?, ?);`,
-    productId,
-    financialAccountId,
-    input.principal,
-    input.interest_rate_pa,
-    input.interest_method,
-    input.compounding_freq ?? null,
-    input.start_date,
-    input.maturity_date,
-    input.source_account_id,
-    now,
-    now,
+    `UPDATE investment_products
+     SET interest_rate_pa = ?, interest_method = ?, compounding_freq = ?, maturity_date = ?, updated_at = datetime('now')
+     WHERE id = ?;`,
+    details.interest_rate_pa,
+    details.interest_method,
+    details.compounding_freq ?? null,
+    details.maturity_date,
+    product.id,
   );
 
   const schedule = generateFDSchedule({
-    principal: input.principal,
-    interest_rate_pa: input.interest_rate_pa,
-    start_date: input.start_date,
-    maturity_date: input.maturity_date,
-    interest_method: input.interest_method,
-    compounding_freq: input.compounding_freq,
+    principal: product.principal,
+    interest_rate_pa: details.interest_rate_pa,
+    start_date: product.start_date,
+    maturity_date: details.maturity_date,
+    interest_method: details.interest_method,
+    compounding_freq: details.compounding_freq,
   });
   for (const entry of schedule) {
     await db.runAsync(
@@ -181,7 +360,7 @@ export async function createFDAccount(input: CreateFDInput): Promise<string> {
         principal_component, interest_component, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled');`,
       entry.id,
-      productId,
+      product.id,
       entry.event_num,
       entry.event_date,
       entry.kind,
@@ -191,7 +370,11 @@ export async function createFDAccount(input: CreateFDInput): Promise<string> {
   }
 
   bumpDataVersion();
-  return financialAccountId;
+}
+
+/** True when an FD account was created via createFDAccountShell without rate/maturity and hasn't been completed yet. */
+export function isFDIncomplete(product: InvestmentProduct): boolean {
+  return product.valuation === "contract" && (product.interest_rate_pa == null || product.maturity_date == null);
 }
 
 /**
