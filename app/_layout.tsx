@@ -555,6 +555,10 @@ export default function RootLayout(): React.JSX.Element {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="investments"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="(onboarding)"
           options={{ headerShown: false, gestureEnabled: false }}
         />

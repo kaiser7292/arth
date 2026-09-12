@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { formatAmount, formatCompact } from "@/utils/format";
+import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 
 export interface InstrumentBreakdown {
@@ -20,10 +20,11 @@ interface InvestmentsSummaryCardProps {
 
 /**
  * Replaces the separate Demat + Pension home cards (Item 10 Phase 3,
- * docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 5) with one Investments card:
- * total value plus a breakdown strip by instrument, e.g.
- * "Equity 3.16L · EPF 8.42L · FD 48K". Includes FD accounts too, which never
- * had a home card of their own before this.
+ * docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 5) with one Investments card,
+ * in the same header + per-line-item + divided-total shape as the other
+ * hero cards (BankBalanceSummary, DematSummaryCard before it): one row per
+ * instrument with its full amount, then a bold Total Value row. Includes FD
+ * accounts too, which never had a home card of their own before this.
  */
 function InvestmentsSummaryCardImpl({ totalValue, accountCount, breakdown }: InvestmentsSummaryCardProps) {
   const router = useRouter();
@@ -54,16 +55,17 @@ function InvestmentsSummaryCardImpl({ totalValue, accountCount, breakdown }: Inv
             <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
           </View>
 
-          <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-muted-foreground">Total Value</Text>
+          {breakdown.map((b) => (
+            <View key={b.label} className="flex-row justify-between mb-1">
+              <Text className="text-xs text-muted-foreground">{b.label}</Text>
+              <Text className="text-sm font-semibold text-foreground">{formatAmount(b.value)}</Text>
+            </View>
+          ))}
+
+          <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
+            <Text className="text-xs font-semibold text-muted-foreground">Total Value</Text>
             <Text className="text-sm font-bold text-foreground">{formatAmount(totalValue)}</Text>
           </View>
-
-          {breakdown.length > 0 && (
-            <Text className="text-xs text-muted-foreground mt-1" numberOfLines={1}>
-              {breakdown.map((b) => `${b.label} ${formatCompact(b.value)}`).join(" · ")}
-            </Text>
-          )}
         </Card>
       </Pressable>
     </View>
