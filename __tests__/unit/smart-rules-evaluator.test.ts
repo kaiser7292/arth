@@ -43,6 +43,7 @@ function target(overrides: Partial<EvaluationTarget> = {}): EvaluationTarget {
     sms_body: overrides.sms_body ?? null,
     description: overrides.description ?? null,
     category_id: overrides.category_id ?? null,
+    date: overrides.date ?? null,
   };
 }
 
@@ -128,6 +129,47 @@ describe("evaluateRule — amount matching", () => {
     expect(evaluateRule(r, target({ amount: 200 }))).toBe(true);
     expect(evaluateRule(r, target({ amount: 201 }))).toBe(false);
     expect(evaluateRule(r, target({ amount: 49 }))).toBe(false);
+  });
+});
+
+describe("evaluateRule — day_of_month (derived from EvaluationTarget.date)", () => {
+  it("matches the exact day of month", () => {
+    const r = rule({ conditions: [cond({ field: "day_of_month", operator: "equals", value: 10 })] });
+    expect(evaluateRule(r, target({ date: "2026-05-10" }))).toBe(true);
+    expect(evaluateRule(r, target({ date: "2026-05-11" }))).toBe(false);
+  });
+
+  it("supports between for a month-end window", () => {
+    const r = rule({ conditions: [cond({ field: "day_of_month", operator: "between", value: [25, 31] })] });
+    expect(evaluateRule(r, target({ date: "2026-05-28" }))).toBe(true);
+    expect(evaluateRule(r, target({ date: "2026-05-20" }))).toBe(false);
+  });
+
+  it("never matches when the target has no date", () => {
+    const r = rule({ conditions: [cond({ field: "day_of_month", operator: "equals", value: 10 })] });
+    expect(evaluateRule(r, target({ date: undefined }))).toBe(false);
+  });
+});
+
+describe("evaluateRule — nth_weekday_of_month (derived from EvaluationTarget.date)", () => {
+  it("matches the 4th occurrence of that date's weekday in its month", () => {
+    // 2026-01-26 is the 4th Monday of January 2026.
+    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: 4 })] });
+    expect(evaluateRule(r, target({ date: "2026-01-26" }))).toBe(true);
+    // A different Monday in the same month should not match.
+    expect(evaluateRule(r, target({ date: "2026-01-19" }))).toBe(false);
+  });
+
+  it("matches -1 for the last occurrence of that weekday, even in a 5-occurrence month", () => {
+    // January 2026 has five Thursdays: 1, 8, 15, 22, 29. The 5th is "last", not "4th".
+    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: -1 })] });
+    expect(evaluateRule(r, target({ date: "2026-01-29" }))).toBe(true);
+    expect(evaluateRule(r, target({ date: "2026-01-22" }))).toBe(false);
+  });
+
+  it("never matches when the target has no date", () => {
+    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: 4 })] });
+    expect(evaluateRule(r, target({ date: null }))).toBe(false);
   });
 });
 
@@ -267,6 +309,16 @@ describe("materialize — action projection", () => {
     expect(app.payment_mode).toBeNull();
     expect(app.tag_ids).toEqual([]);
     expect(app.is_right_spend).toBeNull();
+  });
+
+  it("projects loan_account_id from a mark_loan_repayment action", () => {
+    const app = materialize(rule({ actions: [{ type: "mark_loan_repayment", loan_account_id: "loan-1" }] }));
+    expect(app.loan_account_id).toBe("loan-1");
+  });
+
+  it("ignores a mark_loan_repayment action with no loan_account_id set", () => {
+    const app = materialize(rule({ actions: [{ type: "mark_loan_repayment" }] }));
+    expect(app.loan_account_id).toBeNull();
   });
 });
 

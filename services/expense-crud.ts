@@ -35,6 +35,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
   const userSetRightSpend = input.is_right_spend !== undefined && input.is_right_spend !== null;
 
   let linkToBucketId: string | null = null;
+  let linkToLoanAccountId: string | null = null;
   let ruleSplitPersonId: string | null = null;
   let ruleSplitMode: string | null = null;
   let ruleSplitPaidBy: string | null = null;
@@ -48,6 +49,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
       account_id: input.account_id ?? null,
       payment_mode_id: input.payment_mode_id ?? null,
       sms_body: null,
+      date: input.date,
     });
     if (allRules) {
       const { application: rule, ruleIds } = allRules;
@@ -58,6 +60,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
       appliedRuleId = ruleIds[0];
       appliedRuleIdsJson = JSON.stringify(ruleIds);
       linkToBucketId = rule.rule.action_link_to_investment_bucket_id ?? null;
+      linkToLoanAccountId = rule.loan_account_id;
       ruleSplitPersonId = rule.split_person_id;
       ruleSplitMode = rule.split_mode;
       ruleSplitPaidBy = rule.split_paid_by;
@@ -128,11 +131,24 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
   }
 
   // v17.2.0 — opportunistic loan EMI match. Runs async, never blocks.
+  let matchedScheduleEntryId: string | null = null;
   try {
     const { tryMatchExpenseToEMI } = await import("./loan-sms-matcher");
-    await tryMatchExpenseToEMI(id, input.user_id);
+    matchedScheduleEntryId = await tryMatchExpenseToEMI(id, input.user_id);
   } catch (e) {
     logger.warn("tryMatchExpenseToEMI failed (non-fatal)", e);
+  }
+
+  // Smart-rule "Mark as loan repayment" — only when the generic opportunistic
+  // match above didn't already link this expense. Scoped to the rule's chosen
+  // loan so it doesn't grab an installment on some other active loan.
+  if (linkToLoanAccountId && !matchedScheduleEntryId && (input.nature ?? "realized") === "realized") {
+    try {
+      const { tryMatchExpenseToEMI } = await import("./loan-sms-matcher");
+      await tryMatchExpenseToEMI(id, input.user_id, linkToLoanAccountId);
+    } catch (e) {
+      logger.warn("Smart-rule loan repayment match failed (non-fatal)", e);
+    }
   }
 
   // v17.2.0 — auto-link to investment bucket if the matched smart rule said so.

@@ -400,6 +400,7 @@ export async function createExpenseFromSms(
           account_id: accountId ?? null,
           payment_mode_id: paymentModeId ?? null,
           sms_body: rawBody,
+          date,
         });
         if (allRules) {
           const { application: ruleApp, ruleIds } = allRules;

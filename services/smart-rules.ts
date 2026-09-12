@@ -31,6 +31,7 @@ import { logger } from "@/utils/logger";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { splitExistingExpense } from "@/services/expense-splits";
 import type { SplitMode } from "@/services/expense-types";
+import { nthWeekdayOfMonth } from "@/utils/recurrence";
 
 // ─── Types ───
 
@@ -41,7 +42,9 @@ export type ConditionField =
   | "account_id"
   | "payment_mode"
   | "category_id"
-  | "sms_body";
+  | "sms_body"
+  | "day_of_month"
+  | "nth_weekday_of_month";
 
 export type ConditionOperator =
   | "equals"
@@ -66,6 +69,10 @@ export const OPERATORS_BY_FIELD: Record<ConditionField, ConditionOperator[]> = {
   account_id: ["equals", "not_equals", "is_empty", "is_not_empty"],
   payment_mode: ["equals", "not_equals", "is_empty", "is_not_empty"],
   category_id: ["equals", "not_equals", "is_empty", "is_not_empty"],
+  // Derived from the transaction date (migration-065 shape: ordinal fields,
+  // not raw date comparison) — see getFieldValue.
+  day_of_month: ["equals", "not_equals", "greater_than", "less_than", "between"],
+  nth_weekday_of_month: ["equals", "not_equals"],
 };
 
 /** UI label for each condition field — shared by the editor and list screens. */
@@ -77,6 +84,8 @@ export const FIELD_LABELS: Record<ConditionField, string> = {
   payment_mode: "Payment mode",
   category_id: "Category",
   sms_body: "SMS body",
+  day_of_month: "Day of month",
+  nth_weekday_of_month: "Weekday occurrence (e.g. 4th Monday)",
 };
 
 /** UI label for each operator — shared by the editor and list screens. */
@@ -109,7 +118,8 @@ export type ActionType =
   | "tags"
   | "is_right_spend"
   | "mark_auto"
-  | "split_with_person";
+  | "split_with_person"
+  | "mark_loan_repayment";
 
 export interface RuleAction {
   type: ActionType;
@@ -123,6 +133,11 @@ export interface RuleAction {
   paid_by?: string;
   split_percentage?: number;
   split_exact_amount?: number;
+  /** mark_loan_repayment — the target loan account. A rule can't know which
+   *  specific installment a future expense will settle, so it stores only
+   *  the loan; the installment is resolved at apply time (nearest scheduled
+   *  entry within a date/amount window — see loan-sms-matcher.ts). */
+  loan_account_id?: string;
 }
 
 export type AppliesTo = "expense" | "credit" | "any";
@@ -182,6 +197,8 @@ export interface EvaluationTarget {
   category_id?: string | null;
   /** 'realized' for expense debits, 'credit' for income/refunds. Defaults to 'realized' when absent. */
   nature?: string;
+  /** YYYY-MM-DD. Backs the day_of_month / nth_weekday_of_month derived fields. */
+  date?: string | null;
 }
 
 export interface RuleApplication {
@@ -197,6 +214,7 @@ export interface RuleApplication {
   split_paid_by: string | null;
   split_percentage: number | null;
   split_exact_amount: number | null;
+  loan_account_id: string | null;
 }
 
 // ─── Raw DB row (conditions/actions still JSON text) ───
@@ -266,6 +284,24 @@ function fromRow(row: SmartRuleRow): SmartRule {
 
 // ─── Pure evaluator ───
 
+/**
+ * Which occurrence of its own weekday this date is within its month — 1-4,
+ * or -1 for the last occurrence (mirrors the repeat_ordinal scale used by
+ * recurring reminders, so "value=4" and "value=-1" mean what they mean
+ * there too). Returns null for an unparseable date.
+ */
+function nthWeekdayOccurrence(isoDate: string): number | null {
+  const parts = isoDate.split("-").map(Number);
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return null;
+  const [y, m, d] = parts;
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  for (const ordinal of [1, 2, 3, 4]) {
+    if (nthWeekdayOfMonth(y, m - 1, ordinal, weekday) === isoDate) return ordinal;
+  }
+  // Not the 1st-4th occurrence — must be the (5th and) last.
+  return nthWeekdayOfMonth(y, m - 1, -1, weekday) === isoDate ? -1 : null;
+}
+
 function getFieldValue(field: ConditionField, target: EvaluationTarget): string | number | null {
   switch (field) {
     case "merchant":
@@ -282,6 +318,13 @@ function getFieldValue(field: ConditionField, target: EvaluationTarget): string 
       return target.category_id ?? null;
     case "sms_body":
       return target.sms_body ?? null;
+    case "day_of_month": {
+      if (!target.date) return null;
+      const day = Number(target.date.split("-")[2]);
+      return Number.isNaN(day) ? null : day;
+    }
+    case "nth_weekday_of_month":
+      return target.date ? nthWeekdayOccurrence(target.date) : null;
   }
 }
 
@@ -432,6 +475,7 @@ export function materialize(rule: SmartRule): RuleApplication {
   let split_paid_by: string | null = null;
   let split_percentage: number | null = null;
   let split_exact_amount: number | null = null;
+  let loan_account_id: string | null = null;
 
   for (const action of rule.actions) {
     switch (action.type) {
@@ -462,10 +506,13 @@ export function materialize(rule: SmartRule): RuleApplication {
           split_exact_amount = action.split_exact_amount ?? null;
         }
         break;
+      case "mark_loan_repayment":
+        if (action.loan_account_id) loan_account_id = action.loan_account_id;
+        break;
     }
   }
 
-  return { rule, category_id, payment_mode, description, tag_ids, is_right_spend, mark_auto, split_person_id, split_mode, split_paid_by, split_percentage, split_exact_amount };
+  return { rule, category_id, payment_mode, description, tag_ids, is_right_spend, mark_auto, split_person_id, split_mode, split_paid_by, split_percentage, split_exact_amount, loan_account_id };
 }
 
 // ─── DB-backed operations ───
@@ -530,6 +577,7 @@ export async function applyAllRules(
     let split_paid_by: string | null = null;
     let split_percentage: number | null = null;
     let split_exact_amount: number | null = null;
+    let loan_account_id: string | null = null;
     let primaryRule = matches[0];
 
     for (const rule of matches) {
@@ -551,6 +599,7 @@ export async function applyAllRules(
         split_exact_amount = app.split_exact_amount;
         primaryRule = rule;
       }
+      if (app.loan_account_id !== null) loan_account_id = app.loan_account_id;
     }
 
     const application: RuleApplication = {
@@ -566,6 +615,7 @@ export async function applyAllRules(
       split_paid_by,
       split_percentage,
       split_exact_amount,
+      loan_account_id,
     };
 
     return { application, ruleIds: matches.map((r) => r.id) };
@@ -762,6 +812,20 @@ function assertValidInput(input: CreateSmartRuleInput): void {
     ) {
       throw new Error("Between range's first value must be ≤ the second");
     }
+    if (condition.field === "day_of_month") {
+      const values = Array.isArray(condition.value) ? condition.value : [condition.value];
+      for (const v of values) {
+        if (v != null && (typeof v !== "number" || v < 1 || v > 31)) {
+          throw new Error("Day of month must be between 1 and 31");
+        }
+      }
+    }
+    if (condition.field === "nth_weekday_of_month") {
+      const v = condition.value;
+      if (v != null && (typeof v !== "number" || (v !== -1 && (v < 1 || v > 4)))) {
+        throw new Error("Weekday occurrence must be 1-4, or -1 for the last occurrence");
+      }
+    }
   }
 }
 
@@ -800,6 +864,7 @@ type RetroactiveCandidate = {
   status: string | null;
   split_hisaab_entry_id: string | null;
   is_right_spend: number | null;
+  date: string | null;
 };
 
 async function fetchRetroactiveCandidates(
@@ -831,7 +896,7 @@ async function fetchRetroactiveCandidates(
   }
 
   return db.getAllAsync<RetroactiveCandidate>(
-    `SELECT id, amount, nature, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text, status, split_hisaab_entry_id, is_right_spend
+    `SELECT id, amount, nature, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text, status, split_hisaab_entry_id, is_right_spend, date
      FROM expenses
      WHERE ${conds.join(" AND ")};`,
     params,
@@ -849,6 +914,7 @@ function candidateToTarget(e: RetroactiveCandidate): EvaluationTarget {
     payment_mode_id: e.payment_mode_id,
     category_id: e.category_id,
     sms_body: e.raw_source_text,
+    date: e.date,
   };
 }
 

@@ -26,11 +26,15 @@ interface MatchCandidate {
 
 /**
  * Try to match a newly-created expense to a scheduled EMI.
+ * Pass `loanAccountId` to constrain the search to one specific loan (used by
+ * the "Mark as loan repayment" smart-rule action) — omit it to search across
+ * all of the user's active loans (the generic opportunistic match).
  * Returns the matched schedule entry id if matched, else null.
  */
 export async function tryMatchExpenseToEMI(
   expenseId: string,
   userId: string,
+  loanAccountId?: string,
 ): Promise<string | null> {
   try {
     const db = getDatabase();
@@ -63,6 +67,7 @@ export async function tryMatchExpenseToEMI(
          AND se.emi_amount <= ?
          AND se.emi_amount >= ?
          AND se.due_date >= ? AND se.due_date <= ?
+         ${loanAccountId ? "AND se.loan_account_id = ?" : ""}
        ORDER BY ABS(se.emi_amount - ?) ASC, ABS(julianday(se.due_date) - julianday(?)) ASC
        LIMIT 1;`,
       userId,
@@ -70,6 +75,7 @@ export async function tryMatchExpenseToEMI(
       amountLow,  // EMI ≥ expense × 0.95 (don't match wildly different amounts)
       dateLow,
       dateHigh,
+      ...(loanAccountId ? [loanAccountId] : []),
       expense.amount,
       expense.date,
     );

@@ -157,6 +157,10 @@ export default function SmartRulesListScreen() {
     if (field === "category_id") {
       return categoryMap.get(raw)?.name ?? raw;
     }
+    if (field === "nth_weekday_of_month") {
+      const labels: Record<string, string> = { "1": "1st", "2": "2nd", "3": "3rd", "4": "4th", "-1": "Last" };
+      return labels[raw] ?? raw;
+    }
     return raw;
   }, [accountMap, paymentModeMap, categoryMap]);
 
@@ -199,6 +203,9 @@ export default function SmartRulesListScreen() {
           break;
         case "split_with_person":
           parts.push("auto split");
+          break;
+        case "mark_loan_repayment":
+          parts.push("mark loan repayment");
           break;
       }
     }

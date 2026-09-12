@@ -73,6 +73,15 @@ const FIELD_OPTIONS: { key: ConditionField; label: string }[] = (
   Object.keys(FIELD_LABELS) as ConditionField[]
 ).map((key) => ({ key, label: FIELD_LABELS[key] }));
 
+/** Same ordinal scale as recurring reminders' repeat_ordinal (1-4, -1 = last). */
+const NTH_WEEKDAY_OPTS: { value: number; label: string }[] = [
+  { value: 1, label: "1st" },
+  { value: 2, label: "2nd" },
+  { value: 3, label: "3rd" },
+  { value: 4, label: "4th" },
+  { value: -1, label: "Last" },
+];
+
 // ─── THEN action types ─────────────────────────────────────────────────────
 
 type UIActionType = ActionType | "link_investment_bucket";
@@ -90,6 +99,7 @@ const ACTION_TYPE_LABELS: Record<UIActionType, string> = {
   mark_auto: "Auto-approve from review",
   split_with_person: "Auto split with person",
   link_investment_bucket: "Link investment bucket",
+  mark_loan_repayment: "Mark as loan repayment",
 };
 
 const ACTION_TYPE_OPTIONS: { type: UIActionType; label: string }[] = (
@@ -106,6 +116,7 @@ function defaultActionFor(type: UIActionType): UIRuleAction {
     case "mark_auto": return { type: "mark_auto" };
     case "split_with_person": return { type: "split_with_person", split_mode: "equal", paid_by: "me" };
     case "link_investment_bucket": return { type: "link_investment_bucket", bucket_id: null };
+    case "mark_loan_repayment": return { type: "mark_loan_repayment" };
     default: return { type: "category" };
   }
 }
@@ -288,6 +299,7 @@ export default function SmartRuleDetailScreen() {
       if (a.type === "payment_mode" && !a.payment_mode) continue;
       if (a.type === "set_description" && !a.description_template?.trim()) continue;
       if (a.type === "tags" && (!a.tag_ids || a.tag_ids.length === 0)) continue;
+      if (a.type === "mark_loan_repayment" && !a.loan_account_id) continue;
       if (a.type === "split_with_person") {
         if (!a.person_id) continue;
         const splitAction: RuleAction = {
@@ -520,6 +532,7 @@ export default function SmartRuleDetailScreen() {
               const operatorExpanded = expandedOperatorRow === index;
               const needsValue = condition.operator !== "is_empty" && condition.operator !== "is_not_empty";
               const isPicker = condition.field === "account_id" || condition.field === "payment_mode" || condition.field === "category_id";
+              const isNumericField = condition.field === "amount" || condition.field === "day_of_month" || condition.field === "nth_weekday_of_month";
 
               return (
                 <View
@@ -634,7 +647,23 @@ export default function SmartRuleDetailScreen() {
                   {needsValue && (
                     <View className="mt-1">
                       <Text className="text-xs text-faint-foreground mb-1.5">Value</Text>
-                      {condition.operator === "between" ? (
+                      {condition.field === "nth_weekday_of_month" ? (
+                        <View className="flex-row flex-wrap gap-2">
+                          {NTH_WEEKDAY_OPTS.map((opt) => {
+                            const isSel = condition.value === opt.value;
+                            return (
+                              <Pressable
+                                key={opt.value}
+                                onPress={() => updateCondition(index, { value: opt.value })}
+                                className="px-3 py-1.5 rounded-lg border border-border"
+                                style={isSel ? { backgroundColor: accentColor + "20", borderColor: accentColor } : undefined}
+                              >
+                                <Text className="text-xs font-semibold" style={{ color: isSel ? accentColor : colors.textSecondary }}>{opt.label}</Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      ) : condition.operator === "between" ? (
                         <View className="flex-row">
                           <TextInput
                             placeholder="Min"
@@ -744,13 +773,17 @@ export default function SmartRuleDetailScreen() {
                         );
                       })() : (
                         <TextInput
-                          placeholder={condition.field === "amount" ? "e.g. 500" : "e.g. swiggy"}
+                          placeholder={
+                            condition.field === "amount" ? "e.g. 500"
+                            : condition.field === "day_of_month" ? "e.g. 10 (1-31)"
+                            : "e.g. swiggy"
+                          }
                           placeholderTextColor={colors.tabIconDefault}
-                          keyboardType={condition.field === "amount" ? "numeric" : "default"}
+                          keyboardType={isNumericField ? "numeric" : "default"}
                           autoCapitalize="none"
                           value={String(condition.value ?? "")}
                           onChangeText={(v) =>
-                            updateCondition(index, { value: condition.field === "amount" ? parseFloat(v) || 0 : v })
+                            updateCondition(index, { value: isNumericField ? parseFloat(v) || 0 : v })
                           }
                           className="rounded-lg border border-border px-3 py-2.5 text-sm text-foreground"
                         />
@@ -1124,6 +1157,51 @@ export default function SmartRuleDetailScreen() {
                             </View>
                           </View>
                         )}
+                      </>
+                    );
+                  })()}
+
+                  {action.type === "mark_loan_repayment" && (() => {
+                    const a = action as RuleAction & { type: "mark_loan_repayment" };
+                    const loanAccounts = accounts.filter((acc) => acc.account_type === "loan");
+                    const selectedLoan = loanAccounts.find((acc) => acc.id === a.loan_account_id);
+                    return (
+                      <>
+                        <Pressable
+                          onPress={() => { setExpandedActionTypeRow(null); setExpandedActionValueRow(valueExpanded ? null : index); }}
+                          className="flex-row items-center justify-between py-2"
+                        >
+                          <View>
+                            <Text className="text-xs text-faint-foreground">Loan</Text>
+                            <Text className="text-base text-foreground" style={selectedLoan ? undefined : { color: colors.tabIconDefault }}>
+                              {selectedLoan?.account_label ?? selectedLoan?.bank_name ?? "Select loan"}
+                            </Text>
+                          </View>
+                          <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                        </Pressable>
+                        {valueExpanded && (
+                          <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
+                            {loanAccounts.length === 0 ? (
+                              <Text className="text-sm text-faint-foreground px-3 py-2.5">No loan accounts yet</Text>
+                            ) : loanAccounts.map((acc) => {
+                              const isSel = a.loan_account_id === acc.id;
+                              return (
+                                <Pressable
+                                  key={acc.id}
+                                  onPress={() => { updateAction(index, { loan_account_id: acc.id }); setExpandedActionValueRow(null); }}
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
+                                  style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
+                                >
+                                  <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{acc.account_label ?? acc.bank_name}</Text>
+                                  {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        )}
+                        <Text className="text-xs text-faint-foreground mt-0.5">
+                          The specific installment is matched automatically when a matching expense is created — nearest scheduled EMI by date and amount.
+                        </Text>
                       </>
                     );
                   })()}
