@@ -145,6 +145,12 @@ export default function SmartRulesListScreen() {
   }, [alert, load]);
 
   const resolveConditionValue = useCallback((field: string, value: unknown): string => {
+    if (field === "nth_weekday_of_month" && Array.isArray(value)) {
+      const ordinalLabels: Record<string, string> = { "1": "1st", "2": "2nd", "3": "3rd", "4": "4th", "-1": "Last" };
+      const weekdayLabels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const [ordinal, weekday] = value;
+      return `${ordinalLabels[String(ordinal)] ?? ordinal} ${weekdayLabels[weekday] ?? weekday}`;
+    }
     if (Array.isArray(value)) return `${value[0]}–${value[1]}`;
     const raw = String(value ?? "");
     if (field === "account_id") {
@@ -156,10 +162,6 @@ export default function SmartRulesListScreen() {
     }
     if (field === "category_id") {
       return categoryMap.get(raw)?.name ?? raw;
-    }
-    if (field === "nth_weekday_of_month") {
-      const labels: Record<string, string> = { "1": "1st", "2": "2nd", "3": "3rd", "4": "4th", "-1": "Last" };
-      return labels[raw] ?? raw;
     }
     return raw;
   }, [accountMap, paymentModeMap, categoryMap]);

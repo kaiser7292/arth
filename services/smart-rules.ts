@@ -72,7 +72,10 @@ export const OPERATORS_BY_FIELD: Record<ConditionField, ConditionOperator[]> = {
   // Derived from the transaction date (migration-065 shape: ordinal fields,
   // not raw date comparison) — see getFieldValue.
   day_of_month: ["equals", "not_equals", "greater_than", "less_than", "between"],
-  nth_weekday_of_month: ["equals", "not_equals"],
+  // Value is [ordinal, weekday] — an exact-match test ("is this date the 4th
+  // Monday of its month"), so "equals" is the only operator that means
+  // anything here. The UI hides the operator picker when there's only one.
+  nth_weekday_of_month: ["equals"],
 };
 
 /** UI label for each condition field — shared by the editor and list screens. */
@@ -85,7 +88,7 @@ export const FIELD_LABELS: Record<ConditionField, string> = {
   category_id: "Category",
   sms_body: "SMS body",
   day_of_month: "Day of month",
-  nth_weekday_of_month: "Weekday occurrence (e.g. 4th Monday)",
+  nth_weekday_of_month: "Weekday occurrence",
 };
 
 /** UI label for each operator — shared by the editor and list screens. */
@@ -285,21 +288,15 @@ function fromRow(row: SmartRuleRow): SmartRule {
 // ─── Pure evaluator ───
 
 /**
- * Which occurrence of its own weekday this date is within its month — 1-4,
- * or -1 for the last occurrence (mirrors the repeat_ordinal scale used by
- * recurring reminders, so "value=4" and "value=-1" mean what they mean
- * there too). Returns null for an unparseable date.
+ * Does `isoDate` fall exactly on the given (ordinal, weekday) occurrence —
+ * e.g. ordinal=4, weekday=1 asks "is this the 4th Monday of its month?"
+ * ordinal follows the same -1-for-last scale used by recurring reminders.
  */
-function nthWeekdayOccurrence(isoDate: string): number | null {
+function matchesNthWeekday(isoDate: string, ordinal: number, weekday: number): boolean {
   const parts = isoDate.split("-").map(Number);
-  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return null;
-  const [y, m, d] = parts;
-  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-  for (const ordinal of [1, 2, 3, 4]) {
-    if (nthWeekdayOfMonth(y, m - 1, ordinal, weekday) === isoDate) return ordinal;
-  }
-  // Not the 1st-4th occurrence — must be the (5th and) last.
-  return nthWeekdayOfMonth(y, m - 1, -1, weekday) === isoDate ? -1 : null;
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return false;
+  const [y, m] = parts;
+  return nthWeekdayOfMonth(y, m - 1, ordinal, weekday) === isoDate;
 }
 
 function getFieldValue(field: ConditionField, target: EvaluationTarget): string | number | null {
@@ -324,7 +321,10 @@ function getFieldValue(field: ConditionField, target: EvaluationTarget): string 
       return Number.isNaN(day) ? null : day;
     }
     case "nth_weekday_of_month":
-      return target.date ? nthWeekdayOccurrence(target.date) : null;
+      // Evaluated directly in evaluateCondition (it needs the condition's
+      // own [ordinal, weekday] value, not just a derived scalar) — never
+      // reached, kept only so this switch stays exhaustive over ConditionField.
+      return null;
   }
 }
 
@@ -397,6 +397,12 @@ const POSITIVE_STRING_OPERATORS = new Set<ConditionOperator>([
 ]);
 
 function evaluateCondition(condition: RuleCondition, target: EvaluationTarget): boolean {
+  if (condition.field === "nth_weekday_of_month") {
+    if (!target.date || !Array.isArray(condition.value)) return false;
+    const [ordinal, weekday] = condition.value;
+    return matchesNthWeekday(target.date, ordinal, weekday);
+  }
+
   const fieldValue = getFieldValue(condition.field, target);
   const result = evaluateSingleValue(condition.operator, condition.value, fieldValue);
 
@@ -822,8 +828,11 @@ function assertValidInput(input: CreateSmartRuleInput): void {
     }
     if (condition.field === "nth_weekday_of_month") {
       const v = condition.value;
-      if (v != null && (typeof v !== "number" || (v !== -1 && (v < 1 || v > 4)))) {
-        throw new Error("Weekday occurrence must be 1-4, or -1 for the last occurrence");
+      const [ordinal, weekday] = Array.isArray(v) ? v : [undefined, undefined];
+      const validOrdinal = typeof ordinal === "number" && (ordinal === -1 || (ordinal >= 1 && ordinal <= 4));
+      const validWeekday = typeof weekday === "number" && weekday >= 0 && weekday <= 6;
+      if (!validOrdinal || !validWeekday) {
+        throw new Error("Weekday occurrence needs both an occurrence (1st-4th or last) and a day of the week");
       }
     }
   }

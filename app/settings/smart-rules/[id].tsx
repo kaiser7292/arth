@@ -34,6 +34,10 @@ import { getActiveAccounts, type FinancialAccount } from "@/services/financial-a
 import { getTags, type Tag } from "@/services/tags";
 import { getPersonsWithBalances, type HisaabPersonWithBalance } from "@/services/hisaab";
 import { getAllActiveBuckets, type InvestmentBucket } from "@/services/yearly-plan";
+import { listActiveLoans, type LoanAccount } from "@/services/loan-accounts";
+import { formatAmount } from "@/utils/format";
+import { getFYLabel } from "@/utils/fiscal-year";
+import { getFYStartMonth } from "@/services/settings";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -63,6 +67,13 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** e.g. "FY 2025-26" — buckets reuse the same name across years, so the FY is what disambiguates them. */
+function bucketFYLabel(b: { financial_year: string | null }): string | null {
+  if (!b.financial_year) return null;
+  const year = parseInt(b.financial_year, 10);
+  return Number.isNaN(year) ? null : getFYLabel(year, getFYStartMonth());
+}
+
 function daysAgoIso(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
@@ -74,12 +85,21 @@ const FIELD_OPTIONS: { key: ConditionField; label: string }[] = (
 ).map((key) => ({ key, label: FIELD_LABELS[key] }));
 
 /** Same ordinal scale as recurring reminders' repeat_ordinal (1-4, -1 = last). */
-const NTH_WEEKDAY_OPTS: { value: number; label: string }[] = [
+const NTH_WEEKDAY_ORDINAL_OPTS: { value: number; label: string }[] = [
   { value: 1, label: "1st" },
   { value: 2, label: "2nd" },
   { value: 3, label: "3rd" },
   { value: 4, label: "4th" },
   { value: -1, label: "Last" },
+];
+const NTH_WEEKDAY_DAY_OPTS: { value: number; label: string }[] = [
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 0, label: "Sun" },
 ];
 
 // ─── THEN action types ─────────────────────────────────────────────────────
@@ -131,6 +151,9 @@ function defaultOperatorFor(field: ConditionField): ConditionOperator {
 
 function defaultConditionFor(field: ConditionField): RuleCondition {
   const operator = defaultOperatorFor(field);
+  if (field === "nth_weekday_of_month") {
+    return { field, operator, value: [1, 1] }; // 1st Monday, as a starting point
+  }
   return { field, operator, value: operator === "is_empty" || operator === "is_not_empty" ? null : "" };
 }
 
@@ -163,6 +186,7 @@ export default function SmartRuleDetailScreen() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
+  const [loans, setLoans] = useState<LoanAccount[]>([]);
 
   // Index of the condition row whose Field/Operator/Value picker is expanded.
   const [expandedFieldRow, setExpandedFieldRow] = useState<number | null>(null);
@@ -190,6 +214,7 @@ export default function SmartRuleDetailScreen() {
     getTags(DEFAULT_USER_ID).then(setTags).catch(() => setTags([]));
     getPersonsWithBalances(DEFAULT_USER_ID).then(setPersons).catch(() => setPersons([]));
     getAllActiveBuckets(DEFAULT_USER_ID).then(setBuckets).catch(() => setBuckets([]));
+    listActiveLoans(DEFAULT_USER_ID).then(setLoans).catch(() => setLoans([]));
   }, []);
 
   useEffect(() => {
@@ -532,7 +557,7 @@ export default function SmartRuleDetailScreen() {
               const operatorExpanded = expandedOperatorRow === index;
               const needsValue = condition.operator !== "is_empty" && condition.operator !== "is_not_empty";
               const isPicker = condition.field === "account_id" || condition.field === "payment_mode" || condition.field === "category_id";
-              const isNumericField = condition.field === "amount" || condition.field === "day_of_month" || condition.field === "nth_weekday_of_month";
+              const isNumericField = condition.field === "amount" || condition.field === "day_of_month";
 
               return (
                 <View
@@ -604,66 +629,93 @@ export default function SmartRuleDetailScreen() {
                     </View>
                   )}
 
-                  {/* Operator */}
-                  <Pressable
-                    onPress={() => {
-                      setExpandedOperatorRow(operatorExpanded ? null : index);
-                      setExpandedFieldRow(null);
-                      setExpandedCondValueRow(null);
-                    }}
-                    className="flex-row items-center justify-between py-2"
-                  >
-                    <View>
-                      <Text className="text-xs text-faint-foreground">Operator</Text>
-                      <Text className="text-base text-foreground">
-                        {OPERATOR_LABELS[condition.operator]}
-                      </Text>
-                    </View>
-                    <Ionicons name={operatorExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
-                  </Pressable>
+                  {/* Operator — hidden when the field only has one possible operator
+                      (e.g. nth_weekday_of_month is inherently an exact match). */}
+                  {availableOperators.length > 1 && (
+                    <>
+                      <Pressable
+                        onPress={() => {
+                          setExpandedOperatorRow(operatorExpanded ? null : index);
+                          setExpandedFieldRow(null);
+                          setExpandedCondValueRow(null);
+                        }}
+                        className="flex-row items-center justify-between py-2"
+                      >
+                        <View>
+                          <Text className="text-xs text-faint-foreground">Operator</Text>
+                          <Text className="text-base text-foreground">
+                            {OPERATOR_LABELS[condition.operator]}
+                          </Text>
+                        </View>
+                        <Ionicons name={operatorExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                      </Pressable>
 
-                  {operatorExpanded && (
-                    <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
-                      {availableOperators.map((op) => {
-                        const isSelected = condition.operator === op;
-                        return (
-                          <Pressable
-                            key={op}
-                            onPress={() => setConditionOperator(index, op)}
-                            className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
-                            style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
-                          >
-                            <Text className="text-sm text-foreground" style={isSelected ? { color: accentColor } : undefined}>
-                              {OPERATOR_LABELS[op]}
-                            </Text>
-                            {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
-                          </Pressable>
-                        );
-                      })}
-                    </View>
+                      {operatorExpanded && (
+                        <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
+                          {availableOperators.map((op) => {
+                            const isSelected = condition.operator === op;
+                            return (
+                              <Pressable
+                                key={op}
+                                onPress={() => setConditionOperator(index, op)}
+                                className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
+                                style={{ backgroundColor: isSelected ? accentColor + "18" : undefined }}
+                              >
+                                <Text className="text-sm text-foreground" style={isSelected ? { color: accentColor } : undefined}>
+                                  {OPERATOR_LABELS[op]}
+                                </Text>
+                                {isSelected && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      )}
+                    </>
                   )}
 
                   {/* Value */}
                   {needsValue && (
                     <View className="mt-1">
                       <Text className="text-xs text-faint-foreground mb-1.5">Value</Text>
-                      {condition.field === "nth_weekday_of_month" ? (
-                        <View className="flex-row flex-wrap gap-2">
-                          {NTH_WEEKDAY_OPTS.map((opt) => {
-                            const isSel = condition.value === opt.value;
-                            return (
-                              <Pressable
-                                key={opt.value}
-                                onPress={() => updateCondition(index, { value: opt.value })}
-                                className="px-3 py-1.5 rounded-lg border border-border"
-                                style={isSel ? { backgroundColor: accentColor + "20", borderColor: accentColor } : undefined}
-                              >
-                                <Text className="text-xs font-semibold" style={{ color: isSel ? accentColor : colors.textSecondary }}>{opt.label}</Text>
-                              </Pressable>
-                            );
-                          })}
-                        </View>
-                      ) : condition.operator === "between" ? (
+                      {condition.field === "nth_weekday_of_month" ? (() => {
+                        const [ordinal, weekday] = Array.isArray(condition.value) ? condition.value : [1, 1];
+                        return (
+                          <>
+                            <Text className="text-xs text-faint-foreground mb-1">Which occurrence</Text>
+                            <View className="flex-row flex-wrap gap-2 mb-2">
+                              {NTH_WEEKDAY_ORDINAL_OPTS.map((opt) => {
+                                const isSel = ordinal === opt.value;
+                                return (
+                                  <Pressable
+                                    key={opt.value}
+                                    onPress={() => updateCondition(index, { value: [opt.value, weekday] })}
+                                    className="px-3 py-1.5 rounded-lg border border-border"
+                                    style={isSel ? { backgroundColor: accentColor + "20", borderColor: accentColor } : undefined}
+                                  >
+                                    <Text className="text-xs font-semibold" style={{ color: isSel ? accentColor : colors.textSecondary }}>{opt.label}</Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </View>
+                            <Text className="text-xs text-faint-foreground mb-1">Day of week</Text>
+                            <View className="flex-row flex-wrap gap-2">
+                              {NTH_WEEKDAY_DAY_OPTS.map((opt) => {
+                                const isSel = weekday === opt.value;
+                                return (
+                                  <Pressable
+                                    key={opt.value}
+                                    onPress={() => updateCondition(index, { value: [ordinal, opt.value] })}
+                                    className="px-3 py-1.5 rounded-lg border border-border"
+                                    style={isSel ? { backgroundColor: accentColor + "20", borderColor: accentColor } : undefined}
+                                  >
+                                    <Text className="text-xs font-semibold" style={{ color: isSel ? accentColor : colors.textSecondary }}>{opt.label}</Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </View>
+                          </>
+                        );
+                      })() : condition.operator === "between" ? (
                         <View className="flex-row">
                           <TextInput
                             placeholder="Min"
@@ -1164,6 +1216,15 @@ export default function SmartRuleDetailScreen() {
                   {action.type === "mark_loan_repayment" && (() => {
                     const a = action as RuleAction & { type: "mark_loan_repayment" };
                     const loanAccounts = accounts.filter((acc) => acc.account_type === "loan");
+                    const loanFor = (accId: string) => loans.find((l) => l.financial_account_id === accId);
+                    const loanSubtitle = (accId: string) => {
+                      const acc = loanAccounts.find((x) => x.id === accId);
+                      const l = loanFor(accId);
+                      const parts: string[] = [];
+                      if (acc?.account_identifier) parts.push(`••••${acc.account_identifier}`);
+                      if (l?.emi_amount) parts.push(`${formatAmount(l.emi_amount)}/mo`);
+                      return parts.join(" · ");
+                    };
                     const selectedLoan = loanAccounts.find((acc) => acc.id === a.loan_account_id);
                     return (
                       <>
@@ -1176,6 +1237,9 @@ export default function SmartRuleDetailScreen() {
                             <Text className="text-base text-foreground" style={selectedLoan ? undefined : { color: colors.tabIconDefault }}>
                               {selectedLoan?.account_label ?? selectedLoan?.bank_name ?? "Select loan"}
                             </Text>
+                            {selectedLoan && loanSubtitle(selectedLoan.id) !== "" && (
+                              <Text className="text-xs text-faint-foreground mt-0.5">{loanSubtitle(selectedLoan.id)}</Text>
+                            )}
                           </View>
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                         </Pressable>
@@ -1185,6 +1249,7 @@ export default function SmartRuleDetailScreen() {
                               <Text className="text-sm text-faint-foreground px-3 py-2.5">No loan accounts yet</Text>
                             ) : loanAccounts.map((acc) => {
                               const isSel = a.loan_account_id === acc.id;
+                              const subtitle = loanSubtitle(acc.id);
                               return (
                                 <Pressable
                                   key={acc.id}
@@ -1192,7 +1257,12 @@ export default function SmartRuleDetailScreen() {
                                   className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{acc.account_label ?? acc.bank_name}</Text>
+                                  <View className="flex-1">
+                                    <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{acc.account_label ?? acc.bank_name}</Text>
+                                    {subtitle !== "" && (
+                                      <Text className="text-xs text-faint-foreground mt-0.5">{subtitle}</Text>
+                                    )}
+                                  </View>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );
@@ -1209,6 +1279,7 @@ export default function SmartRuleDetailScreen() {
                   {action.type === "link_investment_bucket" && (() => {
                     const a = action as { type: "link_investment_bucket"; bucket_id: string | null };
                     const selectedBucket = buckets.find((b) => b.id === a.bucket_id);
+                    const selectedFY = selectedBucket ? bucketFYLabel(selectedBucket) : null;
                     return (
                       <>
                         <Pressable
@@ -1218,7 +1289,7 @@ export default function SmartRuleDetailScreen() {
                           <View>
                             <Text className="text-xs text-faint-foreground">Investment bucket</Text>
                             <Text className="text-base text-foreground" style={selectedBucket ? undefined : { color: colors.tabIconDefault }}>
-                              {selectedBucket?.name ?? "Select bucket"}
+                              {selectedBucket ? `${selectedBucket.name}${selectedFY ? ` · ${selectedFY}` : ""}` : "Select bucket"}
                             </Text>
                           </View>
                           <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
@@ -1229,6 +1300,7 @@ export default function SmartRuleDetailScreen() {
                               <Text className="text-sm text-faint-foreground px-3 py-2.5">No investment buckets created yet</Text>
                             ) : buckets.map((b) => {
                               const isSel = a.bucket_id === b.id;
+                              const fyLabel = bucketFYLabel(b);
                               return (
                                 <Pressable
                                   key={b.id}
@@ -1236,7 +1308,12 @@ export default function SmartRuleDetailScreen() {
                                   className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
-                                  <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{b.name}</Text>
+                                  <View className="flex-1">
+                                    <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{b.name}</Text>
+                                    {fyLabel && (
+                                      <Text className="text-xs text-faint-foreground mt-0.5">{fyLabel}</Text>
+                                    )}
+                                  </View>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );

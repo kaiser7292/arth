@@ -151,25 +151,36 @@ describe("evaluateRule — day_of_month (derived from EvaluationTarget.date)", (
   });
 });
 
-describe("evaluateRule — nth_weekday_of_month (derived from EvaluationTarget.date)", () => {
-  it("matches the 4th occurrence of that date's weekday in its month", () => {
-    // 2026-01-26 is the 4th Monday of January 2026.
-    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: 4 })] });
+describe("evaluateRule — nth_weekday_of_month (value is [ordinal, weekday])", () => {
+  it("matches an exact (ordinal, weekday) pair — e.g. the 4th Monday", () => {
+    // 2026-01-26 is the 4th Monday of January 2026. weekday: 0=Sun ... 1=Mon.
+    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: [4, 1] })] });
     expect(evaluateRule(r, target({ date: "2026-01-26" }))).toBe(true);
     // A different Monday in the same month should not match.
     expect(evaluateRule(r, target({ date: "2026-01-19" }))).toBe(false);
   });
 
+  it("does not match a date that is the right ordinal but the wrong weekday", () => {
+    // 2026-01-22 is the 4th Thursday, not the 4th Monday.
+    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: [4, 1] })] });
+    expect(evaluateRule(r, target({ date: "2026-01-22" }))).toBe(false);
+  });
+
   it("matches -1 for the last occurrence of that weekday, even in a 5-occurrence month", () => {
     // January 2026 has five Thursdays: 1, 8, 15, 22, 29. The 5th is "last", not "4th".
-    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: -1 })] });
+    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: [-1, 4] })] });
     expect(evaluateRule(r, target({ date: "2026-01-29" }))).toBe(true);
     expect(evaluateRule(r, target({ date: "2026-01-22" }))).toBe(false);
   });
 
   it("never matches when the target has no date", () => {
-    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: 4 })] });
+    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: [4, 1] })] });
     expect(evaluateRule(r, target({ date: null }))).toBe(false);
+  });
+
+  it("never matches when the condition value isn't a well-formed pair", () => {
+    const r = rule({ conditions: [cond({ field: "nth_weekday_of_month", operator: "equals", value: 4 })] });
+    expect(evaluateRule(r, target({ date: "2026-01-26" }))).toBe(false);
   });
 });
 
