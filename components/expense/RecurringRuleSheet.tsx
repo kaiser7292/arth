@@ -202,6 +202,25 @@ export function RecurringRuleSheet({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 8 }}
       >
+        {/* Notes (optional) */}
+        <View className="px-5 pt-1 pb-3">
+          <Text
+            className="text-xs font-semibold uppercase tracking-wider mb-2"
+            style={{ color: colors.textSecondary }}
+          >
+            Notes (optional)
+          </Text>
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="e.g., Flat rent, split 50/50 with flatmate"
+            placeholderTextColor={colors.textSecondary}
+            className="border border-border rounded-lg px-3 py-2.5 text-sm"
+            style={{ color: colors.text, minHeight: 60 }}
+            multiline
+          />
+        </View>
+
         {/* Frequency */}
         <View className="px-5 pt-1 pb-3">
           <Text
@@ -329,25 +348,6 @@ export function RecurringRuleSheet({
               End date must be after the start date.
             </Text>
           ) : null}
-        </View>
-
-        {/* Notes (optional) */}
-        <View className="px-5 pt-1 pb-3">
-          <Text
-            className="text-xs font-semibold uppercase tracking-wider mb-2"
-            style={{ color: colors.textSecondary }}
-          >
-            Notes (optional)
-          </Text>
-          <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="e.g., Flat rent, split 50/50 with flatmate"
-            placeholderTextColor={colors.textSecondary}
-            className="border border-border rounded-lg px-3 py-2.5 text-sm"
-            style={{ color: colors.text, minHeight: 60 }}
-            multiline
-          />
         </View>
       </ScrollView>
 

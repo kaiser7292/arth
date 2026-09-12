@@ -76,28 +76,27 @@ function DematSummaryCardImpl({
           </View>
 
           {/* Fund Balance */}
-          {totalFund > 0 && (
-            <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-muted-foreground">
-                Idle Cash / Fund
-              </Text>
-              <Text className="text-sm font-semibold text-foreground">
-                {formatAmount(totalFund)}
-              </Text>
-            </View>
-          )}
+          <View className="flex-row justify-between mb-1">
+            <Text className="text-xs text-muted-foreground">
+              Idle Cash / Fund
+            </Text>
+            <Text
+              className="text-sm font-semibold"
+              style={{ color: totalFund < 0 ? theme.danger : colors.text }}
+            >
+              {formatAmount(totalFund)}
+            </Text>
+          </View>
 
           {/* Total */}
-          {totalFund > 0 && (
-            <View className="flex-row justify-between pt-1 mt-1 border-t border-border">
-              <Text className="text-xs font-medium text-muted-foreground">
-                Total
-              </Text>
-              <Text className="text-sm font-bold text-foreground">
-                {formatAmount(total)}
-              </Text>
-            </View>
-          )}
+          <View className="flex-row justify-between pt-1 mt-1 border-t border-border">
+            <Text className="text-xs font-medium text-muted-foreground">
+              Total
+            </Text>
+            <Text className="text-sm font-bold text-foreground">
+              {formatAmount(total)}
+            </Text>
+          </View>
         </Card>
       </Pressable>
     </View>

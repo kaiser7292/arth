@@ -791,7 +791,7 @@ export interface LoansSummary {
   totalOutstandingINR: number;
   totalMonthlyEMI: number;
   nonInrCount: number;
-  nextDue: { loanId: string; bankName: string; dueDate: string; amount: number } | null;
+  nextDue: { loanId: string; bankName: string; dueDate: string; amount: number; isOverdue: boolean } | null;
 }
 
 /**
@@ -809,7 +809,7 @@ export async function getLoansSummary(
   let totalOutstandingINR = 0;
   let totalMonthlyEMI = 0;
   let nonInrCount = 0;
-  let nextDue: { loanId: string; bankName: string; dueDate: string; amount: number } | null = null;
+  let nextDue: { loanId: string; bankName: string; dueDate: string; amount: number; isOverdue: boolean } | null = null;
 
   for (const loan of loans) {
     const outstanding = await getLoanOutstandingAt(loan.id, today);
@@ -818,15 +818,16 @@ export async function getLoansSummary(
     } else {
       nonInrCount++;
     }
+    // No lower bound on due_date: a missed EMI (due_date < today) is still
+    // the one actually owed and must not be skipped in favour of next month's.
     const nextScheduled = await db.getFirstAsync<{
       due_date: string;
       emi_amount: number;
     }>(
       `SELECT due_date, emi_amount FROM loan_schedule_entries
-       WHERE loan_account_id = ? AND status = 'scheduled' AND due_date >= ?
+       WHERE loan_account_id = ? AND status = 'scheduled'
        ORDER BY due_date ASC LIMIT 1;`,
       loan.id,
-      today,
     );
     if (nextScheduled) {
       if (loan.currency === "INR") {
@@ -842,6 +843,7 @@ export async function getLoansSummary(
           bankName: fa?.bank_name ?? "Loan",
           dueDate: nextScheduled.due_date,
           amount: nextScheduled.emi_amount,
+          isOverdue: nextScheduled.due_date < today,
         };
       }
     }

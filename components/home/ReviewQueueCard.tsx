@@ -1,11 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, View } from "react-native";
-import { Badge, Text } from "@/components/ui";
+import { Card, StatusPill, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 
 export interface ReviewQueueCounts {
   pending: number;
-  overdue: number;
   duplicates: number;
   uncategorized: number;
 }
@@ -15,83 +14,83 @@ interface ReviewQueueCardProps {
   onPress: () => void;
 }
 
-/** Singular and plural written out; "1 duplicates" is the kind of thing people notice. */
 const KINDS: {
   key: keyof ReviewQueueCounts;
+  icon: keyof typeof Ionicons.glyphMap;
   one: string;
   many: string;
 }[] = [
-  { key: "pending", one: "to review", many: "to review" },
-  { key: "overdue", one: "overdue", many: "overdue" },
-  { key: "duplicates", one: "duplicate", many: "duplicates" },
-  { key: "uncategorized", one: "uncategorised", many: "uncategorised" },
+  { key: "pending", icon: "swap-horizontal-outline", one: "pending review", many: "pending review" },
+  { key: "duplicates", icon: "copy-outline", one: "possible duplicate", many: "possible duplicates" },
+  { key: "uncategorized", icon: "help-circle-outline", one: "uncategorized", many: "uncategorized" },
 ];
 
 /**
  * The home strip that leads into the review queue.
  *
- * It used to always print a generic total and then repeat the breakdown underneath, so the common
- * case - one kind of item - read as:
- *
- *     4 things need you
- *     4 pending review
- *
- * The same number twice, in two different phrasings. With one kind of item there is nothing to
- * total, so the item IS the headline. The total only earns its line when there is more than one
- * kind, and then the breakdown carries its own labels instead of being a joined string.
- *
- * It also fixes a real inconsistency: the total was pending + duplicates + uncategorised while the
- * breakdown below it also listed overdue, so the headline could read "4" above a list of 6. The
- * total is now derived from exactly the items shown.
+ * Overdue dues are deliberately excluded from this count — they have their own surface
+ * (Upcoming Dues, with its own action bar) and approving/rejecting an overdue forecast
+ * never clears it from "overdue" (it just moves buckets), which made this card's total
+ * look frozen. This card only counts things that actually leave the queue when acted on:
+ * pending review, duplicates, uncategorized.
  */
 export function ReviewQueueCard({ counts, onPress }: ReviewQueueCardProps) {
   const theme = useTheme();
 
-  const items = KINDS.map(({ key, one, many }) => ({
+  const lines = KINDS.map(({ key, icon, one, many }) => ({
     key,
+    icon,
     count: counts[key],
     label: counts[key] === 1 ? one : many,
   })).filter((i) => i.count > 0);
 
-  if (items.length === 0) return null;
+  if (lines.length === 0) return null;
 
-  const total = items.reduce((sum, i) => sum + i.count, 0);
-  const single = items.length === 1;
+  const total = lines.reduce((sum, i) => sum + i.count, 0);
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Review queue: ${items.map((i) => `${i.count} ${i.label}`).join(", ")}`}
+      accessibilityLabel={`${total} items need action: ${lines.map((i) => `${i.count} ${i.label}`).join(", ")}`}
     >
-      {/* A queue, not a metric - so it reads as a strip rather than another equal-weight card. */}
-      <View
-        className="mx-4 mt-3 px-4 py-3 rounded-card flex-row items-center"
-        style={{
-          backgroundColor: theme.alpha("primary", 0.1),
-          borderWidth: 1,
-          borderColor: theme.alpha("primary", 0.22),
-        }}
-      >
-        <View className="flex-1 pr-3">
-          <Text className="text-body font-semibold text-foreground">
-            {single
-              ? `${total} ${items[0].label}`
-              : `${total} ${total === 1 ? "thing needs" : "things need"} you`}
-          </Text>
-          {!single && (
-            <View className="flex-row flex-wrap items-center mt-1.5" style={{ gap: 6 }}>
-              {items.map((i) => (
-                <Badge key={i.key} label={`${i.count} ${i.label}`} variant="primary" />
-              ))}
+      <Card className="mx-4 mt-3">
+        <View className="flex-row items-center justify-between mb-2">
+          <View className="flex-row items-center">
+            <View
+              className="w-9 h-9 rounded-full items-center justify-center mr-3"
+              style={{ backgroundColor: theme.alpha("primary", 0.1) }}
+            >
+              <Ionicons name="clipboard-outline" size={18} color={theme.primary} />
             </View>
-          )}
+            <View>
+              <Text className="text-sm font-semibold text-foreground">
+                Action Required
+              </Text>
+              <Text className="text-xs text-muted-foreground">
+                Tap to review and resolve
+              </Text>
+            </View>
+          </View>
+          <View className="flex-row items-center">
+            <StatusPill label={`${total}`} color={theme.primary} />
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={theme.alpha("primary", 0.25)}
+              style={{ marginLeft: 6 }}
+            />
+          </View>
         </View>
-        <Text className="text-meta font-semibold" style={{ color: theme.primary }}>
-          Review
-        </Text>
-        <Ionicons name="chevron-forward" size={15} color={theme.primary} />
-      </View>
+        {lines.map((line) => (
+          <View key={line.key} className="flex-row items-center ml-12 mb-0.5">
+            <Ionicons name={line.icon} size={12} color={theme.primary} style={{ marginRight: 6 }} />
+            <Text className="text-xs text-muted-foreground">
+              {line.count} {line.label}
+            </Text>
+          </View>
+        ))}
+      </Card>
     </Pressable>
   );
 }

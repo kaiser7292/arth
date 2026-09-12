@@ -183,7 +183,9 @@ export default function AddExpenseScreen() {
 
         setAmount(String(remainingRefundable));
         if (linked.merchant_name) setMerchantName(linked.merchant_name);
-        if (linked.description) setDescription(`Refund for: ${linked.description}`);
+        if (linked.description || linked.merchant_name) {
+          setDescription(`Refund for: ${linked.description || linked.merchant_name}`);
+        }
         if (refundAccountId) {
           setAccountId(refundAccountId);
         } else if (linked.account_id) {

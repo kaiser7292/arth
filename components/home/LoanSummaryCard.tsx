@@ -82,9 +82,12 @@ function LoanSummaryCardImpl({ summary }: LoanSummaryCardProps) {
           {summary.nextDue && (
             <View className="flex-row justify-between pt-1 mt-1 border-t border-border">
               <Text className="text-xs text-muted-foreground">
-                Next EMI · {summary.nextDue.bankName}
+                {summary.nextDue.isOverdue ? "Overdue EMI" : "Next EMI"} · {summary.nextDue.bankName}
               </Text>
-              <Text className="text-xs font-medium text-muted-foreground">
+              <Text
+                className="text-xs font-medium"
+                style={{ color: summary.nextDue.isOverdue ? theme.danger : colors.textSecondary }}
+              >
                 {formatDate(summary.nextDue.dueDate)} · {formatAmount(summary.nextDue.amount)}
               </Text>
             </View>

@@ -161,29 +161,25 @@ export default function DematPortfolioScreen() {
             </Text>
           </View>
 
-          {summary.totalFund !== 0 && (
-            <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-muted-foreground">Idle Cash / Fund</Text>
-              <Text
-                className="text-sm font-semibold"
-                style={{ color: summary.totalFund < 0 ? theme.danger : colors.text }}
-              >
-                {formatAmount(summary.totalFund)}
-              </Text>
-            </View>
-          )}
+          <View className="flex-row justify-between mb-1">
+            <Text className="text-xs text-muted-foreground">Idle Cash / Fund</Text>
+            <Text
+              className="text-sm font-semibold"
+              style={{ color: summary.totalFund < 0 ? theme.danger : colors.text }}
+            >
+              {formatAmount(summary.totalFund)}
+            </Text>
+          </View>
 
-          {summary.totalFund !== 0 && (
-            <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
-              <Text className="text-xs font-semibold text-muted-foreground">Total</Text>
-              <Text
-                className="text-sm font-bold"
-                style={{ color: total < 0 ? theme.danger : colors.text }}
-              >
-                {formatAmount(total)}
-              </Text>
-            </View>
-          )}
+          <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
+            <Text className="text-xs font-semibold text-muted-foreground">Total</Text>
+            <Text
+              className="text-sm font-bold"
+              style={{ color: total < 0 ? theme.danger : colors.text }}
+            >
+              {formatAmount(total)}
+            </Text>
+          </View>
         </Card>
 
         {/* Trend chart with month navigation */}
@@ -235,7 +231,7 @@ export default function DematPortfolioScreen() {
 
         {accounts.map(({ account, latestPortfolioValue, latestSnapshotDate, snapshotCount, latestFundValue }, idx) => {
           const accountTotal = (latestPortfolioValue ?? 0) + latestFundValue;
-          const showTotal = latestFundValue !== 0 && latestPortfolioValue != null;
+          const showTotal = latestPortfolioValue != null;
           return (
             <Card key={account.id} className="mx-4 mb-2">
               <Pressable

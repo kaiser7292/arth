@@ -153,8 +153,8 @@ export default function HomeScreen() {
     }
   }, [smsScanning]);
 
-  // Collapsible sections — closed by default
-  const [duesOpen, setDuesOpen] = useState(false);
+  // Collapsible sections — dues expanded by default so they're visible without a tap
+  const [duesOpen, setDuesOpen] = useState(true);
 
   const loadData = useCallback(async (source?: "focus" | "data-version") => {
     // Perf (v14.8.0): preloader already ran the same 12 queries; skip the
@@ -173,20 +173,21 @@ export default function HomeScreen() {
     try {
       const today = new Date().toISOString().split("T")[0];
       pruneExpiredDismissals();
-      const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dematSum, reminders, matches] = await Promise.all([
-        getBudgetsForMonth(DEFAULT_USER_ID, month),
-        getExpenseTotal(DEFAULT_USER_ID, startDate, endDate),
-        getPendingExpenseCount(DEFAULT_USER_ID),
-        getHisaabSummary(DEFAULT_USER_ID),
-        getOverdueForecasts(DEFAULT_USER_ID, today),
-        getForecastExpenses(DEFAULT_USER_ID),
-        scanAllDuplicatesCached(DEFAULT_USER_ID),
-        getActiveAccounts(DEFAULT_USER_ID),
-        getCcExpenseTotals(DEFAULT_USER_ID, startDate, endDate),
-        getUncategorizedCount(DEFAULT_USER_ID),
-        getDematSummary(DEFAULT_USER_ID),
-        getDueRecurringReminders(DEFAULT_USER_ID),
-        findAutoMatches(DEFAULT_USER_ID).catch(() => [] as ReminderAutoMatch[]),
+      const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dematSum, reminders, matches, loansSummaryResult] = await Promise.all([
+        getBudgetsForMonth(DEFAULT_USER_ID, month).catch((e) => { logger.warn("getBudgetsForMonth failed", e); return []; }),
+        getExpenseTotal(DEFAULT_USER_ID, startDate, endDate).catch((e) => { logger.warn("getExpenseTotal failed", e); return 0; }),
+        getPendingExpenseCount(DEFAULT_USER_ID).catch((e) => { logger.warn("getPendingExpenseCount failed", e); return 0; }),
+        getHisaabSummary(DEFAULT_USER_ID).catch((e) => { logger.warn("getHisaabSummary failed", e); return { totalOwedToYou: 0, totalYouOwe: 0, netBalance: 0 }; }),
+        getOverdueForecasts(DEFAULT_USER_ID, today).catch((e) => { logger.warn("getOverdueForecasts failed", e); return []; }),
+        getForecastExpenses(DEFAULT_USER_ID).catch((e) => { logger.warn("getForecastExpenses failed", e); return []; }),
+        scanAllDuplicatesCached(DEFAULT_USER_ID).catch((e) => { logger.warn("scanAllDuplicatesCached failed", e); return { groups: [], scannedCount: 0, duplicateGroupCount: 0 }; }),
+        getActiveAccounts(DEFAULT_USER_ID).catch((e) => { logger.warn("getActiveAccounts failed", e); return []; }),
+        getCcExpenseTotals(DEFAULT_USER_ID, startDate, endDate).catch((e) => { logger.warn("getCcExpenseTotals failed", e); return {}; }),
+        getUncategorizedCount(DEFAULT_USER_ID).catch((e) => { logger.warn("getUncategorizedCount failed", e); return 0; }),
+        getDematSummary(DEFAULT_USER_ID).catch((e) => { logger.warn("getDematSummary failed", e); return { totalPortfolio: 0, totalFund: 0, accountCount: 0 }; }),
+        getDueRecurringReminders(DEFAULT_USER_ID).catch((e) => { logger.warn("getDueRecurringReminders failed", e); return []; }),
+        findAutoMatches(DEFAULT_USER_ID).catch((e) => { logger.warn("findAutoMatches failed", e); return [] as ReminderAutoMatch[]; }),
+        getLoansSummary(DEFAULT_USER_ID).catch((e) => { logger.warn("getLoansSummary failed", e); return null; }),
       ]);
 
       // Await the second-phase query BEFORE any setState so that React 18
@@ -211,16 +212,8 @@ export default function HomeScreen() {
       );
       const backupReminder = shouldShowBackupWarning();
 
-      // v17.4.0 — load loans summary for the home stat card (non-blocking)
-      try {
-        const summary = await getLoansSummary(DEFAULT_USER_ID);
-        setLoansSummary(summary);
-      } catch (e) {
-        logger.warn("getLoansSummary failed (non-fatal)", e);
-        setLoansSummary(null);
-      }
-
       // All setStates below run synchronously in one batch.
+      setLoansSummary(loansSummaryResult);
       setDueReminders(reminders);
       setAutoMatches(matches);
       setTotalSpent(total);
@@ -287,8 +280,8 @@ export default function HomeScreen() {
       setPensionCreditTotals(pensionCreditTotalsMap);
       setPensionLastContributionDate(lastContributionDate);
       setPensionYtdContributions(ytdCredits);
-    } catch {
-      // DB not ready
+    } catch (e) {
+      logger.warn("Home loadData failed", e);
     }
   }, [month, startDate, endDate]);
 
@@ -419,7 +412,6 @@ export default function HomeScreen() {
           <ReviewQueueCard
             counts={{
               pending: pendingCount,
-              overdue: overdueCount,
               duplicates: duplicateCount,
               uncategorized: uncategorizedCount,
             }}

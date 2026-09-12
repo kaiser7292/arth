@@ -849,7 +849,7 @@ export default function ExpenseDetailScreen() {
       try {
         const { getExpenseById } = await import("@/services/expense");
         const linked = await getExpenseById(expense.refund_of_expense_id!);
-        setLinkedExpenseSummary(linked?.merchant_name || linked?.description || linked?.date || null);
+        setLinkedExpenseSummary(linked?.description || linked?.merchant_name || linked?.date || null);
       } catch {
         setLinkedExpenseSummary(null);
       }

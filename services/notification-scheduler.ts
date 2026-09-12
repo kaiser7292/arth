@@ -70,7 +70,10 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
     }
 
     if (upcomingEnabled) {
-      const forecasts = await getForecastExpenses(userId, "approved");
+      // No status filter: SMS-detected standing instructions land as
+      // 'pending_review', not 'approved' — filtering to approved-only
+      // silently dropped them from the due-soon digest.
+      const forecasts = await getForecastExpenses(userId);
       const upcoming = forecasts.filter((e) => {
         if (!e.due_date) return false;
         const d = daysFromNow(e.due_date);
@@ -88,15 +91,17 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
         parts.push(`${dueReminders.length} reminder${dueReminders.length > 1 ? "s" : ""} due`);
       }
 
+      // No lower bound: a missed EMI (due_date < today) still needs the
+      // digest to fire, not just ones landing in the next two days.
       const twoDaysOut = new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0];
       const upcomingEMIs = await db.getAllAsync<{ id: string }>(
         `SELECT se.id FROM loan_schedule_entries se
          JOIN loan_accounts la ON la.id = se.loan_account_id
          JOIN financial_accounts fa ON fa.id = la.financial_account_id
          WHERE fa.user_id = ? AND la.status = 'active' AND se.status = 'scheduled'
-           AND se.due_date >= ? AND se.due_date <= ?
+           AND se.due_date <= ?
          LIMIT 1;`,
-        userId, today, twoDaysOut,
+        userId, twoDaysOut,
       );
       if (upcomingEMIs.length > 0) {
         parts.push("EMI due soon");

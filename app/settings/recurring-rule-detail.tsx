@@ -444,6 +444,23 @@ export default function RecurringRuleDetailScreen() {
 
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8, gap: 16 }}>
 
+              {/* Notes */}
+              <View>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Notes (optional)
+                </Text>
+                <TextInput
+                  value={editNotes}
+                  onChangeText={setEditNotes}
+                  placeholder="Add a note…"
+                  placeholderTextColor={colors.textSecondary}
+                  multiline
+                  numberOfLines={2}
+                  className="border border-border rounded-xl px-4 py-3 text-sm text-foreground"
+                  style={{ minHeight: 64, textAlignVertical: "top" }}
+                />
+              </View>
+
               {/* Next due date */}
               <View>
                 <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
@@ -581,23 +598,6 @@ export default function RecurringRuleDetailScreen() {
                   placeholder="e.g. 15000"
                   placeholderTextColor={colors.textSecondary}
                   className="border border-border rounded-xl px-4 py-3 text-sm text-foreground"
-                />
-              </View>
-
-              {/* Notes */}
-              <View>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  Notes (optional)
-                </Text>
-                <TextInput
-                  value={editNotes}
-                  onChangeText={setEditNotes}
-                  placeholder="Add a note…"
-                  placeholderTextColor={colors.textSecondary}
-                  multiline
-                  numberOfLines={2}
-                  className="border border-border rounded-xl px-4 py-3 text-sm text-foreground"
-                  style={{ minHeight: 64, textAlignVertical: "top" }}
                 />
               </View>
 

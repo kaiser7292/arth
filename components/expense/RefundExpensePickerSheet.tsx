@@ -97,7 +97,7 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
 
   const handlePick = useCallback(
     (expense: ExpenseRow) => {
-      const summary = expense.merchant_name || expense.description || expense.date;
+      const summary = expense.description || expense.merchant_name || expense.date;
       onPick(expense.id, summary);
     },
     [onPick],
@@ -164,7 +164,7 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
           keyboardShouldPersistTaps="handled"
         >
           {expenses.map((exp) => {
-            const label = exp.merchant_name || exp.description || "Unnamed";
+            const label = exp.description || exp.merchant_name || "Unnamed";
             const sub = exp.category_name ?? exp.date;
             return (
               <Pressable
