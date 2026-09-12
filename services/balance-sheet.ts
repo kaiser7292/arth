@@ -24,6 +24,7 @@ import { V15_FLAGS } from "@/services/feature-flags";
 import { getLoanOutstandingsByFA } from "@/services/loan-accounts";
 import {
   batchInvestmentProducts,
+  INSTRUMENT_LABELS,
   isDematLikeAccount,
   isPensionLikeAccount,
   type InvestmentProduct,
@@ -443,7 +444,8 @@ export async function getBalanceSheetColumn(
     } else if (isPensionLikeAccount(a, product)) {
       // Treat pension accounts same as savings - use ledger-based balance calculation
       const r = balanceMap.get(a.id);
-      if (r) assets.push({ label: name, group: "pension", amount: r.value, accountId: a.id, isFallback: r.isFallback });
+      const instrumentLabel = product ? (INSTRUMENT_LABELS[product.instrument] ?? product.instrument) : "Pension";
+      if (r) assets.push({ label: `${name} · ${instrumentLabel}`, group: "pension", amount: r.value, accountId: a.id, isFallback: r.isFallback });
     } else if (isDematLikeAccount(a, product)) {
       // Portfolio — include ONLY when a snapshot exists within the window.
       // Absent → row omitted → UI cell shows "—".
@@ -469,7 +471,8 @@ export async function getBalanceSheetColumn(
       // Reaches here only for 'contract' (FD) — pension-like and demat-like
       // investment accounts are handled by the two branches above.
       const r = balanceMap.get(a.id);
-      if (r) assets.push({ label: name, group: "investment", amount: r.value, accountId: a.id, isFallback: r.isFallback });
+      const instrumentLabel = product ? (INSTRUMENT_LABELS[product.instrument] ?? product.instrument) : "Investment";
+      if (r) assets.push({ label: `${name} · ${instrumentLabel}`, group: "investment", amount: r.value, accountId: a.id, isFallback: r.isFallback });
     } else if (a.account_type === "credit_card") {
       const r = balanceMap.get(a.id);
       if (r && (r.value > 0 || !r.isFallback)) {

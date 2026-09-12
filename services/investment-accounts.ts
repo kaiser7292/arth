@@ -20,9 +20,10 @@
  */
 
 import { getDatabase } from "@/database";
-import { createManualAccount, getActiveAccounts } from "@/services/financial-account";
+import { createManualAccount, getActiveAccounts, getDematAccountsWithSummary } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
 import { createTransfer } from "@/services/account-transfer";
+import { getComputedBalances, computeUnseededBalance } from "@/services/account-balance";
 import {
   currentFDValue,
   generateFDSchedule,
@@ -39,6 +40,19 @@ import { todayIso } from "@/utils/date";
 export type InvestmentInstrument = "equity" | "mutual_fund" | "gold" | "fd" | "bond" | "epf" | "nps" | "ppf" | "other";
 export type InvestmentValuation = "market" | "contract" | "contribution";
 export type InvestmentProductStatus = "active" | "matured" | "closed";
+
+/** Shared display label per instrument — used by the Investments list, the unified Home card, and the balance sheet. */
+export const INSTRUMENT_LABELS: Record<InvestmentInstrument, string> = {
+  fd: "Fixed deposit",
+  bond: "Bond",
+  equity: "Equity",
+  mutual_fund: "Mutual fund",
+  gold: "Gold",
+  epf: "EPF",
+  nps: "NPS",
+  ppf: "PPF",
+  other: "Investment",
+};
 
 export interface InvestmentProduct {
   id: string;
@@ -412,6 +426,112 @@ export async function migrateLegacyDematPensionAccounts(userId: string): Promise
 export function getContractCurrentValue(product: InvestmentProduct): number {
   if (product.valuation !== "contract" || product.principal == null) return 0;
   return currentFDValue(product.principal, product.status);
+}
+
+function currentMonthStr(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Current value for every account in `accounts`, dispatched by valuation
+ * strategy — the fix for a real bug in the pre-Phase-3 /investments screen,
+ * which called getContractCurrentValue (FD-only math) on every product
+ * regardless of valuation, producing wrong values (0/NaN) for converted
+ * demat/pension accounts once they started sharing investment_products rows.
+ *
+ * - 'market' (demat-like): latest portfolio + fund snapshot, same source as
+ *   the demat-portfolio screen.
+ * - 'contribution' (pension-like): standard balance chain, falling back to
+ *   computeUnseededBalance when the account has no seeded opening balance.
+ * - 'contract' (FD): getContractCurrentValue.
+ *
+ * Accounts with no product (should not happen post-Phase-2, but a legacy
+ * demat/pension row can transiently lack one) or an unrecognised valuation
+ * are simply absent from the result map.
+ */
+export async function getUnifiedInvestmentValues(
+  userId: string,
+  accounts: { id: string; account_type: string }[],
+  products: Map<string, InvestmentProduct>,
+): Promise<Map<string, number>> {
+  const values = new Map<string, number>();
+
+  const dematSummaries = await getDematAccountsWithSummary(userId);
+  for (const s of dematSummaries) {
+    values.set(s.account.id, (s.latestPortfolioValue ?? 0) + s.latestFundValue);
+  }
+
+  const pensionIds = accounts
+    .filter((a) => isPensionLikeAccount(a, products.get(a.id)))
+    .map((a) => a.id);
+  if (pensionIds.length > 0) {
+    const balances = await getComputedBalances(pensionIds);
+    const month = currentMonthStr();
+    for (const id of pensionIds) {
+      const balance = balances[id];
+      if (balance != null) {
+        values.set(id, balance);
+      } else {
+        const unseeded = await computeUnseededBalance(id, month);
+        values.set(id, unseeded.closing);
+      }
+    }
+  }
+
+  for (const a of accounts) {
+    const product = products.get(a.id);
+    if (product?.valuation === "contract") {
+      values.set(a.id, getContractCurrentValue(product));
+    }
+  }
+
+  return values;
+}
+
+export interface InvestmentInstrumentBreakdown {
+  label: string;
+  value: number;
+}
+
+export interface InvestmentSummary {
+  totalValue: number;
+  accountCount: number;
+  breakdown: InvestmentInstrumentBreakdown[];
+}
+
+/**
+ * Total value + a per-instrument breakdown (e.g. "Equity 3.16L · EPF 8.42L ·
+ * FD 48K") across every demat/pension/FD account — the data behind the
+ * unified Home Investments card and its equivalent in home-preload.ts.
+ * `accounts` should already be filtered to demat/pension/investment-typed
+ * rows; pass `getActiveAccounts()`'s result filtered accordingly.
+ */
+export async function getInvestmentSummary(
+  userId: string,
+  accounts: { id: string; account_type: string }[],
+  products: Map<string, InvestmentProduct>,
+): Promise<InvestmentSummary> {
+  const values = await getUnifiedInvestmentValues(userId, accounts, products);
+
+  const breakdownMap = new Map<string, number>();
+  for (const a of accounts) {
+    const product = products.get(a.id);
+    const instrument: InvestmentInstrument =
+      product?.instrument ?? (a.account_type === "demat" ? "equity" : a.account_type === "pension" ? "epf" : "other");
+    const value = values.get(a.id) ?? 0;
+    breakdownMap.set(instrument, (breakdownMap.get(instrument) ?? 0) + value);
+  }
+
+  const breakdown = Array.from(breakdownMap.entries())
+    .filter(([, value]) => value !== 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([instrument, value]) => ({ label: INSTRUMENT_LABELS[instrument as InvestmentInstrument] ?? instrument, value }));
+
+  let totalValue = 0;
+  for (const v of values.values()) totalValue += v;
+
+  return { totalValue, accountCount: accounts.length, breakdown };
 }
 
 // ─── Maturity materialisation ─────────────────────────────
