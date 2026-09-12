@@ -10,6 +10,12 @@ import type { AccountWithModes } from "@/services/account-master";
 import { getDematAccountsWithSummary } from "@/services/financial-account";
 import type { DematAccountSummary } from "@/services/financial-account";
 import { consumeAccountsPreload } from "@/services/home-preload";
+import {
+  batchInvestmentProducts,
+  isDematLikeAccount,
+  isPensionLikeAccount,
+  type InvestmentProduct,
+} from "@/services/investment-accounts";
 import { useTheme } from "@/hooks/use-theme";
 
 const preloaded = consumeAccountsPreload();
@@ -56,6 +62,18 @@ export default function AccountMasterScreen() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [investmentProducts, setInvestmentProducts] = useState<Map<string, InvestmentProduct>>(new Map());
+
+  /** "demat"/"pension" resolved through the Phase-2 alias, else the raw account_type. */
+  const resolvedType = useCallback(
+    (account: { id: string; account_type: string }): string => {
+      const product = investmentProducts.get(account.id);
+      if (isDematLikeAccount(account, product)) return "demat";
+      if (isPensionLikeAccount(account, product)) return "pension";
+      return account.account_type;
+    },
+    [investmentProducts],
+  );
 
   const loadData = useCallback(async () => {
     try {
@@ -70,6 +88,12 @@ export default function AccountMasterScreen() {
         dematMap.set(d.account.id, d);
       }
       setDematSummaries(dematMap);
+
+      // Phase 2 (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4) — needed to
+      // tell a converted demat/pension account apart from a plain FD when
+      // filtering/labeling by type below (all three share account_type='investment').
+      const investmentIds = accts.filter((a) => a.account.account_type === "investment").map((a) => a.account.id);
+      setInvestmentProducts(await batchInvestmentProducts(investmentIds));
     } catch {
       // Database not ready
     }
@@ -85,7 +109,7 @@ export default function AccountMasterScreen() {
     const q = searchQuery.trim().toLowerCase();
     return accounts.filter((item) => {
       const a = item.account;
-      if (typeFilter !== "all" && a.account_type !== typeFilter) return false;
+      if (typeFilter !== "all" && resolvedType(a) !== typeFilter) return false;
       if (!q) return true;
       return (
         a.bank_name.toLowerCase().includes(q) ||
@@ -95,11 +119,15 @@ export default function AccountMasterScreen() {
         a.account_type.toLowerCase().includes(q)
       );
     });
-  }, [accounts, searchQuery, typeFilter]);
+  }, [accounts, searchQuery, typeFilter, resolvedType]);
 
   const renderAccount = (item: AccountWithModes) => {
     const { account, linkedModes } = item;
-    const isDemat = account.account_type === "demat";
+    // dematSummaries is already the alias-aware set (getDematAccountsWithSummary
+    // includes Phase-2-converted investment+valuation='market' accounts too —
+    // see docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4), so membership here
+    // is a cheap, correct stand-in for a fresh account_type check.
+    const isDemat = dematSummaries.has(account.id);
 
     const displayName =
       account.account_label ??
@@ -108,7 +136,7 @@ export default function AccountMasterScreen() {
         : `${account.bank_name} ****${account.account_identifier}`);
 
     const typeLabel =
-      ACCOUNT_TYPE_LABELS[account.account_type] ?? account.account_type;
+      ACCOUNT_TYPE_LABELS[resolvedType(account)] ?? account.account_type;
 
     const subtitleParts = [typeLabel];
     if (isDemat) {
@@ -161,7 +189,7 @@ export default function AccountMasterScreen() {
               style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             >
               <Ionicons
-                name={ACCOUNT_TYPE_ICONS[account.account_type] ?? "help-outline"}
+                name={ACCOUNT_TYPE_ICONS[resolvedType(account)] ?? "help-outline"}
                 size={20}
                 color={colors.blue}
               />

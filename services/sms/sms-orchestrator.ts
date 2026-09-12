@@ -24,6 +24,7 @@ import {
 } from "@/services/sms";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
+import { batchInvestmentProducts, isPensionLikeAccount } from "@/services/investment-accounts";
 import { parseBankSMS } from "./bank-patterns";
 import type { ParsedSMS } from "./bank-patterns";
 import type { ParsedItem } from "./sms-parser";
@@ -303,11 +304,13 @@ async function filterByAccount(
     accountIds.includes(acc.id),
   );
 
+  const investmentIds = selectedAccounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+  const investmentProducts = await batchInvestmentProducts(investmentIds);
   const pensionAccounts = selectedAccounts.filter(
-    (acc) => acc.account_type === "pension",
+    (acc) => isPensionLikeAccount(acc, investmentProducts.get(acc.id)),
   );
   const otherAccounts = selectedAccounts.filter(
-    (acc) => acc.account_type !== "pension",
+    (acc) => !isPensionLikeAccount(acc, investmentProducts.get(acc.id)),
   );
 
   const otherIdentifiers = otherAccounts.map((acc) => acc.account_identifier);

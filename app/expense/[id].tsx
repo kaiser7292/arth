@@ -34,6 +34,7 @@ import type { Category } from "@/services/category";
 import { getCategories } from "@/services/category";
 import type { DematTarget } from "@/services/demat-transfer";
 import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
+import { isDematLikeAccountById } from "@/services/investment-accounts";
 import type { Expense, RecurringFrequency, RecurringRule, SplitConfig } from "@/services/expense";
 import { MAX_PURCHASE_GROUP_LEGS, addLegToExistingGroup, approveExpense, convertToSplitTender, createRecurringRule, deleteExpense, deleteSplitExpense, fulfillReminder, getActiveRecurringRules, getExpenseById, getGroupSiblings, getRecurringRuleForExpense, markForecastAsPaid, markForecastPaidExternally, markRepaymentAsPaid, propagateSharedEdit, realizeForecast, rejectExpense, removeSplit, restoreExpense, splitExistingExpense, stopRecurringRule, suggestReminderForExpense, unfulfillReminder, unlinkFromGroup, updateExpense } from "@/services/expense";
 import {
@@ -1239,7 +1240,7 @@ export default function ExpenseDetailScreen() {
     try {
       const transferId = await reclassifyExpenseAsTransfer(id, toAccountId, expense?.updated_at);
       const toAcct = accounts.find((a) => a.id === toAccountId);
-      if (toAcct?.account_type === "demat" && expense) {
+      if (toAcct && expense && (await isDematLikeAccountById(toAcct))) {
         const label =
           toAcct.account_label ||
           `${toAcct.bank_name} ****${toAcct.account_identifier}`;
@@ -1354,7 +1355,7 @@ export default function ExpenseDetailScreen() {
     setCreditTransferPickerVisible(false);
     try {
       const transferId = await reclassifyCreditAsTransfer(id, fromAccountId, expense?.updated_at);
-      if (expenseAccount?.account_type === "demat" && expense) {
+      if (expenseAccount && expense && (await isDematLikeAccountById(expenseAccount))) {
         const label =
           expenseAccount.account_label ||
           `${expenseAccount.bank_name} ****${expenseAccount.account_identifier}`;
@@ -1370,7 +1371,7 @@ export default function ExpenseDetailScreen() {
       // If the source account is demat (e.g. a fund redemption arriving as a savings credit),
       // automatically subtract from the fund snapshot — matches the pattern used in manual transfers.
       const fromAccount = accounts.find((a) => a.id === fromAccountId);
-      if (fromAccount?.account_type === "demat" && expense) {
+      if (fromAccount && expense && (await isDematLikeAccountById(fromAccount))) {
         try {
           await handleDematWithdrawalSideEffects(transferId, fromAccount.id, expense.amount, expense.date);
         } catch (e) {

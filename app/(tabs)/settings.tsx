@@ -15,6 +15,12 @@ import { getFlag } from "@/services/feature-flags";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts } from "@/services/financial-account";
 import {
+  batchInvestmentProducts,
+  isDematLikeAccount,
+  isPensionLikeAccount,
+  type InvestmentProduct,
+} from "@/services/investment-accounts";
+import {
   getFYStartMonth,
   getThemePreference,
   setFYStartMonth,
@@ -67,6 +73,17 @@ function accountTypeLabel(type: string): string {
     case "demat": return "Demat";
     default: return type;
   }
+}
+
+/** "demat"/"pension" resolved through the Phase-2 alias, else the raw account_type. */
+function resolvedAccountType(
+  account: { id: string; account_type: string },
+  investmentProducts: Map<string, InvestmentProduct>,
+): string {
+  const product = investmentProducts.get(account.id);
+  if (isDematLikeAccount(account, product)) return "demat";
+  if (isPensionLikeAccount(account, product)) return "pension";
+  return account.account_type;
 }
 
 
@@ -132,6 +149,7 @@ export default function SettingsScreen() {
   const [smsEndDateStr, setSmsEndDateStr] = useState(() => getSmsEndDate());
   const [smsScanAccountIds, setSmsScanAccountIds] = useState<string[]>(() => getSmsScanAccountIds());
   const [allAccounts, setAllAccounts] = useState<FinancialAccount[]>([]);
+  const [investmentProducts, setInvestmentProducts] = useState<Map<string, InvestmentProduct>>(new Map());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customMode, setCustomMode] = useState(false);
   const [customFromText, setCustomFromText] = useState("");
@@ -157,9 +175,21 @@ export default function SettingsScreen() {
           /* non-fatal */
         });
       setSmsScanAccountIds(getSmsScanAccountIds());
-      getActiveAccounts(DEFAULT_USER_ID).then(setAllAccounts).catch(() => {
-        /* non-fatal */
-      });
+      getActiveAccounts(DEFAULT_USER_ID)
+        .then((accts) => {
+          setAllAccounts(accts);
+          const investmentIds = accts
+            .filter((a) => a.account_type === "investment")
+            .map((a) => a.id);
+          batchInvestmentProducts(investmentIds)
+            .then(setInvestmentProducts)
+            .catch(() => {
+              /* non-fatal */
+            });
+        })
+        .catch(() => {
+          /* non-fatal */
+        });
       // v15.11.3: scan-result CTAs ("Review N expenses" / "Review N duplicate
       // groups") are actionable signals tied to the just-run scan. When the
       // user returns to Settings after tapping one of those CTAs — whether
@@ -928,7 +958,7 @@ export default function SettingsScreen() {
                       {account.account_label || account.bank_name}
                     </Text>
                     <Text className="text-xs text-muted-foreground mt-0.5">
-                      {accountTypeLabel(account.account_type)} · ••••{account.account_identifier}
+                      {accountTypeLabel(resolvedAccountType(account, investmentProducts))} · ••••{account.account_identifier}
                     </Text>
                   </View>
                   <Ionicons

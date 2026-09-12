@@ -15,7 +15,7 @@ import {
   getAggregateSnapshotsForMonth,
   getSnapshotsForMonth,
   getDematSummary,
-  getClosedAccounts,
+  getClosedDematLikeAccounts,
 } from "@/services/financial-account";
 import type { DematAccountSummary, FinancialAccount } from "@/services/financial-account";
 import { TrendLineChart } from "@/components/charts/TrendLineChart";
@@ -111,7 +111,7 @@ export default function DematPortfolioScreen() {
       const [accts, sum, closed] = await Promise.all([
         getDematAccountsWithSummary(DEFAULT_USER_ID),
         getDematSummary(DEFAULT_USER_ID),
-        getClosedAccounts(DEFAULT_USER_ID, "demat"),
+        getClosedDematLikeAccounts(DEFAULT_USER_ID),
       ]);
       setAccounts(accts);
       setSummary(sum);

@@ -52,6 +52,7 @@ import { isHomeCardVisible } from "@/services/home-card-preferences";
 import { consumeHomePreload } from "@/services/home-preload";
 import type { LoansSummary } from "@/services/loan-accounts";
 import { getLoansSummary } from "@/services/loan-accounts";
+import { batchInvestmentProducts, isPensionLikeAccount } from "@/services/investment-accounts";
 import {
     acknowledgeBreach,
     detectBreaches,
@@ -199,7 +200,9 @@ export default function HomeScreen() {
       const allIds = allAccounts.map((a) => a.id);
       const balances = await getComputedBalances(allIds);
 
-      const pensionAccts = allAccounts.filter((a) => a.account_type === "pension");
+      const investmentAcctIds = allAccounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+      const investmentProductsMap = await batchInvestmentProducts(investmentAcctIds);
+      const pensionAccts = allAccounts.filter((a) => isPensionLikeAccount(a, investmentProductsMap.get(a.id)));
       for (const p of pensionAccts) {
         if (balances[p.id] === null || balances[p.id] === undefined) {
           const unseeded = await computeUnseededBalance(p.id, month);

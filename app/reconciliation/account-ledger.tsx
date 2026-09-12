@@ -35,6 +35,7 @@ import {
 import { getCurrentMonth } from "@/services/budget";
 import type { DematTarget } from "@/services/demat-transfer";
 import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
+import { isDematLikeAccountById } from "@/services/investment-accounts";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getAllAccounts } from "@/services/financial-account";
 import { getVaultEntriesForAccount } from "@/services/vault";
@@ -594,7 +595,7 @@ const loadData = useCallback(async () => {
     // the idle fund snapshot automatically — no picker needed.
     const fromAccountId = transferDirection === "out" ? accountId : transferAccountId;
     const fromAccount = allAccountsState.find((a) => a.id === fromAccountId);
-    if (fromAccount?.account_type === "demat") {
+    if (fromAccount && (await isDematLikeAccountById(fromAccount))) {
       try {
         await handleDematWithdrawalSideEffects(transferId, fromAccount.id, amount, date);
       } catch (e) {
@@ -608,7 +609,7 @@ const loadData = useCallback(async () => {
     // to snapshots or buckets. Reuses the in-memory account list populated
     // by the data-refresh effect; no extra DB round-trip.
     const toAccount = allAccountsState.find((a) => a.id === toAccountId);
-    if (toAccount?.account_type === "demat") {
+    if (toAccount && (await isDematLikeAccountById(toAccount))) {
       const label =
         toAccount.account_label ||
         `${toAccount.bank_name} ****${toAccount.account_identifier}`;
@@ -686,7 +687,7 @@ const loadData = useCallback(async () => {
         const transferId = await reclassifyCreditAsTransfer(convertingCreditId, fromAccountId, convertingCreditUpdatedAt ?? undefined);
         // If the source account is demat (fund redemption → savings), subtract from fund snapshot automatically.
         const fromAccount = allAccountsState.find((a) => a.id === fromAccountId);
-        if (fromAccount?.account_type === "demat" && convertingCreditAmount != null && convertingCreditDate) {
+        if (fromAccount && convertingCreditAmount != null && convertingCreditDate && (await isDematLikeAccountById(fromAccount))) {
           try {
             await handleDematWithdrawalSideEffects(transferId, fromAccount.id, convertingCreditAmount, convertingCreditDate);
           } catch (e) {

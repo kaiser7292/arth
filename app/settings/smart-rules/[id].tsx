@@ -31,6 +31,12 @@ import {
 import { getCategories, type Category } from "@/services/category";
 import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
+import {
+  batchInvestmentProducts,
+  isDematLikeAccount,
+  isPensionLikeAccount,
+  type InvestmentProduct,
+} from "@/services/investment-accounts";
 import { getTags, type Tag } from "@/services/tags";
 import { getPersonsWithBalances, type HisaabPersonWithBalance } from "@/services/hisaab";
 import { getAllActiveBuckets, type InvestmentBucket } from "@/services/yearly-plan";
@@ -61,6 +67,17 @@ function accountTypeLabel(type: string): string {
     case "demat": return "Demat";
     default: return type;
   }
+}
+
+/** "demat"/"pension" resolved through the Phase-2 alias, else the raw account_type. */
+function resolvedAccountType(
+  account: { id: string; account_type: string },
+  investmentProducts: Map<string, InvestmentProduct>,
+): string {
+  const product = investmentProducts.get(account.id);
+  if (isDematLikeAccount(account, product)) return "demat";
+  if (isPensionLikeAccount(account, product)) return "pension";
+  return account.account_type;
 }
 
 function todayIso(): string {
@@ -183,6 +200,7 @@ export default function SmartRuleDetailScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [investmentProducts, setInvestmentProducts] = useState<Map<string, InvestmentProduct>>(new Map());
   const [tags, setTags] = useState<Tag[]>([]);
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
@@ -210,7 +228,13 @@ export default function SmartRuleDetailScreen() {
   useEffect(() => {
     getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => setCategories([]));
     getPaymentModes(DEFAULT_USER_ID).then(setPaymentModes).catch(() => setPaymentModes([]));
-    getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch(() => setAccounts([]));
+    getActiveAccounts(DEFAULT_USER_ID)
+      .then((accts) => {
+        setAccounts(accts);
+        const investmentIds = accts.filter((a) => a.account_type === "investment").map((a) => a.id);
+        batchInvestmentProducts(investmentIds).then(setInvestmentProducts).catch(() => {});
+      })
+      .catch(() => setAccounts([]));
     getTags(DEFAULT_USER_ID).then(setTags).catch(() => setTags([]));
     getPersonsWithBalances(DEFAULT_USER_ID).then(setPersons).catch(() => setPersons([]));
     getAllActiveBuckets(DEFAULT_USER_ID).then(setBuckets).catch(() => setBuckets([]));
@@ -782,7 +806,7 @@ export default function SmartRuleDetailScreen() {
                                               {a.account_label || a.bank_name}
                                             </Text>
                                             <Text className="text-xs text-faint-foreground mt-0.5">
-                                              {accountTypeLabel(a.account_type)} · ••••{a.account_identifier}
+                                              {accountTypeLabel(resolvedAccountType(a, investmentProducts))} · ••••{a.account_identifier}
                                             </Text>
                                           </View>
                                           {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
@@ -1468,7 +1492,7 @@ export default function SmartRuleDetailScreen() {
                           {a.account_label || a.bank_name}
                         </Text>
                         <Text className="text-xs text-faint-foreground mt-0.5">
-                          {accountTypeLabel(a.account_type)} · ••••{a.account_identifier}
+                          {accountTypeLabel(resolvedAccountType(a, investmentProducts))} · ••••{a.account_identifier}
                         </Text>
                       </View>
                       <Ionicons name={isSel ? "checkbox" : "square-outline"} size={20} color={isSel ? accentColor : colors.textSecondary} />

@@ -6,6 +6,12 @@ import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
+import {
+  batchInvestmentProducts,
+  isDematLikeAccount,
+  isPensionLikeAccount,
+  type InvestmentProduct,
+} from "@/services/investment-accounts";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { setOnboardingCompletedVersion } from "@/services/settings";
 import { getCurrentAppVersion } from "@/services/onboarding";
@@ -29,18 +35,32 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   pension: "business-outline",
 };
 
+/** "demat"/"pension" resolved through the Phase-2 alias, else the raw account_type. */
+function resolvedAccountType(
+  account: { id: string; account_type: string },
+  investmentProducts: Map<string, InvestmentProduct>,
+): string {
+  const product = investmentProducts.get(account.id);
+  if (isDematLikeAccount(account, product)) return "demat";
+  if (isPensionLikeAccount(account, product)) return "pension";
+  return account.account_type;
+}
+
 export default function OnboardingAccountsPreview() {
   const router = useRouter();
   
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [investmentProducts, setInvestmentProducts] = useState<Map<string, InvestmentProduct>>(new Map());
 
   useEffect(() => {
     (async () => {
       try {
         const rows = await getActiveAccounts(DEFAULT_USER_ID);
         setAccounts(rows);
+        const investmentIds = rows.filter((a) => a.account_type === "investment").map((a) => a.id);
+        setInvestmentProducts(await batchInvestmentProducts(investmentIds));
       } finally {
         setLoading(false);
       }
@@ -87,7 +107,8 @@ export default function OnboardingAccountsPreview() {
           <Card className="p-0 mb-4">
             {accounts.map((acct, i) => {
               const label = acct.account_label || acct.bank_name;
-              const sub = `${TYPE_LABEL[acct.account_type] || acct.account_type} • XX${acct.account_identifier}`;
+              const resolvedType = resolvedAccountType(acct, investmentProducts);
+              const sub = `${TYPE_LABEL[resolvedType] || resolvedType} • XX${acct.account_identifier}`;
               return (
                 <View
                   key={acct.id}
@@ -102,7 +123,7 @@ export default function OnboardingAccountsPreview() {
                     style={{ backgroundColor: theme.primary + "1F" }}
                   >
                     <Ionicons
-                      name={TYPE_ICON[acct.account_type] || "ellipse-outline"}
+                      name={TYPE_ICON[resolvedType] || "ellipse-outline"}
                       size={18}
                       color={theme.primary}
                     />

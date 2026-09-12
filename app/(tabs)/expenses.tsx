@@ -22,6 +22,7 @@ import { DematTransferTargetSheet } from "@/components/expense/DematTransferTarg
 import { addCredit } from "@/services/account-credit";
 import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
 import type { DematTarget } from "@/services/demat-transfer";
+import { isDematLikeAccountById } from "@/services/investment-accounts";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getDataVersion } from "@/services/settings";
@@ -750,7 +751,7 @@ export default function ExpensesScreen() {
     });
     // If money came FROM a demat account, subtract from the idle fund snapshot automatically.
     const fromAccount = accounts.find((a) => a.id === transferFromAccountId);
-    if (fromAccount?.account_type === "demat") {
+    if (fromAccount && (await isDematLikeAccountById(fromAccount))) {
       try {
         await handleDematWithdrawalSideEffects(transferId, fromAccount.id, amount, date);
       } catch (e) {
@@ -759,7 +760,7 @@ export default function ExpensesScreen() {
     }
     // If money landed IN a demat account, open the follow-up sheet
     const toAccount = accounts.find((a) => a.id === transferToAccountId);
-    if (toAccount?.account_type === "demat") {
+    if (toAccount && (await isDematLikeAccountById(toAccount))) {
       const label = toAccount.account_label || `${toAccount.bank_name} ****${toAccount.account_identifier}`;
       setPendingDematTransfer({ transferId, dematAccountId: toAccount.id, dematAccountLabel: label, amount, date });
     }

@@ -22,7 +22,12 @@ import { getDatabase } from "@/database";
 import { computeClosing, computeUnseededBalance } from "@/services/account-balance";
 import { V15_FLAGS } from "@/services/feature-flags";
 import { getLoanOutstandingsByFA } from "@/services/loan-accounts";
-import type { InvestmentProduct } from "@/services/investment-accounts";
+import {
+  batchInvestmentProducts,
+  isDematLikeAccount,
+  isPensionLikeAccount,
+  type InvestmentProduct,
+} from "@/services/investment-accounts";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 
 export interface BalanceSheetRow {
@@ -143,26 +148,6 @@ async function batchSnapshotAsOf(
 }
 
 /**
- * Batch-fetch investment_products for a set of investment-type financial
- * accounts, keyed by financial_account_id. v1 only ever has valuation='contract'
- * rows (FD) — 'market' and 'contribution' are Phase 2 (demat/pension
- * conversion) and aren't produced by any writer yet, but the caller branches
- * on `valuation` regardless so this doesn't need to change when they land.
- */
-async function batchInvestmentProducts(accountIds: string[]): Promise<Map<string, InvestmentProduct>> {
-  const result = new Map<string, InvestmentProduct>();
-  if (accountIds.length === 0) return result;
-  const db = getDatabase();
-  const placeholders = accountIds.map(() => "?").join(",");
-  const rows = await db.getAllAsync<InvestmentProduct>(
-    `SELECT * FROM investment_products WHERE financial_account_id IN (${placeholders});`,
-    ...accountIds,
-  );
-  for (const r of rows) result.set(r.financial_account_id, r);
-  return result;
-}
-
-/**
  * Sum hisaab positive balances (owed to me) and negative balances (I owe) for
  * a given userId as-of a specific date. `endDateInclusive` means entries dated
  * on that day are included (we pass the day after to the existing exclusive
@@ -255,6 +240,7 @@ async function batchBalanceSheetClosings(
   accounts: AccountRow[],
   month: string,
   isLive: boolean,
+  pensionLikeIds: Set<string>,
 ): Promise<Map<string, { value: number; isFallback: boolean }>> {
   const result = new Map<string, { value: number; isFallback: boolean }>();
   if (accounts.length === 0) return result;
@@ -338,7 +324,7 @@ async function batchBalanceSheetClosings(
     const isCC = a.account_type === "credit_card";
 
     if (opening == null) {
-      if (a.account_type === "pension") {
+      if (pensionLikeIds.has(a.id)) {
         pensionUnseeded.push(a);
       } else if (isLive && a.last_known_balance != null) {
         result.set(a.id, { value: a.last_known_balance, isFallback: true });
@@ -403,20 +389,29 @@ export async function getBalanceSheetColumn(
 ): Promise<BalanceSheetColumn> {
   const accounts = await loadAccounts(userId);
 
-  const dematIds = accounts.filter((a) => a.account_type === "demat").map((a) => a.id);
   const investmentIds = accounts.filter((a) => a.account_type === "investment").map((a) => a.id);
   const investmentProducts = await batchInvestmentProducts(investmentIds);
 
-  // 'contract' (FD) and 'contribution' (future pension aliasing) both use the
-  // standard balance chain — an FD's deposit and maturity payout are real
-  // account_transfers rows (see createFDAccount / materialiseMaturedInvestments),
-  // so the same opening±flows formula that already works for savings/pension
-  // works here with zero extra math. Only 'market' (future demat aliasing)
-  // needs snapshot-based valuation instead, so it's excluded here.
+  // dematIds now covers both the legacy account_type='demat' and a
+  // Phase-2-converted investment+valuation='market' account — see
+  // isDematLikeAccount. Both read/write the same snapshot tables, keyed only
+  // on account_id (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4).
+  const dematIds = accounts.filter((a) => isDematLikeAccount(a, investmentProducts.get(a.id))).map((a) => a.id);
+
+  // 'contract' (FD) and 'contribution' (pension, legacy or converted) both use
+  // the standard balance chain — an FD's deposit/maturity and a pension's
+  // contributions are real account_transfers/expenses rows, so the same
+  // opening±flows formula that already works for savings works here with no
+  // extra math. Only 'market' (demat, legacy or converted) needs snapshot-based
+  // valuation instead, so it's excluded here.
   const balanceEligible = accounts.filter(
     (a) =>
-      a.account_type === "savings" || a.account_type === "wallet" || a.account_type === "credit_card" || a.account_type === "pension" ||
-      (a.account_type === "investment" && investmentProducts.get(a.id)?.valuation !== "market"),
+      a.account_type === "savings" || a.account_type === "wallet" || a.account_type === "credit_card" ||
+      isPensionLikeAccount(a, investmentProducts.get(a.id)) ||
+      (a.account_type === "investment" && investmentProducts.get(a.id)?.valuation === "contract"),
+  );
+  const pensionLikeIds = new Set(
+    balanceEligible.filter((a) => isPensionLikeAccount(a, investmentProducts.get(a.id))).map((a) => a.id),
   );
 
   const loanOutstandingsPromise = V15_FLAGS.v17_loans_v1
@@ -428,7 +423,7 @@ export async function getBalanceSheetColumn(
     batchSnapshotAsOf("demat_fund_snapshots", "fund_value", dematIds, asOfDate, minDate),
     batchHisaabAsOf(userId, isLive ? null : asOfDate),
     loanOutstandingsPromise,
-    batchBalanceSheetClosings(balanceEligible, yyyymm(asOfDate), isLive),
+    batchBalanceSheetClosings(balanceEligible, yyyymm(asOfDate), isLive, pensionLikeIds),
   ]);
 
   const assets: BalanceSheetRow[] = [];
@@ -437,17 +432,19 @@ export async function getBalanceSheetColumn(
   for (const a of accounts) {
     const name = a.account_label ?? `${a.bank_name} ••••${a.account_identifier}`;
 
+    const product = investmentProducts.get(a.id);
+
     if (a.account_type === "savings") {
       const r = balanceMap.get(a.id);
       if (r) assets.push({ label: name, group: "savings", amount: r.value, accountId: a.id, isFallback: r.isFallback });
     } else if (a.account_type === "wallet") {
       const r = balanceMap.get(a.id);
       if (r) assets.push({ label: name, group: "wallet", amount: r.value, accountId: a.id, isFallback: r.isFallback });
-    } else if (a.account_type === "pension") {
+    } else if (isPensionLikeAccount(a, product)) {
       // Treat pension accounts same as savings - use ledger-based balance calculation
       const r = balanceMap.get(a.id);
       if (r) assets.push({ label: name, group: "pension", amount: r.value, accountId: a.id, isFallback: r.isFallback });
-    } else if (a.account_type === "demat") {
+    } else if (isDematLikeAccount(a, product)) {
       // Portfolio — include ONLY when a snapshot exists within the window.
       // Absent → row omitted → UI cell shows "—".
       if (portfolioMap.has(a.id)) {
@@ -469,16 +466,10 @@ export async function getBalanceSheetColumn(
         });
       }
     } else if (a.account_type === "investment") {
-      // 'contract' (FD, v1) and future 'contribution' products are in
-      // balanceEligible above and read from the same chain result pension
-      // and savings use. 'market' products (Phase 2 demat aliasing) aren't
-      // in balanceEligible and have no snapshot path wired up yet — skip
-      // rather than assume, until that conversion actually lands.
-      const product = investmentProducts.get(a.id);
-      if (product?.valuation !== "market") {
-        const r = balanceMap.get(a.id);
-        if (r) assets.push({ label: name, group: "investment", amount: r.value, accountId: a.id, isFallback: r.isFallback });
-      }
+      // Reaches here only for 'contract' (FD) — pension-like and demat-like
+      // investment accounts are handled by the two branches above.
+      const r = balanceMap.get(a.id);
+      if (r) assets.push({ label: name, group: "investment", amount: r.value, accountId: a.id, isFallback: r.isFallback });
     } else if (a.account_type === "credit_card") {
       const r = balanceMap.get(a.id);
       if (r && (r.value > 0 || !r.isFallback)) {

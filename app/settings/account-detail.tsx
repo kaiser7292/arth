@@ -31,6 +31,7 @@ import {
   getSnapshotCountForAccount,
 } from "@/services/financial-account";
 import type { FinancialAccount, AccountType } from "@/services/financial-account";
+import { isDematLikeAccountById } from "@/services/investment-accounts";
 import {
   getMonthBalanceSummary,
   seedOpeningBalance,
@@ -88,6 +89,11 @@ export default function AccountDetailScreen() {
   // v15.5: savings min-balance alert threshold (rendered only for savings)
   const [minBalanceValue, setMinBalanceValue] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("savings");
+  // Phase 2 (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4) — a demat account
+  // may now be stored as account_type='investment'; this tracks the
+  // resolved "is this demat-flavoured" answer for the JSX below, which
+  // otherwise only sees the raw (possibly-aliased) accountType.
+  const [isDematAccount, setIsDematAccount] = useState(false);
   const [creditLimitValue, setCreditLimitValue] = useState("");
   const [balanceValue, setBalanceValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -138,6 +144,8 @@ export default function AccountDetailScreen() {
 
       // Initialize edit values
       const acct = acctData.account;
+      const isDemat = await isDematLikeAccountById(acct);
+      setIsDematAccount(isDemat);
       setAccountType(acct.account_type as AccountType);
       setLabelValue(acct.account_label ?? "");
       setCreditLimitValue(
@@ -153,7 +161,7 @@ export default function AccountDetailScreen() {
       setDirty(false);
 
       // Load balance ledger (for non-demat types)
-      if (acct.account_type !== "demat") {
+      if (!isDemat) {
         const hasLedger = await isAccountSeeded(accountId);
         setSeeded(hasLedger);
         if (hasLedger) {
@@ -168,7 +176,7 @@ export default function AccountDetailScreen() {
       }
 
       // Load demat-specific data
-      if (acct.account_type === "demat") {
+      if (isDemat) {
         const [latest, latestFund, count] = await Promise.all([
           getLatestSnapshot(accountId),
           getLatestFundSnapshot(accountId),
@@ -588,7 +596,7 @@ export default function AccountDetailScreen() {
           )}
 
           {/* Demat: Current value summary */}
-          {accountType === "demat" && (
+          {isDematAccount && (
             <Card className="mb-3">
               <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
                 Current Value
@@ -622,7 +630,7 @@ export default function AccountDetailScreen() {
           )}
 
           {/* Demat: View Snapshots link */}
-          {accountType === "demat" && (
+          {isDematAccount && (
             <Pressable
               onPress={() => router.push({ pathname: "/demat/snapshots/[id]", params: { id: accountId } })}
               className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-xl bg-card"
@@ -702,7 +710,7 @@ export default function AccountDetailScreen() {
               Bank-Reported Balance card below already owns the authoritative
               utilized/remaining figures; two overlapping concepts confuse
               users). v17.5.10 extends the earlier loan/demat guard. */}
-          {accountType !== "demat" && accountType !== "loan" && accountType !== "credit_card" && <Card className="mb-3" title="Monthly Balance Ledger">
+          {!isDematAccount && accountType !== "loan" && accountType !== "credit_card" && <Card className="mb-3" title="Monthly Balance Ledger">
             {!seeded ? (
               <View>
                 <Text className="text-xs text-muted-foreground mb-3">
@@ -853,7 +861,7 @@ export default function AccountDetailScreen() {
 
           {/* Bank-Reported Balance — SMS traceability + auto-apply newer SMS.
               Skipped for loans (the amortization schedule is authoritative). */}
-          {account && account.account_type !== "demat" && account.account_type !== "loan" && (
+          {account && !isDematAccount && account.account_type !== "loan" && (
             <BalanceSourceCard
               accountId={accountId}
               isShared={siblingCards.length > 0}
@@ -863,7 +871,7 @@ export default function AccountDetailScreen() {
 
           {/* Payment Modes — hidden for loans (loans aren't payment instruments)
               and demat (investment accounts don't route expenses). v17.5.10. */}
-          {accountType !== "loan" && accountType !== "demat" && <Card className="mb-3" title="Linked Payment Modes">
+          {accountType !== "loan" && !isDematAccount && <Card className="mb-3" title="Linked Payment Modes">
             {allModes.length > 0 ? (
               allModes.map((mode) => {
                 const isLinked = linkedModeIds.has(mode.id);

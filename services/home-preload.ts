@@ -18,6 +18,7 @@ import {
   getAccountLatestStaleCheckDates,
 } from "@/services/financial-account";
 import type { FinancialAccount, DematAccountSummary } from "@/services/financial-account";
+import { batchInvestmentProducts, isPensionLikeAccount } from "@/services/investment-accounts";
 import {
   getComputedBalances,
   getComputedBalanceComponents,
@@ -253,7 +254,9 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
 
     const allIds = allAccounts.map((a) => a.id);
     const balances = await getComputedBalances(allIds);
-    const pensionAccts = allAccounts.filter((a) => a.account_type === "pension");
+    const investmentAcctIds = allAccounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+    const investmentProductsMap = await batchInvestmentProducts(investmentAcctIds);
+    const pensionAccts = allAccounts.filter((a) => isPensionLikeAccount(a, investmentProductsMap.get(a.id)));
     for (const p of pensionAccts) {
       if (balances[p.id] === null || balances[p.id] === undefined) {
         const unseeded = await computeUnseededBalance(p.id, month);
@@ -292,7 +295,7 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
       ccAccounts: allAccounts.filter((a) => a.account_type === "credit_card"),
       bankAccounts: allAccounts.filter((a) => a.account_type === "savings"),
       walletAccounts: allAccounts.filter((a) => a.account_type === "wallet"),
-      pensionAccounts: allAccounts.filter((a) => a.account_type === "pension"),
+      pensionAccounts: pensionAccts,
       ccExpenseTotals: ccTotals,
       computedBalanceMap: balances,
       dematSummary: dematSum,
@@ -400,7 +403,14 @@ async function loadAccountGroupSection(
       getAccountLatestStaleCheckDates(DEFAULT_USER_ID, startDate, endDate),
       getAdjustmentAbsTotalByAccountType(DEFAULT_USER_ID, accountType, startDate, endDate),
     ]);
-    const group = allAccounts.filter((a) => a.account_type === accountType);
+    let group: FinancialAccount[];
+    if (accountType === "pension") {
+      const investmentAcctIds = allAccounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+      const investmentProductsMap = await batchInvestmentProducts(investmentAcctIds);
+      group = allAccounts.filter((a) => isPensionLikeAccount(a, investmentProductsMap.get(a.id)));
+    } else {
+      group = allAccounts.filter((a) => a.account_type === accountType);
+    }
 
     const summaries: AccountSummaryRow[] = await Promise.all(
       group.map(async (account) => {

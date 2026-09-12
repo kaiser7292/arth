@@ -11,7 +11,8 @@ import {
 } from "@/services/account-balance";
 import { getCurrentMonth } from "@/services/budget";
 import type { FinancialAccount } from "@/services/financial-account";
-import { getAccountLatestStaleCheckDates, getActiveAccounts, getClosedAccounts } from "@/services/financial-account";
+import { getAccountLatestStaleCheckDates, getActiveAccounts, getClosedPensionLikeAccounts } from "@/services/financial-account";
+import { batchInvestmentProducts, isPensionLikeAccount } from "@/services/investment-accounts";
 import { consumePensionAccountsPreload } from "@/services/home-preload";
 import { getFYStartMonth } from "@/services/settings";
 
@@ -57,9 +58,11 @@ export default function PensionAccountsScreen() {
         getActiveAccounts(DEFAULT_USER_ID),
         getAccountLatestStaleCheckDates(DEFAULT_USER_ID, startDate, endDate),
         getAdjustmentAbsTotalByAccountType(DEFAULT_USER_ID, "pension", startDate, endDate),
-        getClosedAccounts(DEFAULT_USER_ID, "pension"),
+        getClosedPensionLikeAccounts(DEFAULT_USER_ID),
       ]);
-      const pensionAccounts = allAccounts.filter((a) => a.account_type === "pension");
+      const investmentIds = allAccounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+      const investmentProducts = await batchInvestmentProducts(investmentIds);
+      const pensionAccounts = allAccounts.filter((a) => isPensionLikeAccount(a, investmentProducts.get(a.id)));
       setAdjustmentStats(adjStats);
       setClosedAccounts(closed);
 

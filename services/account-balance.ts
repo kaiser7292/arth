@@ -431,6 +431,13 @@ export async function getAdjustmentAbsTotalByAccountType(
   monthEnd: string,
 ): Promise<{ total: number; count: number }> {
   const db = getDatabase();
+  // Pension is aliased to a Phase-2-converted account_type='investment' with
+  // valuation='contribution' — see docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
+  // section 4. Other account types here are unaffected.
+  const typeCondition = accountType === "pension"
+    ? `(fa.account_type = 'pension' OR (fa.account_type = 'investment'
+        AND fa.id IN (SELECT financial_account_id FROM investment_products WHERE valuation = 'contribution')))`
+    : `fa.account_type = ?`;
   const row = await db.getFirstAsync<{ total: number | null; count: number }>(
     `SELECT COALESCE(SUM(e.amount), 0) as total, COUNT(*) as count
      FROM expenses e
@@ -438,11 +445,11 @@ export async function getAdjustmentAbsTotalByAccountType(
      WHERE e.user_id = ? AND e.deleted_at IS NULL
        AND e.nature = 'ledger_adjustment' AND e.status = 'approved'
        AND e.date >= ? AND e.date <= ?
-       AND fa.account_type = ?;`,
+       AND ${typeCondition};`,
     userId,
     monthStart,
     monthEnd,
-    accountType,
+    ...(accountType === "pension" ? [] : [accountType]),
   );
   return { total: row?.total ?? 0, count: row?.count ?? 0 };
 }
