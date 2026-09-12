@@ -15,11 +15,10 @@ import { useAlert } from "@/hooks/use-alert";
 import { formatError } from "@/utils/error-message";
 import { BankBalanceSummary } from "@/components/home/BankBalanceSummary";
 import { CreditCardDashboard } from "@/components/home/CreditCardDashboard";
-import { DematSummaryCard } from "@/components/home/DematSummaryCard";
 import { VoiceEntrySheet } from "@/components/home/VoiceEntrySheet";
 import { LoanSummaryCard } from "@/components/home/LoanSummaryCard";
 import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
-import { PensionSummaryCard } from "@/components/home/PensionSummaryCard";
+import { InvestmentsSummaryCard } from "@/components/home/InvestmentsSummaryCard";
 import { WalletSummary } from "@/components/home/WalletSummary";
 import { Card, ContextualHeader, Money, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text } from "@/components/ui";
 import type { SwipePagerPage } from "@/components/ui";
@@ -29,7 +28,6 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useForecastActions } from "@/hooks/use-forecast-actions";
 import { getComputedBalances, computeUnseededBalance } from "@/services/account-balance";
-import { getDatabase } from "@/database";
 import { getBudgetsForMonth, getCurrentMonth } from "@/services/budget";
 import { formatMonthLabel } from "@/utils/date";
 import { scanAllDuplicatesCached } from "@/services/duplicate-detection";
@@ -46,21 +44,25 @@ import {
 } from "@/services/expense";
 import { getFlag } from "@/services/feature-flags";
 import type { FinancialAccount } from "@/services/financial-account";
-import { getActiveAccounts, getCcExpenseTotals, getDematSummary } from "@/services/financial-account";
+import { getActiveAccounts, getCcExpenseTotals } from "@/services/financial-account";
 import { getHisaabSummary } from "@/services/hisaab";
 import { isHomeCardVisible } from "@/services/home-card-preferences";
 import { consumeHomePreload } from "@/services/home-preload";
 import type { LoansSummary } from "@/services/loan-accounts";
 import { getLoansSummary } from "@/services/loan-accounts";
-import { batchInvestmentProducts, isPensionLikeAccount } from "@/services/investment-accounts";
+import {
+  batchInvestmentProducts,
+  getInvestmentSummary,
+  isPensionLikeAccount,
+  type InvestmentSummary,
+} from "@/services/investment-accounts";
 import {
     acknowledgeBreach,
     detectBreaches,
     unacknowledgedBreaches,
 } from "@/services/min-balance";
 import { isArthAIEnabled } from "@/services/ai-assistant";
-import { dismissBackupWarning, getFYStartMonth, shouldShowBackupWarning } from "@/services/settings";
-import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
+import { dismissBackupWarning, shouldShowBackupWarning } from "@/services/settings";
 import { findAutoMatches, dismissReminderMatch, clearDismissalsForRule, pruneExpiredDismissals } from "@/services/reminder-matching";
 import { getSmsScanAccountIds, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
 import type { ReminderAutoMatch } from "@/services/reminder-matching";
@@ -125,13 +127,11 @@ export default function HomeScreen() {
   const [ccAccounts, setCcAccounts] = useState<FinancialAccount[]>(preloaded?.ccAccounts ?? []);
   const [bankAccounts, setBankAccounts] = useState<FinancialAccount[]>(preloaded?.bankAccounts ?? []);
   const [walletAccounts, setWalletAccounts] = useState<FinancialAccount[]>(preloaded?.walletAccounts ?? []);
-  const [pensionAccounts, setPensionAccounts] = useState<FinancialAccount[]>(preloaded?.pensionAccounts ?? []);
   const [ccExpenseTotals, setCcExpenseTotals] = useState<Record<string, number>>(preloaded?.ccExpenseTotals ?? {});
   const [computedBalanceMap, setComputedBalanceMap] = useState<Record<string, number | null>>(preloaded?.computedBalanceMap ?? {});
-  const [dematSummary, setDematSummary] = useState(preloaded?.dematSummary ?? { totalPortfolio: 0, totalFund: 0, accountCount: 0 });
-  const [pensionCreditTotals, setPensionCreditTotals] = useState<Record<string, number>>(preloaded?.pensionCreditTotals ?? {});
-  const [pensionLastContributionDate, setPensionLastContributionDate] = useState<string | null>(preloaded?.pensionLastContributionDate ?? null);
-  const [pensionYtdContributions, setPensionYtdContributions] = useState<number>(preloaded?.pensionYtdContributions ?? 0);
+  const [investmentSummary, setInvestmentSummary] = useState<InvestmentSummary>(
+    preloaded?.investmentSummary ?? { totalValue: 0, accountCount: 0, breakdown: [] },
+  );
   // v17.4.0 — Loans summary (home stat card + Goals entry)
   const [loansSummary, setLoansSummary] = useState<LoansSummary | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -174,7 +174,7 @@ export default function HomeScreen() {
     try {
       const today = new Date().toISOString().split("T")[0];
       pruneExpiredDismissals();
-      const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dematSum, reminders, matches, loansSummaryResult] = await Promise.all([
+      const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, reminders, matches, loansSummaryResult] = await Promise.all([
         getBudgetsForMonth(DEFAULT_USER_ID, month).catch((e) => { logger.warn("getBudgetsForMonth failed", e); return []; }),
         getExpenseTotal(DEFAULT_USER_ID, startDate, endDate).catch((e) => { logger.warn("getExpenseTotal failed", e); return 0; }),
         getPendingExpenseCount(DEFAULT_USER_ID).catch((e) => { logger.warn("getPendingExpenseCount failed", e); return 0; }),
@@ -185,7 +185,6 @@ export default function HomeScreen() {
         getActiveAccounts(DEFAULT_USER_ID).catch((e) => { logger.warn("getActiveAccounts failed", e); return []; }),
         getCcExpenseTotals(DEFAULT_USER_ID, startDate, endDate).catch((e) => { logger.warn("getCcExpenseTotals failed", e); return {}; }),
         getUncategorizedCount(DEFAULT_USER_ID).catch((e) => { logger.warn("getUncategorizedCount failed", e); return 0; }),
-        getDematSummary(DEFAULT_USER_ID).catch((e) => { logger.warn("getDematSummary failed", e); return { totalPortfolio: 0, totalFund: 0, accountCount: 0 }; }),
         getDueRecurringReminders(DEFAULT_USER_ID).catch((e) => { logger.warn("getDueRecurringReminders failed", e); return []; }),
         findAutoMatches(DEFAULT_USER_ID).catch((e) => { logger.warn("findAutoMatches failed", e); return [] as ReminderAutoMatch[]; }),
         getLoansSummary(DEFAULT_USER_ID).catch((e) => { logger.warn("getLoansSummary failed", e); return null; }),
@@ -210,6 +209,12 @@ export default function HomeScreen() {
         }
       }
 
+      const investmentLikeAccounts = allAccounts.filter(
+        (a) => a.account_type === "investment" || a.account_type === "demat" || a.account_type === "pension",
+      );
+      const investmentSummaryResult = await getInvestmentSummary(DEFAULT_USER_ID, investmentLikeAccounts, investmentProductsMap)
+        .catch((e) => { logger.warn("getInvestmentSummary failed", e); return { totalValue: 0, accountCount: 0, breakdown: [] }; });
+
       const activeDues = forecasts.filter(
         (f) => f.due_date && f.status !== "rejected",
       );
@@ -231,58 +236,9 @@ export default function HomeScreen() {
       setCcAccounts(allAccounts.filter((a) => a.account_type === "credit_card"));
       setBankAccounts(allAccounts.filter((a) => a.account_type === "savings"));
       setWalletAccounts(allAccounts.filter((a) => a.account_type === "wallet"));
-      setPensionAccounts(pensionAccts);
       setCcExpenseTotals(ccTotals);
       setComputedBalanceMap(balances);
-      setDematSummary(dematSum);
-
-      // Calculate pension contribution metrics
-      const pensionCreditTotalsMap: Record<string, number> = {};
-      let lastContributionDate: string | null = null;
-      let ytdCredits = 0;
-
-      const fyStartMonth = getFYStartMonth();
-      const fy = getCurrentFY(fyStartMonth);
-      const fyRange = getFYRange(fy, fyStartMonth);
-      const fyStart = `${fyRange.start.getFullYear()}-${String(fyRange.start.getMonth() + 1).padStart(2, "0")}-01`;
-
-      for (const acct of pensionAccts) {
-        if (acct.last_balance_date && (!lastContributionDate || acct.last_balance_date > lastContributionDate)) {
-          lastContributionDate = acct.last_balance_date;
-        }
-      }
-
-      if (pensionAccts.length > 0) {
-        const db = getDatabase();
-        const ids = pensionAccts.map((a) => a.id);
-        const ph = ids.map(() => "?").join(",");
-
-        const [monthRows, ytdRows] = await Promise.all([
-          db.getAllAsync<{ account_id: string; total: number }>(
-            `SELECT account_id, COALESCE(SUM(amount), 0) AS total
-             FROM expenses WHERE account_id IN (${ph}) AND deleted_at IS NULL
-               AND nature = 'credit' AND status = 'approved'
-               AND date >= ? AND date <= ?
-             GROUP BY account_id`,
-            ...ids, startDate, endDate,
-          ),
-          db.getAllAsync<{ account_id: string; total: number }>(
-            `SELECT account_id, COALESCE(SUM(amount), 0) AS total
-             FROM expenses WHERE account_id IN (${ph}) AND deleted_at IS NULL
-               AND nature = 'credit' AND status = 'approved'
-               AND date >= ? AND date <= ?
-             GROUP BY account_id`,
-            ...ids, fyStart, today,
-          ),
-        ]);
-
-        for (const r of monthRows) pensionCreditTotalsMap[r.account_id] = r.total;
-        for (const r of ytdRows) ytdCredits += r.total;
-      }
-
-      setPensionCreditTotals(pensionCreditTotalsMap);
-      setPensionLastContributionDate(lastContributionDate);
-      setPensionYtdContributions(ytdCredits);
+      setInvestmentSummary(investmentSummaryResult);
     } catch (e) {
       logger.warn("Home loadData failed", e);
     }
@@ -813,7 +769,7 @@ export default function HomeScreen() {
         </View>}
 
         {/* ── Your Accounts ── */}
-        {(ccAccounts.length > 0 || bankAccounts.length > 0 || walletAccounts.length > 0 || dematSummary.accountCount > 0 || (loansSummary && loansSummary.activeCount > 0)) && (
+        {(ccAccounts.length > 0 || bankAccounts.length > 0 || walletAccounts.length > 0 || investmentSummary.accountCount > 0 || (loansSummary && loansSummary.activeCount > 0)) && (
           <View className="mx-4 mt-5 mb-1">
             <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">
               Your Accounts
@@ -829,11 +785,12 @@ export default function HomeScreen() {
         {isHomeCardVisible("wallets") && (
           <WalletSummary accounts={walletAccounts} />
         )}
-        {isHomeCardVisible("demat") && (
-          <DematSummaryCard totalPortfolio={dematSummary.totalPortfolio} totalFund={dematSummary.totalFund} accountCount={dematSummary.accountCount} />
-        )}
-        {isHomeCardVisible("pension") && (
-          <PensionSummaryCard accounts={pensionAccounts} computedBalances={computedBalanceMap} creditTotals={pensionCreditTotals} lastContributionDate={pensionLastContributionDate} ytdContributions={pensionYtdContributions} />
+        {isHomeCardVisible("investments") && (
+          <InvestmentsSummaryCard
+            totalValue={investmentSummary.totalValue}
+            accountCount={investmentSummary.accountCount}
+            breakdown={investmentSummary.breakdown}
+          />
         )}
         {isHomeCardVisible("loans") && loansSummary && loansSummary.activeCount > 0 && (
           <LoanSummaryCard summary={loansSummary} />

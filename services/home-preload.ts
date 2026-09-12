@@ -13,12 +13,16 @@ import { scanAllDuplicatesCached } from "@/services/duplicate-detection";
 import {
   getActiveAccounts,
   getCcExpenseTotals,
-  getDematSummary,
   getDematAccountsWithSummary,
   getAccountLatestStaleCheckDates,
 } from "@/services/financial-account";
 import type { FinancialAccount, DematAccountSummary } from "@/services/financial-account";
-import { batchInvestmentProducts, isPensionLikeAccount } from "@/services/investment-accounts";
+import {
+  batchInvestmentProducts,
+  getInvestmentSummary,
+  isPensionLikeAccount,
+  type InvestmentSummary,
+} from "@/services/investment-accounts";
 import {
   getComputedBalances,
   getComputedBalanceComponents,
@@ -80,13 +84,9 @@ export interface HomePreloadData {
   ccAccounts: FinancialAccount[];
   bankAccounts: FinancialAccount[];
   walletAccounts: FinancialAccount[];
-  pensionAccounts: FinancialAccount[];
   ccExpenseTotals: Record<string, number>;
   computedBalanceMap: Record<string, number | null>;
-  dematSummary: { totalPortfolio: number; totalFund: number; accountCount: number };
-  pensionCreditTotals: Record<string, number>;
-  pensionLastContributionDate: string | null;
-  pensionYtdContributions: number;
+  investmentSummary: InvestmentSummary;
   dueReminders: ReminderWithSource[];
   autoMatches: ReminderAutoMatch[];
 }
@@ -236,7 +236,7 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
     const { startDate, endDate } = getMonthDateRange(month);
     const today = new Date().toISOString().split("T")[0];
 
-    const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dematSum, dueReminders, autoMatches] = await Promise.all([
+    const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dueReminders, autoMatches] = await Promise.all([
       getBudgetsForMonth(DEFAULT_USER_ID, month),
       getExpenseTotal(DEFAULT_USER_ID, startDate, endDate),
       getPendingExpenseCount(DEFAULT_USER_ID),
@@ -247,7 +247,6 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
       getActiveAccounts(DEFAULT_USER_ID),
       getCcExpenseTotals(DEFAULT_USER_ID, startDate, endDate),
       getUncategorizedCount(DEFAULT_USER_ID),
-      getDematSummary(DEFAULT_USER_ID),
       getDueReminders(DEFAULT_USER_ID),
       findAutoMatches(DEFAULT_USER_ID).catch(() => [] as ReminderAutoMatch[]),
     ]);
@@ -265,23 +264,10 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
     }
     const activeDues = forecasts.filter((f) => f.due_date && f.status !== "rejected");
 
-    // Pension contribution metrics
-    const pensionCreditTotalsMap: Record<string, number> = {};
-    let pensionLastContributionDate: string | null = null;
-    let pensionYtdContributions = 0;
-    const fyStartMonth = getFYStartMonth();
-    const fy = getCurrentFY(fyStartMonth);
-    const fyRange = getFYRange(fy, fyStartMonth);
-    const fyStart = `${fyRange.start.getFullYear()}-${String(fyRange.start.getMonth() + 1).padStart(2, "0")}-01`;
-    for (const acct of pensionAccts) {
-      const credits = await getAccountCreditsTotal(acct.id, startDate, endDate);
-      pensionCreditTotalsMap[acct.id] = credits;
-      if (acct.last_balance_date && (!pensionLastContributionDate || acct.last_balance_date > pensionLastContributionDate)) {
-        pensionLastContributionDate = acct.last_balance_date;
-      }
-      const ytd = await getAccountCreditsTotal(acct.id, fyStart, today);
-      pensionYtdContributions += ytd;
-    }
+    const investmentLikeAccounts = allAccounts.filter(
+      (a) => a.account_type === "investment" || a.account_type === "demat" || a.account_type === "pension",
+    );
+    const investmentSummary = await getInvestmentSummary(DEFAULT_USER_ID, investmentLikeAccounts, investmentProductsMap);
 
     return {
       totalSpent: total,
@@ -295,13 +281,9 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
       ccAccounts: allAccounts.filter((a) => a.account_type === "credit_card"),
       bankAccounts: allAccounts.filter((a) => a.account_type === "savings"),
       walletAccounts: allAccounts.filter((a) => a.account_type === "wallet"),
-      pensionAccounts: pensionAccts,
       ccExpenseTotals: ccTotals,
       computedBalanceMap: balances,
-      dematSummary: dematSum,
-      pensionCreditTotals: pensionCreditTotalsMap,
-      pensionLastContributionDate,
-      pensionYtdContributions,
+      investmentSummary,
       dueReminders,
       autoMatches,
     };

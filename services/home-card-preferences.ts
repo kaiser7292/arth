@@ -22,8 +22,7 @@ export type HomeCardId =
   | "credit_cards"
   | "bank_balances"
   | "wallets"
-  | "demat"
-  | "pension"
+  | "investments"
   | "reminders"
   | "simulator"
   | "loans";
@@ -98,15 +97,9 @@ export const HOME_CARDS: HomeCardMeta[] = [
     defaultVisible: true,
   },
   {
-    id: "demat",
-    label: "Demat portfolio + fund",
-    description: "Broker portfolio value + idle cash",
-    defaultVisible: true,
-  },
-  {
-    id: "pension",
-    label: "Pension",
-    description: "EPF/PPF balance across your pension accounts",
+    id: "investments",
+    label: "Investments",
+    description: "Total value across demat, pension, and fixed deposit accounts",
     defaultVisible: true,
   },
   {
@@ -152,5 +145,23 @@ export function setHomeCardVisible(id: HomeCardId, visible: boolean): void {
 export function resetHomeCardPreferences(): void {
   for (const c of HOME_CARDS) {
     settingsStorage.delete(KEY_PREFIX + c.id);
+  }
+}
+
+/**
+ * One-time migration (Item 10 Phase 3): the separate "demat" and "pension"
+ * Home cards merged into a single "investments" card. If the user had
+ * explicitly hidden either old card, carry that intent forward by hiding the
+ * merged card too — otherwise the merge would silently un-hide a card they'd
+ * turned off. A no-op once "investments" has any explicit preference (first
+ * run, or the user has already toggled it themselves).
+ */
+export function migrateInvestmentsHomeCardPreference(): void {
+  const key = KEY_PREFIX + "investments";
+  if (settingsStorage.getBoolean(key) !== undefined) return;
+  const dematHidden = settingsStorage.getBoolean(KEY_PREFIX + "demat");
+  const pensionHidden = settingsStorage.getBoolean(KEY_PREFIX + "pension");
+  if (dematHidden === false || pensionHidden === false) {
+    settingsStorage.set(key, false);
   }
 }

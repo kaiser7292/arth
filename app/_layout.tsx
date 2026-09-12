@@ -11,6 +11,7 @@ import { getFlag } from "@/services/feature-flags";
 import { preloadHomeData } from "@/services/home-preload";
 import { runDailyNotificationCheck, syncNotifBackgroundTask } from "@/services/notification-scheduler";
 import { materialiseMaturedInvestments, migrateLegacyDematPensionAccounts } from "@/services/investment-accounts";
+import { migrateInvestmentsHomeCardPreference } from "@/services/home-card-preferences";
 import { runScheduledBackupIfDue, syncBackupBackgroundTask } from "@/services/backup-schedule";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
 import { migrateExistingUser } from "@/services/onboarding";
@@ -321,6 +322,9 @@ export default function RootLayout(): React.JSX.Element {
         // reintroduces. Runs before the maturity pass, though nothing here
         // depends on ordering.
         migrateLegacyDematPensionAccounts(DEFAULT_USER_ID).catch((e) => logger.warn("Legacy investment account conversion failed:", e));
+        // Item 10 Phase 3 — one-time carry-forward of the old separate demat/
+        // pension Home-card hidden preferences onto the new merged card.
+        migrateInvestmentsHomeCardPreference();
         // Idempotent FD-maturity catch-up pass (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
         // section 8) — must be correct on its own since there is no reliable
         // background trigger (Doze makes BackgroundFetch unreliable).
