@@ -9,6 +9,7 @@ import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import { createManualAccount, addOrUpdateSnapshot } from "@/services/financial-account";
 import type { AccountType } from "@/services/financial-account";
+import { createInvestmentProductForAccount } from "@/services/investment-accounts";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import type { AlertButton } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
@@ -87,15 +88,19 @@ export default function AccountAddScreen() {
         const fund = fundBalance
           ? parseFloat(fundBalance.replace(/,/g, ""))
           : 0;
+        // Phase 2 (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4) — demat
+        // accounts are created as account_type='investment' + a
+        // valuation='market' product from here on, not the legacy 'demat' type.
         const id = await createManualAccount({
           userId: DEFAULT_USER_ID,
           bankName: dematName.trim(),
-          accountType: "demat",
+          accountType: "investment",
           accountIdentifier: dematAccountNumber.trim() || dematName.trim(),
           accountLabel: dematName.trim(),
           fundBalance: isNaN(fund) ? 0 : fund,
           accountNumber: dematAccountNumber.trim() || undefined,
         });
+        await createInvestmentProductForAccount(id, "equity", "market");
 
         const pv = portfolioValue
           ? parseFloat(portfolioValue.replace(/,/g, ""))
@@ -112,13 +117,22 @@ export default function AccountAddScreen() {
           accountLabel: label.trim() || undefined,
         });
       } else {
+        // Phase 2 (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4) — pension
+        // accounts are created as account_type='investment' + a
+        // valuation='contribution' product from here on, not the legacy
+        // 'pension' type. EPFO is the only bank pattern that has ever created
+        // one, so instrument='epf' covers every real case.
+        const isPension = accountType === "pension";
         const newId = await createManualAccount({
           userId: DEFAULT_USER_ID,
           bankName: bankName.trim(),
-          accountType,
+          accountType: isPension ? "investment" : accountType,
           accountIdentifier: identifier.trim(),
           accountLabel: label.trim() || undefined,
         });
+        if (isPension) {
+          await createInvestmentProductForAccount(newId, "epf", "contribution");
+        }
 
         // Offer to add credentials for banking accounts
         if (accountType === "savings" || accountType === "credit_card" || accountType === "loan") {

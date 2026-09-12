@@ -176,7 +176,15 @@ export async function discoverOrUpdateAccount(
   if (!parsed.cardLast4) return null;
 
   const db = getDatabase();
-  const accountType = inferAccountType(parsed);
+  const inferredType = inferAccountType(parsed);
+  // Phase 2 (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4) — EPFO SMS is the
+  // only pattern that ever infers "pension"; those accounts are found/created
+  // as account_type='investment' now, not the legacy 'pension' type. Without
+  // this, an already-migrated pension account would never match this lookup
+  // (it's stored as 'investment') and every subsequent EPFO SMS would create
+  // a duplicate account under the old type.
+  const isPension = inferredType === "pension";
+  const accountType = isPension ? "investment" : inferredType;
 
   // Check if account already exists (including deactivated ones)
   const existing = await db.getFirstAsync<{ id: string; is_active: number }>(
@@ -212,6 +220,12 @@ export async function discoverOrUpdateAccount(
     parsed.bank,
     accountType,
   );
+  if (isPension) {
+    // Dynamic import avoids a circular dependency — investment-accounts.ts
+    // imports createManualAccount from this file.
+    const { createInvestmentProductForAccount } = await import("@/services/investment-accounts");
+    await createInvestmentProductForAccount(id, "epf", "contribution");
+  }
 
   // Update with any balance/limit info from this SMS
   await updateAccountFromSMS(id, parsed, pendingSmsId);
@@ -699,6 +713,11 @@ export async function getAccountExpenses(
 /**
  * Update the account type (savings, credit_card, loan, wallet).
  * Clears type-specific fields that don't apply to the new type.
+ *
+ * NOT for converting a legacy demat/pension account to "investment" — that
+ * clears fund_balance/account_number and never creates the required
+ * investment_products row. Use convertLegacyAccountToInvestment instead
+ * (services/investment-accounts.ts).
  */
 export async function updateAccountType(
   accountId: string,
@@ -768,6 +787,41 @@ export async function getClosedAccounts(userId: string, accountType?: string): P
   }
   return db.getAllAsync<FinancialAccount>(
     `SELECT * FROM financial_accounts WHERE user_id = ? AND is_active = 1 AND closed_at IS NOT NULL ORDER BY closed_at DESC;`,
+    userId,
+  );
+}
+
+/**
+ * Closed demat-like accounts — legacy account_type='demat' plus any
+ * Phase-2-converted account_type='investment' with valuation='market'.
+ * Kept separate from getClosedAccounts() (which is a plain single-type
+ * lookup used by other, unrelated call sites) rather than teaching it about
+ * valuation.
+ */
+export async function getClosedDematLikeAccounts(userId: string): Promise<FinancialAccount[]> {
+  const db = getDatabase();
+  return db.getAllAsync<FinancialAccount>(
+    `SELECT * FROM financial_accounts
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NOT NULL
+       AND (account_type = 'demat' OR (account_type = 'investment'
+         AND id IN (SELECT financial_account_id FROM investment_products WHERE valuation = 'market')))
+     ORDER BY closed_at DESC;`,
+    userId,
+  );
+}
+
+/**
+ * Closed pension-like accounts — legacy account_type='pension' plus any
+ * Phase-2-converted account_type='investment' with valuation='contribution'.
+ */
+export async function getClosedPensionLikeAccounts(userId: string): Promise<FinancialAccount[]> {
+  const db = getDatabase();
+  return db.getAllAsync<FinancialAccount>(
+    `SELECT * FROM financial_accounts
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NOT NULL
+       AND (account_type = 'pension' OR (account_type = 'investment'
+         AND id IN (SELECT financial_account_id FROM investment_products WHERE valuation = 'contribution')))
+     ORDER BY closed_at DESC;`,
     userId,
   );
 }
@@ -1249,7 +1303,9 @@ export async function getAggregatePortfolioTrend(
             SUM(s.portfolio_value) AS total
      FROM demat_portfolio_snapshots s
      INNER JOIN financial_accounts fa ON fa.id = s.account_id
-     WHERE fa.user_id = ? AND fa.is_active = 1 AND fa.closed_at IS NULL AND fa.account_type = 'demat'
+     WHERE fa.user_id = ? AND fa.is_active = 1 AND fa.closed_at IS NULL
+       AND (fa.account_type = 'demat' OR (fa.account_type = 'investment'
+         AND fa.id IN (SELECT financial_account_id FROM investment_products WHERE valuation = 'market')))
        AND s.snapshot_date = (
          SELECT MAX(s2.snapshot_date)
          FROM demat_portfolio_snapshots s2
@@ -1568,7 +1624,9 @@ export async function getAggregateWeeklyNetWorthTrend(
   const db = getDatabase();
   const accounts = await db.getAllAsync<{ id: string }>(
     `SELECT id FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND account_type = 'demat';`,
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL
+       AND (account_type = 'demat' OR (account_type = 'investment'
+         AND id IN (SELECT financial_account_id FROM investment_products WHERE valuation = 'market')));`,
     userId,
   );
   if (accounts.length === 0) {
@@ -1653,7 +1711,9 @@ export async function getAggregateSnapshotsForMonth(
   const db = getDatabase();
   const accounts = await db.getAllAsync<{ id: string }>(
     `SELECT id FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND account_type = 'demat';`,
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL
+       AND (account_type = 'demat' OR (account_type = 'investment'
+         AND id IN (SELECT financial_account_id FROM investment_products WHERE valuation = 'market')));`,
     userId,
   );
   if (accounts.length === 0) return [];
@@ -1690,7 +1750,9 @@ export async function getDematSummary(
 
   const accounts = await db.getAllAsync<{ id: string }>(
     `SELECT id FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND account_type = 'demat';`,
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL
+       AND (account_type = 'demat' OR (account_type = 'investment'
+         AND id IN (SELECT financial_account_id FROM investment_products WHERE valuation = 'market')));`,
     userId,
   );
 
@@ -1742,7 +1804,9 @@ export async function getDematAccountsWithSummary(
 
   const accounts = await db.getAllAsync<FinancialAccount>(
     `SELECT * FROM financial_accounts
-     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL AND account_type = 'demat'
+     WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL
+       AND (account_type = 'demat' OR (account_type = 'investment'
+         AND id IN (SELECT financial_account_id FROM investment_products WHERE valuation = 'market')))
      ORDER BY bank_name ASC;`,
     userId,
   );
