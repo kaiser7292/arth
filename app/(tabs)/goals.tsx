@@ -10,6 +10,7 @@ import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
 import { getMilestonesForFY, LifeMilestone } from "@/services/life-milestone";
 import { getActivePolicies, getInsuranceAdequacy, type InsuranceAdequacy } from "@/services/insurance-policy";
+import { listActiveInvestmentProducts, getContractCurrentValue } from "@/services/investment-accounts";
 import { listActiveLoans, getCurrentEMIsByLoanId } from "@/services/loan-accounts";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { getFYStartMonth } from "@/services/settings";
@@ -43,6 +44,8 @@ export default function GoalsScreen() {
   const [netWorth, setNetWorth] = useState<number | null>(null);
   const [insuranceCount, setInsuranceCount] = useState(0);
   const [insuranceAdequacy, setInsuranceAdequacy] = useState<InsuranceAdequacy | null>(null);
+  const [investmentCount, setInvestmentCount] = useState(0);
+  const [investmentTotal, setInvestmentTotal] = useState(0);
   const [cockpitData, setCockpitData] = useState<FinancialCockpitData | null>(preloaded?.cockpit ?? null);
   // If preloaded data is available the page is ready immediately; otherwise wait for first load
   const [setupChecked, setSetupChecked] = useState(preloaded != null);
@@ -78,6 +81,15 @@ export default function GoalsScreen() {
         setInsuranceAdequacy(adeq);
       } catch {
         // insurance not critical for page render
+      }
+
+      // Investment accounts summary (FD, v1 — see docs/INVESTMENT_ACCOUNTS_PROPOSAL.md)
+      try {
+        const products = await listActiveInvestmentProducts(DEFAULT_USER_ID);
+        setInvestmentCount(products.length);
+        setInvestmentTotal(products.reduce((s, p) => s + getContractCurrentValue(p), 0));
+      } catch {
+        // investments not critical for page render
       }
     } catch {
       // DB not ready — leave setupChecked as-is so preloaded data stays visible
@@ -529,6 +541,29 @@ export default function GoalsScreen() {
                   {activeLoansCount > 0
                     ? `${activeLoansCount} active · ${formatAmount(totalMonthlyEMI)}/mo EMI`
                     : "No active loans"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/investments")}
+              className="flex-row items-center py-3 border-b border-border"
+            >
+              <View
+                className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: "#14B8A614" }}
+              >
+                <Ionicons name="trending-up-outline" size={18} color="#14B8A6" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-foreground">
+                  Investments
+                </Text>
+                <Text className="text-xs text-muted-foreground">
+                  {investmentCount > 0
+                    ? `${investmentCount} account${investmentCount !== 1 ? "s" : ""} · ${formatAmount(investmentTotal)}`
+                    : "Track fixed deposits and more"}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />

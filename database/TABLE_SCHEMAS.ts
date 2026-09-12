@@ -750,6 +750,39 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "created_at",
   ] as const,
 
+  // Investment accounts (migration 072)
+  investment_products: [
+    "id",
+    "financial_account_id",
+    "instrument",
+    "valuation",
+    "principal",
+    "interest_rate_pa",
+    "interest_method",
+    "compounding_freq",
+    "start_date",
+    "maturity_date",
+    "payout_mode",
+    "source_account_id",
+    "auto_credit_on_maturity",
+    "status",
+    "created_at",
+    "updated_at",
+  ] as const,
+
+  investment_schedule_entries: [
+    "id",
+    "product_id",
+    "event_num",
+    "event_date",
+    "kind",
+    "principal_component",
+    "interest_component",
+    "status",
+    "linked_expense_id",
+    "linked_transfer_id",
+  ] as const,
+
   // v17.4.0 — expense → loan payment link (EMI or prepayment). Migration 032.
   expense_loan_links: [
     "id",

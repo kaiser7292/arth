@@ -148,6 +148,11 @@ export const BACKUP_TABLES = [
   "reconciliation_items",
   // v19.x — insurance policies. Independent table, no FK dependencies.
   "insurance_policies",
+  // Investment accounts (migration 072). investment_products depends on
+  // financial_accounts; schedule entries depend on investment_products
+  // (and optionally expenses/account_transfers, both listed earlier).
+  "investment_products",
+  "investment_schedule_entries",
 ];
 
 // ---------------------------------------------------------------------------

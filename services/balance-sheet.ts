@@ -22,13 +22,14 @@ import { getDatabase } from "@/database";
 import { computeClosing, computeUnseededBalance } from "@/services/account-balance";
 import { V15_FLAGS } from "@/services/feature-flags";
 import { getLoanOutstandingsByFA } from "@/services/loan-accounts";
+import type { InvestmentProduct } from "@/services/investment-accounts";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 
 export interface BalanceSheetRow {
   /** Short label for the row, e.g. "HDFC ••••1234" or "Credit cards utilized". */
   label: string;
   /** Grouping so the UI can collapse rows per section. */
-  group: "savings" | "wallet" | "demat_portfolio" | "demat_fund" | "pension" | "hisaab_owed" | "cc" | "loan" | "hisaab_owes";
+  group: "savings" | "wallet" | "demat_portfolio" | "demat_fund" | "pension" | "hisaab_owed" | "cc" | "loan" | "hisaab_owes" | "investment";
   /** Money amount on this row (always non-negative — sign is conveyed by section). */
   amount: number;
   /** Per-row meta for tapping; optional route hint. */
@@ -138,6 +139,26 @@ async function batchSnapshotAsOf(
     asOfDate,
   );
   for (const r of rows) result.set(r.account_id, r.val);
+  return result;
+}
+
+/**
+ * Batch-fetch investment_products for a set of investment-type financial
+ * accounts, keyed by financial_account_id. v1 only ever has valuation='contract'
+ * rows (FD) — 'market' and 'contribution' are Phase 2 (demat/pension
+ * conversion) and aren't produced by any writer yet, but the caller branches
+ * on `valuation` regardless so this doesn't need to change when they land.
+ */
+async function batchInvestmentProducts(accountIds: string[]): Promise<Map<string, InvestmentProduct>> {
+  const result = new Map<string, InvestmentProduct>();
+  if (accountIds.length === 0) return result;
+  const db = getDatabase();
+  const placeholders = accountIds.map(() => "?").join(",");
+  const rows = await db.getAllAsync<InvestmentProduct>(
+    `SELECT * FROM investment_products WHERE financial_account_id IN (${placeholders});`,
+    ...accountIds,
+  );
+  for (const r of rows) result.set(r.financial_account_id, r);
   return result;
 }
 
@@ -383,8 +404,19 @@ export async function getBalanceSheetColumn(
   const accounts = await loadAccounts(userId);
 
   const dematIds = accounts.filter((a) => a.account_type === "demat").map((a) => a.id);
+  const investmentIds = accounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+  const investmentProducts = await batchInvestmentProducts(investmentIds);
+
+  // 'contract' (FD) and 'contribution' (future pension aliasing) both use the
+  // standard balance chain — an FD's deposit and maturity payout are real
+  // account_transfers rows (see createFDAccount / materialiseMaturedInvestments),
+  // so the same opening±flows formula that already works for savings/pension
+  // works here with zero extra math. Only 'market' (future demat aliasing)
+  // needs snapshot-based valuation instead, so it's excluded here.
   const balanceEligible = accounts.filter(
-    (a) => a.account_type === "savings" || a.account_type === "wallet" || a.account_type === "credit_card" || a.account_type === "pension",
+    (a) =>
+      a.account_type === "savings" || a.account_type === "wallet" || a.account_type === "credit_card" || a.account_type === "pension" ||
+      (a.account_type === "investment" && investmentProducts.get(a.id)?.valuation !== "market"),
   );
 
   const loanOutstandingsPromise = V15_FLAGS.v17_loans_v1
@@ -435,6 +467,17 @@ export async function getBalanceSheetColumn(
           accountId: a.id,
           isFallback: false,
         });
+      }
+    } else if (a.account_type === "investment") {
+      // 'contract' (FD, v1) and future 'contribution' products are in
+      // balanceEligible above and read from the same chain result pension
+      // and savings use. 'market' products (Phase 2 demat aliasing) aren't
+      // in balanceEligible and have no snapshot path wired up yet — skip
+      // rather than assume, until that conversion actually lands.
+      const product = investmentProducts.get(a.id);
+      if (product?.valuation !== "market") {
+        const r = balanceMap.get(a.id);
+        if (r) assets.push({ label: name, group: "investment", amount: r.value, accountId: a.id, isFallback: r.isFallback });
       }
     } else if (a.account_type === "credit_card") {
       const r = balanceMap.get(a.id);

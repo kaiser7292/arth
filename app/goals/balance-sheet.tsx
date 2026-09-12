@@ -209,6 +209,12 @@ export default function BalanceSheetScreen() {
     }
     if (meta.group === "loan" && meta.accountId) {
       router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: meta.accountId } });
+      return;
+    }
+    if (meta.group === "investment" && meta.accountId) {
+      // No dedicated investment detail screen yet — the account ledger
+      // already shows the maturity transfer/interest credit once materialised.
+      router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: meta.accountId } });
     }
   };
 

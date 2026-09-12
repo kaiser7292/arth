@@ -10,6 +10,7 @@ import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
 import { preloadHomeData } from "@/services/home-preload";
 import { runDailyNotificationCheck, syncNotifBackgroundTask } from "@/services/notification-scheduler";
+import { materialiseMaturedInvestments } from "@/services/investment-accounts";
 import { runScheduledBackupIfDue, syncBackupBackgroundTask } from "@/services/backup-schedule";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
 import { migrateExistingUser } from "@/services/onboarding";
@@ -315,6 +316,10 @@ export default function RootLayout(): React.JSX.Element {
         requestNotificationPermissions().catch((e) => logger.warn("Notif permission request failed:", e));
         // Fire-and-forget: run immediate check + ensure background task is registered
         runDailyNotificationCheck(DEFAULT_USER_ID).catch((e) => logger.warn("Daily notification check failed:", e));
+        // Idempotent FD-maturity catch-up pass (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
+        // section 8) — must be correct on its own since there is no reliable
+        // background trigger (Doze makes BackgroundFetch unreliable).
+        materialiseMaturedInvestments(DEFAULT_USER_ID).catch((e) => logger.warn("Investment maturity check failed:", e));
         syncNotifBackgroundTask().catch((e) => logger.warn("Notif background task sync failed:", e));
         syncBackupBackgroundTask().catch((e) => logger.warn("Backup background task sync failed:", e));
         
