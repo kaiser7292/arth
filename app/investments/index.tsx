@@ -10,6 +10,7 @@ import {
   batchInvestmentProducts,
   getUnifiedInvestmentValues,
   isDematLikeAccount,
+  isFDIncomplete,
   isPensionLikeAccount,
   INSTRUMENT_LABELS,
   type InvestmentProduct,
@@ -106,13 +107,15 @@ export default function InvestmentsListScreen() {
                   ? "Market value"
                   : row.isPension
                     ? "Contributions"
-                    : product?.status === "matured"
-                      ? "Matured"
-                      : product?.status === "closed"
-                        ? "Closed"
-                        : product?.maturity_date
-                          ? `Matures ${formatDate(product.maturity_date)}`
-                          : null;
+                    : product && isFDIncomplete(product)
+                      ? "Rate & maturity not set"
+                      : product?.status === "matured"
+                        ? "Matured"
+                        : product?.status === "closed"
+                          ? "Closed"
+                          : product?.maturity_date
+                            ? `Matures ${formatDate(product.maturity_date)}`
+                            : null;
                 const icon = row.isMarket
                   ? "trending-up-outline"
                   : row.isPension

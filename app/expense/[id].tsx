@@ -1,6 +1,7 @@
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { AmountInput } from "@/components/expense/AmountInput";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
+import { MarkAsFDSheet } from "@/components/expense/MarkAsFDSheet";
 import {
     AccountPicker,
     CategoryPicker,
@@ -765,6 +766,8 @@ export default function ExpenseDetailScreen() {
   // Forecast lifecycle actions
   const [repaymentPickerVisible, setRepaymentPickerVisible] = useState(false);
   const [transferPickerVisible, setTransferPickerVisible] = useState(false);
+  // Mark as Fixed Deposit — reclassify a savings debit directly into a new FD's funding transfer.
+  const [markAsFDVisible, setMarkAsFDVisible] = useState(false);
   // Credit → transfer reclassification (incoming money that was actually a self-transfer or CC bill payment).
   const [creditTransferPickerVisible, setCreditTransferPickerVisible] = useState(false);
 
@@ -1261,6 +1264,15 @@ export default function ExpenseDetailScreen() {
       alert("Error", formatError("Mark as transfer", e));
     }
   }, [id, router, accounts, expense]);
+
+  // Mark as Fixed Deposit — the sheet itself creates the FD account and
+  // reclassifies this expense into its funding transfer; this just closes
+  // the sheet and leaves the screen once it reports success.
+  const handleFDCreated = useCallback(() => {
+    setMarkAsFDVisible(false);
+    alert("Fixed deposit created", "This expense is now the deposit into your new FD account.");
+    router.back();
+  }, [router, alert]);
 
   const handleConfirmDematTarget = useCallback(
     async (target: DematTarget, bucketId: string | null) => {
@@ -2536,6 +2548,30 @@ export default function ExpenseDetailScreen() {
                 </Pressable>
               )}
 
+              {/* 4e. Mark as Fixed Deposit (realized savings debits only) — a shortcut
+                   for the common case where an SMS-detected debit is actually the
+                   deposit that opened a new FD, so it doesn't have to be manually
+                   reclassified as a transfer to an FD account created separately. */}
+              {!transfer && expense.nature === "realized" && expense.account_id && expenseAccount?.account_type === "savings" && (
+                <Pressable
+                  onPress={() => setMarkAsFDVisible(true)}
+                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
+                >
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                    <Ionicons name="calendar-outline" size={20} color={colors.blue} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-semibold text-foreground">
+                      Mark as Fixed Deposit
+                    </Text>
+                    <Text className="text-xs text-muted-foreground mt-0.5">
+                      This debit opened a new FD
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </Pressable>
+              )}
+
               {/* 4e. Mark as Transfer (credits) — for incoming SMS credits that were
                    actually a CC bill payment or a self-transfer. Labels differ for
                    CC credits (bill payment mental model) vs savings credits.
@@ -3211,6 +3247,20 @@ export default function ExpenseDetailScreen() {
         title="Transfer to which account?"
         filterTypes={["savings", "credit_card", "wallet", "demat"]}
       />
+
+      {expense && expense.account_id && (
+        <MarkAsFDSheet
+          visible={markAsFDVisible}
+          expenseId={id}
+          expenseUpdatedAt={expense.updated_at}
+          sourceAccountId={expense.account_id}
+          amount={expense.amount}
+          date={expense.date}
+          suggestedBankName={expense.merchant_name ?? expenseAccount?.bank_name ?? ""}
+          onDone={handleFDCreated}
+          onClose={() => setMarkAsFDVisible(false)}
+        />
+      )}
 
       <AccountPickerSheet
         visible={creditTransferPickerVisible}

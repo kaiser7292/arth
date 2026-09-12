@@ -31,7 +31,8 @@ import {
   getSnapshotCountForAccount,
 } from "@/services/financial-account";
 import type { FinancialAccount, AccountType } from "@/services/financial-account";
-import { isDematLikeAccountById } from "@/services/investment-accounts";
+import { getInvestmentProduct, isDematLikeAccountById, isFDIncomplete, type InvestmentProduct } from "@/services/investment-accounts";
+import { CompleteFDDetailsSheet } from "@/components/account/CompleteFDDetailsSheet";
 import {
   getMonthBalanceSummary,
   seedOpeningBalance,
@@ -94,6 +95,8 @@ export default function AccountDetailScreen() {
   // resolved "is this demat-flavoured" answer for the JSX below, which
   // otherwise only sees the raw (possibly-aliased) accountType.
   const [isDematAccount, setIsDematAccount] = useState(false);
+  const [investmentProduct, setInvestmentProduct] = useState<InvestmentProduct | null>(null);
+  const [completeFDVisible, setCompleteFDVisible] = useState(false);
   const [creditLimitValue, setCreditLimitValue] = useState("");
   const [balanceValue, setBalanceValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -146,6 +149,7 @@ export default function AccountDetailScreen() {
       const acct = acctData.account;
       const isDemat = await isDematLikeAccountById(acct);
       setIsDematAccount(isDemat);
+      setInvestmentProduct(acct.account_type === "investment" ? await getInvestmentProduct(acct.id) : null);
       setAccountType(acct.account_type as AccountType);
       setLabelValue(acct.account_label ?? "");
       setCreditLimitValue(
@@ -705,6 +709,29 @@ export default function AccountDetailScreen() {
             </Pressable>
           )}
 
+          {/* Fixed deposit created via "Mark as Fixed Deposit" without a rate/
+              maturity date yet (services/investment-accounts.ts:createFDAccountShell) —
+              prompts to fill them in so the schedule/maturity value can be computed. */}
+          {investmentProduct && isFDIncomplete(investmentProduct) && (
+            <Pressable
+              onPress={() => setCompleteFDVisible(true)}
+              className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-xl bg-card"
+            >
+              <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("warning", 0.12) }}>
+                <Ionicons name="alert-circle-outline" size={16} color={theme.warning} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-foreground">
+                  Add interest rate & maturity date
+                </Text>
+                <Text className="text-xs text-muted-foreground mt-0.5">
+                  This FD has no schedule yet — tap to complete it
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </Pressable>
+          )}
+
           {/* Monthly Balance Ledger — hidden for loans (schedule is source of
               truth), demat (own snapshot system), and credit cards (the
               Bank-Reported Balance card below already owns the authoritative
@@ -938,6 +965,19 @@ export default function AccountDetailScreen() {
           </View>
         </ScrollView>
       </ScreenContainer>
+
+      {account && (
+        <CompleteFDDetailsSheet
+          visible={completeFDVisible}
+          financialAccountId={account.id}
+          startDate={investmentProduct?.start_date ?? ""}
+          onDone={() => {
+            setCompleteFDVisible(false);
+            loadData();
+          }}
+          onClose={() => setCompleteFDVisible(false)}
+        />
+      )}
     </>
   );
 }
