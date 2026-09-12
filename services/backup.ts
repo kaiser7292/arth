@@ -630,6 +630,34 @@ export async function restoreFromData(
             AND id IN (SELECT hisaab_entry_id FROM expense_splits WHERE hisaab_entry_id IS NOT NULL);
         `);
       } catch { /* expense_splits may not exist */ }
+
+      // Post-restore: Phase 2 investment-account conversion (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
+      // section 4). A backup taken before this shipped still has account_type='demat'/'pension'
+      // rows — restoring it reintroduces the legacy shape into an already-migrated schema, exactly
+      // the "migration ordering caveat" this project's numbered migrations can't self-heal (they
+      // only run once, tracked in schema_migrations, and this data-conversion runs on-app-open
+      // instead of as a numbered migration for that reason). Done here too, not just on next
+      // cold start, so the ledger/balance-sheet screens are correct immediately after restore.
+      // Raw SQL rather than calling the JS convertLegacyAccountToInvestment() helper — that
+      // function opens its own transaction, and this whole block already runs inside one.
+      try {
+        await db.execAsync(`
+          INSERT INTO investment_products (id, financial_account_id, instrument, valuation, status, created_at, updated_at)
+          SELECT lower(hex(randomblob(16))), id, 'equity', 'market', 'active', datetime('now'), datetime('now')
+          FROM financial_accounts
+          WHERE account_type = 'demat'
+            AND id NOT IN (SELECT financial_account_id FROM investment_products);
+
+          INSERT INTO investment_products (id, financial_account_id, instrument, valuation, status, created_at, updated_at)
+          SELECT lower(hex(randomblob(16))), id, 'epf', 'contribution', 'active', datetime('now'), datetime('now')
+          FROM financial_accounts
+          WHERE account_type = 'pension'
+            AND id NOT IN (SELECT financial_account_id FROM investment_products);
+
+          UPDATE financial_accounts SET account_type = 'investment', updated_at = datetime('now')
+          WHERE account_type IN ('demat', 'pension');
+        `);
+      } catch { /* investment_products may not exist on a very old backup — fine, next app-open pass catches it once the schema migration has run */ }
     });
   } finally {
     await db.execAsync("PRAGMA foreign_keys = ON;");

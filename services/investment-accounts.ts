@@ -6,17 +6,22 @@
  *
  * Creation flow, mirroring services/loan-accounts.ts:
  *   1. createManualAccount() creates a financial_accounts row (account_type='investment').
- *   2. createFDAccount() creates the investment_products sibling + generates the
- *      (single-row, v1) maturity schedule.
+ *   2a. createFDAccount() creates the investment_products sibling + generates the
+ *       (single-row, v1) maturity schedule — for 'contract' (FD) products.
+ *   2b. createInvestmentProductForAccount() creates a bare investment_products
+ *       sibling with no schedule — for 'market' (demat-style) and 'contribution'
+ *       (pension-style) products, which don't need one.
  *
- * v1 scope is FD only (valuation='contract'). 'market' (demat) and
- * 'contribution' (pension) products are not created through this service —
- * they migrate in under their existing demat/pension code paths per the
- * proposal's Phase 2, and don't need a schedule at all.
+ * Phase 2 (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4): demat and pension
+ * accounts are created as account_type='investment' directly via (1)+(2b) from
+ * here on — see app/settings/account-add.tsx and services/sms/bank-patterns.ts.
+ * convertLegacyAccountToInvestment()/migrateLegacyDematPensionAccounts() below
+ * handle accounts that already exist under the old 'demat'/'pension' types.
  */
 
 import { getDatabase } from "@/database";
-import { createManualAccount } from "@/services/financial-account";
+import { createManualAccount, getActiveAccounts } from "@/services/financial-account";
+import type { FinancialAccount } from "@/services/financial-account";
 import { createTransfer } from "@/services/account-transfer";
 import {
   currentFDValue,
@@ -175,7 +180,105 @@ export async function createFDAccount(input: CreateFDInput): Promise<string> {
   return financialAccountId;
 }
 
+/**
+ * Creates a bare investment_products row with no schedule, for 'market'
+ * (demat-style) or 'contribution' (pension-style) products — those value
+ * themselves from snapshots or the standard balance chain respectively, not
+ * a generated schedule. Used when creating a brand-new demat/pension-flavoured
+ * investment account (see app/settings/account-add.tsx,
+ * services/sms/bank-patterns.ts) — for converting an EXISTING legacy
+ * 'demat'/'pension' account, use convertLegacyAccountToInvestment() instead,
+ * which also flips account_type.
+ */
+export async function createInvestmentProductForAccount(
+  financialAccountId: string,
+  instrument: InvestmentInstrument,
+  valuation: InvestmentValuation,
+): Promise<string> {
+  const db = getDatabase();
+  const productId = generateUUID();
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `INSERT INTO investment_products (id, financial_account_id, instrument, valuation, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'active', ?, ?);`,
+    productId,
+    financialAccountId,
+    instrument,
+    valuation,
+    now,
+    now,
+  );
+  bumpDataVersion();
+  return productId;
+}
+
 // ─── Read ─────────────────────────────────────────────────
+
+/**
+ * Batch-fetch investment_products for a set of investment-type financial
+ * accounts, keyed by financial_account_id. Shared by every call site that
+ * needs to tell a 'market' (demat-aliased) or 'contribution' (pension-aliased)
+ * investment account apart from an FD — see isDematLikeAccount/isPensionLikeAccount.
+ */
+export async function batchInvestmentProducts(accountIds: string[]): Promise<Map<string, InvestmentProduct>> {
+  const result = new Map<string, InvestmentProduct>();
+  if (accountIds.length === 0) return result;
+  const db = getDatabase();
+  const placeholders = accountIds.map(() => "?").join(",");
+  const rows = await db.getAllAsync<InvestmentProduct>(
+    `SELECT * FROM investment_products WHERE financial_account_id IN (${placeholders});`,
+    ...accountIds,
+  );
+  for (const r of rows) result.set(r.financial_account_id, r);
+  return result;
+}
+
+/**
+ * Is this account "demat-like" — either the legacy account_type='demat', or
+ * a Phase-2-converted account_type='investment' with valuation='market'?
+ * Every place that used to check `account_type === "demat"` should use this
+ * instead so it keeps recognising the same accounts across the conversion.
+ */
+export function isDematLikeAccount(account: { account_type: string }, product?: InvestmentProduct | null): boolean {
+  return account.account_type === "demat" || (account.account_type === "investment" && product?.valuation === "market");
+}
+
+/**
+ * Is this account "pension-like" — either the legacy account_type='pension',
+ * or a Phase-2-converted account_type='investment' with valuation='contribution'?
+ */
+export function isPensionLikeAccount(account: { account_type: string }, product?: InvestmentProduct | null): boolean {
+  return account.account_type === "pension" || (account.account_type === "investment" && product?.valuation === "contribution");
+}
+
+/**
+ * Single-account async convenience wrappers for isDematLikeAccount/
+ * isPensionLikeAccount, for call sites checking one account at a time (e.g. a
+ * transfer's from/to account) where batching isn't worth the ceremony.
+ */
+export async function isDematLikeAccountById(account: { id: string; account_type: string }): Promise<boolean> {
+  if (account.account_type !== "investment") return isDematLikeAccount(account);
+  return isDematLikeAccount(account, await getInvestmentProduct(account.id));
+}
+
+export async function isPensionLikeAccountById(account: { id: string; account_type: string }): Promise<boolean> {
+  if (account.account_type !== "investment") return isPensionLikeAccount(account);
+  return isPensionLikeAccount(account, await getInvestmentProduct(account.id));
+}
+
+/**
+ * getActiveAccounts() plus each account's investment_products row (null for
+ * non-investment types). The common starting point for any screen that needs
+ * to tell demat-like/pension-like/FD accounts apart post-Phase-2.
+ */
+export async function getActiveAccountsWithProducts(
+  userId: string,
+): Promise<{ account: FinancialAccount; product: InvestmentProduct | null }[]> {
+  const accounts = await getActiveAccounts(userId);
+  const investmentIds = accounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+  const products = await batchInvestmentProducts(investmentIds);
+  return accounts.map((account) => ({ account, product: products.get(account.id) ?? null }));
+}
 
 export async function getInvestmentProduct(financialAccountId: string): Promise<InvestmentProduct | null> {
   const db = getDatabase();
@@ -202,6 +305,95 @@ export async function getScheduleForProduct(productId: string): Promise<Investme
     "SELECT * FROM investment_schedule_entries WHERE product_id = ? ORDER BY event_num ASC;",
     productId,
   );
+}
+
+// ─── Legacy demat/pension conversion (Phase 2) ─────────────
+
+/**
+ * Converts one existing `demat` or `pension` account to `account_type='investment'`
+ * and creates its `investment_products` sibling row. Idempotent — a no-op if the
+ * account already has a product row.
+ *
+ * Deliberately does NOT reuse services/financial-account.ts's updateAccountType:
+ * that function clears `fund_balance`/`account_number` for any type other than
+ * 'demat', which would destroy a demat account's idle-cash balance and account
+ * number on this exact conversion. Those fields stay meaningful for a
+ * 'market'-valuation investment account (the demat snapshot screens key on
+ * account_id only, not account_type — see docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
+ * section 4), so this leaves them untouched.
+ */
+export async function convertLegacyAccountToInvestment(
+  accountId: string,
+  instrument: InvestmentInstrument,
+  valuation: InvestmentValuation,
+): Promise<void> {
+  const db = getDatabase();
+  let converted = false;
+  await db.withTransactionAsync(async () => {
+    const existing = await db.getFirstAsync<{ id: string }>(
+      "SELECT id FROM investment_products WHERE financial_account_id = ?;",
+      accountId,
+    );
+    if (existing) return;
+
+    await db.runAsync(
+      `UPDATE financial_accounts SET account_type = 'investment', updated_at = datetime('now') WHERE id = ?;`,
+      accountId,
+    );
+
+    const productId = generateUUID();
+    const now = new Date().toISOString();
+    await db.runAsync(
+      `INSERT INTO investment_products (id, financial_account_id, instrument, valuation, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?);`,
+      productId,
+      accountId,
+      instrument,
+      valuation,
+      now,
+      now,
+    );
+    converted = true;
+  });
+  if (converted) await bumpDataVersion();
+}
+
+/**
+ * Idempotent on-app-open catch-up pass: converts every remaining `demat`/`pension`
+ * account for the user. Needed for two cases, not just the initial one-time
+ * migration — (a) EPFO SMS auto-discovery and the manual add-account flow are
+ * being updated to create 'investment' accounts directly, but a backup taken
+ * before this shipped can still reintroduce legacy-typed rows on restore
+ * (see the "migration ordering caveat" in .context/), and (b) belt-and-braces
+ * alongside the explicit repair step in services/backup.ts's restore path.
+ *
+ * All existing pension accounts convert to instrument='epf' — EPFO is the only
+ * bank pattern that has ever created a pension account (services/sms/bank-patterns.ts),
+ * so there's no real NPS/PPF data to misclassify. Demat accounts convert to
+ * instrument='equity' — the generic "brokerage holding" instrument; the
+ * portfolio/fund snapshot screens don't distinguish equity from mutual funds
+ * today either, so this doesn't lose any information.
+ */
+export async function migrateLegacyDematPensionAccounts(userId: string): Promise<number> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{ id: string; account_type: string }>(
+    `SELECT id, account_type FROM financial_accounts WHERE user_id = ? AND account_type IN ('demat', 'pension');`,
+    userId,
+  );
+  let migrated = 0;
+  for (const row of rows) {
+    try {
+      if (row.account_type === "demat") {
+        await convertLegacyAccountToInvestment(row.id, "equity", "market");
+      } else {
+        await convertLegacyAccountToInvestment(row.id, "epf", "contribution");
+      }
+      migrated++;
+    } catch (e) {
+      logger.warn(`Failed to convert legacy account ${row.id} (non-fatal):`, e);
+    }
+  }
+  return migrated;
 }
 
 /**

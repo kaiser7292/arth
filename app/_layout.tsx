@@ -10,7 +10,7 @@ import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
 import { preloadHomeData } from "@/services/home-preload";
 import { runDailyNotificationCheck, syncNotifBackgroundTask } from "@/services/notification-scheduler";
-import { materialiseMaturedInvestments } from "@/services/investment-accounts";
+import { materialiseMaturedInvestments, migrateLegacyDematPensionAccounts } from "@/services/investment-accounts";
 import { runScheduledBackupIfDue, syncBackupBackgroundTask } from "@/services/backup-schedule";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
 import { migrateExistingUser } from "@/services/onboarding";
@@ -316,6 +316,11 @@ export default function RootLayout(): React.JSX.Element {
         requestNotificationPermissions().catch((e) => logger.warn("Notif permission request failed:", e));
         // Fire-and-forget: run immediate check + ensure background task is registered
         runDailyNotificationCheck(DEFAULT_USER_ID).catch((e) => logger.warn("Daily notification check failed:", e));
+        // Phase 2 conversion catch-up (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4)
+        // — idempotent, self-heals any 'demat'/'pension' rows a restored backup
+        // reintroduces. Runs before the maturity pass, though nothing here
+        // depends on ordering.
+        migrateLegacyDematPensionAccounts(DEFAULT_USER_ID).catch((e) => logger.warn("Legacy investment account conversion failed:", e));
         // Idempotent FD-maturity catch-up pass (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
         // section 8) — must be correct on its own since there is no reliable
         // background trigger (Doze makes BackgroundFetch unreliable).
