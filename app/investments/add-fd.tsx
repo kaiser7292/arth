@@ -72,8 +72,8 @@ export default function AddFDScreen() {
   const handleSave = useCallback(async () => {
     const errors: string[] = [];
     if (!bankName.trim()) errors.push("Bank name is required.");
-    const identifierDigits = accountIdentifier.replace(/\D/g, "");
-    if (!identifierDigits) errors.push("An account/receipt number is required to tell FDs at the same bank apart.");
+    const identifier = accountIdentifier.replace(/\s+/g, "");
+    if (!identifier) errors.push("An account/receipt number is required to tell FDs at the same bank apart.");
     const p = parseFloat(principal);
     if (!(p > 0)) errors.push("Principal must be a positive amount.");
     const r = parseFloat(interestRate);
@@ -92,7 +92,7 @@ export default function AddFDScreen() {
       await createFDAccount({
         user_id: DEFAULT_USER_ID,
         bank_name: bankName.trim(),
-        account_identifier: identifierDigits,
+        account_identifier: identifier,
         principal: p,
         interest_rate_pa: r,
         interest_method: interestMethod,
@@ -121,8 +121,9 @@ export default function AddFDScreen() {
             label="FD account / receipt number"
             value={accountIdentifier}
             onChangeText={setAccountIdentifier}
-            placeholder="Last 4+ digits, as shown on the FD receipt"
-            keyboardType="numeric"
+            placeholder="As shown on the FD receipt (letters allowed)"
+            autoCapitalize="characters"
+            autoCorrect={false}
           />
         </Card>
 

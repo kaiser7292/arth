@@ -124,8 +124,8 @@ export function MarkAsFDSheet({
   const handleSave = useCallback(async () => {
     const errors: string[] = [];
     if (!bankName.trim()) errors.push("Bank name is required.");
-    const identifierDigits = accountIdentifier.replace(/\D/g, "");
-    if (!identifierDigits) errors.push("An account/receipt number is required to tell FDs at the same bank apart.");
+    const identifier = accountIdentifier.replace(/\s+/g, "");
+    if (!identifier) errors.push("An account/receipt number is required to tell FDs at the same bank apart.");
     const r = hasRateInput ? parseFloat(interestRate) : null;
     if (hasRateInput && !(r! > 0)) errors.push("Interest rate must be a positive number.");
     if (hasRateInput && !maturityDate) errors.push("Maturity date is required if you enter an interest rate.");
@@ -146,7 +146,7 @@ export function MarkAsFDSheet({
         user_id: DEFAULT_USER_ID,
         bank_name: bankName.trim(),
         account_label: depositName.trim() || undefined,
-        account_identifier: identifierDigits,
+        account_identifier: identifier,
         principal: amount,
         start_date: date,
         source_account_id: sourceAccountId,
@@ -205,8 +205,9 @@ export function MarkAsFDSheet({
             label="FD account / receipt number"
             value={accountIdentifier}
             onChangeText={setAccountIdentifier}
-            placeholder="Last 4+ digits, as shown on the FD receipt"
-            keyboardType="numeric"
+            placeholder="As shown on the FD receipt (letters allowed)"
+            autoCapitalize="characters"
+            autoCorrect={false}
             containerClassName="mb-3"
           />
 
