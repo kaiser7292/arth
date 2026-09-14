@@ -27,8 +27,8 @@ interface ColumnSpec {
   minDate: string | null;
 }
 
-const COL_WIDTH = 120;
-const LABEL_COL_WIDTH = 150;
+const COL_WIDTH = 136;
+const LABEL_COL_WIDTH = 172;
 
 export default function BalanceSheetScreen() {
   const router = useRouter();
@@ -292,6 +292,10 @@ export default function BalanceSheetScreen() {
   const getChildCellValue = (col: BalanceSheetColumn, parentLabel: string, childLabel: string): BalanceSheetRow | undefined =>
     col.assets.find((r) => r.label === parentLabel)?.children?.find((c) => c.label === childLabel);
 
+  /** Sum of a savings row's nested FD children for one column — "Deposits" shown inline under the row's own balance. */
+  const getChildrenTotal = (col: BalanceSheetColumn, parentLabel: string): number =>
+    col.assets.find((r) => r.label === parentLabel)?.children?.reduce((s, c) => s + c.amount, 0) ?? 0;
+
   const handleRowPress = (meta: { group: string; accountId?: string; personId?: string }) => {
     if (meta.group === "hisaab_owed" || meta.group === "hisaab_owes") {
       router.push("/hisaab/persons");
@@ -406,7 +410,7 @@ export default function BalanceSheetScreen() {
           >
             <View>
               {/* Header row */}
-              <View className="flex-row items-center border-b border-border px-3 py-2">
+              <View className="flex-row items-center border-b border-border px-3 py-3">
                 <View style={{ width: LABEL_COL_WIDTH }} />
                 {columns.map((col) => (
                   <View
@@ -459,15 +463,15 @@ export default function BalanceSheetScreen() {
               {/* Assets section */}
               <Pressable
                 onPress={() => setShowAssets(!showAssets)}
-                className="flex-row items-center px-3 py-2 border-b border-border"
+                className="flex-row items-center px-3 py-3 border-b border-border"
                 style={{ backgroundColor: theme.alpha("primary", 0.04) }}
               >
                 <Ionicons
                   name={showAssets ? "chevron-down" : "chevron-forward"}
-                  size={12}
+                  size={13}
                   color={colors.textSecondary}
                 />
-                <Text className="text-xs font-bold text-foreground ml-1 flex-1">
+                <Text className="text-sm font-bold text-foreground ml-1 flex-1">
                   Assets
                 </Text>
               </Pressable>
@@ -478,19 +482,34 @@ export default function BalanceSheetScreen() {
                 const sectionCollapsed = collapsedSections.has(section);
                 return (
                   <View key={`sec-a-${section}`}>
+                    {/* Section heading — subtotal always visible on the right,
+                        even collapsed, so collapsing a section doesn't hide its total. */}
                     <Pressable
                       onPress={() => toggleSection(section)}
-                      className="flex-row items-center py-1.5"
-                      style={{ paddingLeft: 20, paddingRight: 12, backgroundColor: theme.alpha("primary", 0.02) }}
+                      className="flex-row items-center px-3"
+                      style={{ paddingVertical: 10, backgroundColor: theme.alpha("primary", 0.03) }}
                     >
-                      <Ionicons
-                        name={sectionCollapsed ? "chevron-forward" : "chevron-down"}
-                        size={10}
-                        color={colors.textSecondary}
-                      />
-                      <Text className="text-label font-semibold uppercase tracking-wider ml-1 flex-1" style={{ color: colors.textSecondary }}>
-                        {section}
-                      </Text>
+                      <View className="flex-row items-center" style={{ width: LABEL_COL_WIDTH }}>
+                        <Ionicons
+                          name={sectionCollapsed ? "chevron-forward" : "chevron-down"}
+                          size={11}
+                          color={colors.textSecondary}
+                        />
+                        <Text
+                          className="text-label font-semibold uppercase tracking-wider ml-1"
+                          numberOfLines={1}
+                          style={{ color: colors.textSecondary }}
+                        >
+                          {section}
+                        </Text>
+                      </View>
+                      {columns.map((col) => (
+                        <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+                            {formatAmount(getSectionTotal(col, "assets", rows))}
+                          </Text>
+                        </View>
+                      ))}
                     </Pressable>
 
                     {!sectionCollapsed && rows.map((row) => {
@@ -501,20 +520,20 @@ export default function BalanceSheetScreen() {
                         <View key={`a-${row.label}`}>
                           <Pressable
                             onPress={() => (hasChildren ? toggleParent(row.label) : handleRowPress(row))}
-                            className="flex-row items-center px-3 py-2 border-b border-border"
+                            className="flex-row items-center px-3 py-3 border-b border-border"
                           >
                             {hasChildren && (
                               <Ionicons
                                 name={expanded ? "chevron-down" : "chevron-forward"}
-                                size={10}
+                                size={11}
                                 color={colors.textSecondary}
-                                style={{ marginRight: 3 }}
+                                style={{ marginRight: 4 }}
                               />
                             )}
                             <Text
-                              className="text-xs text-foreground"
+                              className="text-sm text-foreground"
                               numberOfLines={1}
-                              style={{ width: hasChildren ? LABEL_COL_WIDTH - 13 : LABEL_COL_WIDTH }}
+                              style={{ width: hasChildren ? LABEL_COL_WIDTH - 15 : LABEL_COL_WIDTH }}
                             >
                               {row.label}
                             </Text>
@@ -522,10 +541,11 @@ export default function BalanceSheetScreen() {
                               const cell = getCellValue(col, row.label, "assets");
                               const amount = cell?.amount ?? 0;
                               const isMissing = !cell;
+                              const depositsTotal = hasChildren ? getChildrenTotal(col, row.label) : 0;
                               return (
                                 <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
                                   <Text
-                                    className="text-xs"
+                                    className="text-sm"
                                     style={{
                                       color: isMissing
                                         ? theme.faintForeground
@@ -537,6 +557,11 @@ export default function BalanceSheetScreen() {
                                   >
                                     {isMissing ? "-" : formatAmount(amount)}
                                   </Text>
+                                  {depositsTotal > 0 && (
+                                    <Text className="text-label text-muted-foreground mt-0.5">
+                                      +{formatAmount(depositsTotal)} deposits
+                                    </Text>
+                                  )}
                                 </View>
                               );
                             })}
@@ -545,13 +570,13 @@ export default function BalanceSheetScreen() {
                             <Pressable
                               key={`a-${row.label}-${child.label}`}
                               onPress={() => handleRowPress(child)}
-                              className="flex-row items-center px-3 py-2 border-b border-border"
+                              className="flex-row items-center px-3 py-2.5 border-b border-border"
                               style={{ backgroundColor: theme.alpha("primary", 0.03) }}
                             >
                               <Text
-                                className="text-label text-muted-foreground"
+                                className="text-xs text-muted-foreground"
                                 numberOfLines={1}
-                                style={{ width: LABEL_COL_WIDTH, paddingLeft: 14 }}
+                                style={{ width: LABEL_COL_WIDTH, paddingLeft: 16 }}
                               >
                                 {child.label}
                               </Text>
@@ -562,7 +587,7 @@ export default function BalanceSheetScreen() {
                                 return (
                                   <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
                                     <Text
-                                      className="text-label"
+                                      className="text-xs"
                                       style={{
                                         color: isMissing
                                           ? theme.faintForeground
@@ -582,38 +607,22 @@ export default function BalanceSheetScreen() {
                         </View>
                       );
                     })}
-
-                    {/* Section subtotal */}
-                    {!sectionCollapsed && (
-                      <View className="flex-row items-center py-1.5 border-b border-border" style={{ paddingLeft: 20, paddingRight: 12 }}>
-                        <Text className="text-label font-semibold text-muted-foreground flex-1">
-                          {section} total
-                        </Text>
-                        {columns.map((col) => (
-                          <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                            <Text className="text-label font-semibold text-muted-foreground">
-                              {formatAmount(getSectionTotal(col, "assets", rows))}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
                   </View>
                 );
               })}
 
               {/* Total Assets */}
               {showAssets && (
-                <View className="flex-row items-center px-3 py-2 border-b border-border">
+                <View className="flex-row items-center px-3 py-3 border-b border-border">
                   <Text
-                    className="text-xs font-bold text-foreground"
+                    className="text-sm font-bold text-foreground"
                     style={{ width: LABEL_COL_WIDTH }}
                   >
                     Total Assets
                   </Text>
                   {columns.map((col) => (
                     <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                      <Text className="text-xs font-bold" style={{ color: theme.success }}>
+                      <Text className="text-sm font-bold" style={{ color: theme.success }}>
                         {formatAmount(col.totalAssets)}
                       </Text>
                     </View>
@@ -624,15 +633,15 @@ export default function BalanceSheetScreen() {
               {/* Liabilities section */}
               <Pressable
                 onPress={() => setShowLiabilities(!showLiabilities)}
-                className="flex-row items-center px-3 py-2 border-b border-border"
+                className="flex-row items-center px-3 py-3 border-b border-border"
                 style={{ backgroundColor: theme.danger + "0A" }}
               >
                 <Ionicons
                   name={showLiabilities ? "chevron-down" : "chevron-forward"}
-                  size={12}
+                  size={13}
                   color={colors.textSecondary}
                 />
-                <Text className="text-xs font-bold text-foreground ml-1 flex-1">
+                <Text className="text-sm font-bold text-foreground ml-1 flex-1">
                   Liabilities
                 </Text>
               </Pressable>
@@ -645,27 +654,40 @@ export default function BalanceSheetScreen() {
                   <View key={`sec-l-${section}`}>
                     <Pressable
                       onPress={() => toggleSection(section)}
-                      className="flex-row items-center py-1.5"
-                      style={{ paddingLeft: 20, paddingRight: 12, backgroundColor: theme.danger + "05" }}
+                      className="flex-row items-center px-3"
+                      style={{ paddingVertical: 10, backgroundColor: theme.danger + "08" }}
                     >
-                      <Ionicons
-                        name={sectionCollapsed ? "chevron-forward" : "chevron-down"}
-                        size={10}
-                        color={colors.textSecondary}
-                      />
-                      <Text className="text-label font-semibold uppercase tracking-wider ml-1 flex-1" style={{ color: colors.textSecondary }}>
-                        {section}
-                      </Text>
+                      <View className="flex-row items-center" style={{ width: LABEL_COL_WIDTH }}>
+                        <Ionicons
+                          name={sectionCollapsed ? "chevron-forward" : "chevron-down"}
+                          size={11}
+                          color={colors.textSecondary}
+                        />
+                        <Text
+                          className="text-label font-semibold uppercase tracking-wider ml-1"
+                          numberOfLines={1}
+                          style={{ color: colors.textSecondary }}
+                        >
+                          {section}
+                        </Text>
+                      </View>
+                      {columns.map((col) => (
+                        <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+                            {formatAmount(getSectionTotal(col, "liabilities", rows))}
+                          </Text>
+                        </View>
+                      ))}
                     </Pressable>
 
                     {!sectionCollapsed && rows.map((row) => (
                       <Pressable
                         key={`l-${row.label}`}
                         onPress={() => handleRowPress(row)}
-                        className="flex-row items-center px-3 py-2 border-b border-border"
+                        className="flex-row items-center px-3 py-3 border-b border-border"
                       >
                         <Text
-                          className="text-xs text-foreground"
+                          className="text-sm text-foreground"
                           numberOfLines={1}
                           style={{ width: LABEL_COL_WIDTH }}
                         >
@@ -678,7 +700,7 @@ export default function BalanceSheetScreen() {
                           return (
                             <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
                               <Text
-                                className="text-xs"
+                                className="text-sm"
                                 style={{
                                   color: isMissing
                                     ? theme.faintForeground
@@ -695,38 +717,22 @@ export default function BalanceSheetScreen() {
                         })}
                       </Pressable>
                     ))}
-
-                    {/* Section subtotal */}
-                    {!sectionCollapsed && (
-                      <View className="flex-row items-center py-1.5 border-b border-border" style={{ paddingLeft: 20, paddingRight: 12 }}>
-                        <Text className="text-label font-semibold text-muted-foreground flex-1">
-                          {section} total
-                        </Text>
-                        {columns.map((col) => (
-                          <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                            <Text className="text-label font-semibold text-muted-foreground">
-                              {formatAmount(getSectionTotal(col, "liabilities", rows))}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
                   </View>
                 );
               })}
 
               {/* Total Liabilities */}
               {showLiabilities && (
-                <View className="flex-row items-center px-3 py-2 border-b border-border">
+                <View className="flex-row items-center px-3 py-3 border-b border-border">
                   <Text
-                    className="text-xs font-bold text-foreground"
+                    className="text-sm font-bold text-foreground"
                     style={{ width: LABEL_COL_WIDTH }}
                   >
                     Total Liabilities
                   </Text>
                   {columns.map((col) => (
                     <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                      <Text className="text-xs font-bold" style={{ color: theme.danger }}>
+                      <Text className="text-sm font-bold" style={{ color: theme.danger }}>
                         {formatAmount(col.totalLiabilities)}
                       </Text>
                     </View>
@@ -736,11 +742,11 @@ export default function BalanceSheetScreen() {
 
               {/* Net Worth */}
               <View
-                className="flex-row items-center px-3 py-3"
+                className="flex-row items-center px-3 py-4"
                 style={{ backgroundColor: theme.alpha("primary", 0.08) }}
               >
                 <Text
-                  className="text-xs font-bold text-foreground"
+                  className="text-sm font-bold text-foreground"
                   style={{ width: LABEL_COL_WIDTH }}
                 >
                   Net Worth
@@ -748,7 +754,7 @@ export default function BalanceSheetScreen() {
                 {columns.map((col) => (
                   <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
                     <Text
-                      className="text-sm font-bold"
+                      className="text-base font-bold"
                       style={{
                         color: col.netWorth < 0 ? theme.danger : colors.text,
                       }}
