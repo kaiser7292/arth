@@ -43,6 +43,15 @@ export interface BalanceSheetRow {
   personId?: string;
   /** True if the value is a best-effort fallback (no real data for this date). */
   isFallback?: boolean;
+  /**
+   * Sub-rows nested under this one — currently only used for a fixed deposit
+   * whose source account is this row's savings account (see
+   * getBalanceSheetColumn). An FD is "a deposit within its savings account"
+   * to the user, not a separate account, so it renders as an expandable
+   * sub-line rather than its own top-level asset row. Included in totalAssets
+   * the same as a top-level row — see the sum in getBalanceSheetColumn.
+   */
+  children?: BalanceSheetRow[];
 }
 
 export interface BalanceSheetColumn {
@@ -429,6 +438,10 @@ export async function getBalanceSheetColumn(
 
   const assets: BalanceSheetRow[] = [];
   const liabilities: BalanceSheetRow[] = [];
+  // FD rows (account_type='investment', valuation='contract') are deferred to
+  // a second pass — they need every savings row already pushed so they can
+  // nest under their source account instead of appearing as their own row.
+  const fdAccounts: AccountRow[] = [];
 
   for (const a of accounts) {
     const name = a.account_label ?? `${a.bank_name} ••••${a.account_identifier}`;
@@ -470,9 +483,7 @@ export async function getBalanceSheetColumn(
     } else if (a.account_type === "investment") {
       // Reaches here only for 'contract' (FD) — pension-like and demat-like
       // investment accounts are handled by the two branches above.
-      const r = balanceMap.get(a.id);
-      const instrumentLabel = product ? (INSTRUMENT_LABELS[product.instrument] ?? product.instrument) : "Investment";
-      if (r) assets.push({ label: `${name} · ${instrumentLabel}`, group: "investment", amount: r.value, accountId: a.id, isFallback: r.isFallback });
+      fdAccounts.push(a);
     } else if (a.account_type === "credit_card") {
       const r = balanceMap.get(a.id);
       if (r && (r.value > 0 || !r.isFallback)) {
@@ -502,6 +513,36 @@ export async function getBalanceSheetColumn(
     }
   }
 
+  // Second pass: attach each FD as a sub-line under its source account's
+  // savings row — the user thinks of an FD as "a deposit within my savings
+  // account", not a separate account (see BalanceSheetRow.children). Falls
+  // back to a top-level row (the pre-nesting behavior) when the source
+  // account isn't itself a savings row in this column — e.g. it was closed,
+  // isn't type 'savings', or its balance is unavailable for this date —
+  // so an FD's value is never silently dropped.
+  for (const a of fdAccounts) {
+    const name = a.account_label ?? `${a.bank_name} ••••${a.account_identifier}`;
+    const product = investmentProducts.get(a.id);
+    const r = balanceMap.get(a.id);
+    if (!r) continue;
+    const instrumentLabel = product ? (INSTRUMENT_LABELS[product.instrument] ?? product.instrument) : "Investment";
+    const fdRow: BalanceSheetRow = {
+      label: `${name} · ${instrumentLabel}`,
+      group: "investment",
+      amount: r.value,
+      accountId: a.id,
+      isFallback: r.isFallback,
+    };
+    const parentRow = product?.source_account_id
+      ? assets.find((row) => row.group === "savings" && row.accountId === product.source_account_id)
+      : undefined;
+    if (parentRow) {
+      (parentRow.children ??= []).push(fdRow);
+    } else {
+      assets.push(fdRow);
+    }
+  }
+
   if (hisaab.owedToMe > 0) {
     assets.push({ label: "Hisaab · People owe me", group: "hisaab_owed", amount: hisaab.owedToMe });
   }
@@ -509,8 +550,10 @@ export async function getBalanceSheetColumn(
     liabilities.push({ label: "Hisaab · I owe", group: "hisaab_owes", amount: hisaab.iOwe });
   }
 
-  const totalAssets = assets.reduce((s, r) => s + r.amount, 0);
-  const totalLiabilities = liabilities.reduce((s, r) => s + r.amount, 0);
+  const sumRows = (rows: BalanceSheetRow[]): number =>
+    rows.reduce((s, r) => s + r.amount + (r.children ? sumRows(r.children) : 0), 0);
+  const totalAssets = sumRows(assets);
+  const totalLiabilities = sumRows(liabilities);
 
   return {
     asOfDate,

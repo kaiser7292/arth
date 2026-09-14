@@ -156,7 +156,13 @@ export async function generateFinancialHealthReport(
 
     // --- Net worth ---
     const bs = await getBalanceSheetColumn(userId, today, "Today", true, null);
-    const assetBreakdown = bs.assets.map((a) => ({
+    // Flatten nested rows (currently: an FD nested under its source savings
+    // account, see BalanceSheetRow.children) so this report's breakdown and
+    // diversification scoring still see it — bs.totalAssets/netWorth already
+    // include it via getBalanceSheetColumn's own recursive sum, but a flat
+    // .map over bs.assets would silently drop it from these derived views.
+    const flatAssets = bs.assets.flatMap((a) => (a.children ? [a, ...a.children] : [a]));
+    const assetBreakdown = flatAssets.map((a) => ({
       label: a.label,
       amount: a.amount,
       group: a.group,
@@ -328,7 +334,7 @@ export async function generateFinancialHealthReport(
     spikingCategories.sort((a, b) => b.spikeMultiple - a.spikeMultiple);
 
     // --- Grading ---
-    const assetGroups = new Set(bs.assets.map((a) => a.group));
+    const assetGroups = new Set(flatAssets.map((a) => a.group));
 
     const savingsScore = scoreSavingsRate(currentSavingsRate);
     const debtScore = scoreDebt(debtToIncomeRatio);

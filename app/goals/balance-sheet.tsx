@@ -40,6 +40,9 @@ export default function BalanceSheetScreen() {
   const [columnSpecs, setColumnSpecs] = useState<ColumnSpec[]>([]);
   const [showAssets, setShowAssets] = useState(true);
   const [showLiabilities, setShowLiabilities] = useState(true);
+  // Rows with nested children (currently: a savings account with a linked
+  // fixed deposit) start collapsed — expand on tap to reveal the FD sub-line.
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
   // v15.13.0: surface a spinner in the column headers while we recompute, so
   // the user knows old numbers on screen are about to change. Without this,
   // numbers silently swap in on every data-refresh event.
@@ -165,6 +168,34 @@ export default function BalanceSheetScreen() {
     return Array.from(seen.entries()).map(([label, meta]) => ({ label, ...meta }));
   }, [columns]);
 
+  // Nested FD rows keyed by their parent savings row's label — see
+  // BalanceSheetRow.children. Only assets ever carry children today.
+  const childRowsByParent = useMemo(() => {
+    const map = new Map<string, { label: string; group: string; accountId?: string }[]>();
+    for (const col of columns) {
+      for (const r of col.assets) {
+        if (!r.children || r.children.length === 0) continue;
+        const existing = map.get(r.label) ?? [];
+        for (const c of r.children) {
+          if (!existing.some((e) => e.label === c.label)) {
+            existing.push({ label: c.label, group: c.group, accountId: c.accountId });
+          }
+        }
+        map.set(r.label, existing);
+      }
+    }
+    return map;
+  }, [columns]);
+
+  const toggleParent = (label: string) => {
+    setExpandedParents((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
+
   const liabilityRowLabels = useMemo(() => {
     const seen = new Map<string, { group: string; accountId?: string; personId?: string }>();
     for (const col of columns) {
@@ -181,6 +212,9 @@ export default function BalanceSheetScreen() {
     const pool = section === "assets" ? col.assets : col.liabilities;
     return pool.find((r) => r.label === rowLabel);
   };
+
+  const getChildCellValue = (col: BalanceSheetColumn, parentLabel: string, childLabel: string): BalanceSheetRow | undefined =>
+    col.assets.find((r) => r.label === parentLabel)?.children?.find((c) => c.label === childLabel);
 
   const handleRowPress = (meta: { group: string; accountId?: string; personId?: string }) => {
     if (meta.group === "hisaab_owed" || meta.group === "hisaab_owes") {
@@ -362,43 +396,95 @@ export default function BalanceSheetScreen() {
                 </Text>
               </Pressable>
 
-              {showAssets && assetRowLabels.map((row) => (
-                <Pressable
-                  key={`a-${row.label}`}
-                  onPress={() => handleRowPress(row)}
-                  className="flex-row items-center px-3 py-2 border-b border-border"
-                >
-                  <Text
-                    className="text-xs text-foreground"
-                    numberOfLines={1}
-                    style={{ width: LABEL_COL_WIDTH }}
-                  >
-                    {row.label}
-                  </Text>
-                  {columns.map((col) => {
-                    const cell = getCellValue(col, row.label, "assets");
-                    const amount = cell?.amount ?? 0;
-                    const isMissing = !cell;
-                    return (
-                      <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+              {showAssets && assetRowLabels.map((row) => {
+                const children = childRowsByParent.get(row.label) ?? [];
+                const hasChildren = children.length > 0;
+                const expanded = expandedParents.has(row.label);
+                return (
+                  <View key={`a-${row.label}`}>
+                    <Pressable
+                      onPress={() => (hasChildren ? toggleParent(row.label) : handleRowPress(row))}
+                      className="flex-row items-center px-3 py-2 border-b border-border"
+                    >
+                      {hasChildren && (
+                        <Ionicons
+                          name={expanded ? "chevron-down" : "chevron-forward"}
+                          size={10}
+                          color={colors.textSecondary}
+                          style={{ marginRight: 3 }}
+                        />
+                      )}
+                      <Text
+                        className="text-xs text-foreground"
+                        numberOfLines={1}
+                        style={{ width: hasChildren ? LABEL_COL_WIDTH - 13 : LABEL_COL_WIDTH }}
+                      >
+                        {row.label}
+                      </Text>
+                      {columns.map((col) => {
+                        const cell = getCellValue(col, row.label, "assets");
+                        const amount = cell?.amount ?? 0;
+                        const isMissing = !cell;
+                        return (
+                          <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                            <Text
+                              className="text-xs"
+                              style={{
+                                color: isMissing
+                                  ? theme.faintForeground
+                                  : cell?.isFallback
+                                    ? theme.faintForeground
+                                    : colors.text,
+                                fontStyle: cell?.isFallback ? "italic" : "normal",
+                              }}
+                            >
+                              {isMissing ? "-" : formatAmount(amount)}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </Pressable>
+                    {hasChildren && expanded && children.map((child) => (
+                      <Pressable
+                        key={`a-${row.label}-${child.label}`}
+                        onPress={() => handleRowPress(child)}
+                        className="flex-row items-center px-3 py-2 border-b border-border"
+                        style={{ backgroundColor: theme.alpha("primary", 0.03) }}
+                      >
                         <Text
-                          className="text-xs"
-                          style={{
-                            color: isMissing
-                              ? theme.faintForeground
-                              : cell?.isFallback
-                                ? theme.faintForeground
-                                : colors.text,
-                            fontStyle: cell?.isFallback ? "italic" : "normal",
-                          }}
+                          className="text-label text-muted-foreground"
+                          numberOfLines={1}
+                          style={{ width: LABEL_COL_WIDTH, paddingLeft: 14 }}
                         >
-                          {isMissing ? "-" : formatAmount(amount)}
+                          {child.label}
                         </Text>
-                      </View>
-                    );
-                  })}
-                </Pressable>
-              ))}
+                        {columns.map((col) => {
+                          const cell = getChildCellValue(col, row.label, child.label);
+                          const amount = cell?.amount ?? 0;
+                          const isMissing = !cell;
+                          return (
+                            <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                              <Text
+                                className="text-label"
+                                style={{
+                                  color: isMissing
+                                    ? theme.faintForeground
+                                    : cell?.isFallback
+                                      ? theme.faintForeground
+                                      : colors.textSecondary,
+                                  fontStyle: cell?.isFallback ? "italic" : "normal",
+                                }}
+                              >
+                                {isMissing ? "-" : formatAmount(amount)}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </Pressable>
+                    ))}
+                  </View>
+                );
+              })}
 
               {/* Total Assets */}
               {showAssets && (
