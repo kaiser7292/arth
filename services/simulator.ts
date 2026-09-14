@@ -112,8 +112,17 @@ export interface SimulationHisaabInclusion {
   scenario_id: string;
   person_id: string;
   included: number; // 0 | 1
+  /**
+   * amount/amount_sign are a snapshot written at save time — NOT the source
+   * of truth for display. listHisaabInclusions recomputes both live from
+   * `pct` × the person's current hisaab balance on every read, so a later
+   * change to their real balance is reflected automatically. See migration
+   * 074.
+   */
   amount: number;
   amount_sign: "positive" | "negative";
+  /** Percentage (0-100) of the person's balance to include — the actual source of truth. */
+  pct: number;
   created_at: string;
   updated_at: string;
 }
@@ -495,20 +504,21 @@ async function copyScenarioEntriesAndInclusions(
   // expect "duplicate" to produce a full clone, including who they'd
   // planned to include.
   const inclusions = await db.getAllAsync<SimulationHisaabInclusion>(
-    `SELECT scenario_id, person_id, included, amount, amount_sign, created_at, updated_at
+    `SELECT scenario_id, person_id, included, amount, amount_sign, pct, created_at, updated_at
      FROM simulation_hisaab_inclusions WHERE scenario_id = ?;`,
     sourceId,
   );
   for (const incl of inclusions) {
     await db.runAsync(
       `INSERT INTO simulation_hisaab_inclusions
-         (scenario_id, person_id, included, amount, amount_sign)
-       VALUES (?, ?, ?, ?, ?);`,
+         (scenario_id, person_id, included, amount, amount_sign, pct)
+       VALUES (?, ?, ?, ?, ?, ?);`,
       newId,
       incl.person_id,
       incl.included,
       incl.amount,
       incl.amount_sign,
+      incl.pct,
     );
   }
 }
@@ -1924,6 +1934,7 @@ export async function listHisaabInclusionCandidates(
     inclusion_included: number | null;
     inclusion_amount: number | null;
     inclusion_sign: string | null;
+    inclusion_pct: number | null;
     inclusion_created: string | null;
     inclusion_updated: string | null;
   }>(
@@ -1937,6 +1948,7 @@ export async function listHisaabInclusionCandidates(
        shi.included as inclusion_included,
        shi.amount as inclusion_amount,
        shi.amount_sign as inclusion_sign,
+       shi.pct as inclusion_pct,
        shi.created_at as inclusion_created,
        shi.updated_at as inclusion_updated
      FROM hisaab_persons hp
@@ -1963,13 +1975,18 @@ export async function listHisaabInclusionCandidates(
       personId: r.person_id,
       personName: r.person_name,
       currentBalance: Math.round(r.balance * 100) / 100,
+      // amount is recomputed live from pct × the balance this same query just
+      // computed (not the frozen shi.amount column) — so the sheet seeds its
+      // rupee field from the current balance, same as listHisaabInclusions
+      // does for the scenario overview. See migration 074.
       inclusion: r.inclusion_amount != null && r.inclusion_sign != null
         ? {
             scenario_id: scenarioId,
             person_id: r.person_id,
             included: r.inclusion_included ?? 1,
-            amount: r.inclusion_amount,
-            amount_sign: r.inclusion_sign === "negative" ? "negative" : "positive",
+            amount: Math.round(Math.abs(r.balance) * ((r.inclusion_pct ?? 100) / 100) * 100) / 100,
+            amount_sign: r.balance >= 0 ? "positive" : "negative",
+            pct: r.inclusion_pct ?? 100,
             created_at: r.inclusion_created ?? "",
             updated_at: r.inclusion_updated ?? "",
           }
@@ -1977,24 +1994,66 @@ export async function listHisaabInclusionCandidates(
     }));
 }
 
-/** Fetch just the active (included=1) inclusions for a scenario. */
+/**
+ * Fetch just the active (included=1) inclusions for a scenario, with
+ * amount/amount_sign recomputed LIVE against each person's current hisaab
+ * balance (pct × currentBalance) rather than the frozen values written at
+ * save time — so a later change to the real ledger (a new hisaab entry, a
+ * settlement) is reflected the next time the scenario is viewed, without the
+ * user needing to reopen the inclusion sheet and re-save. See migration 074.
+ */
 export async function listHisaabInclusions(
   scenarioId: string,
 ): Promise<SimulationHisaabInclusion[]> {
   const db = getDatabase();
-  return db.getAllAsync<SimulationHisaabInclusion>(
-    `SELECT scenario_id, person_id, included, amount, amount_sign, created_at, updated_at
-     FROM simulation_hisaab_inclusions
-     WHERE scenario_id = ? AND included = 1;`,
+  const rows = await db.getAllAsync<{
+    scenario_id: string;
+    person_id: string;
+    included: number;
+    pct: number;
+    created_at: string;
+    updated_at: string;
+    live_balance: number;
+  }>(
+    `SELECT
+       shi.scenario_id, shi.person_id, shi.included, shi.pct,
+       shi.created_at, shi.updated_at,
+       COALESCE(hp.initial_balance, 0)
+         + COALESCE(SUM(CASE WHEN he.type = 'debit' THEN he.amount ELSE 0 END), 0)
+         - COALESCE(SUM(CASE WHEN he.type IN ('credit','settlement') THEN he.amount ELSE 0 END), 0)
+         as live_balance
+     FROM simulation_hisaab_inclusions shi
+     JOIN hisaab_persons hp ON hp.id = shi.person_id
+     LEFT JOIN hisaab_entries he ON hp.id = he.hisaab_person_id
+       AND (he.linked_expense_id IS NULL OR NOT EXISTS (
+         SELECT 1 FROM expenses x WHERE x.id = he.linked_expense_id AND x.deleted_at IS NOT NULL
+       ))
+     WHERE shi.scenario_id = ? AND shi.included = 1
+     GROUP BY shi.person_id;`,
     scenarioId,
   );
+  return rows.map((r) => {
+    const amount = Math.round(Math.abs(r.live_balance) * (r.pct / 100) * 100) / 100;
+    return {
+      scenario_id: r.scenario_id,
+      person_id: r.person_id,
+      included: r.included,
+      amount,
+      amount_sign: r.live_balance >= 0 ? "positive" : "negative",
+      pct: r.pct,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    };
+  });
 }
 
 /**
- * Upsert an inclusion row. `amount` is always positive; `sign` carries
- * direction. If `amount` is 0 or `included = false`, we keep the row but
- * mark it inactive so the user's last-entered value isn't lost when they
- * toggle.
+ * Upsert an inclusion row. `pct` (0-100) is the source of truth — the share
+ * of the person's balance to include; amount/amount_sign are written as a
+ * same-instant snapshot (display only — listHisaabInclusions always
+ * recomputes live from pct on read, see its docstring). If `pct` is 0 or
+ * `included = false`, we keep the row but mark it inactive so the user's
+ * last-entered value isn't lost when they toggle.
  */
 export async function upsertHisaabInclusion(input: {
   scenarioId: string;
@@ -2002,12 +2061,16 @@ export async function upsertHisaabInclusion(input: {
   included: boolean;
   amount: number;
   sign: "positive" | "negative";
+  pct: number;
 }): Promise<void> {
   if (!Number.isFinite(input.amount) || input.amount < 0) {
     throw new Error("Inclusion amount must be a non-negative number");
   }
   if (input.sign !== "positive" && input.sign !== "negative") {
     throw new Error("sign must be 'positive' or 'negative'");
+  }
+  if (!Number.isFinite(input.pct) || input.pct < 0 || input.pct > 100) {
+    throw new Error("pct must be between 0 and 100");
   }
   const db = getDatabase();
   const existing = await db.getFirstAsync<{ scenario_id: string }>(
@@ -2019,24 +2082,26 @@ export async function upsertHisaabInclusion(input: {
   if (existing) {
     await db.runAsync(
       `UPDATE simulation_hisaab_inclusions
-       SET included = ?, amount = ?, amount_sign = ?, updated_at = datetime('now')
+       SET included = ?, amount = ?, amount_sign = ?, pct = ?, updated_at = datetime('now')
        WHERE scenario_id = ? AND person_id = ?;`,
       input.included ? 1 : 0,
       Math.round(input.amount * 100) / 100,
       input.sign,
+      input.pct,
       input.scenarioId,
       input.personId,
     );
   } else {
     await db.runAsync(
       `INSERT INTO simulation_hisaab_inclusions
-         (scenario_id, person_id, included, amount, amount_sign)
-       VALUES (?, ?, ?, ?, ?);`,
+         (scenario_id, person_id, included, amount, amount_sign, pct)
+       VALUES (?, ?, ?, ?, ?, ?);`,
       input.scenarioId,
       input.personId,
       input.included ? 1 : 0,
       Math.round(input.amount * 100) / 100,
       input.sign,
+      input.pct,
     );
   }
   bumpDataVersion();

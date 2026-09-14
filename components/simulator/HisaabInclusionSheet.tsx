@@ -26,9 +26,14 @@ import { useTheme } from "@/hooks/use-theme";
  *     editing one updates the other.
  *
  * Positive-balance persons contribute to "Money available". Negative-balance
- * persons contribute to "Money owed". The sign is captured per-row at
- * write time so a later flip on the underlying hisaab ledger doesn't
- * silently reclassify the inclusion.
+ * persons contribute to "Money owed". What's actually persisted per row is a
+ * percentage (0-100) of the person's balance, not a frozen rupee amount — the
+ * scenario overview recomputes the live amount (and sign) from that
+ * percentage against the person's CURRENT hisaab balance every time it's
+ * viewed (services/simulator.ts:listHisaabInclusions), so a later change on
+ * the real ledger — a new entry, a settlement, even the balance flipping
+ * from "they owe you" to "you owe them" — is reflected automatically
+ * without reopening this sheet.
  */
 
 interface Props {
@@ -51,15 +56,18 @@ type RowState = {
 function toRowState(c: HisaabInclusionCandidate): RowState {
   const absBal = Math.abs(c.currentBalance);
   if (c.inclusion && c.inclusion.included === 1) {
-    const amt = c.inclusion.amount;
-    const pct = absBal > 0 ? Math.round((amt / absBal) * 1000) / 10 : 0;
+    // c.inclusion.amount is already the live recompute (pct × current
+    // balance, see services/simulator.ts:listHisaabInclusions) — pct itself
+    // is the stored source of truth, so use it directly rather than
+    // re-deriving it from amount/absBal (which would just round-trip the
+    // same number with extra floating-point noise).
     return {
       personId: c.personId,
       personName: c.personName,
       currentBalance: c.currentBalance,
       included: true,
-      pct: String(pct),
-      amt: String(Math.round(amt)),
+      pct: String(c.inclusion.pct),
+      amt: String(Math.round(c.inclusion.amount)),
     };
   }
   // Default unchecked — seed pct=100, amt=absBal so a quick toggle on
@@ -204,12 +212,18 @@ export function HisaabInclusionSheet({
           continue;
         }
         const sign = r.currentBalance >= 0 ? "positive" : "negative";
+        const parsedPct = parseFloat(r.pct);
+        // pct is what's actually persisted and tracked live going forward
+        // (services/simulator.ts:listHisaabInclusions) — amount/sign are
+        // still sent as today's snapshot, but pct is the source of truth.
+        const pct = Number.isFinite(parsedPct) ? Math.max(0, Math.min(100, parsedPct)) : (absBal > 0 ? Math.round((amt / absBal) * 1000) / 10 : 100);
         await upsertHisaabInclusion({
           scenarioId,
           personId: r.personId,
           included: true,
           amount: roundPaise(amt),
           sign,
+          pct,
         });
       }
       await onSaved();

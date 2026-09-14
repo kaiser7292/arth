@@ -47,7 +47,7 @@ function seed() {
       frequency TEXT, repeat_ordinal INTEGER, repeat_weekday INTEGER, repeat_until TEXT
     );
     CREATE TABLE simulation_hisaab_inclusions (
-      scenario_id TEXT, person_id TEXT, included INTEGER, amount REAL, amount_sign TEXT,
+      scenario_id TEXT, person_id TEXT, included INTEGER, amount REAL, amount_sign TEXT, pct REAL DEFAULT 100,
       created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
     );
   `);

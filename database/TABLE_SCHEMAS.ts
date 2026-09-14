@@ -653,6 +653,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "included",
     "amount",
     "amount_sign",
+    "pct",
     "created_at",
     "updated_at",
   ] as const,
