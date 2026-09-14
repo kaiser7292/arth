@@ -581,6 +581,15 @@ export async function undoMarkAsFD(financialAccountId: string): Promise<void> {
   if (product.investment_bucket_id) {
     await unlinkFDFromBucket(financialAccountId);
   }
+  // A maturity credit the app queued (and the user hasn't approved yet)
+  // would be left pointing at nothing — remove it with the schedule.
+  await db.runAsync(
+    `UPDATE expenses SET deleted_at = datetime('now')
+     WHERE status = 'pending_review' AND source = 'manual'
+       AND id IN (SELECT linked_expense_id FROM investment_schedule_entries
+                  WHERE product_id = ? AND status = 'scheduled' AND linked_expense_id IS NOT NULL);`,
+    product.id,
+  );
   await db.runAsync("DELETE FROM investment_schedule_entries WHERE product_id = ?;", product.id);
   await db.runAsync("DELETE FROM investment_products WHERE id = ?;", product.id);
   await db.runAsync(
@@ -949,13 +958,17 @@ export async function getInvestmentSummary(
 
 /**
  * Idempotent on-app-open catch-up pass (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
- * section 8). Materialises every 'scheduled' entry with event_date <= today:
- * principal moves via an account_transfers row (deterministic, not
- * reviewable), interest lands as a nature='credit' expense at
- * status='pending_review' (the one thing that's actually uncertain — TDS and
- * rounding mean the bank's credited interest rarely matches the computed
- * figure). Only ever touches 'scheduled' rows, so running it twice is a
- * no-op the second time.
+ * section 8). For every 'scheduled' entry with event_date <= today, queues
+ * ONE nature='credit' expense for the full payout (principal + interest,
+ * override-aware) on the source account at status='pending_review'. Nothing
+ * moves automatically — the entry stays 'scheduled' with linked_expense_id
+ * set, and approving that credit finalises it (finaliseFDMaturityForExpenses:
+ * product → matured, FD account closed).
+ *
+ * If the bank's own maturity-credit SMS already landed on the source account
+ * (amount within ±0.5%, dated around the maturity date), that credit is
+ * linked instead of creating a duplicate. Entries with a linked_expense_id
+ * are skipped, so running the pass twice is a no-op.
  */
 export async function materialiseMaturedInvestments(userId: string): Promise<number> {
   const db = getDatabase();
@@ -983,7 +996,7 @@ export async function materialiseMaturedInvestments(userId: string): Promise<num
      JOIN investment_products ip ON ip.id = se.product_id
      JOIN financial_accounts fa ON fa.id = ip.financial_account_id
      WHERE fa.user_id = ? AND fa.is_active = 1
-       AND se.status = 'scheduled' AND se.event_date <= ?;`,
+       AND se.status = 'scheduled' AND se.linked_expense_id IS NULL AND se.event_date <= ?;`,
     userId,
     today,
   );
@@ -996,72 +1009,71 @@ export async function materialiseMaturedInvestments(userId: string): Promise<num
       }
 
       const principalComponent = entry.principal_component ?? 0;
-      // A manual correction (services/investment-accounts.ts:setFDMaturityOverride)
-      // replaces the computed interest for a 'maturity' event only — interest
-      // payout events (future RD/periodic instruments) always use the computed figure.
-      const interestComponent =
-        entry.kind === "maturity" && entry.maturity_amount_override != null
-          ? Math.round((entry.maturity_amount_override - principalComponent) * 100) / 100
+      // A manual correction (setFDMaturityOverride) replaces the computed
+      // payout for a 'maturity' event only — interest payout events (future
+      // RD/periodic instruments) always use the computed interest.
+      const payout =
+        entry.kind === "maturity"
+          ? (entry.maturity_amount_override ?? principalComponent + (entry.interest_component ?? 0))
           : (entry.interest_component ?? 0);
+      const amount = Math.round(payout * 100) / 100;
 
-      let transferId: string | null = null;
-      if (principalComponent > 0) {
-        transferId = await createTransfer({
-          userId,
-          fromAccountId: entry.financial_account_id,
-          toAccountId: entry.source_account_id,
-          amount: principalComponent,
-          description: `${entry.bank_name} FD maturity — principal`,
-          date: entry.event_date,
-          source: "manual",
-        });
+      if (amount <= 0) {
+        // Nothing to review (zero-value placeholder) — finalise straight away.
+        await finaliseScheduleEntry(entry.schedule_id);
+        materialised++;
+        continue;
       }
 
-      let expenseId: string | null = null;
-      if (interestComponent > 0) {
+      // The bank's maturity-credit SMS may have been scanned first — reuse
+      // that credit rather than queueing a second one for the same money.
+      const tolerance = Math.max(amount * 0.005, 1);
+      const existing = await db.getFirstAsync<{ id: string; status: string }>(
+        `SELECT e.id, e.status FROM expenses e
+         WHERE e.user_id = ? AND e.account_id = ? AND e.nature = 'credit'
+           AND e.status IN ('pending_review', 'approved') AND e.deleted_at IS NULL
+           AND e.amount >= ? AND e.amount <= ?
+           AND e.date >= date(?, '-3 day') AND e.date <= date(?, '+7 day')
+           AND NOT EXISTS (SELECT 1 FROM investment_schedule_entries x WHERE x.linked_expense_id = e.id)
+         ORDER BY ABS(e.amount - ?) ASC, ABS(julianday(e.date) - julianday(?)) ASC
+         LIMIT 1;`,
+        userId,
+        entry.source_account_id,
+        amount - tolerance,
+        amount + tolerance,
+        entry.event_date,
+        entry.event_date,
+        amount,
+        entry.event_date,
+      );
+
+      let expenseId: string;
+      if (existing) {
+        expenseId = existing.id;
+      } else {
         expenseId = generateUUID();
-        const now = new Date().toISOString();
         await db.runAsync(
           `INSERT INTO expenses (id, user_id, amount, currency, description, account_id, date, nature, source, status, created_at)
            VALUES (?, ?, ?, 'INR', ?, ?, ?, 'credit', 'manual', 'pending_review', ?);`,
           expenseId,
           userId,
-          interestComponent,
-          `${entry.bank_name} FD maturity — interest`,
+          amount,
+          `${entry.bank_name} FD maturity`,
           entry.source_account_id,
           entry.event_date,
-          now,
+          new Date().toISOString(),
         );
       }
 
       await db.runAsync(
-        `UPDATE investment_schedule_entries
-         SET status = 'materialised', linked_expense_id = ?, linked_transfer_id = ?
-         WHERE id = ?;`,
+        `UPDATE investment_schedule_entries SET linked_expense_id = ? WHERE id = ?;`,
         expenseId,
-        transferId,
         entry.schedule_id,
       );
 
-      if (entry.kind === "maturity") {
-        await db.runAsync(
-          `UPDATE investment_products SET status = 'matured', updated_at = datetime('now') WHERE id = ?;`,
-          entry.product_id,
-        );
-
-        // The deposit was counted as a bucket contribution when linked
-        // (linkFDToBucket); now that the principal has moved back to the
-        // source account, record the mirror-image withdrawal so the bucket's
-        // current_contributed reflects money that's no longer invested.
-        if (entry.investment_bucket_id && principalComponent > 0) {
-          await createInvestmentContribution({
-            investment_bucket_id: entry.investment_bucket_id,
-            month: entry.event_date.slice(0, 7),
-            amount: -principalComponent,
-            date: entry.event_date,
-            notes: "Withdrawn — Fixed Deposit matured",
-          });
-        }
+      // An SMS credit the user already approved counts as the review step.
+      if (existing?.status === "approved") {
+        await finaliseScheduleEntry(entry.schedule_id);
       }
 
       materialised++;
@@ -1072,4 +1084,83 @@ export async function materialiseMaturedInvestments(userId: string): Promise<num
 
   if (materialised > 0) bumpDataVersion();
   return materialised;
+}
+
+/**
+ * Completes a still-'scheduled' entry once its payout credit is approved:
+ * marks it materialised and, for a maturity event, flips the product to
+ * 'matured', records the bucket withdrawal, and closes the FD account.
+ */
+async function finaliseScheduleEntry(scheduleId: string): Promise<void> {
+  const db = getDatabase();
+  const entry = await db.getFirstAsync<{
+    product_id: string;
+    event_date: string;
+    kind: string;
+    principal_component: number | null;
+    financial_account_id: string;
+    investment_bucket_id: string | null;
+  }>(
+    `SELECT se.product_id, se.event_date, se.kind, se.principal_component,
+            ip.financial_account_id, ip.investment_bucket_id
+     FROM investment_schedule_entries se
+     JOIN investment_products ip ON ip.id = se.product_id
+     WHERE se.id = ? AND se.status = 'scheduled';`,
+    scheduleId,
+  );
+  if (!entry) return;
+
+  await db.runAsync(`UPDATE investment_schedule_entries SET status = 'materialised' WHERE id = ?;`, scheduleId);
+  if (entry.kind !== "maturity") return;
+
+  await db.runAsync(
+    `UPDATE investment_products SET status = 'matured', updated_at = datetime('now') WHERE id = ?;`,
+    entry.product_id,
+  );
+
+  // The deposit was counted as a bucket contribution when linked
+  // (linkFDToBucket); record the mirror-image withdrawal so the bucket's
+  // current_contributed reflects money that's no longer invested.
+  const principal = entry.principal_component ?? 0;
+  if (entry.investment_bucket_id && principal > 0) {
+    await createInvestmentContribution({
+      investment_bucket_id: entry.investment_bucket_id,
+      month: entry.event_date.slice(0, 7),
+      amount: -principal,
+      date: entry.event_date,
+      notes: "Withdrawn — Fixed Deposit matured",
+    });
+  }
+
+  await db.runAsync(
+    `UPDATE financial_accounts SET closed_at = datetime('now'), closed_note = 'Fixed deposit matured', updated_at = datetime('now')
+     WHERE id = ? AND closed_at IS NULL;`,
+    entry.financial_account_id,
+  );
+}
+
+/**
+ * Called after credits are approved (services/expense-crud.ts). Any approved
+ * credit that is the queued payout of an FD schedule entry finalises it —
+ * this is what closes a matured FD. No-op for ordinary credits.
+ */
+export async function finaliseFDMaturityForExpenses(expenseIds: string[]): Promise<void> {
+  if (expenseIds.length === 0) return;
+  const db = getDatabase();
+  const placeholders = expenseIds.map(() => "?").join(",");
+  const rows = await db.getAllAsync<{ id: string }>(
+    `SELECT se.id FROM investment_schedule_entries se
+     JOIN expenses e ON e.id = se.linked_expense_id
+     WHERE se.linked_expense_id IN (${placeholders})
+       AND se.status = 'scheduled' AND e.status = 'approved';`,
+    ...expenseIds,
+  );
+  for (const row of rows) {
+    try {
+      await finaliseScheduleEntry(row.id);
+    } catch (e) {
+      logger.warn(`Failed to finalise investment schedule entry ${row.id} (non-fatal):`, e);
+    }
+  }
+  if (rows.length > 0) bumpDataVersion();
 }

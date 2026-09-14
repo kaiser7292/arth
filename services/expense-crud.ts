@@ -887,6 +887,12 @@ export async function approveExpense(id: string): Promise<void> {
   bumpDataVersion();
 
   if (row && row.nature === "credit") {
+    try {
+      const { finaliseFDMaturityForExpenses } = await import("./investment-accounts");
+      await finaliseFDMaturityForExpenses([id]);
+    } catch (e) {
+      logger.warn("approveExpense: FD maturity finalise failed (non-fatal):", e);
+    }
     const refundRow = await db.getFirstAsync<{ refund_of_expense_id: string | null; amount: number }>(
       `SELECT refund_of_expense_id, amount FROM expenses WHERE id = ?;`,
       id,
@@ -997,6 +1003,13 @@ export async function approveExpenses(ids: string[]): Promise<void> {
     ...ids,
   );
   bumpDataVersion();
+
+  try {
+    const { finaliseFDMaturityForExpenses } = await import("./investment-accounts");
+    await finaliseFDMaturityForExpenses(ids);
+  } catch (e) {
+    logger.warn("approveExpenses: FD maturity finalise failed (non-fatal):", e);
+  }
 
   const refundLinks = await db.getAllAsync<{ id: string; refund_of_expense_id: string; amount: number }>(
     `SELECT id, refund_of_expense_id, amount FROM expenses

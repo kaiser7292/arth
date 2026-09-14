@@ -1,12 +1,10 @@
 import { DatabaseSync } from "node:sqlite";
 
 /**
- * materialiseMaturedInvestments against a REAL SQLite engine (not a mock that
- * only records SQL strings) — same approach as simulator-unlink.test.ts and
- * this session's other DB-adjacent tests. The thing that can actually be
- * wrong here is idempotency (running the pass twice must not double-create
- * the transfer/expense pair) and the status transitions, which a mock can't
- * verify.
+ * materialiseMaturedInvestments / finaliseFDMaturityForExpenses against a REAL
+ * SQLite engine (not a mock that only records SQL strings). The things that
+ * can actually be wrong here are idempotency, the duplicate-credit merge, and
+ * the status transitions on approval, which a mock can't verify.
  */
 let mockSqlite: DatabaseSync;
 let mockNextId = 0;
@@ -26,14 +24,15 @@ jest.mock("../../database", () => ({ getDatabase: () => mockAdapter }));
 jest.mock("../../services/settings", () => ({ bumpDataVersion: jest.fn() }));
 jest.mock("../../utils/uuid", () => ({ generateUUID: () => `gen-${++mockNextId}` }));
 
-import { materialiseMaturedInvestments } from "../../services/investment-accounts";
+import { finaliseFDMaturityForExpenses, materialiseMaturedInvestments } from "../../services/investment-accounts";
 
-function seed(eventDate: string, principal: number, interest: number) {
+function seed(eventDate: string, principal: number, interest: number, override: number | null = null) {
   mockNextId = 0;
   mockSqlite = new DatabaseSync(":memory:");
   mockSqlite.exec(`
     CREATE TABLE financial_accounts (
-      id TEXT PRIMARY KEY, user_id TEXT, is_active INTEGER DEFAULT 1, bank_name TEXT
+      id TEXT PRIMARY KEY, user_id TEXT, is_active INTEGER DEFAULT 1, bank_name TEXT,
+      closed_at TEXT, closed_note TEXT, updated_at TEXT
     );
     CREATE TABLE investment_products (
       id TEXT PRIMARY KEY, financial_account_id TEXT, source_account_id TEXT, status TEXT,
@@ -51,14 +50,17 @@ function seed(eventDate: string, principal: number, interest: number) {
     );
     CREATE TABLE expenses (
       id TEXT PRIMARY KEY, user_id TEXT, amount REAL, currency TEXT, description TEXT,
-      account_id TEXT, date TEXT, nature TEXT, source TEXT, status TEXT, created_at TEXT
+      account_id TEXT, date TEXT, nature TEXT, source TEXT, status TEXT, created_at TEXT,
+      deleted_at TEXT
     );
   `);
   mockSqlite.exec(`
-    INSERT INTO financial_accounts VALUES ('fd-fa', 'u1', 1, 'HDFC');
-    INSERT INTO financial_accounts VALUES ('savings-fa', 'u1', 1, 'HDFC');
-    INSERT INTO investment_products VALUES ('prod-1', 'fd-fa', 'savings-fa', 'active', NULL, NULL, NULL);
+    INSERT INTO financial_accounts (id, user_id, bank_name) VALUES ('fd-fa', 'u1', 'HDFC');
+    INSERT INTO financial_accounts (id, user_id, bank_name) VALUES ('savings-fa', 'u1', 'HDFC');
   `);
+  mockSqlite
+    .prepare(`INSERT INTO investment_products VALUES ('prod-1', 'fd-fa', 'savings-fa', 'active', NULL, ?, NULL);`)
+    .run(override);
   mockSqlite
     .prepare(
       `INSERT INTO investment_schedule_entries
@@ -68,57 +70,103 @@ function seed(eventDate: string, principal: number, interest: number) {
     .run(eventDate, principal, interest);
 }
 
+const scheduleRow = () =>
+  mockSqlite.prepare("SELECT status, linked_expense_id FROM investment_schedule_entries WHERE id='se-1'").get() as {
+    status: string;
+    linked_expense_id: string | null;
+  };
+const productStatus = () =>
+  (mockSqlite.prepare("SELECT status FROM investment_products WHERE id='prod-1'").get() as { status: string }).status;
+const fdClosedAt = () =>
+  (mockSqlite.prepare("SELECT closed_at FROM financial_accounts WHERE id='fd-fa'").get() as { closed_at: string | null }).closed_at;
+const count = (table: string) => (mockSqlite.prepare(`SELECT COUNT(*) as c FROM ${table}`).get() as { c: number }).c;
+
 describe("materialiseMaturedInvestments", () => {
   it("does nothing for a schedule entry that isn't due yet", async () => {
     seed("2099-01-01", 100000, 7000);
-    const count = await materialiseMaturedInvestments("u1");
-    expect(count).toBe(0);
-    const row = mockSqlite.prepare("SELECT status FROM investment_schedule_entries WHERE id='se-1'").get() as { status: string };
-    expect(row.status).toBe("scheduled");
+    expect(await materialiseMaturedInvestments("u1")).toBe(0);
+    expect(scheduleRow()).toMatchObject({ status: "scheduled", linked_expense_id: null });
   });
 
-  it("creates a transfer for principal and a pending_review credit for interest, and flips the product to matured", async () => {
+  it("queues ONE pending_review credit for the full maturity amount and moves no money", async () => {
     seed("2020-01-01", 100000, 7000);
-    const count = await materialiseMaturedInvestments("u1");
-    expect(count).toBe(1);
+    expect(await materialiseMaturedInvestments("u1")).toBe(1);
 
-    const schedRow = mockSqlite
-      .prepare("SELECT status, linked_expense_id, linked_transfer_id FROM investment_schedule_entries WHERE id='se-1'")
-      .get() as { status: string; linked_expense_id: string; linked_transfer_id: string };
-    expect(schedRow.status).toBe("materialised");
-    expect(schedRow.linked_expense_id).toBeTruthy();
-    expect(schedRow.linked_transfer_id).toBeTruthy();
-
-    const transfers = mockSqlite.prepare("SELECT * FROM account_transfers").all() as {
-      from_account_id: string; to_account_id: string; amount: number;
-    }[];
-    expect(transfers).toHaveLength(1);
-    expect(transfers[0]).toMatchObject({ from_account_id: "fd-fa", to_account_id: "savings-fa", amount: 100000 });
-
+    expect(count("account_transfers")).toBe(0);
     const expenses = mockSqlite.prepare("SELECT * FROM expenses").all() as {
-      amount: number; nature: string; status: string; account_id: string;
+      id: string; amount: number; nature: string; status: string; account_id: string;
     }[];
     expect(expenses).toHaveLength(1);
-    expect(expenses[0]).toMatchObject({ amount: 7000, nature: "credit", status: "pending_review", account_id: "savings-fa" });
+    expect(expenses[0]).toMatchObject({ amount: 107000, nature: "credit", status: "pending_review", account_id: "savings-fa" });
 
-    const product = mockSqlite.prepare("SELECT status FROM investment_products WHERE id='prod-1'").get() as { status: string };
-    expect(product.status).toBe("matured");
+    // Not finalised until the credit is approved.
+    expect(scheduleRow()).toMatchObject({ status: "scheduled", linked_expense_id: expenses[0].id });
+    expect(productStatus()).toBe("active");
+    expect(fdClosedAt()).toBeNull();
   });
 
-  it("is idempotent — running it twice does not create a second transfer/expense pair", async () => {
+  it("uses the corrected maturity amount when one is set", async () => {
+    seed("2020-01-01", 100000, 7000, 106500);
+    await materialiseMaturedInvestments("u1");
+    expect((mockSqlite.prepare("SELECT amount FROM expenses").get() as { amount: number }).amount).toBe(106500);
+  });
+
+  it("is idempotent — running it twice does not queue a second credit", async () => {
     seed("2020-01-01", 100000, 7000);
     await materialiseMaturedInvestments("u1");
-    const secondRunCount = await materialiseMaturedInvestments("u1");
-    expect(secondRunCount).toBe(0);
-    expect((mockSqlite.prepare("SELECT COUNT(*) as c FROM account_transfers").get() as { c: number }).c).toBe(1);
-    expect((mockSqlite.prepare("SELECT COUNT(*) as c FROM expenses").get() as { c: number }).c).toBe(1);
+    expect(await materialiseMaturedInvestments("u1")).toBe(0);
+    expect(count("expenses")).toBe(1);
   });
 
-  it("skips the interest leg when interest is zero (e.g. a zero-rate placeholder) but still moves principal", async () => {
-    seed("2020-01-01", 100000, 0);
-    const count = await materialiseMaturedInvestments("u1");
-    expect(count).toBe(1);
-    expect((mockSqlite.prepare("SELECT COUNT(*) as c FROM account_transfers").get() as { c: number }).c).toBe(1);
-    expect((mockSqlite.prepare("SELECT COUNT(*) as c FROM expenses").get() as { c: number }).c).toBe(0);
+  it("links the bank's already-scanned SMS credit instead of creating a duplicate", async () => {
+    seed("2020-01-01", 100000, 7000);
+    mockSqlite.exec(`
+      INSERT INTO expenses (id, user_id, amount, account_id, date, nature, source, status)
+      VALUES ('sms-credit', 'u1', 106950, 'savings-fa', '2020-01-02', 'credit', 'sms_auto', 'pending_review');
+    `);
+    await materialiseMaturedInvestments("u1");
+    expect(count("expenses")).toBe(1);
+    expect(scheduleRow()).toMatchObject({ status: "scheduled", linked_expense_id: "sms-credit" });
+  });
+
+  it("finalises immediately when the matching SMS credit was already approved", async () => {
+    seed("2020-01-01", 100000, 7000);
+    mockSqlite.exec(`
+      INSERT INTO expenses (id, user_id, amount, account_id, date, nature, source, status)
+      VALUES ('sms-credit', 'u1', 107000, 'savings-fa', '2020-01-01', 'credit', 'sms_auto', 'approved');
+    `);
+    await materialiseMaturedInvestments("u1");
+    expect(scheduleRow().status).toBe("materialised");
+    expect(productStatus()).toBe("matured");
+    expect(fdClosedAt()).not.toBeNull();
+  });
+});
+
+describe("finaliseFDMaturityForExpenses", () => {
+  it("does nothing while the maturity credit is still pending", async () => {
+    seed("2020-01-01", 100000, 7000);
+    await materialiseMaturedInvestments("u1");
+    const { linked_expense_id } = scheduleRow();
+    await finaliseFDMaturityForExpenses([linked_expense_id!]);
+    expect(scheduleRow().status).toBe("scheduled");
+    expect(fdClosedAt()).toBeNull();
+  });
+
+  it("marks the FD matured and closes its account once the credit is approved", async () => {
+    seed("2020-01-01", 100000, 7000);
+    await materialiseMaturedInvestments("u1");
+    const { linked_expense_id } = scheduleRow();
+    mockSqlite.prepare("UPDATE expenses SET status = 'approved' WHERE id = ?").run(linked_expense_id!);
+
+    await finaliseFDMaturityForExpenses([linked_expense_id!]);
+    expect(scheduleRow().status).toBe("materialised");
+    expect(productStatus()).toBe("matured");
+    expect(fdClosedAt()).not.toBeNull();
+  });
+
+  it("ignores ordinary credits not linked to any FD", async () => {
+    seed("2020-01-01", 100000, 7000);
+    await finaliseFDMaturityForExpenses(["unrelated"]);
+    expect(scheduleRow().status).toBe("scheduled");
   });
 });

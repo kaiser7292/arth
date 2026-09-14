@@ -83,6 +83,46 @@ export async function createExpenseFromSms(
     const transactionTime = parsed.transactionTime ?? "00:00:00";
     const now = new Date().toISOString(); // Local time in ISO format
 
+    // An FD maturity credit the app already queued for review
+    // (materialiseMaturedInvestments) is the same money as this SMS — fill it
+    // in from the SMS instead of adding a duplicate credit.
+    const fdTolerance = Math.max(parsed.amount * 0.005, 1);
+    const cardLast4 = parsed.cardLast4 ?? null;
+    const fdMatch = await db.getFirstAsync<{ id: string }>(
+      `SELECT e.id FROM expenses e
+       JOIN investment_schedule_entries se ON se.linked_expense_id = e.id AND se.status = 'scheduled'
+       JOIN financial_accounts fa ON fa.id = e.account_id
+       WHERE e.user_id = ? AND e.nature = 'credit' AND e.status = 'pending_review'
+         AND e.deleted_at IS NULL AND e.raw_source_text IS NULL
+         AND e.amount >= ? AND e.amount <= ?
+         AND e.date >= date(?, '-7 day') AND e.date <= date(?, '+3 day')
+         AND (? IS NULL OR fa.account_identifier = ? OR fa.account_identifier LIKE '%' || ?)
+       ORDER BY ABS(e.amount - ?) ASC
+       LIMIT 1;`,
+      userId,
+      parsed.amount - fdTolerance,
+      parsed.amount + fdTolerance,
+      date,
+      date,
+      cardLast4,
+      cardLast4,
+      cardLast4,
+      parsed.amount,
+    );
+    if (fdMatch) {
+      await db.runAsync(
+        `UPDATE expenses SET amount = ?, date = ?, transaction_time = ?, raw_source_text = ?, updated_at = datetime('now') WHERE id = ?;`,
+        parsed.amount,
+        date,
+        transactionTime,
+        rawBody,
+        fdMatch.id,
+      );
+      await markSmsProcessed(pendingSmsId, fdMatch.id);
+      await bumpDataVersion();
+      return { success: true, expenseId: fdMatch.id, isCredit: true, error: null };
+    }
+
     await db.runAsync(
       `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, raw_merchant_name, date, transaction_time, nature, source, status, raw_source_text, created_at)
        VALUES (?, ?, ?, 'INR', ?, ?, ?, ?, ?, 'credit', 'sms_auto', 'pending_review', ?, ?);`,
