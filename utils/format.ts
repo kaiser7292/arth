@@ -9,7 +9,11 @@
  */
 
 import { getCurrency, getNumberGrouping } from "@/services/locale-preferences";
+import { isAmountsHidden } from "@/services/privacy-mode";
 import { getCurrencyDef, type CurrencyCode, type NumberGrouping } from "@/constants/currencies";
+
+/** Fixed-width placeholder — deliberately doesn't scale with the real value's length, so it can't leak magnitude. */
+const AMOUNT_MASK = "••••";
 
 /**
  * Apply a grouping style to a positive numeric string (integer part only).
@@ -44,6 +48,10 @@ function formatPositiveAmount(abs: number, decimals: number, grouping: NumberGro
  */
 export function formatAmount(amount: number, currencyOverride?: CurrencyCode): string {
   const code = currencyOverride ?? getCurrency();
+  if (isAmountsHidden()) {
+    const def = getCurrencyDef(code);
+    return code === "NONE" || !def.symbol ? AMOUNT_MASK : `${def.symbol}${AMOUNT_MASK}`;
+  }
   const grouping = getNumberGrouping();
   const def = getCurrencyDef(code);
   const abs = Math.abs(amount);
@@ -62,6 +70,7 @@ export function formatAmount(amount: number, currencyOverride?: CurrencyCode): s
  * form is about density, not locale.
  */
 export function formatCompact(n: number): string {
+  if (isAmountsHidden()) return AMOUNT_MASK;
   const abs = Math.abs(n);
   if (abs >= 100000) {
     const body = (abs / 100000).toFixed(1) + "L";
@@ -84,6 +93,7 @@ export function formatCompact(n: number): string {
  * implies currency.
  */
 export function formatNumber(amount: number): string {
+  if (isAmountsHidden()) return AMOUNT_MASK;
   const grouping = getNumberGrouping();
   const abs = Math.abs(amount);
   const decimals = abs % 1 !== 0 ? 2 : 0;

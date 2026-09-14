@@ -1,5 +1,6 @@
 import { Text as RNText, type TextProps as RNTextProps, type StyleProp, type TextStyle } from "react-native";
 import { formatAmount } from "@/utils/format";
+import { isAmountsHidden } from "@/services/privacy-mode";
 
 export interface TextProps extends RNTextProps {
   className?: string;
@@ -64,8 +65,13 @@ export interface MoneyProps extends Omit<TextProps, "children"> {
  * theme instead of being re-decided at each call site.
  */
 export function Money({ value, signed, showPlus, className = "", ...rest }: MoneyProps) {
+  // When amounts are hidden, formatAmount masks the magnitude — but the sign
+  // colour and +/− prefix below are derived from the raw `value`, not from
+  // formatAmount's output, so without this guard they'd still leak whether
+  // the real number is positive or negative even though the digits are hidden.
+  const hidden = isAmountsHidden();
   const tone =
-    signed
+    signed && !hidden
       ? value > 0
         ? "text-success"
         : value < 0
@@ -73,7 +79,7 @@ export function Money({ value, signed, showPlus, className = "", ...rest }: Mone
           : ""
       : "";
   // U+2212 MINUS SIGN, not a hyphen: it is digit-width, so it keeps the column aligned.
-  const prefix = value < 0 ? "−" : showPlus && value > 0 ? "+" : "";
+  const prefix = hidden ? "" : value < 0 ? "−" : showPlus && value > 0 ? "+" : "";
 
   return (
     <Text className={`${tone} ${className}`} {...rest}>

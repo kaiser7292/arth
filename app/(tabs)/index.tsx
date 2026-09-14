@@ -63,6 +63,7 @@ import {
 } from "@/services/min-balance";
 import { isArthAIEnabled } from "@/services/ai-assistant";
 import { dismissBackupWarning, shouldShowBackupWarning } from "@/services/settings";
+import { isAmountsHidden, toggleAmountsHidden } from "@/services/privacy-mode";
 import { findAutoMatches, dismissReminderMatch, clearDismissalsForRule, pruneExpiredDismissals } from "@/services/reminder-matching";
 import { getSmsScanAccountIds, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
 import type { ReminderAutoMatch } from "@/services/reminder-matching";
@@ -285,6 +286,14 @@ export default function HomeScreen() {
     overallStatus === "warning" ? "Watch Spending" : "Over Budget";
 
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
+  // "Hide amounts" privacy toggle — masks every money figure app-wide
+  // (formatAmount/formatCompact/formatNumber all check this). Local state
+  // here is just for the icon itself; the actual masking is read live by
+  // those formatters from services/privacy-mode.ts on every render.
+  const [amountsHidden, setAmountsHiddenState] = useState(isAmountsHidden());
+  const handleToggleAmountsHidden = useCallback(() => {
+    setAmountsHiddenState(toggleAmountsHidden());
+  }, []);
 
   const smsScanIcon: "sync-outline" | "scan-outline" = smsScanning ? "sync-outline" : "scan-outline";
   const homeHeaderActions = [
@@ -294,6 +303,11 @@ export default function HomeScreen() {
       color: colors.tint,
     }] : []),
     { icon: "mic-outline" as const, onPress: () => setShowVoiceSheet(true) },
+    {
+      icon: amountsHidden ? "eye-off-outline" as const : "eye-outline" as const,
+      onPress: handleToggleAmountsHidden,
+      accessibilityLabel: amountsHidden ? "Show amounts" : "Hide amounts",
+    },
     ...(isSmsDetectionEnabled() ? [{
       icon: smsScanIcon,
       onPress: handleHomeScan,

@@ -10,6 +10,7 @@ export interface ContextualHeaderAction {
   onPress: () => void;
   disabled?: boolean;
   color?: string;
+  accessibilityLabel?: string;
 }
 
 export interface ContextualHeaderBadge {
@@ -84,6 +85,7 @@ export function ContextualHeader({ title, subtitle, badge, rightActions }: Props
             disabled={action.disabled}
             hitSlop={8}
             accessibilityRole="button"
+            accessibilityLabel={action.accessibilityLabel}
             style={{ opacity: action.disabled ? 0.4 : 1 }}
           >
             <Ionicons
