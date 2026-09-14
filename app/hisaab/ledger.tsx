@@ -5,7 +5,7 @@
  * Running balance, add entry form, edit/delete entries.
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useBackOverride } from "@/hooks/use-back-override";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
@@ -75,6 +75,13 @@ export default function LedgerScreen() {
   const [filterFrom, setFilterFrom] = useState(fromDateParam ?? "");
   const [filterTo, setFilterTo] = useState(toDateParam ?? "");
   const [filterActive, setFilterActive] = useState(!!(fromDateParam && toDateParam));
+  // The range actually used for loading. filterFrom/filterTo are the editable
+  // inputs; editing them must not re-query until Apply is tapped.
+  const [appliedFrom, setAppliedFrom] = useState(fromDateParam ?? "");
+  const [appliedTo, setAppliedTo] = useState(toDateParam ?? "");
+  // Only the latest load may write state — an earlier unfiltered load that
+  // resolves after a filtered one would otherwise overwrite the filtered list.
+  const loadSeqRef = useRef(0);
   const [sortBy, setSortBy] = useState<SortOption>("date_desc");
 
   // Export picker state
@@ -106,16 +113,17 @@ export default function LedgerScreen() {
 
   const loadData = useCallback(async () => {
     if (!personId) return;
+    const seq = ++loadSeqRef.current;
     try {
-      const rangeActive = filterActive && !!filterFrom && !!filterTo;
+      const rangeActive = filterActive && !!appliedFrom && !!appliedTo;
       const entriesPromise = rangeActive
-        ? getEntriesByDateRange(personId, filterFrom, filterTo)
+        ? getEntriesByDateRange(personId, appliedFrom, appliedTo)
         : getEntries(personId);
       // v16.0.5 — opening balance (as of filterFrom, exclusive) only
       // needed when a filter is active. Running balance = opening +
       // (range debits) − (range credits + settlements).
       const openingPromise = rangeActive
-        ? getBalanceAsOfDate(personId, filterFrom)
+        ? getBalanceAsOfDate(personId, appliedFrom)
         : Promise.resolve(0);
       const [personData, entriesData, bal, cats, opening] = await Promise.all([
         getPerson(personId),
@@ -124,6 +132,7 @@ export default function LedgerScreen() {
         getCategories(DEFAULT_USER_ID),
         openingPromise,
       ]);
+      if (seq !== loadSeqRef.current) return;
       setPerson(personData);
       setBalance(bal);
       const catMap = new Map<string, string>();
@@ -133,6 +142,7 @@ export default function LedgerScreen() {
         enrichEntriesFromExpenses(entriesData),
         getLinkedAccountIdsForEntries(entriesData),
       ]);
+      if (seq !== loadSeqRef.current) return;
       setEntries(entriesData);
       setAccountMap(acctMap);
       setAccountIdMap(acctIdMap);
@@ -154,7 +164,7 @@ export default function LedgerScreen() {
       // DB not ready
     }
     setLoaded(true);
-  }, [personId, filterActive, filterFrom, filterTo]);
+  }, [personId, filterActive, appliedFrom, appliedTo]);
 
   useFocusEffect(
     useCallback(() => {
@@ -257,12 +267,16 @@ export default function LedgerScreen() {
   const handleApplyFilter = useCallback(() => {
     if (!filterFrom || !filterTo) return;
     if (filterFrom > filterTo) return;
+    setAppliedFrom(filterFrom);
+    setAppliedTo(filterTo);
     setFilterActive(true);
   }, [filterFrom, filterTo]);
 
   const handleClearFilter = useCallback(() => {
     setFilterFrom("");
     setFilterTo("");
+    setAppliedFrom("");
+    setAppliedTo("");
     setFilterActive(false);
   }, []);
 
@@ -617,7 +631,7 @@ export default function LedgerScreen() {
                 className="text-xs font-medium ml-1"
                 style={{ color: filterActive ? theme.primary : colors.textSecondary }}
               >
-                {filterActive ? `${filterFrom} → ${filterTo}` : "Filter"}
+                {filterActive ? `${appliedFrom} → ${appliedTo}` : "Filter"}
               </Text>
               {filterActive && (
                 <Pressable onPress={handleClearFilter} hitSlop={6} className="ml-1.5">
@@ -731,7 +745,7 @@ export default function LedgerScreen() {
                   className="text-label font-semibold uppercase tracking-wider mb-2"
                   style={{ color: colors.textSecondary }}
                 >
-                  {filterFrom} → {filterTo}
+                  {appliedFrom} → {appliedTo}
                 </Text>
                 {/* Opening */}
                 <View className="flex-row items-center justify-between py-1">
