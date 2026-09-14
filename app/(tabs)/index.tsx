@@ -47,7 +47,7 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getCcExpenseTotals } from "@/services/financial-account";
 import { getHisaabSummary } from "@/services/hisaab";
 import { isHomeCardVisible } from "@/services/home-card-preferences";
-import { consumeHomePreload } from "@/services/home-preload";
+import { peekHomeSnapshot, saveHomeSnapshot, waitForHomePreload, type HomePreloadData } from "@/services/home-preload";
 import type { LoansSummary } from "@/services/loan-accounts";
 import { getLoansSummary } from "@/services/loan-accounts";
 import {
@@ -62,7 +62,7 @@ import {
     unacknowledgedBreaches,
 } from "@/services/min-balance";
 import { isArthAIEnabled } from "@/services/ai-assistant";
-import { dismissBackupWarning, shouldShowBackupWarning } from "@/services/settings";
+import { dismissBackupWarning, getDataVersion, shouldShowBackupWarning } from "@/services/settings";
 import { isAmountsHidden, toggleAmountsHidden } from "@/services/privacy-mode";
 import { findAutoMatches, dismissReminderMatch, clearDismissalsForRule, pruneExpiredDismissals } from "@/services/reminder-matching";
 import { getSmsScanAccountIds, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
@@ -86,14 +86,6 @@ const HOME_TABS: SwipePagerPage[] = [
   { key: "vault", label: "Vault" },
 ];
 
-const preloaded = consumeHomePreload();
-
-// Perf (v14.8.0): when the preloader has seeded state, skip the very first
-// loadData() on focus — same 12 queries would run again identically, doubling
-// cold-start query fan-out. This flag lives outside the component so a re-
-// mount (navigating back) still fetches fresh data.
-let skipNextHomeLoad = preloaded != null;
-
 export default function HomeScreen() {
   const alert = useAlert();
   const router = useRouter();
@@ -102,6 +94,11 @@ export default function HomeScreen() {
   const month = getCurrentMonth();
   const { startDate, endDate } = getMonthDateRange(month);
   const daysRemaining = getDaysRemaining(month);
+
+  // Seed every card from the last known Home data (non-destructive snapshot,
+  // see services/home-preload.ts) so a re-mount after unlock renders instantly.
+  const [snapshot] = useState(peekHomeSnapshot);
+  const preloaded = snapshot?.data ?? null;
 
   const [totalSpent, setTotalSpent] = useState(preloaded?.totalSpent ?? 0);
   const [totalBudget, setTotalBudget] = useState(preloaded?.totalBudget ?? 0);
@@ -134,7 +131,7 @@ export default function HomeScreen() {
     preloaded?.investmentSummary ?? { totalValue: 0, accountCount: 0, breakdown: [] },
   );
   // v17.4.0 — Loans summary (home stat card + Goals entry)
-  const [loansSummary, setLoansSummary] = useState<LoansSummary | null>(null);
+  const [loansSummary, setLoansSummary] = useState<LoansSummary | null>(preloaded?.loansSummary ?? null);
   const [refreshing, setRefreshing] = useState(false);
   const [smsScanning, setSmsScanning] = useState(false);
   const [activeHomeIndex, setActiveHomeIndex] = useState(0);
@@ -158,20 +155,44 @@ export default function HomeScreen() {
   // Collapsible sections — dues expanded by default so they're visible without a tap
   const [duesOpen, setDuesOpen] = useState(true);
 
+  // All setStates run synchronously in one batch — see the note in loadData
+  // about split render cycles eating the first tap on hero cards.
+  const applyHomeData = useCallback((d: HomePreloadData) => {
+    setLoansSummary(d.loansSummary);
+    setDueReminders(d.dueReminders);
+    setAutoMatches(d.autoMatches);
+    setTotalSpent(d.totalSpent);
+    setTotalBudget(d.totalBudget);
+    setPendingCount(d.pendingCount);
+    setOverdueCount(d.overdueCount);
+    setUpcomingDues(d.upcomingDues);
+    setHisaabSummary(d.hisaabSummary);
+    setDuplicateCount(d.duplicateCount);
+    setUncategorizedCount(d.uncategorizedCount);
+    setCcAccounts(d.ccAccounts);
+    setBankAccounts(d.bankAccounts);
+    setWalletAccounts(d.walletAccounts);
+    setCcExpenseTotals(d.ccExpenseTotals);
+    setComputedBalanceMap(d.computedBalanceMap);
+    setInvestmentSummary(d.investmentSummary);
+  }, []);
+
   const loadData = useCallback(async (source?: "focus" | "data-version") => {
-    // Perf (v14.8.0): preloader already ran the same 12 queries; skip the
-    // very first focus-triggered load only. v17.5.0 fix: data-version
-    // triggers (SMS scan creating new pending_review expenses, smart-rules
-    // re-categorising, etc) MUST NOT be skipped — those carry fresh data
-    // the preloader couldn't possibly have captured. Without this guard
-    // the Home Action Required card stayed stale until user manually
-    // reloaded (bug surfaced after v17.4.0).
-    if (skipNextHomeLoad && source !== "data-version") {
-      skipNextHomeLoad = false;
-      return;
+    // data-version triggers (SMS scan, smart rules, approvals) always reload —
+    // they carry data no snapshot could have captured.
+    if (source !== "data-version") {
+      // Cold start: the preloader is usually still running when Home first
+      // focuses. Wait for it instead of firing the same queries in parallel.
+      if (!peekHomeSnapshot()) await waitForHomePreload();
+      const snap = peekHomeSnapshot();
+      // A snapshot taken moments ago at the current data version is exactly
+      // what a reload would return — apply it and skip the queries.
+      if (snap && snap.version === getDataVersion() && Date.now() - snap.at < 30_000) {
+        applyHomeData(snap.data);
+        return;
+      }
     }
-    // If we got here via data-version, the preloader-skip no longer applies.
-    skipNextHomeLoad = false;
+    const version = getDataVersion();
     try {
       const today = new Date().toISOString().split("T")[0];
       pruneExpiredDismissals();
@@ -221,29 +242,32 @@ export default function HomeScreen() {
       );
       const backupReminder = shouldShowBackupWarning();
 
-      // All setStates below run synchronously in one batch.
-      setLoansSummary(loansSummaryResult);
-      setDueReminders(reminders);
-      setAutoMatches(matches);
-      setTotalSpent(total);
-      setTotalBudget(budgets.reduce((sum, b) => sum + b.amount, 0));
-      setPendingCount(pending);
-      setOverdueCount(overdue.length);
-      setUpcomingDues(activeDues);
-      setHisaabSummary(hisaab);
-      setDuplicateCount(dupScan.duplicateGroupCount);
-      setUncategorizedCount(uncatCount);
+      const data: HomePreloadData = {
+        totalSpent: total,
+        totalBudget: budgets.reduce((sum, b) => sum + b.amount, 0),
+        pendingCount: pending,
+        overdueCount: overdue.length,
+        upcomingDues: activeDues,
+        hisaabSummary: hisaab,
+        duplicateCount: dupScan.duplicateGroupCount,
+        uncategorizedCount: uncatCount,
+        ccAccounts: allAccounts.filter((a) => a.account_type === "credit_card"),
+        bankAccounts: allAccounts.filter((a) => a.account_type === "savings"),
+        walletAccounts: allAccounts.filter((a) => a.account_type === "wallet"),
+        ccExpenseTotals: ccTotals,
+        computedBalanceMap: balances,
+        investmentSummary: investmentSummaryResult,
+        dueReminders: reminders,
+        autoMatches: matches,
+        loansSummary: loansSummaryResult,
+      };
+      saveHomeSnapshot(data, version);
       setShowBackupReminder(backupReminder);
-      setCcAccounts(allAccounts.filter((a) => a.account_type === "credit_card"));
-      setBankAccounts(allAccounts.filter((a) => a.account_type === "savings"));
-      setWalletAccounts(allAccounts.filter((a) => a.account_type === "wallet"));
-      setCcExpenseTotals(ccTotals);
-      setComputedBalanceMap(balances);
-      setInvestmentSummary(investmentSummaryResult);
+      applyHomeData(data);
     } catch (e) {
       logger.warn("Home loadData failed", e);
     }
-  }, [month, startDate, endDate]);
+  }, [month, startDate, endDate, applyHomeData]);
 
   useDataRefresh(loadData);
 

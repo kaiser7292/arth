@@ -52,19 +52,20 @@ import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { getMilestonesForFY } from "@/services/life-milestone";
 import type { LifeMilestone } from "@/services/life-milestone";
 import {
+  getLoansSummary,
   listActiveLoans,
   listAllLoansWithBankName,
   getLoanOutstandingsByLoanId,
   getCurrentEMIsByLoanId,
   getSchedulesByLoanIds,
 } from "@/services/loan-accounts";
-import type { LoanAccount } from "@/services/loan-accounts";
+import type { LoanAccount, LoansSummary } from "@/services/loan-accounts";
 import { getTransfersOutTotal, getTransfersInTotal } from "@/services/account-transfer";
 import { deriveYearlyPlan, getBucketsByFY } from "@/services/yearly-plan";
 import type { DerivedPlanSummary, InvestmentBucket } from "@/services/yearly-plan";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import type { SalaryProfile } from "@/services/salary-profile";
-import { getFYStartMonth } from "@/services/settings";
+import { getDataVersion, getFYStartMonth } from "@/services/settings";
 import { getVaultEntries } from "@/services/vault";
 import type { VaultEntry } from "@/services/vault";
 import { getDueReminders } from "@/services/recurring-rules";
@@ -104,6 +105,7 @@ export interface HomePreloadData {
   investmentSummary: InvestmentSummary;
   dueReminders: ReminderWithSource[];
   autoMatches: ReminderAutoMatch[];
+  loansSummary: LoansSummary | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -253,7 +255,6 @@ export interface TransactionsPreloadData {
 // ---------------------------------------------------------------------------
 
 interface Cache {
-  home: HomePreloadData | null;
   accounts: AccountsPreloadData | null;
   balanceSheet: BalanceSheetPreloadData | null;
   creditCards: CreditCardsPreloadData | null;
@@ -273,7 +274,6 @@ interface Cache {
   homeTotals: { month: string; totalBudget: number; totalSpent: number } | null;
 }
 const cache: Cache = {
-  home: null,
   accounts: null,
   balanceSheet: null,
   creditCards: null,
@@ -301,7 +301,7 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
     const { startDate, endDate } = getMonthDateRange(month);
     const today = new Date().toISOString().split("T")[0];
 
-    const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dueReminders, autoMatches] = await Promise.all([
+    const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dueReminders, autoMatches, loansSummary] = await Promise.all([
       getBudgetsForMonth(DEFAULT_USER_ID, month),
       getExpenseTotal(DEFAULT_USER_ID, startDate, endDate),
       getPendingExpenseCount(DEFAULT_USER_ID),
@@ -314,6 +314,7 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
       getUncategorizedCount(DEFAULT_USER_ID),
       getDueReminders(DEFAULT_USER_ID),
       findAutoMatches(DEFAULT_USER_ID).catch(() => [] as ReminderAutoMatch[]),
+      getLoansSummary(DEFAULT_USER_ID).catch(() => null),
     ]);
 
     const allIds = allAccounts.map((a) => a.id);
@@ -351,6 +352,7 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
       investmentSummary,
       dueReminders,
       autoMatches,
+      loansSummary,
     };
   } catch (e) {
     logger.warn("Home preload section failed:", e);
@@ -657,7 +659,13 @@ async function loadTransactionsSection(): Promise<TransactionsPreloadData | null
  * Failures in any section are logged and that slot is left null — screens fall
  * back to their own fetch path gracefully.
  */
-export async function preloadHomeData(): Promise<void> {
+export function preloadHomeData(): Promise<void> {
+  homePreloadPromise = runPreload();
+  return homePreloadPromise;
+}
+
+async function runPreload(): Promise<void> {
+  const version = getDataVersion();
   const [
     home, accounts, balanceSheet, creditCards,
     bankAccounts, wallets, pensionAccounts,
@@ -679,7 +687,7 @@ export async function preloadHomeData(): Promise<void> {
     loadInsightsSection(),
     loadTransactionsSection(),
   ]);
-  cache.home = home;
+  if (home) saveHomeSnapshot(home, version);
   cache.accounts = accounts;
   cache.balanceSheet = balanceSheet;
   cache.creditCards = creditCards;
@@ -698,10 +706,35 @@ export async function preloadHomeData(): Promise<void> {
     : null;
 }
 
-export function consumeHomePreload(): HomePreloadData | null {
-  const data = cache.home;
-  cache.home = null;
-  return data;
+// ---------------------------------------------------------------------------
+// Home snapshot — deliberately NON-destructive and refreshed by every Home
+// load. Home re-mounts after each biometric unlock (the lock screen replaces
+// the tab stack), and a single-use consume left it rendering zeros/empty
+// cards for ~2s while its ~13 queries re-ran. Seeding from the last known
+// data renders instantly; Home still refreshes in the background.
+// ---------------------------------------------------------------------------
+
+export interface HomeSnapshot {
+  data: HomePreloadData;
+  /** getDataVersion() when the load STARTED — any later write makes it stale. */
+  version: number;
+  at: number;
+}
+
+let homeSnapshot: HomeSnapshot | null = null;
+let homePreloadPromise: Promise<void> | null = null;
+
+export function peekHomeSnapshot(): HomeSnapshot | null {
+  return homeSnapshot;
+}
+
+export function saveHomeSnapshot(data: HomePreloadData, version: number): void {
+  homeSnapshot = { data, version, at: Date.now() };
+}
+
+/** Resolves once the app-start preload settles (immediately if none is running). */
+export async function waitForHomePreload(): Promise<void> {
+  if (homePreloadPromise) await homePreloadPromise.catch(() => {});
 }
 
 export function consumeAccountsPreload(): AccountsPreloadData | null {
