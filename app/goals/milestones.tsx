@@ -19,6 +19,8 @@ import {
   getMilestoneContributionForFY,
   getCombinedMilestoneActualsByIdForFY,
   getMilestoneTotalMonths,
+  getMilestoneMonthlyNeeded,
+  compareMilestonesByDueDate,
 } from "@/services/life-milestone";
 import type { LifeMilestone } from "@/services/life-milestone";
 import { getCurrentFY, getFYRange, getFYLabel, formatLocalDate } from "@/utils/fiscal-year";
@@ -250,7 +252,12 @@ export default function MilestonesScreen() {
 
   // ─── Summary ─────────────────────────────────────────────
 
-  const activeMilestones = milestones.filter((m) => !m.is_completed);
+  // Soonest-due first — an explicit target_date wins, falling back to the
+  // FY+duration plan's end month when no date was set. Milestones with
+  // neither keep their manual sort_order, ordered after every dated one.
+  const activeMilestones = milestones
+    .filter((m) => !m.is_completed)
+    .sort((a, b) => compareMilestonesByDueDate(a, b));
   const completedMilestones = milestones.filter((m) => m.is_completed);
   const totalTarget = activeMilestones.reduce(
     (s, m) => s + m.target_amount,
@@ -649,18 +656,10 @@ function MilestoneCard({
       : 0;
   const isComplete = milestone.is_completed === 1;
 
-  // Calculate monthly needed if target date exists
-  let monthlyNeeded: number | null = null;
-  if (milestone.target_date && remaining > 0) {
-    const now = new Date();
-    const target = new Date(milestone.target_date);
-    const monthsLeft =
-      (target.getFullYear() - now.getFullYear()) * 12 +
-      (target.getMonth() - now.getMonth());
-    if (monthsLeft > 0) {
-      monthlyNeeded = remaining / monthsLeft;
-    }
-  }
+  // Monthly saving still needed — via the milestone's effective due date
+  // (target_date, or the FY+duration plan's end month as a fallback),
+  // counting the current month as one you can still save in.
+  const monthlyNeeded = getMilestoneMonthlyNeeded(milestone);
 
   return (
     <Pressable onPress={onPress} onLongPress={onLongPress}>

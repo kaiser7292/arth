@@ -1,6 +1,6 @@
 import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
-import { bumpDataVersion } from "@/services/settings";
+import { bumpDataVersion, getFYStartMonth } from "@/services/settings";
 import { round2 } from "@/utils/math";
 
 // ─── Life Milestones ────────────────────────────────────────
@@ -83,6 +83,94 @@ export function getMilestoneTotalMonths(milestone: LifeMilestone): number {
  */
 function getDurationFYs(milestone: LifeMilestone): number {
   return Math.ceil(getMilestoneTotalMonths(milestone) / 12) || 1;
+}
+
+/**
+ * Effective "due" date for a milestone — the single source of truth for
+ * sorting and for the monthly-savings-required calculation (previously
+ * duplicated inconsistently between app/goals/milestones.tsx and
+ * app/goals/milestone-detail.tsx, and disconnected from the FY/duration
+ * plan model entirely).
+ *
+ * Prefers `target_date` (an explicit calendar date) when set. Falls back to
+ * the end of the FY+duration plan window — the FY's start month plus
+ * duration_years/duration_months — when no target_date was given ("take
+ * month input" instead, i.e. the Start FY + Duration fields the milestone
+ * form collects when the user doesn't pick a specific date). Returns null
+ * when neither is available.
+ */
+export function getMilestoneEffectiveDueDate(
+  milestone: LifeMilestone,
+  fyStartMonth: number = getFYStartMonth(),
+): string | null {
+  if (milestone.target_date) return milestone.target_date;
+  if (!milestone.start_financial_year) return null;
+  const startYear = parseInt(milestone.start_financial_year, 10);
+  if (!Number.isFinite(startYear)) return null;
+  const totalMonths = getMilestoneTotalMonths(milestone);
+  const startMonthIndex = fyStartMonth - 1; // 0-indexed
+  // Day 0 of the month AFTER the plan's last month = the last day of the
+  // plan's actual last month (JS Date normalises an out-of-range month).
+  const endDate = new Date(startYear, startMonthIndex + totalMonths, 0);
+  const y = endDate.getFullYear();
+  const m = String(endDate.getMonth() + 1).padStart(2, "0");
+  const d = String(endDate.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Months remaining until a milestone's effective due date, INCLUSIVE of the
+ * current month — e.g. today in March with a June due date is 4 months
+ * (Mar, Apr, May, Jun), not the 3 a plain calendar-month diff would give.
+ * Returns null when there's no effective due date, or it's already past.
+ */
+export function getMilestoneMonthsRemaining(
+  milestone: LifeMilestone,
+  fyStartMonth: number = getFYStartMonth(),
+  today: Date = new Date(),
+): number | null {
+  const due = getMilestoneEffectiveDueDate(milestone, fyStartMonth);
+  if (!due) return null;
+  const [dueYear, dueMonth] = due.split("-").map(Number);
+  const monthsDiff = (dueYear - today.getFullYear()) * 12 + (dueMonth - 1 - today.getMonth());
+  const inclusive = monthsDiff + 1;
+  return inclusive > 0 ? inclusive : null;
+}
+
+/**
+ * Monthly saving still required to hit a milestone's target amount, using
+ * the inclusive months-remaining count above. Returns null when the target
+ * is already met or there's no usable due date (past, or none set at all).
+ */
+export function getMilestoneMonthlyNeeded(
+  milestone: LifeMilestone,
+  fyStartMonth: number = getFYStartMonth(),
+  today: Date = new Date(),
+): number | null {
+  const remaining = milestone.target_amount - milestone.current_saved;
+  if (remaining <= 0) return null;
+  const months = getMilestoneMonthsRemaining(milestone, fyStartMonth, today);
+  if (!months) return null;
+  return remaining / months;
+}
+
+/**
+ * Sort comparator: milestones with an effective due date sort soonest-first;
+ * milestones with no target_date AND no start_financial_year/duration (so no
+ * due date can be derived at all) keep their existing manual sort_order,
+ * ordered after every dated milestone.
+ */
+export function compareMilestonesByDueDate(
+  a: LifeMilestone,
+  b: LifeMilestone,
+  fyStartMonth: number = getFYStartMonth(),
+): number {
+  const dueA = getMilestoneEffectiveDueDate(a, fyStartMonth);
+  const dueB = getMilestoneEffectiveDueDate(b, fyStartMonth);
+  if (dueA && dueB) return dueA.localeCompare(dueB);
+  if (dueA) return -1;
+  if (dueB) return 1;
+  return a.sort_order - b.sort_order;
 }
 
 /**

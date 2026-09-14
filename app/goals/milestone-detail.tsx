@@ -15,6 +15,7 @@ import {
   deleteMilestoneContribution,
   getCombinedMilestoneContributions,
   getCombinedMilestoneActualForFY,
+  getMilestoneMonthsRemaining,
 } from "@/services/life-milestone";
 import type {
   LifeMilestone,
@@ -215,19 +216,11 @@ export default function MilestoneDetailScreen() {
       };
     }
 
-    // Months to target date
-    let monthsToTarget: number | null = null;
-    let monthlyNeeded = 0;
-    if (milestone.target_date) {
-      const now = new Date();
-      const target = new Date(milestone.target_date);
-      monthsToTarget =
-        (target.getFullYear() - now.getFullYear()) * 12 +
-        (target.getMonth() - now.getMonth());
-      if (monthsToTarget > 0) {
-        monthlyNeeded = remaining / monthsToTarget;
-      }
-    }
+    // Months to the milestone's effective due date (target_date, or the
+    // FY+duration plan's end month as a fallback), inclusive of the current
+    // month — see services/life-milestone.ts:getMilestoneMonthsRemaining.
+    const monthsToTarget = getMilestoneMonthsRemaining(milestone);
+    const monthlyNeeded = monthsToTarget ? remaining / monthsToTarget : 0;
 
     // Average from all contributions (direct + linked buckets)
     const totalContributed = combinedContributions.reduce(
