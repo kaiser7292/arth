@@ -16,6 +16,9 @@ import { getThisVsLastMonthTotals } from "@/services/comparison-insights";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
+import { consumeInsightsPreload } from "@/services/home-preload";
+
+const preloaded = consumeInsightsPreload();
 
 /**
  * The Analytics dashboard.
@@ -28,11 +31,11 @@ export function InsightsPage() {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
-  const [forecast, setForecast] = useState<AnalyticsForecast | null>(null);
-  const [insights, setInsights] = useState<Insight[]>([]);
-  const [thisMonthTotal, setThisMonthTotal] = useState(0);
-  const [lastMonthTotal, setLastMonthTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [forecast, setForecast] = useState<AnalyticsForecast | null>(preloaded?.forecast ?? null);
+  const [insights, setInsights] = useState<Insight[]>(preloaded?.insights ?? []);
+  const [thisMonthTotal, setThisMonthTotal] = useState(preloaded?.thisMonthTotal ?? 0);
+  const [lastMonthTotal, setLastMonthTotal] = useState(preloaded?.lastMonthTotal ?? 0);
+  const [loading, setLoading] = useState(preloaded == null);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {

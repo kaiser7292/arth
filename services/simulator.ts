@@ -26,6 +26,11 @@ import { addCycle } from "@/utils/recurrence";
 import { generateUUID } from "@/utils/uuid";
 import type { RecurringFrequency } from "@/services/recurring-detector";
 import {
+  hisaabDebitSumExpr,
+  hisaabCreditSumExpr,
+  hisaabExcludeDeletedLinkSql,
+} from "@/services/hisaab";
+import {
     findFulfillmentCandidate,
     runSimulation,
     type BaselineAccount,
@@ -1942,8 +1947,8 @@ export async function listHisaabInclusionCandidates(
        hp.id as person_id,
        hp.name as person_name,
        COALESCE(hp.initial_balance, 0)
-         + COALESCE(SUM(CASE WHEN he.type = 'debit' THEN he.amount ELSE 0 END), 0)
-         - COALESCE(SUM(CASE WHEN he.type IN ('credit','settlement') THEN he.amount ELSE 0 END), 0)
+         + COALESCE(${hisaabDebitSumExpr("he")}, 0)
+         - COALESCE(${hisaabCreditSumExpr("he")}, 0)
          as balance,
        shi.included as inclusion_included,
        shi.amount as inclusion_amount,
@@ -1953,17 +1958,15 @@ export async function listHisaabInclusionCandidates(
        shi.updated_at as inclusion_updated
      FROM hisaab_persons hp
      LEFT JOIN hisaab_entries he ON hp.id = he.hisaab_person_id
-       AND (he.linked_expense_id IS NULL OR NOT EXISTS (
-         SELECT 1 FROM expenses x WHERE x.id = he.linked_expense_id AND x.deleted_at IS NOT NULL
-       ))
+       AND ${hisaabExcludeDeletedLinkSql("he")}
      LEFT JOIN simulation_hisaab_inclusions shi
        ON shi.person_id = hp.id AND shi.scenario_id = ?
      WHERE hp.owner_user_id = ? AND hp.is_active = 1
      GROUP BY hp.id
      ORDER BY ABS(
        COALESCE(hp.initial_balance, 0)
-         + COALESCE(SUM(CASE WHEN he.type = 'debit' THEN he.amount ELSE 0 END), 0)
-         - COALESCE(SUM(CASE WHEN he.type IN ('credit','settlement') THEN he.amount ELSE 0 END), 0)
+         + COALESCE(${hisaabDebitSumExpr("he")}, 0)
+         - COALESCE(${hisaabCreditSumExpr("he")}, 0)
      ) DESC, hp.name ASC;`,
     scenarioId,
     userId,
@@ -2019,15 +2022,13 @@ export async function listHisaabInclusions(
        shi.scenario_id, shi.person_id, shi.included, shi.pct,
        shi.created_at, shi.updated_at,
        COALESCE(hp.initial_balance, 0)
-         + COALESCE(SUM(CASE WHEN he.type = 'debit' THEN he.amount ELSE 0 END), 0)
-         - COALESCE(SUM(CASE WHEN he.type IN ('credit','settlement') THEN he.amount ELSE 0 END), 0)
+         + COALESCE(${hisaabDebitSumExpr("he")}, 0)
+         - COALESCE(${hisaabCreditSumExpr("he")}, 0)
          as live_balance
      FROM simulation_hisaab_inclusions shi
      JOIN hisaab_persons hp ON hp.id = shi.person_id
      LEFT JOIN hisaab_entries he ON hp.id = he.hisaab_person_id
-       AND (he.linked_expense_id IS NULL OR NOT EXISTS (
-         SELECT 1 FROM expenses x WHERE x.id = he.linked_expense_id AND x.deleted_at IS NOT NULL
-       ))
+       AND ${hisaabExcludeDeletedLinkSql("he")}
      WHERE shi.scenario_id = ? AND shi.included = 1
      GROUP BY shi.person_id;`,
     scenarioId,

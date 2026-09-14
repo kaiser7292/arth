@@ -269,6 +269,35 @@ export async function getPersonsByIds(
 }
 
 /**
+ * Shared SQL fragments for the hisaab balance formula:
+ *   balance = initial_balance + SUM(debits) − SUM(credits + settlements)
+ * excluding entries whose linked expense has been soft-deleted.
+ *
+ * This exact formula used to be hand-copied into 5 separate queries here and
+ * in services/simulator.ts (getPersonsWithBalances, getPersonBalance,
+ * getBalanceAsOfDate, and three hisaab-inclusion queries in simulator.ts) —
+ * all five happened to still agree, but a future change to hisaab balance
+ * semantics (e.g. a new entry type) would have needed the same edit applied
+ * five times, with no guard against missing one. `entryAlias` defaults to
+ * "e" (the alias every query in this file uses); simulator.ts's queries
+ * alias hisaab_entries as "he" and pass that instead.
+ */
+export function hisaabDebitSumExpr(entryAlias = "e"): string {
+  return `SUM(CASE WHEN ${entryAlias}.type = 'debit' THEN ${entryAlias}.amount ELSE 0 END)`;
+}
+
+export function hisaabCreditSumExpr(entryAlias = "e"): string {
+  return `SUM(CASE WHEN ${entryAlias}.type IN ('credit', 'settlement') THEN ${entryAlias}.amount ELSE 0 END)`;
+}
+
+/** Exclude hisaab entries whose linked expense has been soft-deleted (linked_expense_id IS NULL entries are always kept). */
+export function hisaabExcludeDeletedLinkSql(entryAlias = "e"): string {
+  return `(${entryAlias}.linked_expense_id IS NULL OR NOT EXISTS (
+    SELECT 1 FROM expenses x WHERE x.id = ${entryAlias}.linked_expense_id AND x.deleted_at IS NOT NULL
+  ))`;
+}
+
+/**
  * Get all active persons with their running balances.
  *
  * Balance = initial_balance + SUM(debits) - SUM(credits) - SUM(settlements)
@@ -277,29 +306,27 @@ export async function getPersonsWithBalances(
   userId: string,
 ): Promise<HisaabPersonWithBalance[]> {
   const db = getDatabase();
+  const debitSum = hisaabDebitSumExpr();
+  const creditSum = hisaabCreditSumExpr();
+  const excludeDeleted = hisaabExcludeDeletedLinkSql();
 
-  // Exclude hisaab entries whose linked expense has been soft-deleted — those
-  // entries should not contribute to the balance once the underlying expense
-  // is in the recycle bin. (linked_expense_id IS NULL entries are always kept.)
   return db.getAllAsync<HisaabPersonWithBalance>(
     `SELECT p.*,
             COALESCE(p.initial_balance, 0) +
-              COALESCE(SUM(CASE WHEN e.type = 'debit' THEN e.amount ELSE 0 END), 0) -
-              COALESCE(SUM(CASE WHEN e.type IN ('credit', 'settlement') THEN e.amount ELSE 0 END), 0)
+              COALESCE(${debitSum}, 0) -
+              COALESCE(${creditSum}, 0)
             as balance,
             COUNT(e.id) as entryCount,
             MAX(e.date) as lastEntryDate
      FROM hisaab_persons p
      LEFT JOIN hisaab_entries e ON p.id = e.hisaab_person_id
-       AND (e.linked_expense_id IS NULL OR NOT EXISTS (
-         SELECT 1 FROM expenses x WHERE x.id = e.linked_expense_id AND x.deleted_at IS NOT NULL
-       ))
+       AND ${excludeDeleted}
      WHERE p.owner_user_id = ? AND p.is_active = 1
      GROUP BY p.id
      ORDER BY ABS(
        COALESCE(p.initial_balance, 0) +
-         COALESCE(SUM(CASE WHEN e.type = 'debit' THEN e.amount ELSE 0 END), 0) -
-         COALESCE(SUM(CASE WHEN e.type IN ('credit', 'settlement') THEN e.amount ELSE 0 END), 0)
+         COALESCE(${debitSum}, 0) -
+         COALESCE(${creditSum}, 0)
      ) DESC;`,
     userId,
   );
@@ -316,13 +343,11 @@ export async function getPersonBalance(personId: string): Promise<number> {
     credits: number | null;
   }>(
     `SELECT p.initial_balance,
-            SUM(CASE WHEN e.type = 'debit' THEN e.amount ELSE 0 END) as debits,
-            SUM(CASE WHEN e.type IN ('credit', 'settlement') THEN e.amount ELSE 0 END) as credits
+            ${hisaabDebitSumExpr()} as debits,
+            ${hisaabCreditSumExpr()} as credits
      FROM hisaab_persons p
      LEFT JOIN hisaab_entries e ON p.id = e.hisaab_person_id
-       AND (e.linked_expense_id IS NULL OR NOT EXISTS (
-         SELECT 1 FROM expenses x WHERE x.id = e.linked_expense_id AND x.deleted_at IS NOT NULL
-       ))
+       AND ${hisaabExcludeDeletedLinkSql()}
      WHERE p.id = ?
      GROUP BY p.id;`,
     personId,
@@ -349,13 +374,11 @@ export async function getBalanceAsOfDate(
     credits: number | null;
   }>(
     `SELECT p.initial_balance,
-            SUM(CASE WHEN e.type = 'debit' THEN e.amount ELSE 0 END) as debits,
-            SUM(CASE WHEN e.type IN ('credit', 'settlement') THEN e.amount ELSE 0 END) as credits
+            ${hisaabDebitSumExpr()} as debits,
+            ${hisaabCreditSumExpr()} as credits
      FROM hisaab_persons p
      LEFT JOIN hisaab_entries e ON p.id = e.hisaab_person_id AND e.date < ?
-       AND (e.linked_expense_id IS NULL OR NOT EXISTS (
-         SELECT 1 FROM expenses x WHERE x.id = e.linked_expense_id AND x.deleted_at IS NOT NULL
-       ))
+       AND ${hisaabExcludeDeletedLinkSql()}
      WHERE p.id = ?
      GROUP BY p.id;`,
     beforeDate,

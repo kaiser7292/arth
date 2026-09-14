@@ -34,6 +34,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
 import { upsertBudget } from "@/services/budget";
 import { useTheme } from "@/hooks/use-theme";
+import { peekHomeTotals } from "@/services/home-preload";
 
 interface BudgetDashboardRow {
   category: Category;
@@ -52,8 +53,13 @@ export default function BudgetScreen() {
   const theme = useTheme();
   const [month, setMonth] = useState(getCurrentMonth());
   const [rows, setRows] = useState<BudgetDashboardRow[]>([]);
-  const [totalBudget, setTotalBudget] = useState(0);
-  const [totalSpent, setTotalSpent] = useState(0);
+  // Seeded from Home preload's already-computed current-month totals so the
+  // header numbers don't flash 0 while loadData's full Promise.all resolves.
+  const homeTotalsPeek = peekHomeTotals();
+  const initialTotals =
+    homeTotalsPeek && homeTotalsPeek.month === getCurrentMonth() ? homeTotalsPeek : null;
+  const [totalBudget, setTotalBudget] = useState(initialTotals?.totalBudget ?? 0);
+  const [totalSpent, setTotalSpent] = useState(initialTotals?.totalSpent ?? 0);
   const [uncategorized, setUncategorized] = useState(0);
   const [uncategorizedCount, setUncategorizedCount] = useState(0);
   const [yearlyPlan, setYearlyPlan] = useState<YearlyPlan | null>(null);

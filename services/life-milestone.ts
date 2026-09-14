@@ -428,47 +428,6 @@ export async function getMilestoneContributions(
   );
 }
 
-export async function getMilestoneContributionsForFY(
-  milestoneIds: string[],
-  fyStartDate: string,
-  fyEndDate: string,
-): Promise<number> {
-  if (milestoneIds.length === 0) return 0;
-  const db = getDatabase();
-  const placeholders = milestoneIds.map(() => "?").join(",");
-  const row = await db.getFirstAsync<{ total: number | null }>(
-    `SELECT COALESCE(SUM(amount), 0) as total FROM milestone_contributions
-     WHERE life_milestone_id IN (${placeholders}) AND date >= ? AND date <= ?;`,
-    ...milestoneIds,
-    fyStartDate,
-    fyEndDate,
-  );
-  return row?.total ?? 0;
-}
-
-export async function getMilestoneContributionsByIdForFY(
-  milestoneIds: string[],
-  fyStartDate: string,
-  fyEndDate: string,
-): Promise<Map<string, number>> {
-  const result = new Map<string, number>();
-  if (milestoneIds.length === 0) return result;
-  const db = getDatabase();
-  const placeholders = milestoneIds.map(() => "?").join(",");
-  const rows = await db.getAllAsync<{ life_milestone_id: string; total: number }>(
-    `SELECT life_milestone_id, COALESCE(SUM(amount), 0) as total FROM milestone_contributions
-     WHERE life_milestone_id IN (${placeholders}) AND date >= ? AND date <= ?
-     GROUP BY life_milestone_id;`,
-    ...milestoneIds,
-    fyStartDate,
-    fyEndDate,
-  );
-  for (const row of rows) {
-    result.set(row.life_milestone_id, row.total);
-  }
-  return result;
-}
-
 export async function createMilestoneContribution(
   input: CreateMilestoneContributionInput,
 ): Promise<string> {

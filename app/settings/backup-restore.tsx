@@ -201,7 +201,8 @@ export default function BackupRestoreScreen() {
             const result = await restoreScheduledBackup(info.filePath);
             setRestoringScheduled(null);
             if (result.success) {
-              alert("Restored", `Backup restored — ${result.totalRows} records loaded.`);
+              const suffix = result.failedRows > 0 ? ` (${result.failedRows} record${result.failedRows === 1 ? "" : "s"} skipped)` : "";
+              alert("Restored", `Backup restored — ${result.totalRows} records loaded.${suffix}`);
               reloadSchedBackups();
             } else {
               alert("Restore Failed", result.error ?? "Unknown error");
@@ -675,6 +676,12 @@ export default function BackupRestoreScreen() {
                   </Text>
                 </View>
               </View>
+            )}
+
+            {restoreResult.success && restoreResult.failedRows > 0 && (
+              <Text className="text-sm text-warning mt-4 text-center">
+                {restoreResult.failedRows} record{restoreResult.failedRows === 1 ? "" : "s"} could not be restored and were skipped.
+              </Text>
             )}
 
             {restoreResult.error && (

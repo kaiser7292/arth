@@ -23,6 +23,9 @@ import { getActiveAccounts, type FinancialAccount } from "@/services/financial-a
 import { formatAmount, formatCompact } from "@/utils/format";
 import { formatDate } from "@/utils/date";
 import { useTheme } from "@/hooks/use-theme";
+import { consumeInvestmentsPreload } from "@/services/home-preload";
+
+const preloaded = consumeInvestmentsPreload();
 
 type InvestmentGroup = "fd" | "market" | "pension";
 
@@ -31,6 +34,22 @@ interface InvestmentRow {
   product: InvestmentProduct | null;
   value: number;
   group: InvestmentGroup;
+}
+
+function buildRows(
+  accounts: FinancialAccount[],
+  products: Map<string, InvestmentProduct>,
+  values: Map<string, number>,
+): InvestmentRow[] {
+  return accounts.map((account) => {
+    const product = products.get(account.id) ?? null;
+    const group: InvestmentGroup = isDematLikeAccount(account, product)
+      ? "market"
+      : isPensionLikeAccount(account, product)
+        ? "pension"
+        : "fd";
+    return { account, product, value: values.get(account.id) ?? 0, group };
+  });
 }
 
 const GROUP_META: Record<InvestmentGroup, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
@@ -44,9 +63,11 @@ export default function InvestmentsListScreen() {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
-  const [rows, setRows] = useState<InvestmentRow[]>([]);
-  const [maturities, setMaturities] = useState<UpcomingFDMaturity[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [rows, setRows] = useState<InvestmentRow[]>(() =>
+    preloaded ? buildRows(preloaded.accounts, preloaded.products, preloaded.values) : [],
+  );
+  const [maturities, setMaturities] = useState<UpcomingFDMaturity[]>(preloaded?.maturities ?? []);
+  const [loaded, setLoaded] = useState(preloaded != null);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const sectionY = useRef<Partial<Record<InvestmentGroup, number>>>({});
@@ -63,17 +84,7 @@ export default function InvestmentsListScreen() {
       getUpcomingFDMaturities(DEFAULT_USER_ID, 5),
     ]);
 
-    setRows(
-      accounts.map((account) => {
-        const product = products.get(account.id) ?? null;
-        const group: InvestmentGroup = isDematLikeAccount(account, product)
-          ? "market"
-          : isPensionLikeAccount(account, product)
-            ? "pension"
-            : "fd";
-        return { account, product, value: values.get(account.id) ?? 0, group };
-      }),
-    );
+    setRows(buildRows(accounts, products, values));
     setMaturities(upcoming);
     setLoaded(true);
   }, []);

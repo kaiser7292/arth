@@ -438,49 +438,6 @@ export async function getCorrections(loanId: string): Promise<LoanCorrectionRow[
 }
 
 /**
- * Get active (non-deleted) corrections for a loan.
- * Used by the loan engine to determine the latest valid correction.
- */
-export async function getActiveCorrections(loanId: string): Promise<LoanCorrectionRow[]> {
-  const db = getDatabase();
-  return db.getAllAsync<LoanCorrectionRow>(
-    "SELECT * FROM loan_corrections WHERE loan_account_id = ? AND deleted_at IS NULL ORDER BY effective_date DESC;",
-    loanId,
-  );
-}
-
-/**
- * Soft delete a correction (set deleted_at timestamp).
- * Allows historical corrections to be preserved but excluded from active calculations.
- */
-export async function deactivateCorrection(correctionId: string): Promise<void> {
-  const db = getDatabase();
-  const existing = await db.getFirstAsync<LoanCorrectionRow>(
-    "SELECT * FROM loan_corrections WHERE id = ?;",
-    correctionId,
-  );
-  if (!existing) return;
-
-  try {
-    await db.runAsync(
-      "UPDATE loan_corrections SET deleted_at = datetime('now') WHERE id = ?;",
-      correctionId,
-    );
-    await rebuildLoanSchedule(existing.loan_account_id);
-  } catch (e) {
-    const reason = e instanceof Error ? e.message : String(e);
-    throw new Error(`Deactivate correction — ${reason}`);
-  }
-  try {
-    const { onLoanPrepayment } = await import("./yearly-plan");
-    await onLoanPrepayment(existing.loan_account_id);
-  } catch (e) {
-    logger.warn("onLoanPrepayment bucket recompute failed (non-fatal)", e);
-  }
-  bumpDataVersion();
-}
-
-/**
  * v17.5.9 — batched schedule-entry fetch for N loans in one query.
  * Replaces the per-loan `getSchedule` fan-out on the Yearly Plan screen.
  */
@@ -1063,34 +1020,6 @@ export async function updateLoan(
     }
   }
 
-  bumpDataVersion();
-}
-
-/**
- * v17.6.0 — regenerate amortization schedule from loan params, wiping any
- * existing rows. Used by the import-schedule "Revert" flow to drop a
- * manual-CSV schedule and rebuild the engine-computed one.
- *
- * Preserves paid/prepaid count from the previous schedule (same approach as
- * updateLoan's scheduleAffected branch).
- */
-export async function regenerateScheduleFromParams(loanId: string): Promise<void> {
-  const db = getDatabase();
-  const loan = await getLoanById(loanId);
-  if (!loan) throw new Error(`Loan ${loanId} not found`);
-  const currentSchedule = await getSchedule(loanId);
-  const paidCount = currentSchedule.filter(
-    (e) => e.status === "paid" || e.status === "prepaid",
-  ).length;
-  const newSchedule = generateSchedule(loanToParams(loan));
-  await db.withTransactionAsync(async () => {
-    await db.runAsync(
-      "DELETE FROM loan_schedule_entries WHERE loan_account_id = ?;",
-      loanId,
-    );
-    await batchInsertScheduleEntries(db, loanId, newSchedule);
-  });
-  if (paidCount > 0) await backfillPaidInstallments(loanId, paidCount);
   bumpDataVersion();
 }
 

@@ -662,32 +662,13 @@ export function isPensionLikeAccount(account: { account_type: string }, product?
 }
 
 /**
- * Single-account async convenience wrappers for isDematLikeAccount/
- * isPensionLikeAccount, for call sites checking one account at a time (e.g. a
- * transfer's from/to account) where batching isn't worth the ceremony.
+ * Single-account async convenience wrapper for isDematLikeAccount, for call
+ * sites checking one account at a time (e.g. a transfer's from/to account)
+ * where batching isn't worth the ceremony.
  */
 export async function isDematLikeAccountById(account: { id: string; account_type: string }): Promise<boolean> {
   if (account.account_type !== "investment") return isDematLikeAccount(account);
   return isDematLikeAccount(account, await getInvestmentProduct(account.id));
-}
-
-export async function isPensionLikeAccountById(account: { id: string; account_type: string }): Promise<boolean> {
-  if (account.account_type !== "investment") return isPensionLikeAccount(account);
-  return isPensionLikeAccount(account, await getInvestmentProduct(account.id));
-}
-
-/**
- * getActiveAccounts() plus each account's investment_products row (null for
- * non-investment types). The common starting point for any screen that needs
- * to tell demat-like/pension-like/FD accounts apart post-Phase-2.
- */
-export async function getActiveAccountsWithProducts(
-  userId: string,
-): Promise<{ account: FinancialAccount; product: InvestmentProduct | null }[]> {
-  const accounts = await getActiveAccounts(userId);
-  const investmentIds = accounts.filter((a) => a.account_type === "investment").map((a) => a.id);
-  const products = await batchInvestmentProducts(investmentIds);
-  return accounts.map((account) => ({ account, product: products.get(account.id) ?? null }));
 }
 
 export async function getInvestmentProduct(financialAccountId: string): Promise<InvestmentProduct | null> {
@@ -695,25 +676,6 @@ export async function getInvestmentProduct(financialAccountId: string): Promise<
   return db.getFirstAsync<InvestmentProduct>(
     "SELECT * FROM investment_products WHERE financial_account_id = ?;",
     financialAccountId,
-  );
-}
-
-export async function listActiveInvestmentProducts(userId: string): Promise<InvestmentProduct[]> {
-  const db = getDatabase();
-  return db.getAllAsync<InvestmentProduct>(
-    `SELECT ip.* FROM investment_products ip
-     JOIN financial_accounts fa ON fa.id = ip.financial_account_id
-     WHERE fa.user_id = ? AND fa.is_active = 1
-     ORDER BY ip.created_at DESC;`,
-    userId,
-  );
-}
-
-export async function getScheduleForProduct(productId: string): Promise<InvestmentScheduleRow[]> {
-  const db = getDatabase();
-  return db.getAllAsync<InvestmentScheduleRow>(
-    "SELECT * FROM investment_schedule_entries WHERE product_id = ? ORDER BY event_num ASC;",
-    productId,
   );
 }
 

@@ -80,10 +80,13 @@ import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { settingsStorage } from "@/services/storage";
 import { Modal } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { consumeTransactionsPreload } from "@/services/home-preload";
 
 const SORT_KEY = "expenses.sortBy";
 
 const PAGE_SIZE = 50;
+
+const preloaded = consumeTransactionsPreload();
 
 const NATURE_TABS: SwipePagerPage[] = [
   { key: "all", label: "All" },
@@ -102,14 +105,14 @@ export default function ExpensesScreen() {
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(preloaded?.pendingCount ?? 0);
   const [refundedMap, setRefundedMap] = useState<Map<string, number>>(new Map());
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
-  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
-  const [allTags, setAllTags] = useState<Tag[]>([]);
-  const [allMerchantNames, setAllMerchantNames] = useState<string[]>([]);
-  const [allRules, setAllRules] = useState<SmartRule[]>([]);
+  const [categories, setCategories] = useState<Category[]>(preloaded?.categories ?? []);
+  const [paymentModes, setPaymentModes] = useState<PaymentMode[]>(preloaded?.paymentModes ?? []);
+  const [accounts, setAccounts] = useState<FinancialAccount[]>(preloaded?.accounts ?? []);
+  const [allTags, setAllTags] = useState<Tag[]>(preloaded?.tags ?? []);
+  const [allMerchantNames, setAllMerchantNames] = useState<string[]>(preloaded?.merchantNames ?? []);
+  const [allRules, setAllRules] = useState<SmartRule[]>(preloaded?.rules ?? []);
   const [filterRuleIds, setFilterRuleIds] = useState<string[]>([]);
   const [expenseTagMap, setExpenseTagMap] = useState<Record<string, Tag[]>>({});
   const [loading, setLoading] = useState(false);
@@ -350,8 +353,9 @@ export default function ExpensesScreen() {
     [filterSignature, debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading],
   );
 
-  // Load reference data once
+  // Load reference data once (skipped if already seeded from preload)
   useEffect(() => {
+    if (preloaded) return;
     async function loadReferenceData() {
       try {
         const [cats, pms, accts, tags, merchants, rules, pending] = await Promise.all([

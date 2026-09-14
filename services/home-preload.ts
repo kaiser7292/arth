@@ -20,8 +20,12 @@ import type { FinancialAccount, DematAccountSummary } from "@/services/financial
 import {
   batchInvestmentProducts,
   getInvestmentSummary,
+  getUnifiedInvestmentValues,
+  getUpcomingFDMaturities,
   isPensionLikeAccount,
   type InvestmentSummary,
+  type InvestmentProduct,
+  type UpcomingFDMaturity,
 } from "@/services/investment-accounts";
 import {
   getComputedBalances,
@@ -67,6 +71,17 @@ import { getDueReminders } from "@/services/recurring-rules";
 import type { ReminderWithSource } from "@/services/recurring-rules";
 import { findAutoMatches } from "@/services/reminder-matching";
 import type { ReminderAutoMatch } from "@/services/reminder-matching";
+import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
+import { getInsights, type Insight } from "@/services/insight-engine";
+import { getThisVsLastMonthTotals } from "@/services/comparison-insights";
+import { getCategories } from "@/services/category";
+import type { Category } from "@/services/category";
+import { getPaymentModes } from "@/services/payment-mode";
+import type { PaymentMode } from "@/services/payment-mode";
+import { getTags } from "@/services/tags";
+import type { Tag } from "@/services/tags";
+import { getDistinctMerchantNames } from "@/services/merchant-alias";
+import { listRules, type SmartRule } from "@/services/smart-rules";
 
 // ---------------------------------------------------------------------------
 // Home tab
@@ -194,6 +209,45 @@ export interface VaultPreloadData {
 }
 
 // ---------------------------------------------------------------------------
+// Investments hero (app/investments/index.tsx)
+// ---------------------------------------------------------------------------
+
+export interface InvestmentsPreloadData {
+  accounts: FinancialAccount[];
+  products: Map<string, InvestmentProduct>;
+  values: Map<string, number>;
+  maturities: UpcomingFDMaturity[];
+}
+
+// ---------------------------------------------------------------------------
+// Insights / Analytics dashboard (shared by Home swipe-pager page 1 and
+// app/insights/index.tsx)
+// ---------------------------------------------------------------------------
+
+export interface InsightsPreloadData {
+  forecast: AnalyticsForecast | null;
+  insights: Insight[];
+  thisMonthTotal: number;
+  lastMonthTotal: number;
+}
+
+// ---------------------------------------------------------------------------
+// Transactions tab — reference data only (categories, payment modes,
+// accounts, tags, merchants, rules, pending count). The paginated expense
+// list itself is NOT preloaded here — too large/filter-dependent.
+// ---------------------------------------------------------------------------
+
+export interface TransactionsPreloadData {
+  categories: Category[];
+  paymentModes: PaymentMode[];
+  accounts: FinancialAccount[];
+  tags: Tag[];
+  merchantNames: string[];
+  rules: SmartRule[];
+  pendingCount: number;
+}
+
+// ---------------------------------------------------------------------------
 // Cache — single-use per screen. `consume*` clears after read so stale data
 // doesn't haunt the next focus.
 // ---------------------------------------------------------------------------
@@ -210,6 +264,13 @@ interface Cache {
   yearlyPlan: YearlyPlanPreloadData | null;
   loans: LoansPreloadData | null;
   vault: VaultPreloadData | null;
+  investments: InvestmentsPreloadData | null;
+  insights: InsightsPreloadData | null;
+  transactions: TransactionsPreloadData | null;
+  /** Non-destructive snapshot of the current-month totals also present in
+   *  `home`, so the Budget tab can seed its initial numbers even though Home
+   *  always consumes (and clears) `cache.home` first on app launch. */
+  homeTotals: { month: string; totalBudget: number; totalSpent: number } | null;
 }
 const cache: Cache = {
   home: null,
@@ -223,6 +284,10 @@ const cache: Cache = {
   yearlyPlan: null,
   loans: null,
   vault: null,
+  investments: null,
+  insights: null,
+  transactions: null,
+  homeTotals: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -524,6 +589,62 @@ async function loadVaultSection(): Promise<VaultPreloadData | null> {
   }
 }
 
+async function loadInvestmentsSection(): Promise<InvestmentsPreloadData | null> {
+  try {
+    const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
+    const accounts = allAccounts.filter(
+      (a) => a.account_type === "investment" || a.account_type === "demat" || a.account_type === "pension",
+    );
+    const ids = accounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+    const products = await batchInvestmentProducts(ids);
+    const [values, maturities] = await Promise.all([
+      getUnifiedInvestmentValues(DEFAULT_USER_ID, accounts, products),
+      getUpcomingFDMaturities(DEFAULT_USER_ID, 5),
+    ]);
+    return { accounts, products, values, maturities };
+  } catch (e) {
+    logger.warn("Investments preload section failed:", e);
+    return null;
+  }
+}
+
+async function loadInsightsSection(): Promise<InsightsPreloadData | null> {
+  try {
+    const [totals, forecast, insights] = await Promise.all([
+      getThisVsLastMonthTotals(DEFAULT_USER_ID).catch(() => ({ currentMonth: 0, previousMonth: 0 })),
+      getAnalyticsForecast(DEFAULT_USER_ID).catch(() => null),
+      getInsights(DEFAULT_USER_ID).catch(() => [] as Insight[]),
+    ]);
+    return {
+      forecast,
+      insights,
+      thisMonthTotal: totals.currentMonth,
+      lastMonthTotal: totals.previousMonth,
+    };
+  } catch (e) {
+    logger.warn("Insights preload section failed:", e);
+    return null;
+  }
+}
+
+async function loadTransactionsSection(): Promise<TransactionsPreloadData | null> {
+  try {
+    const [categories, paymentModes, accounts, tags, merchantNames, rules, pendingCount] = await Promise.all([
+      getCategories(DEFAULT_USER_ID),
+      getPaymentModes(DEFAULT_USER_ID),
+      getActiveAccounts(DEFAULT_USER_ID),
+      getTags(DEFAULT_USER_ID),
+      getDistinctMerchantNames(DEFAULT_USER_ID),
+      listRules(),
+      getPendingExpenseCount(DEFAULT_USER_ID),
+    ]);
+    return { categories, paymentModes, accounts, tags, merchantNames, rules, pendingCount };
+  } catch (e) {
+    logger.warn("Transactions preload section failed:", e);
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -541,6 +662,7 @@ export async function preloadHomeData(): Promise<void> {
     home, accounts, balanceSheet, creditCards,
     bankAccounts, wallets, pensionAccounts,
     goals, yearlyPlan, loans, vault,
+    investments, insights, transactions,
   ] = await Promise.all([
     loadHomeSection(),
     loadAccountsSection(),
@@ -553,6 +675,9 @@ export async function preloadHomeData(): Promise<void> {
     loadYearlyPlanSection(),
     loadLoansSection(),
     loadVaultSection(),
+    loadInvestmentsSection(),
+    loadInsightsSection(),
+    loadTransactionsSection(),
   ]);
   cache.home = home;
   cache.accounts = accounts;
@@ -565,6 +690,12 @@ export async function preloadHomeData(): Promise<void> {
   cache.yearlyPlan = yearlyPlan;
   cache.loans = loans;
   cache.vault = vault;
+  cache.investments = investments;
+  cache.insights = insights;
+  cache.transactions = transactions;
+  cache.homeTotals = home
+    ? { month: getCurrentMonth(), totalBudget: home.totalBudget, totalSpent: home.totalSpent }
+    : null;
 }
 
 export function consumeHomePreload(): HomePreloadData | null {
@@ -609,10 +740,21 @@ export function consumePensionAccountsPreload(): PensionAccountsPreloadData | nu
   return data;
 }
 
+/**
+ * Deliberately NON-destructive, unlike every other consume* here — three
+ * separate screens (app/(tabs)/goals.tsx, app/goals/investment-buckets.tsx,
+ * app/goals/milestones.tsx) each call this at module level to seed their
+ * initial state. Since a JS module is only evaluated once per app process,
+ * whichever of the three the user opens FIRST after launch would consume
+ * (and null out) the shared cache, leaving the other two to always fall
+ * back to a fresh fetch — even on their very first-ever open. Not clearing
+ * costs nothing here: each screen's own useFocusEffect/useDataRefresh
+ * already re-fetches on every subsequent focus regardless, so this value
+ * is only ever used for the first render, and only once per screen (module
+ * scope), no matter how many times that screen is later revisited.
+ */
 export function consumeGoalsPreload(): GoalsPreloadData | null {
-  const data = cache.goals;
-  cache.goals = null;
-  return data;
+  return cache.goals;
 }
 
 export function consumeYearlyPlanPreload(): YearlyPlanPreloadData | null {
@@ -631,4 +773,36 @@ export function consumeVaultPreload(): VaultPreloadData | null {
   const data = cache.vault;
   cache.vault = null;
   return data;
+}
+
+export function consumeInvestmentsPreload(): InvestmentsPreloadData | null {
+  const data = cache.investments;
+  cache.investments = null;
+  return data;
+}
+
+/**
+ * Non-destructive like consumeGoalsPreload — InsightsPage mounts twice
+ * (Home swipe-pager page 1 AND app/insights/index.tsx), and a destructive
+ * consume would only ever benefit whichever mounts first.
+ */
+export function consumeInsightsPreload(): InsightsPreloadData | null {
+  return cache.insights;
+}
+
+export function consumeTransactionsPreload(): TransactionsPreloadData | null {
+  const data = cache.transactions;
+  cache.transactions = null;
+  return data;
+}
+
+/**
+ * Non-destructive peek at current-month budget/expense totals, computed
+ * once as part of the Home section. Home's own consumeHomePreload() clears
+ * cache.home first (Home is always the first tab mounted on launch), so the
+ * Budget tab reads this separate, never-cleared snapshot instead of
+ * re-running the same two queries for a month it's very likely to open on.
+ */
+export function peekHomeTotals(): { month: string; totalBudget: number; totalSpent: number } | null {
+  return cache.homeTotals;
 }

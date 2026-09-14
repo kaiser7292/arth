@@ -185,17 +185,17 @@ export async function restoreScheduledBackup(filePath: string): Promise<RestoreR
   try {
     const file = new File(filePath);
     if (!file.exists) {
-      return { success: false, tablesRestored: [], totalRows: 0, error: "Backup file not found." };
+      return { success: false, tablesRestored: [], totalRows: 0, failedRows: 0, error: "Backup file not found." };
     }
     const raw = await file.text();
     let payload: { data: Record<string, unknown[]> };
     try {
       payload = JSON.parse(raw) as { data: Record<string, unknown[]> };
     } catch {
-      return { success: false, tablesRestored: [], totalRows: 0, error: "Backup file is corrupted." };
+      return { success: false, tablesRestored: [], totalRows: 0, failedRows: 0, error: "Backup file is corrupted." };
     }
     if (!payload?.data) {
-      return { success: false, tablesRestored: [], totalRows: 0, error: "Invalid backup format." };
+      return { success: false, tablesRestored: [], totalRows: 0, failedRows: 0, error: "Invalid backup format." };
     }
     return await restoreFromData(payload.data);
   } catch (e) {
@@ -203,6 +203,7 @@ export async function restoreScheduledBackup(filePath: string): Promise<RestoreR
       success: false,
       tablesRestored: [],
       totalRows: 0,
+      failedRows: 0,
       error: e instanceof Error ? e.message : String(e),
     };
   }

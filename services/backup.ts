@@ -34,6 +34,7 @@ export interface RestoreResult {
   success: boolean;
   tablesRestored: string[];
   totalRows: number;
+  failedRows: number;
   error: string | null;
 }
 
@@ -526,6 +527,7 @@ export async function restoreFromData(
   const db = getDatabase();
   const tablesRestored: string[] = [];
   let totalRows = 0;
+  let failedRows = 0;
 
   await db.execAsync("PRAGMA foreign_keys = OFF;");
   try {
@@ -581,7 +583,10 @@ export async function restoreFromData(
                   `INSERT OR REPLACE INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")});`,
                   ...vals,
                 );
-              } catch { /* skip rows that fail */ }
+              } catch (rowErr) {
+                failedRows++;
+                console.warn(`[backup] restore: skipped 1 row in "${table}" —`, rowErr);
+              }
             }
           }
         }
@@ -670,8 +675,12 @@ export async function restoreFromData(
     try { await SecureStore.setItemAsync(VAULT_KEY_STORE, vaultKey); } catch { /* ignore */ }
   }
 
+  if (failedRows > 0) {
+    console.warn(`[backup] restore: ${failedRows} row(s) across the backup failed to restore and were skipped.`);
+  }
+
   await bumpDataVersion();
-  return { success: true, tablesRestored, totalRows, error: null };
+  return { success: true, tablesRestored, totalRows, failedRows, error: null };
 }
 
 /**
@@ -697,6 +706,7 @@ export async function restoreBackup(
         success: false,
         tablesRestored: [],
         totalRows: 0,
+        failedRows: 0,
         error: "Invalid backup file. This doesn't appear to be an Artha backup.",
       };
     }
@@ -732,6 +742,7 @@ export async function restoreBackup(
             success: false,
             tablesRestored: [],
             totalRows: 0,
+            failedRows: 0,
             error: "Decryption failed. Wrong password or corrupted file.",
           };
         }
@@ -747,6 +758,7 @@ export async function restoreBackup(
         success: false,
         tablesRestored: [],
         totalRows: 0,
+        failedRows: 0,
         error: "Wrong password or corrupted backup.",
       };
     }
@@ -757,6 +769,7 @@ export async function restoreBackup(
         success: false,
         tablesRestored: [],
         totalRows: 0,
+        failedRows: 0,
         error: "Invalid backup format.",
       };
     }
@@ -769,6 +782,7 @@ export async function restoreBackup(
       success: false,
       tablesRestored: [],
       totalRows: 0,
+      failedRows: 0,
       error: e instanceof Error ? e.message : String(e),
     };
   }
