@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { View, ScrollView, Pressable, type LayoutChangeEvent } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, EmptyState, FAB, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, FAB, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -20,7 +20,7 @@ import {
   type UpcomingFDMaturity,
 } from "@/services/investment-accounts";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
-import { formatAmount } from "@/utils/format";
+import { formatAmount, formatCompact } from "@/utils/format";
 import { formatDate } from "@/utils/date";
 
 type InvestmentGroup = "fd" | "market" | "pension";
@@ -45,6 +45,7 @@ export default function InvestmentsListScreen() {
   const [rows, setRows] = useState<InvestmentRow[]>([]);
   const [maturities, setMaturities] = useState<UpcomingFDMaturity[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [breakdownVisible, setBreakdownVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const sectionY = useRef<Partial<Record<InvestmentGroup, number>>>({});
 
@@ -128,10 +129,14 @@ export default function InvestmentsListScreen() {
               <Text className="text-2xl font-bold text-foreground self-start mb-3">{formatAmount(total)}</Text>
               <DonutChart
                 segments={donutSegments}
-                centerValue={formatAmount(total).replace("₹", "")}
+                centerValue={formatCompact(total)}
                 centerLabel="Total"
                 onSegmentPress={(index) => scrollToGroup(index)}
+                onPress={() => setBreakdownVisible(true)}
               />
+              <Text className="text-label text-faint-foreground mt-2">
+                Tap the chart for exact amounts
+              </Text>
             </Card>
 
             {/* Upcoming maturities — the one thing that had no visibility
@@ -239,6 +244,36 @@ export default function InvestmentsListScreen() {
         )}
       </ScrollView>
       <FAB icon="add" onPress={() => router.push("/investments/add")} accessibilityLabel="Add investment" />
+
+      <Sheet visible={breakdownVisible} onClose={() => setBreakdownVisible(false)}>
+        <View className="px-5 pb-3">
+          <Text className="text-base font-bold" style={{ color: colors.text }}>
+            Value by category
+          </Text>
+        </View>
+        <View className="px-5 pb-2">
+          {GROUP_ORDER.map((group) => (
+            <View key={group} className="flex-row items-center py-2.5" style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
+              <View className="w-2.5 h-2.5 rounded-full mr-3" style={{ backgroundColor: GROUP_META[group].color }} />
+              <Text className="text-sm text-foreground flex-1">{GROUP_META[group].label}</Text>
+              <Text className="text-sm font-semibold text-foreground">{formatAmount(groupTotals[group])}</Text>
+            </View>
+          ))}
+          <View className="flex-row items-center py-2.5" style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
+            <Text className="text-sm font-bold text-foreground flex-1 ml-[22px]">Total</Text>
+            <Text className="text-sm font-bold text-foreground">{formatAmount(total)}</Text>
+          </View>
+        </View>
+        <View className="px-5 pt-2 pb-1">
+          <Pressable
+            onPress={() => setBreakdownVisible(false)}
+            className="py-3 rounded-xl items-center"
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          >
+            <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>Close</Text>
+          </Pressable>
+        </View>
+      </Sheet>
     </ScreenContainer>
   );
 }

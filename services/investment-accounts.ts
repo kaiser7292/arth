@@ -556,6 +556,41 @@ export async function unlinkFDFromBucket(financialAccountId: string): Promise<vo
 }
 
 /**
+ * Reverses "Mark as Fixed Deposit" entirely — the FD-specific counterpart to
+ * services/account-transfer.ts's undoTransfer. The caller is responsible for
+ * calling undoTransfer() on the deposit transfer FIRST (restores the original
+ * expense); this then cleans up everything Mark-as-FD created on top of that
+ * transfer: any bucket link, the schedule, the investment_products row, and
+ * finally deactivates the shell financial_accounts row it created — mirroring
+ * how "Remove account" elsewhere in the app deactivates rather than
+ * hard-deletes, so it stays recoverable rather than vanishing outright.
+ *
+ * Refused once any schedule entry has materialised (isFDEditable) — at that
+ * point real money has moved via a second, separate transfer, and un-doing
+ * the original deposit would leave that maturity transfer dangling.
+ */
+export async function undoMarkAsFD(financialAccountId: string): Promise<void> {
+  const db = getDatabase();
+  const product = await getInvestmentProduct(financialAccountId);
+  if (!product || product.valuation !== "contract") {
+    throw new Error("This account is not a fixed deposit");
+  }
+  if (!(await isFDEditable(product.id))) {
+    throw new Error("This fixed deposit has already matured and can't be undone");
+  }
+  if (product.investment_bucket_id) {
+    await unlinkFDFromBucket(financialAccountId);
+  }
+  await db.runAsync("DELETE FROM investment_schedule_entries WHERE product_id = ?;", product.id);
+  await db.runAsync("DELETE FROM investment_products WHERE id = ?;", product.id);
+  await db.runAsync(
+    `UPDATE financial_accounts SET is_active = 0, updated_at = datetime('now') WHERE id = ?;`,
+    financialAccountId,
+  );
+  bumpDataVersion();
+}
+
+/**
  * Creates a bare investment_products row with no schedule, for 'market'
  * (demat-style) or 'contribution' (pension-style) products — those value
  * themselves from snapshots or the standard balance chain respectively, not

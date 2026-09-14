@@ -219,6 +219,7 @@ export default function AccountDetailScreen() {
   );
 
   const account = data?.account;
+  const isFDAccount = investmentProduct?.valuation === "contract";
   const linkedModes = data?.linkedModes ?? [];
   const linkedModeIds = new Set(linkedModes.map((m) => m.id));
 
@@ -802,11 +803,14 @@ export default function AccountDetailScreen() {
           )}
 
           {/* Monthly Balance Ledger — hidden for loans (schedule is source of
-              truth), demat (own snapshot system), and credit cards (the
+              truth), demat (own snapshot system), credit cards (the
               Bank-Reported Balance card below already owns the authoritative
               utilized/remaining figures; two overlapping concepts confuse
-              users). v17.5.10 extends the earlier loan/demat guard. */}
-          {!isDematAccount && accountType !== "loan" && accountType !== "credit_card" && <Card className="mb-3" title="Monthly Balance Ledger">
+              users), and FDs (the Fixed Deposit card above already shows
+              everything relevant — principal, rate, maturity; the ledger's
+              opening/expenses/credits breakdown doesn't map to how a user
+              thinks about a deposit). v17.5.10 extends the earlier loan/demat guard. */}
+          {!isDematAccount && !isFDAccount && accountType !== "loan" && accountType !== "credit_card" && <Card className="mb-3" title="Monthly Balance Ledger">
             {!seeded ? (
               <View>
                 <Text className="text-xs text-muted-foreground mb-3">

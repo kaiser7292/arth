@@ -16,6 +16,8 @@ interface DonutChartProps {
   centerValue?: string;
   /** Called when a legend item (segment) is tapped */
   onSegmentPress?: (index: number, segment: DonutSegment) => void;
+  /** Called when the ring/center itself is tapped (e.g. to show exact per-segment amounts). */
+  onPress?: () => void;
 }
 
 /**
@@ -32,6 +34,7 @@ function DonutChartBase({
   centerLabel,
   centerValue,
   onSegmentPress,
+  onPress,
 }: DonutChartProps) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
   if (total === 0) {
@@ -45,7 +48,11 @@ function DonutChartBase({
   return (
     <View className="items-center">
       {/* Segmented ring using stacked half-circle technique */}
-      <View
+      <Pressable
+        onPress={onPress}
+        disabled={!onPress}
+        accessibilityRole={onPress ? "button" : undefined}
+        accessibilityLabel={onPress ? "Show exact amounts per category" : undefined}
         style={{ width: size, height: size }}
         className="items-center justify-center"
       >
@@ -111,11 +118,17 @@ function DonutChartBase({
             width: size * 0.6,
             height: size * 0.6,
             borderRadius: (size * 0.6) / 2,
+            paddingHorizontal: 4,
           }}
           className="bg-background items-center justify-center"
         >
           {centerValue && (
-            <Text className="text-lg font-bold text-foreground">
+            <Text
+              className="text-lg font-bold text-foreground"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
               {centerValue}
             </Text>
           )}
@@ -123,7 +136,7 @@ function DonutChartBase({
             <Text className="text-label text-faint-foreground">{centerLabel}</Text>
           )}
         </View>
-      </View>
+      </Pressable>
 
       {/* Legend — pressable when onSegmentPress provided */}
       <View className="flex-row flex-wrap justify-center mt-3 gap-x-4 gap-y-1">

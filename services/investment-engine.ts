@@ -49,23 +49,48 @@ function round2(n: number): number {
 }
 
 /**
- * Maturity value of a cumulative FD. Simple interest: P(1 + rt). Compound:
- * P(1 + r/n)^(nt). Both use calendar-day year fractions rather than whole
- * years, since a real FD's tenure is rarely an exact number of years.
+ * Rounds to the nearest whole rupee with a "half rounds down" rule — a
+ * fractional part of exactly 0.5 rounds down, anything above 0.5 rounds up
+ * (the opposite of JS's Math.round, which rounds 0.5 up). Applied to FD
+ * interest specifically, at the user's request, rather than the generic
+ * round2() used elsewhere for paise-precision amounts.
  */
-export function computeFDMaturityValue(params: FDParams): number {
+function roundHalfDown(n: number): number {
+  return Math.ceil(n - 0.5) || 0; // normalises -0 (e.g. from a zero/negative input) to 0
+}
+
+/** Raw (unrounded) interest for the FD's full tenure — simple: Prt, compound: P((1+r/n)^(nt) − 1). */
+function computeFDInterestRaw(params: FDParams): number {
   const { principal, interest_rate_pa, start_date, maturity_date, interest_method, compounding_freq } = params;
   const t = yearsBetween(start_date, maturity_date);
   const r = interest_rate_pa / 100;
 
-  if (t <= 0 || !Number.isFinite(t)) return round2(principal);
+  if (t <= 0 || !Number.isFinite(t)) return 0;
 
   if (interest_method === "simple") {
-    return round2(principal * (1 + r * t));
+    return principal * r * t;
   }
 
   const n = COMPOUNDING_PERIODS_PER_YEAR[compounding_freq ?? "quarterly"];
-  return round2(principal * Math.pow(1 + r / n, n * t));
+  return principal * (Math.pow(1 + r / n, n * t) - 1);
+}
+
+/** Interest for the FD's full tenure, rounded to the nearest whole rupee (see roundHalfDown). */
+export function computeFDInterest(params: FDParams): number {
+  return roundHalfDown(computeFDInterestRaw(params));
+}
+
+/**
+ * Maturity value of a cumulative FD: principal (paise-precision, as entered)
+ * plus the whole-rupee-rounded interest — see computeFDInterest. Computing it
+ * this way (rather than rounding principal+rawInterest as one figure) keeps
+ * this value and generateFDSchedule's interest_component exactly consistent
+ * by construction, since both derive from the same computeFDInterest call.
+ */
+export function computeFDMaturityValue(params: FDParams): number {
+  const t = yearsBetween(params.start_date, params.maturity_date);
+  if (t <= 0 || !Number.isFinite(t)) return round2(params.principal);
+  return round2(params.principal) + computeFDInterest(params);
 }
 
 /**
@@ -76,9 +101,6 @@ export function computeFDMaturityValue(params: FDParams): number {
  * for periodic instruments too — v1 just never produces more than one row.
  */
 export function generateFDSchedule(params: FDParams): InvestmentScheduleEntry[] {
-  const maturityValue = computeFDMaturityValue(params);
-  const interest = round2(maturityValue - params.principal);
-
   return [
     {
       id: generateUUID(),
@@ -86,7 +108,7 @@ export function generateFDSchedule(params: FDParams): InvestmentScheduleEntry[] 
       event_date: params.maturity_date,
       kind: "maturity",
       principal_component: round2(params.principal),
-      interest_component: interest,
+      interest_component: computeFDInterest(params),
       status: "scheduled",
     },
   ];

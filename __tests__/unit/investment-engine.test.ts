@@ -2,7 +2,7 @@
  * Investment engine (FD math) — pure functions, no DB.
  */
 
-import { computeFDMaturityValue, generateFDSchedule, currentFDValue } from "../../services/investment-engine";
+import { computeFDMaturityValue, computeFDInterest, generateFDSchedule, currentFDValue } from "../../services/investment-engine";
 
 describe("computeFDMaturityValue", () => {
   it("computes simple interest for exactly one year", () => {
@@ -96,6 +96,77 @@ describe("generateFDSchedule", () => {
       maturity_date: "2026-01-01", interest_method: "simple",
     });
     expect(a[0].id).not.toBe(b[0].id);
+  });
+});
+
+describe("computeFDInterest — whole-rupee rounding, half rounds down", () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const YEAR_MS = 365.25 * DAY_MS;
+
+  // Solve for the interest_rate_pa that makes simple-interest land on an exact
+  // target raw value, given the same days/365.25 year-fraction math the engine
+  // uses internally — lets us hit exact .5 boundaries the rounding rule cares
+  // about, which real calendar-date spans can't produce directly (a whole
+  // number of days is never exactly N.5 years).
+  function rateForTargetInterest(principal: number, days: number, targetInterest: number): number {
+    const t = (days * DAY_MS) / YEAR_MS;
+    return (targetInterest / (principal * t)) * 100;
+  }
+
+  it("rounds exactly 0.5 down, not up", () => {
+    const principal = 1_000_000;
+    const days = 365;
+    const rate = rateForTargetInterest(principal, days, 100.5);
+    const interest = computeFDInterest({
+      principal,
+      interest_rate_pa: rate,
+      start_date: "2025-01-01",
+      maturity_date: "2026-01-01",
+      interest_method: "simple",
+    });
+    expect(interest).toBe(100);
+  });
+
+  it("rounds just above 0.5 up", () => {
+    const principal = 1_000_000;
+    const days = 365;
+    const rate = rateForTargetInterest(principal, days, 100.500001);
+    const interest = computeFDInterest({
+      principal,
+      interest_rate_pa: rate,
+      start_date: "2025-01-01",
+      maturity_date: "2026-01-01",
+      interest_method: "simple",
+    });
+    expect(interest).toBe(101);
+  });
+
+  it("rounds just below 0.5 down", () => {
+    const principal = 1_000_000;
+    const days = 365;
+    const rate = rateForTargetInterest(principal, days, 100.499999);
+    const interest = computeFDInterest({
+      principal,
+      interest_rate_pa: rate,
+      start_date: "2025-01-01",
+      maturity_date: "2026-01-01",
+      interest_method: "simple",
+    });
+    expect(interest).toBe(100);
+  });
+
+  it("computeFDMaturityValue equals principal + the same whole-rupee interest", () => {
+    const params = {
+      principal: 250000,
+      interest_rate_pa: 7.25,
+      start_date: "2025-03-01",
+      maturity_date: "2026-09-01",
+      interest_method: "compound" as const,
+      compounding_freq: "quarterly" as const,
+    };
+    const interest = computeFDInterest(params);
+    expect(Number.isInteger(interest)).toBe(true);
+    expect(computeFDMaturityValue(params)).toBe(params.principal + interest);
   });
 });
 
