@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Text } from "@/components/ui";
 import { View, Pressable } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 export interface DonutSegment {
   label: string;
@@ -20,13 +21,42 @@ interface DonutChartProps {
   onPress?: () => void;
 }
 
+function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
+  return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+}
+
 /**
- * Simple donut chart using nested Views with rounded borders.
- * Uses a stacked-ring approach: background ring + colored arcs via
- * overlapping half-circles (conic gradient simulation).
+ * SVG path for one donut wedge (an annular sector) from `startAngle` to
+ * `endAngle` (radians, 0 = 3 o'clock, increasing clockwise) between outer
+ * radius R and inner radius r.
+ */
+function describeDonutWedge(cx: number, cy: number, R: number, r: number, startAngle: number, endAngle: number): string {
+  const startOuter = polarToCartesian(cx, cy, R, startAngle);
+  const endOuter = polarToCartesian(cx, cy, R, endAngle);
+  const startInner = polarToCartesian(cx, cy, r, endAngle);
+  const endInner = polarToCartesian(cx, cy, r, startAngle);
+  const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
+  return [
+    `M ${startOuter.x} ${startOuter.y}`,
+    `A ${R} ${R} 0 ${largeArc} 1 ${endOuter.x} ${endOuter.y}`,
+    `L ${startInner.x} ${startInner.y}`,
+    `A ${r} ${r} 0 ${largeArc} 0 ${endInner.x} ${endInner.y}`,
+    "Z",
+  ].join(" ");
+}
+
+/**
+ * Donut chart drawn with actual SVG arcs — each wedge is a proportional
+ * annular sector, so segment size and z-order can never fight each other.
  *
- * For simplicity and RN compatibility, uses a segmented bar approach
- * rendered as a horizontal split bar (works everywhere, no SVG needed).
+ * The previous implementation drew each segment as a full-circle View with
+ * only some border SIDES colored (a "quadrant" trick), sized in fixed 90°
+ * chunks regardless of the segment's real percentage, then stacked later
+ * segments on top of earlier ones. A small segment (e.g. an 8% slice) could
+ * end up fully painted over by a larger, later segment whose 90°-quantized
+ * colored region happened to overlap it — the slice's color was computed
+ * correctly but never actually visible. SVG path wedges don't have this
+ * failure mode: each wedge occupies exactly its own angular range.
  */
 function DonutChartBase({
   segments,
@@ -45,9 +75,29 @@ function DonutChartBase({
     );
   }
 
+  const cx = size / 2;
+  const cy = size / 2;
+  const R = size / 2 - 1; // slight inset so the stroke edge isn't clipped
+  const r = size * 0.3; // inner radius — matches the center content circle below
+
+  // Start at 12 o'clock (-90°) and sweep clockwise, same visual convention
+  // the previous border-trick version used.
+  let cumulativeAngle = -Math.PI / 2;
+  const wedges = segments
+    .map((segment) => {
+      const sweep = (segment.value / total) * Math.PI * 2;
+      const startAngle = cumulativeAngle;
+      // A single 100% segment would produce a zero-length arc (start===end
+      // mod 2π) — cap just short of a full circle so it still renders.
+      const endAngle = startAngle + Math.min(sweep, Math.PI * 2 * 0.9999);
+      cumulativeAngle += sweep;
+      if (segment.value <= 0) return null;
+      return { segment, path: describeDonutWedge(cx, cy, R, r, startAngle, endAngle) };
+    })
+    .filter((w): w is { segment: DonutSegment; path: string } => w !== null);
+
   return (
     <View className="items-center">
-      {/* Segmented ring using stacked half-circle technique */}
       <Pressable
         onPress={onPress}
         disabled={!onPress}
@@ -56,68 +106,18 @@ function DonutChartBase({
         style={{ width: size, height: size }}
         className="items-center justify-center"
       >
-        {/* Background ring */}
-        <View
-          style={{
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            borderWidth: size * 0.15,
-            borderColor: "#E5E5E320",
-          }}
-          className="absolute"
-        />
-
-        {/* Colored segments as stacked arcs */}
-        {(() => {
-          let cumulativeRotation = 0;
-          return segments.map((segment, index) => {
-            const pct = segment.value / total;
-            const degrees = pct * 360;
-            const rotation = cumulativeRotation;
-            cumulativeRotation += degrees;
-
-            if (pct === 0) return null;
-
-            return (
-              <View
-                key={index}
-                style={{
-                  position: "absolute",
-                  width: size,
-                  height: size,
-                }}
-              >
-                {/* Use two half-circles to draw the arc */}
-                <View
-                  style={{
-                    position: "absolute",
-                    width: size,
-                    height: size,
-                    borderRadius: size / 2,
-                    borderWidth: size * 0.15,
-                    borderColor: "transparent",
-                    borderTopColor: segment.color,
-                    borderRightColor:
-                      degrees > 90 ? segment.color : "transparent",
-                    borderBottomColor:
-                      degrees > 180 ? segment.color : "transparent",
-                    borderLeftColor:
-                      degrees > 270 ? segment.color : "transparent",
-                    transform: [{ rotate: `${rotation - 90}deg` }],
-                  }}
-                />
-              </View>
-            );
-          });
-        })()}
+        <Svg width={size} height={size} style={{ position: "absolute" }}>
+          {wedges.map((w, i) => (
+            <Path key={i} d={w.path} fill={w.segment.color} />
+          ))}
+        </Svg>
 
         {/* Center content */}
         <View
           style={{
-            width: size * 0.6,
-            height: size * 0.6,
-            borderRadius: (size * 0.6) / 2,
+            width: r * 2,
+            height: r * 2,
+            borderRadius: r,
             paddingHorizontal: 4,
           }}
           className="bg-background items-center justify-center"
