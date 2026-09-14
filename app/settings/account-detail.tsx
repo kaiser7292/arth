@@ -1004,8 +1004,9 @@ export default function AccountDetailScreen() {
           </Card>}
 
           {/* Bank-Reported Balance — SMS traceability + auto-apply newer SMS.
-              Skipped for loans (the amortization schedule is authoritative). */}
-          {account && !isDematAccount && account.account_type !== "loan" && (
+              Skipped for loans (the amortization schedule is authoritative) and
+              FDs (the maturity schedule is authoritative, no bank SMS balance). */}
+          {account && !isDematAccount && !isFDAccount && account.account_type !== "loan" && (
             <BalanceSourceCard
               accountId={accountId}
               isShared={siblingCards.length > 0}
@@ -1014,8 +1015,8 @@ export default function AccountDetailScreen() {
           )}
 
           {/* Payment Modes — hidden for loans (loans aren't payment instruments)
-              and demat (investment accounts don't route expenses). v17.5.10. */}
-          {accountType !== "loan" && !isDematAccount && <Card className="mb-3" title="Linked Payment Modes">
+              and demat/FD (investment accounts don't route expenses). v17.5.10. */}
+          {accountType !== "loan" && !isDematAccount && !isFDAccount && <Card className="mb-3" title="Linked Payment Modes">
             {allModes.length > 0 ? (
               allModes.map((mode) => {
                 const isLinked = linkedModeIds.has(mode.id);
