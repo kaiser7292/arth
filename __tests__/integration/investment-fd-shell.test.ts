@@ -76,7 +76,7 @@ describe("createFDAccountShell", () => {
 
     const product = mockSqlite
       .prepare("SELECT * FROM investment_products WHERE financial_account_id = ?")
-      .get(fdAccountId) as InvestmentProduct;
+      .get(fdAccountId) as unknown as InvestmentProduct;
     expect(product).toMatchObject({ instrument: "fd", valuation: "contract", status: "active", principal: 100000 });
     expect(product.interest_rate_pa).toBeNull();
     expect(product.maturity_date).toBeNull();
@@ -102,7 +102,7 @@ describe("createFDAccountShell", () => {
 
     const product = mockSqlite
       .prepare("SELECT * FROM investment_products WHERE financial_account_id = ?")
-      .get(fdAccountId) as InvestmentProduct;
+      .get(fdAccountId) as unknown as InvestmentProduct;
     expect(isFDIncomplete(product)).toBe(false);
 
     const schedule = mockSqlite.prepare("SELECT * FROM investment_schedule_entries WHERE product_id = ?").all(product.id);
@@ -148,7 +148,7 @@ describe("completeFDDetails", () => {
 
     const product = mockSqlite
       .prepare("SELECT * FROM investment_products WHERE financial_account_id = ?")
-      .get(fdAccountId) as InvestmentProduct;
+      .get(fdAccountId) as unknown as InvestmentProduct;
     expect(isFDIncomplete(product)).toBe(false);
     expect(product.interest_rate_pa).toBe(7.5);
 

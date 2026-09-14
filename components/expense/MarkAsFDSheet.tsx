@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Pressable, ScrollView } from "react-native";
+import { View, Pressable, ScrollView, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Input, Sheet, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { createFDAccountShell } from "@/services/investment-accounts";
+import { createFDAccountShell, linkFDToBucket, setFDMaturityOverride } from "@/services/investment-accounts";
 import { reclassifyExpenseAsTransfer } from "@/services/account-transfer";
-import type { CompoundingFreq, InterestMethod } from "@/services/investment-engine";
+import { computeFDMaturityValue, type CompoundingFreq, type InterestMethod } from "@/services/investment-engine";
+import { getBucketsByFY, type InvestmentBucket } from "@/services/yearly-plan";
+import { getCurrentFY } from "@/utils/fiscal-year";
+import { getFYStartMonth } from "@/services/settings";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
@@ -59,26 +62,62 @@ export function MarkAsFDSheet({
   const alert = useAlert();
 
   const [bankName, setBankName] = useState("");
+  const [depositName, setDepositName] = useState("");
   const [accountIdentifier, setAccountIdentifier] = useState("");
   const [interestRate, setInterestRate] = useState("");
   const [interestMethod, setInterestMethod] = useState<InterestMethod>("compound");
   const [compoundingFreq, setCompoundingFreq] = useState<CompoundingFreq>("quarterly");
   const [maturityDate, setMaturityDate] = useState("");
   const [showMaturityPicker, setShowMaturityPicker] = useState(false);
+  const [maturityOverride, setMaturityOverride] = useState("");
+  const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
+  const [bucketId, setBucketId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setBankName(suggestedBankName);
+      setDepositName("");
       setAccountIdentifier("");
       setInterestRate("");
       setInterestMethod("compound");
       setCompoundingFreq("quarterly");
       setMaturityDate("");
+      setMaturityOverride("");
+      setBucketId(null);
     }
   }, [visible, suggestedBankName]);
 
+  // Buckets for the FY of the deposit date — same scoping DematTransferTargetSheet uses.
+  useEffect(() => {
+    if (!visible) return;
+    (async () => {
+      try {
+        const startMonth = getFYStartMonth();
+        const fy = getCurrentFY(startMonth, new Date(date));
+        const rows = await getBucketsByFY(DEFAULT_USER_ID, String(fy));
+        setBuckets(rows);
+      } catch {
+        setBuckets([]);
+      }
+    })();
+  }, [visible, date]);
+
   const hasRateInput = interestRate.trim().length > 0;
+
+  const computedMaturity = useMemo(() => {
+    if (!hasRateInput || !maturityDate) return null;
+    const r = parseFloat(interestRate);
+    if (!(r > 0)) return null;
+    return computeFDMaturityValue({
+      principal: amount,
+      interest_rate_pa: r,
+      start_date: date,
+      maturity_date: maturityDate,
+      interest_method: interestMethod,
+      compounding_freq: compoundingFreq,
+    });
+  }, [hasRateInput, interestRate, maturityDate, amount, date, interestMethod, compoundingFreq]);
 
   const handleClose = useCallback(() => onClose(), [onClose]);
 
@@ -92,6 +131,9 @@ export function MarkAsFDSheet({
     if (hasRateInput && !maturityDate) errors.push("Maturity date is required if you enter an interest rate.");
     if (maturityDate && !hasRateInput) errors.push("Interest rate is required if you set a maturity date.");
     if (hasRateInput && maturityDate && maturityDate <= date) errors.push("Maturity date must be after the deposit date.");
+    const overrideTrimmed = maturityOverride.trim();
+    const overrideValue = overrideTrimmed ? parseFloat(overrideTrimmed) : null;
+    if (overrideTrimmed && !(overrideValue! > 0)) errors.push("Corrected maturity amount must be a positive number.");
 
     if (errors.length > 0) {
       alert("Fix these fields", errors.join("\n"));
@@ -103,6 +145,7 @@ export function MarkAsFDSheet({
       const financialAccountId = await createFDAccountShell({
         user_id: DEFAULT_USER_ID,
         bank_name: bankName.trim(),
+        account_label: depositName.trim() || undefined,
         account_identifier: identifierDigits,
         principal: amount,
         start_date: date,
@@ -113,6 +156,12 @@ export function MarkAsFDSheet({
         maturity_date: hasRateInput ? maturityDate : undefined,
       });
       await reclassifyExpenseAsTransfer(expenseId, financialAccountId, expenseUpdatedAt);
+      if (overrideValue != null) {
+        await setFDMaturityOverride(financialAccountId, overrideValue);
+      }
+      if (bucketId) {
+        await linkFDToBucket(financialAccountId, bucketId);
+      }
       onDone(financialAccountId);
     } catch (e) {
       alert("Couldn't save", formatError("Mark as fixed deposit", e));
@@ -120,8 +169,8 @@ export function MarkAsFDSheet({
       setSaving(false);
     }
   }, [
-    bankName, accountIdentifier, hasRateInput, interestRate, maturityDate, date, interestMethod, compoundingFreq,
-    amount, sourceAccountId, expenseId, expenseUpdatedAt, alert, onDone,
+    bankName, depositName, accountIdentifier, hasRateInput, interestRate, maturityDate, date, interestMethod, compoundingFreq,
+    maturityOverride, bucketId, amount, sourceAccountId, expenseId, expenseUpdatedAt, alert, onDone,
   ]);
 
   const title = useMemo(() => `${formatAmount(amount)} on ${formatDate(date)}`, [amount, date]);
@@ -142,6 +191,16 @@ export function MarkAsFDSheet({
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
         <View className="px-5">
           <Input label="Bank name" value={bankName} onChangeText={setBankName} placeholder="e.g. HDFC Bank" containerClassName="mb-3" />
+          <Input
+            label="Deposit name"
+            value={depositName}
+            onChangeText={setDepositName}
+            placeholder={`${bankName.trim() || "Bank"} FD — e.g. "Tax saver FD"`}
+            containerClassName="mb-3"
+          />
+          <Text className="text-xs -mt-2 mb-3" style={{ color: colors.textSecondary }}>
+            Helps tell this deposit apart if you add more FDs from the same account.
+          </Text>
           <Input
             label="FD account / receipt number"
             value={accountIdentifier}
@@ -229,7 +288,69 @@ export function MarkAsFDSheet({
                 </Text>
                 <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
               </Pressable>
+
+              {computedMaturity != null && (
+                <View className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+                  <View className="flex-row justify-between">
+                    <Text className="text-xs" style={{ color: colors.textSecondary }}>Computed maturity amount</Text>
+                    <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(computedMaturity)}</Text>
+                  </View>
+                  <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>
+                    Interest: {formatAmount(computedMaturity - amount)}
+                  </Text>
+                  <Input
+                    label="Correct this amount (optional)"
+                    value={maturityOverride}
+                    onChangeText={setMaturityOverride}
+                    placeholder={`e.g. ${computedMaturity.toFixed(0)} if your bank's figure differs`}
+                    keyboardType="numeric"
+                    containerClassName="mt-3"
+                  />
+                </View>
+              )}
             </>
+          )}
+
+          {buckets.length > 0 && (
+            <View className="mt-1 mb-3">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Link to investment bucket (optional)
+              </Text>
+              <Pressable
+                onPress={() => setBucketId(null)}
+                className="flex-row items-center py-2 px-2 rounded-md"
+                style={{ backgroundColor: bucketId === null ? theme.primary + "1A" : "transparent" }}
+              >
+                <Ionicons name="close-circle-outline" size={16} color={bucketId === null ? theme.primary : colors.textSecondary} />
+                <Text className="flex-1 ml-2 text-sm" style={{ color: colors.text, fontWeight: bucketId === null ? "600" : "400" }}>
+                  Don't link
+                </Text>
+                {bucketId === null && <Ionicons name="checkmark" size={16} color={theme.primary} />}
+              </Pressable>
+              <FlatList
+                data={buckets}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+                renderItem={({ item }) => {
+                  const active = bucketId === item.id;
+                  return (
+                    <Pressable
+                      onPress={() => setBucketId(item.id)}
+                      className="flex-row items-center py-2 px-2 rounded-md"
+                      style={{ backgroundColor: active ? theme.primary + "1A" : "transparent" }}
+                    >
+                      <Ionicons name="bookmark-outline" size={16} color={active ? theme.primary : colors.textSecondary} />
+                      <Text className="flex-1 ml-2 text-sm" style={{ color: colors.text, fontWeight: active ? "600" : "400" }} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                        {formatAmount(item.current_contributed)} / {formatAmount(item.annual_target)}
+                      </Text>
+                    </Pressable>
+                  );
+                }}
+              />
+            </View>
           )}
         </View>
       </ScrollView>

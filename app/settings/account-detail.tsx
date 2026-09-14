@@ -31,8 +31,10 @@ import {
   getSnapshotCountForAccount,
 } from "@/services/financial-account";
 import type { FinancialAccount, AccountType } from "@/services/financial-account";
-import { getInvestmentProduct, isDematLikeAccountById, isFDIncomplete, type InvestmentProduct } from "@/services/investment-accounts";
+import { getInvestmentProduct, isDematLikeAccountById, isFDIncomplete, isFDEditable, type InvestmentProduct } from "@/services/investment-accounts";
 import { CompleteFDDetailsSheet } from "@/components/account/CompleteFDDetailsSheet";
+import { getAllActiveBuckets } from "@/services/yearly-plan";
+import { formatDate } from "@/utils/date";
 import {
   getMonthBalanceSummary,
   seedOpeningBalance,
@@ -96,6 +98,8 @@ export default function AccountDetailScreen() {
   // otherwise only sees the raw (possibly-aliased) accountType.
   const [isDematAccount, setIsDematAccount] = useState(false);
   const [investmentProduct, setInvestmentProduct] = useState<InvestmentProduct | null>(null);
+  const [fdEditable, setFdEditable] = useState(true);
+  const [fdBucketName, setFdBucketName] = useState<string | null>(null);
   const [completeFDVisible, setCompleteFDVisible] = useState(false);
   const [creditLimitValue, setCreditLimitValue] = useState("");
   const [balanceValue, setBalanceValue] = useState("");
@@ -149,7 +153,19 @@ export default function AccountDetailScreen() {
       const acct = acctData.account;
       const isDemat = await isDematLikeAccountById(acct);
       setIsDematAccount(isDemat);
-      setInvestmentProduct(acct.account_type === "investment" ? await getInvestmentProduct(acct.id) : null);
+      const product = acct.account_type === "investment" ? await getInvestmentProduct(acct.id) : null;
+      setInvestmentProduct(product);
+      if (product?.valuation === "contract") {
+        setFdEditable(await isFDEditable(product.id));
+        if (product.investment_bucket_id) {
+          const buckets = await getAllActiveBuckets(DEFAULT_USER_ID);
+          setFdBucketName(buckets.find((b) => b.id === product.investment_bucket_id)?.name ?? null);
+        } else {
+          setFdBucketName(null);
+        }
+      } else {
+        setFdBucketName(null);
+      }
       setAccountType(acct.account_type as AccountType);
       setLabelValue(acct.account_label ?? "");
       setCreditLimitValue(
@@ -732,6 +748,59 @@ export default function AccountDetailScreen() {
             </Pressable>
           )}
 
+          {/* Fixed deposit already completed — its full properties, editable
+              until the schedule materialises at maturity. */}
+          {investmentProduct && investmentProduct.valuation === "contract" && !isFDIncomplete(investmentProduct) && (
+            <Card className="mb-3" title="Fixed Deposit">
+              <View className="flex-row justify-between mb-1.5">
+                <Text className="text-xs text-muted-foreground">Principal</Text>
+                <Text className="text-sm font-semibold text-foreground">
+                  {investmentProduct.principal != null ? formatAmount(investmentProduct.principal) : "—"}
+                </Text>
+              </View>
+              <View className="flex-row justify-between mb-1.5">
+                <Text className="text-xs text-muted-foreground">Interest rate</Text>
+                <Text className="text-sm text-foreground">
+                  {investmentProduct.interest_rate_pa}% p.a. ({investmentProduct.interest_method})
+                </Text>
+              </View>
+              <View className="flex-row justify-between mb-1.5">
+                <Text className="text-xs text-muted-foreground">Matures</Text>
+                <Text className="text-sm text-foreground">
+                  {investmentProduct.maturity_date ? formatDate(investmentProduct.maturity_date) : "—"}
+                </Text>
+              </View>
+              {investmentProduct.maturity_amount_override != null && (
+                <View className="flex-row justify-between mb-1.5">
+                  <Text className="text-xs text-muted-foreground">Corrected maturity amount</Text>
+                  <Text className="text-sm font-semibold text-foreground">
+                    {formatAmount(investmentProduct.maturity_amount_override)}
+                  </Text>
+                </View>
+              )}
+              <View className="flex-row justify-between mb-3">
+                <Text className="text-xs text-muted-foreground">Status</Text>
+                <Text className="text-sm text-foreground capitalize">{investmentProduct.status}</Text>
+              </View>
+              {fdBucketName && (
+                <View className="flex-row justify-between mb-3">
+                  <Text className="text-xs text-muted-foreground">Investment bucket</Text>
+                  <Text className="text-sm text-foreground">{fdBucketName}</Text>
+                </View>
+              )}
+              <Pressable
+                onPress={() => setCompleteFDVisible(true)}
+                className="flex-row items-center justify-center py-2.5 rounded-lg border"
+                style={{ borderColor: colors.border }}
+              >
+                <Ionicons name="create-outline" size={16} color={colors.blue} />
+                <Text className="text-sm font-semibold ml-2" style={{ color: colors.blue }}>
+                  {fdEditable ? "Edit fixed deposit" : "Correct amount / bucket"}
+                </Text>
+              </Pressable>
+            </Card>
+          )}
+
           {/* Monthly Balance Ledger — hidden for loans (schedule is source of
               truth), demat (own snapshot system), and credit cards (the
               Bank-Reported Balance card below already owns the authoritative
@@ -966,11 +1035,11 @@ export default function AccountDetailScreen() {
         </ScrollView>
       </ScreenContainer>
 
-      {account && (
+      {account && investmentProduct && (
         <CompleteFDDetailsSheet
           visible={completeFDVisible}
-          financialAccountId={account.id}
-          startDate={investmentProduct?.start_date ?? ""}
+          product={investmentProduct}
+          editable={fdEditable}
           onDone={() => {
             setCompleteFDVisible(false);
             loadData();

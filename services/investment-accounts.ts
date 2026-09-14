@@ -31,6 +31,7 @@ import {
   type InterestMethod,
 } from "@/services/investment-engine";
 import { bumpDataVersion } from "@/services/settings";
+import { createInvestmentContribution, deleteInvestmentContribution } from "@/services/yearly-plan";
 import { logger } from "@/utils/logger";
 import { generateUUID } from "@/utils/uuid";
 import { todayIso } from "@/utils/date";
@@ -71,6 +72,11 @@ export interface InvestmentProduct {
   status: InvestmentProductStatus;
   created_at: string;
   updated_at: string;
+  /** v3.6 — links this FD's deposit to a yearly-plan investment bucket, mirroring account_transfers' demat linking (migration 011). */
+  investment_bucket_id: string | null;
+  linked_contribution_id: string | null;
+  /** v3.6 — user-corrected maturity amount, overriding the computed value when the bank's actual payout (TDS/rounding) differs. */
+  maturity_amount_override: number | null;
 }
 
 export interface InvestmentScheduleRow {
@@ -378,6 +384,178 @@ export function isFDIncomplete(product: InvestmentProduct): boolean {
 }
 
 /**
+ * True when an FD's schedule can still be safely edited — i.e. no schedule
+ * entry has been materialised yet (money hasn't actually moved). Once any
+ * entry is materialised, changing rate/maturity would desync the FD account's
+ * real transfer history from a freshly regenerated schedule.
+ */
+export async function isFDEditable(productId: string): Promise<boolean> {
+  const db = getDatabase();
+  const materialised = await db.getFirstAsync<{ id: string }>(
+    "SELECT id FROM investment_schedule_entries WHERE product_id = ? AND status = 'materialised' LIMIT 1;",
+    productId,
+  );
+  return !materialised;
+}
+
+/**
+ * Edits an existing FD's rate/method/compounding/maturity and regenerates its
+ * schedule — for FDs already completed (unlike completeFDDetails, which is a
+ * one-shot first-fill for a shell). Refuses once any schedule entry has
+ * materialised (see isFDEditable) since regenerating at that point would
+ * contradict money that has already moved.
+ */
+export async function updateFDDetails(
+  financialAccountId: string,
+  details: {
+    interest_rate_pa: number;
+    interest_method: InterestMethod;
+    compounding_freq?: CompoundingFreq;
+    maturity_date: string;
+  },
+): Promise<void> {
+  const db = getDatabase();
+  const product = await getInvestmentProduct(financialAccountId);
+  if (!product || product.valuation !== "contract") {
+    throw new Error("This account is not a fixed deposit");
+  }
+  if (product.principal == null || !product.start_date) {
+    throw new Error("This fixed deposit has no principal or start date recorded");
+  }
+  if (!(await isFDEditable(product.id))) {
+    throw new Error("This fixed deposit has already matured and can't be edited");
+  }
+  if (!(details.interest_rate_pa > 0)) {
+    throw new Error("Interest rate must be a positive number");
+  }
+  if (details.maturity_date <= product.start_date) {
+    throw new Error("Maturity date must be after the start date");
+  }
+  if (details.interest_method === "compound" && !details.compounding_freq) {
+    throw new Error("Compounding frequency is required for compound interest");
+  }
+
+  await db.runAsync(
+    `UPDATE investment_products
+     SET interest_rate_pa = ?, interest_method = ?, compounding_freq = ?, maturity_date = ?, updated_at = datetime('now')
+     WHERE id = ?;`,
+    details.interest_rate_pa,
+    details.interest_method,
+    details.compounding_freq ?? null,
+    details.maturity_date,
+    product.id,
+  );
+
+  // Drop the previous (never-materialised) schedule and regenerate it —
+  // safe because isFDEditable already confirmed nothing has materialised.
+  await db.runAsync("DELETE FROM investment_schedule_entries WHERE product_id = ?;", product.id);
+
+  const schedule = generateFDSchedule({
+    principal: product.principal,
+    interest_rate_pa: details.interest_rate_pa,
+    start_date: product.start_date,
+    maturity_date: details.maturity_date,
+    interest_method: details.interest_method,
+    compounding_freq: details.compounding_freq,
+  });
+  for (const entry of schedule) {
+    await db.runAsync(
+      `INSERT INTO investment_schedule_entries (
+        id, product_id, event_num, event_date, kind,
+        principal_component, interest_component, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled');`,
+      entry.id,
+      product.id,
+      entry.event_num,
+      entry.event_date,
+      entry.kind,
+      entry.principal_component,
+      entry.interest_component,
+    );
+  }
+
+  bumpDataVersion();
+}
+
+/**
+ * Sets (or clears, with null) a manual correction to the FD's maturity
+ * amount — used when the bank's actual payout (TDS, rounding) differs from
+ * the computed schedule. Doesn't touch investment_schedule_entries; the
+ * override is applied at materialisation time (materialiseMaturedInvestments)
+ * so the originally computed figures stay visible for comparison.
+ */
+export async function setFDMaturityOverride(financialAccountId: string, overrideAmount: number | null): Promise<void> {
+  const db = getDatabase();
+  const product = await getInvestmentProduct(financialAccountId);
+  if (!product || product.valuation !== "contract") {
+    throw new Error("This account is not a fixed deposit");
+  }
+  if (overrideAmount != null && !(overrideAmount > 0)) {
+    throw new Error("Corrected maturity amount must be a positive number");
+  }
+  await db.runAsync(
+    `UPDATE investment_products SET maturity_amount_override = ?, updated_at = datetime('now') WHERE id = ?;`,
+    overrideAmount,
+    product.id,
+  );
+  bumpDataVersion();
+}
+
+/**
+ * Links an FD's deposit to a yearly-plan investment bucket, the same way a
+ * demat transfer optionally does (services/demat-transfer.ts) — the deposit
+ * amount counts toward the bucket's current_contributed as of the FD's start
+ * date. Reversed automatically at maturity (materialiseMaturedInvestments
+ * records a matching withdrawal) or explicitly via unlinkFDFromBucket.
+ */
+export async function linkFDToBucket(financialAccountId: string, bucketId: string): Promise<void> {
+  const product = await getInvestmentProduct(financialAccountId);
+  if (!product || product.valuation !== "contract") {
+    throw new Error("This account is not a fixed deposit");
+  }
+  if (product.principal == null || !product.start_date) {
+    throw new Error("This fixed deposit has no principal or start date recorded");
+  }
+  if (product.investment_bucket_id) {
+    throw new Error("This fixed deposit is already linked to a bucket");
+  }
+
+  const contributionId = await createInvestmentContribution({
+    investment_bucket_id: bucketId,
+    month: product.start_date.slice(0, 7),
+    amount: product.principal,
+    date: product.start_date,
+    notes: "Auto from Fixed Deposit",
+  });
+
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE investment_products SET investment_bucket_id = ?, linked_contribution_id = ?, updated_at = datetime('now') WHERE id = ?;`,
+    bucketId,
+    contributionId,
+    product.id,
+  );
+  bumpDataVersion();
+}
+
+/** Reverses linkFDToBucket — deletes the contribution and clears the stamp. */
+export async function unlinkFDFromBucket(financialAccountId: string): Promise<void> {
+  const product = await getInvestmentProduct(financialAccountId);
+  if (!product || !product.investment_bucket_id) return;
+
+  if (product.linked_contribution_id) {
+    await deleteInvestmentContribution(product.linked_contribution_id, product.investment_bucket_id);
+  }
+
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE investment_products SET investment_bucket_id = NULL, linked_contribution_id = NULL, updated_at = datetime('now') WHERE id = ?;`,
+    product.id,
+  );
+  bumpDataVersion();
+}
+
+/**
  * Creates a bare investment_products row with no schedule, for 'market'
  * (demat-style) or 'contribution' (pension-style) products — those value
  * themselves from snapshots or the standard balance chain respectively, not
@@ -502,6 +680,52 @@ export async function getScheduleForProduct(productId: string): Promise<Investme
     "SELECT * FROM investment_schedule_entries WHERE product_id = ? ORDER BY event_num ASC;",
     productId,
   );
+}
+
+export interface UpcomingFDMaturity {
+  financialAccountId: string;
+  label: string;
+  maturityDate: string;
+  /** The corrected amount when set (setFDMaturityOverride), else the computed schedule figure. */
+  maturityAmount: number;
+}
+
+/**
+ * The next `limit` FD maturities still scheduled (not yet materialised) for
+ * this user, soonest first — feeds the "Upcoming maturities" card on
+ * /investments. No maturity-timeline visibility existed anywhere before this;
+ * an FD's date only ever showed up buried in its own account-detail screen.
+ */
+export async function getUpcomingFDMaturities(userId: string, limit = 5): Promise<UpcomingFDMaturity[]> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{
+    financial_account_id: string;
+    account_label: string | null;
+    bank_name: string;
+    account_identifier: string;
+    event_date: string;
+    principal_component: number | null;
+    interest_component: number | null;
+    maturity_amount_override: number | null;
+  }>(
+    `SELECT ip.financial_account_id, fa.account_label, fa.bank_name, fa.account_identifier,
+            se.event_date, se.principal_component, se.interest_component, ip.maturity_amount_override
+     FROM investment_schedule_entries se
+     JOIN investment_products ip ON ip.id = se.product_id
+     JOIN financial_accounts fa ON fa.id = ip.financial_account_id
+     WHERE fa.user_id = ? AND fa.is_active = 1
+       AND se.kind = 'maturity' AND se.status = 'scheduled'
+     ORDER BY se.event_date ASC
+     LIMIT ?;`,
+    userId,
+    limit,
+  );
+  return rows.map((r) => ({
+    financialAccountId: r.financial_account_id,
+    label: r.account_label ?? `${r.bank_name} ••${r.account_identifier}`,
+    maturityDate: r.event_date,
+    maturityAmount: r.maturity_amount_override ?? (r.principal_component ?? 0) + (r.interest_component ?? 0),
+  }));
 }
 
 // ─── Legacy demat/pension conversion (Phase 2) ─────────────
@@ -744,10 +968,13 @@ export async function materialiseMaturedInvestments(userId: string): Promise<num
     financial_account_id: string;
     source_account_id: string | null;
     bank_name: string;
+    maturity_amount_override: number | null;
+    investment_bucket_id: string | null;
   }>(
     `SELECT se.id as schedule_id, se.product_id, se.event_date, se.kind,
             se.principal_component, se.interest_component,
-            ip.financial_account_id, ip.source_account_id, fa.bank_name
+            ip.financial_account_id, ip.source_account_id, fa.bank_name,
+            ip.maturity_amount_override, ip.investment_bucket_id
      FROM investment_schedule_entries se
      JOIN investment_products ip ON ip.id = se.product_id
      JOIN financial_accounts fa ON fa.id = ip.financial_account_id
@@ -764,13 +991,22 @@ export async function materialiseMaturedInvestments(userId: string): Promise<num
         continue;
       }
 
+      const principalComponent = entry.principal_component ?? 0;
+      // A manual correction (services/investment-accounts.ts:setFDMaturityOverride)
+      // replaces the computed interest for a 'maturity' event only — interest
+      // payout events (future RD/periodic instruments) always use the computed figure.
+      const interestComponent =
+        entry.kind === "maturity" && entry.maturity_amount_override != null
+          ? Math.round((entry.maturity_amount_override - principalComponent) * 100) / 100
+          : (entry.interest_component ?? 0);
+
       let transferId: string | null = null;
-      if (entry.principal_component && entry.principal_component > 0) {
+      if (principalComponent > 0) {
         transferId = await createTransfer({
           userId,
           fromAccountId: entry.financial_account_id,
           toAccountId: entry.source_account_id,
-          amount: entry.principal_component,
+          amount: principalComponent,
           description: `${entry.bank_name} FD maturity — principal`,
           date: entry.event_date,
           source: "manual",
@@ -778,7 +1014,7 @@ export async function materialiseMaturedInvestments(userId: string): Promise<num
       }
 
       let expenseId: string | null = null;
-      if (entry.interest_component && entry.interest_component > 0) {
+      if (interestComponent > 0) {
         expenseId = generateUUID();
         const now = new Date().toISOString();
         await db.runAsync(
@@ -786,7 +1022,7 @@ export async function materialiseMaturedInvestments(userId: string): Promise<num
            VALUES (?, ?, ?, 'INR', ?, ?, ?, 'credit', 'manual', 'pending_review', ?);`,
           expenseId,
           userId,
-          entry.interest_component,
+          interestComponent,
           `${entry.bank_name} FD maturity — interest`,
           entry.source_account_id,
           entry.event_date,
@@ -808,6 +1044,20 @@ export async function materialiseMaturedInvestments(userId: string): Promise<num
           `UPDATE investment_products SET status = 'matured', updated_at = datetime('now') WHERE id = ?;`,
           entry.product_id,
         );
+
+        // The deposit was counted as a bucket contribution when linked
+        // (linkFDToBucket); now that the principal has moved back to the
+        // source account, record the mirror-image withdrawal so the bucket's
+        // current_contributed reflects money that's no longer invested.
+        if (entry.investment_bucket_id && principalComponent > 0) {
+          await createInvestmentContribution({
+            investment_bucket_id: entry.investment_bucket_id,
+            month: entry.event_date.slice(0, 7),
+            amount: -principalComponent,
+            date: entry.event_date,
+            notes: "Withdrawn — Fixed Deposit matured",
+          });
+        }
       }
 
       materialised++;
