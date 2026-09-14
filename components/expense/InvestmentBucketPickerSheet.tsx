@@ -7,7 +7,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
 import {
-  getAllActiveBuckets,
+  getSelectableInvestmentBuckets,
   type InvestmentBucket,
 } from "@/services/yearly-plan";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -18,8 +18,9 @@ import { useTheme } from "@/hooks/use-theme";
 /**
  * Investment Bucket picker for "Mark expense as investment" (v17.0.0).
  *
- * Shows all active buckets across all FYs, current-FY first (no divider — sort
- * handles ordering). Each row: bucket name, FY, progress bar with current/target.
+ * Shows active buckets from the current FY onward (a past-FY bucket's target
+ * has already closed out — not a valid destination for a new expense),
+ * current-FY first. Each row: bucket name, FY, progress bar with current/target.
  */
 
 interface Props {
@@ -50,7 +51,7 @@ export function InvestmentBucketPickerSheet({
         const startMonth = getFYStartMonth();
         const fy = String(getCurrentFY(startMonth));
         setCurrentFY(fy);
-        const list = await getAllActiveBuckets(DEFAULT_USER_ID);
+        const list = await getSelectableInvestmentBuckets(DEFAULT_USER_ID);
         // Current-FY first, then others
         list.sort((a, b) => {
           const aCur = a.financial_year === fy ? 1 : 0;

@@ -39,7 +39,7 @@ import {
 } from "@/services/investment-accounts";
 import { getTags, type Tag } from "@/services/tags";
 import { getPersonsWithBalances, type HisaabPersonWithBalance } from "@/services/hisaab";
-import { getAllActiveBuckets, type InvestmentBucket } from "@/services/yearly-plan";
+import { getSelectableInvestmentBuckets, getInvestmentBucketById, type InvestmentBucket } from "@/services/yearly-plan";
 import { listActiveLoans, type LoanAccount } from "@/services/loan-accounts";
 import { formatAmount } from "@/utils/format";
 import { getFYLabel } from "@/utils/fiscal-year";
@@ -237,7 +237,11 @@ export default function SmartRuleDetailScreen() {
       .catch(() => setAccounts([]));
     getTags(DEFAULT_USER_ID).then(setTags).catch(() => setTags([]));
     getPersonsWithBalances(DEFAULT_USER_ID).then(setPersons).catch(() => setPersons([]));
-    getAllActiveBuckets(DEFAULT_USER_ID).then(setBuckets).catch(() => setBuckets([]));
+    // Current-FY-onward only — a past-FY bucket's target has already closed
+    // out, so it's not a valid destination for a rule's NEW link action. An
+    // existing rule already pointing at a past-FY bucket is patched back in
+    // by hydrateFromRule below so its selection still displays correctly.
+    getSelectableInvestmentBuckets(DEFAULT_USER_ID).then(setBuckets).catch(() => setBuckets([]));
     listActiveLoans(DEFAULT_USER_ID).then(setLoans).catch(() => setLoans([]));
   }, []);
 
@@ -283,6 +287,18 @@ export default function SmartRuleDetailScreen() {
     const uiActions: UIRuleAction[] = [...r.actions];
     if (r.action_link_to_investment_bucket_id) {
       uiActions.push({ type: "link_investment_bucket", bucket_id: r.action_link_to_investment_bucket_id });
+      // The bucket list only offers current-FY-onward buckets (see the
+      // load above) — if this rule already links a past-FY one, patch it
+      // back into the list so the picker shows its real name instead of
+      // "not found" and the user isn't forced to silently lose the link.
+      const linkedId = r.action_link_to_investment_bucket_id;
+      setBuckets((prev) => {
+        if (prev.some((b) => b.id === linkedId)) return prev;
+        getInvestmentBucketById(linkedId).then((bucket) => {
+          if (bucket) setBuckets((cur) => (cur.some((b) => b.id === linkedId) ? cur : [bucket, ...cur]));
+        });
+        return prev;
+      });
     }
     setActions(uiActions);
   };

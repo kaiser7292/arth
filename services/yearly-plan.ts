@@ -6,7 +6,8 @@ import {
   getMilestoneContributionForFY,
   type LifeMilestone,
 } from "@/services/life-milestone";
-import { bumpDataVersion } from "@/services/settings";
+import { bumpDataVersion, getFYStartMonth } from "@/services/settings";
+import { getCurrentFY } from "@/utils/fiscal-year";
 import {
   computeBonusTax,
   computeCapitalGainsTax,
@@ -306,6 +307,28 @@ export async function getAllActiveBuckets(
      ORDER BY financial_year DESC, sort_order ASC;`,
     userId,
   );
+}
+
+/**
+ * Active buckets from the current fiscal year onward — for pickers where the
+ * user is choosing where NEW money/an expense/a smart-rule action should go
+ * (InvestmentBucketPickerSheet, the smart-rules "link to bucket" action,
+ * CompleteFDDetailsSheet's bucket link). A bucket from a prior FY is a closed
+ * book — its target has already passed — so offering it as a destination for
+ * something new is always wrong, even though the bucket itself stays visible
+ * in read-only contexts (past-year reports, an already-linked FD's bucket
+ * name lookup) where getAllActiveBuckets is still the right call.
+ *
+ * A bucket with no financial_year at all is kept — it isn't tied to any
+ * specific (and therefore possibly past) year.
+ */
+export async function getSelectableInvestmentBuckets(userId: string): Promise<InvestmentBucket[]> {
+  const currentFY = getCurrentFY(getFYStartMonth());
+  const all = await getAllActiveBuckets(userId);
+  return all.filter((b) => {
+    const fy = parseInt(b.financial_year ?? "", 10);
+    return !Number.isFinite(fy) || fy >= currentFY;
+  });
 }
 
 export async function createInvestmentBucket(

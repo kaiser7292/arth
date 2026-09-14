@@ -14,7 +14,9 @@ import {
   type InvestmentProduct,
 } from "@/services/investment-accounts";
 import { computeFDMaturityValue, type CompoundingFreq, type InterestMethod } from "@/services/investment-engine";
-import { getAllActiveBuckets, type InvestmentBucket } from "@/services/yearly-plan";
+import { getSelectableInvestmentBuckets, type InvestmentBucket } from "@/services/yearly-plan";
+import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
+import { getFYStartMonth } from "@/services/settings";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
@@ -84,12 +86,35 @@ export function CompleteFDDetailsSheet({
     if (!visible) return;
     (async () => {
       try {
-        setBuckets(await getAllActiveBuckets(DEFAULT_USER_ID));
+        const startMonth = getFYStartMonth();
+        const currentFY = String(getCurrentFY(startMonth));
+        // Current-FY-onward only — a past-FY bucket's target has already
+        // closed out, so it's not a valid destination for a new link.
+        // Exception: if this FD is already linked to a past-FY bucket, keep
+        // that one in the list too (as the only option pre-selected) so the
+        // existing link is visible and can still be explicitly unlinked,
+        // rather than silently vanishing from the picker.
+        const list = await getSelectableInvestmentBuckets(DEFAULT_USER_ID);
+        if (product.investment_bucket_id && !list.some((b) => b.id === product.investment_bucket_id)) {
+          const { getInvestmentBucketById } = await import("@/services/yearly-plan");
+          const linked = await getInvestmentBucketById(product.investment_bucket_id);
+          if (linked) list.unshift(linked);
+        }
+        // Current-FY first — buckets across years can share a name (e.g. a
+        // recurring "Tax saver" bucket every year), so without this a user
+        // can't tell which year's bucket they're about to link to.
+        list.sort((a, b) => {
+          const aCur = a.financial_year === currentFY ? 1 : 0;
+          const bCur = b.financial_year === currentFY ? 1 : 0;
+          if (aCur !== bCur) return bCur - aCur;
+          return (b.financial_year ?? "").localeCompare(a.financial_year ?? "");
+        });
+        setBuckets(list);
       } catch {
         setBuckets([]);
       }
     })();
-  }, [visible]);
+  }, [visible, product.investment_bucket_id]);
 
   const handleClose = useCallback(() => onClose(), [onClose]);
 
@@ -301,6 +326,8 @@ export function CompleteFDDetailsSheet({
                 scrollEnabled={false}
                 renderItem={({ item }) => {
                   const active = bucketId === item.id;
+                  const fyNum = parseInt(item.financial_year ?? "0", 10);
+                  const fyLabel = fyNum > 0 ? getFYLabel(fyNum, getFYStartMonth()) : "No FY";
                   return (
                     <Pressable
                       onPress={() => setBucketId(item.id)}
@@ -308,9 +335,12 @@ export function CompleteFDDetailsSheet({
                       style={{ backgroundColor: active ? theme.primary + "1A" : "transparent" }}
                     >
                       <Ionicons name="bookmark-outline" size={16} color={active ? theme.primary : colors.textSecondary} />
-                      <Text className="flex-1 ml-2 text-sm" style={{ color: colors.text, fontWeight: active ? "600" : "400" }} numberOfLines={1}>
-                        {item.name}
-                      </Text>
+                      <View className="flex-1 ml-2">
+                        <Text className="text-sm" style={{ color: colors.text, fontWeight: active ? "600" : "400" }} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <Text className="text-label" style={{ color: colors.textSecondary }}>{fyLabel}</Text>
+                      </View>
                       <Text className="text-xs" style={{ color: colors.textSecondary }}>
                         {formatAmount(item.current_contributed)} / {formatAmount(item.annual_target)}
                       </Text>

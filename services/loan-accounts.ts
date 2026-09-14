@@ -12,7 +12,7 @@
  */
 
 import { getDatabase } from "@/database";
-import { createManualAccount } from "@/services/financial-account";
+import { createManualAccount, closeAccount, reopenAccount } from "@/services/financial-account";
 import {
     applyPrepayment,
     computeEMI,
@@ -860,13 +860,25 @@ export async function getLoansSummary(
 
 // ─── Update / Delete (v17.0.0 — minimal) ──────────────────
 
+/**
+ * Closes a loan AND its linked financial_accounts row — without the second
+ * half, the account keeps is_active=1/closed_at=NULL forever and stays
+ * visible in every account picker (Smart Rules, transfers, etc.) even though
+ * the loan itself is done. See recordPrepaymentInner's foreclosure branch
+ * for the other path that reaches loan closure.
+ */
 export async function closeLoan(id: string, closedDate: string): Promise<void> {
   const db = getDatabase();
+  const loan = await db.getFirstAsync<{ financial_account_id: string }>(
+    "SELECT financial_account_id FROM loan_accounts WHERE id = ?;",
+    id,
+  );
   await db.runAsync(
     "UPDATE loan_accounts SET status = 'closed', closed_date = ?, updated_at = datetime('now') WHERE id = ?;",
     closedDate,
     id,
   );
+  if (loan) await closeAccount(loan.financial_account_id);
   bumpDataVersion();
 }
 
@@ -1199,13 +1211,16 @@ async function recordPrepaymentInner(
   // coexist cleanly.
   await rebuildLoanSchedule(loan.id);
 
-  // Foreclosure auto-closes the loan
+  // Foreclosure auto-closes the loan — and its linked financial_accounts row
+  // (see closeLoan's docstring: without this the account stays is_active=1/
+  // closed_at=NULL forever and keeps showing up in every account picker).
   if (params.kind === "foreclosure") {
     await db.runAsync(
       "UPDATE loan_accounts SET status = 'foreclosed', closed_date = ?, updated_at = datetime('now') WHERE id = ?;",
       params.prepayment_date,
       loan.id,
     );
+    await closeAccount(loan.financial_account_id);
   }
 }
 
@@ -1301,6 +1316,13 @@ export async function deletePrepayment(prepaymentId: string): Promise<void> {
         "UPDATE loan_accounts SET status = 'active', closed_date = NULL, updated_at = datetime('now') WHERE id = ?;",
         existing.loan_account_id,
       );
+      // Mirror the reopen onto the linked account too — recordPrepaymentInner's
+      // foreclosure branch closes it, so undoing the foreclosure must reverse that.
+      const loanRow = await db.getFirstAsync<{ financial_account_id: string }>(
+        "SELECT financial_account_id FROM loan_accounts WHERE id = ?;",
+        existing.loan_account_id,
+      );
+      if (loanRow) await reopenAccount(loanRow.financial_account_id);
     }
     await rebuildLoanSchedule(existing.loan_account_id);
   } catch (e) {
