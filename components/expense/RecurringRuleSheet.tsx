@@ -43,6 +43,23 @@ interface RecurringRuleSheetProps {
     notes: string | null;
   }) => void;
   onClose: () => void;
+  /**
+   * Simulator reuse (planned entries don't need a separate reminder note —
+   * the entry already has its own description field). Hides the Notes field
+   * entirely; onConfirm still receives notes: null.
+   */
+  hideNotes?: boolean;
+  /**
+   * Simulator reuse — the caller already has its own Date field controlling
+   * the first occurrence, so the sheet's own "Starts" picker would be a
+   * confusing second source of truth. Hides it; onConfirm's startDate then
+   * always echoes back defaultStartDate.
+   */
+  hideStart?: boolean;
+  /** Copy overrides — default copy is written for the expense-reminder context. */
+  title?: string;
+  subtitle?: string;
+  confirmLabel?: string;
 }
 
 const FREQUENCY_OPTIONS: {
@@ -110,6 +127,11 @@ export function RecurringRuleSheet({
   initial,
   onConfirm,
   onClose,
+  hideNotes = false,
+  hideStart = false,
+  title,
+  subtitle,
+  confirmLabel,
 }: RecurringRuleSheetProps) {
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -171,12 +193,12 @@ export function RecurringRuleSheet({
       frequency,
       repeatOrdinal: frequency === "nth_weekday" ? repeatOrdinal : null,
       repeatWeekday: frequency === "nth_weekday" ? repeatWeekday : null,
-      startDate,
+      startDate: hideStart ? defaultStartDate : startDate,
       endDate: trimmedEnd || null,
-      notes: trimmedNotes || null,
+      notes: hideNotes ? null : trimmedNotes || null,
     };
     onConfirm(payload);
-  }, [onConfirm, frequency, repeatOrdinal, repeatWeekday, startDate, endDate, notes]);
+  }, [onConfirm, frequency, repeatOrdinal, repeatWeekday, startDate, endDate, notes, hideStart, hideNotes, defaultStartDate]);
 
 
 
@@ -195,12 +217,13 @@ export function RecurringRuleSheet({
       {/* Header */}
       <View className="px-5 pb-3">
         <Text className="text-base font-bold" style={{ color: colors.text }}>
-          {initial ? "Edit reminder" : "Set reminder"}
+          {title ?? (initial ? "Edit reminder" : "Set reminder")}
         </Text>
         <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
-          {initial
-            ? "Changes apply to future cycles. Existing upcoming reminders keep their values."
-            : "We'll remind you before each cycle. When you log the expense, the next cycle advances automatically."}
+          {subtitle ??
+            (initial
+              ? "Changes apply to future cycles. Existing upcoming reminders keep their values."
+              : "We'll remind you before each cycle. When you log the expense, the next cycle advances automatically.")}
         </Text>
       </View>
 
@@ -210,23 +233,25 @@ export function RecurringRuleSheet({
         contentContainerStyle={{ paddingBottom: 8 }}
       >
         {/* Notes (optional) */}
-        <View className="px-5 pt-1 pb-3">
-          <Text
-            className="text-xs font-semibold uppercase tracking-wider mb-2"
-            style={{ color: colors.textSecondary }}
-          >
-            Notes (optional)
-          </Text>
-          <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="e.g., Flat rent, split 50/50 with flatmate"
-            placeholderTextColor={colors.textSecondary}
-            className="border border-border rounded-lg px-3 py-2.5 text-sm"
-            style={{ color: colors.text, minHeight: 60 }}
-            multiline
-          />
-        </View>
+        {!hideNotes && (
+          <View className="px-5 pt-1 pb-3">
+            <Text
+              className="text-xs font-semibold uppercase tracking-wider mb-2"
+              style={{ color: colors.textSecondary }}
+            >
+              Notes (optional)
+            </Text>
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="e.g., Flat rent, split 50/50 with flatmate"
+              placeholderTextColor={colors.textSecondary}
+              className="border border-border rounded-lg px-3 py-2.5 text-sm"
+              style={{ color: colors.text, minHeight: 60 }}
+              multiline
+            />
+          </View>
+        )}
 
         {/* Frequency */}
         <View className="px-5 pt-1 pb-3">
@@ -356,7 +381,7 @@ export function RecurringRuleSheet({
         )}
 
         {/* Starts — calendar picker (create mode only; start is locked once rule exists) */}
-        {!initial && (
+        {!initial && !hideStart && (
           <View className="px-5 pt-1 pb-3">
             <Text
               className="text-xs font-semibold uppercase tracking-wider mb-2"
@@ -455,7 +480,7 @@ export function RecurringRuleSheet({
           }}
         >
           <Text className="text-sm font-semibold text-primary-foreground">
-            {initial ? "Save changes" : "Save reminder"}
+            {confirmLabel ?? (initial ? "Save changes" : "Save reminder")}
           </Text>
         </Pressable>
       </View>

@@ -103,6 +103,24 @@ export function addDays(iso: string, days: number): string {
   return toIsoDate(d);
 }
 
+/**
+ * Add N calendar months to a YYYY-MM-DD, clamping the day to the target
+ * month's last day when it doesn't have one (e.g. 31 Jan + 1 month → 28/29
+ * Feb, not the JS Date default of rolling over into March). Used by the
+ * simulator's "copy with updated dates" scenario duplication, where dates
+ * shift by a constant month-delta rather than by cycle-frequency math.
+ */
+export function addMonthsClamped(iso: string, months: number): string {
+  const parts = parseIso(iso);
+  if (!parts) return iso;
+  const targetMonthIndex = parts.m - 1 + months; // 0-based, can be negative or >11
+  const year = parts.y + Math.floor(targetMonthIndex / 12);
+  const month = ((targetMonthIndex % 12) + 12) % 12; // 0-11
+  const lastDayOfTargetMonth = new Date(year, month + 1, 0).getDate();
+  const day = Math.min(parts.d, lastDayOfTargetMonth);
+  return toIsoDate(new Date(year, month, day));
+}
+
 /** Day difference b − a in whole days (local wall clock, DST-safe via Date math). */
 export function daysBetween(a: string, b: string): number {
   const da = parseIso(a);

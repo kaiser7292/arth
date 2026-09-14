@@ -21,7 +21,7 @@ import { getDatabase } from "@/database";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts } from "@/services/financial-account";
 import { bumpDataVersion } from "@/services/settings";
-import { addDays, todayIso } from "@/utils/date";
+import { addDays, addMonthsClamped, todayIso } from "@/utils/date";
 import { addCycle } from "@/utils/recurrence";
 import { generateUUID } from "@/utils/uuid";
 import type { RecurringFrequency } from "@/services/recurring-detector";
@@ -413,7 +413,104 @@ export async function updateScenario(
     `UPDATE simulation_scenarios SET ${sets.join(", ")} WHERE id = ?;`,
     ...values,
   );
+  // A later horizon means recurring templates should keep generating cycles
+  // up to it — expandRecurringEntries is idempotent and horizon-bound, so it's
+  // a no-op when the horizon moved earlier or didn't change. Without this, a
+  // scenario created with (say) a 1-month horizon and later extended to 6
+  // months would silently stop a recurring plan at the original cutoff.
+  if (patch.horizon_date !== undefined) {
+    await expandRecurringEntries(id);
+  }
   bumpDataVersion();
+}
+
+/**
+ * Shared by all duplicateScenario* variants: copies simulation_entries (either
+ * upcoming-only or all, per `includeAll`) and simulation_hisaab_inclusions
+ * from `sourceId` into the already-created `newId` scenario. When `shiftMonths`
+ * is non-zero, every date-bearing column (date, originally_planned_for,
+ * repeat_until) shifts by that many calendar months (utils/date.ts's
+ * addMonthsClamped — clamps 31 Jan + 1 month to 28/29 Feb rather than rolling
+ * into March) — used by duplicateScenarioWithShiftedDates.
+ *
+ * Also carries from_account_id/to_account_id, previously missing from this
+ * INSERT — a duplicated transfer entry was silently losing its destination
+ * account.
+ */
+async function copyScenarioEntriesAndInclusions(
+  sourceId: string,
+  newId: string,
+  options: { includeAll: boolean; shiftMonths?: number },
+): Promise<void> {
+  const db = getDatabase();
+  const shift = options.shiftMonths ?? 0;
+  const shiftDate = (d: string | null): string | null => (d && shift !== 0 ? addMonthsClamped(d, shift) : d);
+
+  const entries = await db.getAllAsync<SimulationEntry>(
+    options.includeAll
+      ? `SELECT * FROM simulation_entries WHERE scenario_id = ?;`
+      : `SELECT * FROM simulation_entries WHERE scenario_id = ? AND status = 'upcoming';`,
+    sourceId,
+  );
+  // Pre-generate ids so a recurring template's already-materialised children
+  // can be relinked to the DUPLICATED template (old id -> new id) instead of
+  // losing the link — otherwise a later expandRecurringEntries call can't
+  // tell they're already covered and inserts a duplicate set of cycles.
+  const idMap = new Map<string, string>();
+  for (const e of entries) idMap.set(e.id, generateUUID());
+  for (const e of entries) {
+    const eid = idMap.get(e.id)!;
+    const newSeedSourceId = e.seed_source_id && idMap.has(e.seed_source_id)
+      ? idMap.get(e.seed_source_id)!
+      : null;
+    await db.runAsync(
+      `INSERT INTO simulation_entries
+         (id, scenario_id, direction, amount, date, originally_planned_for,
+          account_id, from_account_id, to_account_id, category_id, merchant_name, description,
+          source, seed_source_id, status, hisaab_person_id, hisaab_kind,
+          frequency, repeat_ordinal, repeat_weekday, repeat_until)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, 'upcoming', ?, ?, ?, ?, ?, ?);`,
+      eid,
+      newId,
+      e.direction,
+      e.amount,
+      shiftDate(e.date),
+      shiftDate(e.originally_planned_for),
+      e.account_id,
+      e.from_account_id,
+      e.to_account_id,
+      e.category_id,
+      e.merchant_name,
+      e.description,
+      newSeedSourceId,
+      e.hisaab_person_id,
+      e.hisaab_kind,
+      e.frequency,
+      e.repeat_ordinal,
+      e.repeat_weekday,
+      shiftDate(e.repeat_until),
+    );
+  }
+  // v16.0.5 — carry hisaab inclusions over into the new scenario. Users
+  // expect "duplicate" to produce a full clone, including who they'd
+  // planned to include.
+  const inclusions = await db.getAllAsync<SimulationHisaabInclusion>(
+    `SELECT scenario_id, person_id, included, amount, amount_sign, created_at, updated_at
+     FROM simulation_hisaab_inclusions WHERE scenario_id = ?;`,
+    sourceId,
+  );
+  for (const incl of inclusions) {
+    await db.runAsync(
+      `INSERT INTO simulation_hisaab_inclusions
+         (scenario_id, person_id, included, amount, amount_sign)
+       VALUES (?, ?, ?, ?, ?);`,
+      newId,
+      incl.person_id,
+      incl.included,
+      incl.amount,
+      incl.amount_sign,
+    );
+  }
 }
 
 export async function duplicateScenario(id: string): Promise<string> {
@@ -431,68 +528,7 @@ export async function duplicateScenario(id: string): Promise<string> {
   );
   // Copy upcoming entries only — no point carrying fulfilled/stale/dismissed
   // into a fresh scenario.
-  const entries = await db.getAllAsync<SimulationEntry>(
-    `SELECT * FROM simulation_entries
-     WHERE scenario_id = ? AND status = 'upcoming';`,
-    id,
-  );
-  // Pre-generate ids so a recurring template's already-materialised children
-  // can be relinked to the DUPLICATED template (old id -> new id) instead of
-  // losing the link — otherwise a later expandRecurringEntries call can't
-  // tell they're already covered and inserts a duplicate set of cycles.
-  const idMap = new Map<string, string>();
-  for (const e of entries) idMap.set(e.id, generateUUID());
-  for (const e of entries) {
-    const eid = idMap.get(e.id)!;
-    const newSeedSourceId = e.seed_source_id && idMap.has(e.seed_source_id)
-      ? idMap.get(e.seed_source_id)!
-      : null;
-    await db.runAsync(
-      `INSERT INTO simulation_entries
-         (id, scenario_id, direction, amount, date, originally_planned_for,
-          account_id, category_id, merchant_name, description,
-          source, seed_source_id, status, hisaab_person_id, hisaab_kind,
-          frequency, repeat_ordinal, repeat_weekday, repeat_until)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, 'upcoming', ?, ?, ?, ?, ?, ?);`,
-      eid,
-      newId,
-      e.direction,
-      e.amount,
-      e.date,
-      e.originally_planned_for,
-      e.account_id,
-      e.category_id,
-      e.merchant_name,
-      e.description,
-      newSeedSourceId,
-      e.hisaab_person_id,
-      e.hisaab_kind,
-      e.frequency,
-      e.repeat_ordinal,
-      e.repeat_weekday,
-      e.repeat_until,
-    );
-  }
-  // v16.0.5 — carry hisaab inclusions over into the new scenario. Users
-  // expect "duplicate" to produce a full clone, including who they'd
-  // planned to include.
-  const inclusions = await db.getAllAsync<SimulationHisaabInclusion>(
-    `SELECT scenario_id, person_id, included, amount, amount_sign, created_at, updated_at
-     FROM simulation_hisaab_inclusions WHERE scenario_id = ?;`,
-    id,
-  );
-  for (const incl of inclusions) {
-    await db.runAsync(
-      `INSERT INTO simulation_hisaab_inclusions
-         (scenario_id, person_id, included, amount, amount_sign)
-       VALUES (?, ?, ?, ?, ?);`,
-      newId,
-      incl.person_id,
-      incl.included,
-      incl.amount,
-      incl.amount_sign,
-    );
-  }
+  await copyScenarioEntriesAndInclusions(id, newId, { includeAll: false });
   bumpDataVersion();
   return newId;
 }
@@ -514,62 +550,48 @@ export async function duplicateScenarioFullSetup(id: string): Promise<string> {
     `${src.name} (copy)`,
     src.horizon_date,
   );
-  const entries = await db.getAllAsync<SimulationEntry>(
-    `SELECT * FROM simulation_entries WHERE scenario_id = ?;`,
-    id,
+  await copyScenarioEntriesAndInclusions(id, newId, { includeAll: true });
+  bumpDataVersion();
+  return newId;
+}
+
+/**
+ * Duplicate a scenario ("copy over from") but shift every entry's dates by
+ * the same calendar-month delta between the source scenario's horizon and
+ * `newHorizonDate` — the "copy with updated dates for current month" mode.
+ * E.g. copying a scenario horizoned at 2026-05-31 into a new one horizoned at
+ * 2026-08-31 shifts every entry (and recurring template's repeat_until) three
+ * months forward, so a plan built for one month can be reused for a later
+ * one without manually re-dating every entry.
+ *
+ * Only copies upcoming entries (matches duplicateScenario's default "copy
+ * over from" behavior) — shifted dates for stale/fulfilled/dismissed rows
+ * wouldn't mean anything in the new scenario anyway.
+ */
+export async function duplicateScenarioWithShiftedDates(id: string, newHorizonDate: string): Promise<string> {
+  assertISODate(newHorizonDate, "newHorizonDate");
+  const db = getDatabase();
+  const src = await getScenario(id);
+  if (!src) throw new Error("Scenario not found");
+
+  const [srcY, srcM] = src.horizon_date.split("-").map(Number);
+  const [dstY, dstM] = newHorizonDate.split("-").map(Number);
+  const shiftMonths = (dstY - srcY) * 12 + (dstM - srcM);
+
+  const newId = generateUUID();
+  await db.runAsync(
+    `INSERT INTO simulation_scenarios (id, user_id, name, horizon_date, is_default)
+     VALUES (?, ?, ?, ?, 0);`,
+    newId,
+    src.user_id,
+    `${src.name} (copy)`,
+    newHorizonDate,
   );
-  // See duplicateScenario — relink a recurring template's children so a
-  // later expandRecurringEntries call doesn't insert a duplicate set of cycles.
-  const idMap = new Map<string, string>();
-  for (const e of entries) idMap.set(e.id, generateUUID());
-  for (const e of entries) {
-    const eid = idMap.get(e.id)!;
-    const newSeedSourceId = e.seed_source_id && idMap.has(e.seed_source_id)
-      ? idMap.get(e.seed_source_id)!
-      : null;
-    await db.runAsync(
-      `INSERT INTO simulation_entries
-         (id, scenario_id, direction, amount, date, originally_planned_for,
-          account_id, category_id, merchant_name, description,
-          source, seed_source_id, status, hisaab_person_id, hisaab_kind,
-          frequency, repeat_ordinal, repeat_weekday, repeat_until)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, 'upcoming', ?, ?, ?, ?, ?, ?);`,
-      eid,
-      newId,
-      e.direction,
-      e.amount,
-      e.date,
-      e.originally_planned_for,
-      e.account_id,
-      e.category_id,
-      e.merchant_name,
-      e.description,
-      newSeedSourceId,
-      e.hisaab_person_id,
-      e.hisaab_kind,
-      e.frequency,
-      e.repeat_ordinal,
-      e.repeat_weekday,
-      e.repeat_until,
-    );
-  }
-  const inclusions = await db.getAllAsync<SimulationHisaabInclusion>(
-    `SELECT scenario_id, person_id, included, amount, amount_sign, created_at, updated_at
-     FROM simulation_hisaab_inclusions WHERE scenario_id = ?;`,
-    id,
-  );
-  for (const incl of inclusions) {
-    await db.runAsync(
-      `INSERT INTO simulation_hisaab_inclusions
-         (scenario_id, person_id, included, amount, amount_sign)
-       VALUES (?, ?, ?, ?, ?);`,
-      newId,
-      incl.person_id,
-      incl.included,
-      incl.amount,
-      incl.amount_sign,
-    );
-  }
+  await copyScenarioEntriesAndInclusions(id, newId, { includeAll: false, shiftMonths });
+  // Recurring templates were copied with a shifted repeat_until but no
+  // children (upcoming-only copy already excludes them) — generate the new
+  // scenario's own cycles up to its horizon.
+  await expandRecurringEntries(newId);
   bumpDataVersion();
   return newId;
 }
@@ -767,6 +789,13 @@ export async function updateEntry(
   entryId: string,
   patch: UpdateEntryInput,
 ): Promise<void> {
+  const db = getDatabase();
+  const existing = await db.getFirstAsync<SimulationEntry>(
+    `SELECT * FROM simulation_entries WHERE id = ?;`,
+    entryId,
+  );
+  if (!existing) throw new Error("Entry not found");
+
   const sets: string[] = [];
   const values: (string | number | null)[] = [];
   if (patch.direction !== undefined) {
@@ -824,6 +853,32 @@ export async function updateEntry(
     sets.push("hisaab_kind = ?");
     values.push(patch.hisaab_kind);
   }
+  // Recurring template fields (migration 071). Previously declared on
+  // UpdateEntryInput but silently ignored here — the manual entry form now
+  // sends them, so an edit to a template's cadence must actually persist.
+  let frequencyChanged = false;
+  if (patch.frequency !== undefined) {
+    if (patch.frequency === "nth_weekday" && (patch.repeat_ordinal == null || patch.repeat_weekday == null)) {
+      throw new Error("nth_weekday frequency requires repeat_ordinal and repeat_weekday");
+    }
+    sets.push("frequency = ?");
+    values.push(patch.frequency);
+    frequencyChanged = patch.frequency !== existing.frequency;
+  }
+  if (patch.repeat_ordinal !== undefined) {
+    sets.push("repeat_ordinal = ?");
+    values.push(patch.repeat_ordinal);
+  }
+  if (patch.repeat_weekday !== undefined) {
+    sets.push("repeat_weekday = ?");
+    values.push(patch.repeat_weekday);
+  }
+  if (patch.repeat_until !== undefined) {
+    if (patch.repeat_until) assertISODate(patch.repeat_until, "repeat_until");
+    sets.push("repeat_until = ?");
+    values.push(patch.repeat_until);
+    frequencyChanged = frequencyChanged || patch.repeat_until !== existing.repeat_until;
+  }
   if (sets.length === 0) return;
   // v16.0.1 — if the user edits the date or amount on a stale entry, it's
   // implicitly a "give this entry another chance" action. Flip back to
@@ -835,7 +890,6 @@ export async function updateEntry(
   }
   sets.push("updated_at = datetime('now')");
   values.push(entryId);
-  const db = getDatabase();
   await db.runAsync(
     `UPDATE simulation_entries SET ${sets.join(", ")} WHERE id = ?;`,
     ...values,
@@ -846,6 +900,24 @@ export async function updateEntry(
       entryId,
     );
   }
+
+  // The template's own date is cycle 0 — a date edit shifts every future
+  // cycle just like a frequency/until edit does. Either way, the previously
+  // generated (never-fulfilled) children no longer match the new pattern, so
+  // drop them and regenerate from scratch. Fulfilled children are left alone
+  // — they're matched to real transactions and editing the plan going
+  // forward shouldn't touch history.
+  const isOrWasTemplate = existing.frequency != null || patch.frequency != null;
+  if (isOrWasTemplate && (frequencyChanged || patch.date !== undefined)) {
+    await db.runAsync(
+      `DELETE FROM simulation_entries WHERE seed_source_id = ? AND status != 'fulfilled';`,
+      entryId,
+    );
+    if (patch.frequency !== undefined ? patch.frequency != null : existing.frequency != null) {
+      await expandRecurringEntries(existing.scenario_id);
+    }
+  }
+
   bumpDataVersion();
 }
 
@@ -857,24 +929,39 @@ export async function duplicateEntry(entryId: string): Promise<string> {
   );
   if (!src) throw new Error("Entry not found");
   const id = generateUUID();
+  // Carries from_account_id/to_account_id (previously dropped — duplicating a
+  // transfer entry silently turned it into a plain in/out entry) and the
+  // recurring fields (previously dropped — duplicating a template silently
+  // demoted the copy to a one-off). A duplicated template gets its own fresh
+  // set of children via expandRecurringEntries below, same as createEntry.
   await db.runAsync(
     `INSERT INTO simulation_entries
        (id, scenario_id, direction, amount, date,
-        account_id, category_id, merchant_name, description,
-        source, seed_source_id, status, hisaab_person_id, hisaab_kind)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', NULL, 'upcoming', ?, ?);`,
+        account_id, from_account_id, to_account_id, category_id, merchant_name, description,
+        source, seed_source_id, status, hisaab_person_id, hisaab_kind,
+        frequency, repeat_ordinal, repeat_weekday, repeat_until)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', NULL, 'upcoming', ?, ?, ?, ?, ?, ?);`,
     id,
     src.scenario_id,
     src.direction,
     src.amount,
     src.date,
     src.account_id,
+    src.from_account_id,
+    src.to_account_id,
     src.category_id,
     src.merchant_name,
     src.description,
     src.hisaab_person_id,
     src.hisaab_kind,
+    src.frequency,
+    src.repeat_ordinal,
+    src.repeat_weekday,
+    src.repeat_until,
   );
+  if (src.frequency) {
+    await expandRecurringEntries(src.scenario_id);
+  }
   bumpDataVersion();
   return id;
 }
@@ -1120,6 +1207,40 @@ export async function deleteEntry(entryId: string): Promise<void> {
   await db.runAsync(
     `DELETE FROM simulation_entries WHERE id = ?;`,
     entryId,
+  );
+  bumpDataVersion();
+}
+
+/**
+ * Deletes an entire recurring series — the template plus every child it
+ * generated (seed_source_id = templateId). Plain deleteEntry on a template
+ * only removes that one row (the first occurrence); every already-generated
+ * future cycle would otherwise survive untouched, which reads as "deleting a
+ * recurring entry" silently failing to stop the recurrence. Fulfilled
+ * children are left alone — they're matched to real transactions.
+ *
+ * `entryId` may be the template itself or one of its children; either way
+ * the whole series (found via seed_source_id, or via the child's own
+ * seed_source_id) is removed.
+ */
+export async function deleteEntrySeries(entryId: string): Promise<void> {
+  const db = getDatabase();
+  const entry = await db.getFirstAsync<{ id: string; seed_source_id: string | null; frequency: string | null }>(
+    `SELECT id, seed_source_id, frequency FROM simulation_entries WHERE id = ?;`,
+    entryId,
+  );
+  if (!entry) return;
+  const templateId = entry.frequency != null ? entry.id : entry.seed_source_id;
+  if (!templateId) {
+    // Not part of any series — behave like a plain delete.
+    await db.runAsync(`DELETE FROM simulation_entries WHERE id = ?;`, entryId);
+    bumpDataVersion();
+    return;
+  }
+  await db.runAsync(
+    `DELETE FROM simulation_entries WHERE (id = ? OR seed_source_id = ?) AND status != 'fulfilled';`,
+    templateId,
+    templateId,
   );
   bumpDataVersion();
 }

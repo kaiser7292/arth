@@ -25,6 +25,7 @@ import {
     archiveScenario,
     createEntry,
     deleteEntry,
+    deleteEntrySeries,
     deleteScenario,
     dismissEntry,
     duplicateEntry,
@@ -227,10 +228,18 @@ export default function ScenarioDetailScreen() {
 
   // v16.0.1 — long-press handler offers Duplicate + Remove so the
   // duplicate action is reachable alongside delete.
+  //
+  // Recurring entries (a template with frequency set, or one of its already-
+  // generated children via seed_source_id) get a second removal choice —
+  // plain deleteEntry only ever removes the single tapped row, which for a
+  // template silently leaves every future cycle in place. "Entire series"
+  // uses deleteEntrySeries so cancelling the plan actually stops it.
   const handleEntryLongPress = useCallback(
     (entry: SimulationEntry) => {
+      const isRecurring = entry.frequency != null || entry.seed_source_id != null;
+      const title = entry.description || entry.merchant_name || (entry.category_id && categoryNameMap[entry.category_id]) || "Planned entry";
       alert(
-        entry.description || entry.merchant_name || (entry.category_id && categoryNameMap[entry.category_id]) || "Planned entry",
+        title,
         formatAmount(entry.amount),
         [
           { text: "Cancel", style: "cancel" },
@@ -242,17 +251,29 @@ export default function ScenarioDetailScreen() {
             },
           },
           {
-            text: "Remove",
-            style: "destructive",
+            text: isRecurring ? "Remove this occurrence" : "Remove",
+            style: "destructive" as const,
             onPress: async () => {
               await deleteEntry(entry.id);
               await load(true);
             },
           },
+          ...(isRecurring
+            ? [
+                {
+                  text: "Remove entire series",
+                  style: "destructive" as const,
+                  onPress: async () => {
+                    await deleteEntrySeries(entry.id);
+                    await load(true);
+                  },
+                },
+              ]
+            : []),
         ],
       );
     },
-    [alert, load],
+    [alert, load, categoryNameMap],
   );
 
   const handleReschedule = useCallback(

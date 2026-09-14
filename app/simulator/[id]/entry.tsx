@@ -1,4 +1,5 @@
 import { SearchablePickerList } from "@/components/expense/ExpenseFormFields";
+import { RecurringRuleSheet } from "@/components/expense/RecurringRuleSheet";
 import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -8,6 +9,7 @@ import type { FinancialAccount } from "@/services/financial-account";
 import type { HisaabPersonWithBalance } from "@/services/hisaab";
 import { getPersonsWithBalances } from "@/services/hisaab";
 import { getDistinctMerchantNames } from "@/services/merchant-alias";
+import type { RecurringFrequency } from "@/services/recurring-detector";
 import type {
     EntryDirection,
     HisaabKind,
@@ -26,6 +28,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+
+const REPEAT_LABELS: Record<RecurringFrequency, string> = {
+  monthly: "Monthly",
+  weekly: "Weekly",
+  quarterly: "Quarterly",
+  yearly: "Yearly",
+  last_day_of_month: "Last day of month",
+  nth_weekday: "Custom weekday",
+};
 
 function prettyDate(ymd: string): string {
   if (!ymd) return "";
@@ -67,7 +78,18 @@ export default function SimulatorEntryForm() {
   const [loaded, setLoaded] = useState(false);
   const [accountBalances, setAccountBalances] = useState<Record<string, number>>({});
   const [existingEntry, setExistingEntry] = useState<SimulationEntry | null>(null);
+  const [repeatFrequency, setRepeatFrequency] = useState<RecurringFrequency | null>(null);
+  const [repeatOrdinal, setRepeatOrdinal] = useState<number | null>(null);
+  const [repeatWeekday, setRepeatWeekday] = useState<number | null>(null);
+  const [repeatUntil, setRepeatUntil] = useState<string | null>(null);
+  const [repeatSheetVisible, setRepeatSheetVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+
+  // A generated occurrence of a series (seed_source_id set) isn't itself a
+  // template — editing its own cadence would create a nested, independent
+  // series rather than changing the plan. Repeat editing only applies to the
+  // template row (the series' first occurrence) or a brand-new entry.
+  const isSeriesChild = !!existingEntry?.seed_source_id;
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
@@ -127,6 +149,10 @@ export default function SimulatorEntryForm() {
             setMerchant(entry.merchant_name ?? "");
             setDescription(entry.description ?? "");
             setPersonId(entry.hisaab_person_id);
+            setRepeatFrequency(entry.frequency);
+            setRepeatOrdinal(entry.repeat_ordinal);
+            setRepeatWeekday(entry.repeat_weekday);
+            setRepeatUntil(entry.repeat_until);
           }
         }
         
@@ -182,6 +208,17 @@ export default function SimulatorEntryForm() {
       const payloadCategoryId = isHisaab ? null : (direction === "out" ? categoryId : null);
       const payloadMerchant = isHisaab ? null : (merchant.trim() || null);
       
+      // A series child can't itself carry a cadence (see isSeriesChild) — its
+      // own frequency/repeat_* stay null regardless of what's in state.
+      const repeatPayload = isSeriesChild
+        ? { frequency: null, repeat_ordinal: null, repeat_weekday: null, repeat_until: null }
+        : {
+            frequency: repeatFrequency,
+            repeat_ordinal: repeatFrequency === "nth_weekday" ? repeatOrdinal : null,
+            repeat_weekday: repeatFrequency === "nth_weekday" ? repeatWeekday : null,
+            repeat_until: repeatUntil,
+          };
+
       if (existingEntry) {
         await updateEntry(existingEntry.id, {
           direction,
@@ -195,6 +232,7 @@ export default function SimulatorEntryForm() {
           description: description.trim() || null,
           hisaab_person_id: isHisaab ? personId : null,
           hisaab_kind: hisaabKind,
+          ...repeatPayload,
         });
       } else {
         await createEntry(id, {
@@ -210,6 +248,7 @@ export default function SimulatorEntryForm() {
           source: "manual",
           hisaab_person_id: isHisaab ? personId : null,
           hisaab_kind: hisaabKind,
+          ...repeatPayload,
         });
       }
       router.back();
@@ -218,7 +257,10 @@ export default function SimulatorEntryForm() {
     } finally {
       setSaving(false);
     }
-  }, [canSave, parsedAmount, existingEntry, id, direction, hisaabKind, isHisaab, personId, date, accountId, toAccountId, categoryId, merchant, description, flavor, router]);
+  }, [
+    canSave, parsedAmount, existingEntry, id, direction, hisaabKind, isHisaab, personId, date, accountId, toAccountId,
+    categoryId, merchant, description, flavor, router, isSeriesChild, repeatFrequency, repeatOrdinal, repeatWeekday, repeatUntil,
+  ]);
 
   if (!loaded) {
     return (
@@ -389,6 +431,51 @@ export default function SimulatorEntryForm() {
               </Text>
               <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
             </Pressable>
+          </View>
+
+          {/* Repeat */}
+          <View className="px-0 pb-3">
+            <Text
+              className="text-xs font-semibold uppercase tracking-wider mb-2"
+              style={{ color: colors.textSecondary }}
+            >
+              Repeat
+            </Text>
+            {isSeriesChild ? (
+              <View className="border border-border rounded-lg px-3 py-3" style={{ borderColor: colors.border }}>
+                <Text className="text-sm" style={{ color: colors.textSecondary }}>
+                  Part of a recurring series — edit the cadence from the series' first occurrence.
+                </Text>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => setRepeatSheetVisible(true)}
+                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
+                style={{ borderColor: colors.border }}
+              >
+                <Text className="text-sm flex-1" style={{ color: repeatFrequency ? colors.text : colors.textSecondary }}>
+                  {repeatFrequency
+                    ? `Repeats ${REPEAT_LABELS[repeatFrequency].toLowerCase()}${repeatUntil ? ` · until ${prettyDate(repeatUntil)}` : ""}`
+                    : "Doesn't repeat"}
+                </Text>
+                {repeatFrequency ? (
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setRepeatFrequency(null);
+                      setRepeatOrdinal(null);
+                      setRepeatWeekday(null);
+                      setRepeatUntil(null);
+                    }}
+                    hitSlop={10}
+                    className="p-1 ml-1"
+                  >
+                    <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                  </Pressable>
+                ) : null}
+                <Ionicons name="repeat-outline" size={16} color={colors.textSecondary} />
+              </Pressable>
+            )}
           </View>
 
           {/* Account */}
@@ -641,6 +728,35 @@ export default function SimulatorEntryForm() {
           setDatePickerVisible(false);
         }}
         maximumDate={null}
+      />
+
+      <RecurringRuleSheet
+        visible={repeatSheetVisible}
+        defaultStartDate={date}
+        hideNotes
+        hideStart
+        title="Repeat this entry"
+        subtitle="Generates a copy of this entry on every cycle through the scenario's horizon (or the end date below, whichever comes first)."
+        confirmLabel="Save"
+        initial={
+          repeatFrequency
+            ? {
+                frequency: repeatFrequency,
+                repeatOrdinal,
+                repeatWeekday,
+                endDate: repeatUntil,
+                notes: null,
+              }
+            : undefined
+        }
+        onConfirm={({ frequency, repeatOrdinal: ord, repeatWeekday: wd, endDate }) => {
+          setRepeatFrequency(frequency);
+          setRepeatOrdinal(ord);
+          setRepeatWeekday(wd);
+          setRepeatUntil(endDate);
+          setRepeatSheetVisible(false);
+        }}
+        onClose={() => setRepeatSheetVisible(false)}
       />
       </KeyboardAvoidingView>
     </ScreenContainer>

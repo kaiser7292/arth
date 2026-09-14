@@ -23,6 +23,7 @@ import {
   restoreScenario,
   duplicateScenario,
   duplicateScenarioFullSetup,
+  duplicateScenarioWithShiftedDates,
   updateScenario,
 } from "@/services/simulator";
 import type { SimulationScenario, ScenarioOverview } from "@/services/simulator";
@@ -129,15 +130,25 @@ export function SimulatorPage() {
   );
 
   const handleCreate = useCallback(
-    async (name: string, horizon: string, copyFromScenarioId: string | null) => {
+    async (name: string, horizon: string, copyFromScenarioId: string | null, dateMode: "keep" | "shift") => {
       const trimmed = name.trim();
       if (!trimmed) return;
       try {
         if (copyFromScenarioId) {
-          // v16.0.1 — use duplicateScenario (copies upcoming entries only),
-          // then rename + re-horizon the copy to what the user picked.
-          const id = await duplicateScenario(copyFromScenarioId);
-          await updateScenario(id, { name: trimmed, horizon_date: horizon });
+          let id: string;
+          if (dateMode === "shift") {
+            // "Copy with updated dates" — every entry's date (and a recurring
+            // template's repeat_until) shifts by the same calendar-month delta
+            // between the source scenario's horizon and the one picked here,
+            // then the new scenario's own cycles are generated up to it.
+            id = await duplicateScenarioWithShiftedDates(copyFromScenarioId, horizon);
+            await updateScenario(id, { name: trimmed });
+          } else {
+            // v16.0.1 — use duplicateScenario (copies upcoming entries only,
+            // dates unchanged), then rename + re-horizon the copy.
+            id = await duplicateScenario(copyFromScenarioId);
+            await updateScenario(id, { name: trimmed, horizon_date: horizon });
+          }
           setCreateSheetVisible(false);
           router.push(`/simulator/${id}`);
         } else {
@@ -586,7 +597,7 @@ function NewScenarioSheet({
 }: {
   visible: boolean;
   existingScenarios: SimulationScenario[];
-  onCreate: (name: string, horizon: string, copyFromScenarioId: string | null) => void;
+  onCreate: (name: string, horizon: string, copyFromScenarioId: string | null, dateMode: "keep" | "shift") => void;
   onClose: () => void;
 }) {
   const { colors, colorScheme } = useColorScheme();
@@ -595,12 +606,14 @@ function NewScenarioSheet({
   const [horizon, setHorizon] = useState(endOfMonthIso());
   const [picker, setPicker] = useState(false);
   const [copyFrom, setCopyFrom] = useState<string | null>(null);
+  const [dateMode, setDateMode] = useState<"keep" | "shift">("keep");
 
   useEffect(() => {
     if (visible) {
       setName("");
       setHorizon(endOfMonthIso());
       setCopyFrom(null);
+      setDateMode("keep");
     }
   }, [visible]);
 
@@ -711,6 +724,50 @@ function NewScenarioSheet({
           </View>
         </View>
       )}
+
+      {/* Date handling — only meaningful once a source scenario is picked. */}
+      {copyFromScenario && (
+        <View className="px-5 pb-3">
+          <Text
+            className="text-xs font-semibold uppercase tracking-wider mb-2"
+            style={{ color: colors.textSecondary }}
+          >
+            Dates
+          </Text>
+          {(
+            [
+              { key: "keep" as const, label: "Keep dates as-is", sub: "Entries land on the same dates as the original." },
+              { key: "shift" as const, label: "Copy with updated dates", sub: `Shifts every date to match this scenario's horizon (${prettyDate(horizon)}).` },
+            ]
+          ).map((opt) => {
+            const active = dateMode === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                onPress={() => setDateMode(opt.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                style={{
+                  backgroundColor: active ? theme.primary + "26" : colors.surface,
+                  borderWidth: active ? 2 : 1,
+                  borderColor: active ? theme.primary : colors.border,
+                }}
+              >
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                    {opt.label}
+                  </Text>
+                  <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                    {opt.sub}
+                  </Text>
+                </View>
+                {active && <Ionicons name="checkmark-circle" size={18} color={theme.primary} />}
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
       </ScrollView>
 
       <View className="flex-row px-5 pt-3 gap-3">
@@ -724,7 +781,7 @@ function NewScenarioSheet({
           </Text>
         </Pressable>
         <Pressable
-          onPress={() => onCreate(name, horizon, copyFrom)}
+          onPress={() => onCreate(name, horizon, copyFrom, dateMode)}
           disabled={!canSave}
           className="flex-1 py-3 rounded-xl items-center"
           style={{ backgroundColor: theme.primary, opacity: canSave ? 1 : 0.5 }}

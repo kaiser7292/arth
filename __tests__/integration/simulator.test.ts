@@ -282,13 +282,25 @@ describe("Entry CRUD", () => {
     ).rejects.toThrow(/YYYY-MM-DD/);
   });
 
+  const existingEntryRow = {
+    id: "entry-1",
+    scenario_id: "sim-1",
+    direction: "out",
+    amount: 100,
+    date: "2026-05-10",
+    frequency: null,
+    repeat_until: null,
+  };
+
   it("updates an entry's amount", async () => {
+    mockFirstAsyncQueue = [existingEntryRow];
     await updateEntry("entry-1", { amount: 200 });
     const update = executedRuns.find((r) => r.sql.includes("UPDATE simulation_entries"));
     expect(update!.params).toContain(200);
   });
 
   it("rejects an update with invalid direction", async () => {
+    mockFirstAsyncQueue = [existingEntryRow];
     await expect(
       updateEntry("entry-1", { direction: "sideways" as unknown as "out" }),
     ).rejects.toThrow(/direction/);
