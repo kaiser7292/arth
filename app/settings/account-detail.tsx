@@ -56,6 +56,11 @@ const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   wallet: "phone-portrait-outline",
   demat: "trending-up-outline",
   pension: "briefcase-outline",
+  // Phase 2 (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4) unified type —
+  // covers FD/demat/pension alike, disambiguated at render time by
+  // investment_products.valuation (see resolveInvestmentIcon below). This
+  // entry is just the fallback when that finer-grained lookup isn't available.
+  investment: "trending-up-outline",
 };
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -65,7 +70,22 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   wallet: "Wallet",
   demat: "Demat",
   pension: "Pension",
+  investment: "Investment",
 };
+
+/**
+ * account_type='investment' covers FD, demat, and pension alike — resolve
+ * the specific icon from the product's valuation strategy (isDematAccount is
+ * already computed for the account, contract=FD, contribution=pension).
+ */
+function resolveInvestmentIcon(
+  isDemat: boolean,
+  valuation: InvestmentProduct["valuation"] | undefined,
+): keyof typeof Ionicons.glyphMap {
+  if (isDemat) return "trending-up-outline";
+  if (valuation === "contribution") return "briefcase-outline";
+  return "calendar-outline"; // contract (FD) — matches MarkAsFDSheet/investments list iconography
+}
 
 function getCurrentMonth(): string {
   const now = new Date();
@@ -470,7 +490,11 @@ export default function AccountDetailScreen() {
                 style={{ backgroundColor: theme.alpha("primary", 0.08) }}
               >
                 <Ionicons
-                  name={ACCOUNT_TYPE_ICONS[accountType] ?? "help-outline"}
+                  name={
+                    accountType === "investment"
+                      ? resolveInvestmentIcon(isDematAccount, investmentProduct?.valuation)
+                      : (ACCOUNT_TYPE_ICONS[accountType] ?? "help-outline")
+                  }
                   size={24}
                   color={colors.blue}
                 />
@@ -486,8 +510,14 @@ export default function AccountDetailScreen() {
             </View>
 
             {/* Account type picker — hidden for loans (switching type would
-                orphan the loan_accounts row and its schedule). */}
-            {account.account_type !== "loan" && (
+                orphan the loan_accounts row and its schedule) and for
+                investment accounts (FD/demat/pension — switching away would
+                orphan the investment_products row/schedule/snapshots the
+                same way; "Investment" also isn't offered as a switch-TO
+                target for the same reason, so it's simplest to hide the
+                whole picker rather than show one unselectable/misleading
+                option). */}
+            {account.account_type !== "loan" && account.account_type !== "investment" && (
               <>
                 <Text className="text-xs font-medium text-muted-foreground mb-2">
                   Account Type
