@@ -22,6 +22,7 @@ import {
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { formatAmount, formatCompact } from "@/utils/format";
 import { formatDate } from "@/utils/date";
+import { useTheme } from "@/hooks/use-theme";
 
 type InvestmentGroup = "fd" | "market" | "pension";
 
@@ -33,7 +34,7 @@ interface InvestmentRow {
 }
 
 const GROUP_META: Record<InvestmentGroup, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  fd: { label: "Fixed Deposits", icon: "calendar-outline", color: DATA_HEX.series[1] },
+  fd: { label: "Fixed Deposits", icon: "cash-outline", color: DATA_HEX.series[1] },
   market: { label: "Market (Demat)", icon: "trending-up-outline", color: DATA_HEX.series[2] },
   pension: { label: "Pension", icon: "briefcase-outline", color: DATA_HEX.series[0] },
 };
@@ -42,6 +43,7 @@ const GROUP_ORDER: InvestmentGroup[] = ["fd", "market", "pension"];
 export default function InvestmentsListScreen() {
   const router = useRouter();
   const { colors } = useColorScheme();
+  const theme = useTheme();
   const [rows, setRows] = useState<InvestmentRow[]>([]);
   const [maturities, setMaturities] = useState<UpcomingFDMaturity[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -85,6 +87,8 @@ export default function InvestmentsListScreen() {
     for (const r of rows) totals[r.group] += r.value;
     return totals;
   }, [rows]);
+
+  const totalUpcomingInterest = maturities.reduce((sum, m) => sum + m.interestAmount, 0);
 
   const donutSegments = GROUP_ORDER.map((g) => ({
     label: GROUP_META[g].label,
@@ -143,9 +147,14 @@ export default function InvestmentsListScreen() {
                 anywhere before: an FD's date was buried in its own detail screen. */}
             {maturities.length > 0 && (
               <Card className="mx-4 mt-3">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  Upcoming maturities
-                </Text>
+                <View className="flex-row items-center justify-between mb-2">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Upcoming maturities
+                  </Text>
+                  <Text className="text-xs font-semibold" style={{ color: theme.success }}>
+                    +{formatAmount(totalUpcomingInterest)} interest
+                  </Text>
+                </View>
                 {maturities.map((m, i) => (
                   <Pressable
                     key={m.financialAccountId}
@@ -157,13 +166,16 @@ export default function InvestmentsListScreen() {
                       className="w-8 h-8 rounded-full items-center justify-center mr-3"
                       style={{ backgroundColor: GROUP_META.fd.color + "22" }}
                     >
-                      <Ionicons name="calendar-outline" size={15} color={GROUP_META.fd.color} />
+                      <Ionicons name={GROUP_META.fd.icon} size={15} color={GROUP_META.fd.color} />
                     </View>
                     <View className="flex-1">
                       <Text className="text-sm font-medium text-foreground" numberOfLines={1}>{m.label}</Text>
                       <Text className="text-xs text-muted-foreground mt-0.5">Matures {formatDate(m.maturityDate)}</Text>
                     </View>
-                    <Text className="text-sm font-semibold text-foreground">{formatAmount(m.maturityAmount)}</Text>
+                    <View className="items-end">
+                      <Text className="text-sm font-semibold text-foreground">{formatAmount(m.maturityAmount)}</Text>
+                      <Text className="text-label" style={{ color: theme.success }}>+{formatAmount(m.interestAmount)}</Text>
+                    </View>
                   </Pressable>
                 ))}
               </Card>
@@ -199,7 +211,7 @@ export default function InvestmentsListScreen() {
                         ? "Demat"
                         : group === "pension"
                           ? "Pension"
-                          : "Investment";
+                          : "Deposit";
                     const valuationLine = group === "market"
                       ? "Market value"
                       : group === "pension"

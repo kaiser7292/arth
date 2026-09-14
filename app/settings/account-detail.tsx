@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 
 import { logger } from "@/utils/logger";
-import { View, ScrollView, Pressable, Keyboard, RefreshControl } from "react-native";
+import { View, ScrollView, Pressable, Keyboard, RefreshControl, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -84,7 +84,7 @@ function resolveInvestmentIcon(
 ): keyof typeof Ionicons.glyphMap {
   if (isDemat) return "trending-up-outline";
   if (valuation === "contribution") return "briefcase-outline";
-  return "calendar-outline"; // contract (FD) — matches MarkAsFDSheet/investments list iconography
+  return "cash-outline"; // contract (FD) — matches investments list iconography
 }
 
 function getCurrentMonth(): string {
@@ -101,6 +101,12 @@ export default function AccountDetailScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const [data, setData] = useState<AccountWithModes | null>(null);
+  // Distinguishes "still fetching" from "genuinely not found" — without this,
+  // the "Account not found" branch (gated on !account, i.e. !data) rendered
+  // on every mount/focus for the entire duration of loadData()'s async fetch,
+  // since `data` starts null. Doesn't reset on refocus (only the initial
+  // mount) so navigating back to an already-loaded account doesn't re-flash.
+  const [loaded, setLoaded] = useState(false);
   const [allModes, setAllModes] = useState<PaymentMode[]>([]);
   const [siblingCards, setSiblingCards] = useState<FinancialAccount[]>([]);
   const [ledgerMonth, setLedgerMonth] = useState(getCurrentMonth());
@@ -229,6 +235,8 @@ export default function AccountDetailScreen() {
       }
     } catch (e) {
       logger.warn("account-detail load failed", e);
+    } finally {
+      setLoaded(true);
     }
   }, [accountId, ledgerMonth]);
 
@@ -429,12 +437,18 @@ export default function AccountDetailScreen() {
           }}
         />
         <ScreenContainer padTop={false} keyboardAware>
-          <View className="items-center py-16">
-            <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-foreground mt-4">
-              Account not found
-            </Text>
-          </View>
+          {!loaded ? (
+            <View className="items-center py-16">
+              <ActivityIndicator color={colors.textSecondary} />
+            </View>
+          ) : (
+            <View className="items-center py-16">
+              <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
+              <Text className="text-lg font-medium text-foreground mt-4">
+                Account not found
+              </Text>
+            </View>
+          )}
         </ScreenContainer>
       </>
     );

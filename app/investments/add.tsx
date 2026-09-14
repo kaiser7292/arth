@@ -32,7 +32,7 @@ const OPTIONS: InstrumentOption[] = [
     key: "contract",
     title: "Fixed Deposit",
     subtitle: "Principal, rate, and a maturity date — value is computed from the schedule",
-    icon: "calendar-outline",
+    icon: "cash-outline",
     onPress: (router) => router.push("/investments/add-fd"),
   },
 ];

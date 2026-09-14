@@ -723,6 +723,8 @@ export interface UpcomingFDMaturity {
   maturityDate: string;
   /** The corrected amount when set (setFDMaturityOverride), else the computed schedule figure. */
   maturityAmount: number;
+  /** Interest only — maturityAmount minus principal, override-aware. Feeds the "total interest earned" summary. */
+  interestAmount: number;
 }
 
 /**
@@ -755,12 +757,17 @@ export async function getUpcomingFDMaturities(userId: string, limit = 5): Promis
     userId,
     limit,
   );
-  return rows.map((r) => ({
-    financialAccountId: r.financial_account_id,
-    label: r.account_label ?? `${r.bank_name} ••${r.account_identifier}`,
-    maturityDate: r.event_date,
-    maturityAmount: r.maturity_amount_override ?? (r.principal_component ?? 0) + (r.interest_component ?? 0),
-  }));
+  return rows.map((r) => {
+    const principal = r.principal_component ?? 0;
+    const maturityAmount = r.maturity_amount_override ?? principal + (r.interest_component ?? 0);
+    return {
+      financialAccountId: r.financial_account_id,
+      label: r.account_label ?? `${r.bank_name} ••${r.account_identifier}`,
+      maturityDate: r.event_date,
+      maturityAmount,
+      interestAmount: Math.round((maturityAmount - principal) * 100) / 100,
+    };
+  });
 }
 
 // ─── Legacy demat/pension conversion (Phase 2) ─────────────

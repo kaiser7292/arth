@@ -2591,7 +2591,7 @@ export default function ExpenseDetailScreen() {
                       onPress={() => router.push({ pathname: "/settings/account-detail", params: { accountId: fdProduct.financial_account_id } })}
                     >
                       <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                        <Ionicons name="calendar-outline" size={20} color={colors.blue} />
+                        <Ionicons name="cash-outline" size={20} color={colors.blue} />
                       </View>
                       <View className="flex-1">
                         <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
@@ -2710,7 +2710,7 @@ export default function ExpenseDetailScreen() {
                   className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
                 >
                   <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="calendar-outline" size={20} color={colors.blue} />
+                    <Ionicons name="cash-outline" size={20} color={colors.blue} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-foreground">

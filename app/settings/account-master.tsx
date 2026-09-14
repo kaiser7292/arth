@@ -27,6 +27,10 @@ const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   wallet: "phone-portrait-outline",
   demat: "trending-up-outline",
   pension: "briefcase-outline",
+  // Phase 2 unified type (account_type='investment') resolved to "fd" below
+  // when valuation='contract' — a bare FD otherwise fell through to
+  // account_type="investment", which isn't a key here, showing "help-outline".
+  fd: "cash-outline",
 };
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -36,9 +40,10 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   wallet: "Wallet",
   demat: "Demat",
   pension: "Pension",
+  fd: "Deposit",
 };
 
-type TypeFilter = "all" | "savings" | "credit_card" | "loan" | "wallet" | "demat" | "pension";
+type TypeFilter = "all" | "savings" | "credit_card" | "loan" | "wallet" | "demat" | "pension" | "fd";
 
 const TYPE_FILTERS: Array<{ key: TypeFilter; label: string }> = [
   { key: "all", label: "All" },
@@ -48,6 +53,7 @@ const TYPE_FILTERS: Array<{ key: TypeFilter; label: string }> = [
   { key: "wallet", label: "Wallet" },
   { key: "demat", label: "Demat" },
   { key: "pension", label: "Pension" },
+  { key: "fd", label: "Deposit" },
 ];
 
 export default function AccountMasterScreen() {
@@ -64,12 +70,13 @@ export default function AccountMasterScreen() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [investmentProducts, setInvestmentProducts] = useState<Map<string, InvestmentProduct>>(new Map());
 
-  /** "demat"/"pension" resolved through the Phase-2 alias, else the raw account_type. */
+  /** "demat"/"pension"/"fd" resolved through the Phase-2 alias, else the raw account_type. */
   const resolvedType = useCallback(
     (account: { id: string; account_type: string }): string => {
       const product = investmentProducts.get(account.id);
       if (isDematLikeAccount(account, product)) return "demat";
       if (isPensionLikeAccount(account, product)) return "pension";
+      if (account.account_type === "investment" && product?.valuation === "contract") return "fd";
       return account.account_type;
     },
     [investmentProducts],

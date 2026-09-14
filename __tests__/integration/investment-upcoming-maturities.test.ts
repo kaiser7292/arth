@@ -72,6 +72,11 @@ describe("getUpcomingFDMaturities", () => {
     const fa2 = rows.find((r) => r.financialAccountId === "fa-2")!;
     expect(fa1.maturityAmount).toBe(107100); // 100000 + 7100, no override
     expect(fa2.maturityAmount).toBe(52000); // override wins over 50000 + 3500
+
+    // interestAmount is maturityAmount minus principal, override-aware —
+    // feeds the "total interest earned" summary on /investments.
+    expect(fa1.interestAmount).toBe(7100); // 107100 - 100000
+    expect(fa2.interestAmount).toBe(2000); // 52000 (override) - 50000, NOT the computed 3500
   });
 
   it("falls back to bank name + last digits when no account_label is set", async () => {
