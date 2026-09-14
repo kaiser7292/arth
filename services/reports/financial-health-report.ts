@@ -213,8 +213,16 @@ export async function generateFinancialHealthReport(
         : 0;
 
     // --- Emergency fund ---
-    const liquidAssets = bs.assets
-      .filter((a) => a.group === "savings" || a.group === "wallet")
+    // Includes FD ("investment" group — per getBalanceSheetColumn this group
+    // is exclusively FD; demat and pension have their own distinct groups) —
+    // an FD is money the user set aside, accessible on short notice (at most
+    // a premature-withdrawal haircut), so it counts toward the emergency
+    // reserve alongside savings and wallets. Reads from flatAssets (not
+    // bs.assets directly) because an FD nests under its source savings
+    // account as a child row (see BalanceSheetRow.children) — a flat filter
+    // over bs.assets would never see it.
+    const liquidAssets = flatAssets
+      .filter((a) => a.group === "savings" || a.group === "wallet" || a.group === "investment")
       .reduce((sum, a) => sum + a.amount, 0);
 
     const monthsElapsed = snapshot?.monthsElapsed ?? 1;

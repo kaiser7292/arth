@@ -518,7 +518,7 @@ export default function GoalsScreen() {
             </Pressable>
           </View>
 
-          {/* ── TRACK section: Loans + Balance Sheet ── */}
+          {/* ── TRACK section: Loans + Net Worth ── */}
           <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
             Track
           </Text>
@@ -604,11 +604,11 @@ export default function GoalsScreen() {
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-medium text-foreground">
-                  Balance Sheet
+                  Net Worth
                 </Text>
                 <Text className="text-xs text-muted-foreground">
                   {netWorth != null
-                    ? `Net worth: ${formatAmount(netWorth)}`
+                    ? formatAmount(netWorth)
                     : "Assets, liabilities & net worth"}
                 </Text>
               </View>

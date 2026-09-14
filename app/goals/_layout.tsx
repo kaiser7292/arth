@@ -38,7 +38,7 @@ export default function GoalsLayout() {
       />
       <Stack.Screen
         name="balance-sheet"
-        options={{ title: "Balance Sheet" }}
+        options={{ title: "Net Worth" }}
       />
       <Stack.Screen
         name="salary-calculator"

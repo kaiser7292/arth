@@ -40,6 +40,10 @@ export default function BalanceSheetScreen() {
   const [columnSpecs, setColumnSpecs] = useState<ColumnSpec[]>([]);
   const [showAssets, setShowAssets] = useState(true);
   const [showLiabilities, setShowLiabilities] = useState(true);
+  // Sections within Assets/Liabilities (Liquid Cash, Investments, Receivables /
+  // Credit, Debt, Payables) — collapsed sections tracked by name, all expanded
+  // by default. Independent from the top-level showAssets/showLiabilities toggle.
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   // Rows with nested children (currently: a savings account with a linked
   // fixed deposit) start collapsed — expand on tap to reveal the FD sub-line.
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
@@ -208,6 +212,78 @@ export default function BalanceSheetScreen() {
     return Array.from(seen.entries()).map(([label, meta]) => ({ label, ...meta }));
   }, [columns]);
 
+  // Sections within Assets/Liabilities — a presentational grouping over the
+  // existing `group` values, no new data needed. An FD's "investment" group
+  // only ever appears top-level as a fallback (see getBalanceSheetColumn —
+  // normally it nests under its savings parent, already in Liquid Cash), so
+  // Investments here in practice means Demat + Pension.
+  const ASSET_SECTIONS = ["Liquid Cash", "Investments", "Receivables"] as const;
+  const LIABILITY_SECTIONS = ["Credit", "Debt", "Payables"] as const;
+
+  const assetSectionForGroup = (group: string): (typeof ASSET_SECTIONS)[number] => {
+    switch (group) {
+      case "savings":
+      case "wallet":
+        return "Liquid Cash";
+      case "demat_portfolio":
+      case "demat_fund":
+      case "pension":
+      case "investment":
+        return "Investments";
+      default:
+        return "Receivables"; // hisaab_owed
+    }
+  };
+  const liabilitySectionForGroup = (group: string): (typeof LIABILITY_SECTIONS)[number] => {
+    switch (group) {
+      case "cc":
+        return "Credit";
+      case "loan":
+        return "Debt";
+      default:
+        return "Payables"; // hisaab_owes
+    }
+  };
+
+  type RowMeta = { label: string; group: string; accountId?: string; personId?: string };
+
+  const groupRows = <S extends string>(rows: RowMeta[], sections: readonly S[], sectionOf: (group: string) => S) => {
+    const map = new Map<S, RowMeta[]>();
+    for (const s of sections) map.set(s, []);
+    for (const row of rows) map.get(sectionOf(row.group))!.push(row);
+    return map;
+  };
+
+  const assetsBySection = useMemo(
+    () => groupRows(assetRowLabels, ASSET_SECTIONS, assetSectionForGroup),
+    [assetRowLabels],
+  );
+  const liabilitiesBySection = useMemo(
+    () => groupRows(liabilityRowLabels, LIABILITY_SECTIONS, liabilitySectionForGroup),
+    [liabilityRowLabels],
+  );
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  };
+
+  /** Section subtotal for one column — includes nested children (an FD under its savings parent). */
+  const getSectionTotal = (col: BalanceSheetColumn, section: "assets" | "liabilities", rows: RowMeta[]): number => {
+    const pool = section === "assets" ? col.assets : col.liabilities;
+    let total = 0;
+    for (const row of rows) {
+      const cell = pool.find((r) => r.label === row.label);
+      if (!cell) continue;
+      total += cell.amount + (cell.children?.reduce((s, c) => s + c.amount, 0) ?? 0);
+    }
+    return total;
+  };
+
   const getCellValue = (col: BalanceSheetColumn, rowLabel: string, section: "assets" | "liabilities"): BalanceSheetRow | undefined => {
     const pool = section === "assets" ? col.assets : col.liabilities;
     return pool.find((r) => r.label === rowLabel);
@@ -255,7 +331,7 @@ export default function BalanceSheetScreen() {
   if (columns.length === 0) {
     return (
       <ScreenContainer padTop={false}>
-        <LoadingState message="Loading balance sheet..." icon="scale-outline" />
+        <LoadingState message="Loading net worth..." icon="scale-outline" />
       </ScreenContainer>
     );
   }
@@ -396,92 +472,132 @@ export default function BalanceSheetScreen() {
                 </Text>
               </Pressable>
 
-              {showAssets && assetRowLabels.map((row) => {
-                const children = childRowsByParent.get(row.label) ?? [];
-                const hasChildren = children.length > 0;
-                const expanded = expandedParents.has(row.label);
+              {showAssets && ASSET_SECTIONS.map((section) => {
+                const rows = assetsBySection.get(section) ?? [];
+                if (rows.length === 0) return null;
+                const sectionCollapsed = collapsedSections.has(section);
                 return (
-                  <View key={`a-${row.label}`}>
+                  <View key={`sec-a-${section}`}>
                     <Pressable
-                      onPress={() => (hasChildren ? toggleParent(row.label) : handleRowPress(row))}
-                      className="flex-row items-center px-3 py-2 border-b border-border"
+                      onPress={() => toggleSection(section)}
+                      className="flex-row items-center py-1.5"
+                      style={{ paddingLeft: 20, paddingRight: 12, backgroundColor: theme.alpha("primary", 0.02) }}
                     >
-                      {hasChildren && (
-                        <Ionicons
-                          name={expanded ? "chevron-down" : "chevron-forward"}
-                          size={10}
-                          color={colors.textSecondary}
-                          style={{ marginRight: 3 }}
-                        />
-                      )}
-                      <Text
-                        className="text-xs text-foreground"
-                        numberOfLines={1}
-                        style={{ width: hasChildren ? LABEL_COL_WIDTH - 13 : LABEL_COL_WIDTH }}
-                      >
-                        {row.label}
+                      <Ionicons
+                        name={sectionCollapsed ? "chevron-forward" : "chevron-down"}
+                        size={10}
+                        color={colors.textSecondary}
+                      />
+                      <Text className="text-label font-semibold uppercase tracking-wider ml-1 flex-1" style={{ color: colors.textSecondary }}>
+                        {section}
                       </Text>
-                      {columns.map((col) => {
-                        const cell = getCellValue(col, row.label, "assets");
-                        const amount = cell?.amount ?? 0;
-                        const isMissing = !cell;
-                        return (
-                          <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                    </Pressable>
+
+                    {!sectionCollapsed && rows.map((row) => {
+                      const children = childRowsByParent.get(row.label) ?? [];
+                      const hasChildren = children.length > 0;
+                      const expanded = expandedParents.has(row.label);
+                      return (
+                        <View key={`a-${row.label}`}>
+                          <Pressable
+                            onPress={() => (hasChildren ? toggleParent(row.label) : handleRowPress(row))}
+                            className="flex-row items-center px-3 py-2 border-b border-border"
+                          >
+                            {hasChildren && (
+                              <Ionicons
+                                name={expanded ? "chevron-down" : "chevron-forward"}
+                                size={10}
+                                color={colors.textSecondary}
+                                style={{ marginRight: 3 }}
+                              />
+                            )}
                             <Text
-                              className="text-xs"
-                              style={{
-                                color: isMissing
-                                  ? theme.faintForeground
-                                  : cell?.isFallback
-                                    ? theme.faintForeground
-                                    : colors.text,
-                                fontStyle: cell?.isFallback ? "italic" : "normal",
-                              }}
+                              className="text-xs text-foreground"
+                              numberOfLines={1}
+                              style={{ width: hasChildren ? LABEL_COL_WIDTH - 13 : LABEL_COL_WIDTH }}
                             >
-                              {isMissing ? "-" : formatAmount(amount)}
+                              {row.label}
+                            </Text>
+                            {columns.map((col) => {
+                              const cell = getCellValue(col, row.label, "assets");
+                              const amount = cell?.amount ?? 0;
+                              const isMissing = !cell;
+                              return (
+                                <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                                  <Text
+                                    className="text-xs"
+                                    style={{
+                                      color: isMissing
+                                        ? theme.faintForeground
+                                        : cell?.isFallback
+                                          ? theme.faintForeground
+                                          : colors.text,
+                                      fontStyle: cell?.isFallback ? "italic" : "normal",
+                                    }}
+                                  >
+                                    {isMissing ? "-" : formatAmount(amount)}
+                                  </Text>
+                                </View>
+                              );
+                            })}
+                          </Pressable>
+                          {hasChildren && expanded && children.map((child) => (
+                            <Pressable
+                              key={`a-${row.label}-${child.label}`}
+                              onPress={() => handleRowPress(child)}
+                              className="flex-row items-center px-3 py-2 border-b border-border"
+                              style={{ backgroundColor: theme.alpha("primary", 0.03) }}
+                            >
+                              <Text
+                                className="text-label text-muted-foreground"
+                                numberOfLines={1}
+                                style={{ width: LABEL_COL_WIDTH, paddingLeft: 14 }}
+                              >
+                                {child.label}
+                              </Text>
+                              {columns.map((col) => {
+                                const cell = getChildCellValue(col, row.label, child.label);
+                                const amount = cell?.amount ?? 0;
+                                const isMissing = !cell;
+                                return (
+                                  <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                                    <Text
+                                      className="text-label"
+                                      style={{
+                                        color: isMissing
+                                          ? theme.faintForeground
+                                          : cell?.isFallback
+                                            ? theme.faintForeground
+                                            : colors.textSecondary,
+                                        fontStyle: cell?.isFallback ? "italic" : "normal",
+                                      }}
+                                    >
+                                      {isMissing ? "-" : formatAmount(amount)}
+                                    </Text>
+                                  </View>
+                                );
+                              })}
+                            </Pressable>
+                          ))}
+                        </View>
+                      );
+                    })}
+
+                    {/* Section subtotal */}
+                    {!sectionCollapsed && (
+                      <View className="flex-row items-center py-1.5 border-b border-border" style={{ paddingLeft: 20, paddingRight: 12 }}>
+                        <Text className="text-label font-semibold text-muted-foreground flex-1">
+                          {section} total
+                        </Text>
+                        {columns.map((col) => (
+                          <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                            <Text className="text-label font-semibold text-muted-foreground">
+                              {formatAmount(getSectionTotal(col, "assets", rows))}
                             </Text>
                           </View>
-                        );
-                      })}
-                    </Pressable>
-                    {hasChildren && expanded && children.map((child) => (
-                      <Pressable
-                        key={`a-${row.label}-${child.label}`}
-                        onPress={() => handleRowPress(child)}
-                        className="flex-row items-center px-3 py-2 border-b border-border"
-                        style={{ backgroundColor: theme.alpha("primary", 0.03) }}
-                      >
-                        <Text
-                          className="text-label text-muted-foreground"
-                          numberOfLines={1}
-                          style={{ width: LABEL_COL_WIDTH, paddingLeft: 14 }}
-                        >
-                          {child.label}
-                        </Text>
-                        {columns.map((col) => {
-                          const cell = getChildCellValue(col, row.label, child.label);
-                          const amount = cell?.amount ?? 0;
-                          const isMissing = !cell;
-                          return (
-                            <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                              <Text
-                                className="text-label"
-                                style={{
-                                  color: isMissing
-                                    ? theme.faintForeground
-                                    : cell?.isFallback
-                                      ? theme.faintForeground
-                                      : colors.textSecondary,
-                                  fontStyle: cell?.isFallback ? "italic" : "normal",
-                                }}
-                              >
-                                {isMissing ? "-" : formatAmount(amount)}
-                              </Text>
-                            </View>
-                          );
-                        })}
-                      </Pressable>
-                    ))}
+                        ))}
+                      </View>
+                    )}
                   </View>
                 );
               })}
@@ -521,43 +637,83 @@ export default function BalanceSheetScreen() {
                 </Text>
               </Pressable>
 
-              {showLiabilities && liabilityRowLabels.map((row) => (
-                <Pressable
-                  key={`l-${row.label}`}
-                  onPress={() => handleRowPress(row)}
-                  className="flex-row items-center px-3 py-2 border-b border-border"
-                >
-                  <Text
-                    className="text-xs text-foreground"
-                    numberOfLines={1}
-                    style={{ width: LABEL_COL_WIDTH }}
-                  >
-                    {row.label}
-                  </Text>
-                  {columns.map((col) => {
-                    const cell = getCellValue(col, row.label, "liabilities");
-                    const amount = cell?.amount ?? 0;
-                    const isMissing = !cell;
-                    return (
-                      <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+              {showLiabilities && LIABILITY_SECTIONS.map((section) => {
+                const rows = liabilitiesBySection.get(section) ?? [];
+                if (rows.length === 0) return null;
+                const sectionCollapsed = collapsedSections.has(section);
+                return (
+                  <View key={`sec-l-${section}`}>
+                    <Pressable
+                      onPress={() => toggleSection(section)}
+                      className="flex-row items-center py-1.5"
+                      style={{ paddingLeft: 20, paddingRight: 12, backgroundColor: theme.danger + "05" }}
+                    >
+                      <Ionicons
+                        name={sectionCollapsed ? "chevron-forward" : "chevron-down"}
+                        size={10}
+                        color={colors.textSecondary}
+                      />
+                      <Text className="text-label font-semibold uppercase tracking-wider ml-1 flex-1" style={{ color: colors.textSecondary }}>
+                        {section}
+                      </Text>
+                    </Pressable>
+
+                    {!sectionCollapsed && rows.map((row) => (
+                      <Pressable
+                        key={`l-${row.label}`}
+                        onPress={() => handleRowPress(row)}
+                        className="flex-row items-center px-3 py-2 border-b border-border"
+                      >
                         <Text
-                          className="text-xs"
-                          style={{
-                            color: isMissing
-                              ? theme.faintForeground
-                              : cell?.isFallback
-                                ? theme.faintForeground
-                                : colors.text,
-                            fontStyle: cell?.isFallback ? "italic" : "normal",
-                          }}
+                          className="text-xs text-foreground"
+                          numberOfLines={1}
+                          style={{ width: LABEL_COL_WIDTH }}
                         >
-                          {isMissing ? "-" : formatAmount(amount)}
+                          {row.label}
                         </Text>
+                        {columns.map((col) => {
+                          const cell = getCellValue(col, row.label, "liabilities");
+                          const amount = cell?.amount ?? 0;
+                          const isMissing = !cell;
+                          return (
+                            <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                              <Text
+                                className="text-xs"
+                                style={{
+                                  color: isMissing
+                                    ? theme.faintForeground
+                                    : cell?.isFallback
+                                      ? theme.faintForeground
+                                      : colors.text,
+                                  fontStyle: cell?.isFallback ? "italic" : "normal",
+                                }}
+                              >
+                                {isMissing ? "-" : formatAmount(amount)}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </Pressable>
+                    ))}
+
+                    {/* Section subtotal */}
+                    {!sectionCollapsed && (
+                      <View className="flex-row items-center py-1.5 border-b border-border" style={{ paddingLeft: 20, paddingRight: 12 }}>
+                        <Text className="text-label font-semibold text-muted-foreground flex-1">
+                          {section} total
+                        </Text>
+                        {columns.map((col) => (
+                          <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                            <Text className="text-label font-semibold text-muted-foreground">
+                              {formatAmount(getSectionTotal(col, "liabilities", rows))}
+                            </Text>
+                          </View>
+                        ))}
                       </View>
-                    );
-                  })}
-                </Pressable>
-              ))}
+                    )}
+                  </View>
+                );
+              })}
 
               {/* Total Liabilities */}
               {showLiabilities && (
