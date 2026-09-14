@@ -35,7 +35,14 @@ import type { Category } from "@/services/category";
 import { getCategories } from "@/services/category";
 import type { DematTarget } from "@/services/demat-transfer";
 import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
-import { isDematLikeAccountById } from "@/services/investment-accounts";
+import {
+  isDematLikeAccountById,
+  isFDIncomplete,
+  getInvestmentProduct,
+  undoMarkAsFD,
+  INSTRUMENT_LABELS,
+  type InvestmentProduct,
+} from "@/services/investment-accounts";
 import type { Expense, RecurringFrequency, RecurringRule, SplitConfig } from "@/services/expense";
 import { MAX_PURCHASE_GROUP_LEGS, addLegToExistingGroup, approveExpense, convertToSplitTender, createRecurringRule, deleteExpense, deleteSplitExpense, fulfillReminder, getActiveRecurringRules, getExpenseById, getGroupSiblings, getRecurringRuleForExpense, markForecastAsPaid, markForecastPaidExternally, markRepaymentAsPaid, propagateSharedEdit, realizeForecast, rejectExpense, removeSplit, restoreExpense, splitExistingExpense, stopRecurringRule, suggestReminderForExpense, unfulfillReminder, unlinkFromGroup, updateExpense } from "@/services/expense";
 import {
@@ -87,6 +94,7 @@ import {
     validateExpense,
 } from "@/utils/expense-validation";
 import { formatAmount } from "@/utils/format";
+import { formatDate } from "@/utils/date";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -139,6 +147,8 @@ export default function ExpenseDetailScreen() {
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [transfer, setTransfer] = useState<AccountTransfer | null>(null);
+  const [fdProduct, setFdProduct] = useState<InvestmentProduct | null>(null);
+  const [fdBucketName, setFdBucketName] = useState<string | null>(null);
 
   // Apply rule sheet
   const [rulePickerVisible, setRulePickerVisible] = useState(false);
@@ -226,8 +236,32 @@ export default function ExpenseDetailScreen() {
             try {
               const transferData = await getTransferByLinkedExpenseId(exp.id);
               setTransfer(transferData);
+              // If this transfer's destination is a fixed deposit (Mark as
+              // Fixed Deposit reclassifies the expense into the FD's funding
+              // transfer), load its details for the FD-specific card below.
+              const toAcct = accts.find((a) => a.id === transferData?.to_account_id);
+              if (transferData && toAcct?.account_type === "investment") {
+                const product = await getInvestmentProduct(toAcct.id);
+                if (product?.valuation === "contract") {
+                  setFdProduct(product);
+                  if (product.investment_bucket_id) {
+                    const bucket = await getInvestmentBucketById(product.investment_bucket_id);
+                    setFdBucketName(bucket?.name ?? null);
+                  } else {
+                    setFdBucketName(null);
+                  }
+                } else {
+                  setFdProduct(null);
+                  setFdBucketName(null);
+                }
+              } else {
+                setFdProduct(null);
+                setFdBucketName(null);
+              }
             } catch {
               setTransfer(null);
+              setFdProduct(null);
+              setFdBucketName(null);
             }
           }
           
@@ -1423,6 +1457,21 @@ export default function ExpenseDetailScreen() {
     }
   }, [transfer, alert, router]);
 
+  // Undo "Mark as Fixed Deposit" — reverses the deposit transfer (restores
+  // this expense) and then removes the FD account it created.
+  const handleUndoFD = useCallback(async () => {
+    if (!transfer || !fdProduct) return;
+    try {
+      await undoTransfer(transfer.id);
+      await undoMarkAsFD(fdProduct.financial_account_id);
+      alert("Success", "Fixed deposit has been undone. The expense is restored.");
+      router.back();
+    } catch (e) {
+      logger.error("Undo fixed deposit failed:", e);
+      alert("Error", formatError("Undo fixed deposit", e));
+    }
+  }, [transfer, fdProduct, alert, router]);
+
   // Undo a single refund credit
   const handleUndoRefund = useCallback(async (refundCreditId: string) => {
     try {
@@ -2460,8 +2509,8 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* 4d. Transfer Details (shown when expense is reclassified as transfer) */}
-              {transfer && (
+              {/* 4d. Transfer Details (shown when expense is reclassified as transfer, but NOT when the destination is a fixed deposit — that gets its own card below). */}
+              {transfer && !fdProduct && (
                 <View className="mx-4 mt-3 rounded-xl bg-card overflow-hidden">
                   <View className="px-4 pt-3 pb-1">
                     <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -2527,8 +2576,111 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* 4e. Mark as Transfer (realized savings debits only, shown when not reclassified) */}
-              {!transfer && expense.nature === "realized" && expense.account_id && expenseAccount?.account_type === "savings" && (
+              {/* 4d-ii. Fixed Deposit Details (shown when this expense is the deposit
+                  transfer for an FD created via "Mark as Fixed Deposit"). */}
+              {transfer && fdProduct && (
+                <View className="mx-4 mt-3 rounded-xl bg-card overflow-hidden">
+                  <View className="px-4 pt-3 pb-1">
+                    <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Fixed Deposit Details
+                    </Text>
+                  </View>
+                  <View className="px-4 py-3">
+                    <Pressable
+                      className="flex-row items-center mb-3"
+                      onPress={() => router.push({ pathname: "/settings/account-detail", params: { accountId: fdProduct.financial_account_id } })}
+                    >
+                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                        <Ionicons name="calendar-outline" size={20} color={colors.blue} />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
+                          {accounts.find(a => a.id === fdProduct.financial_account_id)?.account_label
+                            ?? accounts.find(a => a.id === fdProduct.financial_account_id)?.bank_name
+                            ?? "Fixed Deposit"}
+                        </Text>
+                        <Text className="text-xs text-muted-foreground mt-0.5">
+                          {INSTRUMENT_LABELS[fdProduct.instrument]} · tap to edit
+                        </Text>
+                      </View>
+                    </Pressable>
+                    <View className="ml-13 mb-3">
+                      <Text className="text-xs text-muted-foreground mb-1">Principal:</Text>
+                      <Text className="text-sm font-semibold text-foreground">
+                        {fdProduct.principal != null ? formatAmount(fdProduct.principal) : "—"}
+                      </Text>
+                    </View>
+                    {isFDIncomplete(fdProduct) ? (
+                      <View className="ml-13">
+                        <Text className="text-xs text-muted-foreground mb-1">Interest & maturity:</Text>
+                        <Text className="text-sm font-semibold text-foreground">Not set yet</Text>
+                      </View>
+                    ) : (
+                      <>
+                        <View className="ml-13 mb-3">
+                          <Text className="text-xs text-muted-foreground mb-1">Interest rate:</Text>
+                          <Text className="text-sm font-semibold text-foreground">
+                            {fdProduct.interest_rate_pa}% p.a. ({fdProduct.interest_method})
+                          </Text>
+                        </View>
+                        <View className="ml-13 mb-3">
+                          <Text className="text-xs text-muted-foreground mb-1">Matures:</Text>
+                          <Text className="text-sm font-semibold text-foreground">
+                            {fdProduct.maturity_date ? formatDate(fdProduct.maturity_date) : "—"}
+                          </Text>
+                        </View>
+                        {fdProduct.maturity_amount_override != null && (
+                          <View className="ml-13 mb-3">
+                            <Text className="text-xs text-muted-foreground mb-1">Corrected maturity amount:</Text>
+                            <Text className="text-sm font-semibold text-foreground">
+                              {formatAmount(fdProduct.maturity_amount_override)}
+                            </Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+                    <View className="ml-13 mb-3">
+                      <Text className="text-xs text-muted-foreground mb-1">Status:</Text>
+                      <Text className="text-sm font-semibold text-foreground capitalize">{fdProduct.status}</Text>
+                    </View>
+                    {fdBucketName && (
+                      <View className="ml-13">
+                        <Text className="text-xs text-muted-foreground mb-1">Investment bucket:</Text>
+                        <Text className="text-sm font-semibold text-foreground">{fdBucketName}</Text>
+                      </View>
+                    )}
+                  </View>
+                  {fdProduct.status === "active" ? (
+                    <Pressable
+                      onPress={handleUndoFD}
+                      className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-xl bg-background"
+                    >
+                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                        <Ionicons name="arrow-undo-outline" size={20} color={colors.blue} />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-sm font-semibold text-foreground">
+                          Undo Fixed Deposit
+                        </Text>
+                        <Text className="text-xs text-muted-foreground mt-0.5">
+                          Convert back to expense
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ) : (
+                    <View className="mx-4 mb-3 px-4 py-2">
+                      <Text className="text-xs text-muted-foreground">
+                        This fixed deposit has matured — it can no longer be undone.
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* 4e. Mark as Transfer (realized savings debits only, shown when not
+                   already reclassified, nor marked as an investment or loan payment —
+                   these four "Mark as" actions are mutually exclusive). */}
+              {!transfer && !investmentLink && !loanLink && expense.nature === "realized" && expense.account_id && expenseAccount?.account_type === "savings" && (
                 <Pressable
                   onPress={() => setTransferPickerVisible(true)}
                   className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
@@ -2552,7 +2704,7 @@ export default function ExpenseDetailScreen() {
                    for the common case where an SMS-detected debit is actually the
                    deposit that opened a new FD, so it doesn't have to be manually
                    reclassified as a transfer to an FD account created separately. */}
-              {!transfer && expense.nature === "realized" && expense.account_id && expenseAccount?.account_type === "savings" && (
+              {!transfer && !investmentLink && !loanLink && expense.nature === "realized" && expense.account_id && expenseAccount?.account_type === "savings" && (
                 <Pressable
                   onPress={() => setMarkAsFDVisible(true)}
                   className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
@@ -2765,13 +2917,19 @@ export default function ExpenseDetailScreen() {
               )}
 
               {/* v17.0.0: Mark as Investment (realized, non-credit, non-refund,
-                   non-split). Lets user promote an expense (SIP, PPF, gold
-                   purchase) to an investment bucket contribution. */}
+                   non-split, non-transfer, non-loan-linked — these four
+                   "Mark as" actions are mutually exclusive: a transaction can
+                   only be one of a transfer/FD, an investment contribution,
+                   or a loan payment, never two at once). Lets user promote an
+                   expense (SIP, PPF, gold purchase) to an investment bucket
+                   contribution. */}
               {V15_FLAGS.v17_expense_investment_link
                 && expense.nature === "realized"
                 && !expense.refund_of_expense_id
                 && !expense.purchase_group_id
-                && !investmentLink && (
+                && !investmentLink
+                && !loanLink
+                && !transfer && (
                 <Pressable
                   onPress={() => setInvestmentSheetVisible(true)}
                   className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
@@ -2845,14 +3003,15 @@ export default function ExpenseDetailScreen() {
               )}
 
               {/* v17.4.0: Mark as Loan Payment (realized, non-credit, non-refund,
-                   non-split, non-investment-linked). Same guard family as
-                   Mark-as-Investment. */}
+                   non-split, non-investment-linked, non-transfer). Same
+                   mutual-exclusion guard family as Mark-as-Investment. */}
               {V15_FLAGS.v17_loans_v1
                 && expense.nature === "realized"
                 && !expense.refund_of_expense_id
                 && !expense.purchase_group_id
                 && !investmentLink
-                && !loanLink && (
+                && !loanLink
+                && !transfer && (
                 <Pressable
                   onPress={() => setLoanSheetVisible(true)}
                   className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"

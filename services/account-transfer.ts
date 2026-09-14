@@ -439,6 +439,30 @@ export async function reclassifyExpenseAsTransfer(
     throw new Error("Cannot reclassify split expense legs. Delete the split first or reclassify the original expense.");
   }
 
+  // Guard: mutual exclusion with Mark as Investment / Mark as Loan Payment —
+  // those two already refuse to apply on top of an existing transfer link
+  // (services/expense-investment-link.ts, services/expense-loan-link.ts);
+  // this closes the missing reverse direction, so a transfer (and Mark as
+  // Fixed Deposit, which reclassifies through this same function) can't be
+  // layered on top of one of them either. Three contradictory
+  // categorizations of one transaction would otherwise double-count it (a
+  // bucket contribution, a loan-outstanding reduction, and an inter-account
+  // transfer, all from a single debit).
+  const investmentLinkGuard = await db.getFirstAsync<{ id: string }>(
+    "SELECT id FROM expense_investment_links WHERE expense_id = ?;",
+    expenseId,
+  );
+  if (investmentLinkGuard) {
+    throw new Error("Expense is already marked as an investment. Unlink that first.");
+  }
+  const loanLinkGuard = await db.getFirstAsync<{ id: string }>(
+    "SELECT id FROM expense_loan_links WHERE expense_id = ?;",
+    expenseId,
+  );
+  if (loanLinkGuard) {
+    throw new Error("Expense is already linked to a loan payment. Unlink that first.");
+  }
+
   // Guard: prevent reclassifying expenses linked to non-repayment forecasts
   if (expense.matched_forecast_id) {
     const forecast = await db.getFirstAsync<{ forecast_type: string; status: string }>(
