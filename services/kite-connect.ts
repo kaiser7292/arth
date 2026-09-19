@@ -38,9 +38,11 @@ export interface KiteHolding {
   tradingsymbol: string;
   exchange: string;
   isin: string;
-  quantity: number;
+  quantity: number;       // Settled (T+0) quantity
+  t1_quantity: number;    // Pending settlement (T+1) — recently purchased, not yet in DEMAT
   average_price: number;
   last_price: number;
+  close_price: number;
   pnl: number;
   day_change_percentage: number;
 }
@@ -297,7 +299,7 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
 
   // Compute totals
   const equityTotal = holdingsRaw.reduce(
-    (sum, h) => sum + h.quantity * h.last_price,
+    (sum, h) => sum + (h.quantity + (h.t1_quantity ?? 0)) * h.last_price,
     0,
   );
   const mfTotal = mfHoldingsRaw.reduce(

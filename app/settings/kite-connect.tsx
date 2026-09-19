@@ -77,7 +77,7 @@ export default function KiteConnectScreen() {
           setHoldings(cached);
           setMFHoldings(cachedMF);
           setPortfolioTotal(totals.portfolio);
-          setEquityTotal(cached.reduce((s, h) => s + h.quantity * h.last_price, 0));
+          setEquityTotal(cached.reduce((s, h) => s + (h.quantity + (h.t1_quantity ?? 0)) * h.last_price, 0));
           setMFTotal(cachedMF.reduce((s, h) => s + h.quantity * h.last_price, 0));
           setFundsAvailable(totals.funds);
           setHasCachedData(cached.length > 0 || cachedMF.length > 0);
@@ -417,7 +417,8 @@ export default function KiteConnectScreen() {
             )}
 
             {holdings.map((h) => {
-              const marketValue = h.quantity * h.last_price;
+              const totalQty = h.quantity + (h.t1_quantity ?? 0);
+              const marketValue = totalQty * h.last_price;
               const pnlPositive = h.pnl >= 0;
               return (
                 <Card key={h.isin} className="mx-4 mb-2">
@@ -425,7 +426,7 @@ export default function KiteConnectScreen() {
                     <View className="flex-1">
                       <Text className="text-sm font-semibold text-foreground">{h.tradingsymbol}</Text>
                       <Text className="text-xs text-muted-foreground mt-0.5">
-                        {h.quantity} qty · avg ₹{h.average_price.toFixed(2)}
+                        {totalQty} qty{h.t1_quantity > 0 ? ` (${h.t1_quantity} pending)` : ''} · avg ₹{h.average_price.toFixed(2)}
                       </Text>
                     </View>
                     <View className="items-end">
