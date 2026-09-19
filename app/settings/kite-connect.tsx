@@ -1,47 +1,87 @@
-import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAlert } from '@/hooks/use-alert';
-import {
-    clearKiteCredentials,
-    exchangeRequestToken,
-    getKiteCredentials,
-    getKiteLoginUrl,
-    isKiteAuthenticated,
-    storeKiteAccessToken
-} from '@/services/kite-connect';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
-import { router } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, View } from "react-native";
 import { WebView } from 'react-native-webview';
-import { useTheme } from "@/hooks/use-theme";
+
+import { Card, ScreenContainer, Text } from '@/components/ui';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAlert } from '@/hooks/use-alert';
+import { useTheme } from '@/hooks/use-theme';
+import { formatAmount } from '@/utils/format';
+import { todayIso } from '@/utils/date';
+import { addOrUpdateSnapshot, updateFundBalance } from '@/services/financial-account';
+import {
+  clearKiteCredentials,
+  exchangeRequestToken,
+  getCachedHoldings,
+  getCachedTotals,
+  getDematAccountsForPicker,
+  getKiteCredentials,
+  getKiteLoginUrl,
+  getLastSynced,
+  getLinkedAccountId,
+  isKiteAuthenticated,
+  isKiteTokenExpired,
+  setLinkedAccountId,
+  storeKiteAccessToken,
+  syncKiteData,
+  type KiteHolding,
+} from '@/services/kite-connect';
 
 export default function KiteConnectScreen() {
   const alert = useAlert();
   const { colors } = useColorScheme();
   const theme = useTheme();
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Auth state
+  const [isLoading, setIsLoading]           = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showWebView, setShowWebView] = useState(false);
-  const [loginUrl, setLoginUrl] = useState('');
-  const webViewRef = useRef<WebView>(null);
+  const [tokenExpired, setTokenExpired]       = useState(false);
+  const [showWebView, setShowWebView]         = useState(false);
+  const [loginUrl, setLoginUrl]               = useState('');
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+  // Linked account
+  const [linkedAccountId, setLinkedAccountIdState] = useState<string | null>(null);
+  const [showAccountPicker, setShowAccountPicker]  = useState(false);
+  const [pickerAccounts, setPickerAccounts]         = useState<{ id: string; label: string }[]>([]);
 
-  const checkAuthStatus = async () => {
+  // Sync state
+  const [syncing, setSyncing]           = useState(false);
+  const [savingSnapshot, setSavingSnapshot] = useState(false);
+  const [lastSynced, setLastSynced]     = useState<string | null>(null);
+  const [holdings, setHoldings]         = useState<KiteHolding[]>([]);
+  const [portfolioTotal, setPortfolioTotal] = useState(0);
+  const [fundsAvailable, setFundsAvailable] = useState(0);
+  const [hasCachedData, setHasCachedData]   = useState(false);
+
+  const load = useCallback(async () => {
     try {
       const auth = await isKiteAuthenticated();
       setIsAuthenticated(auth);
-    } catch (error) {
-      console.error('Error checking auth status:', error);
+      if (auth) {
+        setTokenExpired(isKiteTokenExpired());
+        setLinkedAccountIdState(getLinkedAccountId());
+        const ls = getLastSynced();
+        setLastSynced(ls);
+        if (ls) {
+          const cached = getCachedHoldings();
+          const totals = getCachedTotals();
+          setHoldings(cached);
+          setPortfolioTotal(totals.portfolio);
+          setFundsAvailable(totals.funds);
+          setHasCachedData(cached.length > 0);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // ── Connect / reconnect ──────────────────────────────────────────────────
 
   const handleConnectPress = async () => {
     try {
@@ -49,183 +89,379 @@ export default function KiteConnectScreen() {
       if (!credentials?.apiKey) {
         alert(
           'API Key Required',
-          'Please enter your Kite API key first. You can get it from https://developers.kite.trade/apps',
+          'Enter your Kite API key first.',
           [
             { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Enter API Key',
-              onPress: () => router.push('/settings/kite-connect-api-key' as any),
-            },
-          ]
+            { text: 'Enter API Key', onPress: () => router.push('/settings/kite-connect-api-key' as any) },
+          ],
         );
         return;
       }
-
-      const url = getKiteLoginUrl(credentials.apiKey);
-      setLoginUrl(url);
+      setLoginUrl(getKiteLoginUrl(credentials.apiKey));
       setShowWebView(true);
-    } catch (error) {
+    } catch {
       alert('Error', 'Failed to initiate Kite login');
     }
   };
 
-  const handleDisconnectPress = () => {
+  const handleDisconnect = () => {
     alert(
       'Disconnect Kite',
-      'Are you sure you want to disconnect from Kite? This will clear your credentials.',
+      'This will clear all Kite credentials and cached data.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Disconnect',
           style: 'destructive',
           onPress: async () => {
-            try {
-              await clearKiteCredentials();
-              setIsAuthenticated(false);
-              alert('Success', 'Disconnected from Kite');
-            } catch (error) {
-              alert('Error', 'Failed to disconnect');
-            }
+            await clearKiteCredentials();
+            setIsAuthenticated(false);
+            setTokenExpired(false);
+            setLinkedAccountIdState(null);
+            setHoldings([]);
+            setPortfolioTotal(0);
+            setFundsAvailable(0);
+            setLastSynced(null);
+            setHasCachedData(false);
           },
         },
-      ]
+      ],
     );
   };
 
-  const handleWebViewNavigationStateChange = async (navState: any) => {
+  // ── WebView OAuth ────────────────────────────────────────────────────────
+
+  const handleWebViewNavChange = async (navState: any) => {
     const url = navState.url;
+    if (!url.includes('request_token=')) return;
 
-    // Check if URL contains request_token (Kite redirects to the registered URL with this parameter)
-    if (url.includes('request_token=')) {
-      setShowWebView(false);
+    setShowWebView(false);
+    const parsed = Linking.parse(url);
+    const requestToken = parsed.queryParams?.request_token as string;
+    if (!requestToken) {
+      alert('Error', 'Authentication failed or was cancelled');
+      return;
+    }
 
-      // Extract request_token from URL
-      const urlObj = Linking.parse(url);
-      const requestToken = urlObj.queryParams?.request_token as string;
-      const status = urlObj.queryParams?.status as string;
-
-      if (requestToken) {
-        try {
-          setIsLoading(true);
-          const credentials = await exchangeRequestToken(requestToken);
-          await storeKiteAccessToken(credentials);
-          setIsAuthenticated(true);
-          alert('Success', 'Successfully connected to Kite!');
-        } catch (error) {
-          alert('Error', 'Failed to complete authentication');
-          console.error('Token exchange error:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        alert('Error', 'Authentication failed or was cancelled');
-      }
+    try {
+      setIsLoading(true);
+      const credentials = await exchangeRequestToken(requestToken);
+      await storeKiteAccessToken(credentials);
+      setIsAuthenticated(true);
+      setTokenExpired(false);
+      alert('Success', 'Connected to Kite!');
+    } catch {
+      alert('Error', 'Failed to complete authentication');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <ScreenContainer>
-        <LoadingState />
-      </ScreenContainer>
-    );
-  }
+  // ── Sync ─────────────────────────────────────────────────────────────────
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const result = await syncKiteData();
+
+      // If no account was auto-linked, show the picker
+      if (!result.linkedAccountId) {
+        const accounts = await getDematAccountsForPicker();
+        setPickerAccounts(accounts);
+        setShowAccountPicker(true);
+        setSyncing(false);
+        return;
+      }
+
+      setLinkedAccountIdState(result.linkedAccountId);
+      setHoldings(result.holdings);
+      setPortfolioTotal(result.portfolioTotal);
+      setFundsAvailable(result.fundsAvailable);
+      setLastSynced(result.syncedAt);
+      setHasCachedData(true);
+    } catch (err: any) {
+      if (err.message === 'TOKEN_EXPIRED') {
+        setTokenExpired(true);
+        alert('Token Expired', 'Your Kite session expired at 6 AM. Tap "Reconnect" to log in again.');
+      } else if (err.message === 'NO_ACCOUNT_LINKED') {
+        // Trigger picker
+        const accounts = await getDematAccountsForPicker();
+        setPickerAccounts(accounts);
+        setShowAccountPicker(true);
+      } else {
+        alert('Sync Failed', err.message || 'Could not fetch data from Kite');
+      }
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // ── Update snapshot ──────────────────────────────────────────────────────
+
+  const handleUpdateSnapshot = async () => {
+    if (!linkedAccountId) {
+      alert('No Account Linked', 'Link a demat account first by tapping Sync Now.');
+      return;
+    }
+    setSavingSnapshot(true);
+    try {
+      const today = todayIso();
+      await Promise.all([
+        addOrUpdateSnapshot(linkedAccountId, today, portfolioTotal),
+        updateFundBalance(linkedAccountId, fundsAvailable),
+      ]);
+      alert('Snapshot Saved', `Portfolio ₹${formatAmount(portfolioTotal)} and funds ₹${formatAmount(fundsAvailable)} saved for today.`);
+    } catch (err: any) {
+      alert('Error', err.message || 'Failed to save snapshot');
+    } finally {
+      setSavingSnapshot(false);
+    }
+  };
+
+  // ── Account picker ────────────────────────────────────────────────────────
+
+  const handlePickAccount = async (id: string) => {
+    setLinkedAccountId(id);
+    setLinkedAccountIdState(id);
+    setShowAccountPicker(false);
+    // Re-run sync now that we have an account
+    await handleSync();
+  };
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  const formatSyncTime = (iso: string | null) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    const today = new Date();
+    const isToday = d.toDateString() === today.toDateString();
+    const time = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    return isToday ? `Today ${time}` : `${d.toLocaleDateString('en-IN')} ${time}`;
+  };
+
+  // ── WebView view ──────────────────────────────────────────────────────────
 
   if (showWebView) {
     return (
-      <View className="flex-1" style={{ backgroundColor: colors.background }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <WebView
-          ref={webViewRef}
           source={{ uri: loginUrl }}
-          onNavigationStateChange={handleWebViewNavigationStateChange}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          startInLoadingState={true}
-          scalesPageToFit={true}
+          onNavigationStateChange={handleWebViewNavChange}
+          javaScriptEnabled
+          domStorageEnabled
+          startInLoadingState
         />
       </View>
     );
   }
 
+  // ── Loading ───────────────────────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color={theme.primary} />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // ── Main UI ───────────────────────────────────────────────────────────────
+
+  const isConnected = isAuthenticated && !tokenExpired;
+
   return (
-    <ScreenContainer>
-      <View className="mx-4 mt-3">
-        <Card>
-          <Text className="text-xl font-bold" style={{ color: colors.text }}>
-            Kite Connect
-          </Text>
-          <Text className="text-sm mt-1" style={{ color: colors.textSecondary }}>
-            Connect your Zerodha Kite account to access portfolio data and trading features.
-          </Text>
+    <ScreenContainer padTop={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-          {isAuthenticated ? (
-            <View className="rounded-lg p-4 mt-4" style={{ backgroundColor: theme.success + '20', borderColor: theme.success, borderWidth: 1 }}>
-              <View className="flex-row items-center mb-2">
-                <Ionicons name="checkmark-circle" size={20} color={theme.success} />
-                <Text className="ml-2 font-semibold" style={{ color: theme.success }}>
-                  Connected to Kite
-                </Text>
-              </View>
-              <Text className="text-sm" style={{ color: theme.success }}>
-                Your Kite account is linked and ready to use.
-              </Text>
-            </View>
-          ) : (
-            <View className="rounded-lg p-4 mt-4" style={{ backgroundColor: theme.warning + '20', borderColor: theme.warning, borderWidth: 1 }}>
-              <View className="flex-row items-center mb-2">
-                <Ionicons name="alert-circle" size={20} color={theme.warning} />
-                <Text className="ml-2 font-semibold" style={{ color: theme.warning }}>
-                  Not Connected
-                </Text>
-              </View>
-              <Text className="text-sm" style={{ color: theme.warning }}>
-                Connect to Kite to enable portfolio tracking and trading features.
-              </Text>
-            </View>
-          )}
-
-          <Pressable
-            onPress={handleConnectPress}
-            className="rounded-lg p-4 mt-4 flex-row items-center justify-between"
-            style={{ backgroundColor: colors.tint }}
-          >
-            <Text className="text-primary-foreground font-semibold text-base">
-              {isAuthenticated ? 'Reconnect to Kite' : 'Connect to Kite'}
-            </Text>
-            <Ionicons name="chevron-forward" size={20} color="white" />
-          </Pressable>
-
-          {isAuthenticated && (
-            <Pressable
-              onPress={handleDisconnectPress}
-              className="rounded-lg p-4 mt-3 flex-row items-center justify-center"
-              style={{ backgroundColor: theme.danger }}
+        {/* ── Status card ── */}
+        <Card className="mx-4 mt-3 mb-3">
+          <View className="flex-row items-center mb-3">
+            <View
+              className="w-9 h-9 rounded-full items-center justify-center mr-3"
+              style={{ backgroundColor: theme.alpha('primary', 0.08) }}
             >
-              <View className="flex-row items-center">
-                <Ionicons name="log-out" size={20} color="white" />
-                <Text className="text-primary-foreground font-semibold text-base ml-2">
-                  Disconnect
-                </Text>
-              </View>
+              <Ionicons
+                name="trending-up-outline"
+                size={18}
+                color={isConnected ? theme.success : tokenExpired ? theme.warning : colors.textSecondary}
+              />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-foreground">Zerodha Kite</Text>
+              <Text className="text-xs text-muted-foreground mt-0.5">
+                {!isAuthenticated
+                  ? 'Not connected'
+                  : tokenExpired
+                  ? 'Session expired — reconnect to sync'
+                  : lastSynced
+                  ? `Last synced: ${formatSyncTime(lastSynced)}`
+                  : 'Connected — tap Sync to fetch data'}
+              </Text>
+            </View>
+            {isAuthenticated && (
+              <Pressable onPress={handleDisconnect} hitSlop={8}>
+                <Text className="text-xs text-danger">Disconnect</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {/* Action buttons */}
+          {!isAuthenticated ? (
+            <Pressable
+              onPress={handleConnectPress}
+              className="rounded-lg p-3 flex-row items-center justify-center"
+              style={{ backgroundColor: theme.primary }}
+            >
+              <Ionicons name="log-in-outline" size={16} color="#fff" />
+              <Text className="text-white font-semibold text-sm ml-2">Connect to Kite</Text>
+            </Pressable>
+          ) : tokenExpired ? (
+            <Pressable
+              onPress={handleConnectPress}
+              className="rounded-lg p-3 flex-row items-center justify-center"
+              style={{ backgroundColor: theme.warning }}
+            >
+              <Ionicons name="refresh-outline" size={16} color="#fff" />
+              <Text className="text-white font-semibold text-sm ml-2">Reconnect</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={handleSync}
+              disabled={syncing}
+              className="rounded-lg p-3 flex-row items-center justify-center"
+              style={{ backgroundColor: theme.primary, opacity: syncing ? 0.7 : 1 }}
+            >
+              {syncing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="sync-outline" size={16} color="#fff" />
+              )}
+              <Text className="text-white font-semibold text-sm ml-2">
+                {syncing ? 'Syncing…' : 'Sync Now'}
+              </Text>
             </Pressable>
           )}
-
-          <View className="mt-6 p-4 rounded-lg" style={{ backgroundColor: colors.surface }}>
-            <Text className="text-xs font-semibold mb-2" style={{ color: colors.textSecondary }}>
-              How to connect:
-            </Text>
-            <Text className="text-xs mb-1" style={{ color: colors.textSecondary }}>
-              1. Get API key from developers.kite.trade
-            </Text>
-            <Text className="text-xs mb-1" style={{ color: colors.textSecondary }}>
-              2. Enter API key in settings
-            </Text>
-            <Text className="text-xs" style={{ color: colors.textSecondary }}>
-              3. Login through Kite to authorize
-            </Text>
-          </View>
         </Card>
-      </View>
+
+        {/* ── Holdings ── */}
+        {hasCachedData && (
+          <>
+            {/* Totals */}
+            <Card className="mx-4 mb-3">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Portfolio Summary
+              </Text>
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-sm text-muted-foreground">Holdings Value</Text>
+                <Text className="text-sm font-bold" style={{ color: theme.success }}>
+                  {formatAmount(portfolioTotal)}
+                </Text>
+              </View>
+              <View className="flex-row justify-between mb-3">
+                <Text className="text-sm text-muted-foreground">Available Funds</Text>
+                <Text className="text-sm font-semibold text-foreground">
+                  {formatAmount(fundsAvailable)}
+                </Text>
+              </View>
+              <View className="pt-2 border-t border-border">
+                <Pressable
+                  onPress={handleUpdateSnapshot}
+                  disabled={savingSnapshot || !linkedAccountId}
+                  className="rounded-lg p-3 flex-row items-center justify-center"
+                  style={{
+                    backgroundColor: theme.alpha('primary', 0.1),
+                    opacity: savingSnapshot || !linkedAccountId ? 0.5 : 1,
+                  }}
+                >
+                  {savingSnapshot ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <Ionicons name="save-outline" size={16} color={theme.primary} />
+                  )}
+                  <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
+                    {savingSnapshot ? 'Saving…' : 'Update Snapshot with These Values'}
+                  </Text>
+                </Pressable>
+              </View>
+            </Card>
+
+            {/* Holdings list */}
+            <View className="mx-4 mb-2">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Holdings ({holdings.length})
+              </Text>
+            </View>
+
+            {holdings.map((h) => {
+              const marketValue = h.quantity * h.last_price;
+              const pnlPositive = h.pnl >= 0;
+              return (
+                <Card key={h.isin} className="mx-4 mb-2">
+                  <View className="flex-row items-center">
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-foreground">{h.tradingsymbol}</Text>
+                      <Text className="text-xs text-muted-foreground mt-0.5">
+                        {h.quantity} qty · avg ₹{h.average_price.toFixed(2)}
+                      </Text>
+                    </View>
+                    <View className="items-end">
+                      <Text className="text-sm font-bold text-foreground">
+                        {formatAmount(marketValue)}
+                      </Text>
+                      <Text
+                        className="text-xs mt-0.5"
+                        style={{ color: pnlPositive ? theme.success : theme.danger }}
+                      >
+                        {pnlPositive ? '+' : ''}{formatAmount(h.pnl)}
+                        {' '}({h.day_change_percentage >= 0 ? '+' : ''}{h.day_change_percentage.toFixed(2)}%)
+                      </Text>
+                    </View>
+                  </View>
+                </Card>
+              );
+            })}
+          </>
+        )}
+
+      </ScrollView>
+
+      {/* ── Account picker modal ── */}
+      <Modal visible={showAccountPicker} transparent animationType="slide">
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ backgroundColor: colors.background, borderRadius: 16, padding: 20, maxHeight: '70%' }}>
+            <Text className="text-base font-bold text-foreground mb-1">Link Demat Account</Text>
+            <Text className="text-xs text-muted-foreground mb-4">
+              Which account is your Zerodha demat? This is a one-time setup.
+            </Text>
+            <ScrollView>
+              {pickerAccounts.map((a) => (
+                <Pressable
+                  key={a.id}
+                  onPress={() => handlePickAccount(a.id)}
+                  className="py-3 border-b border-border flex-row items-center"
+                >
+                  <Ionicons name="trending-up-outline" size={16} color={colors.textSecondary} style={{ marginRight: 10 }} />
+                  <Text className="text-sm text-foreground flex-1">{a.label}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+                </Pressable>
+              ))}
+              {pickerAccounts.length === 0 && (
+                <Text className="text-sm text-muted-foreground text-center py-6">
+                  No demat accounts found. Add one from Account Master first.
+                </Text>
+              )}
+            </ScrollView>
+            <Pressable
+              onPress={() => setShowAccountPicker(false)}
+              className="mt-4 py-3 items-center"
+            >
+              <Text className="text-sm text-muted-foreground">Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
