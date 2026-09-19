@@ -469,6 +469,10 @@ export default function SettingsScreen() {
             <SettingsRow icon="list-outline" label="Audit Log" subtitle="See every action taken on detected and manual records" onPress={() => router.push("/settings/audit-log")} />
           </Card>
 
+          <Card title="Integrations" className="mb-4">
+            <SettingsRow icon="trending-up-outline" label="Zerodha Kite" subtitle="Connect your Zerodha account to sync portfolio" onPress={() => router.push("/settings/kite-connect")} />
+          </Card>
+
           <Card title="Backup & Storage" className="mb-4">
             <SettingsRow icon="cloud-upload-outline" label="Backup & Restore" subtitle="Create encrypted backups, restore data" onPress={() => router.push("/settings/backup-restore")} />
             <SettingsRow icon="trash-bin-outline" label="Recycle Bin" subtitle="Restore or permanently delete removed expenses" onPress={() => router.push("/settings/recycle-bin")} />
