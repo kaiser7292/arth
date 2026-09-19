@@ -8,12 +8,13 @@ const KITE_ACCESS_TOKEN  = 'kite_access_token';
 const KITE_USER_ID       = 'kite_user_id';
 const KITE_PUBLIC_TOKEN  = 'kite_public_token';
 
-const MMKV_LINKED_ACCOUNT  = 'kite_linked_account_id';
-const MMKV_TOKEN_EXPIRY    = 'kite_token_expiry';       // Unix ms of next 6 AM
-const MMKV_LAST_SYNCED     = 'kite_last_synced';        // ISO string
-const MMKV_HOLDINGS_CACHE  = 'kite_holdings_cache';     // JSON
-const MMKV_PORTFOLIO_TOTAL = 'kite_portfolio_total';    // number string
-const MMKV_FUNDS_TOTAL     = 'kite_funds_total';        // number string
+const MMKV_LINKED_ACCOUNT   = 'kite_linked_account_id';
+const MMKV_TOKEN_EXPIRY     = 'kite_token_expiry';        // Unix ms of next 6 AM
+const MMKV_LAST_SYNCED      = 'kite_last_synced';         // ISO string
+const MMKV_HOLDINGS_CACHE   = 'kite_holdings_cache';      // JSON — equity
+const MMKV_MF_HOLDINGS_CACHE = 'kite_mf_holdings_cache'; // JSON — mutual funds
+const MMKV_PORTFOLIO_TOTAL  = 'kite_portfolio_total';     // number string (equity + MF)
+const MMKV_FUNDS_TOTAL      = 'kite_funds_total';         // number string
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_KITE_BACKEND_URL ?? '';
 const KITE_API   = 'https://api.kite.trade';
@@ -44,10 +45,25 @@ export interface KiteHolding {
   day_change_percentage: number;
 }
 
+export interface KiteMFHolding {
+  folio: string | null;
+  fund: string;          // Full fund name
+  tradingsymbol: string; // ISIN
+  average_price: number; // Avg NAV
+  last_price: number;    // Current NAV
+  last_price_date: string;
+  quantity: number;      // Units held
+  pnl: number;
+  pledged_quantity: number;
+}
+
 export interface KiteSyncResult {
-  holdings: KiteHolding[];
-  portfolioTotal: number;  // sum of qty × last_price
-  fundsAvailable: number;  // equity cash margin
+  holdings: KiteHolding[];       // Equity
+  mfHoldings: KiteMFHolding[];   // Mutual funds
+  portfolioTotal: number;        // equity market value + MF market value
+  equityTotal: number;
+  mfTotal: number;
+  fundsAvailable: number;        // equity cash margin
   linkedAccountId: string;
   syncedAt: string;
 }
@@ -97,6 +113,7 @@ export async function clearKiteCredentials(): Promise<void> {
   settingsStorage.delete(MMKV_TOKEN_EXPIRY);
   settingsStorage.delete(MMKV_LAST_SYNCED);
   settingsStorage.delete(MMKV_HOLDINGS_CACHE);
+  settingsStorage.delete(MMKV_MF_HOLDINGS_CACHE);
   settingsStorage.delete(MMKV_PORTFOLIO_TOTAL);
   settingsStorage.delete(MMKV_FUNDS_TOTAL);
   settingsStorage.delete(MMKV_LINKED_ACCOUNT);
@@ -209,6 +226,12 @@ export function getCachedHoldings(): KiteHolding[] {
   try { return JSON.parse(raw); } catch { return []; }
 }
 
+export function getCachedMFHoldings(): KiteMFHolding[] {
+  const raw = settingsStorage.getString(MMKV_MF_HOLDINGS_CACHE);
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
 export function getCachedTotals(): { portfolio: number; funds: number } {
   return {
     portfolio: parseFloat(settingsStorage.getString(MMKV_PORTFOLIO_TOTAL) ?? '0') || 0,
@@ -254,10 +277,11 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
 
   const { apiKey, accessToken } = creds;
 
-  // Fetch profile + holdings + margins in parallel
-  const [profile, holdingsRaw, margins] = await Promise.all([
+  // Fetch profile + equity holdings + MF holdings + margins in parallel
+  const [profile, holdingsRaw, mfHoldingsRaw, margins] = await Promise.all([
     kiteGet<{ user_id: string }>('/user/profile', apiKey, accessToken),
     kiteGet<KiteHolding[]>('/portfolio/holdings', apiKey, accessToken),
+    kiteGet<KiteMFHolding[]>('/mf/holdings', apiKey, accessToken),
     kiteGet<{ equity: { available: { cash: number } } }>('/user/margins', apiKey, accessToken),
   ]);
 
@@ -272,22 +296,31 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
   }
 
   // Compute totals
-  const portfolioTotal = holdingsRaw.reduce(
+  const equityTotal = holdingsRaw.reduce(
     (sum, h) => sum + h.quantity * h.last_price,
     0,
   );
+  const mfTotal = mfHoldingsRaw.reduce(
+    (sum, h) => sum + h.quantity * h.last_price,
+    0,
+  );
+  const portfolioTotal = equityTotal + mfTotal;
   const fundsAvailable = margins.equity?.available?.cash ?? 0;
   const syncedAt = new Date().toISOString();
 
   // Cache in MMKV
-  settingsStorage.set(MMKV_HOLDINGS_CACHE,  JSON.stringify(holdingsRaw));
-  settingsStorage.set(MMKV_PORTFOLIO_TOTAL, portfolioTotal.toString());
-  settingsStorage.set(MMKV_FUNDS_TOTAL,     fundsAvailable.toString());
-  settingsStorage.set(MMKV_LAST_SYNCED,     syncedAt);
+  settingsStorage.set(MMKV_HOLDINGS_CACHE,    JSON.stringify(holdingsRaw));
+  settingsStorage.set(MMKV_MF_HOLDINGS_CACHE, JSON.stringify(mfHoldingsRaw));
+  settingsStorage.set(MMKV_PORTFOLIO_TOTAL,   portfolioTotal.toString());
+  settingsStorage.set(MMKV_FUNDS_TOTAL,       fundsAvailable.toString());
+  settingsStorage.set(MMKV_LAST_SYNCED,       syncedAt);
 
   return {
     holdings:        holdingsRaw,
+    mfHoldings:      mfHoldingsRaw,
     portfolioTotal,
+    equityTotal,
+    mfTotal,
     fundsAvailable,
     linkedAccountId,
     syncedAt,

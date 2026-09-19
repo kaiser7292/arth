@@ -16,6 +16,7 @@ import {
   clearKiteCredentials,
   exchangeRequestToken,
   getCachedHoldings,
+  getCachedMFHoldings,
   getCachedTotals,
   getDematAccountsForPicker,
   getKiteCredentials,
@@ -28,6 +29,7 @@ import {
   storeKiteAccessToken,
   syncKiteData,
   type KiteHolding,
+  type KiteMFHolding,
 } from '@/services/kite-connect';
 
 export default function KiteConnectScreen() {
@@ -48,13 +50,16 @@ export default function KiteConnectScreen() {
   const [pickerAccounts, setPickerAccounts]         = useState<{ id: string; label: string }[]>([]);
 
   // Sync state
-  const [syncing, setSyncing]           = useState(false);
-  const [savingSnapshot, setSavingSnapshot] = useState(false);
-  const [lastSynced, setLastSynced]     = useState<string | null>(null);
-  const [holdings, setHoldings]         = useState<KiteHolding[]>([]);
-  const [portfolioTotal, setPortfolioTotal] = useState(0);
-  const [fundsAvailable, setFundsAvailable] = useState(0);
-  const [hasCachedData, setHasCachedData]   = useState(false);
+  const [syncing, setSyncing]               = useState(false);
+  const [savingSnapshot, setSavingSnapshot]   = useState(false);
+  const [lastSynced, setLastSynced]           = useState<string | null>(null);
+  const [holdings, setHoldings]               = useState<KiteHolding[]>([]);
+  const [mfHoldings, setMFHoldings]           = useState<KiteMFHolding[]>([]);
+  const [portfolioTotal, setPortfolioTotal]   = useState(0);
+  const [equityTotal, setEquityTotal]         = useState(0);
+  const [mfTotal, setMFTotal]                 = useState(0);
+  const [fundsAvailable, setFundsAvailable]   = useState(0);
+  const [hasCachedData, setHasCachedData]     = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -66,12 +71,16 @@ export default function KiteConnectScreen() {
         const ls = getLastSynced();
         setLastSynced(ls);
         if (ls) {
-          const cached = getCachedHoldings();
-          const totals = getCachedTotals();
+          const cached   = getCachedHoldings();
+          const cachedMF = getCachedMFHoldings();
+          const totals   = getCachedTotals();
           setHoldings(cached);
+          setMFHoldings(cachedMF);
           setPortfolioTotal(totals.portfolio);
+          setEquityTotal(cached.reduce((s, h) => s + h.quantity * h.last_price, 0));
+          setMFTotal(cachedMF.reduce((s, h) => s + h.quantity * h.last_price, 0));
           setFundsAvailable(totals.funds);
-          setHasCachedData(cached.length > 0);
+          setHasCachedData(cached.length > 0 || cachedMF.length > 0);
         }
       }
     } finally {
@@ -175,7 +184,10 @@ export default function KiteConnectScreen() {
 
       setLinkedAccountIdState(result.linkedAccountId);
       setHoldings(result.holdings);
+      setMFHoldings(result.mfHoldings);
       setPortfolioTotal(result.portfolioTotal);
+      setEquityTotal(result.equityTotal);
+      setMFTotal(result.mfTotal);
       setFundsAvailable(result.fundsAvailable);
       setLastSynced(result.syncedAt);
       setHasCachedData(true);
@@ -354,7 +366,15 @@ export default function KiteConnectScreen() {
                 Portfolio Summary
               </Text>
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-muted-foreground">Holdings Value</Text>
+                <Text className="text-sm text-muted-foreground">Equity Holdings</Text>
+                <Text className="text-sm font-semibold text-foreground">{formatAmount(equityTotal)}</Text>
+              </View>
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-sm text-muted-foreground">Mutual Funds</Text>
+                <Text className="text-sm font-semibold text-foreground">{formatAmount(mfTotal)}</Text>
+              </View>
+              <View className="flex-row justify-between mb-2 pt-2 border-t border-border">
+                <Text className="text-sm font-semibold text-foreground">Portfolio Total</Text>
                 <Text className="text-sm font-bold" style={{ color: theme.success }}>
                   {formatAmount(portfolioTotal)}
                 </Text>
@@ -387,12 +407,14 @@ export default function KiteConnectScreen() {
               </View>
             </Card>
 
-            {/* Holdings list */}
-            <View className="mx-4 mb-2">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Holdings ({holdings.length})
-              </Text>
-            </View>
+            {/* Equity holdings list */}
+            {holdings.length > 0 && (
+              <View className="mx-4 mb-2 mt-1">
+                <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Equity Holdings ({holdings.length})
+                </Text>
+              </View>
+            )}
 
             {holdings.map((h) => {
               const marketValue = h.quantity * h.last_price;
@@ -416,6 +438,45 @@ export default function KiteConnectScreen() {
                       >
                         {pnlPositive ? '+' : ''}{formatAmount(h.pnl)}
                         {' '}({h.day_change_percentage >= 0 ? '+' : ''}{h.day_change_percentage.toFixed(2)}%)
+                      </Text>
+                    </View>
+                  </View>
+                </Card>
+              );
+            })}
+
+            {/* Mutual fund holdings list */}
+            {mfHoldings.length > 0 && (
+              <View className="mx-4 mb-2 mt-1">
+                <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Mutual Funds ({mfHoldings.length})
+                </Text>
+              </View>
+            )}
+
+            {mfHoldings.map((h) => {
+              const marketValue = h.quantity * h.last_price;
+              const pnlPositive = h.pnl >= 0;
+              return (
+                <Card key={h.tradingsymbol + (h.folio ?? '')} className="mx-4 mb-2">
+                  <View className="flex-row items-center">
+                    <View className="flex-1 mr-3">
+                      <Text className="text-sm font-semibold text-foreground" numberOfLines={2}>
+                        {h.fund}
+                      </Text>
+                      <Text className="text-xs text-muted-foreground mt-0.5">
+                        {h.quantity.toFixed(3)} units · NAV ₹{h.last_price.toFixed(2)}
+                      </Text>
+                    </View>
+                    <View className="items-end">
+                      <Text className="text-sm font-bold text-foreground">
+                        {formatAmount(marketValue)}
+                      </Text>
+                      <Text
+                        className="text-xs mt-0.5"
+                        style={{ color: pnlPositive ? theme.success : theme.danger }}
+                      >
+                        {pnlPositive ? '+' : ''}{formatAmount(h.pnl)}
                       </Text>
                     </View>
                   </View>
