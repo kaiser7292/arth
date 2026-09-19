@@ -63,6 +63,11 @@ export default function MilestonesScreen() {
   const [formDurationMonths, setFormDurationMonths] = useState("0");
   const [editingId, setEditingId] = useState<string | null>(null);
   const lastVersionRef = useRef<string | null>(null);
+  // The goals preload cache is NON-destructive and is filled once at app start, so
+  // `consumeGoalsPreload()` keeps handing back the same app-start snapshot forever.
+  // Honour it for the very first paint only; every later load must hit the DB, or a
+  // milestone created in this session never shows up until the app is restarted.
+  const preloadUsedRef = useRef(false);
 
   const loadData = useCallback(async () => {
     // Stamp includes what is being VIEWED, not just the data version. Version alone asks
@@ -72,11 +77,16 @@ export default function MilestonesScreen() {
     if (lastVersionRef.current === stamp) return;
     lastVersionRef.current = stamp;
     try {
-      const preload = consumeGoalsPreload();
-      const usePreload = preload && preload.fy === String(currentFY);
+      const preload = preloadUsedRef.current ? null : consumeGoalsPreload();
+      const usePreload = preload != null && preload.fy === String(currentFY);
+      if (usePreload) preloadUsedRef.current = true;
 
+      // This screen lists EVERY milestone (active + completed, all FYs), so it must
+      // always use getLifeMilestones. preload.fyMilestones is getMilestonesForFY --
+      // filtered to is_completed = 0 AND the current FY's plan window -- and using it
+      // here silently hid every milestone outside the current FY.
       const [data, cd] = await Promise.all([
-        usePreload ? Promise.resolve(preload.fyMilestones) : getLifeMilestones(DEFAULT_USER_ID),
+        getLifeMilestones(DEFAULT_USER_ID),
         usePreload ? Promise.resolve(preload.cockpit) : getFinancialCockpit(DEFAULT_USER_ID, String(currentFY)),
       ]);
       setMilestones(data);

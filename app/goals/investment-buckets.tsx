@@ -58,6 +58,10 @@ export default function InvestmentBucketsScreen() {
 
   const [cockpit, setCockpit] = useState<FinancialCockpitData | null>(null);
   const lastVersionRef = useRef<string | null>(null);
+  // The goals preload cache is NON-destructive and is filled once at app start, so
+  // `consumeGoalsPreload()` keeps handing back the same app-start snapshot forever.
+  // Honour it for the very first paint only; every later load must hit the DB.
+  const preloadUsedRef = useRef(false);
 
   // Copy-forward state
   const [prevYearBuckets, setPrevYearBuckets] = useState<InvestmentBucket[]>([]);
@@ -81,12 +85,16 @@ export default function InvestmentBucketsScreen() {
     lastVersionRef.current = stamp;
     try {
       // Use preloaded data on first open (current FY only), then fall back to live fetch.
-      const preload = consumeGoalsPreload();
-      const usePreload = preload && preload.fy === fyStr;
+      const preload = preloadUsedRef.current ? null : consumeGoalsPreload();
+      const usePreload = preload != null && preload.fy === fyStr;
+      if (usePreload) preloadUsedRef.current = true;
 
+      // Bucket linking needs the FULL milestone list, so always use getLifeMilestones.
+      // preload.fyMilestones is getMilestonesForFY -- filtered to is_completed = 0 AND
+      // the current FY's plan window -- which hid milestones outside the current FY.
       const [p, ms, cd] = await Promise.all([
         getYearlyPlanByFY(DEFAULT_USER_ID, fyStr),
-        usePreload ? Promise.resolve(preload.fyMilestones) : getLifeMilestones(DEFAULT_USER_ID),
+        getLifeMilestones(DEFAULT_USER_ID),
         usePreload ? Promise.resolve(preload.cockpit) : getFinancialCockpit(DEFAULT_USER_ID, fyStr),
       ]);
       setPlan(p);
