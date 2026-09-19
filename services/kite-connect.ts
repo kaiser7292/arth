@@ -8,13 +8,17 @@ const KITE_ACCESS_TOKEN  = 'kite_access_token';
 const KITE_USER_ID       = 'kite_user_id';
 const KITE_PUBLIC_TOKEN  = 'kite_public_token';
 
-const MMKV_LINKED_ACCOUNT   = 'kite_linked_account_id';
-const MMKV_TOKEN_EXPIRY     = 'kite_token_expiry';        // Unix ms of next 6 AM
-const MMKV_LAST_SYNCED      = 'kite_last_synced';         // ISO string
-const MMKV_HOLDINGS_CACHE   = 'kite_holdings_cache';      // JSON — equity
-const MMKV_MF_HOLDINGS_CACHE = 'kite_mf_holdings_cache'; // JSON — mutual funds
-const MMKV_PORTFOLIO_TOTAL  = 'kite_portfolio_total';     // number string (equity + MF)
-const MMKV_FUNDS_TOTAL      = 'kite_funds_total';         // number string
+const MMKV_LINKED_ACCOUNT    = 'kite_linked_account_id';
+const MMKV_TOKEN_EXPIRY      = 'kite_token_expiry';        // Unix ms of next 6 AM
+const MMKV_LAST_SYNCED       = 'kite_last_synced';         // ISO string
+const MMKV_HOLDINGS_CACHE    = 'kite_holdings_cache';      // JSON — equity
+const MMKV_MF_HOLDINGS_CACHE = 'kite_mf_holdings_cache';  // JSON — mutual funds
+const MMKV_PORTFOLIO_TOTAL   = 'kite_portfolio_total';     // number string (equity + MF)
+const MMKV_FUNDS_TOTAL       = 'kite_funds_total';         // number string
+const MMKV_POSITIONS_CACHE   = 'kite_positions_cache';     // JSON — net positions
+const MMKV_SIPS_CACHE        = 'kite_sips_cache';          // JSON — active SIPs
+const MMKV_ORDERS_CACHE      = 'kite_orders_cache';        // JSON — recent equity orders
+const MMKV_MF_ORDERS_CACHE   = 'kite_mf_orders_cache';    // JSON — recent MF orders
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_KITE_BACKEND_URL ?? '';
 const KITE_API   = 'https://api.kite.trade';
@@ -59,9 +63,67 @@ export interface KiteMFHolding {
   pledged_quantity: number;
 }
 
+export interface KitePosition {
+  tradingsymbol: string;
+  exchange: string;
+  product: string;
+  quantity: number;           // net qty; negative = short
+  buy_quantity: number;
+  sell_quantity: number;
+  average_price: number;
+  last_price: number;
+  pnl: number;
+  day_change_percentage: number;
+}
+
+export interface KiteSIP {
+  sip_id: string;
+  fund: string;
+  tradingsymbol: string;
+  status: string;             // 'active' | 'paused' | 'cancelled'
+  frequency: string;          // 'monthly' | 'weekly' etc.
+  instalment_amount: number;
+  instalments_remaining: number;
+  next_instalment: string;    // YYYY-MM-DD
+  instalment_day: number;
+}
+
+export interface KiteOrder {
+  order_id: string;
+  tradingsymbol: string;
+  exchange: string;
+  transaction_type: string;   // 'BUY' | 'SELL'
+  order_type: string;         // 'MARKET' | 'LIMIT'
+  product: string;
+  quantity: number;
+  price: number;
+  average_price: number;
+  filled_quantity: number;
+  status: string;             // 'COMPLETE' | 'REJECTED' | 'CANCELLED' | 'OPEN' etc.
+  order_timestamp: string;
+}
+
+export interface KiteMFOrder {
+  order_id: string;
+  fund: string;
+  tradingsymbol: string;
+  status: string;             // 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
+  order_type: string;         // 'BUY' | 'SELL'
+  amount: number;
+  quantity: number;
+  price: number;              // NAV at order time
+  order_timestamp: string;
+  folio: string | null;
+  last_price: number;
+}
+
 export interface KiteSyncResult {
   holdings: KiteHolding[];       // Equity
   mfHoldings: KiteMFHolding[];   // Mutual funds
+  positions: KitePosition[];     // Net open positions
+  sips: KiteSIP[];               // Active SIPs
+  orders: KiteOrder[];           // Recent equity orders
+  mfOrders: KiteMFOrder[];       // Recent MF orders
   portfolioTotal: number;        // equity market value + MF market value
   equityTotal: number;
   mfTotal: number;
@@ -118,6 +180,10 @@ export async function clearKiteCredentials(): Promise<void> {
   settingsStorage.delete(MMKV_MF_HOLDINGS_CACHE);
   settingsStorage.delete(MMKV_PORTFOLIO_TOTAL);
   settingsStorage.delete(MMKV_FUNDS_TOTAL);
+  settingsStorage.delete(MMKV_POSITIONS_CACHE);
+  settingsStorage.delete(MMKV_SIPS_CACHE);
+  settingsStorage.delete(MMKV_ORDERS_CACHE);
+  settingsStorage.delete(MMKV_MF_ORDERS_CACHE);
   settingsStorage.delete(MMKV_LINKED_ACCOUNT);
 }
 
@@ -241,6 +307,30 @@ export function getCachedTotals(): { portfolio: number; funds: number } {
   };
 }
 
+export function getCachedPositions(): KitePosition[] {
+  const raw = settingsStorage.getString(MMKV_POSITIONS_CACHE);
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+export function getCachedSIPs(): KiteSIP[] {
+  const raw = settingsStorage.getString(MMKV_SIPS_CACHE);
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+export function getCachedOrders(): KiteOrder[] {
+  const raw = settingsStorage.getString(MMKV_ORDERS_CACHE);
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+export function getCachedMFOrders(): KiteMFOrder[] {
+  const raw = settingsStorage.getString(MMKV_MF_ORDERS_CACHE);
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
 // ── Kite API calls ──────────────────────────────────────────────────────────
 
 function kiteHeaders(apiKey: string, accessToken: string): Record<string, string> {
@@ -279,12 +369,25 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
 
   const { apiKey, accessToken } = creds;
 
-  // Fetch profile + equity holdings + MF holdings + margins in parallel
-  const [profile, holdingsRaw, mfHoldingsRaw, margins] = await Promise.all([
+  // Fetch all endpoints in parallel
+  const [
+    profile,
+    holdingsRaw,
+    mfHoldingsRaw,
+    margins,
+    positionsRaw,
+    sipsRaw,
+    ordersRaw,
+    mfOrdersRaw,
+  ] = await Promise.all([
     kiteGet<{ user_id: string }>('/user/profile', apiKey, accessToken),
     kiteGet<KiteHolding[]>('/portfolio/holdings', apiKey, accessToken),
     kiteGet<KiteMFHolding[]>('/mf/holdings', apiKey, accessToken),
     kiteGet<{ equity: { available: { cash: number } } }>('/user/margins', apiKey, accessToken),
+    kiteGet<{ net: KitePosition[]; day: KitePosition[] }>('/portfolio/positions', apiKey, accessToken),
+    kiteGet<KiteSIP[]>('/mf/sips', apiKey, accessToken),
+    kiteGet<KiteOrder[]>('/orders', apiKey, accessToken),
+    kiteGet<KiteMFOrder[]>('/mf/orders', apiKey, accessToken),
   ]);
 
   // Resolve linked account
@@ -310,16 +413,34 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
   const fundsAvailable = margins.equity?.available?.cash ?? 0;
   const syncedAt = new Date().toISOString();
 
+  // Keep only net positions with non-zero quantity and active SIPs
+  const positions = (positionsRaw.net ?? []).filter((p) => p.quantity !== 0);
+  const sips = (sipsRaw ?? []).filter((s) => s.status === 'active');
+
+  // Orders — most recent 20, sorted newest first
+  const sortByTime = (a: { order_timestamp: string }, b: { order_timestamp: string }) =>
+    new Date(b.order_timestamp).getTime() - new Date(a.order_timestamp).getTime();
+  const orders   = [...(ordersRaw   ?? [])].sort(sortByTime).slice(0, 20);
+  const mfOrders = [...(mfOrdersRaw ?? [])].sort(sortByTime).slice(0, 20);
+
   // Cache in MMKV
   settingsStorage.set(MMKV_HOLDINGS_CACHE,    JSON.stringify(holdingsRaw));
   settingsStorage.set(MMKV_MF_HOLDINGS_CACHE, JSON.stringify(mfHoldingsRaw));
   settingsStorage.set(MMKV_PORTFOLIO_TOTAL,   portfolioTotal.toString());
   settingsStorage.set(MMKV_FUNDS_TOTAL,       fundsAvailable.toString());
+  settingsStorage.set(MMKV_POSITIONS_CACHE,   JSON.stringify(positions));
+  settingsStorage.set(MMKV_SIPS_CACHE,        JSON.stringify(sips));
+  settingsStorage.set(MMKV_ORDERS_CACHE,      JSON.stringify(orders));
+  settingsStorage.set(MMKV_MF_ORDERS_CACHE,   JSON.stringify(mfOrders));
   settingsStorage.set(MMKV_LAST_SYNCED,       syncedAt);
 
   return {
     holdings:        holdingsRaw,
     mfHoldings:      mfHoldingsRaw,
+    positions,
+    sips,
+    orders,
+    mfOrders,
     portfolioTotal,
     equityTotal,
     mfTotal,

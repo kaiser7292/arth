@@ -17,6 +17,10 @@ import {
   exchangeRequestToken,
   getCachedHoldings,
   getCachedMFHoldings,
+  getCachedMFOrders,
+  getCachedOrders,
+  getCachedPositions,
+  getCachedSIPs,
   getCachedTotals,
   getDematAccountsForPicker,
   getKiteCredentials,
@@ -30,6 +34,10 @@ import {
   syncKiteData,
   type KiteHolding,
   type KiteMFHolding,
+  type KiteOrder,
+  type KiteMFOrder,
+  type KitePosition,
+  type KiteSIP,
 } from '@/services/kite-connect';
 
 export default function KiteConnectScreen() {
@@ -55,6 +63,10 @@ export default function KiteConnectScreen() {
   const [lastSynced, setLastSynced]           = useState<string | null>(null);
   const [holdings, setHoldings]               = useState<KiteHolding[]>([]);
   const [mfHoldings, setMFHoldings]           = useState<KiteMFHolding[]>([]);
+  const [positions, setPositions]             = useState<KitePosition[]>([]);
+  const [sips, setSIPs]                       = useState<KiteSIP[]>([]);
+  const [orders, setOrders]                   = useState<KiteOrder[]>([]);
+  const [mfOrders, setMFOrders]               = useState<KiteMFOrder[]>([]);
   const [portfolioTotal, setPortfolioTotal]   = useState(0);
   const [equityTotal, setEquityTotal]         = useState(0);
   const [mfTotal, setMFTotal]                 = useState(0);
@@ -76,6 +88,10 @@ export default function KiteConnectScreen() {
           const totals   = getCachedTotals();
           setHoldings(cached);
           setMFHoldings(cachedMF);
+          setPositions(getCachedPositions());
+          setSIPs(getCachedSIPs());
+          setOrders(getCachedOrders());
+          setMFOrders(getCachedMFOrders());
           setPortfolioTotal(totals.portfolio);
           setEquityTotal(cached.reduce((s, h) => s + (h.quantity + (h.t1_quantity ?? 0)) * h.last_price, 0));
           setMFTotal(cachedMF.reduce((s, h) => s + h.quantity * h.last_price, 0));
@@ -128,7 +144,14 @@ export default function KiteConnectScreen() {
             setTokenExpired(false);
             setLinkedAccountIdState(null);
             setHoldings([]);
+            setMFHoldings([]);
+            setPositions([]);
+            setSIPs([]);
+            setOrders([]);
+            setMFOrders([]);
             setPortfolioTotal(0);
+            setEquityTotal(0);
+            setMFTotal(0);
             setFundsAvailable(0);
             setLastSynced(null);
             setHasCachedData(false);
@@ -185,6 +208,10 @@ export default function KiteConnectScreen() {
       setLinkedAccountIdState(result.linkedAccountId);
       setHoldings(result.holdings);
       setMFHoldings(result.mfHoldings);
+      setPositions(result.positions);
+      setSIPs(result.sips);
+      setOrders(result.orders);
+      setMFOrders(result.mfOrders);
       setPortfolioTotal(result.portfolioTotal);
       setEquityTotal(result.equityTotal);
       setMFTotal(result.mfTotal);
@@ -484,6 +511,184 @@ export default function KiteConnectScreen() {
                 </Card>
               );
             })}
+
+            {/* Open positions */}
+            {positions.length > 0 && (
+              <>
+                <View className="mx-4 mb-2 mt-3">
+                  <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Open Positions ({positions.length})
+                  </Text>
+                </View>
+                {positions.map((p) => {
+                  const pnlPositive = p.pnl >= 0;
+                  const isShort = p.quantity < 0;
+                  return (
+                    <Card key={`${p.tradingsymbol}-${p.product}`} className="mx-4 mb-2">
+                      <View className="flex-row items-center">
+                        <View className="flex-1">
+                          <View className="flex-row items-center">
+                            <Text className="text-sm font-semibold text-foreground mr-2">{p.tradingsymbol}</Text>
+                            <View
+                              className="rounded px-1.5 py-0.5"
+                              style={{ backgroundColor: theme.alpha(isShort ? 'danger' : 'success', 0.12) }}
+                            >
+                              <Text className="text-xs font-semibold" style={{ color: isShort ? theme.danger : theme.success }}>
+                                {isShort ? 'SHORT' : 'LONG'}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text className="text-xs text-muted-foreground mt-0.5">
+                            {Math.abs(p.quantity)} qty · avg ₹{p.average_price.toFixed(2)} · {p.product}
+                          </Text>
+                        </View>
+                        <View className="items-end">
+                          <Text className="text-sm font-bold text-foreground">
+                            ₹{p.last_price.toFixed(2)}
+                          </Text>
+                          <Text
+                            className="text-xs mt-0.5"
+                            style={{ color: pnlPositive ? theme.success : theme.danger }}
+                          >
+                            {pnlPositive ? '+' : ''}{formatAmount(p.pnl)}
+                          </Text>
+                        </View>
+                      </View>
+                    </Card>
+                  );
+                })}
+              </>
+            )}
+
+            {/* Active SIPs */}
+            {sips.length > 0 && (
+              <>
+                <View className="mx-4 mb-2 mt-3">
+                  <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Active SIPs ({sips.length})
+                  </Text>
+                </View>
+                {sips.map((s) => (
+                  <Card key={s.sip_id} className="mx-4 mb-2">
+                    <View className="flex-row items-center">
+                      <View className="flex-1 mr-3">
+                        <Text className="text-sm font-semibold text-foreground" numberOfLines={2}>{s.fund}</Text>
+                        <Text className="text-xs text-muted-foreground mt-0.5">
+                          {s.frequency.charAt(0).toUpperCase() + s.frequency.slice(1)} · Day {s.instalment_day}
+                          {s.instalments_remaining > 0 ? ` · ${s.instalments_remaining} left` : ''}
+                        </Text>
+                      </View>
+                      <View className="items-end">
+                        <Text className="text-sm font-bold text-foreground">{formatAmount(s.instalment_amount)}</Text>
+                        {s.next_instalment ? (
+                          <Text className="text-xs text-muted-foreground mt-0.5">
+                            Next: {new Date(s.next_instalment).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  </Card>
+                ))}
+              </>
+            )}
+
+            {/* Recent equity orders */}
+            {orders.length > 0 && (
+              <>
+                <View className="mx-4 mb-2 mt-3">
+                  <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Recent Equity Orders
+                  </Text>
+                </View>
+                {orders.map((o) => {
+                  const isBuy = o.transaction_type === 'BUY';
+                  const isComplete = o.status === 'COMPLETE';
+                  const isRejected = o.status === 'REJECTED' || o.status === 'CANCELLED';
+                  const statusColor = isComplete ? theme.success : isRejected ? theme.danger : colors.textSecondary;
+                  return (
+                    <Card key={o.order_id} className="mx-4 mb-2">
+                      <View className="flex-row items-center">
+                        <View className="flex-1">
+                          <View className="flex-row items-center">
+                            <Text className="text-sm font-semibold text-foreground mr-2">{o.tradingsymbol}</Text>
+                            <View
+                              className="rounded px-1.5 py-0.5"
+                              style={{ backgroundColor: theme.alpha(isBuy ? 'success' : 'danger', 0.12) }}
+                            >
+                              <Text className="text-xs font-semibold" style={{ color: isBuy ? theme.success : theme.danger }}>
+                                {o.transaction_type}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text className="text-xs text-muted-foreground mt-0.5">
+                            {o.quantity} qty · {o.order_type}
+                            {o.average_price > 0 ? ` · avg ₹${o.average_price.toFixed(2)}` : o.price > 0 ? ` · ₹${o.price.toFixed(2)}` : ''}
+                          </Text>
+                        </View>
+                        <View className="items-end">
+                          <Text className="text-xs font-semibold" style={{ color: statusColor }}>
+                            {o.status}
+                          </Text>
+                          <Text className="text-xs text-muted-foreground mt-0.5">
+                            {new Date(o.order_timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </Text>
+                        </View>
+                      </View>
+                    </Card>
+                  );
+                })}
+              </>
+            )}
+
+            {/* Recent MF orders */}
+            {mfOrders.length > 0 && (
+              <>
+                <View className="mx-4 mb-2 mt-3">
+                  <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Recent MF Orders
+                  </Text>
+                </View>
+                {mfOrders.map((o) => {
+                  const isBuy = o.order_type === 'BUY';
+                  const isConfirmed = o.status === 'CONFIRMED';
+                  const isRejected = o.status === 'REJECTED' || o.status === 'CANCELLED';
+                  const statusColor = isConfirmed ? theme.success : isRejected ? theme.danger : colors.textSecondary;
+                  return (
+                    <Card key={o.order_id} className="mx-4 mb-2">
+                      <View className="flex-row items-center">
+                        <View className="flex-1 mr-3">
+                          <View className="flex-row items-center flex-wrap">
+                            <Text className="text-sm font-semibold text-foreground mr-2" numberOfLines={1} style={{ flex: 1 }}>
+                              {o.fund}
+                            </Text>
+                            <View
+                              className="rounded px-1.5 py-0.5"
+                              style={{ backgroundColor: theme.alpha(isBuy ? 'success' : 'danger', 0.12) }}
+                            >
+                              <Text className="text-xs font-semibold" style={{ color: isBuy ? theme.success : theme.danger }}>
+                                {o.order_type}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text className="text-xs text-muted-foreground mt-0.5">
+                            {o.amount > 0 ? `₹${formatAmount(o.amount)}` : `${o.quantity?.toFixed(3)} units`}
+                            {o.price > 0 ? ` · NAV ₹${o.price.toFixed(4)}` : ''}
+                          </Text>
+                        </View>
+                        <View className="items-end">
+                          <Text className="text-xs font-semibold" style={{ color: statusColor }}>
+                            {o.status}
+                          </Text>
+                          <Text className="text-xs text-muted-foreground mt-0.5">
+                            {new Date(o.order_timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </Text>
+                        </View>
+                      </View>
+                    </Card>
+                  );
+                })}
+              </>
+            )}
           </>
         )}
 
