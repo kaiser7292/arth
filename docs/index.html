@@ -76,7 +76,7 @@ a:hover{text-decoration:underline}
 nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding-block:11px;transition:box-shadow .2s}
 .nav-r{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0}
-.logo-m{width:34px;height:34px;border-radius:9px;background:var(--brand);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;flex-shrink:0}
+.logo-m{width:34px;height:34px;border-radius:9px;flex-shrink:0;object-fit:cover}
 .logo-n{font-family:'Outfit',sans-serif;font-weight:700;font-size:1.05rem;color:var(--text);letter-spacing:-.01em}
 .nav-links{display:flex;align-items:center;gap:6px}
 .nav-link{font-size:.855rem;font-weight:500;color:var(--muted);padding:6px 10px;border-radius:7px;text-decoration:none;transition:color .15s,background .15s}
@@ -164,34 +164,6 @@ nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(
 .btn-inv:hover{text-decoration:none}
 .ios-note{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:7px 16px;font-size:.8rem;color:rgba(255,255,255,.65);margin-top:4px}
 
-/* ── Contact form ─────────────────────────────────────── */
-.contact-s{background:var(--bg);padding-block:56px}
-.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
-.contact-info{padding-top:4px}
-.contact-item{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px}
-.contact-icon{width:38px;height:38px;border-radius:10px;background:var(--brand-ghost);display:flex;align-items:center;justify-content:center;color:var(--brand);flex-shrink:0;margin-top:2px}
-.contact-item-title{font-family:'Outfit',sans-serif;font-size:.9rem;font-weight:600;color:var(--text);margin-bottom:3px}
-.contact-item-val{font-size:.855rem;color:var(--muted);line-height:1.6}
-.contact-item-val a{color:var(--brand)}
-.contact-item-val a:hover{text-decoration:underline}
-
-.cf{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px}
-.cf label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
-.cf input,.cf select,.cf textarea{
-  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
-  padding:9px 13px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--text);
-  outline:none;transition:border-color .15s;
-}
-.cf input:focus,.cf select:focus,.cf textarea:focus{border-color:var(--brand)}
-.cf textarea{resize:vertical;min-height:100px;line-height:1.6}
-.cf .field{margin-bottom:14px}
-.cf-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.cf-submit{width:100%;background:var(--brand);color:#fff;border:none;border-radius:8px;padding:11px 20px;font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .15s;margin-top:4px}
-.cf-submit:hover{background:var(--brand-dim)}
-.cf-thanks{display:none;text-align:center;padding:20px 0}
-.cf-thanks svg{color:var(--brand);margin-bottom:10px}
-.cf-thanks h3{font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:6px}
-.cf-thanks p{font-size:.875rem;color:var(--muted)}
 
 
 /* ── Footer ─────────────────────────────────────────────── */
@@ -226,13 +198,13 @@ footer{background:var(--dark-bg);padding-block:24px}
 <nav id="main-nav">
   <div class="w nav-r">
     <a href="#" class="logo">
-      <div class="logo-m">अ</div>
+      <img src="/favicon.png" alt="Arth" class="logo-m">
       <span class="logo-n">Arth</span>
     </a>
     <div class="nav-links">
       <a href="#features" class="nav-link">Features</a>
       <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener" class="nav-link">GitHub</a>
-      <a href="#contact" class="nav-link">Contact</a>
+      <a href="/contact" class="nav-link">Contact</a>
     </div>
     <a href="https://github.com/kaiser7292/artha/releases/latest/download/app-arm64-v8a-release.apk" target="_blank" rel="noopener" class="btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V8M8 12l4 4 4-4"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
@@ -484,93 +456,12 @@ footer{background:var(--dark-bg);padding-block:24px}
   </div>
 </section>
 
-<!-- CONTACT -->
-<section class="contact-s" id="contact">
-  <div class="w">
-    <div class="contact-grid">
-      <div class="contact-info">
-        <div class="sec-lbl reveal">Get in touch</div>
-        <h2 class="sec-h reveal reveal-d1" style="margin-bottom:12px">We'd love to hear from you.</h2>
-        <p class="reveal reveal-d2" style="color:var(--muted);font-size:.95rem;line-height:1.75;margin-bottom:28px">Questions about the app, feature requests, bug reports, or interested in partnering on iOS? Reach out anytime.</p>
-
-        <div class="contact-item reveal reveal-d1">
-          <div class="contact-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          </div>
-          <div>
-            <div class="contact-item-title">Email</div>
-            <div class="contact-item-val"><a href="mailto:souravbaid270@gmail.com">souravbaid270@gmail.com</a></div>
-          </div>
-        </div>
-
-        <div class="contact-item reveal reveal-d2">
-          <div class="contact-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
-          </div>
-          <div>
-            <div class="contact-item-title">GitHub</div>
-            <div class="contact-item-val"><a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener">github.com/kaiser7292/artha</a></div>
-          </div>
-        </div>
-
-        <div class="contact-item reveal reveal-d3">
-          <div class="contact-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          </div>
-          <div>
-            <div class="contact-item-title">iOS Partnership</div>
-            <div class="contact-item-val">Interested in bringing Arth to iPhone? We're actively looking for the right partner. Drop us a line.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="reveal reveal-d2">
-        <div class="cf" id="contact-form-wrap">
-          <div id="cf-form-inner">
-            <div class="cf-row">
-              <div class="field">
-                <label for="cf-name">Name</label>
-                <input id="cf-name" type="text" placeholder="Your name" autocomplete="name">
-              </div>
-              <div class="field">
-                <label for="cf-email">Email</label>
-                <input id="cf-email" type="email" placeholder="you@example.com" autocomplete="email">
-              </div>
-            </div>
-            <div class="field">
-              <label for="cf-subject">Subject</label>
-              <select id="cf-subject">
-                <option value="">Select a topic…</option>
-                <option value="Bug report">Bug report</option>
-                <option value="Feature request">Feature request</option>
-                <option value="iOS partnership">iOS partnership</option>
-                <option value="General question">General question</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="cf-message">Message</label>
-              <textarea id="cf-message" placeholder="Tell us what's on your mind…"></textarea>
-            </div>
-            <button class="cf-submit" onclick="submitForm()">Send Message</button>
-          </div>
-          <div class="cf-thanks" id="cf-thanks">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:block;margin:0 auto 10px"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <h3>Message sent!</h3>
-            <p>Your email client should open with your message pre-filled. We'll get back to you soon.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- FOOTER -->
 <footer>
   <div class="w">
     <div class="ft">
       <div class="ft-br">
-        <div class="logo-m">अ</div>
+        <img src="/favicon.png" alt="Arth" class="logo-m">
         <div>
           <div class="ft-n">Arth</div>
           <div class="ft-t">Your finances. Your phone.</div>
@@ -581,7 +472,7 @@ footer{background:var(--dark-bg);padding-block:24px}
         <a href="/legal#privacy">Privacy Policy</a>
         <a href="/legal#terms">Terms of Use</a>
         <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener">GitHub</a>
-        <a href="#contact">Contact</a>
+        <a href="/contact">Contact</a>
       </div>
     </div>
     <p class="ft-cp">© 2026 Sourav Baid · Arth is a personal project and is not affiliated with any financial institution.</p>

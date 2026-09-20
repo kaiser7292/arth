@@ -47,7 +47,7 @@ a:hover{text-decoration:underline}
 nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding-block:11px}
 .nav-r{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0}
-.logo-m{width:34px;height:34px;border-radius:9px;background:var(--brand);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:#fff;flex-shrink:0}
+.logo-m{width:34px;height:34px;border-radius:9px;flex-shrink:0;object-fit:cover}
 .logo-n{font-family:'Outfit',sans-serif;font-weight:700;font-size:1.05rem;color:var(--text);letter-spacing:-.01em}
 .back-link{display:inline-flex;align-items:center;gap:6px;font-size:.855rem;font-weight:500;color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:7px;transition:color .15s,background .15s}
 .back-link:hover{color:var(--brand);background:var(--brand-ghost);text-decoration:none}
@@ -92,7 +92,7 @@ footer{background:var(--dark-bg);padding-block:24px}
   <div class="w" style="max-width:1080px">
     <div class="nav-r">
       <a href="/" class="logo">
-        <div class="logo-m">अ</div>
+        <img src="/favicon.png" alt="Arth" class="logo-m">
         <span class="logo-n">Arth</span>
       </a>
       <a href="/" class="back-link">
@@ -170,7 +170,7 @@ footer{background:var(--dark-bg);padding-block:24px}
   <div class="w" style="max-width:1080px">
     <div class="ft">
       <div class="ft-br">
-        <div class="logo-m">अ</div>
+        <img src="/favicon.png" alt="Arth" class="logo-m">
         <div>
           <div class="ft-n">Arth</div>
           <div class="ft-t">Your finances. Your phone.</div>
