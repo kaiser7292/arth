@@ -1,4 +1,4 @@
-import { Card, FilterChip, ScreenContainer, Text } from "@/components/ui";
+import { FilterChip, ScreenContainer, Text } from "@/components/ui";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -17,6 +17,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, SectionList, TextInput, View } from "react-native";
 import { useTheme, type Theme } from "@/hooks/use-theme";
+import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
 
 /**
  * Settings → Automation → Audit Log (v15.12.1 new).
@@ -182,6 +183,10 @@ function objectIcon(o: AuditObjectType): keyof typeof import("@expo/vector-icons
   }
 }
 
+/** The section title groupEntriesByDate gives the current day. Shared so the
+ *  "open this drawer by default" test can never drift from the label itself. */
+const TODAY_SECTION_TITLE = "Today";
+
 type EntrySection = { title: string; data: AuditLogEntry[] };
 
 function groupEntriesByDate(entries: AuditLogEntry[]): EntrySection[] {
@@ -198,7 +203,7 @@ function groupEntriesByDate(entries: AuditLogEntry[]): EntrySection[] {
   function sectionTitle(dateStr: string): string {
     const d = new Date(dateStr + "T00:00:00");
     d.setHours(0, 0, 0, 0);
-    if (d.getTime() === today.getTime()) return "Today";
+    if (d.getTime() === today.getTime()) return TODAY_SECTION_TITLE;
     if (d.getTime() === yesterday.getTime()) return "Yesterday";
     if (d >= weekAgo) return WEEKDAYS[d.getDay()];
     return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -227,15 +232,27 @@ export default function AuditLogScreen() {
   const [actions, setActions] = useState<Set<AuditActionType>>(new Set());
   const [searchRaw, setSearchRaw] = useState("");
   const search = useDebouncedValue(searchRaw, 300);
-  const [expanded, setExpanded] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const allSections = groupEntriesByDate(entries);
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  // Only today's drawer is open to begin with; every older day starts closed.
+  // Tracking which sections the user TOGGLED (rather than which are collapsed)
+  // means a tap flips that day away from its default and stays flipped across
+  // reloads -- filtering or searching no longer slams open drawers shut again.
+  const [toggledSections, setToggledSections] = useState<Set<string>>(new Set());
+
+  const isSectionCollapsed = useCallback(
+    (title: string) => {
+      const collapsedByDefault = title !== TODAY_SECTION_TITLE;
+      return toggledSections.has(title) ? !collapsedByDefault : collapsedByDefault;
+    },
+    [toggledSections],
+  );
 
   const toggleSection = useCallback((title: string) => {
-    setCollapsedSections((prev) => {
+    setToggledSections((prev) => {
       const next = new Set(prev);
       if (next.has(title)) next.delete(title);
       else next.add(title);
@@ -244,7 +261,7 @@ export default function AuditLogScreen() {
   }, []);
 
   const sections = allSections.map((s) =>
-    collapsedSections.has(s.title) ? { ...s, data: [] } : s,
+    isSectionCollapsed(s.title) ? { ...s, data: [] } : s,
   );
 
   const load = useCallback(async () => {
@@ -292,7 +309,10 @@ export default function AuditLogScreen() {
     setSearchRaw("");
   }, []);
 
-  const hasFilters = sources.size > 0 || objects.size > 0 || actions.size > 0 || searchRaw.trim().length > 0;
+  // The funnel and the inline chip row describe only what lives BEHIND the funnel.
+  // Search has its own always-visible box, so it must not light the funnel up.
+  const hasChipFilters = sources.size > 0 || objects.size > 0 || actions.size > 0;
+  const hasFilters = hasChipFilters || searchRaw.trim().length > 0;
 
   const handleOpen = useCallback(
     (entry: AuditLogEntry) => {
@@ -411,121 +431,115 @@ export default function AuditLogScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      {/* Header card with filters */}
-      <View className="mx-4 mt-3">
-        <Card>
-          {/* Date scope row */}
-          <View className="flex-row flex-wrap gap-2 mb-3">
-            {DATE_SCOPES.map((o) => (
-              <FilterChip
-                key={o.key}
-                label={o.label}
-                active={scope === o.key}
-                onPress={() => setScope(o.key)}
-              />
-            ))}
-          </View>
-
-          {/* Search */}
-          <View className="flex-row items-center border border-border rounded-lg px-3 py-2 mb-2">
-            <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
-            <TextInput
-              value={searchRaw}
-              onChangeText={setSearchRaw}
-              placeholder="Search merchant, description, account…"
-              placeholderTextColor={colors.textSecondary}
-              className="flex-1 ml-2 text-sm"
-              style={{ color: colors.text }}
-            />
-            {searchRaw ? (
-              <Pressable onPress={() => setSearchRaw("")} hitSlop={8} accessibilityLabel="Clear search">
-                <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
-              </Pressable>
-            ) : null}
-          </View>
-
-          {/* Filter toggle */}
+      {/* Search row + funnel - mirrors the Transactions tab, where the date scope
+          stays a top-level control and every other filter lives behind the funnel. */}
+      <View className="px-4 pt-3 pb-2">
+        <View className="flex-row items-center border border-border rounded-lg px-3 py-2">
+          <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
+          <TextInput
+            value={searchRaw}
+            onChangeText={setSearchRaw}
+            placeholder="Search merchant, description, account…"
+            placeholderTextColor={colors.textSecondary}
+            className="flex-1 ml-2 text-sm"
+            style={{ color: colors.text }}
+          />
+          {searchRaw ? (
+            <Pressable onPress={() => setSearchRaw("")} hitSlop={8} accessibilityLabel="Clear search" accessibilityRole="button">
+              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+            </Pressable>
+          ) : null}
           <Pressable
-            onPress={() => setExpanded(!expanded)}
-            className="flex-row items-center justify-between py-1"
+            onPress={() => setShowFilters(!showFilters)}
+            accessibilityLabel={showFilters ? "Hide filters" : "Show filters"}
             accessibilityRole="button"
-            accessibilityLabel={expanded ? "Hide filters" : "Show filters"}
+            className="ml-2 p-1"
           >
-            <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
-              {hasFilters ? `Filters active · ${sources.size + objects.size + actions.size} selected` : "Add filters"}
-            </Text>
-            <View className="flex-row items-center">
-              {hasFilters && (
-                <Pressable onPress={clearAll} hitSlop={8} accessibilityLabel="Clear all filters">
-                  <Text className="text-xs mr-2" style={{ color: colors.textSecondary }}>
-                    Clear
-                  </Text>
-                </Pressable>
-              )}
-              <Ionicons
-                name={expanded ? "chevron-up" : "chevron-down"}
-                size={16}
-                color={colors.textSecondary}
-              />
-            </View>
+            <Ionicons
+              name={hasChipFilters ? "funnel" : "funnel-outline"}
+              size={18}
+              color={hasChipFilters ? theme.primary : colors.textSecondary}
+            />
           </Pressable>
-
-          {expanded && (
-            <View className="mt-3">
-              <Text
-                className="text-label font-semibold uppercase tracking-wider mb-1.5"
-                style={{ color: colors.textSecondary }}
-              >
-                Source
-              </Text>
-              <View className="flex-row flex-wrap gap-2 mb-3">
-                {SOURCE_OPTIONS.map((o) => (
-                  <FilterChip
-                    key={o.key}
-                    label={o.label}
-                    active={sources.has(o.key)}
-                    onPress={() => toggle(sources, setSources, o.key)}
-                  />
-                ))}
-              </View>
-
-              <Text
-                className="text-label font-semibold uppercase tracking-wider mb-1.5"
-                style={{ color: colors.textSecondary }}
-              >
-                Type
-              </Text>
-              <View className="flex-row flex-wrap gap-2 mb-3">
-                {OBJECT_OPTIONS.map((o) => (
-                  <FilterChip
-                    key={o.key}
-                    label={o.label}
-                    active={objects.has(o.key)}
-                    onPress={() => toggle(objects, setObjects, o.key)}
-                  />
-                ))}
-              </View>
-
-              <Text
-                className="text-label font-semibold uppercase tracking-wider mb-1.5"
-                style={{ color: colors.textSecondary }}
-              >
-                Action
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                {ACTION_OPTIONS.map((o) => (
-                  <FilterChip
-                    key={o.key}
-                    label={o.label}
-                    active={actions.has(o.key)}
-                    onPress={() => toggle(actions, setActions, o.key)}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
-        </Card>
+        </View>
       </View>
+
+      {/* Date scope - the audit log's equivalent of the Transactions period control */}
+      <View className="px-4 pb-2 flex-row flex-wrap gap-2">
+        {DATE_SCOPES.map((o) => (
+          <FilterChip
+            key={o.key}
+            label={o.label}
+            active={scope === o.key}
+            onPress={() => setScope(o.key)}
+          />
+        ))}
+      </View>
+
+      <FullScreenFilter
+        visible={showFilters}
+        sections={[
+          { key: "source", label: "Source", type: "multi", options: SOURCE_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(sources) },
+          { key: "object", label: "Type", type: "multi", options: OBJECT_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(objects) },
+          { key: "action", label: "Action", type: "multi", options: ACTION_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(actions), searchable: true },
+        ]}
+        onApply={(selections) => {
+          setSources(new Set((selections.source ?? []) as AuditSourceType[]));
+          setObjects(new Set((selections.object ?? []) as AuditObjectType[]));
+          setActions(new Set((selections.action ?? []) as AuditActionType[]));
+        }}
+        onReset={clearAll}
+        onClose={() => setShowFilters(false)}
+      />
+
+      {/* Active filters - subtle inline text with a close affordance, same as Transactions */}
+      {hasChipFilters && !showFilters && (
+        <View className="px-4 pb-2 flex-row flex-wrap">
+          {Array.from(sources).map((k) => (
+            <Pressable
+              key={`src-${k}`}
+              onPress={() => toggle(sources, setSources, k)}
+              className="flex-row items-center mr-3 mb-1"
+              accessibilityRole="button"
+              accessibilityLabel={`Remove source filter ${SOURCE_OPTIONS.find((o) => o.key === k)?.label ?? k}`}
+            >
+              <Text className="text-label text-faint-foreground">
+                {SOURCE_OPTIONS.find((o) => o.key === k)?.label ?? k}
+              </Text>
+              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
+            </Pressable>
+          ))}
+          {Array.from(objects).map((k) => (
+            <Pressable
+              key={`obj-${k}`}
+              onPress={() => toggle(objects, setObjects, k)}
+              className="flex-row items-center mr-3 mb-1"
+              accessibilityRole="button"
+              accessibilityLabel={`Remove type filter ${OBJECT_OPTIONS.find((o) => o.key === k)?.label ?? k}`}
+            >
+              <Text className="text-label text-faint-foreground">
+                {OBJECT_OPTIONS.find((o) => o.key === k)?.label ?? k}
+              </Text>
+              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
+            </Pressable>
+          ))}
+          {Array.from(actions).map((k) => (
+            <Pressable
+              key={`act-${k}`}
+              onPress={() => toggle(actions, setActions, k)}
+              className="flex-row items-center mr-3 mb-1"
+              accessibilityRole="button"
+              accessibilityLabel={`Remove action filter ${actionLabel(k)}`}
+            >
+              <Text className="text-label text-faint-foreground">{actionLabel(k)}</Text>
+              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
+            </Pressable>
+          ))}
+          <Pressable onPress={clearAll} className="flex-row items-center mb-1" accessibilityRole="button" accessibilityLabel="Clear all filters">
+            <Text className="text-label" style={{ color: theme.primary }}>Clear all</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Results */}
       {loading ? (
@@ -559,7 +573,7 @@ export default function AuditLogScreen() {
           renderItem={renderItem}
           keyExtractor={(item, idx) => `${item.objectType}:${item.id}:${item.actionType}:${idx}`}
           renderSectionHeader={({ section }) => {
-            const isCollapsed = collapsedSections.has(section.title);
+            const isCollapsed = isSectionCollapsed(section.title);
             const count = (allSections.find((s) => s.title === section.title)?.data.length) ?? 0;
             return (
               <Pressable
