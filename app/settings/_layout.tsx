@@ -31,6 +31,8 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="region" options={{ title: "Region" }} />
       <Stack.Screen name="kite-connect" options={{ title: "Kite Connect" }} />
       <Stack.Screen name="kite-connect-api-key" options={{ title: "Kite API Key" }} />
+      <Stack.Screen name="angel-connect" options={{ title: "Angel One" }} />
+      <Stack.Screen name="angel-connect-credentials" options={{ title: "Angel One Credentials" }} />
       <Stack.Screen name="smart-rules/index" options={{ title: "Smart Rules" }} />
       <Stack.Screen name="smart-rules/[id]" options={{ title: "Rule" }} />
       <Stack.Screen name="sms-templates/index" options={{ title: "Smart SMS Templates" }} />

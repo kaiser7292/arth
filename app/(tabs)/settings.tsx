@@ -471,6 +471,7 @@ export default function SettingsScreen() {
 
           <Card title="Integrations" className="mb-4">
             <SettingsRow icon="trending-up-outline" label="Zerodha Kite" subtitle="Connect your Zerodha account to sync portfolio" onPress={() => router.push("/settings/kite-connect")} />
+            <SettingsRow icon="bar-chart-outline" label="Angel One" subtitle="Connect your Angel One account to sync portfolio" onPress={() => router.push("/settings/angel-connect" as any)} />
           </Card>
 
           <Card title="Backup & Storage" className="mb-4">
