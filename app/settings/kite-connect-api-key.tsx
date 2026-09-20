@@ -1,53 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { LoadingState, Text } from "@/components/ui";
-import { View, TextInput, Pressable, ActivityIndicator } from "react-native";
+import { ActivityIndicator, TextInput, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+
+import { Card, ScreenContainer, Text } from '@/components/ui';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
+import { useAlert } from '@/hooks/use-alert';
+import { logger } from '@/utils/logger';
 import {
   getKiteApiKey,
   storeKiteApiKey,
   clearKiteCredentials,
 } from '@/services/kite-connect';
-import { useAlert } from '@/hooks/use-alert';
-import { logger } from '@/utils/logger';
 
 export default function KiteConnectApiKeyScreen() {
   const alert = useAlert();
+  const { colors } = useColorScheme();
+  const theme = useTheme();
+
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    loadApiKey();
+    getKiteApiKey()
+      .then((key) => { if (key) setApiKey(key); })
+      .catch((e) => logger.error('Error loading Kite API key:', e))
+      .finally(() => setIsLoading(false));
   }, []);
-
-  const loadApiKey = async () => {
-    try {
-      const key = await getKiteApiKey();
-      if (key) {
-        setApiKey(key);
-      }
-    } catch (error) {
-      logger.error('Error loading Kite API key:', error);
-      setLoadError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSave = async () => {
     if (!apiKey.trim()) {
       alert('Error', 'Please enter your API key');
       return;
     }
-
     setIsSaving(true);
     try {
       await storeKiteApiKey(apiKey.trim());
       alert('Success', 'API key saved successfully');
       router.back();
-    } catch (error) {
+    } catch {
       alert('Error', 'Failed to save API key');
     } finally {
       setIsSaving(false);
@@ -57,7 +50,7 @@ export default function KiteConnectApiKeyScreen() {
   const handleClear = () => {
     alert(
       'Clear API Key',
-      'Are you sure you want to clear the API key?',
+      'Are you sure you want to clear the API key and disconnect?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -67,109 +60,114 @@ export default function KiteConnectApiKeyScreen() {
             try {
               await clearKiteCredentials();
               setApiKey('');
-              alert('Success', 'API key cleared');
             } catch (e) {
               logger.error('Failed to clear Kite credentials:', e);
               alert('Error', 'Failed to clear API key');
             }
           },
         },
-      ]
+      ],
     );
   };
 
   if (isLoading) {
     return (
-      <LoadingState />
-    );
-  }
-
-  if (loadError) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background-light p-4">
-        <Text className="text-red-500 text-base text-center">Failed to load API key. Please restart the app.</Text>
-      </View>
+      <ScreenContainer>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color={theme.primary} />
+        </View>
+      </ScreenContainer>
     );
   }
 
   return (
-    <View className="flex-1 bg-background-light p-4">
-      <Text className="text-2xl font-bold text-text-light mb-2">
-        Kite API Key
-      </Text>
-      <Text className="text-sm text-secondary-light mb-6">
-        Enter your Kite API key from the developer portal. Keep this secure.
-      </Text>
+    <ScreenContainer padTop={false}>
+      <View className="mx-4 mt-3">
 
-      <View className="mb-4">
-        <Text className="text-sm font-medium text-text-light mb-2">
-          API Key
-        </Text>
-        <TextInput
-          value={apiKey}
-          onChangeText={setApiKey}
-          placeholder="Enter your API key"
-          className="border border-border rounded-lg p-3 text-text-light bg-background-light"
-          autoCapitalize="none"
-          autoCorrect={false}
-          secureTextEntry
-        />
-      </View>
+        {/* Input */}
+        <Card className="mb-3">
+          <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            API Key
+          </Text>
+          <TextInput
+            value={apiKey}
+            onChangeText={setApiKey}
+            placeholder="e.g. abcdef1234567890"
+            placeholderTextColor={colors.textSecondary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+            style={{
+              color: colors.text,
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: 1,
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              fontSize: 14,
+              fontFamily: 'Inter',
+            }}
+          />
+          <Text className="text-xs text-muted-foreground mt-2">
+            Found at developers.kite.trade/apps → your app → API Key
+          </Text>
+        </Card>
 
-      <View className="mb-6 p-4 bg-primary/10 rounded-lg border border-primary/30">
-        <Text className="text-xs text-primary mb-2 font-semibold">
-          Where to get your API key:
-        </Text>
-        <Text className="text-xs text-primary mb-1">
-          1. Visit https://developers.kite.trade/apps
-        </Text>
-        <Text className="text-xs text-primary mb-1">
-          2. Create a new app or select existing
-        </Text>
-        <Text className="text-xs text-primary">
-          3. Copy the API key from the app details
-        </Text>
-      </View>
+        {/* Action buttons */}
+        <View className="flex-row gap-3 mb-3">
+          <Pressable
+            onPress={handleSave}
+            disabled={isSaving}
+            className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+            style={{ backgroundColor: theme.primary, opacity: isSaving ? 0.7 : 1 }}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={18} color="#fff" />
+                <Text className="text-white font-semibold text-sm ml-2">Save</Text>
+              </>
+            )}
+          </Pressable>
 
-      <View className="flex-row gap-3">
-        <Pressable
-          onPress={handleSave}
-          disabled={isSaving}
-          className="flex-1 bg-primary rounded-lg p-4 flex-row items-center justify-center"
-        >
-          {isSaving ? (
-            <ActivityIndicator color="white" />
+          {apiKey ? (
+            <Pressable
+              onPress={handleClear}
+              className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+              style={{ backgroundColor: theme.danger }}
+            >
+              <Ionicons name="trash-outline" size={18} color="#fff" />
+              <Text className="text-white font-semibold text-sm ml-2">Clear</Text>
+            </Pressable>
           ) : (
-            <>
-              <Ionicons name="checkmark" size={20} color="white" />
-              <Text className="text-primary-foreground font-semibold text-base ml-2">
-                Save
-              </Text>
-            </>
+            <Pressable
+              onPress={() => router.back()}
+              className="flex-1 rounded-lg p-3.5 items-center justify-center"
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+            >
+              <Text className="text-sm font-semibold text-foreground">Cancel</Text>
+            </Pressable>
           )}
-        </Pressable>
+        </View>
 
-        {apiKey ? (
-          <Pressable
-            onPress={handleClear}
-            className="flex-1 bg-red-500 rounded-lg p-4 flex-row items-center justify-center"
-          >
-            <Ionicons name="close" size={20} color="white" />
-            <Text className="text-white font-semibold text-base ml-2">
-              Clear
+        {/* Info card */}
+        <Card>
+          <View className="flex-row items-center mb-2">
+            <Ionicons name="information-circle-outline" size={16} color={theme.primary} />
+            <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.primary }}>
+              How to get your API key
             </Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            onPress={() => router.back()}
-            className="flex-1 bg-gray-500 rounded-lg p-4 items-center justify-center"
-          >
-            <Text className="text-white font-semibold text-base">
-              Cancel
-            </Text>
-          </Pressable>
-        )}
+          </View>
+          <Text className="text-xs text-muted-foreground leading-5">
+            1. Go to developers.kite.trade/apps{'\n'}
+            2. Open your app (or create one){'\n'}
+            3. Copy the API Key from the app details page
+          </Text>
+        </Card>
+
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
