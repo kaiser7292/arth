@@ -13,6 +13,7 @@ import {
   storeKiteApiKey,
   clearKiteCredentials,
 } from '@/services/kite-connect';
+import { createVaultEntry, searchVaultEntries } from '@/services/vault';
 
 export default function KiteConnectApiKeyScreen() {
   const alert = useAlert();
@@ -44,6 +45,33 @@ export default function KiteConnectApiKeyScreen() {
       alert('Error', 'Failed to save API key');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveToVault = async () => {
+    if (!apiKey.trim()) {
+      alert('No API Key', 'Save the API key first before adding it to the Vault.');
+      return;
+    }
+    try {
+      // Check for an existing Kite entry so we don't create duplicates
+      const existing = await searchVaultEntries('Zerodha Kite');
+      if (existing.length > 0) {
+        alert('Already in Vault', 'A "Zerodha Kite" entry already exists in your Vault.');
+        return;
+      }
+      await createVaultEntry({
+        title: 'Zerodha Kite API',
+        category: 'demat',
+        login_method: 'password',
+        password: apiKey.trim(),
+        url: 'https://developers.kite.trade/apps',
+        notes: 'Kite Connect API key used by Arth for portfolio sync',
+      });
+      alert('Saved to Vault', 'Your Kite API key has been added to your Vault as "Zerodha Kite API".');
+    } catch (e) {
+      logger.error('Failed to save Kite API key to vault:', e);
+      alert('Error', 'Could not save to Vault. Please try again.');
     }
   };
 
@@ -155,9 +183,7 @@ export default function KiteConnectApiKeyScreen() {
         {/* Save to Vault */}
         {apiKey ? (
           <Pressable
-            onPress={() => {
-              alert('Coming Soon', 'Password Vault is not available yet. Your API key is already saved securely in encrypted storage on this device.');
-            }}
+            onPress={handleSaveToVault}
             className="flex-row items-center mb-3 rounded-lg p-3.5"
             style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
           >
@@ -165,9 +191,6 @@ export default function KiteConnectApiKeyScreen() {
             <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
               Save to Vault
             </Text>
-            <View className="ml-auto rounded px-1.5 py-0.5" style={{ backgroundColor: theme.alpha('primary', 0.1) }}>
-              <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Soon</Text>
-            </View>
           </Pressable>
         ) : null}
 
