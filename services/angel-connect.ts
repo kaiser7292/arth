@@ -18,7 +18,9 @@ const MMKV_ORDERS_CACHE = 'angel_orders_cache';
 const MMKV_FUNDS_CACHE = 'angel_funds_cache';
 const MMKV_PORTFOLIO_TOTAL = 'angel_portfolio_total';
 
-const BASE_URL = 'https://apiconnect.angelone.in';
+// Routes through kite.souravbaid.com (Oracle VM, fixed IP 129.154.34.156)
+// so Angel One always sees the whitelisted IP, not the device's dynamic IP
+const BASE_URL = (process.env.EXPO_PUBLIC_ANGEL_BACKEND_URL ?? 'https://apiconnect.angelone.in').replace(/\/$/, '');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
