@@ -15,7 +15,6 @@ import { addOrUpdateSnapshot } from '@/services/financial-account';
 import { getDematAccountsForPicker } from '@/services/kite-connect';
 import {
   isZebpayConnected,
-  isZebpayTokenExpired,
   getZebpayLastSynced,
   getZebpayCache,
   syncZebpayData,
@@ -42,13 +41,13 @@ export default function ZebpayConnectScreen() {
   const theme = useTheme();
 
   const [connected, setConnected]         = useState(false);
-  const [expired, setExpired]             = useState(false);
   const [syncing, setSyncing]             = useState(false);
   const [savingSnapshot, setSavingSnapshot] = useState(false);
   const [lastSynced, setLastSynced]       = useState<string | null>(null);
   const [balances, setBalances]           = useState<ZebpayBalance[]>([]);
   const [orders, setOrders]               = useState<ZebpayOrder[]>([]);
   const [totalInr, setTotalInr]           = useState(0);
+  const [inrBalance, setInrBalance]       = useState(0);
   const [linkedAccountId, setLinkedAccountId] = useState<string | null>(null);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [pickerAccounts, setPickerAccounts] = useState<{ id: string; label: string }[]>([]);
@@ -56,13 +55,13 @@ export default function ZebpayConnectScreen() {
   const load = useCallback(() => {
     const conn = isZebpayConnected();
     setConnected(conn);
-    setExpired(isZebpayTokenExpired());
     setLastSynced(getZebpayLastSynced());
     if (conn) {
       const cache = getZebpayCache();
       setBalances(cache.balances);
       setOrders(cache.orders);
       setTotalInr(cache.totalInr);
+      setInrBalance(cache.inrBalance);
     }
   }, []);
 
@@ -75,8 +74,8 @@ export default function ZebpayConnectScreen() {
       setBalances(result.balances);
       setOrders(result.orders);
       setTotalInr(result.totalInr);
+      setInrBalance(result.inrBalance);
       setLastSynced(getZebpayLastSynced());
-      setExpired(false);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       alert('Sync Failed', msg);
@@ -126,7 +125,7 @@ export default function ZebpayConnectScreen() {
             try {
               await clearZebpayCredentials();
               setConnected(false);
-              setBalances([]); setOrders([]); setTotalInr(0); setLinkedAccountId(null);
+              setBalances([]); setOrders([]); setTotalInr(0); setInrBalance(0); setLinkedAccountId(null);
             } catch (e) {
               logger.error('Failed to disconnect Zebpay:', e);
             }
@@ -181,11 +180,9 @@ export default function ZebpayConnectScreen() {
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
                 <View className="w-2 h-2 rounded-full mr-2"
-                  style={{ backgroundColor: expired ? (theme.warning ?? '#F59E0B') : (theme.success ?? '#10B981') }} />
+                  style={{ backgroundColor: theme.success ?? '#10B981' }} />
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold text-foreground">
-                    {expired ? 'Session Expired' : 'Connected'}
-                  </Text>
+                  <Text className="text-sm font-semibold text-foreground">Connected</Text>
                   <Text className="text-xs text-muted-foreground mt-0.5">
                     {lastSynced
                       ? `Last synced ${new Date(lastSynced).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
@@ -193,32 +190,21 @@ export default function ZebpayConnectScreen() {
                   </Text>
                 </View>
               </View>
-              {expired ? (
-                <Pressable
-                  onPress={() => router.push('/settings/zebpay-connect-credentials' as any)}
-                  className="flex-row items-center px-3 py-2 rounded-lg"
-                  style={{ backgroundColor: theme.warning ?? '#F59E0B' }}
-                >
-                  <Ionicons name="refresh-outline" size={16} color="#fff" />
-                  <Text className="text-white text-xs font-semibold ml-1">Reconnect</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  onPress={handleSync}
-                  disabled={syncing}
-                  className="flex-row items-center px-3 py-2 rounded-lg"
-                  style={{ backgroundColor: theme.primary, opacity: syncing ? 0.7 : 1 }}
-                >
-                  {syncing ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
-                      <Ionicons name="sync-outline" size={16} color="#fff" />
-                      <Text className="text-white text-xs font-semibold ml-1">Sync</Text>
-                    </>
-                  )}
-                </Pressable>
-              )}
+              <Pressable
+                onPress={handleSync}
+                disabled={syncing}
+                className="flex-row items-center px-3 py-2 rounded-lg"
+                style={{ backgroundColor: theme.primary, opacity: syncing ? 0.7 : 1 }}
+              >
+                {syncing ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="sync-outline" size={16} color="#fff" />
+                    <Text className="text-white text-xs font-semibold ml-1">Sync</Text>
+                  </>
+                )}
+              </Pressable>
             </View>
           </Card>
 
@@ -233,12 +219,18 @@ export default function ZebpayConnectScreen() {
                 {formatAmount(totalInr)}
               </Text>
             </View>
+            {inrBalance > 0 && (
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-sm text-muted-foreground">Available INR</Text>
+                <Text className="text-sm font-semibold text-foreground">{formatAmount(inrBalance)}</Text>
+              </View>
+            )}
             <View className="pt-2 mt-1 border-t border-border">
               <Pressable
                 onPress={handleUpdateSnapshot}
-                disabled={savingSnapshot || expired}
+                disabled={savingSnapshot}
                 className="rounded-lg p-3 flex-row items-center justify-center"
-                style={{ backgroundColor: theme.alpha('primary', 0.1), opacity: (savingSnapshot || expired) ? 0.5 : 1 }}
+                style={{ backgroundColor: `${theme.primary}1A`, opacity: savingSnapshot ? 0.5 : 1 }}
               >
                 {savingSnapshot ? (
                   <ActivityIndicator size="small" color={theme.primary} />
@@ -282,7 +274,7 @@ export default function ZebpayConnectScreen() {
                 Open Orders ({pendingOrders.length})
               </Text>
               {pendingOrders.slice(0, 10).map(o => (
-                <View key={o.id} className="flex-row justify-between items-center py-2.5 border-b border-border last:border-0">
+                <View key={o.orderId} className="flex-row justify-between items-center py-2.5 border-b border-border last:border-0">
                   <View className="flex-row items-center gap-2">
                     <View className="rounded px-1.5 py-0.5"
                       style={{ backgroundColor: o.side.toLowerCase() === 'bid' || o.side.toLowerCase() === 'buy'
@@ -293,10 +285,10 @@ export default function ZebpayConnectScreen() {
                         {o.side.toUpperCase()}
                       </Text>
                     </View>
-                    <Text className="text-sm text-foreground">{o.trade_pair}</Text>
+                    <Text className="text-sm text-foreground">{o.symbol}</Text>
                   </View>
                   <View className="items-end">
-                    <Text className="text-sm font-semibold text-foreground">{o.size} @ {formatAmount(o.price)}</Text>
+                    <Text className="text-sm font-semibold text-foreground">{o.amount} @ {formatAmount(o.price)}</Text>
                     <Text className="text-xs text-muted-foreground">{o.type}</Text>
                   </View>
                 </View>
@@ -308,9 +300,7 @@ export default function ZebpayConnectScreen() {
           {balances.length === 0 && orders.length === 0 && (
             <Card className="mb-3 items-center py-6">
               <Ionicons name="bar-chart-outline" size={32} color={colors.textSecondary} />
-              <Text className="text-sm text-muted-foreground mt-2">
-                {expired ? 'Reconnect to load your portfolio' : 'Tap "Sync Portfolio" to load your data'}
-              </Text>
+              <Text className="text-sm text-muted-foreground mt-2">Tap Sync to load your portfolio</Text>
             </Card>
           )}
 

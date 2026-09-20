@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ActivityIndicator, ScrollView, TextInput, View, Pressable } from 'react-native';
+import { ActivityIndicator, ScrollView, TextInput, View, Pressable, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,113 +9,48 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAlert } from '@/hooks/use-alert';
 import { logger } from '@/utils/logger';
 import {
+  connectZebpay,
   getZebpayCredentials,
-  startZebpayConnect,
-  completeZebpayConnect,
   clearZebpayCredentials,
 } from '@/services/zebpay-connect';
-
-function Field({
-  label, value, onChange, placeholder, hint, secure, keyboardType, colors,
-}: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder: string; hint?: string; secure?: boolean;
-  keyboardType?: 'default' | 'phone-pad' | 'numeric';
-  colors: ReturnType<typeof useColorScheme>['colors'];
-}) {
-  return (
-    <View className="mb-4">
-      <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-        {label}
-      </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textSecondary}
-        autoCapitalize="none"
-        autoCorrect={false}
-        secureTextEntry={secure}
-        keyboardType={keyboardType ?? 'default'}
-        style={{
-          color: colors.text,
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          borderWidth: 1,
-          borderRadius: 8,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          fontSize: 14,
-          fontFamily: 'Inter',
-        }}
-      />
-      {hint ? <Text className="text-xs text-muted-foreground mt-1.5">{hint}</Text> : null}
-    </View>
-  );
-}
-
-type Step = 'credentials' | 'otp';
 
 export default function ZebpayConnectCredentialsScreen() {
   const alert = useAlert();
   const { colors } = useColorScheme();
   const theme = useTheme();
 
-  const [step, setStep] = useState<Step>('credentials');
-  const [clientId, setClientId]         = useState('');
-  const [clientSecret, setClientSecret] = useState('');
-  const [countryCode, setCountryCode]   = useState('91');
-  const [mobile, setMobile]             = useState('');
-  const [pin, setPin]                   = useState('');
-  const [otp, setOtp]                   = useState('');
-  const [isLoading, setIsLoading]       = useState(true);
-  const [isBusy, setIsBusy]             = useState(false);
+  const [apiKey, setApiKey]       = useState('');
+  const [secretKey, setSecretKey] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isBusy, setIsBusy]       = useState(false);
+  const [hasExisting, setHasExisting] = useState(false);
 
   useEffect(() => {
     getZebpayCredentials()
       .then(creds => {
         if (creds) {
-          setClientId(creds.clientId);
-          setClientSecret(creds.clientSecret);
-          setMobile(creds.mobile);
-          setPin(creds.pin);
-          setCountryCode(creds.countryCode ?? '91');
+          setApiKey(creds.apiKey);
+          setSecretKey(creds.secretKey);
+          setHasExisting(true);
         }
       })
       .catch(e => logger.error('Failed to load Zebpay credentials:', e))
       .finally(() => setIsLoading(false));
   }, []);
 
-  const handleSendOTP = async () => {
-    if (!clientId.trim() || !clientSecret.trim() || !mobile.trim() || !pin.trim()) {
-      alert('Missing Fields', 'Please fill in all four fields.');
+  const handleConnect = async () => {
+    if (!apiKey.trim() || !secretKey.trim()) {
+      alert('Missing Fields', 'Enter both API Key and Secret Key.');
       return;
     }
     setIsBusy(true);
     try {
-      await startZebpayConnect(clientId.trim(), clientSecret.trim(), mobile.trim(), pin.trim(), countryCode.trim() || '91');
-      setStep('otp');
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      alert('Failed', msg || 'Could not send OTP. Check your credentials and try again.');
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (!otp.trim()) {
-      alert('Enter OTP', 'Please enter the OTP sent to your mobile number.');
-      return;
-    }
-    setIsBusy(true);
-    try {
-      await completeZebpayConnect(otp.trim());
+      await connectZebpay(apiKey.trim(), secretKey.trim());
       alert('Connected', 'Zebpay account connected successfully.');
       router.back();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      alert('Connection Failed', msg || 'OTP verification failed. Please try again.');
+      alert('Connection Failed', msg || 'Could not connect. Check your API key and secret.');
     } finally {
       setIsBusy(false);
     }
@@ -124,7 +59,7 @@ export default function ZebpayConnectCredentialsScreen() {
   const handleClear = () => {
     alert(
       'Remove Credentials',
-      'This will disconnect your Zebpay account and remove all stored credentials.',
+      'This will disconnect your Zebpay account.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -133,8 +68,7 @@ export default function ZebpayConnectCredentialsScreen() {
           onPress: async () => {
             try {
               await clearZebpayCredentials();
-              setClientId(''); setClientSecret(''); setCountryCode('91'); setMobile(''); setPin(''); setOtp('');
-              setStep('credentials');
+              setApiKey(''); setSecretKey(''); setHasExisting(false);
               router.back();
             } catch (e) {
               logger.error('Failed to clear Zebpay credentials:', e);
@@ -145,6 +79,18 @@ export default function ZebpayConnectCredentialsScreen() {
       ],
     );
   };
+
+  const inputStyle = {
+    color: colors.text,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontFamily: 'Inter',
+  } as const;
 
   if (isLoading) {
     return (
@@ -166,167 +112,77 @@ export default function ZebpayConnectCredentialsScreen() {
       >
         <View className="mx-4 mt-3">
 
-          {step === 'credentials' ? (
-            <>
-              <Card className="mb-3">
-                <Field
-                  label="Client ID"
-                  value={clientId}
-                  onChange={setClientId}
-                  placeholder="Your Zebpay API client ID"
-                  hint="From Zebpay developer portal → your app"
-                  colors={colors}
-                />
-                <Field
-                  label="Client Secret"
-                  value={clientSecret}
-                  onChange={setClientSecret}
-                  placeholder="Your API client secret"
-                  secure
-                  colors={colors}
-                />
-                <View className="mb-4">
-                  <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                    Mobile Number
+          <Card className="mb-3">
+            <View className="mb-4">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                API Key
+              </Text>
+              <TextInput
+                value={apiKey}
+                onChangeText={setApiKey}
+                placeholder="Your Zebpay API key"
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={inputStyle}
+              />
+            </View>
+            <View>
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Secret Key
+              </Text>
+              <TextInput
+                value={secretKey}
+                onChangeText={setSecretKey}
+                placeholder="Your Zebpay secret key"
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+                style={inputStyle}
+              />
+            </View>
+          </Card>
+
+          <View className="flex-row gap-3 mb-3">
+            <Pressable
+              onPress={handleConnect}
+              disabled={isBusy}
+              className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+              style={{ backgroundColor: theme.primary, opacity: isBusy ? 0.7 : 1 }}
+            >
+              {isBusy ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="link-outline" size={18} color="#fff" />
+                  <Text className="text-white font-semibold text-sm ml-2">
+                    {hasExisting ? 'Update & Reconnect' : 'Connect'}
                   </Text>
-                  <View className="flex-row gap-2">
-                    <View className="flex-row items-center rounded-lg px-3"
-                      style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, minWidth: 72 }}>
-                      <Text className="text-sm text-muted-foreground mr-1">+</Text>
-                      <TextInput
-                        value={countryCode}
-                        onChangeText={v => setCountryCode(v.replace(/\D/g, ''))}
-                        placeholder="91"
-                        placeholderTextColor={colors.textSecondary}
-                        keyboardType="numeric"
-                        maxLength={4}
-                        style={{ color: colors.text, fontSize: 14, fontFamily: 'Inter', minWidth: 36, paddingVertical: 10 }}
-                      />
-                    </View>
-                    <TextInput
-                      value={mobile}
-                      onChangeText={setMobile}
-                      placeholder="Mobile number"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="phone-pad"
-                      style={{
-                        flex: 1,
-                        color: colors.text,
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                        borderWidth: 1,
-                        borderRadius: 8,
-                        paddingHorizontal: 12,
-                        paddingVertical: 10,
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                      }}
-                    />
-                  </View>
-                  <Text className="text-xs text-muted-foreground mt-1.5">
-                    Country code + number registered with your Zebpay account
-                  </Text>
-                </View>
-                <Field
-                  label="PIN"
-                  value={pin}
-                  onChange={setPin}
-                  placeholder="Your Zebpay app PIN"
-                  secure
-                  keyboardType="numeric"
-                  colors={colors}
-                />
-              </Card>
+                </>
+              )}
+            </Pressable>
 
-              <View className="flex-row gap-3 mb-3">
-                <Pressable
-                  onPress={handleSendOTP}
-                  disabled={isBusy}
-                  className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
-                  style={{ backgroundColor: theme.primary, opacity: isBusy ? 0.7 : 1 }}
-                >
-                  {isBusy ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
-                      <Ionicons name="send-outline" size={18} color="#fff" />
-                      <Text className="text-white font-semibold text-sm ml-2">Send OTP</Text>
-                    </>
-                  )}
-                </Pressable>
+            {hasExisting ? (
+              <Pressable
+                onPress={handleClear}
+                className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+                style={{ backgroundColor: theme.danger }}
+              >
+                <Ionicons name="trash-outline" size={18} color="#fff" />
+                <Text className="text-white font-semibold text-sm ml-2">Remove</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => router.back()}
+                className="flex-1 rounded-lg p-3.5 items-center justify-center border border-border"
+                style={{ backgroundColor: colors.surface }}
+              >
+                <Text className="text-sm font-semibold text-foreground">Cancel</Text>
+              </Pressable>
+            )}
+          </View>
 
-                {clientId ? (
-                  <Pressable
-                    onPress={handleClear}
-                    className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
-                    style={{ backgroundColor: theme.danger }}
-                  >
-                    <Ionicons name="trash-outline" size={18} color="#fff" />
-                    <Text className="text-white font-semibold text-sm ml-2">Remove</Text>
-                  </Pressable>
-                ) : (
-                  <Pressable
-                    onPress={() => router.back()}
-                    className="flex-1 rounded-lg p-3.5 items-center justify-center border border-border"
-                    style={{ backgroundColor: colors.surface }}
-                  >
-                    <Text className="text-sm font-semibold text-foreground">Cancel</Text>
-                  </Pressable>
-                )}
-              </View>
-            </>
-          ) : (
-            <>
-              {/* OTP step */}
-              <Card className="mb-3">
-                <View className="flex-row items-center mb-3">
-                  <Ionicons name="phone-portrait-outline" size={20} color={theme.primary} />
-                  <Text className="text-sm font-semibold ml-2 flex-1">
-                    OTP sent to +{countryCode} {mobile}
-                  </Text>
-                </View>
-                <Text className="text-xs text-muted-foreground mb-4">
-                  Enter the 6-digit OTP from your Zebpay SMS.
-                </Text>
-                <Field
-                  label="OTP"
-                  value={otp}
-                  onChange={setOtp}
-                  placeholder="6-digit OTP"
-                  keyboardType="numeric"
-                  colors={colors}
-                />
-              </Card>
-
-              <View className="flex-row gap-3 mb-3">
-                <Pressable
-                  onPress={handleVerifyOTP}
-                  disabled={isBusy}
-                  className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
-                  style={{ backgroundColor: theme.primary, opacity: isBusy ? 0.7 : 1 }}
-                >
-                  {isBusy ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
-                      <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
-                      <Text className="text-white font-semibold text-sm ml-2">Verify & Connect</Text>
-                    </>
-                  )}
-                </Pressable>
-
-                <Pressable
-                  onPress={() => { setStep('credentials'); setOtp(''); }}
-                  className="flex-1 rounded-lg p-3.5 items-center justify-center border border-border"
-                  style={{ backgroundColor: colors.surface }}
-                >
-                  <Text className="text-sm font-semibold text-foreground">Back</Text>
-                </Pressable>
-              </View>
-            </>
-          )}
-
-          {/* Help */}
           <Card>
             <View className="flex-row items-center mb-2">
               <Ionicons name="information-circle-outline" size={16} color={theme.primary} />
@@ -334,13 +190,21 @@ export default function ZebpayConnectCredentialsScreen() {
                 How to get API credentials
               </Text>
             </View>
-            <Text className="text-xs text-muted-foreground leading-5">
-              {'1. Log in to Zebpay → go to API Settings\n'}
-              {'2. Create a new app to get Client ID and Client Secret\n'}
-              {'3. Your mobile number is the one registered with Zebpay\n'}
-              {'4. PIN is your Zebpay app PIN (4–6 digits)\n'}
-              {'5. Tap "Send OTP" — Zebpay sends a one-time code to your mobile'}
+            <Text className="text-xs text-muted-foreground leading-5 mb-3">
+              {'1. Go to build.zebpay.com and sign in with your Zebpay account\n'}
+              {'2. Create a new app — you will get an API Key and Secret Key\n'}
+              {'3. Copy both here and tap Connect\n\n'}
+              {'No OTP or PIN is needed — the API key identifies you directly.'}
             </Text>
+            <Pressable
+              onPress={() => Linking.openURL('https://build.zebpay.com').catch(() => {})}
+              className="flex-row items-center"
+            >
+              <Ionicons name="open-outline" size={14} color={theme.primary} />
+              <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>
+                Open build.zebpay.com
+              </Text>
+            </Pressable>
           </Card>
 
         </View>
