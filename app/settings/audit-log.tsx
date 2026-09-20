@@ -31,7 +31,7 @@ import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
  * Non-navigable rows (forecasts closed, transfers deleted) stay un-tappable.
  */
 
-type DateScope = "7d" | "30d" | "90d" | "year" | "all";
+type DateScope = "7d" | "30d" | "90d";
 
 const SOURCE_OPTIONS: { key: AuditSourceType; label: string; icon: keyof typeof import("@expo/vector-icons/build/Ionicons").default.glyphMap }[] = [
   { key: "sms", label: "SMS", icon: "chatbubble-outline" },
@@ -64,29 +64,17 @@ const DATE_SCOPES: { key: DateScope; label: string }[] = [
   { key: "7d", label: "7 days" },
   { key: "30d", label: "30 days" },
   { key: "90d", label: "90 days" },
-  { key: "year", label: "This year" },
-  { key: "all", label: "All" },
 ];
+
+/** Days back from today for each scope. */
+const SCOPE_DAYS: Record<DateScope, number> = { "7d": 7, "30d": 30, "90d": 90 };
 
 function computeDateRange(scope: DateScope): { from?: string; to?: string } {
   const today = new Date();
   const toDate = today.toISOString().slice(0, 10);
   const d = new Date(today);
-  switch (scope) {
-    case "7d":
-      d.setDate(d.getDate() - 7);
-      return { from: d.toISOString().slice(0, 10), to: toDate };
-    case "30d":
-      d.setDate(d.getDate() - 30);
-      return { from: d.toISOString().slice(0, 10), to: toDate };
-    case "90d":
-      d.setDate(d.getDate() - 90);
-      return { from: d.toISOString().slice(0, 10), to: toDate };
-    case "year":
-      return { from: `${today.getFullYear()}-01-01`, to: toDate };
-    case "all":
-      return {};
-  }
+  d.setDate(d.getDate() - SCOPE_DAYS[scope]);
+  return { from: d.toISOString().slice(0, 10), to: toDate };
 }
 
 function actionLabel(a: AuditActionType): string {
@@ -465,7 +453,7 @@ export default function AuditLogScreen() {
       </View>
 
       {/* Date scope - the audit log's equivalent of the Transactions period control */}
-      <View className="px-4 pb-2 flex-row flex-wrap gap-2">
+      <View className="px-4 pb-2 flex-row">
         {DATE_SCOPES.map((o) => (
           <FilterChip
             key={o.key}
