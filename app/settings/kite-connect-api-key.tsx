@@ -152,6 +152,25 @@ export default function KiteConnectApiKeyScreen() {
           )}
         </View>
 
+        {/* Save to Vault */}
+        {apiKey ? (
+          <Pressable
+            onPress={() => {
+              alert('Coming Soon', 'Password Vault is not available yet. Your API key is already saved securely in encrypted storage on this device.');
+            }}
+            className="flex-row items-center mb-3 rounded-lg p-3.5"
+            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          >
+            <Ionicons name="lock-closed-outline" size={16} color={theme.primary} />
+            <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
+              Save to Vault
+            </Text>
+            <View className="ml-auto rounded px-1.5 py-0.5" style={{ backgroundColor: theme.alpha('primary', 0.1) }}>
+              <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Soon</Text>
+            </View>
+          </Pressable>
+        ) : null}
+
         {/* Info card */}
         <Card>
           <View className="flex-row items-center mb-2">

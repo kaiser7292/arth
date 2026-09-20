@@ -14,6 +14,7 @@ import { todayIso } from '@/utils/date';
 import { addOrUpdateSnapshot, updateFundBalance } from '@/services/financial-account';
 import {
   clearKiteCredentials,
+  clearKiteSession,
   exchangeRequestToken,
   getCachedHoldings,
   getCachedMFHoldings,
@@ -139,7 +140,7 @@ export default function KiteConnectScreen() {
           text: 'Disconnect',
           style: 'destructive',
           onPress: async () => {
-            await clearKiteCredentials();
+            await clearKiteSession();
             setIsAuthenticated(false);
             setTokenExpired(false);
             setLinkedAccountIdState(null);
@@ -219,16 +220,22 @@ export default function KiteConnectScreen() {
       setLastSynced(result.syncedAt);
       setHasCachedData(true);
     } catch (err: any) {
-      if (err.message === 'TOKEN_EXPIRED') {
+      const msg: string = err.message ?? '';
+      const isAuthError = msg === 'TOKEN_EXPIRED'
+        || msg.toLowerCase().includes('access token')
+        || msg.toLowerCase().includes('api key')
+        || msg.toLowerCase().includes('invalid token')
+        || msg.toLowerCase().includes('token expired');
+
+      if (isAuthError) {
         setTokenExpired(true);
-        alert('Token Expired', 'Your Kite session expired at 6 AM. Tap "Reconnect" to log in again.');
-      } else if (err.message === 'NO_ACCOUNT_LINKED') {
-        // Trigger picker
+        alert('Session Expired', 'Your Kite session has expired. Tap "Reconnect" to log in again.');
+      } else if (msg === 'NO_ACCOUNT_LINKED') {
         const accounts = await getDematAccountsForPicker();
         setPickerAccounts(accounts);
         setShowAccountPicker(true);
       } else {
-        alert('Sync Failed', err.message || 'Could not fetch data from Kite');
+        alert('Sync Failed', msg || 'Could not fetch data from Kite');
       }
     } finally {
       setSyncing(false);

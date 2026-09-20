@@ -169,8 +169,8 @@ export async function getKiteCredentials(): Promise<KiteCredentials | null> {
   };
 }
 
-export async function clearKiteCredentials(): Promise<void> {
-  await SecureStore.deleteItemAsync(KITE_API_KEY);
+/** Clear session tokens + cached data. Keeps the API key so re-auth doesn't require re-entry. */
+export async function clearKiteSession(): Promise<void> {
   await SecureStore.deleteItemAsync(KITE_ACCESS_TOKEN);
   await SecureStore.deleteItemAsync(KITE_USER_ID);
   await SecureStore.deleteItemAsync(KITE_PUBLIC_TOKEN);
@@ -185,6 +185,12 @@ export async function clearKiteCredentials(): Promise<void> {
   settingsStorage.delete(MMKV_ORDERS_CACHE);
   settingsStorage.delete(MMKV_MF_ORDERS_CACHE);
   settingsStorage.delete(MMKV_LINKED_ACCOUNT);
+}
+
+/** Full wipe including the API key. Use only from the API key screen when the user explicitly removes it. */
+export async function clearKiteCredentials(): Promise<void> {
+  await SecureStore.deleteItemAsync(KITE_API_KEY);
+  await clearKiteSession();
 }
 
 export async function exchangeRequestToken(requestToken: string): Promise<KiteOAuthResponse> {
@@ -214,13 +220,15 @@ export function getKiteLoginUrl(apiKey: string): string {
 /** Returns true when the stored access_token has expired (past 6 AM today). */
 export function isKiteTokenExpired(): boolean {
   const expiry = settingsStorage.getString(MMKV_TOKEN_EXPIRY);
-  if (!expiry) return false; // no expiry recorded = just connected, treat as valid
+  if (!expiry) return true; // no expiry = token state unknown, force re-login
   return Date.now() > parseInt(expiry, 10);
 }
 
 function nextSixAM(): number {
   const d = new Date();
-  d.setDate(d.getDate() + 1);
+  // If it's already past 6 AM today, next expiry is tomorrow 6 AM.
+  // If it's before 6 AM today, expiry is today 6 AM.
+  if (d.getHours() >= 6) d.setDate(d.getDate() + 1);
   d.setHours(6, 0, 0, 0);
   return d.getTime();
 }
