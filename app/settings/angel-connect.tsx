@@ -234,30 +234,21 @@ export default function AngelConnectScreen() {
                   )}
                 </View>
               </View>
-              <View className="flex-row gap-2">
-                <Pressable
-                  onPress={handleSync}
-                  disabled={syncing}
-                  className="flex-row items-center px-3 py-2 rounded-lg"
-                  style={{ backgroundColor: theme.primary, opacity: syncing ? 0.7 : 1 }}
-                >
-                  {syncing ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
-                      <Ionicons name="refresh-outline" size={16} color="#fff" />
-                      <Text className="text-white text-xs font-semibold ml-1">Sync</Text>
-                    </>
-                  )}
-                </Pressable>
-                <Pressable
-                  onPress={() => router.push('/settings/angel-connect-credentials' as any)}
-                  className="flex-row items-center px-3 py-2 rounded-lg border border-border"
-                  style={{ backgroundColor: colors.surface }}
-                >
-                  <Ionicons name="create-outline" size={16} color={colors.textSecondary} />
-                </Pressable>
-              </View>
+              <Pressable
+                onPress={handleSync}
+                disabled={syncing}
+                className="flex-row items-center px-3 py-2 rounded-lg"
+                style={{ backgroundColor: theme.primary, opacity: syncing ? 0.7 : 1 }}
+              >
+                {syncing ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="refresh-outline" size={16} color="#fff" />
+                    <Text className="text-white text-xs font-semibold ml-1">Sync</Text>
+                  </>
+                )}
+              </Pressable>
             </View>
           </Card>
 
@@ -456,18 +447,23 @@ export default function AngelConnectScreen() {
             </Card>
           )}
 
-          {/* Disconnect */}
-          <Pressable
-            onPress={handleDisconnect}
-            className="flex-row items-center justify-center py-3 rounded-lg mb-2"
-            style={{ borderWidth: 1, borderColor: theme.danger + '50', backgroundColor: theme.danger + '0a' }}
-          >
-            <Ionicons name="log-out-outline" size={16} color={theme.danger} />
-            <Text className="text-sm font-semibold ml-2 text-danger">Disconnect Session</Text>
-          </Pressable>
-          <Text className="text-xs text-muted-foreground text-center mb-4">
-            Credentials remain stored for instant reconnect. Tap the edit icon to remove them.
-          </Text>
+          {/* Manage */}
+          <Card>
+            <Pressable
+              onPress={() => router.push('/settings/angel-connect-credentials' as any)}
+              className="flex-row items-center py-2.5 border-b border-border"
+            >
+              <Ionicons name="key-outline" size={16} color={colors.text} />
+              <Text className="text-sm text-foreground ml-3 flex-1">Update Credentials</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+            </Pressable>
+            <Pressable onPress={handleDisconnect} className="flex-row items-center py-2.5">
+              <Ionicons name="log-out-outline" size={16} color={theme.danger} />
+              <Text className="text-sm font-medium ml-3" style={{ color: theme.danger }}>
+                Disconnect Angel One
+              </Text>
+            </Pressable>
+          </Card>
 
         </View>
       </ScrollView>

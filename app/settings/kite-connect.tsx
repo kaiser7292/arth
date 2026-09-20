@@ -323,72 +323,69 @@ export default function KiteConnectScreen() {
 
         {/* ── Status card ── */}
         <Card className="mx-4 mt-3 mb-3">
-          <View className="flex-row items-center mb-3">
-            <View
-              className="w-9 h-9 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: theme.alpha('primary', 0.08) }}
-            >
-              <Ionicons
-                name="trending-up-outline"
-                size={18}
-                color={isConnected ? theme.success : tokenExpired ? theme.warning : colors.textSecondary}
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center flex-1">
+              <View
+                className="w-2 h-2 rounded-full mr-2"
+                style={{
+                  backgroundColor: isConnected
+                    ? theme.success
+                    : tokenExpired
+                    ? theme.warning
+                    : colors.textSecondary,
+                }}
               />
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-foreground">
+                  {!isAuthenticated ? 'Not connected' : tokenExpired ? 'Session Expired' : 'Connected'}
+                </Text>
+                <Text className="text-xs text-muted-foreground mt-0.5">
+                  {!isAuthenticated
+                    ? 'Tap Connect to link your Kite account'
+                    : tokenExpired
+                    ? 'Session expired — tap Reconnect'
+                    : lastSynced
+                    ? `Last synced ${formatSyncTime(lastSynced)}`
+                    : 'Not yet synced'}
+                </Text>
+              </View>
             </View>
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-foreground">Zerodha Kite</Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
-                {!isAuthenticated
-                  ? 'Not connected'
-                  : tokenExpired
-                  ? 'Session expired — reconnect to sync'
-                  : lastSynced
-                  ? `Last synced: ${formatSyncTime(lastSynced)}`
-                  : 'Connected — tap Sync to fetch data'}
-              </Text>
-            </View>
-            {isAuthenticated && (
-              <Pressable onPress={handleDisconnect} hitSlop={8}>
-                <Text className="text-xs text-danger">Disconnect</Text>
+            {!isAuthenticated ? (
+              <Pressable
+                onPress={handleConnectPress}
+                className="flex-row items-center px-3 py-2 rounded-lg"
+                style={{ backgroundColor: theme.primary }}
+              >
+                <Ionicons name="link-outline" size={16} color="#fff" />
+                <Text className="text-white text-xs font-semibold ml-1">Connect</Text>
+              </Pressable>
+            ) : tokenExpired ? (
+              <Pressable
+                onPress={handleConnectPress}
+                className="flex-row items-center px-3 py-2 rounded-lg"
+                style={{ backgroundColor: theme.warning }}
+              >
+                <Ionicons name="refresh-outline" size={16} color="#fff" />
+                <Text className="text-white text-xs font-semibold ml-1">Reconnect</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={handleSync}
+                disabled={syncing}
+                className="flex-row items-center px-3 py-2 rounded-lg"
+                style={{ backgroundColor: theme.primary, opacity: syncing ? 0.7 : 1 }}
+              >
+                {syncing ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="sync-outline" size={16} color="#fff" />
+                    <Text className="text-white text-xs font-semibold ml-1">Sync</Text>
+                  </>
+                )}
               </Pressable>
             )}
           </View>
-
-          {/* Action buttons */}
-          {!isAuthenticated ? (
-            <Pressable
-              onPress={handleConnectPress}
-              className="rounded-lg p-3 flex-row items-center justify-center"
-              style={{ backgroundColor: theme.primary }}
-            >
-              <Ionicons name="log-in-outline" size={16} color="#fff" />
-              <Text className="text-white font-semibold text-sm ml-2">Connect to Kite</Text>
-            </Pressable>
-          ) : tokenExpired ? (
-            <Pressable
-              onPress={handleConnectPress}
-              className="rounded-lg p-3 flex-row items-center justify-center"
-              style={{ backgroundColor: theme.warning }}
-            >
-              <Ionicons name="refresh-outline" size={16} color="#fff" />
-              <Text className="text-white font-semibold text-sm ml-2">Reconnect</Text>
-            </Pressable>
-          ) : (
-            <Pressable
-              onPress={handleSync}
-              disabled={syncing}
-              className="rounded-lg p-3 flex-row items-center justify-center"
-              style={{ backgroundColor: theme.primary, opacity: syncing ? 0.7 : 1 }}
-            >
-              {syncing ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Ionicons name="sync-outline" size={16} color="#fff" />
-              )}
-              <Text className="text-white font-semibold text-sm ml-2">
-                {syncing ? 'Syncing…' : 'Sync Now'}
-              </Text>
-            </Pressable>
-          )}
         </Card>
 
         {/* ── Holdings ── */}
@@ -697,6 +694,26 @@ export default function KiteConnectScreen() {
               </>
             )}
           </>
+        )}
+
+        {/* ── Manage card ── */}
+        {isAuthenticated && (
+          <Card className="mx-4 mt-1 mb-3">
+            <Pressable
+              onPress={() => router.push('/settings/kite-connect-api-key' as any)}
+              className="flex-row items-center py-2.5 border-b border-border"
+            >
+              <Ionicons name="key-outline" size={16} color={colors.text} />
+              <Text className="text-sm text-foreground ml-3 flex-1">Update API Key</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+            </Pressable>
+            <Pressable onPress={handleDisconnect} className="flex-row items-center py-2.5">
+              <Ionicons name="log-out-outline" size={16} color={theme.danger} />
+              <Text className="text-sm font-medium ml-3" style={{ color: theme.danger }}>
+                Disconnect Kite
+              </Text>
+            </Pressable>
+          </Card>
         )}
 
       </ScrollView>
