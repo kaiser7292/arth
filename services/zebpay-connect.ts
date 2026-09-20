@@ -110,10 +110,12 @@ export async function clearZebpaySession(): Promise<void> {
 
 // ─── API Helpers ──────────────────────────────────────────────────────────────
 
-function zebHeaders(clientId: string, jwt?: string): Record<string, string> {
+// Per Zebpay curl docs: --header 'client_id;' → header present with EMPTY value.
+// Real client_id goes only in the request body. Timestamp is Unix seconds.
+function zebHeaders(jwt?: string): Record<string, string> {
   return {
-    'client_id': clientId,
-    'timestamp': String(Date.now()),
+    'client_id': '',
+    'timestamp': String(Math.floor(Date.now() / 1000)),
     'Content-Type': 'application/json',
     'RequestId': Math.random().toString(36).slice(2) + Date.now().toString(36),
     ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}),
@@ -129,10 +131,10 @@ async function parseZebResponse(res: Response): Promise<{ statusCode?: number; s
   }
 }
 
-async function zebPost(path: string, body: Record<string, unknown>, clientId: string, jwt?: string): Promise<unknown> {
+async function zebPost(path: string, body: Record<string, unknown>, jwt?: string): Promise<unknown> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
-    headers: zebHeaders(clientId, jwt),
+    headers: zebHeaders(jwt),
     body: JSON.stringify(body),
   });
   const json = await parseZebResponse(res);
@@ -146,10 +148,10 @@ async function zebPost(path: string, body: Record<string, unknown>, clientId: st
   return json.data ?? json;
 }
 
-async function zebGet(path: string, clientId: string, jwt: string): Promise<unknown> {
+async function zebGet(path: string, _clientId: string, jwt: string): Promise<unknown> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: 'GET',
-    headers: zebHeaders(clientId, jwt),
+    headers: zebHeaders(jwt),
   });
   const json = await parseZebResponse(res);
   const code = json.statusCode;
@@ -171,12 +173,12 @@ async function zebGet(path: string, clientId: string, jwt: string): Promise<unkn
 export async function sendZebpayOTP(
   clientId: string, clientSecret: string, mobile: string, countryCode = '91',
 ): Promise<string> {
-  const data = await zebPost('/user/login', {
+  const data = await zebPost('//user/login', {
     country_code: countryCode,
     mobile_number: mobile,
     client_id: clientId,
     client_secret: clientSecret,
-  }, clientId) as { verification_code?: string };
+  }) as { verification_code?: string };
 
   const code = data?.verification_code ?? '';
   settingsStorage.set(MMKV_VERIFICATION_CODE, code);
@@ -188,12 +190,12 @@ export async function sendZebpayOTP(
  */
 export async function verifyZebpayOTP(otp: string, clientId: string, clientSecret: string): Promise<string> {
   const verificationCode = settingsStorage.getString(MMKV_VERIFICATION_CODE) ?? '';
-  const data = await zebPost('/user/verifyotp', {
+  const data = await zebPost('//user/verifyotp', {
     otp,
     verification_code: verificationCode,
     client_id: clientId,
     client_secret: clientSecret,
-  }, clientId) as { verification_code?: string };
+  }) as { verification_code?: string };
 
   const newCode = data?.verification_code ?? verificationCode;
   settingsStorage.set(MMKV_VERIFICATION_CODE, newCode);
@@ -207,7 +209,7 @@ export async function verifyZebpayPIN(
   pin: string, clientId: string, clientSecret: string,
 ): Promise<{ accessToken: string; refreshToken: string; expiresIn: string }> {
   const verificationCode = settingsStorage.getString(MMKV_VERIFICATION_CODE) ?? '';
-  const data = await zebPost('/user/verifypin', {
+  const data = await zebPost('//user/verifypin', {
     grant_type: 'user_credentials',
     pin,
     daily_trade_limit: '',
@@ -218,7 +220,7 @@ export async function verifyZebpayPIN(
     scope: '',
     client_id: clientId,
     client_secret: clientSecret,
-  }, clientId) as { access_token?: string; refresh_token?: string; expires_in?: string };
+  }) as { access_token?: string; refresh_token?: string; expires_in?: string };
 
   const accessToken  = data?.access_token  ?? '';
   const refreshToken = data?.refresh_token ?? '';
