@@ -193,20 +193,6 @@ nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(
 .cf-thanks h3{font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:6px}
 .cf-thanks p{font-size:.875rem;color:var(--muted)}
 
-/* ── Policies ─────────────────────────────────────────── */
-.pol-s{background:var(--surface2);padding-block:44px}
-.pol-i{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px}
-.pol-h{display:flex;align-items:center;justify-content:space-between;padding:15px 19px;cursor:pointer;user-select:none;gap:12px}
-.pol-ht{font-family:'Outfit',sans-serif;font-size:.975rem;font-weight:600;color:var(--text)}
-.pol-ch{color:var(--muted);transition:transform .2s;flex-shrink:0}
-.pol-i.open .pol-ch{transform:rotate(180deg)}
-.pol-b{display:none;padding:0 19px 20px}
-.pol-i.open .pol-b{display:block}
-.pol-b h3{font-family:'Outfit',sans-serif;font-size:.875rem;font-weight:600;color:var(--text);margin:15px 0 4px}
-.pol-b p,.pol-b li{font-size:.855rem;color:var(--muted);line-height:1.75}
-.pol-b ul{margin:5px 0;padding-left:18px}
-.pol-b li+li{margin-top:3px}
-.pol-b a{color:var(--brand)}
 
 /* ── Footer ─────────────────────────────────────────────── */
 footer{background:var(--dark-bg);padding-block:24px}
@@ -579,63 +565,6 @@ footer{background:var(--dark-bg);padding-block:24px}
   </div>
 </section>
 
-<!-- POLICIES -->
-<section class="pol-s" id="policies">
-  <div class="w">
-    <div class="sec-lbl reveal">Legal</div>
-    <h2 class="sec-h reveal reveal-d1" style="margin-bottom:20px">Policies</h2>
-    <div class="pol-i reveal reveal-d2" id="pol-pp">
-      <div class="pol-h" onclick="togglePol('pol-pp')">
-        <span class="pol-ht">Privacy Policy</span>
-        <svg class="pol-ch" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-      </div>
-      <div class="pol-b">
-        <p><em>Effective: 20 September 2026</em></p>
-        <h3>What we collect</h3>
-        <p><strong>Nothing.</strong> Arth does not collect, transmit, or store any personal or financial data on any server. All data (transactions, accounts, SMS logs, preferences) lives exclusively in a SQLite database on your Android device.</p>
-        <h3>SMS access</h3>
-        <p>Arth requests READ_SMS permission to detect bank transactions. Processing happens entirely on-device. No SMS content is ever transmitted externally. Only messages from recognised bank senders are read.</p>
-        <h3>Internet access</h3>
-        <p>Internet permission is used only for features you explicitly enable:</p>
-        <ul>
-          <li>Connecting to Zerodha Kite, Angel One, or Zebpay via their official APIs (credentials go directly to those services)</li>
-          <li>Google Drive backup, if enabled: your encrypted backup file goes directly to your own Drive account</li>
-        </ul>
-        <p>When these features are not in use, Arth makes no network requests.</p>
-        <h3>Backups</h3>
-        <p>The backup feature creates an AES-GCM encrypted file on your device. If you enable Google Drive backup, this encrypted file is uploaded directly to your personal Drive. We have no access to it.</p>
-        <h3>Analytics &amp; tracking</h3>
-        <p>There are no analytics SDKs, crash reporters, or tracking libraries in Arth. We have zero visibility into how you use the app.</p>
-        <h3>Children</h3>
-        <p>Arth is not directed at children under 13. We do not knowingly collect data from children.</p>
-        <h3>Contact</h3>
-        <p>Questions? Email <a href="mailto:souravbaid270@gmail.com">souravbaid270@gmail.com</a></p>
-      </div>
-    </div>
-    <div class="pol-i reveal reveal-d3" id="pol-tos">
-      <div class="pol-h" onclick="togglePol('pol-tos')">
-        <span class="pol-ht">Terms of Use</span>
-        <svg class="pol-ch" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-      </div>
-      <div class="pol-b">
-        <p><em>Effective: 20 September 2026</em></p>
-        <h3>Use of the app</h3>
-        <p>Arth is a personal finance tool provided free of charge for personal, non-commercial use. Redistribution or commercial use requires prior permission.</p>
-        <h3>No warranty</h3>
-        <p>Arth is provided "as is" without warranty. Financial calculations (loan schedules, balance summaries, investment values) are for informational purposes only and do not constitute financial advice. Verify important figures independently.</p>
-        <h3>Limitation of liability</h3>
-        <p>To the extent permitted by law, the developer is not liable for any loss of data, financial loss, or other damages arising from your use of Arth.</p>
-        <h3>Your data responsibility</h3>
-        <p>All data is stored locally on your device. You are solely responsible for backups. Uninstalling the app or clearing app data permanently deletes everything unless a backup exists.</p>
-        <h3>Third-party integrations</h3>
-        <p>Broker integrations (Zerodha, Angel One, Zebpay) are for convenience. Arth is not affiliated with these services and is not responsible for data accuracy or API availability.</p>
-        <h3>Contact</h3>
-        <p>Questions: <a href="mailto:souravbaid270@gmail.com">souravbaid270@gmail.com</a></p>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- FOOTER -->
 <footer>
   <div class="w">
@@ -649,8 +578,8 @@ footer{background:var(--dark-bg);padding-block:24px}
       </div>
       <div class="ft-lk">
         <a href="#features">Features</a>
-        <a href="#pol-pp" data-pol="pol-pp">Privacy Policy</a>
-        <a href="#pol-tos" data-pol="pol-tos">Terms of Use</a>
+        <a href="/legal#privacy">Privacy Policy</a>
+        <a href="/legal#terms">Terms of Use</a>
         <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener">GitHub</a>
         <a href="#contact">Contact</a>
       </div>
@@ -670,17 +599,6 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
   });
 });
 
-/* Policy accordion */
-function togglePol(id) { document.getElementById(id).classList.toggle('open'); }
-document.querySelectorAll('[data-pol]').forEach(function(a) {
-  a.addEventListener('click', function(e) {
-    e.preventDefault();
-    var id = this.getAttribute('data-pol');
-    var el = document.getElementById(id);
-    el.classList.add('open');
-    setTimeout(function() { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
-  });
-});
 
 /* Contact form */
 function submitForm() {
