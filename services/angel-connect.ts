@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { settingsStorage } from '@/services/storage';
+import { setIntegrationCred, getAllIntegrationCreds, clearIntegrationCreds } from '@/services/integration-credentials';
 
 // ─── SecureStore Keys ─────────────────────────────────────────────────────────
 const ANGEL_API_KEY = 'angel_api_key';
@@ -18,8 +19,6 @@ const MMKV_ORDERS_CACHE = 'angel_orders_cache';
 const MMKV_FUNDS_CACHE = 'angel_funds_cache';
 const MMKV_PORTFOLIO_TOTAL = 'angel_portfolio_total';
 
-// Routes through kite.souravbaid.com (Oracle VM, fixed IP 129.154.34.156)
-// so Angel One always sees the whitelisted IP, not the device's dynamic IP
 const BASE_URL = (process.env.EXPO_PUBLIC_ANGEL_BACKEND_URL ?? 'https://apiconnect.angelone.in').replace(/\/$/, '');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -184,6 +183,8 @@ export function generateTOTP(secret: string): string {
 
 // ─── Credential Storage ───────────────────────────────────────────────────────
 
+const ANGEL_SERVICE = 'angel_one';
+
 export async function storeAngelCredentials(
   apiKey: string, clientId: string, password: string, totpSecret: string,
 ): Promise<void> {
@@ -192,18 +193,42 @@ export async function storeAngelCredentials(
     SecureStore.setItemAsync(ANGEL_CLIENT_ID, clientId),
     SecureStore.setItemAsync(ANGEL_PASSWORD, password),
     SecureStore.setItemAsync(ANGEL_TOTP_SECRET, totpSecret),
+    // Also persist to SQLite so credentials survive backup/restore
+    setIntegrationCred(ANGEL_SERVICE, 'api_key', apiKey),
+    setIntegrationCred(ANGEL_SERVICE, 'client_id', clientId),
+    setIntegrationCred(ANGEL_SERVICE, 'password', password),
+    setIntegrationCred(ANGEL_SERVICE, 'totp_secret', totpSecret),
   ]);
 }
 
 export async function getAngelCredentials(): Promise<{
   apiKey: string; clientId: string; password: string; totpSecret: string;
 } | null> {
-  const [apiKey, clientId, password, totpSecret] = await Promise.all([
+  let [apiKey, clientId, password, totpSecret] = await Promise.all([
     SecureStore.getItemAsync(ANGEL_API_KEY),
     SecureStore.getItemAsync(ANGEL_CLIENT_ID),
     SecureStore.getItemAsync(ANGEL_PASSWORD),
     SecureStore.getItemAsync(ANGEL_TOTP_SECRET),
   ]);
+  // Fallback to SQLite backup (e.g. after restore on a new device)
+  if (!apiKey || !clientId || !password || !totpSecret) {
+    try {
+      const stored = await getAllIntegrationCreds(ANGEL_SERVICE);
+      apiKey = stored.api_key ?? apiKey;
+      clientId = stored.client_id ?? clientId;
+      password = stored.password ?? password;
+      totpSecret = stored.totp_secret ?? totpSecret;
+      // Re-populate SecureStore if recovered from backup
+      if (apiKey && clientId && password && totpSecret) {
+        await Promise.all([
+          SecureStore.setItemAsync(ANGEL_API_KEY, apiKey),
+          SecureStore.setItemAsync(ANGEL_CLIENT_ID, clientId),
+          SecureStore.setItemAsync(ANGEL_PASSWORD, password),
+          SecureStore.setItemAsync(ANGEL_TOTP_SECRET, totpSecret),
+        ]);
+      }
+    } catch { /* if DB not ready, skip */ }
+  }
   if (!apiKey || !clientId || !password || !totpSecret) return null;
   return { apiKey, clientId, password, totpSecret };
 }
@@ -427,6 +452,7 @@ export async function clearAngelCredentials(): Promise<void> {
     SecureStore.deleteItemAsync(ANGEL_CLIENT_ID),
     SecureStore.deleteItemAsync(ANGEL_PASSWORD),
     SecureStore.deleteItemAsync(ANGEL_TOTP_SECRET),
+    clearIntegrationCreds(ANGEL_SERVICE).catch(() => {}),
   ]);
   await clearAngelSession();
 }

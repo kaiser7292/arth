@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ActivityIndicator, ScrollView, View, Pressable } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAlert } from '@/hooks/use-alert';
 import { logger } from '@/utils/logger';
 import { formatAmount } from '@/utils/format';
+import { todayIso } from '@/utils/date';
+import { addOrUpdateSnapshot, updateFundBalance } from '@/services/financial-account';
+import { getDematAccountsForPicker } from '@/services/kite-connect';
 import {
   isAngelConnected,
   isAngelTokenExpired,
@@ -55,6 +58,10 @@ export default function AngelConnectScreen() {
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [savingSnapshot, setSavingSnapshot] = useState(false);
+  const [linkedAccountId, setLinkedAccountId] = useState<string | null>(null);
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const [pickerAccounts, setPickerAccounts] = useState<{ id: string; label: string }[]>([]);
 
   const [holdings, setHoldings] = useState<AngelHolding[]>([]);
   const [totalHolding, setTotalHolding] = useState<AngelTotalHolding | null>(null);
@@ -100,6 +107,39 @@ export default function AngelConnectScreen() {
       setSyncing(false);
     }
   }, [alert]);
+
+  const handleUpdateSnapshot = async () => {
+    if (!linkedAccountId) {
+      const accounts = await getDematAccountsForPicker().catch(() => []);
+      if (accounts.length === 0) {
+        alert('No Demat Account', 'Add a demat/investment account in Accounts first, then link it here.');
+        return;
+      }
+      setPickerAccounts(accounts);
+      setShowAccountPicker(true);
+      return;
+    }
+    const portfolioTotal = parseMoney(totalHolding?.totalholdingvalue);
+    const fundsAvailable = parseMoney(funds?.availablecash ?? funds?.net);
+    setSavingSnapshot(true);
+    try {
+      await Promise.all([
+        addOrUpdateSnapshot(linkedAccountId, todayIso(), portfolioTotal),
+        updateFundBalance(linkedAccountId, fundsAvailable),
+      ]);
+      alert('Snapshot Saved', `Portfolio ${formatAmount(portfolioTotal)} and funds ${formatAmount(fundsAvailable)} saved for today.`);
+    } catch (err: any) {
+      alert('Error', err.message || 'Failed to save snapshot');
+    } finally {
+      setSavingSnapshot(false);
+    }
+  };
+
+  const handlePickAccount = (id: string) => {
+    setLinkedAccountId(id);
+    setShowAccountPicker(false);
+    handleUpdateSnapshot();
+  };
 
   const handleDisconnect = useCallback(() => {
     alert(
@@ -221,64 +261,85 @@ export default function AngelConnectScreen() {
             </View>
           </Card>
 
-          {/* Portfolio summary */}
-          {totalHolding && (
+          {/* Portfolio + Funds summary */}
+          {(totalHolding || funds) && (
             <Card className="mb-3">
               <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Portfolio
+                Portfolio Summary
               </Text>
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-muted-foreground">Current Value</Text>
-                <Text className="text-sm font-semibold text-foreground">
-                  {formatAmount(totalHolding.totalholdingvalue)}
-                </Text>
-              </View>
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-muted-foreground">Invested</Text>
-                <Text className="text-sm text-foreground">{formatAmount(totalHolding.totalinvvalue)}</Text>
-              </View>
-              <View className="flex-row justify-between">
-                <Text className="text-xs text-muted-foreground">Overall P&L</Text>
-                <Text
-                  className="text-sm font-semibold"
-                  style={{ color: totalHolding.totalprofitandloss >= 0 ? theme.success : theme.danger }}
-                >
-                  {totalHolding.totalprofitandloss >= 0 ? '+' : ''}
-                  {formatAmount(totalHolding.totalprofitandloss)}
-                  {' '}
-                  <Text className="text-xs font-normal" style={{ color: totalHolding.totalprofitandloss >= 0 ? theme.success : theme.danger }}>
-                    ({totalHolding.totalpnlpercentage >= 0 ? '+' : ''}{totalHolding.totalpnlpercentage.toFixed(2)}%)
-                  </Text>
-                </Text>
-              </View>
-            </Card>
-          )}
 
-          {/* Funds */}
-          {funds && (
-            <Card className="mb-3">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Funds & Margin
-              </Text>
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-muted-foreground">Available Cash</Text>
-                <Text className="text-sm font-semibold text-foreground">{formatAmount(parseMoney(funds.availablecash))}</Text>
-              </View>
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-muted-foreground">Net Balance</Text>
-                <Text className="text-sm text-foreground">{formatAmount(parseMoney(funds.net))}</Text>
-              </View>
-              {parseMoney(funds.totalpnl) !== 0 && (
-                <View className="flex-row justify-between">
-                  <Text className="text-xs text-muted-foreground">Total P&L (today)</Text>
-                  <Text
-                    className="text-sm font-semibold"
-                    style={{ color: parseMoney(funds.totalpnl) >= 0 ? theme.success : theme.danger }}
-                  >
-                    {parseMoney(funds.totalpnl) >= 0 ? '+' : ''}{formatAmount(parseMoney(funds.totalpnl))}
-                  </Text>
-                </View>
+              {totalHolding && (
+                <>
+                  <View className="flex-row justify-between mb-2">
+                    <Text className="text-sm text-muted-foreground">Current Value</Text>
+                    <Text className="text-sm font-semibold text-foreground">
+                      {formatAmount(totalHolding.totalholdingvalue)}
+                    </Text>
+                  </View>
+                  <View className="flex-row justify-between mb-2">
+                    <Text className="text-sm text-muted-foreground">Invested</Text>
+                    <Text className="text-sm text-foreground">{formatAmount(totalHolding.totalinvvalue)}</Text>
+                  </View>
+                  <View className="flex-row justify-between mb-2">
+                    <Text className="text-sm text-muted-foreground">Overall P&L</Text>
+                    <Text
+                      className="text-sm font-semibold"
+                      style={{ color: totalHolding.totalprofitandloss >= 0 ? theme.success : theme.danger }}
+                    >
+                      {totalHolding.totalprofitandloss >= 0 ? '+' : ''}
+                      {formatAmount(totalHolding.totalprofitandloss)}
+                      {' '}
+                      <Text className="text-xs font-normal" style={{ color: totalHolding.totalprofitandloss >= 0 ? theme.success : theme.danger }}>
+                        ({totalHolding.totalpnlpercentage >= 0 ? '+' : ''}{totalHolding.totalpnlpercentage.toFixed(2)}%)
+                      </Text>
+                    </Text>
+                  </View>
+                </>
               )}
+
+              {funds && (
+                <>
+                  <View className="border-t border-border pt-2 mt-1 mb-2">
+                    <View className="flex-row justify-between mb-2">
+                      <Text className="text-sm text-muted-foreground">Available Cash</Text>
+                      <Text className="text-sm font-semibold text-foreground">{formatAmount(parseMoney(funds.availablecash))}</Text>
+                    </View>
+                    <View className="flex-row justify-between mb-1">
+                      <Text className="text-sm text-muted-foreground">Net Balance</Text>
+                      <Text className="text-sm text-foreground">{formatAmount(parseMoney(funds.net))}</Text>
+                    </View>
+                    {parseMoney(funds.totalpnl) !== 0 && (
+                      <View className="flex-row justify-between mt-1">
+                        <Text className="text-sm text-muted-foreground">Today's P&L</Text>
+                        <Text
+                          className="text-sm font-semibold"
+                          style={{ color: parseMoney(funds.totalpnl) >= 0 ? theme.success : theme.danger }}
+                        >
+                          {parseMoney(funds.totalpnl) >= 0 ? '+' : ''}{formatAmount(parseMoney(funds.totalpnl))}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </>
+              )}
+
+              <View className="pt-2 mt-1 border-t border-border">
+                <Pressable
+                  onPress={handleUpdateSnapshot}
+                  disabled={savingSnapshot}
+                  className="rounded-lg p-3 flex-row items-center justify-center"
+                  style={{ backgroundColor: theme.alpha('primary', 0.1), opacity: savingSnapshot ? 0.5 : 1 }}
+                >
+                  {savingSnapshot ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <Ionicons name="save-outline" size={16} color={theme.primary} />
+                  )}
+                  <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
+                    {savingSnapshot ? 'Saving…' : 'Update Snapshot with These Values'}
+                  </Text>
+                </Pressable>
+              </View>
             </Card>
           )}
 
@@ -410,6 +471,40 @@ export default function AngelConnectScreen() {
 
         </View>
       </ScrollView>
+
+      {/* Demat account picker modal */}
+      <Modal visible={showAccountPicker} transparent animationType="slide">
+        <Pressable className="flex-1" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onPress={() => setShowAccountPicker(false)} />
+        <View className="bg-background rounded-t-2xl p-4 pb-8" style={{ maxHeight: '60%' }}>
+          <Text className="text-base font-bold text-foreground mb-1">Link a Demat Account</Text>
+          <Text className="text-xs text-muted-foreground mb-4">
+            Choose the account where Angel One portfolio snapshots will be saved.
+          </Text>
+          {pickerAccounts.map(a => (
+            <Pressable
+              key={a.id}
+              onPress={() => handlePickAccount(a.id)}
+              className="py-3 border-b border-border flex-row items-center"
+            >
+              <Ionicons name="briefcase-outline" size={16} color={colors.textSecondary} />
+              <Text className="text-sm text-foreground ml-3">{a.label}</Text>
+            </Pressable>
+          ))}
+          {pickerAccounts.length === 0 && (
+            <Text className="text-sm text-muted-foreground text-center py-4">
+              No demat/investment accounts found. Add one in Accounts first.
+            </Text>
+          )}
+          <Pressable
+            onPress={() => setShowAccountPicker(false)}
+            className="mt-4 py-3 rounded-lg items-center"
+            style={{ backgroundColor: colors.border }}
+          >
+            <Text className="text-sm font-semibold text-foreground">Cancel</Text>
+          </Pressable>
+        </View>
+      </Modal>
+
     </ScreenContainer>
   );
 }

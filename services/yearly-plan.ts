@@ -353,6 +353,20 @@ export async function updateInvestmentBucket(
 ): Promise<void> {
   const db = getDatabase();
 
+  // Capture the link BEFORE the write. A milestone's current_saved is a stored
+  // rollup of its linked buckets, so re-pointing this bucket leaves both the old
+  // and the new milestone wrong until each is recomputed. _syncLinkedMilestone
+  // alone can't do it: after the UPDATE the bucket no longer knows where it came
+  // from. Only read it when the caller is actually touching the link.
+  let previousMilestoneId: string | null = null;
+  if (input.linked_milestone_id !== undefined) {
+    const before = await db.getFirstAsync<{ linked_milestone_id: string | null }>(
+      "SELECT linked_milestone_id FROM investment_buckets WHERE id = ?;",
+      id,
+    );
+    previousMilestoneId = before?.linked_milestone_id ?? null;
+  }
+
   const fields: string[] = [];
   const values: (string | number | null)[] = [];
 
@@ -396,6 +410,13 @@ export async function updateInvestmentBucket(
     `UPDATE investment_buckets SET ${fields.join(", ")} WHERE id = ?;`,
     ...values,
   );
+
+  if (input.linked_milestone_id !== undefined) {
+    for (const mid of new Set([previousMilestoneId, input.linked_milestone_id ?? null])) {
+      if (mid) await recomputeMilestoneSaved(mid);
+    }
+  }
+
   bumpDataVersion();
 }
 
@@ -416,6 +437,11 @@ export async function resetInvestmentBucket(id: string): Promise<void> {
 
 export async function deleteInvestmentBucket(id: string): Promise<void> {
   const db = getDatabase();
+  // Same reasoning as updateInvestmentBucket: read the link before the row goes.
+  const before = await db.getFirstAsync<{ linked_milestone_id: string | null }>(
+    "SELECT linked_milestone_id FROM investment_buckets WHERE id = ?;",
+    id,
+  );
   await db.withTransactionAsync(async () => {
     await db.runAsync(
       "DELETE FROM investment_contributions WHERE investment_bucket_id = ?;",
@@ -423,6 +449,9 @@ export async function deleteInvestmentBucket(id: string): Promise<void> {
     );
     await db.runAsync("DELETE FROM investment_buckets WHERE id = ?;", id);
   });
+  if (before?.linked_milestone_id) {
+    await recomputeMilestoneSaved(before.linked_milestone_id);
+  }
   bumpDataVersion();
 }
 
@@ -958,19 +987,14 @@ export async function deriveYearlyPlan(
  *   (direct milestone contributions) + (sum of all linked bucket contributions)
  * Called after any investment contribution create/delete on a linked bucket.
  */
-/** @internal — exported for expense-investment-link.ts */
-export async function _syncLinkedMilestone(bucketId: string): Promise<void> {
+/**
+ * Recomputes ONE milestone's current_saved from direct contributions plus every
+ * bucket currently linked to it. Keyed by milestone (not bucket) so a link
+ * change can settle up the milestone a bucket just LEFT — that milestone no
+ * longer owns the bucket, so a bucket-keyed recompute can never reach it.
+ */
+export async function recomputeMilestoneSaved(milestoneId: string): Promise<void> {
   const db = getDatabase();
-
-  // Check if this bucket is linked to a milestone
-  const bucket = await db.getFirstAsync<{ linked_milestone_id: string | null }>(
-    "SELECT linked_milestone_id FROM investment_buckets WHERE id = ?;",
-    bucketId,
-  );
-
-  if (!bucket?.linked_milestone_id) return;
-
-  const milestoneId = bucket.linked_milestone_id;
 
   // Recalculate: direct contributions + contributions from ALL linked buckets
   // (both investment_contributions and v17.0.0 expense_investment_links)
@@ -994,4 +1018,57 @@ export async function _syncLinkedMilestone(bucketId: string): Promise<void> {
     milestoneId,
     milestoneId,
   );
+}
+
+/** @internal — exported for expense-investment-link.ts */
+export async function _syncLinkedMilestone(bucketId: string): Promise<void> {
+  const db = getDatabase();
+
+  // Check if this bucket is linked to a milestone
+  const bucket = await db.getFirstAsync<{ linked_milestone_id: string | null }>(
+    "SELECT linked_milestone_id FROM investment_buckets WHERE id = ?;",
+    bucketId,
+  );
+
+  if (!bucket?.linked_milestone_id) return;
+
+  await recomputeMilestoneSaved(bucket.linked_milestone_id);
+}
+
+/**
+ * Point a bucket at a milestone (or at nothing, with null).
+ *
+ * linked_milestone_id lives on the BUCKET and is single-valued: one bucket
+ * feeds at most one milestone, so linking a bucket that already belongs to
+ * another milestone MOVES it rather than adding a second link. Callers that
+ * offer the milestone side of this relationship should confirm that move with
+ * the user first.
+ *
+ * Recomputes both the milestone being left and the one being joined — skipping
+ * either one strands a stale current_saved on it.
+ */
+export async function setBucketMilestoneLink(
+  bucketId: string,
+  milestoneId: string | null,
+): Promise<void> {
+  const db = getDatabase();
+
+  const before = await db.getFirstAsync<{ linked_milestone_id: string | null }>(
+    "SELECT linked_milestone_id FROM investment_buckets WHERE id = ?;",
+    bucketId,
+  );
+  const previousId = before?.linked_milestone_id ?? null;
+  if (previousId === milestoneId) return;
+
+  await db.runAsync(
+    "UPDATE investment_buckets SET linked_milestone_id = ? WHERE id = ?;",
+    milestoneId,
+    bucketId,
+  );
+
+  for (const id of new Set([previousId, milestoneId])) {
+    if (id) await recomputeMilestoneSaved(id);
+  }
+
+  bumpDataVersion();
 }

@@ -24,8 +24,12 @@ import type {
 import {
   getLinkedBucketsForMilestone,
   getLinkedBucketContributionsTotal,
+  getAllActiveBuckets,
+  setBucketMilestoneLink,
 } from "@/services/yearly-plan";
 import type { InvestmentBucket } from "@/services/yearly-plan";
+import { getLifeMilestones } from "@/services/life-milestone";
+import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/expense-validation";
 import { getCurrentFY, getFYRange, getFYLabel, formatLocalDate } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
@@ -52,6 +56,11 @@ export default function MilestoneDetailScreen() {
   >([]);
   const [linkedBuckets, setLinkedBuckets] = useState<InvestmentBucket[]>([]);
   const [linkedBucketTotal, setLinkedBucketTotal] = useState(0);
+  // Every active bucket, for the "which buckets feed this milestone" picker,
+  // plus milestone names so a bucket owned by another milestone can say so.
+  const [allBuckets, setAllBuckets] = useState<InvestmentBucket[]>([]);
+  const [milestoneNames, setMilestoneNames] = useState<Map<string, string>>(new Map());
+  const [showBucketPicker, setShowBucketPicker] = useState(false);
   interface FYBreakdownRow {
     fy: number;
     label: string;
@@ -75,18 +84,22 @@ export default function MilestoneDetailScreen() {
   const loadData = useCallback(async () => {
     if (!milestoneId) return;
     try {
-      const [m, c, cc, lb, lbt] = await Promise.all([
+      const [m, c, cc, lb, lbt, ab, allMs] = await Promise.all([
         getLifeMilestoneById(milestoneId),
         getMilestoneContributions(milestoneId),
         getCombinedMilestoneContributions(milestoneId),
         getLinkedBucketsForMilestone(milestoneId),
         getLinkedBucketContributionsTotal(milestoneId),
+        getAllActiveBuckets(DEFAULT_USER_ID),
+        getLifeMilestones(DEFAULT_USER_ID),
       ]);
       setMilestone(m);
       setContributions(c);
       setCombinedContributions(cc);
       setLinkedBuckets(lb);
       setLinkedBucketTotal(lbt);
+      setAllBuckets(ab);
+      setMilestoneNames(new Map(allMs.map((x) => [x.id, x.name])));
 
       if (m) {
         const sfy = m.start_financial_year ? parseInt(m.start_financial_year, 10) : currentFY;
@@ -152,6 +165,62 @@ export default function MilestoneDetailScreen() {
   );
 
   // ─── Monthly Grouping ────────────────────────────────────
+
+  // Buckets grouped under an FY heading, newest FY first. getAllActiveBuckets
+  // already returns financial_year DESC, sort_order ASC, so a running group
+  // preserves that order without re-sorting.
+  const bucketsByFY = useMemo(() => {
+    const groups: { fy: string; label: string; buckets: InvestmentBucket[] }[] = [];
+    for (const b of allBuckets) {
+      const fy = b.financial_year ?? "";
+      const last = groups[groups.length - 1];
+      if (last && last.fy === fy) {
+        last.buckets.push(b);
+      } else {
+        const parsed = parseInt(fy, 10);
+        groups.push({
+          fy,
+          label: Number.isFinite(parsed) ? getFYLabel(parsed, startMonth) : "No financial year",
+          buckets: [b],
+        });
+      }
+    }
+    return groups;
+  }, [allBuckets, startMonth]);
+
+  const applyBucketLink = async (bucketId: string, link: boolean) => {
+    if (!milestone) return;
+    await setBucketMilestoneLink(bucketId, link ? milestone.id : null);
+    await loadData();
+  };
+
+  const handleToggleBucketLink = (bucket: InvestmentBucket) => {
+    if (!milestone) return;
+    const owner = bucket.linked_milestone_id;
+
+    if (owner === milestone.id) {
+      applyBucketLink(bucket.id, false);
+      return;
+    }
+
+    // linked_milestone_id is single-valued, so claiming a bucket that already
+    // belongs to another milestone takes it away from that one. Never do that
+    // silently -- the other milestone's progress drops the moment we do.
+    if (owner) {
+      const ownerName = milestoneNames.get(owner) ?? "another milestone";
+      alert(
+        "Move this bucket?",
+        `"${bucket.name}" currently feeds ${ownerName}. A bucket can only feed one milestone, so linking it here will remove it from ${ownerName}.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Move", onPress: () => applyBucketLink(bucket.id, true) },
+        ],
+      );
+      return;
+    }
+
+    applyBucketLink(bucket.id, true);
+  };
 
   const monthlyHistoryByFY = useMemo(() => {
     const groups = new Map<string, { total: number; count: number }>();
@@ -628,8 +697,97 @@ export default function MilestoneDetailScreen() {
             )}
 
             {/* Linked Investment Buckets */}
-            {linkedBuckets.length > 0 && (
-              <Card title="Linked Investment Buckets" className="mb-4">
+            <Card className="mb-4">
+              <View className="flex-row items-center justify-between mb-3">
+                <Text
+                  className="text-label font-semibold tracking-wider uppercase text-muted-foreground"
+                  accessibilityRole="header"
+                >
+                  Linked Investment Buckets
+                </Text>
+                <Pressable
+                  onPress={() => setShowBucketPicker((v) => !v)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    showBucketPicker ? "Close bucket picker" : "Manage linked investment buckets"
+                  }
+                >
+                  <Text className="text-xs font-semibold" style={{ color: colors.blue }}>
+                    {showBucketPicker ? "Done" : "Manage"}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {showBucketPicker && (
+                <View className="mb-3">
+                  {bucketsByFY.length === 0 ? (
+                    <Text className="text-xs text-muted-foreground py-2">
+                      No investment buckets yet. Create one from Goals to Investment Buckets,
+                      then link it here.
+                    </Text>
+                  ) : (
+                    bucketsByFY.map((group) => (
+                      <View key={group.fy || "none"} className="mb-2">
+                        <Text className="text-label text-faint-foreground uppercase tracking-wider mb-1">
+                          {group.label}
+                        </Text>
+                        {group.buckets.map((b) => {
+                          const isLinkedHere = b.linked_milestone_id === milestone.id;
+                          const otherOwner =
+                            b.linked_milestone_id && !isLinkedHere
+                              ? milestoneNames.get(b.linked_milestone_id) ?? "another milestone"
+                              : null;
+                          return (
+                            <Pressable
+                              key={b.id}
+                              onPress={() => handleToggleBucketLink(b)}
+                              accessibilityRole="checkbox"
+                              accessibilityState={{ checked: isLinkedHere }}
+                              accessibilityLabel={`${b.name}${
+                                otherOwner ? `, currently feeding ${otherOwner}` : ""
+                              }`}
+                              className="flex-row items-center py-2"
+                            >
+                              <Ionicons
+                                name={isLinkedHere ? "checkbox" : "square-outline"}
+                                size={18}
+                                color={isLinkedHere ? colors.blue : colors.textSecondary}
+                              />
+                              <View className="flex-1 ml-2">
+                                <Text
+                                  className="text-sm text-foreground"
+                                  numberOfLines={1}
+                                >
+                                  {b.name}
+                                </Text>
+                                {otherOwner && (
+                                  <Text className="text-label text-faint-foreground" numberOfLines={1}>
+                                    Feeding {otherOwner}
+                                  </Text>
+                                )}
+                              </View>
+                              <Text className="text-xs text-muted-foreground ml-2">
+                                {formatAmount(b.current_contributed)}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    ))
+                  )}
+                </View>
+              )}
+
+              {linkedBuckets.length === 0 && !showBucketPicker && (
+                <Text className="text-xs text-muted-foreground py-1">
+                  No buckets feed this milestone yet. Tap Manage to link one, and its
+                  contributions will count toward this goal.
+                </Text>
+              )}
+
+              {linkedBuckets.length > 0 && (
+                <>
                 {linkedBuckets.map((lb, i) => {
                   const bucketPct =
                     lb.annual_target > 0
@@ -691,8 +849,9 @@ export default function MilestoneDetailScreen() {
                     </Text>
                   </View>
                 </View>
-              </Card>
-            )}
+                </>
+              )}
+            </Card>
 
             {/* Monthly History grouped by FY */}
             {monthlyHistoryByFY.length > 0 && (

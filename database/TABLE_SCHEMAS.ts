@@ -938,6 +938,14 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "updated_at",
     "deleted_at",
   ] as const,
+
+  // v3.16.x — integration credential store for backup/restore (migration 075)
+  integration_credentials: [
+    "service",
+    "key",
+    "value_enc",
+    "updated_at",
+  ] as const,
 } as const;
 
 // Type helper to get column names for a specific table

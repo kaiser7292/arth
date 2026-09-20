@@ -391,7 +391,7 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
     kiteGet<{ user_id: string }>('/user/profile', apiKey, accessToken),
     kiteGet<KiteHolding[]>('/portfolio/holdings', apiKey, accessToken),
     kiteGet<KiteMFHolding[]>('/mf/holdings', apiKey, accessToken),
-    kiteGet<{ equity: { available: { cash: number } } }>('/user/margins', apiKey, accessToken),
+    kiteGet<{ equity: { available: { cash?: number; live_balance?: number }; net?: number } }>('/user/margins', apiKey, accessToken),
     kiteGet<{ net: KitePosition[]; day: KitePosition[] }>('/portfolio/positions', apiKey, accessToken),
     kiteGet<KiteSIP[]>('/mf/sips', apiKey, accessToken),
     kiteGet<KiteOrder[]>('/orders', apiKey, accessToken),
@@ -418,7 +418,10 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
     0,
   );
   const portfolioTotal = equityTotal + mfTotal;
-  const fundsAvailable = margins.equity?.available?.cash ?? 0;
+  const fundsAvailable = margins.equity?.available?.live_balance
+    ?? margins.equity?.available?.cash
+    ?? margins.equity?.net
+    ?? 0;
   const syncedAt = new Date().toISOString();
 
   // Keep only net positions with non-zero quantity and active SIPs

@@ -44,6 +44,7 @@ import {
   createInvestmentBucket,
   updateInvestmentBucket,
   deleteInvestmentBucket,
+  setBucketMilestoneLink,
   getInvestmentContributions,
   createInvestmentContribution,
   deleteInvestmentContribution,
@@ -466,5 +467,91 @@ describe("InvestmentContribution", () => {
       );
       expect(milestoneUpdate).toBeDefined();
     });
+  });
+});
+
+// ─── Bucket ↔ Milestone linking ─────────────────────────────
+
+describe("setBucketMilestoneLink", () => {
+  /** Milestone ids touched by a current_saved recompute, in call order. */
+  const recomputedMilestones = () =>
+    executedRuns
+      .filter((r) => r.sql.includes("UPDATE life_milestones SET current_saved"))
+      .map((r) => r.params[0]);
+
+  const withCurrentLink = (milestoneId: string | null) => {
+    mockDb.getFirstAsync.mockImplementation(async (sql: string) => {
+      if (sql.includes("SELECT linked_milestone_id")) {
+        return { linked_milestone_id: milestoneId };
+      }
+      const rows = mockRows[sql] ?? [];
+      return rows[0] ?? null;
+    });
+  };
+
+  it("writes the link and recomputes the milestone being joined", async () => {
+    withCurrentLink(null);
+
+    await setBucketMilestoneLink("bucket-1", "milestone-1");
+
+    const write = executedRuns.find((r) =>
+      r.sql.includes("UPDATE investment_buckets SET linked_milestone_id"),
+    );
+    expect(write?.params).toEqual(["milestone-1", "bucket-1"]);
+    expect(recomputedMilestones()).toEqual(["milestone-1"]);
+  });
+
+  it("recomputes BOTH milestones when a bucket moves between them", async () => {
+    withCurrentLink("milestone-old");
+
+    await setBucketMilestoneLink("bucket-1", "milestone-new");
+
+    // The milestone being left must be settled up too -- it no longer owns the
+    // bucket, so nothing keyed off the bucket could ever reach it again.
+    expect(recomputedMilestones()).toEqual(["milestone-old", "milestone-new"]);
+  });
+
+  it("recomputes the abandoned milestone when unlinking", async () => {
+    withCurrentLink("milestone-1");
+
+    await setBucketMilestoneLink("bucket-1", null);
+
+    const write = executedRuns.find((r) =>
+      r.sql.includes("UPDATE investment_buckets SET linked_milestone_id"),
+    );
+    expect(write?.params).toEqual([null, "bucket-1"]);
+    expect(recomputedMilestones()).toEqual(["milestone-1"]);
+  });
+
+  it("is a no-op when the link is unchanged", async () => {
+    withCurrentLink("milestone-1");
+
+    await setBucketMilestoneLink("bucket-1", "milestone-1");
+
+    expect(executedRuns).toHaveLength(0);
+  });
+
+  it("recomputes old and new milestone when updateInvestmentBucket re-points the link", async () => {
+    withCurrentLink("milestone-old");
+
+    await updateInvestmentBucket("bucket-1", { linked_milestone_id: "milestone-new" });
+
+    expect(recomputedMilestones()).toEqual(["milestone-old", "milestone-new"]);
+  });
+
+  it("does not read or recompute anything when an update leaves the link alone", async () => {
+    withCurrentLink("milestone-1");
+
+    await updateInvestmentBucket("bucket-1", { name: "Renamed" });
+
+    expect(recomputedMilestones()).toEqual([]);
+  });
+
+  it("recomputes the milestone a deleted bucket was feeding", async () => {
+    withCurrentLink("milestone-1");
+
+    await deleteInvestmentBucket("bucket-1");
+
+    expect(recomputedMilestones()).toEqual(["milestone-1"]);
   });
 });

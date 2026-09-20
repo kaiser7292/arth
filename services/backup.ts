@@ -154,6 +154,8 @@ export const BACKUP_TABLES = [
   // (and optionally expenses/account_transfers, both listed earlier).
   "investment_products",
   "investment_schedule_entries",
+  // v3.16.x — integration credential store (migration 075). Independent, no FKs.
+  "integration_credentials",
 ];
 
 // ---------------------------------------------------------------------------
