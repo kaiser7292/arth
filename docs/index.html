@@ -1,3 +1,11 @@
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+(function(){
+  var s=null;try{s=localStorage.getItem('arth-theme')}catch(e){}
+  var d=s?s==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;
+  document.documentElement.setAttribute('data-theme',d?'dark':'light');
+}());
+</script>
 <title>Arth</title>
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap">
@@ -117,6 +125,7 @@ nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(
 .btn-g:hover{color:var(--brand);text-decoration:none}
 .watermark{position:absolute;right:-20px;top:50%;transform:translateY(-50%);font-family:'Outfit',sans-serif;font-size:clamp(200px,22vw,340px);font-weight:700;color:var(--brand);opacity:.055;line-height:1;pointer-events:none;user-select:none;letter-spacing:-.04em}
 .hero-glow{position:absolute;right:-60px;top:-80px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(94,234,212,.13) 0%,transparent 68%);pointer-events:none;z-index:0}
+.hero>.w{position:relative;z-index:1}
 
 /* ── Trust ─────────────────────────────────────────────── */
 .trust{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding-block:12px}
@@ -217,22 +226,46 @@ footer{background:var(--dark-bg);padding-block:24px}
 .mob-link:last-child{border-bottom:none}
 .mob-link:hover{color:var(--brand);text-decoration:none}
 .mob-link svg{margin-left:auto;opacity:.4}
+.mob-theme{display:flex;align-items:center;justify-content:space-between;padding:13px 0;font-size:.93rem;font-weight:500;color:var(--text);border-bottom:1px solid var(--border)}
+.mob-theme-toggle{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer}
+.mob-theme-toggle:hover{color:var(--brand)}
+
+/* ── Theme toggle ─────────────────────────────────────────── */
+.theme-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:none;border:1px solid var(--border);border-radius:8px;cursor:pointer;color:var(--muted);flex-shrink:0;padding:0}
+.theme-btn:hover{background:var(--brand-ghost);color:var(--brand)}
+.t-sun,.t-moon{display:block;width:16px;height:16px}
+[data-theme="light"] .t-sun{display:none}
+[data-theme="dark"] .t-moon{display:none}
 
 /* ── Responsive ─────────────────────────────────────────── */
 @media(max-width:760px){
   .feat-g{grid-template-columns:1fr 1fr}
-  .prv-stats{grid-template-columns:1fr}
+  .prv-stats{grid-template-columns:1fr 1fr}
   .sms-g,.contact-grid,.power-g{grid-template-columns:1fr}
-  .int-g{grid-template-columns:1fr}
+  .int-g{grid-template-columns:1fr 1fr}
   .watermark{display:none}
-  .trust-l{gap:12px}
+  .trust-l{gap:10px;flex-wrap:wrap}
   .cf-row{grid-template-columns:1fr}
   .nav-links .nav-link{display:none}
+  .theme-btn{display:none}
   .ham-btn{display:flex}
+  .sec{padding-block:40px}
+  .hero{padding-block:36px 28px}
+  .prv{padding-block:40px}
+  .sms-s,.power-s{padding-block:40px}
+  .cta{padding-block:36px}
+  .sms-g{gap:28px}
+  .sec-sub{margin-bottom:20px}
 }
 @media(max-width:500px){
   .feat-g{grid-template-columns:1fr}
+  .prv-stats{grid-template-columns:1fr}
+  .int-g{grid-template-columns:1fr}
   .w{padding-inline:18px}
+  .hero-acts{flex-direction:column;align-items:stretch;gap:10px}
+  .hero-acts .btn{justify-content:center}
+  .btn-inv{width:100%;justify-content:center}
+  .trust-i{font-size:.82rem}
 }
 </style>
 
@@ -248,6 +281,10 @@ footer{background:var(--dark-bg);padding-block:24px}
       <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener" class="nav-link">GitHub</a>
       <a href="/contact" class="nav-link">Contact</a>
     </div>
+    <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+      <svg class="t-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      <svg class="t-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
     <button class="ham-btn" id="ham-btn" aria-label="Open menu" aria-expanded="false">
       <span class="ham-icon"><span></span><span></span><span></span></span>
     </button>
@@ -267,6 +304,14 @@ footer{background:var(--dark-bg);padding-block:24px}
       <a href="/contact" class="mob-link">Contact
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
       </a>
+      <div class="mob-theme">
+        <span>Appearance</span>
+        <button class="mob-theme-toggle" onclick="toggleTheme()">
+          <svg class="t-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="t-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <span id="mob-theme-label">Light</span>
+        </button>
+      </div>
     </div>
   </div>
 </nav>
@@ -609,6 +654,20 @@ if (window.IntersectionObserver) {
   var ps = document.getElementById('prv-stats');
   if (ps) prvObs.observe(ps);
 }
+
+// Theme toggle
+window.toggleTheme = function() {
+  var cur = document.documentElement.getAttribute('data-theme');
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('arth-theme', next); } catch(e) {}
+  var lbl = document.getElementById('mob-theme-label');
+  if (lbl) lbl.textContent = next === 'dark' ? 'Dark' : 'Light';
+};
+(function(){
+  var lbl = document.getElementById('mob-theme-label');
+  if (lbl) lbl.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'Dark' : 'Light';
+}());
 
 // Hamburger menu
 (function(){
