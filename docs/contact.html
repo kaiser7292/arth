@@ -41,7 +41,9 @@
 }
 
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+html{height:100%}
+body{margin:0;min-height:100%;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.page-body{flex:1}
 h1,h2,h3{font-family:'Outfit',system-ui,sans-serif;text-wrap:balance;line-height:1.2;margin:0}
 p{margin:0}
 a{color:var(--brand);text-decoration:none}
@@ -59,7 +61,7 @@ nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(
 .back-link:hover{color:var(--brand);background:var(--brand-ghost);text-decoration:none}
 
 /* Layout */
-.page-wrap{display:grid;grid-template-columns:1fr 1.4fr;gap:64px;align-items:start;padding-block:52px}
+.page-wrap{display:grid;grid-template-columns:1fr 1.4fr;gap:48px;align-items:start;padding-block:36px}
 
 /* Left info column */
 .page-lbl{font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--brand);margin-bottom:10px}
@@ -96,7 +98,9 @@ nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(
 .form-success{display:none;text-align:center;padding:32px 16px}
 .form-success .check-circle{width:56px;height:56px;border-radius:50%;background:rgba(5,150,105,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--success)}
 .form-success h3{font-family:'Outfit',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:8px}
-.form-success p{font-size:.9rem;color:var(--muted);line-height:1.7}
+.form-success p{font-size:.9rem;color:var(--muted);line-height:1.7;margin-bottom:20px}
+.another-btn{display:inline-flex;align-items:center;gap:6px;background:var(--brand-ghost);color:var(--brand);border:none;border-radius:8px;padding:9px 18px;font-family:'Outfit',sans-serif;font-size:.875rem;font-weight:600;cursor:pointer;transition:background .15s}
+.another-btn:hover{background:rgba(19,78,74,.14)}
 
 .form-error-msg{display:none;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:11px 14px;font-size:.855rem;color:var(--danger);margin-bottom:14px}
 
@@ -116,7 +120,7 @@ footer{background:var(--dark-bg);padding-block:24px}
 .ft-cp{font-size:.75rem;color:var(--dark-muted)}
 
 @media(max-width:760px){
-  .page-wrap{grid-template-columns:1fr;gap:36px;padding-block:36px}
+  .page-wrap{grid-template-columns:1fr;gap:28px;padding-block:28px}
   .field-row{grid-template-columns:1fr}
 }
 @media(max-width:500px){.w{padding-inline:18px}.form-card{padding:20px}}
@@ -139,6 +143,7 @@ footer{background:var(--dark-bg);padding-block:24px}
 </nav>
 
 <!-- CONTENT -->
+<div class="page-body">
 <div class="w">
   <div class="page-wrap">
 
@@ -228,10 +233,15 @@ footer{background:var(--dark-bg);padding-block:24px}
         </div>
         <h3>Message sent!</h3>
         <p>Thanks for reaching out. We'll get back to you at your email address shortly.</p>
+        <button class="another-btn" onclick="resetForm()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+          Send another message
+        </button>
       </div>
     </div>
 
   </div>
+</div>
 </div>
 
 <!-- FOOTER -->
@@ -258,6 +268,18 @@ footer{background:var(--dark-bg);padding-block:24px}
 </footer>
 
 <script>
+function resetForm() {
+  form.reset();
+  ['field-name','field-email','field-message'].forEach(function(id) {
+    document.getElementById(id).classList.remove('error');
+  });
+  errMsg.style.display = 'none';
+  btn.disabled = false;
+  label.textContent = 'Send Message';
+  document.getElementById('form-success').style.display = 'none';
+  form.style.display = 'block';
+}
+
 /* Nav shadow */
 var nav = document.getElementById('main-nav');
 window.addEventListener('scroll', function() {
