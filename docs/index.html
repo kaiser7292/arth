@@ -70,6 +70,28 @@ a:hover{text-decoration:underline}
   .btn:hover{transform:translateY(-1px)}
   .btn-inv{transition:transform .15s,box-shadow .15s}
   .btn-inv:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.18)}
+
+  /* Hero glow blob */
+  @keyframes glow-drift{
+    0%,100%{transform:translate(0,0) scale(1)}
+    33%{transform:translate(-28px,22px) scale(1.07)}
+    66%{transform:translate(18px,-16px) scale(.94)}
+  }
+  .hero-glow{animation:glow-drift 13s ease-in-out infinite}
+
+  /* Trust strip stagger */
+  @keyframes trust-in{
+    from{opacity:0;transform:translateY(7px)}
+    to{opacity:1;transform:none}
+  }
+  .trust-i{opacity:0;animation:trust-in .38s ease both;animation-delay:calc(var(--i,0)*80ms + 300ms)}
+
+  /* CTA shimmer sweep */
+  @keyframes cta-shimmer{
+    0%,55%{transform:translateX(-110%)}
+    80%,100%{transform:translateX(110%)}
+  }
+  .cta::before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.09) 50%,transparent 62%);animation:cta-shimmer 5s ease-in-out infinite;pointer-events:none}
 }
 
 /* ── Nav ─────────────────────────────────────────────── */
@@ -94,6 +116,7 @@ nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(
 .btn-g{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:.875rem;font-weight:500;text-decoration:none;transition:color .15s}
 .btn-g:hover{color:var(--brand);text-decoration:none}
 .watermark{position:absolute;right:-20px;top:50%;transform:translateY(-50%);font-family:'Outfit',sans-serif;font-size:clamp(200px,22vw,340px);font-weight:700;color:var(--brand);opacity:.055;line-height:1;pointer-events:none;user-select:none;letter-spacing:-.04em}
+.hero-glow{position:absolute;right:-60px;top:-80px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(94,234,212,.13) 0%,transparent 68%);pointer-events:none;z-index:0}
 
 /* ── Trust ─────────────────────────────────────────────── */
 .trust{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding-block:12px}
@@ -156,7 +179,7 @@ nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(
 .int-b{display:inline-flex;margin-top:11px;background:var(--brand-ghost);color:var(--brand);border-radius:5px;padding:3px 9px;font-size:.7rem;font-weight:600;letter-spacing:.03em}
 
 /* ── Download CTA ─────────────────────────────────────── */
-.cta{background:var(--brand);padding-block:52px;text-align:center}
+.cta{background:var(--brand);padding-block:52px;text-align:center;position:relative;overflow:hidden}
 .cta h2{color:#fff;font-size:clamp(1.7rem,3.2vw,2.5rem);font-weight:700;letter-spacing:-.025em;margin-bottom:10px}
 .cta p{color:rgba(255,255,255,.72);font-size:.975rem;margin-bottom:6px;max-width:46ch;margin-inline:auto;line-height:1.75}
 .cta-note{font-size:.8rem;color:rgba(255,255,255,.45);margin-bottom:24px;display:block;max-width:46ch;margin-inline:auto}
@@ -264,6 +287,7 @@ footer{background:var(--dark-bg);padding-block:24px}
       </a>
     </div>
   </div>
+  <div class="hero-glow" aria-hidden="true"></div>
   <div class="watermark" aria-hidden="true">अ</div>
 </section>
 
@@ -271,11 +295,11 @@ footer{background:var(--dark-bg);padding-block:24px}
 <div class="trust">
   <div class="w">
     <div class="trust-l">
-      <div class="trust-i"><span class="dot"></span>Zero data collection</div>
-      <div class="trust-i"><span class="dot"></span>No account required</div>
-      <div class="trust-i"><span class="dot"></span>Works fully offline</div>
-      <div class="trust-i"><span class="dot"></span>25+ Indian banks SMS</div>
-      <div class="trust-i"><span class="dot"></span>Encrypted local backup</div>
+      <div class="trust-i" style="--i:0"><span class="dot"></span>Zero data collection</div>
+      <div class="trust-i" style="--i:1"><span class="dot"></span>No account required</div>
+      <div class="trust-i" style="--i:2"><span class="dot"></span>Works fully offline</div>
+      <div class="trust-i" style="--i:3"><span class="dot"></span>25+ Indian banks SMS</div>
+      <div class="trust-i" style="--i:4"><span class="dot"></span>Encrypted local backup</div>
     </div>
   </div>
 </div>
