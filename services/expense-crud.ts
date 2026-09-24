@@ -4,7 +4,7 @@ import { findPaymentModeByType } from "@/services/account-master";
 import { learnMerchantAlias } from "@/services/merchant-alias";
 import { bumpDataVersion } from "@/services/settings";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
-import { applyAllRules, stampApplication } from "@/services/smart-rules";
+import { applyAllRules, applyDeferredRuleLinks, applyRuleLinkActions, applyRuleTags, stampApplication } from "@/services/smart-rules";
 import { inferPaymentMode, parseBankSMS } from "@/services/sms/bank-patterns";
 import { logger } from "@/utils/logger";
 import { round2 } from "@/utils/math";
@@ -36,9 +36,13 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
 
   let linkToBucketId: string | null = null;
   let linkToLoanAccountId: string | null = null;
+  let ruleDescription: string | null = null;
+  let ruleTagIds: string[] = [];
   let ruleSplitPersonId: string | null = null;
   let ruleSplitMode: string | null = null;
   let ruleSplitPaidBy: string | null = null;
+  let ruleSplitPercentage: number | null = null;
+  let ruleSplitExactAmount: number | null = null;
   try {
     const allRules = await applyAllRules({
       amount: input.amount,
@@ -59,11 +63,15 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
       matchedRuleIds = ruleIds;
       appliedRuleId = ruleIds[0];
       appliedRuleIdsJson = JSON.stringify(ruleIds);
-      linkToBucketId = rule.rule.action_link_to_investment_bucket_id ?? null;
+      linkToBucketId = rule.investment_bucket_id;
       linkToLoanAccountId = rule.loan_account_id;
+      ruleDescription = rule.description;
+      ruleTagIds = rule.tag_ids;
       ruleSplitPersonId = rule.split_person_id;
       ruleSplitMode = rule.split_mode;
       ruleSplitPaidBy = rule.split_paid_by;
+      ruleSplitPercentage = rule.split_percentage;
+      ruleSplitExactAmount = rule.split_exact_amount;
     }
   } catch (e) {
     logger.warn("Smart rule application failed in createExpense (non-fatal):", e);
@@ -76,9 +84,12 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
       paidBy: (ruleSplitPaidBy as "me") ?? "me",
       splitMode: (ruleSplitMode as SplitConfig["splitMode"]) ?? "equal",
       personId: ruleSplitPersonId,
+      ...(ruleSplitPercentage != null ? { percentage: ruleSplitPercentage } : {}),
+      ...(ruleSplitExactAmount != null ? { exactAmount: ruleSplitExactAmount } : {}),
     };
     const enrichedInput: CreateExpenseInput = {
       ...input,
+      description: input.description || ruleDescription || input.description,
       category_id: categoryId ?? undefined,
       payment_mode_id: paymentModeId ?? undefined,
       is_right_spend: isRightSpend ?? undefined,
@@ -90,6 +101,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
         appliedRuleId, appliedRuleIdsJson, splitId,
       );
     }
+    await applyRuleTags(splitId, ruleTagIds);
     for (const ruleId of matchedRuleIds) {
       stampApplication(ruleId).catch((e) => logger.warn("stampApplication failed (non-fatal)", e));
     }
@@ -97,7 +109,8 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
     return splitId;
   }
 
-  const description = input.description ?? input.merchant_name ?? null;
+  // A rule's "Set description" only fills in when the user left it blank.
+  const description = input.description || ruleDescription || (input.description ?? input.merchant_name ?? null);
 
   const now = new Date().toISOString(); // Local time in ISO format
   await db.runAsync(
@@ -129,6 +142,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
       logger.warn("stampApplication failed (non-fatal)", e),
     );
   }
+  await applyRuleTags(id, ruleTagIds);
 
   // v17.2.0 — opportunistic loan EMI match. Runs async, never blocks.
   let matchedScheduleEntryId: string | null = null;
@@ -139,26 +153,14 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
     logger.warn("tryMatchExpenseToEMI failed (non-fatal)", e);
   }
 
-  // Smart-rule "Mark as loan repayment" — only when the generic opportunistic
-  // match above didn't already link this expense. Scoped to the rule's chosen
-  // loan so it doesn't grab an installment on some other active loan.
-  if (linkToLoanAccountId && !matchedScheduleEntryId && (input.nature ?? "realized") === "realized") {
-    try {
-      const { tryMatchExpenseToEMI } = await import("./loan-sms-matcher");
-      await tryMatchExpenseToEMI(id, input.user_id, linkToLoanAccountId);
-    } catch (e) {
-      logger.warn("Smart-rule loan repayment match failed (non-fatal)", e);
-    }
-  }
-
-  // v17.2.0 — auto-link to investment bucket if the matched smart rule said so.
-  if (linkToBucketId && (input.nature ?? "realized") === "realized") {
-    try {
-      const { linkExpenseToBucket } = await import("./expense-investment-link");
-      await linkExpenseToBucket(id, linkToBucketId);
-    } catch (e) {
-      logger.warn("linkExpenseToBucket failed (non-fatal)", e);
-    }
+  // Smart-rule "Mark as loan repayment" (scoped to the rule's loan, skipped
+  // when the generic match above already linked this expense) and
+  // "Link to investment bucket".
+  if ((input.nature ?? "realized") === "realized") {
+    await applyRuleLinkActions(id, input.user_id, {
+      loan_account_id: matchedScheduleEntryId ? null : linkToLoanAccountId,
+      investment_bucket_id: linkToBucketId,
+    });
   }
 
   bumpDataVersion();
@@ -886,6 +888,9 @@ export async function approveExpense(id: string): Promise<void> {
   );
   bumpDataVersion();
 
+  // Smart-rule loan/bucket links for SMS expenses are deferred to approval.
+  await applyDeferredRuleLinks([id]);
+
   if (row && row.nature === "credit") {
     try {
       const { finaliseFDMaturityForExpenses } = await import("./investment-accounts");
@@ -1003,6 +1008,9 @@ export async function approveExpenses(ids: string[]): Promise<void> {
     ...ids,
   );
   bumpDataVersion();
+
+  // Smart-rule loan/bucket links for SMS expenses are deferred to approval.
+  await applyDeferredRuleLinks(ids);
 
   try {
     const { finaliseFDMaturityForExpenses } = await import("./investment-accounts");

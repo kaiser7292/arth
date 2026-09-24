@@ -21,7 +21,7 @@ import { discoverOrUpdateAccount, handlePaymentReceived, linkExpenseToAccount, u
 import { cleanMerchantName, normalizeMerchantName } from "@/services/merchant-alias";
 import { bumpDataVersion } from "@/services/settings";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
-import { applyAllRules, stampApplication } from "@/services/smart-rules";
+import { applyAllRules, applyRuleLinkActions, applyRuleTags, stampApplication } from "@/services/smart-rules";
 import { splitExistingExpense } from "@/services/expense-splits";
 import type { SplitConfig } from "@/services/expense-types";
 import { formatLocalDate } from "@/utils/fiscal-year";
@@ -139,9 +139,10 @@ export async function createExpenseFromSms(
     );
     // Best-effort link to an existing account (no creation).
     await linkExpenseToAccount(userId, expenseId, parsed.cardLast4, parsed.bank, parsed.accountNickname);
+    const appliedRuleIds = await applyRulesToSmsCredit(expenseId, rawBody, { allowAutoApprove: true });
     await markSmsProcessed(pendingSmsId, expenseId);
     await bumpDataVersion();
-    return { success: true, expenseId, isCredit: true, error: null };
+    return { success: true, expenseId, isCredit: true, error: null, appliedRuleIds };
   }
 
   // NACH bounce — flag but don't create an expense
@@ -288,10 +289,13 @@ export async function createExpenseFromSms(
     if (!ccAccountId) {
       await linkExpenseToAccount(userId, expenseId, parsed.cardLast4, parsed.bank, parsed.accountNickname);
     }
+    // No auto-approve here: approving a forecast-linked CC payment needs the
+    // source-account picker in the review queue.
+    const appliedRuleIds = await applyRulesToSmsCredit(expenseId, rawBody, { allowAutoApprove: false });
 
     await markSmsProcessed(pendingSmsId, expenseId);
     await bumpDataVersion();
-    return { success: true, expenseId, isCredit: true, error: null };
+    return { success: true, expenseId, isCredit: true, error: null, appliedRuleIds };
   }
 
   // Derive fallback date from SMS metadata timestamp (or today if unavailable)
@@ -398,9 +402,10 @@ export async function createExpenseFromSms(
         now,
       );
       await linkExpenseToAccount(userId, expenseId, parsed.cardLast4, parsed.bank, parsed.accountNickname);
+      const appliedRuleIds = await applyRulesToSmsCredit(expenseId, rawBody, { allowAutoApprove: true });
       await markSmsProcessed(pendingSmsId, expenseId);
       await bumpDataVersion();
-      return { success: true, expenseId, isCredit: false, error: null };
+      return { success: true, expenseId, isCredit: false, error: null, appliedRuleIds };
     }
 
     // For realized transactions, check if a matching forecast exists
@@ -430,6 +435,12 @@ export async function createExpenseFromSms(
       let ruleSplitPaidBy: string | null = null;
       let ruleSplitPercentage: number | null = null;
       let ruleSplitExactAmount: number | null = null;
+      let ruleCategoryId: string | null = null;
+      let ruleDescription: string | null = null;
+      let ruleIsRightSpend: number | null = null;
+      let ruleTagIds: string[] = [];
+      let ruleLoanAccountId: string | null = null;
+      let ruleBucketId: string | null = null;
       try {
         const allRules = await applyAllRules({
           amount: parsed.amount,
@@ -445,6 +456,7 @@ export async function createExpenseFromSms(
         if (allRules) {
           const { application: ruleApp, ruleIds } = allRules;
           if (ruleApp.category_id) categoryId = ruleApp.category_id;
+          ruleCategoryId = ruleApp.category_id;
           if (ruleApp.payment_mode) paymentModeId = ruleApp.payment_mode;
           if (ruleApp.mark_auto) status = "approved";
           ruleSplitPersonId = ruleApp.split_person_id;
@@ -452,8 +464,13 @@ export async function createExpenseFromSms(
           ruleSplitPaidBy = ruleApp.split_paid_by;
           ruleSplitPercentage = ruleApp.split_percentage;
           ruleSplitExactAmount = ruleApp.split_exact_amount;
+          ruleDescription = ruleApp.description;
+          ruleIsRightSpend = ruleApp.is_right_spend;
+          ruleTagIds = ruleApp.tag_ids;
+          ruleLoanAccountId = ruleApp.loan_account_id;
+          ruleBucketId = ruleApp.investment_bucket_id;
           matchedRuleIds = ruleIds;
-          ruleAppliedRuleId = ruleIds[ruleIds.length - 1];
+          ruleAppliedRuleId = ruleIds[0];
           ruleAppliedRuleIdsJson = JSON.stringify(ruleIds);
         }
       } catch (e) {
@@ -464,18 +481,19 @@ export async function createExpenseFromSms(
       const expenseId = generateUUID();
       const now = new Date().toISOString(); // Local time in ISO format
       await db.runAsync(
-        `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, raw_merchant_name, category_id, payment_mode_id, date, transaction_time, nature, source, status, raw_source_text, matched_forecast_id, applied_rule_id, applied_rule_ids, created_at)
-         VALUES (?, ?, ?, 'INR', ?, ?, ?, ?, ?, ?, ?, 'realized', 'sms_auto', ?, ?, ?, ?, ?, ?);`,
+        `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, raw_merchant_name, category_id, payment_mode_id, date, transaction_time, nature, is_right_spend, source, status, raw_source_text, matched_forecast_id, applied_rule_id, applied_rule_ids, created_at)
+         VALUES (?, ?, ?, 'INR', ?, ?, ?, ?, ?, ?, ?, 'realized', ?, 'sms_auto', ?, ?, ?, ?, ?, ?);`,
         expenseId,
         userId,
         parsed.amount,
-        null,
+        ruleDescription,
         normalizedMerchant ?? null,
         rawMerchantName,
         categoryId,
         paymentModeId,
         date,
         transactionTime,
+        ruleIsRightSpend,
         status,
         rawBody,
         matchResult ? matchResult.forecast.id : null,
@@ -488,6 +506,8 @@ export async function createExpenseFromSms(
       }
       // Link expense to its financial account
       await linkExpenseToAccount(userId, expenseId, parsed.cardLast4, parsed.bank, parsed.accountNickname);
+
+      await applyRuleTags(expenseId, ruleTagIds);
 
       // Apply split from rule (if any). Uses skipAutoApprove so the expense
       // stays in pending_review for the user to confirm in the review queue.
@@ -506,8 +526,23 @@ export async function createExpenseFromSms(
         }
       }
 
-      // Check if this savings debit might be a self-transfer (IMPS P2A or net banking)
-      if (accountId && (parsed.paymentMode === "net_banking" || parsed.upiSubtype === "p2a")) {
+      // Loan / bucket links touch other tables that rejecting doesn't undo, so
+      // they only run now if the rule auto-approved; otherwise approveExpense
+      // runs them (applyDeferredRuleLinks).
+      if (status === "approved") {
+        await applyRuleLinkActions(expenseId, userId, {
+          loan_account_id: ruleLoanAccountId,
+          investment_bucket_id: ruleBucketId,
+        });
+      }
+
+      // Check if this savings debit might be a self-transfer (IMPS P2A or net banking).
+      // Skipped when a smart rule explicitly classified it as spending
+      // (category / split / loan / bucket) — converting it to a transfer
+      // would soft-delete the expense and silently discard the rule's work.
+      const ruleClassifiedAsSpend =
+        ruleCategoryId !== null || ruleSplitPersonId !== null || ruleLoanAccountId !== null || ruleBucketId !== null;
+      if (!ruleClassifiedAsSpend && accountId && (parsed.paymentMode === "net_banking" || parsed.upiSubtype === "p2a")) {
         const destAccountId = await autoDetectTransfer(userId, accountId, parsed.amount, date);
         if (destAccountId) {
           await createTransfer({
@@ -626,6 +661,87 @@ export async function createExpenseFromSms(
     const errorMsg = e instanceof Error ? e.message : String(e);
     await markSmsFailed(pendingSmsId, errorMsg);
     return { success: false, expenseId: null, isCredit: false, error: errorMsg };
+  }
+}
+
+/**
+ * Run smart rules against a just-inserted SMS credit / refund row (rules with
+ * applies_to 'credit' or 'any'). Rule values win over auto-detected ones (same
+ * as the debit path) for category, payment mode,
+ * description, right-spend — adds tags, and stamps applied_rule_id(s).
+ * Split / loan / bucket actions don't apply to credits. Non-fatal.
+ * Returns the matched rule IDs, or null.
+ */
+async function applyRulesToSmsCredit(
+  expenseId: string,
+  rawBody: string,
+  opts: { allowAutoApprove: boolean },
+): Promise<string[] | null> {
+  try {
+    const db = getDatabase();
+    const row = await db.getFirstAsync<{
+      amount: number;
+      merchant_name: string | null;
+      raw_merchant_name: string | null;
+      description: string | null;
+      category_id: string | null;
+      account_id: string | null;
+      payment_mode_id: string | null;
+      date: string;
+    }>(
+      `SELECT amount, merchant_name, raw_merchant_name, description, category_id, account_id, payment_mode_id, date
+       FROM expenses WHERE id = ?;`,
+      expenseId,
+    );
+    if (!row) return null;
+
+    const allRules = await applyAllRules({
+      amount: row.amount,
+      nature: "credit",
+      merchant: row.merchant_name,
+      raw_merchant: row.raw_merchant_name,
+      description: row.description,
+      category_id: row.category_id,
+      account_id: row.account_id,
+      payment_mode_id: row.payment_mode_id,
+      sms_body: rawBody,
+      date: row.date,
+    });
+    if (!allRules) return null;
+    const { application: app, ruleIds } = allRules;
+
+    await db.runAsync(
+      `UPDATE expenses SET
+         category_id = COALESCE(?, category_id),
+         payment_mode_id = COALESCE(?, payment_mode_id),
+         description = COALESCE(?, description),
+         is_right_spend = COALESCE(?, is_right_spend),
+         applied_rule_id = ?,
+         applied_rule_ids = ?
+       WHERE id = ?;`,
+      app.category_id,
+      app.payment_mode,
+      app.description,
+      app.is_right_spend,
+      ruleIds[0],
+      JSON.stringify(ruleIds),
+      expenseId,
+    );
+    await applyRuleTags(expenseId, app.tag_ids);
+    for (const ruleId of ruleIds) {
+      stampApplication(ruleId).catch(() => {});
+    }
+
+    if (app.mark_auto && opts.allowAutoApprove) {
+      // Go through approveExpense so credit account-resolution and refund
+      // split adjustment run exactly as they would from the review queue.
+      const { approveExpense } = await import("@/services/expense-crud");
+      await approveExpense(expenseId);
+    }
+    return ruleIds;
+  } catch (e) {
+    logger.warn("Smart rule application failed in SMS credit path (non-fatal):", e);
+    return null;
   }
 }
 

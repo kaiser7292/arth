@@ -30,6 +30,7 @@ import { getFlag } from "@/services/feature-flags";
 import { logger } from "@/utils/logger";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { splitExistingExpense } from "@/services/expense-splits";
+import { addTagsToExpense } from "@/services/tags";
 import type { SplitMode } from "@/services/expense-types";
 import { nthWeekdayOfMonth } from "@/utils/recurrence";
 
@@ -218,6 +219,8 @@ export interface RuleApplication {
   split_percentage: number | null;
   split_exact_amount: number | null;
   loan_account_id: string | null;
+  /** From the rule's action_link_to_investment_bucket_id column. */
+  investment_bucket_id: string | null;
 }
 
 // ─── Raw DB row (conditions/actions still JSON text) ───
@@ -518,7 +521,9 @@ export function materialize(rule: SmartRule): RuleApplication {
     }
   }
 
-  return { rule, category_id, payment_mode, description, tag_ids, is_right_spend, mark_auto, split_person_id, split_mode, split_paid_by, split_percentage, split_exact_amount, loan_account_id };
+  const investment_bucket_id = rule.action_link_to_investment_bucket_id ?? null;
+
+  return { rule, category_id, payment_mode, description, tag_ids, is_right_spend, mark_auto, split_person_id, split_mode, split_paid_by, split_percentage, split_exact_amount, loan_account_id, investment_bucket_id };
 }
 
 // ─── DB-backed operations ───
@@ -584,6 +589,7 @@ export async function applyAllRules(
     let split_percentage: number | null = null;
     let split_exact_amount: number | null = null;
     let loan_account_id: string | null = null;
+    let investment_bucket_id: string | null = null;
     let primaryRule = matches[0];
 
     for (const rule of matches) {
@@ -606,6 +612,7 @@ export async function applyAllRules(
         primaryRule = rule;
       }
       if (app.loan_account_id !== null) loan_account_id = app.loan_account_id;
+      if (app.investment_bucket_id !== null) investment_bucket_id = app.investment_bucket_id;
     }
 
     const application: RuleApplication = {
@@ -622,6 +629,7 @@ export async function applyAllRules(
       split_percentage,
       split_exact_amount,
       loan_account_id,
+      investment_bucket_id,
     };
 
     return { application, ruleIds: matches.map((r) => r.id) };
@@ -648,6 +656,98 @@ export async function stampApplication(ruleId: string): Promise<void> {
     );
   } catch (e) {
     logger.warn(`stampApplication for ${ruleId} failed:`, e);
+  }
+}
+
+/**
+ * Apply a rule's "tags" action to an expense. Non-fatal.
+ */
+export async function applyRuleTags(expenseId: string, tagIds: string[]): Promise<void> {
+  if (tagIds.length === 0) return;
+  try {
+    await addTagsToExpense(expenseId, tagIds);
+  } catch (e) {
+    logger.warn(`applyRuleTags for expense ${expenseId} failed (non-fatal):`, e);
+  }
+}
+
+/**
+ * Apply the "Mark as loan repayment" and "Link to investment bucket" actions.
+ * Both write to other tables (loan schedule, bucket links) that rejecting an
+ * expense doesn't undo — so SMS expenses still in the review queue run these
+ * on approval (applyDeferredRuleLinks) instead of at detection time.
+ * Non-fatal; realized debits only.
+ */
+export async function applyRuleLinkActions(
+  expenseId: string,
+  userId: string,
+  links: { loan_account_id: string | null; investment_bucket_id: string | null },
+): Promise<void> {
+  const db = getDatabase();
+  if (links.loan_account_id) {
+    try {
+      const already = await db.getFirstAsync<{ id: string }>(
+        `SELECT id FROM loan_schedule_entries WHERE linked_expense_id = ? LIMIT 1;`,
+        expenseId,
+      );
+      if (!already) {
+        const { tryMatchExpenseToEMI } = await import("./loan-sms-matcher");
+        await tryMatchExpenseToEMI(expenseId, userId, links.loan_account_id);
+      }
+    } catch (e) {
+      logger.warn("Smart-rule loan repayment match failed (non-fatal)", e);
+    }
+  }
+  if (links.investment_bucket_id) {
+    try {
+      const { linkExpenseToBucket } = await import("./expense-investment-link");
+      await linkExpenseToBucket(expenseId, links.investment_bucket_id);
+    } catch (e) {
+      logger.warn("Smart-rule linkExpenseToBucket failed (non-fatal)", e);
+    }
+  }
+}
+
+/**
+ * Run the deferred loan/bucket link actions for SMS expenses being approved
+ * from the review queue. Re-reads the rules recorded in applied_rule_ids and
+ * merges them the same way applyAllRules does (later priority wins).
+ */
+export async function applyDeferredRuleLinks(expenseIds: string[]): Promise<void> {
+  if (expenseIds.length === 0) return;
+  try {
+    const db = getDatabase();
+    const placeholders = expenseIds.map(() => "?").join(",");
+    const rows = await db.getAllAsync<{ id: string; user_id: string; applied_rule_ids: string | null }>(
+      `SELECT id, user_id, applied_rule_ids FROM expenses
+       WHERE id IN (${placeholders})
+         AND source = 'sms_auto' AND nature = 'realized'
+         AND deleted_at IS NULL AND applied_rule_ids IS NOT NULL;`,
+      ...expenseIds,
+    );
+    for (const row of rows) {
+      let ruleIds: string[] = [];
+      try {
+        const parsed = JSON.parse(row.applied_rule_ids ?? "[]");
+        if (Array.isArray(parsed)) ruleIds = parsed.filter((x): x is string => typeof x === "string");
+      } catch {
+        continue;
+      }
+      let loan_account_id: string | null = null;
+      let investment_bucket_id: string | null = null;
+      for (const ruleId of ruleIds) {
+        const rule = await getRule(ruleId);
+        if (!rule) continue;
+        const app = materialize(rule);
+        if (app.loan_account_id !== null) loan_account_id = app.loan_account_id;
+        if (app.investment_bucket_id !== null) investment_bucket_id = app.investment_bucket_id;
+      }
+      if (loan_account_id || investment_bucket_id) {
+        await applyRuleLinkActions(row.id, row.user_id, { loan_account_id, investment_bucket_id });
+      }
+    }
+  } catch (e) {
+    logger.warn("applyDeferredRuleLinks failed (non-fatal):", e);
   }
 }
 
@@ -1027,6 +1127,8 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
         );
       }
 
+      await addTagsToExpense(e.id, application.tag_ids);
+
       if (application.split_person_id && e.split_hisaab_entry_id === null) {
         toSplit.push({
           expenseId: e.id,
@@ -1111,6 +1213,8 @@ export async function applyRuleActionsToExpense(ruleId: string, expenseId: strin
       expenseId,
     );
   }
+
+  await applyRuleTags(expenseId, application.tag_ids);
 
   if (application.split_person_id && e.split_hisaab_entry_id === null) {
     try {

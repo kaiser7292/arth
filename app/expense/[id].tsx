@@ -1184,13 +1184,20 @@ export default function ExpenseDetailScreen() {
     (async () => {
       try {
         const { getRule } = await import("@/services/smart-rules");
-        const r = await getRule(expense.applied_rule_id!);
-        setAppliedRuleSummary(r?.name ?? "Deleted rule");
+        // Several rules can fire on one expense — name them all, not just
+        // the primary applied_rule_id.
+        let ids: string[] = [expense.applied_rule_id!];
+        try {
+          const parsed = JSON.parse(expense.applied_rule_ids ?? "null");
+          if (Array.isArray(parsed) && parsed.length > 0) ids = parsed;
+        } catch {}
+        const rules = await Promise.all(ids.map((id) => getRule(id)));
+        setAppliedRuleSummary(rules.map((r) => r?.name ?? "Deleted rule").join(", "));
       } catch {
         setAppliedRuleSummary(null);
       }
     })();
-  }, [expense?.applied_rule_id]);
+  }, [expense?.applied_rule_id, expense?.applied_rule_ids]);
 
   const handleForecastMarkPaid = useCallback(async (forecastId: string) => {
     try {
