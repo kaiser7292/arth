@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Design System · Arth</title>
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=Inter:wght@400;500;600;700&display=swap">
+<meta name="description" content="The Arth design system: colour roles, type scale, radii, motion and components behind the Arth personal finance app for Android.">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="Arth Design System">
+<meta property="og:description" content="Colour roles, type scale, radii, motion and components behind the Arth app.">
+
+<style>
+/* ── Site chrome (matches index / contact) ─────────────────── */
+:root{
+  --brand:#134E4A;--brand-dim:#0D3533;--brand-ghost:rgba(19,78,74,.08);
+  --bg:#FAFDFB;--surface:#FFFFFF;--surface2:#F2FAF7;
+  --text:#0F1A18;--muted:#5C7370;--border:#D0E6E1;
+  --dark-bg:#0B1614;--dark-border:#1B312E;--dark-text:#E4F4F1;--dark-muted:#6EA8A0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1614;--surface:#132220;--surface2:#0F1D1B;
+    --text:#E4F4F1;--muted:#9ECEC8;--border:#1E3330;
+    --brand:#2DD4BF;--brand-ghost:rgba(45,212,191,.12);
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:120px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Outfit',system-ui,sans-serif;line-height:1.2;margin:0;text-wrap:balance}
+p{margin:0}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82em;background:var(--brand-ghost);color:var(--brand);padding:1px 6px;border-radius:6px}
+.w{width:100%;max-width:1080px;margin-inline:auto;padding-inline:28px}
+
+nav{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding-block:11px}
+.nav-r{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo:hover{text-decoration:none}
+.logo-m{width:34px;height:34px;border-radius:9px;object-fit:cover}
+.logo-n{font-family:'Outfit',sans-serif;font-weight:700;font-size:1.05rem;color:var(--text)}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:.855rem;font-weight:500;color:var(--muted);padding:6px 10px;border-radius:7px}
+.back-link:hover{color:var(--brand);background:var(--brand-ghost);text-decoration:none}
+
+/* Section jump bar — scrolls sideways on phones */
+.toc{position:sticky;top:57px;z-index:90;background:var(--bg);border-bottom:1px solid var(--border)}
+.toc-r{display:flex;gap:6px;overflow-x:auto;padding-block:10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.toc-r::-webkit-scrollbar{display:none}
+.toc a{flex-shrink:0;font-size:.82rem;font-weight:500;color:var(--muted);padding:6px 14px;border-radius:999px;border:1px solid var(--border);white-space:nowrap}
+.toc a:hover,.toc a.on{color:var(--brand);border-color:var(--brand);background:var(--brand-ghost);text-decoration:none}
+
+/* Hero */
+.hero{padding-block:48px 28px}
+.lbl{font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--brand);margin-bottom:10px}
+.hero h1{font-size:clamp(2rem,4.2vw,3rem);font-weight:700;letter-spacing:-.03em;margin-bottom:14px}
+.hero p{font-size:1.02rem;color:var(--muted);max-width:640px;line-height:1.75}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:28px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px}
+.stat b{display:block;font-family:'Outfit',sans-serif;font-size:1.6rem;font-weight:700;line-height:1.1;color:var(--text)}
+.stat span{font-size:.8rem;color:var(--muted)}
+
+/* Sections */
+section{padding-block:40px;border-top:1px solid var(--border)}
+.sec-h{font-size:clamp(1.4rem,2.6vw,1.9rem);font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+.sec-sub{color:var(--muted);font-size:.95rem;max-width:680px;margin-bottom:24px;line-height:1.7}
+.sub-h{font-family:'Outfit',sans-serif;font-size:1.05rem;font-weight:600;margin:28px 0 12px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px}
+.box h3{font-size:1rem;font-weight:600;margin-bottom:6px}
+.box p{font-size:.88rem;color:var(--muted);line-height:1.65}
+.pr-ic{width:36px;height:36px;border-radius:10px;background:var(--brand-ghost);color:var(--brand);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+
+/* Colour roles */
+.roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.role{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.role-sw{display:grid;grid-template-columns:1fr 1fr;height:64px}
+.role-sw div{display:flex;align-items:flex-end;padding:6px 8px;font-size:.66rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.role-i{padding:10px 12px}
+.role-n{font-family:'Outfit',sans-serif;font-weight:600;font-size:.92rem}
+.role-u{font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:2px}
+.role-hex{display:flex;gap:10px;margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.72rem;color:var(--muted)}
+
+.ramp{display:grid;grid-template-columns:repeat(10,1fr);border-radius:14px;overflow:hidden;border:1px solid var(--border)}
+.ramp div{height:74px;padding:6px;display:flex;flex-direction:column;justify-content:flex-end;font-size:.66rem;font-family:ui-monospace,Menlo,Consolas,monospace}
+.series{display:flex;flex-wrap:wrap;gap:10px}
+.chipc{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:6px 12px 6px 6px;font-size:.8rem}
+.chipc i{width:22px;height:22px;border-radius:50%;display:block}
+
+/* Type scale */
+.type-row{display:grid;grid-template-columns:140px 1fr;gap:16px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--border)}
+.type-row:last-child{border-bottom:none}
+.type-meta{font-size:.78rem;color:var(--muted);line-height:1.5}
+.type-meta b{display:block;font-family:'Outfit',sans-serif;color:var(--text);font-size:.9rem}
+.type-sample{font-family:'Inter',system-ui,sans-serif;color:var(--text);overflow-wrap:anywhere}
+
+/* Radius + motion */
+.rad{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.rad-demo{width:100%;height:64px;background:var(--brand-ghost);border:2px solid var(--brand)}
+.rad small{font-size:.78rem;color:var(--muted)}
+.mo-track{height:10px;background:var(--brand-ghost);border-radius:999px;position:relative;overflow:hidden;margin-top:10px}
+.mo-dot{position:absolute;left:0;top:0;height:10px;width:30%;background:var(--brand);border-radius:999px}
+.mo.play .mo-dot{animation:slide var(--d) var(--e) both}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(233%)}}
+.mo button{margin-top:12px;font:inherit;font-size:.8rem;font-weight:600;color:var(--brand);background:var(--brand-ghost);border:none;border-radius:999px;padding:6px 14px;cursor:pointer}
+
+/* ── App showcase: rendered with the APP's tokens, not the site's ── */
+.show-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px}
+.seg button{font:inherit;font-size:.82rem;font-weight:600;border:none;background:transparent;color:var(--muted);padding:6px 16px;border-radius:999px;cursor:pointer}
+.seg button.on{background:var(--brand);color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button.on{color:#04211E}}
+
+.app{font-family:'Inter',system-ui,sans-serif;background:var(--a-background);color:var(--a-foreground);border-radius:20px;padding:18px;border:1px solid var(--a-border)}
+.comp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.comp{background:var(--a-card);border:1px solid var(--a-border);border-radius:16px;padding:16px}
+.comp-t{font-size:11px;line-height:14px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--a-mutedForeground);margin-bottom:12px}
+.comp-note{font-size:12px;color:var(--a-faintForeground);margin-top:10px;line-height:1.5}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.a-btn{font:inherit;font-size:15px;font-weight:600;border-radius:9999px;padding:12px 24px;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:opacity .14s}
+.a-btn:active{opacity:.85}
+.a-btn.primary{background:var(--a-primary);color:var(--a-primaryForeground)}
+.a-btn.secondary{background:var(--a-background);color:var(--a-foreground)}
+.a-btn.outline{background:transparent;border-color:var(--a-primary);color:var(--a-primary)}
+.a-btn.ghost{background:transparent;color:var(--a-primary);font-weight:500}
+.a-btn.full{flex:1}
+
+.a-lbl{font-size:11px;line-height:14px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--a-mutedForeground)}
+.a-title{font-size:22px;line-height:28px;letter-spacing:-.02em;font-weight:700}
+.a-body{font-size:15px;line-height:21px}
+.a-meta{font-size:13px;line-height:17px;color:var(--a-mutedForeground)}
+.pos{color:var(--a-success)}.neg{color:var(--a-danger)}
+
+.a-input{width:100%;font:inherit;font-size:15px;color:var(--a-foreground);background:var(--a-card);border:1px solid var(--a-border);border-radius:10px;padding:12px}
+.a-input:focus{outline:none;border-color:var(--a-primary)}
+.a-chip{font-size:13px;font-weight:500;border-radius:9999px;padding:6px 12px;border:1px solid var(--a-border);color:var(--a-mutedForeground);background:var(--a-card)}
+.a-chip.on{border-color:var(--a-primary);color:var(--a-primary);background:var(--a-primary-10)}
+.a-pill{font-size:11px;font-weight:700;border-radius:9999px;padding:3px 10px}
+.a-prog{height:6px;border-radius:9999px;background:var(--a-border);overflow:hidden}
+.a-prog i{display:block;height:100%;background:var(--a-primary);border-radius:9999px}
+.a-list{border-top:1px solid var(--a-border)}
+.a-li{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--a-border)}
+.a-ic{width:36px;height:36px;border-radius:9999px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.a-grow{flex:1;min-width:0}
+.a-toast{display:flex;align-items:center;gap:12px;background:var(--a-foreground);color:var(--a-background);border-radius:14px;padding:12px 14px;font-size:14px}
+.a-toast b{color:var(--a-primary-inv);margin-left:auto;font-weight:600}
+
+/* Check-in deck phone */
+.phone{max-width:360px;margin-inline:auto;background:var(--a-background);border:1px solid var(--a-border);border-radius:28px;overflow:hidden;display:flex;flex-direction:column}
+.ph-head{height:52px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:17px;position:relative}
+.ph-head svg{position:absolute;left:14px}
+.ph-prog{padding:4px 16px 14px}
+.ph-card{margin:0 16px;background:var(--a-card);border-radius:16px;padding:16px;border:1px solid var(--a-border)}
+.ph-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--a-border);font-size:14px}
+.ph-row span{color:var(--a-mutedForeground)}
+.ph-act{display:flex;align-items:center;gap:12px;padding:12px 0;font-size:14px;font-weight:600;border-top:1px solid var(--a-border)}
+.ph-act:first-of-type{margin-top:12px}
+.ph-hint{font-size:12px;color:var(--a-faintForeground);text-align:center;margin:12px 0 16px}
+.ph-foot{display:flex;gap:12px;padding:12px 16px 18px;border-top:1px solid var(--a-border);margin-top:auto}
+
+.code{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;line-height:1.7;overflow-x:auto;color:var(--text);white-space:pre}
+
+/* Footer */
+footer{background:var(--dark-bg);padding-block:24px;margin-top:24px}
+.ft{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--dark-border);margin-bottom:12px}
+.ft-br{display:flex;align-items:center;gap:10px}
+.ft-n{font-family:'Outfit',sans-serif;font-weight:700;color:var(--dark-text)}
+.ft-t{font-size:.75rem;color:var(--dark-muted);margin-top:2px}
+.ft-lk{display:flex;gap:20px;flex-wrap:wrap}
+.ft-lk a{font-size:.8rem;color:var(--dark-muted)}
+.ft-lk a:hover{color:var(--dark-text)}
+.ft-cp{font-size:.75rem;color:var(--dark-muted)}
+
+/* ── Responsive ── */
+@media (max-width:900px){
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:1fr 1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:760px){
+  .comp-grid{grid-template-columns:1fr}
+}
+@media (max-width:600px){
+  .w{padding-inline:16px}
+  .hero{padding-block:32px 20px}
+  section{padding-block:32px}
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .ramp{grid-template-columns:repeat(5,1fr)}
+  .ramp div{height:56px}
+  .type-row{grid-template-columns:1fr;gap:4px}
+  .app{padding:12px;border-radius:16px}
+}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}.mo.play .mo-dot{animation:none}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="w nav-r">
+    <a href="/" class="logo">
+      <img src="/favicon.png" alt="Arth" class="logo-m">
+      <span class="logo-n">Arth</span>
+    </a>
+    <a href="/" class="back-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      <span>Home</span>
+    </a>
+  </div>
+</nav>
+
+<div class="toc">
+  <div class="w toc-r" id="toc">
+    <a href="#principles">Principles</a>
+    <a href="#colour">Colour</a>
+    <a href="#type">Type</a>
+    <a href="#shape">Shape &amp; motion</a>
+    <a href="#components">Components</a>
+    <a href="#patterns">Patterns</a>
+    <a href="#tokens">Tokens</a>
+  </div>
+</div>
+
+<main>
+  <header class="w hero">
+    <div class="lbl">Design System</div>
+    <h1>How Arth looks, and why</h1>
+    <p>The colours, type, shapes and components behind Arth. Everything on this page is generated from the same design-token file the Android app is built from, so what you see here is what ships.</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <section id="principles">
+    <div class="w">
+      <h2 class="sec-h">Principles</h2>
+      <p class="sec-sub">Money is stressful. The interface shouldn't add to it.</p>
+      <div class="grid g4">
+        <div class="box">
+          <div class="pr-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <h3>Calm and private</h3>
+          <p>Quiet surfaces, one accent colour, no alarm unless something needs you. Amounts can be hidden with one tap.</p>
+        </div>
+        <div class="box">
+          <div class="pr-ic" style="font-family:'Inter',sans-serif;font-weight:700;font-size:1.05rem">₹</div>
+          <h3>Numbers first</h3>
+          <p>Every screen leads with the figure you came for. Money renders through one component, so signs, colour and privacy masking are always consistent.</p>
+        </div>
+        <div class="box">
+          <div class="pr-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+          <h3>One source of truth</h3>
+          <p>Colours, sizes, radii and motion live in one token file. Changing a radius is one edit, not a hunt through forty screens.</p>
+        </div>
+        <div class="box">
+          <div class="pr-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 000 20z" fill="currentColor"/></svg></div>
+          <h3>Readable in both themes</h3>
+          <p>Light and dark are designed together, and text colours are checked against WCAG contrast. Nothing is smaller than 11px.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="colour">
+    <div class="w">
+      <h2 class="sec-h">Colour</h2>
+      <p class="sec-sub">Thirteen semantic roles, each defined for light and dark. Screens use roles, like <code>primary</code> or <code>mutedForeground</code>, never raw hex, so both themes stay in step.</p>
+      <div class="roles" id="roles"></div>
+
+      <h3 class="sub-h">Brand ramp · Teal</h3>
+      <div class="ramp" id="ramp"></div>
+
+      <h3 class="sub-h">Data colours</h3>
+      <p class="sec-sub" style="margin-bottom:14px">Charts and account types use a separate palette, so data never gets confused with interface states like success or danger.</p>
+      <div class="series" id="series"></div>
+    </div>
+  </section>
+
+  <section id="type">
+    <div class="w">
+      <h2 class="sec-h">Typography</h2>
+      <p class="sec-sub">Inter, in seven steps. Larger sizes tighten their letter-spacing so headlines feel solid; small sizes stay open for legibility.</p>
+      <div class="box" id="typescale" style="padding-block:4px"></div>
+    </div>
+  </section>
+
+  <section id="shape">
+    <div class="w">
+      <h2 class="sec-h">Shape &amp; motion</h2>
+      <p class="sec-sub">Four corner radii, each with one job. Buttons are fully rounded; inputs and chips use a softer square so they read as fields, not actions.</p>
+      <div class="grid g4" id="radii"></div>
+
+      <h3 class="sub-h">Motion</h3>
+      <p class="sec-sub" style="margin-bottom:14px">Three durations and one easing curve. Arth turns animation off when the phone's "remove animations" setting is on.</p>
+      <div class="grid g3" id="motion"></div>
+    </div>
+  </section>
+
+  <section id="components">
+    <div class="w">
+      <h2 class="sec-h">Components</h2>
+      <div class="show-bar">
+        <p class="sec-sub" style="margin:0">Rebuilt here in HTML with the app's own tokens. Switch themes to compare.</p>
+        <div class="seg" role="group" aria-label="Preview theme">
+          <button type="button" data-theme-btn="light">Light</button>
+          <button type="button" data-theme-btn="dark">Dark</button>
+        </div>
+      </div>
+
+      <div class="app" id="app-comp">
+        <div class="comp-grid">
+          <div class="comp">
+            <div class="comp-t">Buttons</div>
+            <div class="row">
+              <button class="a-btn primary">Primary</button>
+              <button class="a-btn secondary">Secondary</button>
+              <button class="a-btn outline">Outline</button>
+              <button class="a-btn ghost">Ghost</button>
+            </div>
+            <div class="comp-note">Fully rounded. One primary action per screen; Skip-style choices use Secondary.</div>
+          </div>
+
+          <div class="comp">
+            <div class="comp-t">Money</div>
+            <div class="a-lbl">Spent this month</div>
+            <div class="a-title" style="margin-top:4px">₹18,400</div>
+            <div class="row" style="margin-top:8px">
+              <span class="a-body pos">+₹2,500</span>
+              <span class="a-body neg">−₹1,240</span>
+              <span class="a-body" style="color:var(--a-mutedForeground)">₹••••</span>
+            </div>
+            <div class="comp-note">Signed amounts colour themselves. The last one shows privacy mode.</div>
+          </div>
+
+          <div class="comp">
+            <div class="comp-t">Input</div>
+            <label class="a-meta" for="demo-in" style="display:block;margin-bottom:6px">Amount</label>
+            <input id="demo-in" class="a-input" value="₹1,240" aria-label="Amount">
+            <div class="row" style="margin-top:12px">
+              <span class="a-chip on">This month</span>
+              <span class="a-chip">Last month</span>
+              <span class="a-chip">Custom</span>
+            </div>
+          </div>
+
+          <div class="comp">
+            <div class="comp-t">Status &amp; progress</div>
+            <div class="row">
+              <span class="a-pill" style="background:var(--a-success-12);color:var(--a-success)">On track</span>
+              <span class="a-pill" style="background:var(--a-warning-12);color:var(--a-warning)">Close to limit</span>
+              <span class="a-pill" style="background:var(--a-danger-12);color:var(--a-danger)">Over budget</span>
+            </div>
+            <div class="a-meta" style="margin:14px 0 6px">Food &amp; Dining · ₹6,200 of ₹8,000</div>
+            <div class="a-prog"><i style="width:77%"></i></div>
+          </div>
+
+          <div class="comp">
+            <div class="comp-t">List rows</div>
+            <div class="a-list">
+              <div class="a-li">
+                <div class="a-ic" style="background:var(--a-primary-10);color:var(--a-primary)">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11h18M5 11V7a7 7 0 0114 0v4M4 11l1.5 9h13L20 11"/></svg>
+                </div>
+                <div class="a-grow"><div class="a-body" style="font-weight:600">Swiggy</div><div class="a-meta">Food &amp; Dining · Yesterday</div></div>
+                <div class="a-body" style="font-weight:700">₹1,240</div>
+              </div>
+              <div class="a-li">
+                <div class="a-ic" style="background:var(--a-success-12);color:var(--a-success)">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                </div>
+                <div class="a-grow"><div class="a-body" style="font-weight:600">Salary</div><div class="a-meta">Credit · 1 Sep</div></div>
+                <div class="a-body pos" style="font-weight:700">+₹85,000</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="comp">
+            <div class="comp-t">Toast with undo</div>
+            <div class="a-toast">Approved Swiggy <b>Undo</b></div>
+            <div class="comp-note">Every action you might regret gets a 6-second Undo instead of an "Are you sure?" dialog.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="patterns">
+    <div class="w">
+      <h2 class="sec-h">Patterns</h2>
+      <p class="sec-sub">The check-in deck is used by Catch Up, Settle up, Subscriptions, Rule suggestions and the Month-end check. It shows one card at a time: swipe right for the main action, left to skip. Extra actions sit inside the card, so the only buttons below it are Skip and the main action.</p>
+      <div class="grid g2" style="align-items:start">
+        <div class="app" id="app-deck" style="padding:16px">
+          <div class="phone">
+            <div class="ph-head">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--a-primary)"><path d="M15 18l-6-6 6-6"/></svg>
+              Settle up
+            </div>
+            <div class="ph-prog">
+              <div class="a-meta" style="text-align:right;margin-bottom:8px">1 of 2</div>
+              <div class="a-prog"><i style="width:50%"></i></div>
+            </div>
+            <div class="ph-card">
+              <div class="a-lbl" style="text-align:center">Owes you</div>
+              <div style="text-align:center;font-weight:700;font-size:16px;margin-top:6px">Rahul Mehta</div>
+              <div class="a-title pos" style="text-align:center;margin-top:4px">₹4,250</div>
+              <div style="margin-top:12px">
+                <div class="ph-row"><span>Last entry</span><b>12 Sep</b></div>
+                <div class="ph-row"><span>Entries</span><b>6</b></div>
+                <div class="ph-row" style="border-bottom:none"><span>Last reminded</span><b>Never</b></div>
+              </div>
+              <div class="ph-act" style="color:var(--a-primary)">✓&nbsp; Mark settled <span style="margin-left:auto;color:var(--a-mutedForeground)">›</span></div>
+              <div class="ph-act" style="color:var(--a-mutedForeground)">☰&nbsp; Open ledger <span style="margin-left:auto">›</span></div>
+            </div>
+            <div class="ph-hint">Swipe right to remind · left to skip</div>
+            <div class="ph-foot">
+              <button class="a-btn secondary full" style="background:var(--a-card)">Skip</button>
+              <button class="a-btn primary full">Remind</button>
+            </div>
+          </div>
+        </div>
+        <div class="grid" style="gap:12px">
+          <div class="box"><h3>One decision per card</h3><p>The card shows only what you need to decide. Details live one tap away in the full edit screen.</p></div>
+          <div class="box"><h3>Fixed button positions</h3><p>Skip is always bottom-left and the main action bottom-right, on every deck, so your thumb learns them once.</p></div>
+          <div class="box"><h3>Extra actions inside the card</h3><p>Choices like Mark settled or Reject are full-width rows at the bottom of the card, never floating chips. Each row is at least 48px tall, so it's easy to tap.</p></div>
+          <div class="box"><h3>Undo, not confirm</h3><p>Nothing is saved until the 6-second Undo window passes, so undo is exact and the flow never stops for a dialog.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tokens">
+    <div class="w">
+      <h2 class="sec-h">Using the tokens</h2>
+      <p class="sec-sub">In the app, colours come from Tailwind classes or the <code>useTheme()</code> hook, and component recipes live alongside the tokens.</p>
+      <div class="code">&lt;Card&gt;
+  &lt;Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"&gt;
+    Spent this month
+  &lt;/Text&gt;
+  &lt;Money value={18400} className="text-title font-bold text-foreground" /&gt;
+  &lt;Button title="See budget" onPress={open} /&gt;
+&lt;/Card&gt;
+
+// When a colour must be computed:
+const theme = useTheme();
+theme.alpha("primary", 0.1)   // tinted background, both themes</div>
+      <p class="sec-sub" style="margin-top:14px">Source: <a href="https://github.com/kaiser7292/artha/blob/master/constants/design-tokens.js" target="_blank" rel="noopener">constants/design-tokens.js</a></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="w">
+    <div class="ft">
+      <div class="ft-br">
+        <img src="/favicon.png" alt="Arth" class="logo-m">
+        <div>
+          <div class="ft-n">Arth</div>
+          <div class="ft-t">Your finances. Your way.</div>
+        </div>
+      </div>
+      <div class="ft-lk">
+        <a href="/#features">Features</a>
+        <a href="/design-system">Design System</a>
+        <a href="/legal#privacy">Privacy Policy</a>
+        <a href="/legal#terms">Terms of Use</a>
+        <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener">GitHub</a>
+        <a href="/contact">Contact</a>
+      </div>
+    </div>
+    <p class="ft-cp">© 2026 Sourav Baid · Arth is a personal project and is not affiliated with any financial institution. App screens show sample data.</p>
+  </div>
+</footer>
+
+<script>
+/* Generated from constants/design-tokens.js by scripts/build-design-system-page.js — do not edit by hand. */
+/*TOKENS:BEGIN*/
+const TOKENS = {"SEMANTIC":{"light":{"background":"247 248 248","card":"255 255 255","foreground":"18 24 27","mutedForeground":"93 107 111","faintForeground":"147 162 166","border":"228 233 233","primary":"15 118 110","primaryForeground":"255 255 255","accent":"180 83 9","accentSolid":"245 158 11","success":"21 128 61","danger":"220 38 38","warning":"180 83 9"},"dark":{"background":"13 17 19","card":"22 28 31","foreground":"242 245 245","mutedForeground":"155 170 174","faintForeground":"110 126 131","border":"36 45 49","primary":"45 212 191","primaryForeground":"4 33 30","accent":"251 191 36","accentSolid":"251 191 36","success":"74 222 128","danger":"248 113 113","warning":"251 191 36"}},"teal":{"50":"240 253 250","100":"204 251 241","200":"153 246 228","300":"94 234 212","400":"45 212 191","500":"20 184 166","600":"13 148 136","700":"15 118 110","800":"17 94 89","900":"19 78 74"},"TYPE":{"hero":["36px",{"lineHeight":"40px","letterSpacing":"-0.03em"}],"display":["28px",{"lineHeight":"34px","letterSpacing":"-0.025em"}],"title":["22px",{"lineHeight":"28px","letterSpacing":"-0.02em"}],"heading":["17px",{"lineHeight":"24px","letterSpacing":"-0.01em"}],"body":["15px",{"lineHeight":"21px"}],"meta":["13px",{"lineHeight":"17px"}],"label":["11px",{"lineHeight":"14px"}]},"RADIUS":{"control":"10px","card":"16px","sheet":"20px","pill":"9999px"},"MOTION":{"fast":140,"base":220,"slow":320,"easing":"cubic-bezier(0.22, 0.61, 0.36, 1)"},"DATA":{"accountType":{"savings":"13 148 136","bank":"13 148 136","credit_card":"180 83 9","wallet":"139 92 246","demat":"20 184 166","loan":"220 38 38","pension":"99 102 241"},"transfer":"139 92 246","series":["15 118 110","180 83 9","139 92 246","37 99 235","219 39 119","5 150 105"]}};
+/*TOKENS:END*/
+</script>
+<script>
+(function () {
+  var T = TOKENS;
+  var hex = function (ch) {
+    return "#" + ch.trim().split(/\s+/).map(function (n) { return (+n).toString(16).padStart(2, "0"); }).join("").toUpperCase();
+  };
+  var rgba = function (ch, a) { return "rgba(" + ch.trim().split(/\s+/).join(",") + "," + a + ")"; };
+  var lum = function (ch) {
+    var c = ch.trim().split(/\s+/).map(function (n) { n = n / 255; return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  var ink = function (ch) { return lum(ch) > 0.35 ? "#0F1A18" : "#FFFFFF"; };
+  var el = function (id) { return document.getElementById(id); };
+
+  var USAGE = {
+    background: "Screen background",
+    card: "Cards, sheets, raised surfaces",
+    foreground: "Main text",
+    mutedForeground: "Secondary text, labels",
+    faintForeground: "Hints, placeholders",
+    border: "Dividers, outlines, tracks",
+    primary: "Main actions, links, focus",
+    primaryForeground: "Text on primary",
+    accent: "Highlights that aren't actions",
+    accentSolid: "Solid accent fills",
+    success: "Money in, on track",
+    danger: "Money out, over budget, delete",
+    warning: "Close to a limit, due soon"
+  };
+
+  // Stats
+  var roles = Object.keys(T.SEMANTIC.light);
+  el("stats").innerHTML = [
+    [roles.length, "colour roles"],
+    [2, "themes, designed together"],
+    [Object.keys(T.TYPE).length, "type sizes"],
+    [Object.keys(T.RADIUS).length, "corner radii"]
+  ].map(function (s) { return '<div class="stat"><b>' + s[0] + "</b><span>" + s[1] + "</span></div>"; }).join("");
+
+  // Roles
+  el("roles").innerHTML = roles.map(function (r) {
+    var l = T.SEMANTIC.light[r], d = T.SEMANTIC.dark[r];
+    return '<div class="role"><div class="role-sw">' +
+      '<div style="background:' + hex(l) + ";color:" + ink(l) + '">Light</div>' +
+      '<div style="background:' + hex(d) + ";color:" + ink(d) + '">Dark</div></div>' +
+      '<div class="role-i"><div class="role-n">' + r + '</div><div class="role-u">' + (USAGE[r] || "") + "</div>" +
+      '<div class="role-hex"><span>' + hex(l) + "</span><span>" + hex(d) + "</span></div></div></div>";
+  }).join("");
+
+  // Ramp
+  el("ramp").innerHTML = Object.keys(T.teal).map(function (k) {
+    var ch = T.teal[k];
+    return '<div style="background:' + hex(ch) + ";color:" + ink(ch) + '"><b>' + k + "</b>" + hex(ch) + "</div>";
+  }).join("");
+
+  // Data series
+  var ACCT = { savings: "Savings", credit_card: "Credit card", wallet: "Wallet", loan: "Loan", pension: "Pension", demat: "Demat" };
+  el("series").innerHTML =
+    T.DATA.series.map(function (ch, i) { return '<span class="chipc"><i style="background:' + hex(ch) + '"></i>Series ' + (i + 1) + "</span>"; }).join("") +
+    Object.keys(ACCT).map(function (k) { return '<span class="chipc"><i style="background:' + hex(T.DATA.accountType[k]) + '"></i>' + ACCT[k] + "</span>"; }).join("");
+
+  // Type scale
+  var SAMPLE = {
+    hero: "₹1,69,787", display: "Good morning", title: "Spent this month",
+    heading: "Food & Dining", body: "12 transactions this week, 3 waiting for review.",
+    meta: "HDFC ••4521 · Yesterday", label: "SECTION LABEL"
+  };
+  var WEIGHT = { hero: 700, display: 700, title: 700, heading: 600, body: 400, meta: 400, label: 600 };
+  el("typescale").innerHTML = Object.keys(T.TYPE).map(function (k) {
+    var t = T.TYPE[k], o = t[1] || {};
+    return '<div class="type-row"><div class="type-meta"><b>' + k + "</b>" + t[0] + " / " + (o.lineHeight || "auto") +
+      (o.letterSpacing ? " · " + o.letterSpacing : "") + '</div><div class="type-sample" style="font-size:' + t[0] +
+      ";line-height:" + (o.lineHeight || "normal") + ";letter-spacing:" + (o.letterSpacing || "normal") +
+      ";font-weight:" + WEIGHT[k] + (k === "label" ? ";letter-spacing:.06em" : "") + '">' + SAMPLE[k] + "</div></div>";
+  }).join("");
+
+  // Radii
+  var RUSE = { control: "Inputs, chips", card: "Cards", sheet: "Bottom sheets", pill: "Buttons, pills" };
+  el("radii").innerHTML = Object.keys(T.RADIUS).map(function (k) {
+    return '<div class="box rad"><div class="rad-demo" style="border-radius:' + T.RADIUS[k] + '"></div>' +
+      "<div><b>" + k + "</b><br><small>" + (T.RADIUS[k] === "9999px" ? "Full" : T.RADIUS[k]) + " · " + (RUSE[k] || "") + "</small></div></div>";
+  }).join("");
+
+  // Motion
+  var MUSE = { fast: "Presses, toggles, swipe fly-off", base: "Cards appearing, sheets", slow: "Progress bars, larger moves" };
+  el("motion").innerHTML = ["fast", "base", "slow"].map(function (k) {
+    return '<div class="box mo" style="--d:' + T.MOTION[k] + "ms;--e:" + T.MOTION.easing + '"><b>' + k + "</b> · " + T.MOTION[k] +
+      'ms<p style="margin-top:2px">' + MUSE[k] + '</p><div class="mo-track"><div class="mo-dot"></div></div><button type="button">Play</button></div>';
+  }).join("");
+  document.querySelectorAll(".mo button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var box = b.parentElement; box.classList.remove("play"); void box.offsetWidth; box.classList.add("play");
+    });
+  });
+
+  // App-token CSS variables for the component showcase
+  function applyAppTheme(scheme) {
+    var S = T.SEMANTIC[scheme], vars = "";
+    Object.keys(S).forEach(function (r) { vars += "--a-" + r + ":" + hex(S[r]) + ";"; });
+    vars += "--a-primary-10:" + rgba(S.primary, 0.1) + ";--a-success-12:" + rgba(S.success, 0.12) +
+      ";--a-warning-12:" + rgba(S.warning, 0.12) + ";--a-danger-12:" + rgba(S.danger, 0.12) +
+      ";--a-primary-inv:" + hex(T.SEMANTIC[scheme === "light" ? "dark" : "light"].primary) + ";";
+    ["app-comp", "app-deck"].forEach(function (id) { el(id).setAttribute("style", (el(id).getAttribute("data-base") || "") + vars); });
+    document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-theme-btn") === scheme);
+      b.setAttribute("aria-pressed", b.getAttribute("data-theme-btn") === scheme);
+    });
+  }
+  el("app-deck").setAttribute("data-base", "padding:16px;");
+  document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
+    b.addEventListener("click", function () { applyAppTheme(b.getAttribute("data-theme-btn")); });
+  });
+  var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  applyAppTheme(prefersDark ? "dark" : "light");
+
+  // Highlight the section in view in the jump bar
+  var links = Array.prototype.slice.call(document.querySelectorAll("#toc a"));
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        links.forEach(function (a) {
+          var on = a.getAttribute("href") === "#" + e.target.id;
+          a.classList.toggle("on", on);
+          if (on && a.scrollIntoView) a.parentElement.scrollTo({ left: a.offsetLeft - 16, behavior: "smooth" });
+        });
+      });
+    }, { rootMargin: "-40% 0px -55% 0px" });
+    document.querySelectorAll("main section").forEach(function (s) { io.observe(s); });
+  }
+})();
+</script>
+</body>
+</html>

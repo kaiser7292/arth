@@ -20,7 +20,8 @@
     "audit:hooks": "node scripts/audit-hooks.js",
     "audit:sheets": "node scripts/audit-sheets.js",
     "verify": "npm run typecheck && npm run audit:hooks && npm run audit:sheets && npm run resolve:classes && npm test",
-    "preview": "node scripts/preview-web.js"
+    "preview": "node scripts/preview-web.js",
+    "site:design-system": "node scripts/build-design-system-page.js"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
