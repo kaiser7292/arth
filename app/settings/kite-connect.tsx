@@ -10,7 +10,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAlert } from '@/hooks/use-alert';
 import { useTheme } from '@/hooks/use-theme';
 import { formatAmount } from '@/utils/format';
-import { todayIso } from '@/utils/date';
+import { formatDate, todayIso } from '@/utils/date';
 import { addOrUpdateSnapshot, updateFundBalance } from '@/services/financial-account';
 import {
   clearKiteCredentials,
@@ -488,7 +488,12 @@ export default function KiteConnectScreen() {
 
             {mfHoldings.map((h) => {
               const marketValue = h.quantity * h.last_price;
-              const pnlPositive = h.pnl >= 0;
+              const invested = h.quantity * h.average_price;
+              // Kite's /mf/holdings returns pnl = 0, so derive it from average NAV.
+              const pnl = marketValue - invested;
+              const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+              const pnlPositive = pnl >= 0;
+              const navDate = h.last_price_date ? formatDate(h.last_price_date.slice(0, 10)) : '';
               return (
                 <Card key={h.tradingsymbol + (h.folio ?? '')} className="mx-4 mb-2">
                   <View className="flex-row items-center">
@@ -497,7 +502,10 @@ export default function KiteConnectScreen() {
                         {h.fund}
                       </Text>
                       <Text className="text-xs text-muted-foreground mt-0.5">
-                        {h.quantity.toFixed(3)} units · NAV ₹{h.last_price.toFixed(2)}
+                        {h.quantity.toFixed(3)} units · avg ₹{h.average_price.toFixed(2)}
+                      </Text>
+                      <Text className="text-xs text-muted-foreground mt-0.5">
+                        NAV ₹{h.last_price.toFixed(2)}{navDate ? ` · ${navDate}` : ''}
                       </Text>
                     </View>
                     <View className="items-end">
@@ -508,7 +516,8 @@ export default function KiteConnectScreen() {
                         className="text-xs mt-0.5"
                         style={{ color: pnlPositive ? theme.success : theme.danger }}
                       >
-                        {pnlPositive ? '+' : ''}{formatAmount(h.pnl)}
+                        {pnlPositive ? '+' : ''}{formatAmount(pnl)}
+                        {' '}({pnlPositive ? '+' : ''}{pnlPct.toFixed(2)}%)
                       </Text>
                     </View>
                   </View>
