@@ -10,6 +10,7 @@ export const ALLOWED_DEEP_LINK_SCREENS = new Set([
   "(tabs)/settings",
   "expense/add",
   "expense/review-queue",
+  "expense/catch-up",
   "budget/spending-split",
   "budget/transactions",
   "goals/yearly-plan",

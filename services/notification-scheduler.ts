@@ -57,6 +57,7 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
 
   const today = todayString();
   const parts: string[] = [];
+  let pendingCount = 0;
 
   try {
     const { getDatabase } = await import("@/database");
@@ -115,9 +116,9 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
          AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0);`,
       userId,
     );
-    const pendingCount = pendingRows[0]?.cnt ?? 0;
+    pendingCount = pendingRows[0]?.cnt ?? 0;
     if (pendingCount > 0) {
-      parts.push(`${pendingCount} pending review`);
+      parts.push(`${pendingCount} to catch up`);
     }
   } catch (e) {
     logger.warn("scheduleSmartDailyDigest: data query failed", e);
@@ -135,7 +136,9 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
     content: {
       title: "",
       body: parts.join(" · "),
-      data: { screen: "/(tabs)" },
+      // Only review items to act on → open straight into Catch Up. Anything else (dues, EMIs)
+      // lives on Home, so land there.
+      data: { screen: pendingCount > 0 && parts.length === 1 ? "expense/catch-up" : "/(tabs)" },
       sound: true,
       ...(Platform.OS === "android" ? { channelId: "artha-default" } : {}),
     },

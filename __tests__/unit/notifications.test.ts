@@ -84,6 +84,7 @@ describe("Notification Preferences", () => {
       overdue_forecast: true,
       upcoming_due: false,
       scheduled_backup: true,
+      new_transaction: true,
     });
   });
 });

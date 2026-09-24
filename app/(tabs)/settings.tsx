@@ -844,6 +844,7 @@ export default function SettingsScreen() {
           <Card title="Preferences & Security" className="mb-4">
             <SettingsRow icon="globe-outline" label="Region" subtitle="Currency, date format, number format, fiscal year" onPress={() => router.push("/settings/region")} />
             <SettingsRow icon="notifications-outline" label="Notifications" subtitle="SMS scan alerts, due reminders" onPress={() => router.push("/settings/notifications")} />
+            <SettingsRow icon="calendar-outline" label="Calendar sync" subtitle="Bills, EMIs and reminders in your calendar" onPress={() => router.push("/settings/calendar-sync")} />
             <SettingsRow icon="grid-outline" label="Home Cards" subtitle="Show or hide any card on the Home screen" onPress={() => router.push("/settings/home-cards")} />
             <SettingsRow icon="lock-closed-outline" label="Security" subtitle="App lock with biometric authentication" onPress={() => router.push("/settings/security")} />
             <>

@@ -33,6 +33,7 @@ describe("UI Guard Rails", () => {
       "app/expense/add.tsx",
       "app/expense/[id].tsx",
       "app/expense/review-queue.tsx",
+      "app/expense/catch-up.tsx",
       "app/budget/[categoryId].tsx",
       // v15.8.1: app/summary/[month].tsx migrated to Stack header — now uses padTop={false}.
       // v15 onboarding wizard — (onboarding)/_layout.tsx sets headerShown: false

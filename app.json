@@ -57,6 +57,24 @@
       "./plugins/withLargeHeap",
       "llama.rn",
       [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "ArthSummary",
+              "label": "Arth summary",
+              "description": "Items to catch up and this month's spending",
+              "minWidth": "180dp",
+              "minHeight": "80dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 1,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
@@ -70,6 +88,12 @@
       ],
       "expo-sqlite",
       "expo-notifications",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Arth adds your upcoming bills, EMIs and reminders to the calendar you choose."
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-speech-recognition",
       [

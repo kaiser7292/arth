@@ -6,6 +6,7 @@ export default function ExpenseLayout() {
       <Stack.Screen name="add" />
       <Stack.Screen name="[id]" />
       <Stack.Screen name="review-queue" />
+      <Stack.Screen name="catch-up" />
     </Stack>
   );
 }

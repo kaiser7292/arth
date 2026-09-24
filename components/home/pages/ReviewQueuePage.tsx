@@ -11,7 +11,7 @@ import { useSmsScan } from "@/hooks/use-sms-scan";
 import type { Category } from "@/services/category";
 import { getCategories } from "@/services/category";
 import type { DuplicateGroup } from "@/services/duplicate-detection";
-import { dismissDuplicateGroup, scanAllDuplicatesCached } from "@/services/duplicate-detection";
+import { dismissDuplicateGroup } from "@/services/duplicate-detection";
 import type { Expense, ForecastMatchPair } from "@/services/expense";
 import {
     approveCcRepaymentCredit,
@@ -19,9 +19,6 @@ import {
     approveExpenses,
     bulkAssignCategory,
     dismissOverdueForecasts,
-    getMatchedForecastPairs,
-    getPendingExpensesForReview,
-    getUncategorizedExpenses,
     rejectExpense,
     rejectExpenses,
     resolveMatchAlreadyCaptured,
@@ -32,6 +29,8 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts } from "@/services/financial-account";
 import type { PaymentMode } from "@/services/payment-mode";
 import { getPaymentModes } from "@/services/payment-mode";
+import { getReviewQueueSnapshot } from "@/services/review-queue-snapshot";
+import { reconcilePresentedAlerts } from "@/services/transaction-alerts";
 
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/expense-validation";
@@ -134,18 +133,11 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const [pending, pairs, dupScan, uncat] = await Promise.all([
-        getPendingExpensesForReview(DEFAULT_USER_ID),
-        getMatchedForecastPairs(DEFAULT_USER_ID),
-        scanAllDuplicatesCached(DEFAULT_USER_ID),
-        getUncategorizedExpenses(DEFAULT_USER_ID),
-      ]);
-      // Exclude matched realized expenses from the regular list
-      const matchedRealizedIds = new Set(pairs.map((p) => p.realized.id));
-      setItems(pending.filter((i) => !matchedRealizedIds.has(i.id)));
-      setMatchedPairs(pairs);
-      setDuplicateGroups(dupScan.groups);
-      setUncategorizedItems(uncat);
+      const snapshot = await getReviewQueueSnapshot(DEFAULT_USER_ID);
+      setItems(snapshot.pending);
+      setMatchedPairs(snapshot.matchedPairs);
+      setDuplicateGroups(snapshot.duplicateGroups);
+      setUncategorizedItems(snapshot.uncategorized);
     } catch {
       // DB not ready
     } finally {
@@ -158,6 +150,10 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       loadItems();
       setSelectedUncat(new Set());
       setShowCategoryPicker(false);
+      // Leaving the queue: clear notification alerts for anything reviewed here.
+      return () => {
+        reconcilePresentedAlerts().catch(() => {});
+      };
     }, [loadItems]),
   );
 
@@ -652,6 +648,8 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   );
 
   const totalItems = counts.all;
+  // What Catch Up walks through: everything except forecasts (overdue / upcoming dues).
+  const catchUpCount = counts.auto + counts.matched + counts.duplicates + counts.uncategorized;
   const hasBottomBar = selectedUncat.size > 0;
 
   if (loading && items.length === 0) {
@@ -723,9 +721,23 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
         <View className="px-4 py-2.5" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
           <View className="flex-row items-center">
             <Ionicons name="layers-outline" size={16} color={colors.blue} />
-            <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.primary }}>
+            <Text className="text-sm font-semibold ml-1.5 flex-1" style={{ color: theme.primary }}>
               {totalItems} item{totalItems !== 1 ? "s" : ""} to review
             </Text>
+            {catchUpCount > 0 && (
+              <Pressable
+                onPress={() => router.push("/expense/catch-up")}
+                className="flex-row items-center px-3 py-1.5 rounded-full"
+                style={{ backgroundColor: theme.primary }}
+                accessibilityRole="button"
+                accessibilityLabel={`Catch up on ${catchUpCount} items one at a time`}
+              >
+                <Ionicons name="albums-outline" size={14} color={theme.primaryForeground} />
+                <Text className="text-xs font-semibold ml-1" style={{ color: theme.primaryForeground }}>
+                  Catch up ({catchUpCount})
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
       )}

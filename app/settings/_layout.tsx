@@ -17,6 +17,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="import-excel" options={{ title: "Import from Excel" }} />
       <Stack.Screen name="backup-restore" options={{ title: "Backup & Restore" }} />
       <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
+      <Stack.Screen name="calendar-sync" options={{ title: "Calendar sync" }} />
       <Stack.Screen name="home-cards" options={{ title: "Home Cards" }} />
       <Stack.Screen name="merchant-aliases" options={{ title: "Merchant Aliases" }} />
       <Stack.Screen name="account-master" options={{ title: "Accounts" }} />

@@ -68,9 +68,10 @@ jest.mock("../../services/expense", () => ({
 }));
 
 // ─── Mock database (for EMI query inside scheduleSmartDailyDigest) ───
+const mockGetAllAsync = jest.fn(async (_sql: string, ..._args: unknown[]): Promise<unknown[]> => []);
 jest.mock("../../database", () => ({
   getDatabase: () => ({
-    getAllAsync: jest.fn(async () => []),
+    getAllAsync: (sql: string, ...args: unknown[]) => mockGetAllAsync(sql, ...args),
   }),
 }));
 
@@ -98,6 +99,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockOverdueForecasts.mockResolvedValue([]);
   mockGetForecastExpenses.mockResolvedValue([]);
+  mockGetAllAsync.mockResolvedValue([]);
 });
 
 // ─── scheduleSmartDailyDigest ───
@@ -142,6 +144,29 @@ describe("scheduleSmartDailyDigest", () => {
     expect(body).toContain("overdue");
     expect(body).toContain("due soon");
     expect(body).toContain("·");
+  });
+
+  it("opens Catch Up when review items are the only thing to report", async () => {
+    mockGetAllAsync.mockImplementation(async (sql: string) =>
+      sql.includes("pending_review") ? [{ cnt: 7 }] : [],
+    );
+    await scheduleSmartDailyDigest("user-1");
+    const content = mockSchedule.mock.calls[0][0].content;
+    expect(content.body).toBe("7 to catch up");
+    expect(content.data.screen).toBe("expense/catch-up");
+  });
+
+  it("lands on Home when dues are reported alongside review items", async () => {
+    mockGetAllAsync.mockImplementation(async (sql: string) =>
+      sql.includes("pending_review") ? [{ cnt: 3 }] : [],
+    );
+    mockOverdueForecasts.mockResolvedValueOnce([
+      { id: "e1", amount: 5000, merchant_name: "HDFC CC", description: null, due_date: "2026-04-10" },
+    ]);
+    await scheduleSmartDailyDigest("user-1");
+    const content = mockSchedule.mock.calls[0][0].content;
+    expect(content.body).toContain("3 to catch up");
+    expect(content.data.screen).toBe("/(tabs)");
   });
 
   it("skips when both categories are disabled", async () => {

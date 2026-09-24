@@ -10,6 +10,7 @@ import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { ForecastActionBar } from "@/components/expense/ForecastActionBar";
 import { LinkExpenseSheet } from "@/components/expense/LinkExpenseSheet";
+import { CheckInsCard } from "@/components/home/CheckInsCard";
 import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
 import { useAlert } from "@/hooks/use-alert";
 import { formatError } from "@/utils/error-message";
@@ -413,8 +414,12 @@ export default function HomeScreen() {
               uncategorized: uncategorizedCount,
             }}
             onPress={() => router.push("/expense/review-queue")}
+            onCatchUp={() => router.push("/expense/catch-up")}
           />
         )}
+
+        {/* Check-ins - swipe decks (month-end, settle-up, subscriptions, rules). Self-loading. */}
+        {isHomeCardVisible("check_ins") && <CheckInsCard />}
 
         {/* Budget Health Card */}
         {isHomeCardVisible("total_spent") && (

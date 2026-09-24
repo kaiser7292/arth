@@ -13,18 +13,20 @@ import { settingsStorage as storage } from "./storage";
 
 // ─── Notification Categories ───
 
-export type NotificationCategory = "overdue_forecast" | "upcoming_due" | "scheduled_backup";
+export type NotificationCategory = "overdue_forecast" | "upcoming_due" | "scheduled_backup" | "new_transaction";
 
 const KEYS = {
   NOTIF_OVERDUE: "notif_overdue",
   NOTIF_UPCOMING: "notif_upcoming",
   NOTIF_SCHEDULED_BACKUP: "notif_scheduled_backup",
+  NOTIF_NEW_TRANSACTION: "notif_new_transaction",
 } as const;
 
 const CATEGORY_KEY_MAP: Record<NotificationCategory, string> = {
   overdue_forecast: KEYS.NOTIF_OVERDUE,
   upcoming_due: KEYS.NOTIF_UPCOMING,
   scheduled_backup: KEYS.NOTIF_SCHEDULED_BACKUP,
+  new_transaction: KEYS.NOTIF_NEW_TRANSACTION,
 };
 
 // ─── Configuration ───
@@ -120,6 +122,7 @@ export function getNotificationPreferences(): Record<NotificationCategory, boole
     overdue_forecast: isNotificationEnabled("overdue_forecast"),
     upcoming_due: isNotificationEnabled("upcoming_due"),
     scheduled_backup: isNotificationEnabled("scheduled_backup"),
+    new_transaction: isNotificationEnabled("new_transaction"),
   };
 }
 

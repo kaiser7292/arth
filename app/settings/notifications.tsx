@@ -26,6 +26,7 @@ import {
   syncNotifBackgroundTask,
 } from "@/services/notification-scheduler";
 import { useTheme } from "@/hooks/use-theme";
+import { syncTransactionAlertTasks } from "@/services/transaction-alerts";
 
 interface NotifToggleProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -75,6 +76,7 @@ export default function NotificationPreferencesScreen() {
   const [overdue, setOverdue] = useState(() => isNotificationEnabled("overdue_forecast"));
   const [upcoming, setUpcoming] = useState(() => isNotificationEnabled("upcoming_due"));
   const [scheduledBackup, setScheduledBackup] = useState(() => isNotificationEnabled("scheduled_backup"));
+  const [newTransaction, setNewTransaction] = useState(() => isNotificationEnabled("new_transaction"));
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
 
   // Check permission on mount
@@ -110,6 +112,10 @@ export default function NotificationPreferencesScreen() {
       case "scheduled_backup":
         setScheduledBackup(value);
         break;
+      case "new_transaction":
+        setNewTransaction(value);
+        syncTransactionAlertTasks().catch(() => {});
+        break;
     }
   }, [permissionGranted, alert]);
 
@@ -144,6 +150,16 @@ export default function NotificationPreferencesScreen() {
         )}
 
         <Card className="mx-4 mb-3">
+          <NotifToggle
+            icon="chatbubble-ellipses-outline"
+            iconColor={theme.primary}
+            title="New Transactions"
+            subtitle="Checks bank SMS in the background (about every 30 min) and lets you approve or reject from the notification"
+            category="new_transaction"
+            enabled={newTransaction}
+            onToggle={handleToggle}
+          />
+
           <NotifToggle
             icon="alert-circle-outline"
             iconColor={theme.danger}

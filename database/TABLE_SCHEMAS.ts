@@ -297,6 +297,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "is_confirmed",
     "created_at",
     "updated_at",
+    "cancel_requested_at", // 076
   ] as const,
 
   hisaab_persons: [

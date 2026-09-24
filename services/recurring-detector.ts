@@ -29,6 +29,8 @@ export interface RecurringTransaction {
   occurrence_count: number;
   is_active: number;
   is_confirmed: number;
+  /** migration 076 — set by the Subscription check's "Cancel this". */
+  cancel_requested_at?: string | null;
   created_at: string;
   updated_at: string;
 }

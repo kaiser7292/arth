@@ -14,6 +14,16 @@ import { materialiseMaturedInvestments, migrateLegacyDematPensionAccounts } from
 import { migrateInvestmentsHomeCardPreference } from "@/services/home-card-preferences";
 import { runScheduledBackupIfDue, syncBackupBackgroundTask } from "@/services/backup-schedule";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
+// Module scope on purpose: defines the background SMS-scan and notification-button tasks, which
+// must exist before Android wakes the app headlessly to run them.
+import {
+  handleAlertAction,
+  reconcilePresentedAlerts,
+  setupTransactionAlertCategory,
+  syncTransactionAlertTasks,
+} from "@/services/transaction-alerts";
+import { refreshHomeWidget } from "@/services/home-widget";
+import { syncCalendarIfDue } from "@/services/calendar-sync";
 import { migrateExistingUser } from "@/services/onboarding";
 import { seedDefaultPaymentModes } from "@/services/payment-mode";
 import { seedPublicData } from "@/services/public-data";
@@ -331,6 +341,10 @@ export default function RootLayout(): React.JSX.Element {
         materialiseMaturedInvestments(DEFAULT_USER_ID).catch((e) => logger.warn("Investment maturity check failed:", e));
         syncNotifBackgroundTask().catch((e) => logger.warn("Notif background task sync failed:", e));
         syncBackupBackgroundTask().catch((e) => logger.warn("Backup background task sync failed:", e));
+        setupTransactionAlertCategory()
+          .then(() => syncTransactionAlertTasks())
+          .catch((e) => logger.warn("Transaction alert setup failed:", e));
+        syncCalendarIfDue(DEFAULT_USER_ID).catch((e) => logger.warn("Calendar sync failed:", e));
         
         // Only set dbReady to true after successful initialization
         setDbReady(true);
@@ -382,6 +396,11 @@ export default function RootLayout(): React.JSX.Element {
       if (state === "active") {
         runScanIfDue();
         void runScheduledBackupIfDue();
+        reconcilePresentedAlerts().catch(() => {});
+      } else if (state === "background") {
+        // Leaving the app is when numbers have most likely changed; keep the widget and calendar current.
+        void refreshHomeWidget();
+        syncCalendarIfDue(DEFAULT_USER_ID).catch(() => {});
       }
     });
     return () => sub.remove();
@@ -424,6 +443,12 @@ export default function RootLayout(): React.JSX.Element {
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
+        // Approve / Reject tapped while Arth is in the foreground (the background case goes to
+        // the TaskManager task in services/transaction-alerts.ts). No navigation for these.
+        if (response.actionIdentifier === "approve" || response.actionIdentifier === "reject") {
+          void handleAlertAction(response.actionIdentifier, response.notification.request.content.data);
+          return;
+        }
         const screen = response.notification.request.content.data?.screen;
         if (!screen || typeof screen !== "string" || !routerRef.current || !ALLOWED_SCREENS.has(screen)) {
           return;

@@ -12,6 +12,8 @@ export interface ReviewQueueCounts {
 interface ReviewQueueCardProps {
   counts: ReviewQueueCounts;
   onPress: () => void;
+  /** Opens Catch Up, the one-card-at-a-time review. */
+  onCatchUp?: () => void;
 }
 
 const KINDS: {
@@ -34,7 +36,7 @@ const KINDS: {
  * look frozen. This card only counts things that actually leave the queue when acted on:
  * pending review, duplicates, uncategorized.
  */
-export function ReviewQueueCard({ counts, onPress }: ReviewQueueCardProps) {
+export function ReviewQueueCard({ counts, onPress, onCatchUp }: ReviewQueueCardProps) {
   const theme = useTheme();
 
   const lines = KINDS.map(({ key, icon, one, many }) => ({
@@ -90,6 +92,20 @@ export function ReviewQueueCard({ counts, onPress }: ReviewQueueCardProps) {
             </Text>
           </View>
         ))}
+        {onCatchUp && (
+          <Pressable
+            onPress={onCatchUp}
+            className="flex-row items-center justify-center mt-3 py-2.5 rounded-lg"
+            style={{ backgroundColor: theme.primary }}
+            accessibilityRole="button"
+            accessibilityLabel={`Catch up on ${total} items one at a time`}
+          >
+            <Ionicons name="albums-outline" size={16} color={theme.primaryForeground} />
+            <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.primaryForeground }}>
+              Catch up ({total})
+            </Text>
+          </Pressable>
+        )}
       </Card>
     </Pressable>
   );

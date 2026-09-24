@@ -16,6 +16,7 @@ export type HomeCardId =
   | "min_balance_alert"
   | "upcoming_dues"
   | "review_queue"
+  | "check_ins"
   | "total_spent"
   | "hisaab"
   | "insights"
@@ -58,6 +59,12 @@ export const HOME_CARDS: HomeCardMeta[] = [
     id: "review_queue",
     label: "Review Queue",
     description: "Action Required card + standalone Review Queue shortcut in Explore & Tools",
+    defaultVisible: true,
+  },
+  {
+    id: "check_ins",
+    label: "Check-ins",
+    description: "Month-end check, settle-up, subscriptions and rule suggestions when there's something to swipe through",
     defaultVisible: true,
   },
   {
