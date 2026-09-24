@@ -21,6 +21,7 @@ import {
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getErrorMessage } from "@/utils/error-message";
+import { isValidTotpSecret } from "@/utils/totp";
 import { useTheme } from "@/hooks/use-theme";
 
 const ALL_CATEGORIES = VAULT_CATEGORY_GROUPS.flatMap((g) => g.categories);
@@ -94,6 +95,8 @@ export default function VaultAddScreen() {
   // Demat extras
   const [tpin, setTpin] = useState("");
   const [showTpin, setShowTpin] = useState(false);
+  const [totpSecret, setTotpSecret] = useState("");
+  const [showTotpSecret, setShowTotpSecret] = useState(false);
   // Statement PDF password (banking + card + demat)
   const [statementPwd, setStatementPwd] = useState("");
   const [showStatementPwd, setShowStatementPwd] = useState(false);
@@ -128,8 +131,9 @@ export default function VaultAddScreen() {
           setSecondaryPassword(fields.secondary_password ?? "");
           setMpin(fields.mpin ?? "");
           setTpin(fields.tpin ?? "");
+          setTotpSecret(fields.totp_secret ?? "");
           setStatementPwd(fields.statement_password ?? "");
-          if (fields.secondary_password || fields.mpin || fields.tpin || fields.statement_password) {
+          if (fields.secondary_password || fields.mpin || fields.tpin || fields.totp_secret || fields.statement_password) {
             expandMore = true;
           }
         }
@@ -192,6 +196,17 @@ export default function VaultAddScreen() {
       } else if (category === "demat") {
         const cf: Record<string, string> = {};
         if (tpin.trim()) cf.tpin = tpin.trim();
+        const secret = totpSecret.replace(/[\s=]/g, "").toUpperCase();
+        if (secret) {
+          if (!isValidTotpSecret(secret)) {
+            alert(
+              "Invalid TOTP secret",
+              "Paste the text key shown when you set up TOTP (letters A–Z and digits 2–7), not a 6-digit code.",
+            );
+            return;
+          }
+          cf.totp_secret = secret;
+        }
         if (statementPwd.trim()) cf.statement_password = statementPwd.trim();
         customFieldsData = cf;
       }
@@ -223,7 +238,7 @@ export default function VaultAddScreen() {
     }
   }, [title, category, loginMethod, username, email, phone, password, pin, url, notes,
       cardNumber, cardHolder, cardExpiry, cardCvv, editId, linkedAccountId,
-      secondaryPassword, mpin, tpin, statementPwd]);
+      secondaryPassword, mpin, tpin, totpSecret, statementPwd]);
 
   if (loading) {
     return (
@@ -783,6 +798,25 @@ export default function VaultAddScreen() {
                     <Ionicons name={showTpin ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
                   </Pressable>
                 </Field>
+
+                <Field label="TOTP Secret (optional)" colors={colors}>
+                  <TextInput
+                    value={totpSecret}
+                    onChangeText={setTotpSecret}
+                    placeholder="Text key from your broker's TOTP setup"
+                    placeholderTextColor={colors.textSecondary}
+                    secureTextEntry={!showTotpSecret}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    className="flex-1 text-sm text-foreground"
+                  />
+                  <Pressable onPress={() => setShowTotpSecret((p) => !p)} hitSlop={8}>
+                    <Ionicons name={showTotpSecret ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                  </Pressable>
+                </Field>
+                <Text className="text-xs text-muted-foreground mb-3 -mt-1">
+                  Arth will show the current 6-digit code and can fill it in on the Zerodha Kite login.
+                </Text>
 
                 <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
                   <TextInput

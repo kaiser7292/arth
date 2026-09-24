@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
-import { WebView } from 'react-native-webview';
+import * as Clipboard from 'expo-clipboard';
+import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { Card, ScreenContainer, Text } from '@/components/ui';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -11,6 +12,18 @@ import { useAlert } from '@/hooks/use-alert';
 import { useTheme } from '@/hooks/use-theme';
 import { formatAmount } from '@/utils/format';
 import { formatDate, todayIso } from '@/utils/date';
+import { generateTOTP, totpSecondsRemaining } from '@/utils/totp';
+import {
+  KITE_LOGIN_WATCHER_JS,
+  buildLoginFillJs,
+  buildTotpFillJs,
+  getKiteLoginCandidates,
+  getKiteLoginSecrets,
+  getKiteVaultEntryId,
+  isKiteLoginUrl,
+  setKiteVaultEntryId,
+} from '@/services/kite-login-autofill';
+import { getVaultEntry, type VaultEntry } from '@/services/vault';
 import { addOrUpdateSnapshot, updateFundBalance } from '@/services/financial-account';
 import {
   clearKiteCredentials,
@@ -52,6 +65,14 @@ export default function KiteConnectScreen() {
   const [tokenExpired, setTokenExpired]       = useState(false);
   const [showWebView, setShowWebView]         = useState(false);
   const [loginUrl, setLoginUrl]               = useState('');
+  const webViewRef = useRef<WebView>(null);
+
+  // Vault-backed login fill
+  const [vaultEntry, setVaultEntry]             = useState<VaultEntry | null>(null);
+  const [vaultCandidates, setVaultCandidates]   = useState<VaultEntry[]>([]);
+  const [showVaultPicker, setShowVaultPicker]   = useState(false);
+  const [loginTotpSecret, setLoginTotpSecret]   = useState<string | null>(null);
+  const [totpNow, setTotpNow]                   = useState(Date.now());
 
   // Linked account
   const [linkedAccountId, setLinkedAccountIdState] = useState<string | null>(null);
@@ -76,6 +97,8 @@ export default function KiteConnectScreen() {
 
   const load = useCallback(async () => {
     try {
+      const entryId = getKiteVaultEntryId();
+      setVaultEntry(entryId ? await getVaultEntry(entryId) : null);
       const auth = await isKiteAuthenticated();
       setIsAuthenticated(auth);
       if (auth) {
@@ -123,10 +146,76 @@ export default function KiteConnectScreen() {
         );
         return;
       }
+      const secrets = vaultEntry ? await getKiteLoginSecrets(vaultEntry.id) : null;
+      setLoginTotpSecret(secrets?.totpSecret ?? null);
       setLoginUrl(getKiteLoginUrl(credentials.apiKey));
       setShowWebView(true);
     } catch {
       alert('Error', 'Failed to initiate Kite login');
+    }
+  };
+
+  // ── Vault login entry ────────────────────────────────────────────────────
+
+  const handleChooseVaultEntry = async () => {
+    const candidates = await getKiteLoginCandidates();
+    if (candidates.length === 0) {
+      alert(
+        'No login saved in Vault',
+        'Add a Vault entry with your Zerodha user ID, password and TOTP secret first.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Add to Vault',
+            onPress: () => router.push({
+              pathname: '/vault/add',
+              params: { prefill_category: 'demat', prefill_title: 'Zerodha' },
+            } as any),
+          },
+        ],
+      );
+      return;
+    }
+    setVaultCandidates(candidates);
+    setShowVaultPicker(true);
+  };
+
+  const handlePickVaultEntry = (entry: VaultEntry | null) => {
+    setKiteVaultEntryId(entry?.id ?? null);
+    setVaultEntry(entry);
+    setShowVaultPicker(false);
+  };
+
+  // ── Login window fill ────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!showWebView || !loginTotpSecret) return;
+    const id = setInterval(() => setTotpNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [showWebView, loginTotpSecret]);
+
+  const handleWebViewMessage = async (event: WebViewMessageEvent) => {
+    if (!vaultEntry || !isKiteLoginUrl(event.nativeEvent.url)) return;
+    let msg: { arth?: string; type?: string };
+    try {
+      msg = JSON.parse(event.nativeEvent.data);
+    } catch {
+      return;
+    }
+    if (msg.arth !== 'kite-login') return;
+
+    const secrets = await getKiteLoginSecrets(vaultEntry.id);
+    if (!secrets) return;
+
+    if (msg.type === 'login_form') {
+      webViewRef.current?.injectJavaScript(buildLoginFillJs(secrets.userId, secrets.password));
+    } else if (msg.type === 'totp_form' && secrets.totpSecret) {
+      // A code about to roll over would likely be rejected; wait for the next one.
+      const secsLeft = totpSecondsRemaining();
+      const delayMs = secsLeft <= 3 ? secsLeft * 1000 + 300 : 0;
+      setTimeout(() => {
+        webViewRef.current?.injectJavaScript(buildTotpFillJs(generateTOTP(secrets.totpSecret!)));
+      }, delayMs);
     }
   };
 
@@ -169,6 +258,7 @@ export default function KiteConnectScreen() {
     if (!url.includes('request_token=')) return;
 
     setShowWebView(false);
+    setLoginTotpSecret(null);
     const parsed = Linking.parse(url);
     const requestToken = parsed.queryParams?.request_token as string;
     if (!requestToken) {
@@ -176,18 +266,20 @@ export default function KiteConnectScreen() {
       return;
     }
 
+    let connected = false;
     try {
       setIsLoading(true);
       const credentials = await exchangeRequestToken(requestToken);
       await storeKiteAccessToken(credentials);
       setIsAuthenticated(true);
       setTokenExpired(false);
-      alert('Success', 'Connected to Kite!');
-    } catch {
-      alert('Error', 'Failed to complete authentication');
+      connected = true;
+    } catch (err: any) {
+      alert('Could not connect to Kite', err?.message || 'Failed to complete authentication');
     } finally {
       setIsLoading(false);
     }
+    if (connected) await handleSync();
   };
 
   // ── Sync ─────────────────────────────────────────────────────────────────
@@ -290,9 +382,37 @@ export default function KiteConnectScreen() {
   if (showWebView) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {loginTotpSecret && (() => {
+          const code = generateTOTP(loginTotpSecret, totpNow);
+          const secsLeft = totpSecondsRemaining(totpNow);
+          return (
+            <View
+              className="flex-row items-center px-4 py-2.5"
+              style={{ backgroundColor: theme.alpha('primary', 0.1), borderBottomWidth: 1, borderBottomColor: colors.border }}
+            >
+              <Ionicons name="lock-closed-outline" size={14} color={theme.primary} />
+              <Text className="text-xs text-muted-foreground ml-2">TOTP from Vault</Text>
+              <Text className="text-base font-bold text-foreground font-mono tracking-widest ml-3 flex-1">
+                {code.slice(0, 3)} {code.slice(3)}
+              </Text>
+              <Text
+                className="text-xs mr-3"
+                style={{ color: secsLeft <= 5 ? theme.danger : colors.textSecondary, fontVariant: ['tabular-nums'] }}
+              >
+                {secsLeft}s
+              </Text>
+              <Pressable onPress={() => Clipboard.setStringAsync(code)} hitSlop={8}>
+                <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Copy</Text>
+              </Pressable>
+            </View>
+          );
+        })()}
         <WebView
+          ref={webViewRef}
           source={{ uri: loginUrl }}
           onNavigationStateChange={handleWebViewNavChange}
+          injectedJavaScript={vaultEntry ? KITE_LOGIN_WATCHER_JS : undefined}
+          onMessage={handleWebViewMessage}
           javaScriptEnabled
           domStorageEnabled
           startInLoadingState
@@ -305,7 +425,7 @@ export default function KiteConnectScreen() {
 
   if (isLoading) {
     return (
-      <ScreenContainer>
+      <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={theme.primary} />
         </View>
@@ -386,6 +506,26 @@ export default function KiteConnectScreen() {
               </Pressable>
             )}
           </View>
+        </Card>
+
+        {/* ── Login from Vault ── */}
+        <Card className="mx-4 mb-3">
+          <Pressable onPress={handleChooseVaultEntry} className="flex-row items-center">
+            <Ionicons
+              name="lock-closed-outline"
+              size={16}
+              color={vaultEntry ? theme.primary : colors.textSecondary}
+            />
+            <View className="flex-1 ml-3">
+              <Text className="text-sm font-semibold text-foreground">Fill login from Vault</Text>
+              <Text className="text-xs text-muted-foreground mt-0.5">
+                {vaultEntry
+                  ? `Using "${vaultEntry.title}" — user ID, password and TOTP are filled in for you`
+                  : 'Off — tap to choose a Vault entry'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+          </Pressable>
         </Card>
 
         {/* ── Holdings ── */}
@@ -757,6 +897,45 @@ export default function KiteConnectScreen() {
               onPress={() => setShowAccountPicker(false)}
               className="mt-4 py-3 items-center"
             >
+              <Text className="text-sm text-muted-foreground">Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Vault entry picker modal ── */}
+      <Modal visible={showVaultPicker} transparent animationType="slide">
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ backgroundColor: colors.background, borderRadius: 16, padding: 20, maxHeight: '70%' }}>
+            <Text className="text-base font-bold text-foreground mb-1">Zerodha login from Vault</Text>
+            <Text className="text-xs text-muted-foreground mb-4">
+              Pick the entry with your Zerodha user ID and password. Add a TOTP secret to it to fill the code too.
+            </Text>
+            <ScrollView>
+              {vaultCandidates.map((e) => {
+                const selected = vaultEntry?.id === e.id;
+                return (
+                  <Pressable
+                    key={e.id}
+                    onPress={() => handlePickVaultEntry(e)}
+                    className="py-3 border-b border-border flex-row items-center"
+                  >
+                    <Ionicons name="lock-closed-outline" size={16} color={selected ? theme.primary : colors.textSecondary} style={{ marginRight: 10 }} />
+                    <View className="flex-1">
+                      <Text className="text-sm text-foreground" style={selected ? { color: theme.primary } : undefined}>{e.title}</Text>
+                      <Text className="text-xs text-muted-foreground">{e.username || e.phone || e.email}</Text>
+                    </View>
+                    {selected && <Ionicons name="checkmark" size={16} color={theme.primary} />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            {vaultEntry && (
+              <Pressable onPress={() => handlePickVaultEntry(null)} className="mt-4 py-3 items-center">
+                <Text className="text-sm font-medium" style={{ color: theme.danger }}>Stop filling from Vault</Text>
+              </Pressable>
+            )}
+            <Pressable onPress={() => setShowVaultPicker(false)} className="mt-2 py-3 items-center">
               <Text className="text-sm text-muted-foreground">Cancel</Text>
             </Pressable>
           </View>

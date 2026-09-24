@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
@@ -18,6 +18,7 @@ import {
   getVaultEntry,
 } from "@/services/vault";
 import { useTheme } from "@/hooks/use-theme";
+import { generateTOTP, totpSecondsRemaining } from "@/utils/totp";
 
 const CLIPBOARD_TTL_MS = 30_000;
 
@@ -392,6 +393,15 @@ export default function VaultEntryScreen() {
           />
         )}
 
+        {entry.category === "demat" && customFields.totp_secret && (
+          <TotpRow
+            secret={customFields.totp_secret}
+            onCopy={(code) => handleCopy("TOTP Code", code)}
+            copied={copiedField === "TOTP Code"}
+            colors={colors}
+          />
+        )}
+
         {/* Statement PDF Password — banking and demat */}
         {(entry.category === "banking" || entry.category === "demat") && customFields.statement_password && (
           <SecretRow
@@ -442,6 +452,55 @@ export default function VaultEntryScreen() {
         </Text>
       </ScrollView>
     </ScreenContainer>
+  );
+}
+
+function TotpRow({
+  secret,
+  onCopy,
+  copied,
+  colors,
+}: {
+  secret: string;
+  onCopy: (code: string) => void;
+  copied: boolean;
+  colors: any;
+}) {
+  const theme = useTheme();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const code = generateTOTP(secret, now);
+  const secsLeft = totpSecondsRemaining(now);
+  return (
+    <View className="mb-3">
+      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+        TOTP Code
+      </Text>
+      <View
+        className="flex-row items-center border border-border rounded-xl px-4 py-3"
+        style={{ backgroundColor: colors.surface }}
+      >
+        <Text className="flex-1 text-lg font-bold text-foreground font-mono tracking-widest">
+          {code.slice(0, 3)} {code.slice(3)}
+        </Text>
+        <Text
+          className="text-xs mr-3"
+          style={{ color: secsLeft <= 5 ? theme.danger : colors.textSecondary, fontVariant: ["tabular-nums"] }}
+        >
+          {secsLeft}s
+        </Text>
+        <Pressable onPress={() => onCopy(code)} hitSlop={8}>
+          <Ionicons
+            name={copied ? "checkmark" : "copy-outline"}
+            size={16}
+            color={copied ? theme.primary : colors.textSecondary}
+          />
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
