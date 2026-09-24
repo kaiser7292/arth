@@ -4,7 +4,10 @@
 
 ```
 1. Make and commit all code changes
-2. Bump version in app.json  →  expo.version + expo.android.versionCode
+2. Bump version in ALL of these (same X.Y.Z everywhere):
+     app.json           →  expo.version + expo.android.versionCode
+     package.json       →  "version"
+     package-lock.json  →  top-level "version" + packages[""].version (first two "version" lines)
 3. Commit everything + push:  git push origin master
 4. Run expo prebuild (applies config plugins)
 5. Run Gradle assembleRelease
@@ -27,6 +30,8 @@ Examples: `2.11.3` → `21103`
   "versionCode": 21103
 }
 ```
+
+`app.json` is what the app actually reads (Settings shows `expoConfig.version`, and prebuild copies it into the Android `versionName`/`versionCode`). `package.json` / `package-lock.json` aren't read at runtime, but keep them in sync — they drifted from 3.12.0 to 3.16.7 unnoticed before being fixed in 3.16.8.
 
 ---
 
