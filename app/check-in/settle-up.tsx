@@ -2,9 +2,8 @@ import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { Share, View } from "react-native";
 import { CheckInDeck, DeckHeadline, DeckRow } from "@/components/check-in/CheckInDeck";
-import { Text } from "@/components/ui";
+import { Money } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { useTheme } from "@/hooks/use-theme";
 import type { HisaabPersonWithBalance } from "@/services/hisaab";
 import {
   getLastReminded,
@@ -24,7 +23,6 @@ function daysAgo(ms: number): string {
 /** Hisaab settle-up: remind people who owe you, or mark them settled. */
 export default function SettleUpScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const load = useCallback(() => getPeopleWhoOweYou(DEFAULT_USER_ID), []);
 
   return (
@@ -35,12 +33,10 @@ export default function SettleUpScreen() {
       renderCard={(p) => {
         const reminded = getLastReminded(p.id);
         return (
-          <View className="flex-1">
+          <View>
             <DeckHeadline kicker="Owes you" title={p.name} />
-            <Text className="text-4xl font-bold text-center" style={{ color: theme.success }}>
-              {formatAmount(p.balance)}
-            </Text>
-            <View className="mt-6">
+            <Money value={p.balance} className="text-title font-bold text-center text-success mt-1" />
+            <View className="mt-4">
               {p.lastEntryDate ? <DeckRow label="Last entry" value={formatDateForDisplay(p.lastEntryDate)} /> : null}
               <DeckRow label="Entries" value={String(p.entryCount)} />
               <DeckRow label="Last reminded" value={reminded ? daysAgo(reminded) : "Never"} />
@@ -84,6 +80,7 @@ export default function SettleUpScreen() {
         },
       ]}
       doneTitle="All caught up on hisaab"
+      emptyIcon="people-outline"
       emptyTitle="Nobody owes you"
       emptySubtitle="People with a balance in your favour in Hisaab show up here."
     />

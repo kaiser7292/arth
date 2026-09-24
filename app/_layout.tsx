@@ -555,6 +555,8 @@ export default function RootLayout(): React.JSX.Element {
           name="goals"
           options={{ headerShown: false }}
         />
+        {/* Check-in decks bring their own Stack (app/check-in/_layout.tsx). */}
+        <Stack.Screen name="check-in" options={{ headerShown: false }} />
         <Stack.Screen
           name="hisaab"
           options={{ headerShown: false }}

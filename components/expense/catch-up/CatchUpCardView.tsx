@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
-import { Card, Text } from "@/components/ui";
+import { Pressable, View } from "react-native";
+import { Card, Money, Text } from "@/components/ui";
+import { DeckCardActions } from "@/components/check-in/CheckInDeck";
+import type { FooterAction } from "@/components/check-in/CheckInDeck";
 import { useTheme } from "@/hooks/use-theme";
 import type { Category } from "@/services/category";
 import type { CatchUpCard } from "@/services/catch-up";
@@ -9,7 +11,6 @@ import { splitDuplicateGroup } from "@/services/catch-up";
 import type { Expense } from "@/services/expense";
 import type { FinancialAccount } from "@/services/financial-account";
 import { formatDateForDisplay } from "@/utils/expense-validation";
-import { formatAmount } from "@/utils/format";
 
 interface CatchUpCardViewProps {
   card: CatchUpCard;
@@ -19,6 +20,8 @@ interface CatchUpCardViewProps {
   categoryId: string | null;
   onPickCategory: () => void;
   onOpen: (expenseId: string) => void;
+  /** Extra actions (Reject, Already captured, Edit details…) as rows at the bottom of the card. */
+  actions: FooterAction[];
 }
 
 function accountText(accountMap: Map<string, FinancialAccount>, id: string | null): string | null {
@@ -47,6 +50,7 @@ export function CatchUpCardView({
   categoryId,
   onPickCategory,
   onOpen,
+  actions,
 }: CatchUpCardViewProps) {
   const theme = useTheme();
   const meta = KIND_META[card.kind];
@@ -54,8 +58,8 @@ export function CatchUpCardView({
   const kindLabel = card.kind === "pending" && isCredit ? "Money received" : meta.label;
 
   return (
-    <Card className="flex-1 mx-4 py-5">
-      <View className="flex-row items-center justify-center mb-4">
+    <Card>
+      <View className="flex-row items-center justify-center mb-3">
         <Ionicons name={meta.icon} size={14} color={theme.mutedForeground} />
         <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1.5">
           {kindLabel}
@@ -77,6 +81,8 @@ export function CatchUpCardView({
       {card.kind === "match" && <MatchBody card={card} accountMap={accountMap} />}
 
       {card.kind === "duplicate" && <DuplicateBody card={card} accountMap={accountMap} />}
+
+      <DeckCardActions actions={actions} />
     </Card>
   );
 }
@@ -104,15 +110,14 @@ function SingleExpenseBody({
   const account = accountText(accountMap, expense.account_id);
 
   return (
-    <View className="flex-1">
+    <View>
       <Pressable onPress={() => onOpen(expense.id)} accessibilityRole="button" accessibilityLabel="Open full details">
-        <Text
-          className="text-center font-bold"
-          style={{ fontSize: 36, lineHeight: 44, color: isCredit ? theme.success : theme.foreground }}
-        >
-          {isCredit ? "+" : ""}{formatAmount(expense.amount)}
-        </Text>
-        <Text className="text-lg font-semibold text-foreground text-center mt-1" numberOfLines={2}>
+        <Money
+          value={expense.amount}
+          showPlus={isCredit}
+          className={`text-title font-bold text-center ${isCredit ? "text-success" : "text-foreground"}`}
+        />
+        <Text className="text-base font-bold text-foreground text-center mt-1" numberOfLines={2}>
           {title(expense)}
         </Text>
         <Text className="text-sm text-muted-foreground text-center mt-1">
@@ -123,8 +128,9 @@ function SingleExpenseBody({
       {!isCredit && (
         <Pressable
           onPress={onPickCategory}
-          className="flex-row items-center self-center mt-5 px-4 py-2 rounded-full border"
+          className="flex-row items-center self-center mt-4 px-4 rounded-full border"
           style={{
+            minHeight: 40,
             borderColor: category ? category.color : theme.border,
             backgroundColor: category ? category.color + "14" : "transparent",
           }}
@@ -146,24 +152,23 @@ function SingleExpenseBody({
         </Pressable>
       )}
 
-      <Pressable onPress={() => onOpen(expense.id)} className="self-center mt-3 py-1" hitSlop={6}>
-        <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
-          Split · Tags · Note · Edit
-        </Text>
-      </Pressable>
-
       {expense.raw_source_text ? (
-        <View className="mt-4 flex-1">
-          <Pressable onPress={() => setShowSms((v) => !v)} className="flex-row items-center py-1">
-            <Ionicons name={showSms ? "chevron-down" : "chevron-forward"} size={14} color={theme.mutedForeground} />
-            <Text className="text-xs font-semibold text-muted-foreground ml-1">
+        <View className="mt-4">
+          <Pressable
+            onPress={() => setShowSms((v) => !v)}
+            className="flex-row items-center"
+            style={{ minHeight: 40 }}
+            accessibilityRole="button"
+          >
+            <Ionicons name={showSms ? "chevron-down" : "chevron-forward"} size={16} color={theme.mutedForeground} />
+            <Text className="text-sm font-medium text-muted-foreground ml-1.5">
               {showSms ? "Hide original SMS" : "Show original SMS"}
             </Text>
           </Pressable>
           {showSms && (
-            <ScrollView className="mt-2 rounded-lg px-3 py-2" style={{ backgroundColor: theme.alpha("foreground", 0.04), maxHeight: 160 }}>
+            <View className="mt-1 rounded-lg px-3 py-2.5" style={{ backgroundColor: theme.alpha("foreground", 0.04) }}>
               <Text className="text-xs text-muted-foreground">{expense.raw_source_text}</Text>
-            </ScrollView>
+            </View>
           )}
         </View>
       ) : null}
@@ -195,7 +200,7 @@ function MiniRow({
             {[account, date].filter(Boolean).join(" · ")}
           </Text>
         </View>
-        <Text className="text-base font-bold text-foreground">{formatAmount(expense.amount)}</Text>
+        <Money value={expense.amount} className="text-sm font-bold text-foreground" />
       </View>
     </View>
   );
@@ -212,7 +217,7 @@ function MatchBody({
   const { forecast, realized } = card.pair;
   return (
     <View>
-      <Text className="text-lg font-semibold text-foreground text-center mb-4">
+      <Text className="text-base font-bold text-foreground text-center mb-3">
         Is this the payment you were expecting?
       </Text>
       <MiniRow expense={forecast} label="Expected" labelColor={theme.warning} accountMap={accountMap} />
@@ -234,8 +239,8 @@ function DuplicateBody({
   const theme = useTheme();
   const { keep, reject } = splitDuplicateGroup(card.group);
   return (
-    <ScrollView>
-      <Text className="text-lg font-semibold text-foreground text-center mb-1">
+    <View>
+      <Text className="text-base font-bold text-foreground text-center mb-1">
         These look like the same transaction
       </Text>
       <Text className="text-xs text-muted-foreground text-center mb-4">{card.group.reason}</Text>
@@ -243,6 +248,6 @@ function DuplicateBody({
       {reject.map((e) => (
         <MiniRow key={e.id} expense={e} label="Reject" labelColor={theme.danger} accountMap={accountMap} />
       ))}
-    </ScrollView>
+    </View>
   );
 }

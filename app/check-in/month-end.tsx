@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { View } from "react-native";
 import { CheckInDeck, DeckHeadline, DeckRow } from "@/components/check-in/CheckInDeck";
-import { Text } from "@/components/ui";
+import { Money, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import type { MonthEndItem } from "@/services/month-end-check";
@@ -31,7 +31,8 @@ export default function MonthEndCheckScreen() {
 
   return (
     <CheckInDeck<MonthEndItem>
-      title={`Month-end · ${monthLabel(cycle)}`}
+      title="Month-end check"
+      context={monthLabel(cycle)}
       loadItems={load}
       keyOf={(i) => i.account.id}
       renderCard={(i) => {
@@ -58,14 +59,19 @@ export default function MonthEndCheckScreen() {
                     text: "No balance SMS to compare with. Check your bank app.",
                   };
         return (
-          <View className="flex-1">
+          <View>
             <DeckHeadline kicker={TYPE_LABEL[a.account_type] ?? "Account"} title={name} />
-            <DeckRow label="Arth's balance" value={i.arthBalance != null ? formatAmount(i.arthBalance) : "—"} />
-            <DeckRow
-              label={i.bankDate ? `Bank SMS (${formatDateForDisplay(i.bankDate)})` : "Bank SMS"}
-              value={i.bankBalance != null ? formatAmount(i.bankBalance) : "—"}
-            />
-            <View className="flex-row items-start mt-5 px-1">
+            <View className="mt-3">
+              <DeckRow
+                label="Arth's balance"
+                value={i.arthBalance != null ? <Money value={i.arthBalance} className="text-sm font-semibold text-foreground" /> : "—"}
+              />
+              <DeckRow
+                label={i.bankDate ? `Bank SMS (${formatDateForDisplay(i.bankDate)})` : "Bank SMS"}
+                value={i.bankBalance != null ? <Money value={i.bankBalance} className="text-sm font-semibold text-foreground" /> : "—"}
+              />
+            </View>
+            <View className="flex-row items-start mt-4">
               <Ionicons name={verdict.icon} size={22} color={verdict.color} />
               <Text className="text-sm ml-2 flex-1" style={{ color: verdict.color }}>
                 {verdict.text}
@@ -95,6 +101,7 @@ export default function MonthEndCheckScreen() {
         },
       ]}
       doneTitle="Books closed for the month"
+      emptyIcon="calendar-outline"
       emptyTitle="All accounts checked"
       emptySubtitle="Every bank, card and wallet account has been checked for this month."
     />

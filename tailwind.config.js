@@ -41,6 +41,10 @@ module.exports = {
     "./app/**/*.{js,jsx,ts,tsx}",
     "./components/**/*.{js,jsx,ts,tsx}",
     "./preview/**/*.{js,jsx,ts,tsx}",
+    // Component class recipes (COMPONENTS.button.base etc.) live in the design tokens. Without
+    // this, any class used ONLY there was never generated - which is why buttons rendered with
+    // square corners despite asking for rounded-control.
+    "./constants/**/*.{js,ts}",
   ],
   presets: [require("nativewind/preset")],
   darkMode: "class",
@@ -50,6 +54,7 @@ module.exports = {
         control: RADIUS.control,
         card: RADIUS.card,
         sheet: RADIUS.sheet,
+        pill: RADIUS.pill,
       },
 
       // SCALE_OVERRIDES last: it deliberately redefines Tailwind's own xs/sm steps.

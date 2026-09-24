@@ -34,13 +34,13 @@ export default function RuleSuggestionsScreen() {
         const color = cat?.color ?? theme.mutedForeground;
         const tint = cat ? cat.color + "14" : theme.alpha("mutedForeground", 0.08);
         return (
-          <View className="flex-1">
+          <View>
             <DeckHeadline
               kicker="Make it automatic?"
               title={s.merchant}
               subtitle={`You've filed it the same way ${s.count} times (${formatAmount(s.total)})`}
             />
-            <View className="items-center mt-2">
+            <View className="items-center mt-4">
               <Ionicons name="arrow-down" size={20} color={color} />
               <View
                 className="flex-row items-center mt-2 px-4 py-2 rounded-full"
@@ -56,7 +56,7 @@ export default function RuleSuggestionsScreen() {
                 </Text>
               </View>
             </View>
-            <Text className="text-xs text-muted-foreground text-center mt-6 px-4">
+            <Text className="text-xs text-muted-foreground text-center mt-4">
               Creates a Smart Rule: new transactions from a merchant containing "{s.merchant}" go straight
               into {cat?.name ?? "this category"}. You can edit or delete it in Settings → Smart Rules.
             </Text>
@@ -88,6 +88,7 @@ export default function RuleSuggestionsScreen() {
         },
       ]}
       doneTitle="All suggestions reviewed"
+      emptyIcon="flash-outline"
       emptyTitle="No suggestions right now"
       emptySubtitle="When you file the same merchant under the same category a few times, it shows up here."
     />

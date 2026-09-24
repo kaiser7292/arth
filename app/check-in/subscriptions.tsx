@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { View } from "react-native";
 import { CheckInDeck, DeckHeadline, DeckRow } from "@/components/check-in/CheckInDeck";
-import { Text } from "@/components/ui";
+import { Money, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import type { SubscriptionItem } from "@/services/subscription-check";
@@ -40,14 +40,14 @@ export default function SubscriptionCheckScreen() {
       loadItems={load}
       keyOf={(i) => i.sub.id}
       renderCard={({ sub, reason, yearlyCost }) => (
-        <View className="flex-1">
+        <View>
           <DeckHeadline
             kicker={REASON_KICKER[reason]}
             title={sub.merchant_normalized}
             subtitle={`${formatAmount(sub.amount)} · ${FREQUENCY_LABEL[sub.frequency] ?? sub.frequency}`}
           />
-          <View className="items-center mb-4">
-            <Text className="text-3xl font-bold text-foreground">{formatAmount(yearlyCost)}</Text>
+          <View className="items-center mt-3 mb-3">
+            <Money value={yearlyCost} className="text-title font-bold text-foreground" />
             <Text className="text-xs text-muted-foreground mt-0.5">roughly per year</Text>
           </View>
           <DeckRow label="Last charged" value={formatDateForDisplay(sub.last_seen_date)} />
@@ -56,7 +56,7 @@ export default function SubscriptionCheckScreen() {
           ) : null}
           <DeckRow label="Times seen" value={String(sub.occurrence_count)} />
           {reason === "still_charging" && sub.cancel_requested_at ? (
-            <Text className="text-sm text-center mt-4" style={{ color: theme.danger }}>
+            <Text className="text-sm mt-4" style={{ color: theme.danger }}>
               You marked this to cancel on {formatDateForDisplay(sub.cancel_requested_at.slice(0, 10))}, but it charged
               again. Check it's really cancelled with the provider.
             </Text>
@@ -97,6 +97,7 @@ export default function SubscriptionCheckScreen() {
         },
       ]}
       doneTitle="Subscriptions reviewed"
+      emptyIcon="repeat-outline"
       emptyTitle="Nothing to review"
       emptySubtitle="New subscriptions, ones you marked to cancel that are still charging, and anything not reviewed in 3 months show up here."
     />

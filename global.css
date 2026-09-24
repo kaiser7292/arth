@@ -21,6 +21,7 @@
   --radius-control: 10px;
   --radius-card: 16px;
   --radius-sheet: 20px;
+  --radius-pill: 9999px;
 }
 
 /* Selector MUST be `.dark:root`, and MUST stay outside @layer base. See file header. */

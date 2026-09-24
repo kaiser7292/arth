@@ -47,6 +47,7 @@ const css = [
   "  --radius-control: " + RADIUS.control + ";",
   "  --radius-card: " + RADIUS.card + ";",
   "  --radius-sheet: " + RADIUS.sheet + ";",
+  "  --radius-pill: " + RADIUS.pill + ";",
   "}",
   "",
   "/* Selector MUST be `.dark:root`, and MUST stay outside @layer base. See file header. */",

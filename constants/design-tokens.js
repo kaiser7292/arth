@@ -108,8 +108,12 @@ const TYPE = {
  */
 const SCALE_OVERRIDES = {};
 
-/** Card surfaces get `card`; controls and chips get `control`. Resolves the lg/xl/2xl free-for-all. */
-const RADIUS = { control: "10px", card: "16px", sheet: "20px" };
+/**
+ * Card surfaces get `card`; inputs and chips get `control`; buttons get `pill`. Resolves the
+ * lg/xl/2xl free-for-all. Buttons are fully rounded (Material 3 style) - 10px read as square on a
+ * full-width button.
+ */
+const RADIUS = { control: "10px", card: "16px", sheet: "20px", pill: "9999px" };
 
 const MOTION = {
   fast: 140,
@@ -168,7 +172,7 @@ const DATA = {
  */
 const COMPONENTS = {
   button: {
-    base: "flex-row items-center justify-center rounded-control",
+    base: "flex-row items-center justify-center rounded-pill",
     pad: "px-6 py-3",
     label: "text-body font-semibold",
     /** Applied on press-in. Kept as a number: it is an opacity, not a class. */

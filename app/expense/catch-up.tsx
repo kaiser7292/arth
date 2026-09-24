@@ -1,16 +1,16 @@
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, Pressable, View } from "react-native";
+import { AppState, ScrollView, View } from "react-native";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { CatchUpCardView } from "@/components/expense/catch-up/CatchUpCardView";
 import { CatchUpDone } from "@/components/expense/catch-up/CatchUpDone";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { SwipeDeck } from "@/components/expense/catch-up/SwipeDeck";
-import { LoadingState, ProgressBar, ScreenContainer, Text, useToast } from "@/components/ui";
+import { Button, Card, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
+import type { FooterAction } from "@/components/check-in/CheckInDeck";
+import { DeckFooter, DeckProgress } from "@/components/check-in/CheckInDeck";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { useTheme } from "@/hooks/use-theme";
 import type { Category } from "@/services/category";
 import { getCategories } from "@/services/category";
 import type { CatchUpCard, CatchUpLogEntry, CatchUpOutcome } from "@/services/catch-up";
@@ -72,7 +72,6 @@ interface UndoPoint {
  */
 export default function CatchUpScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const toast = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -473,30 +472,15 @@ export default function CatchUpScreen() {
 
   if (loading) {
     return (
-      <ScreenContainer>
+      <ScreenContainer padTop={false}>
         <LoadingState message="Getting your queue ready…" icon="albums-outline" />
       </ScreenContainer>
     );
   }
 
-  const header = (
-    <View className="flex-row items-center px-4 py-3">
-      <Pressable onPress={() => router.back()} className="p-2 -ml-2" accessibilityLabel="Close catch up">
-        <Ionicons name="close" size={24} color={theme.mutedForeground} />
-      </Pressable>
-      <Text className="text-lg font-bold text-foreground ml-1 flex-1">Catch up</Text>
-      {card && (
-        <Text className="text-sm text-muted-foreground">
-          {currentIdx + 1} of {deck.length}
-        </Text>
-      )}
-    </View>
-  );
-
   if (!card) {
     return (
-      <ScreenContainer>
-        {header}
+      <ScreenContainer padTop={false}>
         <CatchUpDone
           stats={stats}
           onViewSpending={() => router.replace("/(tabs)/budget")}
@@ -518,101 +502,84 @@ export default function CatchUpScreen() {
           ? "Same payment"
           : "Keep newest";
 
+  const cardActions: FooterAction[] = [];
+  if (card.kind === "pending" || card.kind === "uncategorized") {
+    cardActions.push({
+      label: "Edit, split or add a note",
+      icon: "create-outline",
+      onPress: () => void openCard(card.expense.id),
+    });
+  }
+  if (card.kind === "pending") {
+    cardActions.push({ label: "Reject", icon: "close-circle-outline", role: "danger", onPress: reject });
+  }
+  if (card.kind === "match") {
+    cardActions.push(
+      { label: "Already captured", icon: "duplicate-outline", onPress: matchAlreadyCaptured },
+      { label: "Different payments", icon: "git-branch-outline", role: "mutedForeground", onPress: matchBothDifferent },
+    );
+  }
+  if (card.kind === "duplicate") {
+    cardActions.push({ label: "Not duplicates", icon: "checkmark-done-outline", onPress: notDuplicates });
+  }
+
   return (
-    <ScreenContainer>
-      {header}
-      <View className="px-4 pb-3">
-        <ProgressBar value={deck.length > 0 ? currentIdx / deck.length : 0} />
-      </View>
+    <ScreenContainer padTop={false}>
+      <DeckProgress position={currentIdx + 1} total={deck.length} />
 
-      {batchOffer && (
-        <View
-          className="mx-4 mb-3 px-4 py-3 rounded-xl flex-row items-center"
-          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-        >
-          <Text className="text-sm text-foreground flex-1 mr-2">
-            {batchOffer.kind === "pending" ? "Approve" : "File"} {batchOffer.expenses.length} more from{" "}
-            <Text className="font-semibold">{batchOffer.merchant}</Text>
-            {batchOffer.categoryId && categoryMap.get(batchOffer.categoryId)
-              ? ` as ${categoryMap.get(batchOffer.categoryId)!.name}`
-              : ""}
-            {batchOffer.kind === "pending"
-              ? ` (${formatAmount(batchOffer.expenses.reduce((s, e) => s + e.amount, 0))})`
-              : ""}
-            ?
-          </Text>
-          <Pressable onPress={() => setBatchOffer(null)} className="px-2 py-1.5 mr-1" accessibilityLabel="One by one instead">
-            <Text className="text-sm font-semibold text-muted-foreground">No</Text>
-          </Pressable>
-          <Pressable
-            onPress={acceptBatch}
-            className="px-3 py-1.5 rounded-lg"
-            style={{ backgroundColor: theme.primary }}
-          >
-            <Text className="text-sm font-semibold" style={{ color: theme.primaryForeground }}>
-              Yes, all
-            </Text>
-          </Pressable>
-        </View>
-      )}
-
-      <SwipeDeck
-        cardKey={card.key}
-        onSwipeRight={() => primary()}
-        onSwipeLeft={skip}
-        rightNeedsInput={needsInput}
-        rightLabel={primaryLabel}
-        enabled={!picker && !ccPickerOpen}
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+        showsVerticalScrollIndicator={false}
       >
-        <CatchUpCardView
-          card={card}
-          categoryMap={categoryMap}
-          accountMap={accountMap}
-          categoryId={cardExpense ? categoryFor(cardExpense) : null}
-          onPickCategory={() => setPicker({ commit: false })}
-          onOpen={openCard}
-        />
-      </SwipeDeck>
+        {batchOffer && (
+          <Card className="mb-3">
+            <Text className="text-sm text-foreground">
+              {batchOffer.kind === "pending" ? "Approve" : "File"} {batchOffer.expenses.length} more from{" "}
+              <Text className="text-sm font-semibold text-foreground">{batchOffer.merchant}</Text>
+              {batchOffer.categoryId && categoryMap.get(batchOffer.categoryId)
+                ? ` as ${categoryMap.get(batchOffer.categoryId)!.name}`
+                : ""}
+              {batchOffer.kind === "pending"
+                ? ` (${formatAmount(batchOffer.expenses.reduce((s, e) => s + e.amount, 0))})`
+                : ""}
+              ?
+            </Text>
+            <View className="flex-row gap-3 mt-3">
+              <View className="flex-1">
+                <Button title="One by one" variant="outline" onPress={() => setBatchOffer(null)} />
+              </View>
+              <View className="flex-1">
+                <Button title="Yes, all" onPress={acceptBatch} />
+              </View>
+            </View>
+          </Card>
+        )}
 
-      {/* Secondary actions for cards that have a third choice */}
-      {(card.kind === "pending" || card.kind === "match" || card.kind === "duplicate") && (
-        <View className="flex-row justify-center px-4 pt-3 gap-2">
-          {card.kind === "pending" && (
-            <SecondaryButton label="Reject" icon="close" role="danger" onPress={reject} />
-          )}
-          {card.kind === "match" && (
-            <>
-              <SecondaryButton label="Already captured" icon="duplicate-outline" role="primary" onPress={matchAlreadyCaptured} />
-              <SecondaryButton label="Different payments" icon="git-branch-outline" role="mutedForeground" onPress={matchBothDifferent} />
-            </>
-          )}
-          {card.kind === "duplicate" && (
-            <SecondaryButton label="Not duplicates" icon="checkmark-done-outline" role="primary" onPress={notDuplicates} />
-          )}
-        </View>
-      )}
+        <SwipeDeck
+          cardKey={card.key}
+          onSwipeRight={() => primary()}
+          onSwipeLeft={skip}
+          rightNeedsInput={needsInput}
+          rightLabel={primaryLabel}
+          enabled={!picker && !ccPickerOpen}
+        >
+          <CatchUpCardView
+            card={card}
+            categoryMap={categoryMap}
+            accountMap={accountMap}
+            categoryId={cardExpense ? categoryFor(cardExpense) : null}
+            onPickCategory={() => setPicker({ commit: false })}
+            onOpen={openCard}
+            actions={cardActions}
+          />
+        </SwipeDeck>
+        <Text className="text-xs text-faint-foreground text-center mt-3">
+          Swipe right to {primaryLabel.toLowerCase()} · left to skip
+        </Text>
+      </ScrollView>
 
-      <View className="flex-row px-4 pt-3 pb-4 gap-3">
-        <Pressable
-          onPress={skip}
-          className="flex-1 flex-row items-center justify-center py-3.5 rounded-xl border border-border"
-          accessibilityLabel="Skip, keep in queue"
-        >
-          <Ionicons name="arrow-back" size={18} color={theme.mutedForeground} />
-          <Text className="text-base font-semibold text-muted-foreground ml-1.5">Skip</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => primary()}
-          className="flex-1 flex-row items-center justify-center py-3.5 rounded-xl"
-          style={{ backgroundColor: theme.primary }}
-          accessibilityLabel={primaryLabel}
-        >
-          <Text className="text-base font-semibold mr-1.5" style={{ color: theme.primaryForeground }}>
-            {primaryLabel}
-          </Text>
-          <Ionicons name="arrow-forward" size={18} color={theme.primaryForeground} />
-        </Pressable>
-      </View>
+      <DeckFooter onSkip={skip} primaryLabel={primaryLabel} onPrimary={() => primary()} />
 
       <CategoryPickerSheet
         visible={picker != null}
@@ -628,33 +595,5 @@ export default function CatchUpScreen() {
         onClose={() => setCcPickerOpen(false)}
       />
     </ScreenContainer>
-  );
-}
-
-function SecondaryButton({
-  label,
-  icon,
-  role,
-  onPress,
-}: {
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  role: "primary" | "danger" | "mutedForeground";
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const color = theme[role];
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center px-4 py-2 rounded-full"
-      style={{ backgroundColor: theme.alpha(role, 0.1) }}
-      accessibilityRole="button"
-    >
-      <Ionicons name={icon} size={16} color={color} />
-      <Text className="text-sm font-semibold ml-1.5" style={{ color }}>
-        {label}
-      </Text>
-    </Pressable>
   );
 }
