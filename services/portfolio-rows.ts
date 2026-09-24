@@ -34,179 +34,217 @@ export const SORT_LABELS: Record<SortKey, string> = {
   name: 'Name',
 };
 
+// ─── Field readers ──────────────────────────────────────────────────────────
+// Broker APIs leave fields out, send null, or send numbers as strings. Every read
+// goes through num()/str() so one odd field can't take the whole screen down.
+
+function num(v: unknown): number {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? parseFloat(v) : NaN;
+  return Number.isFinite(n) ? n : 0;
+}
+
+function str(v: unknown): string {
+  return typeof v === 'string' ? v : v == null ? '' : String(v);
+}
+
 // ─── Formatting ─────────────────────────────────────────────────────────────
 
 /** Quantity with only the decimals it needs: 690, 132.688, 0.00123. */
-export function formatQty(q: number): string {
-  return q.toLocaleString('en-IN', { maximumFractionDigits: 8 });
+export function formatQty(q: unknown): string {
+  return num(q).toLocaleString('en-IN', { maximumFractionDigits: 8 });
 }
 
 function pctOf(amount: number, base: number): number | null {
   return base > 0 ? (amount / base) * 100 : null;
 }
 
-function statusTone(status: string): RowTone {
-  const s = status.toLowerCase();
+function statusTone(status: unknown): RowTone {
+  const s = str(status).toLowerCase();
   if (s === 'complete' || s === 'confirmed' || s === 'filled') return 'success';
-  if (s === 'rejected' || s === 'cancelled' || s === 'canceled') return 'danger';
+  if (s === 'rejected' || s === 'cancelled' || s === 'canceled' || s === 'failed') return 'danger';
   if (s === 'open' || s === 'pending' || s === 'trigger pending') return 'warning';
   return 'neutral';
 }
 
-function titleCase(s: string): string {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
+function titleCase(v: unknown): string {
+  const s = str(v);
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
-function shortDate(iso: string): string {
-  const d = new Date(iso);
+function shortDate(v: unknown): string {
+  const s = str(v);
+  if (!s) return '';
+  // Kite sends "2026-09-20 10:00:00", which Hermes won't parse without the T.
+  const d = new Date(s.includes(' ') && !s.includes('T') ? s.replace(' ', 'T') : s);
   return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-function sideBadge(side: string): PortfolioRow['badge'] {
-  const s = side.toLowerCase();
-  const isBuy = s === 'buy' || s === 'bid';
-  return { label: isBuy ? 'BUY' : 'SELL', tone: isBuy ? 'success' : 'danger' };
+function sideBadge(side: unknown): PortfolioRow['badge'] {
+  const s = str(side).toLowerCase();
+  if (s === 'buy' || s === 'bid') return { label: 'BUY', tone: 'success' };
+  if (s === 'sell' || s === 'ask') return { label: 'SELL', tone: 'danger' };
+  return undefined;
+}
+
+function statusNote(status: unknown, when: unknown): PortfolioRow['note'] {
+  const text = [titleCase(status), shortDate(when)].filter(Boolean).join(' · ');
+  return text ? { text, tone: statusTone(status) } : undefined;
 }
 
 function holdingRow(
-  key: string, title: string, qty: number, unit: string, avg: number | null,
-  priceLabel: string, price: number, priceNote: string, pnl: number | null,
+  key: string, title: string, qtyIn: unknown, unit: string, avgIn: unknown,
+  priceLabel: string, priceIn: unknown, priceNote: string, pnlIn: unknown,
   badge?: PortfolioRow['badge'], extra?: string,
 ): PortfolioRow {
-  const invested = avg != null ? Math.abs(qty) * avg : 0;
-  const qtyLine = [`${formatQty(Math.abs(qty))} ${unit}`, avg != null && avg > 0 ? `avg ${formatAmount(avg)}` : '', extra ?? '']
+  const qty = Math.abs(num(qtyIn));
+  const avg = avgIn == null ? null : num(avgIn);
+  const price = num(priceIn);
+  const invested = avg != null ? qty * avg : 0;
+  const qtyLine = [`${formatQty(qty)} ${unit}`.trim(), avg != null && avg > 0 ? `avg ${formatAmount(avg)}` : '', extra ?? '']
     .filter(Boolean).join(' · ');
   const priceLine = [price > 0 ? `${priceLabel} ${formatAmount(price)}` : '', priceNote].filter(Boolean).join(' · ');
+  const pnl = pnlIn == null ? null : num(pnlIn);
   return {
     key,
-    title,
+    title: title || '—',
     badge,
     details: [qtyLine, priceLine].filter(Boolean),
-    value: Math.abs(qty) * price,
+    value: qty * price,
     pnl: pnl != null ? { amount: pnl, pct: pctOf(pnl, invested) } : undefined,
+  };
+}
+
+function orderRow(
+  key: string, title: string, side: unknown, filledIn: unknown, qtyIn: unknown, unit: string,
+  priceIn: unknown, kind: unknown, status: unknown, when: unknown,
+): PortfolioRow {
+  const filled = num(filledIn);
+  const qty = num(qtyIn);
+  const price = num(priceIn);
+  const qtyText = qty > 0 ? `${formatQty(filled)}/${formatQty(qty)} ${unit}`.trim() : '';
+  return {
+    key,
+    title: title || '—',
+    badge: sideBadge(side),
+    details: [[qtyText, price > 0 ? `@ ${formatAmount(price)}` : '', str(kind)].filter(Boolean).join(' · ')].filter(Boolean),
+    value: price > 0 && (filled > 0 || qty > 0) ? (filled > 0 ? filled : qty) * price : null,
+    note: statusNote(status, when),
   };
 }
 
 // ─── Zerodha Kite ───────────────────────────────────────────────────────────
 
 export function kiteHoldingRow(h: KiteHolding): PortfolioRow {
-  const qty = h.quantity + (h.t1_quantity ?? 0);
+  const t1 = num(h.t1_quantity);
   return holdingRow(
-    `kite-eq-${h.isin}`, h.tradingsymbol, qty, 'shares', h.average_price, 'LTP', h.last_price, '', h.pnl,
-    undefined, h.t1_quantity > 0 ? `${formatQty(h.t1_quantity)} pending` : undefined,
+    `kite-eq-${str(h.isin) || str(h.tradingsymbol)}`, str(h.tradingsymbol), num(h.quantity) + t1, 'shares',
+    h.average_price, 'LTP', h.last_price, '', h.pnl, undefined, t1 > 0 ? `${formatQty(t1)} pending` : undefined,
   );
 }
 
 export function kiteMFRow(h: KiteMFHolding): PortfolioRow {
   // Kite's /mf/holdings returns pnl = 0, so derive it from the average NAV.
-  const pnl = h.quantity * (h.last_price - h.average_price);
-  const navDate = h.last_price_date ? formatDate(h.last_price_date.slice(0, 10)) : '';
+  const pnl = num(h.quantity) * (num(h.last_price) - num(h.average_price));
+  const navDate = str(h.last_price_date) ? formatDate(str(h.last_price_date).slice(0, 10)) : '';
   return holdingRow(
-    `kite-mf-${h.tradingsymbol}-${h.folio ?? ''}`, h.fund, h.quantity, 'units', h.average_price, 'NAV', h.last_price, navDate, pnl,
+    `kite-mf-${str(h.tradingsymbol)}-${str(h.folio)}`, str(h.fund) || str(h.tradingsymbol), h.quantity, 'units',
+    h.average_price, 'NAV', h.last_price, navDate, pnl,
   );
 }
 
 export function kitePositionRow(p: KitePosition): PortfolioRow {
+  const q = num(p.quantity);
   return holdingRow(
-    `kite-pos-${p.tradingsymbol}-${p.product}`, p.tradingsymbol, p.quantity, 'shares', p.average_price, 'LTP', p.last_price, '', p.pnl,
-    p.quantity < 0 ? { label: 'SHORT', tone: 'danger' } : { label: 'LONG', tone: 'success' }, p.product,
+    `kite-pos-${str(p.tradingsymbol)}-${str(p.product)}`, str(p.tradingsymbol), q, 'shares', p.average_price, 'LTP',
+    p.last_price, '', p.pnl, q < 0 ? { label: 'SHORT', tone: 'danger' } : { label: 'LONG', tone: 'success' }, str(p.product),
   );
 }
 
 export function kiteSipRow(s: KiteSIP): PortfolioRow {
-  const schedule = [titleCase(s.frequency), s.instalment_day ? `day ${s.instalment_day}` : '',
-    s.instalments_remaining > 0 ? `${s.instalments_remaining} left` : ''].filter(Boolean).join(' · ');
-  const next = s.next_instalment ? shortDate(s.next_instalment) : '';
+  const sip = s as KiteSIP & { pending_instalments?: number };
+  const left = num(sip.instalments_remaining ?? sip.pending_instalments);
+  const day = num(s.instalment_day);
+  const schedule = [titleCase(s.frequency), day ? `day ${day}` : '', left > 0 ? `${left} left` : '']
+    .filter(Boolean).join(' · ');
+  const next = shortDate(s.next_instalment);
   return {
-    key: `kite-sip-${s.sip_id}`,
-    title: s.fund,
-    details: [schedule],
-    value: s.instalment_amount,
+    key: `kite-sip-${str(s.sip_id)}`,
+    title: str(s.fund) || str(s.tradingsymbol) || '—',
+    details: [schedule].filter(Boolean),
+    value: num(s.instalment_amount) || null,
     note: next ? { text: `Next ${next}`, tone: 'neutral' } : undefined,
   };
 }
 
 export function kiteOrderRow(o: KiteOrder): PortfolioRow {
-  const price = o.average_price > 0 ? o.average_price : o.price;
-  const filled = o.filled_quantity ?? 0;
-  return {
-    key: `kite-ord-${o.order_id}`,
-    title: o.tradingsymbol,
-    badge: sideBadge(o.transaction_type),
-    details: [[`${formatQty(filled)}/${formatQty(o.quantity)} shares`, price > 0 ? `@ ${formatAmount(price)}` : '', o.order_type]
-      .filter(Boolean).join(' · ')],
-    value: price > 0 ? (filled > 0 ? filled : o.quantity) * price : null,
-    note: { text: [titleCase(o.status), shortDate(o.order_timestamp)].filter(Boolean).join(' · '), tone: statusTone(o.status) },
-  };
+  const price = num(o.average_price) > 0 ? o.average_price : o.price;
+  return orderRow(
+    `kite-ord-${str(o.order_id)}`, str(o.tradingsymbol), o.transaction_type, o.filled_quantity, o.quantity, 'shares',
+    price, o.order_type, o.status, o.order_timestamp,
+  );
 }
 
 export function kiteMFOrderRow(o: KiteMFOrder): PortfolioRow {
+  const price = num(o.average_price) > 0 ? num(o.average_price) : num(o.price);
+  const units = num(o.quantity);
   return {
-    key: `kite-mford-${o.order_id}`,
-    title: o.fund,
-    badge: sideBadge(o.order_type),
-    details: [[o.quantity > 0 ? `${formatQty(o.quantity)} units` : '', o.price > 0 ? `@ ${formatAmount(o.price)}` : '']
+    key: `kite-mford-${str(o.order_id)}`,
+    title: str(o.fund) || str(o.tradingsymbol) || '—',
+    badge: sideBadge(o.transaction_type ?? o.order_type),
+    details: [[units > 0 ? `${formatQty(units)} units` : '', price > 0 ? `@ ${formatAmount(price)}` : '']
       .filter(Boolean).join(' · ')].filter(Boolean),
-    value: o.amount > 0 ? o.amount : o.quantity * o.price || null,
-    note: { text: [titleCase(o.status), shortDate(o.order_timestamp)].filter(Boolean).join(' · '), tone: statusTone(o.status) },
+    value: num(o.amount) > 0 ? num(o.amount) : units * price || null,
+    note: statusNote(o.status, o.order_timestamp),
   };
 }
 
 // ─── Angel One ──────────────────────────────────────────────────────────────
 
 export function angelHoldingRow(h: AngelHolding): PortfolioRow {
+  const t1 = num(h.t1quantity);
   const row = holdingRow(
-    `angel-eq-${h.isin || h.tradingsymbol}`, h.tradingsymbol, h.quantity, 'shares', h.averageprice, 'LTP', h.ltp, '',
-    h.profitandloss, undefined, h.t1quantity > 0 ? `${formatQty(h.t1quantity)} pending` : undefined,
+    `angel-eq-${str(h.isin) || str(h.tradingsymbol)}`, str(h.tradingsymbol), h.quantity, 'shares', h.averageprice, 'LTP',
+    h.ltp, '', h.profitandloss, undefined, t1 > 0 ? `${formatQty(t1)} pending` : undefined,
   );
   // Angel reports its own P&L %; prefer it so the number matches the Angel app.
-  if (row.pnl && Number.isFinite(h.pnlpercentage)) row.pnl.pct = h.pnlpercentage;
+  if (row.pnl && h.pnlpercentage != null) row.pnl.pct = num(h.pnlpercentage);
   return row;
 }
 
 export function angelPositionRow(p: AngelPosition): PortfolioRow {
-  const avg = p.netqty > 0 ? p.buyavgprice : p.sellavgprice;
+  const q = num(p.netqty);
+  const avg = num(q > 0 ? p.buyavgprice : p.sellavgprice) || num(p.avg_price);
   return holdingRow(
-    `angel-pos-${p.tradingsymbol}-${p.producttype}`, p.tradingsymbol, p.netqty, 'shares', avg || p.avg_price || null, 'LTP',
-    p.ltp, '', p.pnl, p.netqty < 0 ? { label: 'SHORT', tone: 'danger' } : { label: 'LONG', tone: 'success' }, p.producttype,
+    `angel-pos-${str(p.tradingsymbol)}-${str(p.producttype)}`, str(p.tradingsymbol), q, 'shares', avg || null, 'LTP',
+    p.ltp, '', p.pnl, q < 0 ? { label: 'SHORT', tone: 'danger' } : { label: 'LONG', tone: 'success' }, str(p.producttype),
   );
 }
 
 export function angelOrderRow(o: AngelOrder): PortfolioRow {
-  const price = o.averageprice > 0 ? o.averageprice : o.price;
-  const filled = o.filledshares ?? 0;
-  return {
-    key: `angel-ord-${o.orderid}`,
-    title: o.tradingsymbol,
-    badge: sideBadge(o.transactiontype),
-    details: [[`${formatQty(filled)}/${formatQty(o.quantity)} shares`, price > 0 ? `@ ${formatAmount(price)}` : '', o.producttype]
-      .filter(Boolean).join(' · ')],
-    value: price > 0 ? (filled > 0 ? filled : o.quantity) * price : null,
-    note: { text: [titleCase(o.orderstatus || o.status), o.updatetime ? shortDate(o.updatetime) : ''].filter(Boolean).join(' · '), tone: statusTone(o.orderstatus || o.status) },
-  };
+  const price = num(o.averageprice) > 0 ? o.averageprice : o.price;
+  return orderRow(
+    `angel-ord-${str(o.orderid)}`, str(o.tradingsymbol), o.transactiontype, o.filledshares, o.quantity, 'shares',
+    price, o.producttype, str(o.orderstatus) || o.status, o.updatetime,
+  );
 }
 
 // ─── Zebpay ─────────────────────────────────────────────────────────────────
 
 export function zebpayBalanceRow(b: ZebpayBalance): PortfolioRow {
   // Zebpay's balance API has no buy price, so there is no average or P&L to show.
+  const coin = str(b.currency);
   return {
-    ...holdingRow(`zebpay-${b.currency}`, b.currency, b.balance, b.currency, null, 'Price', b.currentPrice, '', null),
-    value: b.inrValue,
+    ...holdingRow(`zebpay-${coin}`, coin, b.balance, coin, null, 'Price', b.currentPrice, '', null),
+    value: num(b.inrValue),
   };
 }
 
 export function zebpayOrderRow(o: ZebpayOrder): PortfolioRow {
-  const coin = o.symbol.split(/[-/]/)[0] || o.symbol;
-  return {
-    key: `zebpay-ord-${o.orderId}`,
-    title: o.symbol,
-    badge: sideBadge(o.side),
-    details: [[`${formatQty(o.filled ?? 0)}/${formatQty(o.amount)} ${coin}`, o.price > 0 ? `@ ${formatAmount(o.price)}` : '', titleCase(o.type)]
-      .filter(Boolean).join(' · ')],
-    value: o.price > 0 ? o.amount * o.price : null,
-    note: { text: [titleCase(o.status), o.timestamp ? shortDate(new Date(o.timestamp < 1e12 ? o.timestamp * 1000 : o.timestamp).toISOString()) : ''].filter(Boolean).join(' · '), tone: statusTone(o.status) },
-  };
+  const symbol = str(o.symbol);
+  const coin = symbol.split(/[-/]/)[0] || symbol;
+  const ts = num(o.timestamp);
+  const when = ts > 0 ? new Date(ts < 1e12 ? ts * 1000 : ts).toISOString() : '';
+  return orderRow(`zebpay-ord-${str(o.orderId)}`, symbol, o.side, o.filled, o.amount, coin, o.price, titleCase(o.type), o.status, when);
 }
 
 // ─── Search + sort ──────────────────────────────────────────────────────────
@@ -214,7 +252,7 @@ export function zebpayOrderRow(o: ZebpayOrder): PortfolioRow {
 export function filterRows(rows: PortfolioRow[], query: string): PortfolioRow[] {
   const q = query.trim().toLowerCase();
   if (!q) return rows;
-  return rows.filter((r) => r.title.toLowerCase().includes(q) || r.badge?.label.toLowerCase().includes(q));
+  return rows.filter((r) => str(r.title).toLowerCase().includes(q) || r.badge?.label.toLowerCase().includes(q));
 }
 
 function metric(r: PortfolioRow, key: SortKey): number | null {
@@ -228,7 +266,7 @@ function metric(r: PortfolioRow, key: SortKey): number | null {
 export function sortRows(rows: PortfolioRow[], sort: SortState): PortfolioRow[] {
   const sign = sort.dir === 'asc' ? 1 : -1;
   return [...rows].sort((a, b) => {
-    if (sort.key === 'name') return sign * a.title.localeCompare(b.title, 'en', { sensitivity: 'base' });
+    if (sort.key === 'name') return sign * str(a.title).localeCompare(str(b.title), 'en', { sensitivity: 'base' });
     const x = metric(a, sort.key);
     const y = metric(b, sort.key);
     if (x == null && y == null) return 0;

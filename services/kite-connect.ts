@@ -108,7 +108,9 @@ export interface KiteMFOrder {
   fund: string;
   tradingsymbol: string;
   status: string;             // 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
-  order_type: string;         // 'BUY' | 'SELL'
+  order_type?: string;        // not in Kite's /mf/orders response; kept for older caches
+  transaction_type?: string;  // 'BUY' | 'SELL'
+  average_price?: number;
   amount: number;
   quantity: number;
   price: number;              // NAV at order time
