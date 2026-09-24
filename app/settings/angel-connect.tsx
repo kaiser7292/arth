@@ -31,6 +31,14 @@ import {
   type AngelFunds,
   type AngelTotalHolding,
 } from '@/services/angel-connect';
+import { angelHoldingRow, angelOrderRow, angelPositionRow } from '@/services/portfolio-rows';
+import {
+  PortfolioNoMatches,
+  PortfolioSearchSort,
+  PortfolioSection,
+  PortfolioSummary,
+  usePortfolioView,
+} from '@/components/portfolio/PortfolioList';
 
 function formatRelativeTime(isoString: string): string {
   const diff = Date.now() - new Date(isoString).getTime();
@@ -68,6 +76,7 @@ export default function AngelConnectScreen() {
   const [positions, setPositions] = useState<AngelPosition[]>([]);
   const [orders, setOrders] = useState<AngelOrder[]>([]);
   const [funds, setFunds] = useState<AngelFunds | null>(null);
+  const { query, setQuery, sort, changeSort, view } = usePortfolioView('angel');
 
   useFocusEffect(
     useCallback(() => {
@@ -211,14 +220,18 @@ export default function AngelConnectScreen() {
   // ── Connected state ─────────────────────────────────────────────────────────
   const openPositions = positions.filter(p => p.netqty !== 0);
   const recentOrders = orders.slice(0, 10);
+  const holdingRows = view(holdings.map(angelHoldingRow));
+  const positionRows = view(openPositions.map(angelPositionRow));
+  const orderRows = view(recentOrders.map(angelOrderRow), false);
+  const allRowCount = holdings.length + openPositions.length + recentOrders.length;
 
   return (
     <ScreenContainer padTop={false}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        <View className="mx-4 mt-3">
+        <View className="mt-3">
 
           {/* Status card */}
-          <Card className="mb-3">
+          <Card className="mx-4 mb-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
                 <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: tokenExpired ? theme.warning : theme.success }} />
@@ -252,203 +265,31 @@ export default function AngelConnectScreen() {
             </View>
           </Card>
 
-          {/* Portfolio + Funds summary */}
           {(totalHolding || funds) && (
-            <Card className="mb-3">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Portfolio Summary
-              </Text>
-
-              {totalHolding && (
-                <>
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-sm text-muted-foreground">Current Value</Text>
-                    <Text className="text-sm font-semibold text-foreground">
-                      {formatAmount(totalHolding.totalholdingvalue)}
-                    </Text>
-                  </View>
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-sm text-muted-foreground">Invested</Text>
-                    <Text className="text-sm text-foreground">{formatAmount(totalHolding.totalinvvalue)}</Text>
-                  </View>
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-sm text-muted-foreground">Overall P&L</Text>
-                    <Text
-                      className="text-sm font-semibold"
-                      style={{ color: totalHolding.totalprofitandloss >= 0 ? theme.success : theme.danger }}
-                    >
-                      {totalHolding.totalprofitandloss >= 0 ? '+' : ''}
-                      {formatAmount(totalHolding.totalprofitandloss)}
-                      {' '}
-                      <Text className="text-xs font-normal" style={{ color: totalHolding.totalprofitandloss >= 0 ? theme.success : theme.danger }}>
-                        ({totalHolding.totalpnlpercentage >= 0 ? '+' : ''}{totalHolding.totalpnlpercentage.toFixed(2)}%)
-                      </Text>
-                    </Text>
-                  </View>
-                </>
-              )}
-
-              {funds && (
-                <>
-                  <View className="border-t border-border pt-2 mt-1 mb-2">
-                    <View className="flex-row justify-between mb-2">
-                      <Text className="text-sm text-muted-foreground">Available Cash</Text>
-                      <Text className="text-sm font-semibold text-foreground">{formatAmount(parseMoney(funds.availablecash))}</Text>
-                    </View>
-                    <View className="flex-row justify-between mb-1">
-                      <Text className="text-sm text-muted-foreground">Net Balance</Text>
-                      <Text className="text-sm text-foreground">{formatAmount(parseMoney(funds.net))}</Text>
-                    </View>
-                    {parseMoney(funds.totalpnl) !== 0 && (
-                      <View className="flex-row justify-between mt-1">
-                        <Text className="text-sm text-muted-foreground">Today's P&L</Text>
-                        <Text
-                          className="text-sm font-semibold"
-                          style={{ color: parseMoney(funds.totalpnl) >= 0 ? theme.success : theme.danger }}
-                        >
-                          {parseMoney(funds.totalpnl) >= 0 ? '+' : ''}{formatAmount(parseMoney(funds.totalpnl))}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </>
-              )}
-
-              <View className="pt-2 mt-1 border-t border-border">
-                <Pressable
-                  onPress={handleUpdateSnapshot}
-                  disabled={savingSnapshot}
-                  className="rounded-lg p-3 flex-row items-center justify-center"
-                  style={{ backgroundColor: theme.alpha('primary', 0.1), opacity: savingSnapshot ? 0.5 : 1 }}
-                >
-                  {savingSnapshot ? (
-                    <ActivityIndicator size="small" color={theme.primary} />
-                  ) : (
-                    <Ionicons name="save-outline" size={16} color={theme.primary} />
-                  )}
-                  <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
-                    {savingSnapshot ? 'Saving…' : 'Update Snapshot with These Values'}
-                  </Text>
-                </Pressable>
-              </View>
-            </Card>
+            <PortfolioSummary
+              current={parseMoney(totalHolding?.totalholdingvalue)}
+              invested={totalHolding ? parseMoney(totalHolding.totalinvvalue) : null}
+              funds={funds ? parseMoney(funds.availablecash) : null}
+              extras={funds && parseMoney(funds.totalpnl) !== 0
+                ? [{ label: "Today's P&L", value: parseMoney(funds.totalpnl), signed: true }]
+                : undefined}
+              onSaveSnapshot={handleUpdateSnapshot}
+              saving={savingSnapshot}
+            />
           )}
 
-          {/* Holdings */}
-          {holdings.length > 0 && (
-            <Card className="mb-3">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Holdings ({holdings.length})
-              </Text>
-              {holdings.map((h, i) => (
-                <View key={`${h.tradingsymbol}-${i}`} className={`flex-row items-center justify-between py-2.5 ${i < holdings.length - 1 ? 'border-b border-border' : ''}`}>
-                  <View className="flex-1 mr-2">
-                    <Text className="text-sm font-semibold text-foreground">{h.tradingsymbol}</Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      {h.quantity} shares · Avg {formatAmount(h.averageprice)}
-                      {h.t1quantity > 0 ? ` · T+1: ${h.t1quantity}` : ''}
-                    </Text>
-                  </View>
-                  <View className="items-end">
-                    <Text className="text-sm font-semibold text-foreground">{formatAmount(h.ltp)}</Text>
-                    <Text
-                      className="text-xs mt-0.5"
-                      style={{ color: h.profitandloss >= 0 ? theme.success : theme.danger }}
-                    >
-                      {h.profitandloss >= 0 ? '+' : ''}{formatAmount(h.profitandloss)} ({h.pnlpercentage >= 0 ? '+' : ''}{h.pnlpercentage.toFixed(2)}%)
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </Card>
+          {allRowCount > 0 && (
+            <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={changeSort} />
           )}
-
-          {/* Open Positions */}
-          {openPositions.length > 0 && (
-            <Card className="mb-3">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Open Positions ({openPositions.length})
-              </Text>
-              {openPositions.map((p, i) => {
-                const isLong = p.netqty > 0;
-                return (
-                  <View key={`${p.tradingsymbol}-${i}`} className={`flex-row items-center justify-between py-2.5 ${i < openPositions.length - 1 ? 'border-b border-border' : ''}`}>
-                    <View className="flex-row items-center flex-1 mr-2">
-                      <View
-                        className="px-1.5 py-0.5 rounded mr-2"
-                        style={{ backgroundColor: isLong ? (theme.success + '20') : (theme.danger + '20') }}
-                      >
-                        <Text className="text-xs font-bold" style={{ color: isLong ? theme.success : theme.danger }}>
-                          {isLong ? 'LONG' : 'SHORT'}
-                        </Text>
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-sm font-semibold text-foreground">{p.tradingsymbol}</Text>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
-                          Qty: {Math.abs(p.netqty)} · LTP: {formatAmount(p.ltp)}
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="items-end">
-                      <Text
-                        className="text-sm font-semibold"
-                        style={{ color: p.pnl >= 0 ? theme.success : theme.danger }}
-                      >
-                        {p.pnl >= 0 ? '+' : ''}{formatAmount(p.pnl)}
-                      </Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">P&L</Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </Card>
-          )}
-
-          {/* Recent Orders */}
-          {recentOrders.length > 0 && (
-            <Card className="mb-3">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Recent Orders
-              </Text>
-              {recentOrders.map((o, i) => {
-                const isBuy = o.transactiontype === 'BUY';
-                const statusColor = o.orderstatus === 'complete' ? theme.success
-                  : o.orderstatus === 'rejected' || o.orderstatus === 'cancelled' ? theme.danger
-                  : theme.warning;
-                return (
-                  <View key={o.orderid || i} className={`flex-row items-center justify-between py-2.5 ${i < recentOrders.length - 1 ? 'border-b border-border' : ''}`}>
-                    <View className="flex-row items-center flex-1 mr-2">
-                      <View
-                        className="w-7 h-7 rounded-full items-center justify-center mr-2"
-                        style={{ backgroundColor: isBuy ? (theme.success + '20') : (theme.danger + '20') }}
-                      >
-                        <Ionicons
-                          name={isBuy ? 'arrow-down-outline' : 'arrow-up-outline'}
-                          size={14}
-                          color={isBuy ? theme.success : theme.danger}
-                        />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-sm font-semibold text-foreground">{o.tradingsymbol}</Text>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
-                          {o.transactiontype} {o.filledshares}/{o.quantity} · {o.producttype}
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="items-end">
-                      <Text className="text-sm text-foreground">{formatAmount(o.averageprice || o.price)}</Text>
-                      <Text className="text-xs mt-0.5 capitalize" style={{ color: statusColor }}>
-                        {o.orderstatus}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </Card>
+          <PortfolioSection title="Stocks" rows={holdingRows} total={holdings.length} />
+          <PortfolioSection title="Open positions" rows={positionRows} total={openPositions.length} />
+          <PortfolioSection title="Recent orders" rows={orderRows} total={recentOrders.length} />
+          {query.trim() !== '' && holdingRows.length + positionRows.length + orderRows.length === 0 && allRowCount > 0 && (
+            <PortfolioNoMatches query={query} />
           )}
 
           {/* Manage */}
-          <Card>
+          <Card className="mx-4">
             <Pressable
               onPress={() => router.push('/settings/angel-connect-credentials' as any)}
               className="flex-row items-center py-2.5 border-b border-border"

@@ -11,7 +11,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAlert } from '@/hooks/use-alert';
 import { useTheme } from '@/hooks/use-theme';
 import { formatAmount } from '@/utils/format';
-import { formatDate, todayIso } from '@/utils/date';
+import { todayIso } from '@/utils/date';
 import { generateTOTP, totpSecondsRemaining } from '@/utils/totp';
 import {
   KITE_LOGIN_WATCHER_JS,
@@ -24,6 +24,21 @@ import {
   setKiteVaultEntryId,
 } from '@/services/kite-login-autofill';
 import { getVaultEntry, type VaultEntry } from '@/services/vault';
+import {
+  kiteHoldingRow,
+  kiteMFOrderRow,
+  kiteMFRow,
+  kiteOrderRow,
+  kitePositionRow,
+  kiteSipRow,
+} from '@/services/portfolio-rows';
+import {
+  PortfolioNoMatches,
+  PortfolioSearchSort,
+  PortfolioSection,
+  PortfolioSummary,
+  usePortfolioView,
+} from '@/components/portfolio/PortfolioList';
 import { addOrUpdateSnapshot, updateFundBalance } from '@/services/financial-account';
 import {
   clearKiteCredentials,
@@ -94,6 +109,7 @@ export default function KiteConnectScreen() {
   const [mfTotal, setMFTotal]                 = useState(0);
   const [fundsAvailable, setFundsAvailable]   = useState(0);
   const [hasCachedData, setHasCachedData]     = useState(false);
+  const { query, setQuery, sort, changeSort, view } = usePortfolioView('kite');
 
   const load = useCallback(async () => {
     try {
@@ -437,6 +453,18 @@ export default function KiteConnectScreen() {
 
   const isConnected = isAuthenticated && !tokenExpired;
 
+  const stockRows = view(holdings.map(kiteHoldingRow));
+  const mfRows = view(mfHoldings.map(kiteMFRow));
+  const positionRows = view(positions.map(kitePositionRow));
+  const sipRows = view(sips.map(kiteSipRow));
+  const orderRows = view(orders.map(kiteOrderRow), false);
+  const mfOrderRows = view(mfOrders.map(kiteMFOrderRow), false);
+  const allRowCount = holdings.length + mfHoldings.length + positions.length + sips.length + orders.length + mfOrders.length;
+  const visibleRowCount = stockRows.length + mfRows.length + positionRows.length + sipRows.length + orderRows.length + mfOrderRows.length;
+  const investedTotal =
+    holdings.reduce((sum, h) => sum + (h.quantity + (h.t1_quantity ?? 0)) * h.average_price, 0) +
+    mfHoldings.reduce((sum, h) => sum + h.quantity * h.average_price, 0);
+
   return (
     <ScreenContainer padTop={false}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -531,316 +559,30 @@ export default function KiteConnectScreen() {
         {/* ── Holdings ── */}
         {hasCachedData && (
           <>
-            {/* Totals */}
-            <Card className="mx-4 mb-3">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Portfolio Summary
-              </Text>
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-muted-foreground">Equity Holdings</Text>
-                <Text className="text-sm font-semibold text-foreground">{formatAmount(equityTotal)}</Text>
-              </View>
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-muted-foreground">Mutual Funds</Text>
-                <Text className="text-sm font-semibold text-foreground">{formatAmount(mfTotal)}</Text>
-              </View>
-              <View className="flex-row justify-between mb-2 pt-2 border-t border-border">
-                <Text className="text-sm font-semibold text-foreground">Portfolio Total</Text>
-                <Text className="text-sm font-bold" style={{ color: theme.success }}>
-                  {formatAmount(portfolioTotal)}
-                </Text>
-              </View>
-              <View className="flex-row justify-between mb-3">
-                <Text className="text-sm text-muted-foreground">Available Funds</Text>
-                <Text className="text-sm font-semibold text-foreground">
-                  {formatAmount(fundsAvailable)}
-                </Text>
-              </View>
-              <View className="pt-2 border-t border-border">
-                <Pressable
-                  onPress={handleUpdateSnapshot}
-                  disabled={savingSnapshot || !linkedAccountId}
-                  className="rounded-lg p-3 flex-row items-center justify-center"
-                  style={{
-                    backgroundColor: theme.alpha('primary', 0.1),
-                    opacity: savingSnapshot || !linkedAccountId ? 0.5 : 1,
-                  }}
-                >
-                  {savingSnapshot ? (
-                    <ActivityIndicator size="small" color={theme.primary} />
-                  ) : (
-                    <Ionicons name="save-outline" size={16} color={theme.primary} />
-                  )}
-                  <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
-                    {savingSnapshot ? 'Saving…' : 'Update Snapshot with These Values'}
-                  </Text>
-                </Pressable>
-              </View>
-            </Card>
+            <PortfolioSummary
+              current={portfolioTotal}
+              breakdown={[
+                { label: 'Stocks', value: equityTotal },
+                { label: 'Mutual funds', value: mfTotal },
+              ].filter((b) => b.value > 0)}
+              invested={investedTotal}
+              funds={fundsAvailable}
+              onSaveSnapshot={handleUpdateSnapshot}
+              saving={savingSnapshot}
+              saveDisabled={!linkedAccountId}
+            />
 
-            {/* Equity holdings list */}
-            {holdings.length > 0 && (
-              <View className="mx-4 mb-2 mt-1">
-                <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Equity Holdings ({holdings.length})
-                </Text>
-              </View>
+            {allRowCount > 0 && (
+              <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={changeSort} />
             )}
-
-            {holdings.map((h) => {
-              const totalQty = h.quantity + (h.t1_quantity ?? 0);
-              const marketValue = totalQty * h.last_price;
-              const pnlPositive = h.pnl >= 0;
-              return (
-                <Card key={h.isin} className="mx-4 mb-2">
-                  <View className="flex-row items-center">
-                    <View className="flex-1">
-                      <Text className="text-sm font-semibold text-foreground">{h.tradingsymbol}</Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">
-                        {totalQty} qty{h.t1_quantity > 0 ? ` (${h.t1_quantity} pending)` : ''} · avg ₹{h.average_price.toFixed(2)}
-                      </Text>
-                    </View>
-                    <View className="items-end">
-                      <Text className="text-sm font-bold text-foreground">
-                        {formatAmount(marketValue)}
-                      </Text>
-                      <Text
-                        className="text-xs mt-0.5"
-                        style={{ color: pnlPositive ? theme.success : theme.danger }}
-                      >
-                        {pnlPositive ? '+' : ''}{formatAmount(h.pnl)}
-                        {' '}({h.day_change_percentage >= 0 ? '+' : ''}{h.day_change_percentage.toFixed(2)}%)
-                      </Text>
-                    </View>
-                  </View>
-                </Card>
-              );
-            })}
-
-            {/* Mutual fund holdings list */}
-            {mfHoldings.length > 0 && (
-              <View className="mx-4 mb-2 mt-1">
-                <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Mutual Funds ({mfHoldings.length})
-                </Text>
-              </View>
-            )}
-
-            {mfHoldings.map((h) => {
-              const marketValue = h.quantity * h.last_price;
-              const invested = h.quantity * h.average_price;
-              // Kite's /mf/holdings returns pnl = 0, so derive it from average NAV.
-              const pnl = marketValue - invested;
-              const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
-              const pnlPositive = pnl >= 0;
-              const navDate = h.last_price_date ? formatDate(h.last_price_date.slice(0, 10)) : '';
-              return (
-                <Card key={h.tradingsymbol + (h.folio ?? '')} className="mx-4 mb-2">
-                  <View className="flex-row items-center">
-                    <View className="flex-1 mr-3">
-                      <Text className="text-sm font-semibold text-foreground" numberOfLines={2}>
-                        {h.fund}
-                      </Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">
-                        {h.quantity.toFixed(3)} units · avg ₹{h.average_price.toFixed(2)}
-                      </Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">
-                        NAV ₹{h.last_price.toFixed(2)}{navDate ? ` · ${navDate}` : ''}
-                      </Text>
-                    </View>
-                    <View className="items-end">
-                      <Text className="text-sm font-bold text-foreground">
-                        {formatAmount(marketValue)}
-                      </Text>
-                      <Text
-                        className="text-xs mt-0.5"
-                        style={{ color: pnlPositive ? theme.success : theme.danger }}
-                      >
-                        {pnlPositive ? '+' : ''}{formatAmount(pnl)}
-                        {' '}({pnlPositive ? '+' : ''}{pnlPct.toFixed(2)}%)
-                      </Text>
-                    </View>
-                  </View>
-                </Card>
-              );
-            })}
-
-            {/* Open positions */}
-            {positions.length > 0 && (
-              <>
-                <View className="mx-4 mb-2 mt-3">
-                  <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Open Positions ({positions.length})
-                  </Text>
-                </View>
-                {positions.map((p) => {
-                  const pnlPositive = p.pnl >= 0;
-                  const isShort = p.quantity < 0;
-                  return (
-                    <Card key={`${p.tradingsymbol}-${p.product}`} className="mx-4 mb-2">
-                      <View className="flex-row items-center">
-                        <View className="flex-1">
-                          <View className="flex-row items-center">
-                            <Text className="text-sm font-semibold text-foreground mr-2">{p.tradingsymbol}</Text>
-                            <View
-                              className="rounded px-1.5 py-0.5"
-                              style={{ backgroundColor: theme.alpha(isShort ? 'danger' : 'success', 0.12) }}
-                            >
-                              <Text className="text-xs font-semibold" style={{ color: isShort ? theme.danger : theme.success }}>
-                                {isShort ? 'SHORT' : 'LONG'}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text className="text-xs text-muted-foreground mt-0.5">
-                            {Math.abs(p.quantity)} qty · avg ₹{p.average_price.toFixed(2)} · {p.product}
-                          </Text>
-                        </View>
-                        <View className="items-end">
-                          <Text className="text-sm font-bold text-foreground">
-                            ₹{p.last_price.toFixed(2)}
-                          </Text>
-                          <Text
-                            className="text-xs mt-0.5"
-                            style={{ color: pnlPositive ? theme.success : theme.danger }}
-                          >
-                            {pnlPositive ? '+' : ''}{formatAmount(p.pnl)}
-                          </Text>
-                        </View>
-                      </View>
-                    </Card>
-                  );
-                })}
-              </>
-            )}
-
-            {/* Active SIPs */}
-            {sips.length > 0 && (
-              <>
-                <View className="mx-4 mb-2 mt-3">
-                  <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Active SIPs ({sips.length})
-                  </Text>
-                </View>
-                {sips.map((s) => (
-                  <Card key={s.sip_id} className="mx-4 mb-2">
-                    <View className="flex-row items-center">
-                      <View className="flex-1 mr-3">
-                        <Text className="text-sm font-semibold text-foreground" numberOfLines={2}>{s.fund}</Text>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
-                          {s.frequency.charAt(0).toUpperCase() + s.frequency.slice(1)} · Day {s.instalment_day}
-                          {s.instalments_remaining > 0 ? ` · ${s.instalments_remaining} left` : ''}
-                        </Text>
-                      </View>
-                      <View className="items-end">
-                        <Text className="text-sm font-bold text-foreground">{formatAmount(s.instalment_amount)}</Text>
-                        {s.next_instalment ? (
-                          <Text className="text-xs text-muted-foreground mt-0.5">
-                            Next: {new Date(s.next_instalment).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </Text>
-                        ) : null}
-                      </View>
-                    </View>
-                  </Card>
-                ))}
-              </>
-            )}
-
-            {/* Recent equity orders */}
-            {orders.length > 0 && (
-              <>
-                <View className="mx-4 mb-2 mt-3">
-                  <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Recent Equity Orders
-                  </Text>
-                </View>
-                {orders.map((o) => {
-                  const isBuy = o.transaction_type === 'BUY';
-                  const isComplete = o.status === 'COMPLETE';
-                  const isRejected = o.status === 'REJECTED' || o.status === 'CANCELLED';
-                  const statusColor = isComplete ? theme.success : isRejected ? theme.danger : colors.textSecondary;
-                  return (
-                    <Card key={o.order_id} className="mx-4 mb-2">
-                      <View className="flex-row items-center">
-                        <View className="flex-1">
-                          <View className="flex-row items-center">
-                            <Text className="text-sm font-semibold text-foreground mr-2">{o.tradingsymbol}</Text>
-                            <View
-                              className="rounded px-1.5 py-0.5"
-                              style={{ backgroundColor: theme.alpha(isBuy ? 'success' : 'danger', 0.12) }}
-                            >
-                              <Text className="text-xs font-semibold" style={{ color: isBuy ? theme.success : theme.danger }}>
-                                {o.transaction_type}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text className="text-xs text-muted-foreground mt-0.5">
-                            {o.quantity} qty · {o.order_type}
-                            {o.average_price > 0 ? ` · avg ₹${o.average_price.toFixed(2)}` : o.price > 0 ? ` · ₹${o.price.toFixed(2)}` : ''}
-                          </Text>
-                        </View>
-                        <View className="items-end">
-                          <Text className="text-xs font-semibold" style={{ color: statusColor }}>
-                            {o.status}
-                          </Text>
-                          <Text className="text-xs text-muted-foreground mt-0.5">
-                            {new Date(o.order_timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </Text>
-                        </View>
-                      </View>
-                    </Card>
-                  );
-                })}
-              </>
-            )}
-
-            {/* Recent MF orders */}
-            {mfOrders.length > 0 && (
-              <>
-                <View className="mx-4 mb-2 mt-3">
-                  <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Recent MF Orders
-                  </Text>
-                </View>
-                {mfOrders.map((o) => {
-                  const isBuy = o.order_type === 'BUY';
-                  const isConfirmed = o.status === 'CONFIRMED';
-                  const isRejected = o.status === 'REJECTED' || o.status === 'CANCELLED';
-                  const statusColor = isConfirmed ? theme.success : isRejected ? theme.danger : colors.textSecondary;
-                  return (
-                    <Card key={o.order_id} className="mx-4 mb-2">
-                      <View className="flex-row items-center">
-                        <View className="flex-1 mr-3">
-                          <View className="flex-row items-center flex-wrap">
-                            <Text className="text-sm font-semibold text-foreground mr-2" numberOfLines={1} style={{ flex: 1 }}>
-                              {o.fund}
-                            </Text>
-                            <View
-                              className="rounded px-1.5 py-0.5"
-                              style={{ backgroundColor: theme.alpha(isBuy ? 'success' : 'danger', 0.12) }}
-                            >
-                              <Text className="text-xs font-semibold" style={{ color: isBuy ? theme.success : theme.danger }}>
-                                {o.order_type}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text className="text-xs text-muted-foreground mt-0.5">
-                            {o.amount > 0 ? `₹${formatAmount(o.amount)}` : `${o.quantity?.toFixed(3)} units`}
-                            {o.price > 0 ? ` · NAV ₹${o.price.toFixed(4)}` : ''}
-                          </Text>
-                        </View>
-                        <View className="items-end">
-                          <Text className="text-xs font-semibold" style={{ color: statusColor }}>
-                            {o.status}
-                          </Text>
-                          <Text className="text-xs text-muted-foreground mt-0.5">
-                            {new Date(o.order_timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </Text>
-                        </View>
-                      </View>
-                    </Card>
-                  );
-                })}
-              </>
+            <PortfolioSection title="Stocks" rows={stockRows} total={holdings.length} />
+            <PortfolioSection title="Mutual funds" rows={mfRows} total={mfHoldings.length} />
+            <PortfolioSection title="Open positions" rows={positionRows} total={positions.length} />
+            <PortfolioSection title="Active SIPs" rows={sipRows} total={sips.length} />
+            <PortfolioSection title="Recent stock orders" rows={orderRows} total={orders.length} />
+            <PortfolioSection title="Recent MF orders" rows={mfOrderRows} total={mfOrders.length} />
+            {query.trim() !== '' && visibleRowCount === 0 && allRowCount > 0 && (
+              <PortfolioNoMatches query={query} />
             )}
           </>
         )}

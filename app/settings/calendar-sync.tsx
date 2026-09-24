@@ -74,7 +74,7 @@ function Row({
         disabled={disabled}
         onValueChange={onChange}
         trackColor={{ false: theme.border, true: theme.primary }}
-        thumbColor={theme.card}
+        thumbColor={value ? "#FFFFFF" : theme.faintForeground}
       />
     </View>
   );

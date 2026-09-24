@@ -22,18 +22,14 @@ import {
   type ZebpayBalance,
   type ZebpayOrder,
 } from '@/services/zebpay-connect';
-
-function StatRow({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <View className="flex-row justify-between items-center py-2.5 border-b border-border last:border-0">
-      <Text className="text-sm text-muted-foreground">{label}</Text>
-      <View className="items-end">
-        <Text className="text-sm font-semibold text-foreground">{value}</Text>
-        {sub ? <Text className="text-xs text-muted-foreground">{sub}</Text> : null}
-      </View>
-    </View>
-  );
-}
+import { zebpayBalanceRow, zebpayOrderRow } from '@/services/portfolio-rows';
+import {
+  PortfolioNoMatches,
+  PortfolioSearchSort,
+  PortfolioSection,
+  PortfolioSummary,
+  usePortfolioView,
+} from '@/components/portfolio/PortfolioList';
 
 export default function ZebpayConnectScreen() {
   const alert = useAlert();
@@ -51,6 +47,7 @@ export default function ZebpayConnectScreen() {
   const [linkedAccountId, setLinkedAccountId] = useState<string | null>(null);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [pickerAccounts, setPickerAccounts] = useState<{ id: string; label: string }[]>([]);
+  const { query, setQuery, sort, changeSort, view } = usePortfolioView('zebpay');
 
   const load = useCallback(() => {
     const conn = isZebpayConnected();
@@ -168,19 +165,22 @@ export default function ZebpayConnectScreen() {
 
   // ── Connected ─────────────────────────────────────────────────────────────────
 
-  const pendingOrders = orders.filter(o => o.status === 'pending');
+  const openOrders = orders.filter(o => o.status === 'pending').slice(0, 10);
+  const balanceRows = view(balances.map(zebpayBalanceRow));
+  const orderRows = view(openOrders.map(zebpayOrderRow), false);
+  const allRowCount = balances.length + openOrders.length;
 
   return (
     <ScreenContainer padTop={false}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        <View className="mx-4 mt-3">
+        <View className="mt-3">
 
           {/* Status + Sync row */}
-          <Card className="mb-3">
+          <Card className="mx-4 mb-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
                 <View className="w-2 h-2 rounded-full mr-2"
-                  style={{ backgroundColor: theme.success ?? '#10B981' }} />
+                  style={{ backgroundColor: theme.success }} />
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-foreground">Connected</Text>
                   <Text className="text-xs text-muted-foreground mt-0.5">
@@ -208,104 +208,34 @@ export default function ZebpayConnectScreen() {
             </View>
           </Card>
 
-          {/* Portfolio summary */}
-          <Card className="mb-3">
-            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Portfolio Summary
-            </Text>
-            <View className="flex-row justify-between mb-2">
-              <Text className="text-sm text-muted-foreground">Crypto Portfolio</Text>
-              <Text className="text-sm font-bold" style={{ color: theme.success ?? '#10B981' }}>
-                {formatAmount(totalInr)}
-              </Text>
-            </View>
-            {inrBalance > 0 && (
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-muted-foreground">Available INR</Text>
-                <Text className="text-sm font-semibold text-foreground">{formatAmount(inrBalance)}</Text>
-              </View>
-            )}
-            <View className="pt-2 mt-1 border-t border-border">
-              <Pressable
-                onPress={handleUpdateSnapshot}
-                disabled={savingSnapshot}
-                className="rounded-lg p-3 flex-row items-center justify-center"
-                style={{ backgroundColor: `${theme.primary}1A`, opacity: savingSnapshot ? 0.5 : 1 }}
-              >
-                {savingSnapshot ? (
-                  <ActivityIndicator size="small" color={theme.primary} />
-                ) : (
-                  <Ionicons name="save-outline" size={16} color={theme.primary} />
-                )}
-                <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
-                  {savingSnapshot ? 'Saving…' : 'Update Snapshot with These Values'}
-                </Text>
-              </Pressable>
-            </View>
-          </Card>
-
-          {/* Holdings */}
-          {balances.length > 0 && (
-            <Card className="mb-3">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Holdings
-              </Text>
-              {balances.map(b => (
-                <View key={b.currency} className="flex-row justify-between items-center py-2.5 border-b border-border last:border-0">
-                  <View>
-                    <Text className="text-sm font-semibold text-foreground">{b.currency}</Text>
-                    <Text className="text-xs text-muted-foreground">{b.balance.toFixed(8)} {b.currency}</Text>
-                  </View>
-                  <View className="items-end">
-                    <Text className="text-sm font-semibold text-foreground">{formatAmount(b.inrValue)}</Text>
-                    {b.currentPrice > 0 && (
-                      <Text className="text-xs text-muted-foreground">@ {formatAmount(b.currentPrice)}</Text>
-                    )}
-                  </View>
-                </View>
-              ))}
-            </Card>
+          {(balances.length > 0 || totalInr > 0) && (
+            <PortfolioSummary
+              current={totalInr}
+              funds={inrBalance > 0 ? inrBalance : null}
+              onSaveSnapshot={handleUpdateSnapshot}
+              saving={savingSnapshot}
+            />
           )}
 
-          {/* Open Orders */}
-          {pendingOrders.length > 0 && (
-            <Card className="mb-3">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Open Orders ({pendingOrders.length})
-              </Text>
-              {pendingOrders.slice(0, 10).map(o => (
-                <View key={o.orderId} className="flex-row justify-between items-center py-2.5 border-b border-border last:border-0">
-                  <View className="flex-row items-center gap-2">
-                    <View className="rounded px-1.5 py-0.5"
-                      style={{ backgroundColor: o.side.toLowerCase() === 'bid' || o.side.toLowerCase() === 'buy'
-                        ? `${theme.success ?? '#10B981'}22` : `${theme.danger}22` }}>
-                      <Text className="text-xs font-bold"
-                        style={{ color: o.side.toLowerCase() === 'bid' || o.side.toLowerCase() === 'buy'
-                          ? (theme.success ?? '#10B981') : theme.danger }}>
-                        {o.side.toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text className="text-sm text-foreground">{o.symbol}</Text>
-                  </View>
-                  <View className="items-end">
-                    <Text className="text-sm font-semibold text-foreground">{o.amount} @ {formatAmount(o.price)}</Text>
-                    <Text className="text-xs text-muted-foreground">{o.type}</Text>
-                  </View>
-                </View>
-              ))}
-            </Card>
+          {allRowCount > 0 && (
+            <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={changeSort} />
+          )}
+          <PortfolioSection title="Crypto" rows={balanceRows} total={balances.length} />
+          <PortfolioSection title="Open orders" rows={orderRows} total={openOrders.length} />
+          {query.trim() !== '' && balanceRows.length + orderRows.length === 0 && allRowCount > 0 && (
+            <PortfolioNoMatches query={query} />
           )}
 
           {/* No data yet */}
           {balances.length === 0 && orders.length === 0 && (
-            <Card className="mb-3 items-center py-6">
+            <Card className="mx-4 mb-3 items-center py-6">
               <Ionicons name="bar-chart-outline" size={32} color={colors.textSecondary} />
               <Text className="text-sm text-muted-foreground mt-2">Tap Sync to load your portfolio</Text>
             </Card>
           )}
 
           {/* Manage */}
-          <Card>
+          <Card className="mx-4">
             <Pressable
               onPress={() => router.push('/settings/zebpay-connect-credentials' as any)}
               className="flex-row items-center py-2.5 border-b border-border"
