@@ -216,7 +216,119 @@ footer{background:var(--dark-bg);padding-block:24px}
 .mob-link:hover{color:var(--brand);text-decoration:none}
 .mob-link svg{margin-left:auto;opacity:.4}
 
+/* ── Phone mockups ──────────────────────────────────────── */
+.phone{
+  --pbg:#0A0F0E;--psurf:#141D1B;--psurf2:#1B2523;
+  --ptext:#F2F7F6;--pmuted:#8A9E9B;--pteal:#2DD4BF;
+  --pgreen:#34D399;--pred:#F87171;--pamber:#FBBF24;--pborder:#233230;
+  position:relative;width:100%;max-width:268px;aspect-ratio:9/19.3;
+  background:#0A0F0E;border:7px solid #243230;border-radius:38px;
+  box-shadow:0 24px 64px rgba(0,0,0,.28),0 0 0 1px rgba(255,255,255,.07);
+  flex-shrink:0;overflow:hidden;
+}
+/* On a dark page the bezel is nearly the same value as the background,
+   so the device needs its own rim to stay readable as an object. */
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .phone{
+    border-color:#33423F;
+    box-shadow:0 20px 52px rgba(0,0,0,.7),0 0 0 1px rgba(94,234,212,.16);
+  }
+}
+.phone-scr{position:absolute;inset:0;
+  background:var(--pbg);border-radius:31px;overflow:hidden;font-size:9px;
+  font-family:'DM Sans',system-ui,sans-serif;color:var(--ptext);line-height:1.35}
+/* Scale the whole mockup with the phone. container-type must sit on the PARENT:
+   an element is never its own query container, so cqw here would resolve to the viewport. */
+@supports (container-type:inline-size){
+  .phone{container-type:inline-size}
+  .phone-scr{font-size:3.9cqw}
+}
+.pscr{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none}
+.pscr.on{opacity:1}
+@media(prefers-reduced-motion:no-preference){
+  .pscr{transform:translateY(7px);transition:opacity .5s ease,transform .5s ease}
+  .pscr.on{transform:none}
+}
+
+/* status bar + chrome */
+.p-stat{display:flex;justify-content:space-between;align-items:center;
+  padding:.85em 1.35em .2em;font-size:.92em;font-weight:600;flex-shrink:0}
+.p-stat i{display:inline-block;width:.42em;height:.42em;border-radius:50%;
+  background:var(--pmuted);margin-left:.3em;font-style:normal}
+.p-hdr{display:flex;align-items:center;gap:.55em;padding:.7em 1.15em .6em;flex-shrink:0}
+.p-hdr-t{font-family:'Outfit',sans-serif;font-weight:700;font-size:1.3em;letter-spacing:-.01em}
+.p-hdr-s{font-size:.88em;color:var(--pmuted);margin-top:.1em}
+.p-chev{color:var(--pteal);font-size:1.25em;line-height:1}
+.p-month{display:flex;align-items:center;justify-content:center;gap:1.6em;
+  padding:.45em 1.15em .7em;flex-shrink:0}
+.p-month-p{background:rgba(45,212,191,.13);color:var(--pteal);border-radius:1em;
+  padding:.3em 1em;font-weight:600;font-size:1.02em}
+.p-month span{color:var(--pmuted);font-size:1.1em}
+.p-tabs{display:flex;gap:1.05em;padding:0 1.15em;border-bottom:1px solid var(--pborder);flex-shrink:0}
+.p-tab{padding-bottom:.5em;font-size:.95em;color:var(--pmuted);white-space:nowrap}
+.p-tab.on{color:var(--pteal);font-weight:600;box-shadow:inset 0 -2px 0 var(--pteal)}
+.p-body{flex:1;overflow:hidden;padding:.8em 1.15em;display:flex;flex-direction:column;gap:.7em}
+.p-lbl{font-size:.82em;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--pmuted)}
+.p-card{background:var(--psurf);border-radius:1em;padding:.85em .9em}
+.p-r{display:flex;justify-content:space-between;align-items:baseline;gap:.5em}
+.p-r-n{font-weight:500}
+.p-num{font-variant-numeric:tabular-nums;font-weight:600}
+.p-mut{color:var(--pmuted)}
+.p-grn{color:var(--pgreen)}.p-red{color:var(--pred)}.p-amb{color:var(--pamber)}.p-tl{color:var(--pteal)}
+.p-sm{font-size:.86em}
+.p-big{font-family:'Outfit',sans-serif;font-size:2em;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.p-bar{height:.42em;border-radius:1em;background:#2A3634;overflow:hidden;margin:.4em 0 .25em}
+.p-bar-f{height:100%;border-radius:1em;background:var(--pgreen)}
+.p-hr{height:1px;background:var(--pborder);margin:.55em 0}
+.p-ic{width:2.1em;height:2.1em;border-radius:.62em;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0}
+.p-ic svg{width:1.15em;height:1.15em}
+.p-li{display:flex;align-items:center;gap:.7em}
+.p-chip{display:inline-block;border-radius:.35em;padding:.1em .45em;font-size:.76em;
+  font-weight:700;letter-spacing:.03em}
+.p-pills{display:flex;gap:.4em;padding:0 1.15em .2em;flex-shrink:0}
+.p-pill{border:1px solid var(--pborder);border-radius:1em;padding:.24em .75em;
+  font-size:.84em;color:var(--pmuted);white-space:nowrap}
+.p-pill.on{background:var(--pteal);border-color:var(--pteal);color:#08201D;font-weight:700}
+.p-nav{display:flex;justify-content:space-around;align-items:center;padding:.55em 0 .8em;
+  border-top:1px solid var(--pborder);flex-shrink:0;margin-top:auto}
+.p-nav div{display:flex;flex-direction:column;align-items:center;gap:.2em;
+  font-size:.78em;color:var(--pmuted)}
+.p-nav div.on{color:var(--pteal)}
+.p-nav svg{width:1.35em;height:1.35em}
+
+/* hero layout with phone */
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center}
+.hero-ph{display:flex;justify-content:center;position:relative;z-index:2}
+.hero-ph>div{width:100%;max-width:268px}
+.p-dots{display:flex;gap:6px;justify-content:center;margin-top:16px}
+.p-dot{width:6px;height:6px;border-radius:50%;background:var(--border);border:none;padding:0;
+  cursor:pointer;transition:background .2s,width .2s}
+.p-dot.on{background:var(--brand);width:18px;border-radius:3px}
+
+/* showcase section */
+.show-s{background:var(--dark-bg);padding-block:56px;overflow:hidden}
+.show-s .sec-lbl{color:var(--teal)}
+.show-s .sec-h{color:var(--dark-text)}
+.show-s .sec-sub{color:var(--dark-muted)}
+.show-g{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;justify-items:center;margin-top:8px}
+.show-i{display:flex;flex-direction:column;align-items:center;gap:14px}
+/* showcase sits on --dark-bg in both themes, so it always needs the dark treatment */
+.show-i .phone{border-color:#33423F;box-shadow:0 20px 52px rgba(0,0,0,.7),0 0 0 1px rgba(94,234,212,.16)}
+.show-cap{text-align:center;max-width:26ch}
+.show-t{font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:600;color:var(--dark-text);margin-bottom:4px}
+.show-d{font-size:.82rem;color:var(--dark-muted);line-height:1.6}
+@media(prefers-reduced-motion:no-preference){
+  .show-i .phone{transition:transform .3s ease}
+  .show-i:hover .phone{transform:translateY(-8px)}
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr;gap:34px}
+  .hero-ph{order:2}
+  .show-g{grid-template-columns:1fr;gap:34px}
+}
 @media(max-width:760px){
   .feat-g{grid-template-columns:1fr 1fr}
   .prv-stats{grid-template-columns:1fr 1fr}
@@ -284,18 +396,232 @@ footer{background:var(--dark-bg);padding-block:24px}
 
 <!-- HERO -->
 <section class="hero">
-  <div class="w">
-    <h1 class="reveal reveal-d1">Finance that <span>never leaves</span> your phone.</h1>
-    <p class="hero-sub reveal reveal-d2">Arth tracks every rupee: expenses, accounts, budgets, investments, and loans. All stored entirely on your device. No server. No account. No one else sees your numbers.</p>
-    <div class="hero-acts reveal reveal-d3">
-      <a href="https://github.com/kaiser7292/artha/releases/latest/download/app-arm64-v8a-release.apk" target="_blank" rel="noopener" class="btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V8M8 12l4 4 4-4"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
-        Download for Android (Free)
-      </a>
-      <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener" class="btn-g">
-        View on GitHub
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
-      </a>
+  <div class="w hero-grid">
+    <div class="hero-copy">
+      <h1 class="reveal reveal-d1">Finance that <span>never leaves</span> your phone.</h1>
+      <p class="hero-sub reveal reveal-d2">Arth tracks every rupee: expenses, accounts, budgets, investments, and loans. All stored entirely on your device. No server. No account. No one else sees your numbers.</p>
+      <div class="hero-acts reveal reveal-d3">
+        <a href="https://github.com/kaiser7292/artha/releases/latest/download/app-arm64-v8a-release.apk" target="_blank" rel="noopener" class="btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V8M8 12l4 4 4-4"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+          Download for Android (Free)
+        </a>
+        <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener" class="btn-g">
+          View on GitHub
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-ph reveal reveal-d2">
+      <div>
+      <div class="phone" id="hero-phone" role="img" aria-label="Arth app screens: monthly insights, transactions, and budget">
+        <div class="phone-scr">
+
+          <!-- Insights -->
+          <div class="pscr on">
+            <div class="p-stat"><span>9:41</span><span><i></i><i></i><i></i></span></div>
+            <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Arth · अर्थ</div><div class="p-hdr-s">September 2026</div></div></div>
+            <div class="p-tabs"><div class="p-tab">Overview</div><div class="p-tab on">Insights</div><div class="p-tab">Queue</div><div class="p-tab">Simulator</div></div>
+            <div class="p-body">
+              <div class="p-card">
+                <div class="p-r"><span class="p-mut">Month so far</span><span class="p-num" style="font-size:1.15em">₹84,210</span></div>
+                <div class="p-hr"></div>
+                <div class="p-r p-sm"><span class="p-mut">Fixed (done)</span><span class="p-num">₹12,400</span></div>
+                <div class="p-bar"><div class="p-bar-f" style="width:32%"></div></div>
+                <div class="p-r p-sm" style="margin-top:.5em"><span class="p-mut">Variable (projected)</span><span class="p-num">₹52,300</span></div>
+                <div class="p-bar"><div class="p-bar-f" style="width:78%"></div></div>
+                <div class="p-sm p-mut">₹2,180/day pace · 9 days left</div>
+                <div class="p-hr"></div>
+                <div class="p-r"><span class="p-r-n">Projected total</span><span class="p-num">₹96,140</span></div>
+                <div class="p-r p-sm" style="margin-top:.25em"><span class="p-mut">Budget</span><span class="p-num p-mut">₹1,05,000</span></div>
+                <div class="p-r p-sm" style="margin-top:.25em"><span class="p-mut">Breathing room</span><span class="p-num p-grn">+₹8,860 ✓</span></div>
+              </div>
+              <div class="p-lbl">Insights</div>
+              <div class="p-card" style="padding:.7em .8em">
+                <div class="p-li">
+                  <div class="p-ic" style="background:rgba(248,113,113,.15);color:var(--pred)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/></svg></div>
+                  <div style="flex:1"><div style="font-weight:600">Shopping 42% over budget</div><div class="p-sm p-mut">₹14,200 of ₹10,000 budget</div></div>
+                </div>
+              </div>
+              <div class="p-card" style="padding:.7em .8em">
+                <div class="p-li">
+                  <div class="p-ic" style="background:rgba(251,191,36,.15);color:var(--pamber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l9 17H3z"/><path d="M12 10v4M12 17h.01"/></svg></div>
+                  <div style="flex:1"><div style="font-weight:600">Subscriptions 18% over</div><div class="p-sm p-mut">₹1,180 of ₹1,000 budget</div></div>
+                </div>
+              </div>
+              <div class="p-card" style="padding:.7em .8em">
+                <div class="p-li">
+                  <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg></div>
+                  <div style="flex:1"><div style="font-weight:600">Fuel 43% under budget</div><div class="p-sm p-mut">₹3,420 of ₹6,000 budget</div></div>
+                </div>
+              </div>
+              <div class="p-lbl">Top merchants</div>
+              <div class="p-card" style="padding:.75em .8em">
+                <div class="p-r p-sm"><span>Swiggy</span><span class="p-num">₹6,480</span></div>
+                <div class="p-hr" style="margin:.45em 0"></div>
+                <div class="p-r p-sm"><span>BigBasket</span><span class="p-num">₹5,210</span></div>
+                <div class="p-hr" style="margin:.45em 0"></div>
+                <div class="p-r p-sm"><span>Amazon</span><span class="p-num">₹4,890</span></div>
+              </div>
+            </div>
+            <div class="p-nav">
+              <div class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Arth</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 3h16v18l-3-2-3 2-3-2-3 2z"/><path d="M8 9h8M8 13h6"/></svg>Transactions</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M16 12h3"/></svg>Budget</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 4h10v5a5 5 0 01-10 0z"/><path d="M12 14v4M9 21h6"/></svg>Goals</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Settings</div>
+            </div>
+          </div>
+
+          <!-- Transactions -->
+          <div class="pscr">
+            <div class="p-stat"><span>9:41</span><span><i></i><i></i><i></i></span></div>
+            <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Transactions</div><div class="p-hdr-s">2 pending review</div></div><span class="p-chip" style="background:rgba(251,191,36,.18);color:var(--pamber)">2 PENDING</span></div>
+            <div class="p-tabs"><div class="p-tab">All</div><div class="p-tab on">Expenses</div><div class="p-tab">Credits</div><div class="p-tab">Transfers</div></div>
+            <div class="p-body">
+              <div class="p-card">
+                <div class="p-lbl">Filtered total</div>
+                <div class="p-big p-tl" style="margin:.15em 0">₹68,420</div>
+                <div class="p-sm p-mut">128 expenses</div>
+                <div class="p-sm p-grn" style="margin-top:.15em">↓ 12% vs previous period</div>
+                <div class="p-hr"></div>
+                <div class="p-lbl" style="margin-bottom:.5em">By category</div>
+                <div class="p-r p-sm"><span>Food</span><span class="p-num">₹18,240</span></div>
+                <div class="p-bar"><div class="p-bar-f" style="width:27%;background:var(--pteal)"></div></div>
+                <div class="p-r p-sm" style="margin-top:.4em"><span>Groceries</span><span class="p-num">₹14,980</span></div>
+                <div class="p-bar"><div class="p-bar-f" style="width:22%;background:var(--pteal)"></div></div>
+                <div class="p-r p-sm" style="margin-top:.4em"><span>Travel</span><span class="p-num">₹11,500</span></div>
+                <div class="p-bar"><div class="p-bar-f" style="width:17%;background:var(--pteal)"></div></div>
+              </div>
+              <div class="p-lbl">Today · 24 Sep</div>
+              <div class="p-card" style="padding:.7em .8em">
+                <div class="p-li">
+                  <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.7 12h10.6L21 7H6"/></svg></div>
+                  <div style="flex:1"><div style="font-weight:600">Blinkit <span class="p-chip" style="background:rgba(251,191,36,.18);color:var(--pamber)">PENDING</span></div><div class="p-sm p-mut">Credit Card · ••4417</div></div>
+                  <div class="p-num">₹642</div>
+                </div>
+              </div>
+              <div class="p-card" style="padding:.7em .8em">
+                <div class="p-li">
+                  <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M16 3c-2 2-2 6 0 8v10"/></svg></div>
+                  <div style="flex:1"><div style="font-weight:600">Swiggy</div><div class="p-sm p-mut">HDFC Bank · ••8302</div></div>
+                  <div class="p-num">₹489</div>
+                </div>
+              </div>
+              <div class="p-lbl">Yesterday · 23 Sep</div>
+              <div class="p-card" style="padding:.7em .8em">
+                <div class="p-li">
+                  <div class="p-ic" style="background:rgba(167,139,250,.15);color:#A78BFA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M12 8v13M2 12h20"/></svg></div>
+                  <div style="flex:1"><div style="font-weight:600">Amazon</div><div class="p-sm p-mut">Axis Card · ••2290</div></div>
+                  <div class="p-num">₹2,340</div>
+                </div>
+              </div>
+              <div class="p-card" style="padding:.7em .8em">
+                <div class="p-li">
+                  <div class="p-ic" style="background:rgba(96,165,250,.15);color:#60A5FA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 13l1.5-5h11L19 13"/><rect x="3" y="13" width="18" height="5" rx="1.5"/></svg></div>
+                  <div style="flex:1"><div style="font-weight:600">Indian Oil</div><div class="p-sm p-mut">HDFC Bank · ••8302</div></div>
+                  <div class="p-num">₹1,850</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-nav">
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Arth</div>
+              <div class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 3h16v18l-3-2-3 2-3-2-3 2z"/><path d="M8 9h8M8 13h6"/></svg>Transactions</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M16 12h3"/></svg>Budget</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 4h10v5a5 5 0 01-10 0z"/><path d="M12 14v4M9 21h6"/></svg>Goals</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Settings</div>
+            </div>
+          </div>
+
+          <!-- Budget -->
+          <div class="pscr">
+            <div class="p-stat"><span>9:41</span><span><i></i><i></i><i></i></span></div>
+            <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Budget</div></div></div>
+            <div class="p-month"><span>‹</span><div class="p-month-p">Sep 2026 ▾</div><span>›</span></div>
+            <div class="p-tabs"><div class="p-tab on">Overview</div><div class="p-tab">Spending Split</div><div class="p-tab">Summary</div></div>
+            <div class="p-body" style="gap:.55em">
+              <div class="p-r"><span class="p-lbl">Categories</span><span class="p-sm p-mut">2 empty hidden</span></div>
+              <div>
+                <div class="p-li" style="margin-bottom:.15em">
+                  <div class="p-ic" style="background:rgba(167,139,250,.15);color:#A78BFA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M12 8v13M2 12h20"/></svg></div>
+                  <div style="flex:1;font-weight:600">Shopping</div>
+                  <div class="p-num p-red">₹14,200<span class="p-mut" style="font-weight:400"> / ₹10,000</span></div>
+                </div>
+                <div class="p-bar"><div class="p-bar-f" style="width:100%;background:var(--pred)"></div></div>
+                <div class="p-r p-sm p-mut"><span>₹4,200 over</span><span>142%</span></div>
+              </div>
+              <div>
+                <div class="p-li" style="margin-bottom:.15em">
+                  <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M16 3c-2 2-2 6 0 8v10"/></svg></div>
+                  <div style="flex:1;font-weight:600">Food</div>
+                  <div class="p-num p-amb">₹18,240<span class="p-mut" style="font-weight:400"> / ₹20,000</span></div>
+                </div>
+                <div class="p-bar"><div class="p-bar-f" style="width:91%;background:var(--pamber)"></div></div>
+                <div class="p-r p-sm p-mut"><span>₹1,760 left</span><span>91%</span></div>
+              </div>
+              <div>
+                <div class="p-li" style="margin-bottom:.15em">
+                  <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.7 12h10.6L21 7H6"/></svg></div>
+                  <div style="flex:1;font-weight:600">Groceries</div>
+                  <div class="p-num p-grn">₹9,980<span class="p-mut" style="font-weight:400"> / ₹15,000</span></div>
+                </div>
+                <div class="p-bar"><div class="p-bar-f" style="width:66%"></div></div>
+                <div class="p-r p-sm p-mut"><span>₹5,020 left</span><span>66%</span></div>
+              </div>
+              <div>
+                <div class="p-li" style="margin-bottom:.15em">
+                  <div class="p-ic" style="background:rgba(96,165,250,.15);color:#60A5FA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 13l1.5-5h11L19 13"/><rect x="3" y="13" width="18" height="5" rx="1.5"/></svg></div>
+                  <div style="flex:1;font-weight:600">Fuel</div>
+                  <div class="p-num p-grn">₹3,420<span class="p-mut" style="font-weight:400"> / ₹6,000</span></div>
+                </div>
+                <div class="p-bar"><div class="p-bar-f" style="width:57%"></div></div>
+                <div class="p-r p-sm p-mut"><span>₹2,580 left</span><span>57%</span></div>
+              </div>
+              <div>
+                <div class="p-li" style="margin-bottom:.15em">
+                  <div class="p-ic" style="background:rgba(244,114,182,.15);color:#F472B6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg></div>
+                  <div style="flex:1;font-weight:600">Subscriptions</div>
+                  <div class="p-num p-red">₹1,180<span class="p-mut" style="font-weight:400"> / ₹1,000</span></div>
+                </div>
+                <div class="p-bar"><div class="p-bar-f" style="width:100%;background:var(--pred)"></div></div>
+                <div class="p-r p-sm p-mut"><span>₹180 over</span><span>118%</span></div>
+              </div>
+              <div>
+                <div class="p-li" style="margin-bottom:.15em">
+                  <div class="p-ic" style="background:rgba(251,191,36,.15);color:var(--pamber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 9l9-6 9 6"/><path d="M5 9v10h14V9"/></svg></div>
+                  <div style="flex:1;font-weight:600">Rent &amp; Utilities</div>
+                  <div class="p-num p-grn">₹12,400<span class="p-mut" style="font-weight:400"> / ₹14,000</span></div>
+                </div>
+                <div class="p-bar"><div class="p-bar-f" style="width:89%"></div></div>
+                <div class="p-r p-sm p-mut"><span>₹1,600 left</span><span>89%</span></div>
+              </div>
+              <div>
+                <div class="p-li" style="margin-bottom:.15em">
+                  <div class="p-ic" style="background:rgba(248,113,113,.15);color:var(--pred)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 21s-7-4.6-7-9.6A3.9 3.9 0 0112 8a3.9 3.9 0 017 3.4c0 5-7 9.6-7 9.6z"/></svg></div>
+                  <div style="flex:1;font-weight:600">Health</div>
+                  <div class="p-num p-grn">₹2,150<span class="p-mut" style="font-weight:400"> / ₹5,000</span></div>
+                </div>
+                <div class="p-bar"><div class="p-bar-f" style="width:43%"></div></div>
+                <div class="p-r p-sm p-mut"><span>₹2,850 left</span><span>43%</span></div>
+              </div>
+            </div>
+            <div class="p-nav">
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Arth</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 3h16v18l-3-2-3 2-3-2-3 2z"/><path d="M8 9h8M8 13h6"/></svg>Transactions</div>
+              <div class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M16 12h3"/></svg>Budget</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 4h10v5a5 5 0 01-10 0z"/><path d="M12 14v4M9 21h6"/></svg>Goals</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Settings</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="p-dots" id="hero-dots">
+        <button class="p-dot on" aria-label="Show insights screen"></button>
+        <button class="p-dot" aria-label="Show transactions screen"></button>
+        <button class="p-dot" aria-label="Show budget screen"></button>
+      </div>
+      </div>
     </div>
   </div>
   <div class="hero-glow" aria-hidden="true"></div>
@@ -352,6 +678,187 @@ footer{background:var(--dark-bg);padding-block:24px}
         <div class="feat-t">Family Ledger (Hisaab)</div>
         <div class="feat-d">Track money lent or borrowed from family and friends. Running balances, settlements, full history.</div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOT SHOWCASE -->
+<section class="show-s">
+  <div class="w">
+    <div class="sec-lbl reveal">Inside the app</div>
+    <h2 class="sec-h reveal reveal-d1">Built for people who actually check.</h2>
+    <p class="sec-sub reveal reveal-d2">A full financial year of budgets, every account in a single ledger, and a review queue that waits for your approval. The detail is always there when you want it.</p>
+    <div class="show-g">
+
+      <div class="show-i reveal">
+        <div class="phone">
+          <div class="phone-scr">
+            <div class="pscr on">
+              <div class="p-stat"><span>9:41</span><span><i></i><i></i><i></i></span></div>
+              <div class="p-hdr"><span class="p-chev">‹</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Budget vs Actual</span></div><span style="width:1em"></span></div>
+              <div class="p-pills"><div class="p-pill">This Month</div><div class="p-pill">Last 3M</div><div class="p-pill on">FY 2026-27</div></div>
+              <div class="p-body">
+                <div class="p-card">
+                  <div class="p-r"><span class="p-sm p-mut">Total Budget</span><span class="p-sm p-mut">Spent</span><span class="p-sm p-mut">Under by</span></div>
+                  <div class="p-r" style="margin-top:.2em"><span class="p-num">₹6,30,000</span><span class="p-num">₹5,84,300</span><span class="p-num p-grn">₹45,700</span></div>
+                  <div class="p-bar" style="margin-top:.6em"><div class="p-bar-f" style="width:93%"></div></div>
+                  <div class="p-sm p-mut" style="text-align:right">93% of budget</div>
+                </div>
+                <div class="p-card">
+                  <div class="p-lbl" style="margin-bottom:.6em">Month by month</div>
+                  <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Apr</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:88%"></div></div><span class="p-num p-sm" style="width:5em;text-align:right">₹92,400</span></div>
+                  <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">May</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:96%"></div></div><span class="p-num p-sm" style="width:5em;text-align:right">₹1,01,200</span></div>
+                  <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Jun</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:84%"></div></div><span class="p-num p-sm" style="width:5em;text-align:right">₹88,600</span></div>
+                  <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Jul</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:100%;background:var(--pred)"></div></div><span class="p-num p-sm p-red" style="width:5em;text-align:right">₹1,12,400</span></div>
+                  <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Aug</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:90%"></div></div><span class="p-num p-sm" style="width:5em;text-align:right">₹94,500</span></div>
+                  <div class="p-li"><span class="p-sm p-mut" style="width:2.4em">Sep</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:91%"></div></div><span class="p-num p-sm" style="width:5em;text-align:right">₹95,200</span></div>
+                  <div class="p-hr"></div>
+                  <div class="p-li p-sm p-mut"><span style="width:.9em;height:.35em;border-radius:1em;background:#2A3634;display:inline-block"></span>Budget<span style="width:.9em;height:.35em;border-radius:1em;background:var(--pgreen);display:inline-block;margin-left:.5em"></span>Actual</div>
+                </div>
+                <div class="p-lbl">By category</div>
+                <div class="p-card" style="padding:.75em .8em">
+                  <div class="p-li" style="margin-bottom:.15em">
+                    <div class="p-ic" style="background:rgba(167,139,250,.15);color:#A78BFA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M12 8v13M2 12h20"/></svg></div>
+                    <div style="flex:1;font-weight:600">Shopping</div>
+                    <div class="p-num p-red p-sm">+₹28,400 over</div>
+                  </div>
+                  <div class="p-bar"><div class="p-bar-f" style="width:100%;background:var(--pred)"></div></div>
+                  <div class="p-r p-sm p-mut"><span>₹1,48,400 spent</span><span>₹1,20,000</span></div>
+                </div>
+                <div class="p-card" style="padding:.75em .8em">
+                  <div class="p-li" style="margin-bottom:.15em">
+                    <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M16 3c-2 2-2 6 0 8v10"/></svg></div>
+                    <div style="flex:1;font-weight:600">Food</div>
+                    <div class="p-num p-grn p-sm">₹21,600 left</div>
+                  </div>
+                  <div class="p-bar"><div class="p-bar-f" style="width:91%"></div></div>
+                  <div class="p-r p-sm p-mut"><span>₹2,18,400 spent</span><span>₹2,40,000</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="show-cap">
+          <div class="show-t">Budget vs Actual</div>
+          <div class="show-d">The whole financial year at a glance. Spot the month that broke the pattern.</div>
+        </div>
+      </div>
+
+      <div class="show-i reveal reveal-d1">
+        <div class="phone">
+          <div class="phone-scr">
+            <div class="pscr on">
+              <div class="p-stat"><span>9:41</span><span><i></i><i></i><i></i></span></div>
+              <div class="p-hdr"><span class="p-chev">‹</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Accounts</span></div><span style="width:1em"></span></div>
+              <div class="p-month"><span>‹</span><div class="p-month-p">Sep 2026 ▾</div><span>›</span></div>
+              <div class="p-body">
+                <div class="p-card">
+                  <div class="p-r"><span class="p-lbl">Overall summary</span><span class="p-sm p-mut">4 accounts</span></div>
+                  <div class="p-r p-sm" style="margin-top:.5em"><span class="p-mut">Opening Balance</span><span class="p-num">₹1,42,800</span></div>
+                  <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Expenses</span><span class="p-num p-red">−₹68,420</span></div>
+                  <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Credits</span><span class="p-num p-grn">+₹96,000</span></div>
+                  <div class="p-hr"></div>
+                  <div class="p-r"><span class="p-r-n">Closing Balance</span><span class="p-num p-grn">₹1,70,380</span></div>
+                </div>
+                <div class="p-card">
+                  <div class="p-li" style="margin-bottom:.5em">
+                    <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 9l9-6 9 6"/><path d="M5 9v10h14V9"/></svg></div>
+                    <div style="flex:1"><div style="font-weight:600">HDFC Savings</div><div class="p-sm p-mut">••4417</div></div>
+                  </div>
+                  <div class="p-r p-sm"><span class="p-mut">Opening</span><span class="p-num">₹98,400</span></div>
+                  <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Net change</span><span class="p-num p-grn">+₹21,600</span></div>
+                  <div class="p-hr"></div>
+                  <div class="p-r"><span class="p-r-n p-sm">Current</span><span class="p-num p-grn">₹1,20,000</span></div>
+                </div>
+                <div class="p-card">
+                  <div class="p-li" style="margin-bottom:.5em">
+                    <div class="p-ic" style="background:rgba(167,139,250,.15);color:#A78BFA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>
+                    <div style="flex:1"><div style="font-weight:600">Axis Credit Card</div><div class="p-sm p-mut">••2290</div></div>
+                  </div>
+                  <div class="p-r p-sm"><span class="p-mut">Utilised</span><span class="p-num">₹18,940</span></div>
+                  <div class="p-bar"><div class="p-bar-f" style="width:19%"></div></div>
+                  <div class="p-r p-sm p-mut"><span>of ₹1,00,000 limit</span><span>19%</span></div>
+                </div>
+                <div class="p-card">
+                  <div class="p-li" style="margin-bottom:.5em">
+                    <div class="p-ic" style="background:rgba(251,191,36,.15);color:var(--pamber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
+                    <div style="flex:1"><div style="font-weight:600">Demat · Equity</div><div class="p-sm p-mut">Synced today</div></div>
+                  </div>
+                  <div class="p-r p-sm"><span class="p-mut">Invested</span><span class="p-num">₹3,24,000</span></div>
+                  <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Current value</span><span class="p-num p-grn">₹3,86,400</span></div>
+                  <div class="p-hr"></div>
+                  <div class="p-r"><span class="p-r-n p-sm">Unrealised P&amp;L</span><span class="p-num p-grn">+₹62,400</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="show-cap">
+          <div class="show-t">One unified ledger</div>
+          <div class="show-d">Savings, cards, wallets, demat and loans. Opening balance to closing, every month.</div>
+        </div>
+      </div>
+
+      <div class="show-i reveal reveal-d2">
+        <div class="phone">
+          <div class="phone-scr">
+            <div class="pscr on">
+              <div class="p-stat"><span>9:41</span><span><i></i><i></i><i></i></span></div>
+              <div class="p-hdr"><span class="p-chev">‹</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Review Queue</span></div><span style="width:1em"></span></div>
+              <div class="p-pills"><div class="p-pill on">3 pending</div><div class="p-pill">Approved</div><div class="p-pill">Rejected</div></div>
+              <div class="p-body">
+                <div class="p-card">
+                  <div class="p-r"><span class="p-lbl">HDFC Bank</span><span class="p-sm p-mut">Today</span></div>
+                  <div class="p-sm p-mut" style="margin:.45em 0;line-height:1.5">Rs 2,450.00 debited from A/c XX4417. Info: UPI/SWIGGY. Avl Bal Rs 42,180.22</div>
+                  <div class="p-li" style="margin-top:.55em">
+                    <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M16 3c-2 2-2 6 0 8v10"/></svg></div>
+                    <div style="flex:1"><div style="font-weight:600">Swiggy</div><div class="p-sm p-mut">Food · Auto-matched</div></div>
+                    <div class="p-num">₹2,450</div>
+                  </div>
+                  <div class="p-li" style="margin-top:.7em;gap:.45em">
+                    <div style="flex:1;text-align:center;background:var(--pteal);color:#08201D;border-radius:.55em;padding:.4em 0;font-weight:700;font-size:.88em">Approve</div>
+                    <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.4em 0;font-size:.88em">Edit</div>
+                    <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.4em 0;font-size:.88em;color:var(--pred)">Reject</div>
+                  </div>
+                </div>
+                <div class="p-card">
+                  <div class="p-r"><span class="p-lbl">Axis Bank</span><span class="p-sm p-mut">Today</span></div>
+                  <div class="p-sm p-mut" style="margin:.45em 0;line-height:1.5">INR 1,299 spent on Axis Card XX2290 at BIGBASKET. Avl Limit: INR 81,060</div>
+                  <div class="p-li" style="margin-top:.55em">
+                    <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.7 12h10.6L21 7H6"/></svg></div>
+                    <div style="flex:1"><div style="font-weight:600">BigBasket</div><div class="p-sm p-mut">Groceries · Smart Rule</div></div>
+                    <div class="p-num">₹1,299</div>
+                  </div>
+                  <div class="p-li" style="margin-top:.7em;gap:.45em">
+                    <div style="flex:1;text-align:center;background:var(--pteal);color:#08201D;border-radius:.55em;padding:.4em 0;font-weight:700;font-size:.88em">Approve</div>
+                    <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.4em 0;font-size:.88em">Edit</div>
+                    <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.4em 0;font-size:.88em;color:var(--pred)">Reject</div>
+                  </div>
+                </div>
+                <div class="p-card">
+                  <div class="p-r"><span class="p-lbl">SBI</span><span class="p-sm p-mut">Yesterday</span></div>
+                  <div class="p-sm p-mut" style="margin:.45em 0;line-height:1.5">Your A/c XXXX8302 credited INR 96,000.00 by NEFT. Available Balance INR 1,38,180.00</div>
+                  <div class="p-li" style="margin-top:.55em">
+                    <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+                    <div style="flex:1"><div style="font-weight:600">Salary Credit</div><div class="p-sm p-mut">Income · Auto-matched</div></div>
+                    <div class="p-num p-grn">+₹96,000</div>
+                  </div>
+                  <div class="p-li" style="margin-top:.7em;gap:.45em">
+                    <div style="flex:1;text-align:center;background:var(--pteal);color:#08201D;border-radius:.55em;padding:.4em 0;font-weight:700;font-size:.88em">Approve</div>
+                    <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.4em 0;font-size:.88em">Edit</div>
+                    <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.4em 0;font-size:.88em;color:var(--pred)">Reject</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="show-cap">
+          <div class="show-t">Nothing lands unreviewed</div>
+          <div class="show-d">SMS is parsed on-device into a queue. You approve, edit, or reject each one.</div>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -540,7 +1047,7 @@ footer{background:var(--dark-bg);padding-block:24px}
         <a href="/contact">Contact</a>
       </div>
     </div>
-    <p class="ft-cp">© 2026 Sourav Baid · Arth is a personal project and is not affiliated with any financial institution.</p>
+    <p class="ft-cp">© 2026 Sourav Baid · Arth is a personal project and is not affiliated with any financial institution. App screens show sample data.</p>
   </div>
 </footer>
 
@@ -620,6 +1127,52 @@ if (window.IntersectionObserver) {
   var ps = document.getElementById('prv-stats');
   if (ps) prvObs.observe(ps);
 }
+
+// Hero phone screen cycling
+(function(){
+  var phone = document.getElementById('hero-phone');
+  var dotWrap = document.getElementById('hero-dots');
+  if (!phone || !dotWrap) return;
+  var screens = phone.querySelectorAll('.pscr');
+  var dots = dotWrap.querySelectorAll('.p-dot');
+  if (screens.length < 2) return;
+
+  var idx = 0, timer = null, paused = false;
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function show(n) {
+    idx = (n + screens.length) % screens.length;
+    for (var i = 0; i < screens.length; i++) {
+      screens[i].classList.toggle('on', i === idx);
+      dots[i].classList.toggle('on', i === idx);
+    }
+  }
+  function start() {
+    if (reduced || timer) return;
+    timer = setInterval(function(){ if (!paused) show(idx + 1); }, 4200);
+  }
+  function stop() { clearInterval(timer); timer = null; }
+
+  for (var i = 0; i < dots.length; i++) {
+    (function(n){
+      dots[n].addEventListener('click', function(){ show(n); paused = false; });
+    })(i);
+  }
+  phone.addEventListener('mouseenter', function(){ paused = true; });
+  phone.addEventListener('mouseleave', function(){ paused = false; });
+  document.addEventListener('visibilitychange', function(){
+    document.hidden ? stop() : start();
+  });
+
+  // only run while the phone is actually on screen
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ e.isIntersecting ? start() : stop(); });
+    }, { threshold: 0.2 }).observe(phone);
+  } else {
+    start();
+  }
+}());
 
 // Hamburger menu
 (function(){
