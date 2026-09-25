@@ -26,6 +26,7 @@ import {
   type InvestmentSummary,
   type InvestmentProduct,
   type UpcomingFDMaturity,
+  withoutFinishedInvestments,
 } from "@/services/investment-accounts";
 import {
   getComputedBalances,
@@ -594,11 +595,13 @@ async function loadVaultSection(): Promise<VaultPreloadData | null> {
 async function loadInvestmentsSection(): Promise<InvestmentsPreloadData | null> {
   try {
     const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
-    const accounts = allAccounts.filter(
+    const investmentLike = allAccounts.filter(
       (a) => a.account_type === "investment" || a.account_type === "demat" || a.account_type === "pension",
     );
-    const ids = accounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+    const ids = investmentLike.filter((a) => a.account_type === "investment").map((a) => a.id);
     const products = await batchInvestmentProducts(ids);
+    // Matured / closed FDs aren't shown on the Investments screen.
+    const accounts = withoutFinishedInvestments(investmentLike, products);
     const [values, maturities] = await Promise.all([
       getUnifiedInvestmentValues(DEFAULT_USER_ID, accounts, products),
       getUpcomingFDMaturities(DEFAULT_USER_ID, 5),

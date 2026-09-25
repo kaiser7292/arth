@@ -26,8 +26,10 @@ jest.mock("../../utils/uuid", () => ({ generateUUID: () => `gen-${++mockNextId}`
 
 import {
   finaliseFDMaturityForExpenses,
+  isFinishedInvestment,
   matchMaturityPayout,
   materialiseMaturedInvestments,
+  withoutFinishedInvestments,
 } from "../../services/investment-accounts";
 
 function seed(
@@ -299,6 +301,30 @@ describe("matchMaturityPayout", () => {
 
   it("doesn't pair the principal with an unrelated small credit", () => {
     expect(matchMaturityPayout([c("p", 100000), c("tiny", 500)], exp)).toBeNull();
+  });
+});
+
+describe("finished investments are hidden", () => {
+  const product = (status: string) => ({ status }) as never;
+
+  it("treats closed accounts and matured / closed FDs as finished", () => {
+    expect(isFinishedInvestment({ id: "a", closed_at: "2026-01-01" })).toBe(true);
+    expect(isFinishedInvestment({ id: "a", closed_at: null }, product("matured"))).toBe(true);
+    expect(isFinishedInvestment({ id: "a", closed_at: null }, product("closed"))).toBe(true);
+    expect(isFinishedInvestment({ id: "a", closed_at: null }, product("active"))).toBe(false);
+    expect(isFinishedInvestment({ id: "demat" })).toBe(false); // no product: demat / pension
+  });
+
+  it("drops only the finished ones from a list", () => {
+    const products = new Map([
+      ["fd-live", product("active")],
+      ["fd-done", product("matured")],
+    ]);
+    const out = withoutFinishedInvestments(
+      [{ id: "fd-live" }, { id: "fd-done" }, { id: "demat" }, { id: "old", closed_at: "2025-01-01" }],
+      products,
+    );
+    expect(out.map((a) => a.id)).toEqual(["fd-live", "demat"]);
   });
 });
 

@@ -927,11 +927,33 @@ export interface InvestmentSummary {
  * `accounts` should already be filtered to demat/pension/investment-typed
  * rows; pass `getActiveAccounts()`'s result filtered accordingly.
  */
+/**
+ * True for an investment that's finished - its account is closed, or its product has matured or
+ * been closed (e.g. an FD whose payout was credited). These aren't shown on the Investments
+ * screen and don't count toward the Investments total.
+ */
+export function isFinishedInvestment(
+  account: { id: string; closed_at?: string | null },
+  product?: InvestmentProduct | null,
+): boolean {
+  return account.closed_at != null || product?.status === "matured" || product?.status === "closed";
+}
+
+/** Drop finished investments (see isFinishedInvestment). */
+export function withoutFinishedInvestments<T extends { id: string; closed_at?: string | null }>(
+  accounts: T[],
+  products: Map<string, InvestmentProduct>,
+): T[] {
+  return accounts.filter((a) => !isFinishedInvestment(a, products.get(a.id)));
+}
+
 export async function getInvestmentSummary(
   userId: string,
-  accounts: { id: string; account_type: string }[],
+  allAccounts: { id: string; account_type: string; closed_at?: string | null }[],
   products: Map<string, InvestmentProduct>,
 ): Promise<InvestmentSummary> {
+  // A matured / closed FD's money is back in the bank - don't count it twice.
+  const accounts = withoutFinishedInvestments(allAccounts, products);
   const values = await getUnifiedInvestmentValues(userId, accounts, products);
 
   const breakdownMap = new Map<string, number>();

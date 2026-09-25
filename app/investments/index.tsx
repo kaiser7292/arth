@@ -18,6 +18,7 @@ import {
   INSTRUMENT_LABELS,
   type InvestmentProduct,
   type UpcomingFDMaturity,
+  withoutFinishedInvestments,
 } from "@/services/investment-accounts";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { formatAmount, formatCompact } from "@/utils/format";
@@ -74,11 +75,13 @@ export default function InvestmentsListScreen() {
 
   const load = useCallback(async () => {
     const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
-    const accounts = allAccounts.filter(
+    const investmentLike = allAccounts.filter(
       (a) => a.account_type === "investment" || a.account_type === "demat" || a.account_type === "pension",
     );
-    const ids = accounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+    const ids = investmentLike.filter((a) => a.account_type === "investment").map((a) => a.id);
     const products = await batchInvestmentProducts(ids);
+    // Matured / closed FDs aren't shown (their money is back in the bank).
+    const accounts = withoutFinishedInvestments(investmentLike, products);
     const [values, upcoming] = await Promise.all([
       getUnifiedInvestmentValues(DEFAULT_USER_ID, accounts, products),
       getUpcomingFDMaturities(DEFAULT_USER_ID, 5),
