@@ -17,6 +17,7 @@ import {
   getLastSync,
   getWritableCalendars,
   hasCalendarPermission,
+  idOf,
   isArthCalendar,
   removeArthEvents,
   requestCalendarPermission,
@@ -43,10 +44,29 @@ function ago(ms: number): string {
 
 function describeResult(r: SyncResult | null): string {
   if (!r) return "Not synced yet";
-  if (r.ok) return `Last synced ${ago(r.at)} · ${r.total} event${r.total !== 1 ? "s" : ""}`;
+  if (r.ok) {
+    const where = r.calendarTitle ? ` in "${r.calendarTitle}"` : "";
+    const k = r.byKind;
+    const parts = k
+      ? [
+          k.due ? `${k.due} bill${k.due !== 1 ? "s" : ""} & dues` : "",
+          k.emi ? `${k.emi} EMI${k.emi !== 1 ? "s" : ""}` : "",
+          k.reminder ? `${k.reminder} reminder${k.reminder !== 1 ? "s" : ""}` : "",
+          k.fd ? `${k.fd} FD maturit${k.fd !== 1 ? "ies" : "y"}` : "",
+        ].filter(Boolean)
+      : [];
+    const what =
+      r.total > 0
+        ? `${r.total} event${r.total !== 1 ? "s" : ""}${where}${parts.length ? `: ${parts.join(", ")}` : ""}.`
+        : "Nothing to add: no bills, EMIs, reminders or FD maturities in the next 90 days.";
+    const overdue = r.overdueDues
+      ? ` ${r.overdueDues} overdue due${r.overdueDues !== 1 ? "s aren't" : " isn't"} added - calendar reminders only work for dates still ahead.`
+      : "";
+    return `Last synced ${ago(r.at)} · ${what}${overdue}`;
+  }
   if (r.error === "no_permission") return "Calendar permission is off. Turn it on in Android settings.";
-  if (r.error === "no_calendar") return "The chosen calendar is gone. Pick another below.";
-  return `Last sync failed ${ago(r.at)}`;
+  if (r.error === "no_calendar") return "The chosen calendar isn't available any more. Pick one below.";
+  return `Last sync failed ${ago(r.at)}${r.errorMessage ? `: ${r.errorMessage}` : ""}`;
 }
 
 function Row({
@@ -145,7 +165,7 @@ export default function CalendarSyncScreen() {
   const pickCalendar = useCallback(
     async (choice: string) => {
       const id = choice === ARTH_OPTION ? await ensureArthCalendar() : choice;
-      if (id === prefs.calendarId) return;
+      if (idOf(id) === prefs.calendarId) return;
       // Moving calendars: take Arth's events out of the old one first, so nothing is left behind.
       if (prefs.calendarId) await removeArthEvents();
       await update({ calendarId: id });
@@ -162,8 +182,8 @@ export default function CalendarSyncScreen() {
     groups.set(acct, [...(groups.get(acct) ?? []), c]);
   }
   const arthCal = calendars.find(isArthCalendar);
-  const selectedIsArth = arthCal != null && prefs.calendarId === arthCal.id;
-  const selected = calendars.find((c) => c.id === prefs.calendarId);
+  const selectedIsArth = arthCal != null && prefs.calendarId === idOf(arthCal.id);
+  const selected = calendars.find((c) => idOf(c.id) === prefs.calendarId);
   const syncsToCloud = selected != null && !selected.source?.isLocalAccount;
 
   const option = (key: string, title: string, subtitle: string | null, isSelected: boolean, color?: string) => (
@@ -219,7 +239,7 @@ export default function CalendarSyncScreen() {
               {[...groups.entries()].map(([acct, cals]) => (
                 <View key={acct}>
                   <Text className="text-xs text-muted-foreground pt-3">{acct}</Text>
-                  {cals.map((c) => option(c.id, c.title, null, c.id === prefs.calendarId, c.color))}
+                  {cals.map((c) => option(idOf(c.id), c.title, null, idOf(c.id) === prefs.calendarId, c.color))}
                 </View>
               ))}
               {!prefs.calendarId && (

@@ -62,7 +62,25 @@ export interface SyncResult {
   removed: number;
   total: number;
   error?: "disabled" | "no_permission" | "no_calendar" | "failed";
+  /** The underlying error text when error is "failed", shown on the settings screen. */
+  errorMessage?: string;
+  /** Events now in the calendar, per kind - so the screen can say what was added. */
+  byKind?: Record<CalendarItemKind, number>;
+  /** Unpaid dues whose date has passed; not added (a reminder for the past can't fire). */
+  overdueDues?: number;
+  calendarTitle?: string;
   at: number;
+}
+
+/**
+ * Calendar and event ids as strings, always. On Android expo-calendar RETURNS new ids as numbers
+ * (createCalendarAsync / createEventAsync) but LISTS them as strings (getCalendarsAsync /
+ * getEventsAsync). Mixing the two broke strict comparisons: a chosen "Arth" calendar was never
+ * found ("no_calendar"), and every sync deleted the events it had written earlier as
+ * "duplicates" because their stored ids never matched the listed ones.
+ */
+export function idOf(id: string | number): string {
+  return String(id);
 }
 
 export const HORIZON_DAYS = 90;
@@ -98,7 +116,13 @@ function readJson<T>(key: string, fallback: T): T {
 
 export function getCalendarPrefs(): CalendarPrefs {
   const p = readJson<Partial<CalendarPrefs>>(PREFS_KEY, {});
-  return { ...DEFAULT_PREFS, ...p, kinds: { ...DEFAULT_PREFS.kinds, ...(p.kinds ?? {}) } };
+  return {
+    ...DEFAULT_PREFS,
+    ...p,
+    // Older builds could store a numeric id (see idOf).
+    calendarId: p.calendarId != null ? idOf(p.calendarId) : null,
+    kinds: { ...DEFAULT_PREFS.kinds, ...(p.kinds ?? {}) },
+  };
 }
 
 export function setCalendarPrefs(patch: Partial<CalendarPrefs>): CalendarPrefs {
@@ -108,7 +132,11 @@ export function setCalendarPrefs(patch: Partial<CalendarPrefs>): CalendarPrefs {
 }
 
 function getEventMap(): EventMap {
-  return readJson<EventMap>(MAP_KEY, {});
+  const raw = readJson<EventMap>(MAP_KEY, {});
+  // Normalise ids stored as numbers by older builds (see idOf).
+  const map: EventMap = {};
+  for (const [k, v] of Object.entries(raw)) map[k] = { ...v, eventId: idOf(v.eventId) };
+  return map;
 }
 
 function saveEventMap(map: EventMap): void {
@@ -302,8 +330,11 @@ export function isArthCalendar(c: Pick<Calendar.Calendar, "name" | "source">): b
 /** Find or create the phone-only "Arth" calendar. */
 export async function ensureArthCalendar(): Promise<string> {
   const existing = (await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT)).find(isArthCalendar);
-  if (existing) return existing.id;
-  return Calendar.createCalendarAsync({
+  if (existing) {
+    await ensureShown(existing);
+    return idOf(existing.id);
+  }
+  const id = await Calendar.createCalendarAsync({
     title: "Arth",
     name: ARTH_CALENDAR_NAME,
     color: toHex(SEMANTIC.light.primary),
@@ -311,7 +342,20 @@ export async function ensureArthCalendar(): Promise<string> {
     source: { isLocalAccount: true, name: "Arth", type: Calendar.SourceType.LOCAL },
     ownerAccount: "Arth",
     accessLevel: Calendar.CalendarAccessLevel.OWNER,
+    // Android defaults SYNC_EVENTS to 0 for a new calendar, and Google Calendar hides calendars
+    // that aren't synced - the events would exist but never show up.
+    isVisible: true,
+    isSynced: true,
   });
+  return idOf(id);
+}
+
+/** Repair an Arth calendar created before isVisible/isSynced were set. */
+async function ensureShown(c: Calendar.Calendar): Promise<void> {
+  if (!isArthCalendar(c) || (c.isVisible && c.isSynced)) return;
+  await Calendar.updateCalendarAsync(idOf(c.id), { isVisible: true, isSynced: true }).catch((e) =>
+    logger.warn("Calendar sync: couldn't make the Arth calendar visible", e),
+  );
 }
 
 // ─── Apply ───
@@ -321,17 +365,17 @@ async function adoptTaggedEvents(calendarId: string, map: EventMap, today: strin
   const start = new Date(`${today}T00:00:00`);
   const end = new Date(`${addDays(today, HORIZON_DAYS + 1)}T00:00:00`);
   const events = await Calendar.getEventsAsync([calendarId], start, end);
-  const known = new Set(Object.values(map).map((e) => e.eventId));
+  const known = new Set(Object.values(map).map((e) => idOf(e.eventId)));
   const next = { ...map };
   for (const ev of events) {
     const key = ev.notes?.match(TAG_RE)?.[1];
-    if (!key || known.has(ev.id)) continue;
+    if (!key || known.has(idOf(ev.id))) continue;
     if (next[key]) {
       // Two events for one item: keep the tracked one, drop the stray.
-      await Calendar.deleteEventAsync(ev.id).catch(() => {});
+      await Calendar.deleteEventAsync(idOf(ev.id)).catch(() => {});
     } else {
       // Unknown hash → the plan will rewrite it with current content.
-      next[key] = { eventId: ev.id, date: ymd(new Date(ev.startDate)), hash: "" };
+      next[key] = { eventId: idOf(ev.id), date: ymd(new Date(ev.startDate)), hash: "" };
     }
   }
   return next;
@@ -359,14 +403,17 @@ async function doSync(userId: string): Promise<SyncResult> {
   if (Platform.OS !== "android" || !prefs.enabled) return { ...base, error: "disabled" };
   if (!(await hasCalendarPermission())) return finish({ ...base, error: "no_permission" });
   const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-  if (!prefs.calendarId || !calendars.some((c) => c.id === prefs.calendarId)) {
+  const target = prefs.calendarId ? calendars.find((c) => idOf(c.id) === prefs.calendarId) : undefined;
+  if (!target) {
     return finish({ ...base, error: "no_calendar" });
   }
-  const calendarId = prefs.calendarId;
+  const calendarId = idOf(target.id);
+  await ensureShown(target);
 
   try {
     const today = ymd(new Date());
     const desired = await collectCalendarItems(userId, prefs.kinds, today);
+    const overdueDues = prefs.kinds.due ? await countOverdueDues(userId, today) : 0;
     let map = await adoptTaggedEvents(calendarId, getEventMap(), today);
     const plan = planSync(desired, map, today, prefs.showAmounts);
     map = { ...map };
@@ -382,14 +429,14 @@ async function doSync(userId: string): Promise<SyncResult> {
       } catch {
         // Deleted in the calendar app: put it back.
         const id = await Calendar.createEventAsync(calendarId, eventDetails(item, prefs.showAmounts));
-        map[item.key] = { eventId: id, date: item.date, hash: "" };
+        map[item.key] = { eventId: idOf(id), date: item.date, hash: "" };
         continue;
       }
       map[item.key] = { eventId, date: item.date, hash: itemHash(item, prefs.showAmounts) };
     }
     for (const item of plan.create) {
       const id = await Calendar.createEventAsync(calendarId, eventDetails(item, prefs.showAmounts));
-      map[item.key] = { eventId: id, date: item.date, hash: itemHash(item, prefs.showAmounts) };
+      map[item.key] = { eventId: idOf(id), date: item.date, hash: itemHash(item, prefs.showAmounts) };
     }
     // Any "" hash left from a re-create gets its real fingerprint now that it's written.
     for (const item of desired) {
@@ -403,11 +450,26 @@ async function doSync(userId: string): Promise<SyncResult> {
       updated: plan.update.length,
       removed: plan.remove.length,
       total: desired.length,
+      byKind: countByKind(desired),
+      overdueDues,
+      calendarTitle: target.title,
     });
   } catch (e) {
     logger.error("Calendar sync failed", e);
-    return finish({ ...base, error: "failed" });
+    return finish({ ...base, error: "failed", errorMessage: e instanceof Error ? e.message : String(e) });
   }
+}
+
+export function countByKind(items: CalendarItem[]): Record<CalendarItemKind, number> {
+  const out: Record<CalendarItemKind, number> = { due: 0, emi: 0, reminder: 0, fd: 0 };
+  for (const i of items) out[i.kind]++;
+  return out;
+}
+
+/** Unpaid dues whose date has already passed (Home still lists them as overdue). */
+async function countOverdueDues(userId: string, today: string): Promise<number> {
+  const forecasts = await getForecastExpenses(userId);
+  return forecasts.filter((f) => f.due_date != null && f.due_date < today).length;
 }
 
 /** Automatic triggers (app open / leave, background scan) — at most every 15 minutes. */
