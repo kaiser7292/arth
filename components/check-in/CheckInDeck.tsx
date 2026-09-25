@@ -1,12 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, Pressable, ScrollView, View } from "react-native";
+import { AppState, View } from "react-native";
+import { CHECK_IN_ROUTES } from "@/components/check-in/check-in-routes";
 import { SwipeDeck } from "@/components/expense/catch-up/SwipeDeck";
-import { Button, Card, EmptyState, LoadingState, ProgressBar, ScreenContainer, Text, useToast } from "@/components/ui";
-import { useTheme } from "@/hooks/use-theme";
+import { Button, EmptyState, LoadingState, ScreenContainer, useToast } from "@/components/ui";
+import { DeckCard, DeckFooter, DeckProgress } from "./DeckParts";
+import { DEFAULT_USER_ID } from "@/constants/app";
 import { DeferredAction } from "@/services/catch-up";
+import type { CheckInId } from "@/services/check-ins";
+import { getCheckInCounts, pickNextCheckIn } from "@/services/check-ins";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 
@@ -33,6 +37,8 @@ export interface DeckAction<T> {
 }
 
 interface CheckInDeckProps<T> {
+  /** Which check-in this is; used to move on to the next one when the deck is finished. */
+  id: CheckInId;
   /** For logs; the screen title comes from the Stack header. */
   title: string;
   /** Optional context shown above the progress bar, e.g. the month being checked. */
@@ -59,6 +65,7 @@ const UNDO_WINDOW_MS = 6000;
  * category suggestions and "same again" batching, but shares DeckProgress / DeckFooter below.
  */
 export function CheckInDeck<T>({
+  id,
   title,
   context,
   loadItems,
@@ -73,6 +80,7 @@ export function CheckInDeck<T>({
 }: CheckInDeckProps<T>) {
   const router = useRouter();
   const toast = useToast();
+  const { visited: visitedParam } = useLocalSearchParams<{ visited?: string }>();
 
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<T[]>([]);
@@ -168,7 +176,34 @@ export function CheckInDeck<T>({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   }, [item]);
 
-  if (loading) {
+  // Finished the last card: go straight to the next check-in that has something in it.
+  const finished = !loading && items.length > 0 && index >= items.length;
+  const [advancing, setAdvancing] = useState(false);
+  useEffect(() => {
+    if (!finished) return;
+    let cancelled = false;
+    setAdvancing(true);
+    (async () => {
+      // Commit the last action first, so the counts below reflect it.
+      await deferred.flush();
+      undoPoint.current = null;
+      const visited = [...(visitedParam ? visitedParam.split(",") : []), id];
+      const next = pickNextCheckIn(await getCheckInCounts(DEFAULT_USER_ID), id, visited);
+      if (cancelled) return;
+      if (next) {
+        toast(`${CHECK_IN_ROUTES[id].title} done. Next: ${CHECK_IN_ROUTES[next].title}`);
+        router.replace({ pathname: CHECK_IN_ROUTES[next].href as never, params: { visited: visited.join(",") } });
+      } else {
+        setAdvancing(false);
+      }
+    })().catch(() => setAdvancing(false));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
+
+  if (loading || advancing) {
     return (
       <ScreenContainer padTop={false}>
         <LoadingState message="Loading…" icon="albums-outline" />
@@ -200,31 +235,25 @@ export function CheckInDeck<T>({
   return (
     <ScreenContainer padTop={false}>
       <DeckProgress position={index + 1} total={items.length} context={context} />
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <View className="flex-1 px-4">
         <SwipeDeck
           cardKey={keyOf(item)}
           onSwipeRight={() => void perform(primary)}
           onSwipeLeft={skip}
           rightLabel={primary.label}
           enabled={!busy}
+          fill
         >
-          <Card>
+          <DeckCard
+            actions={secondary.map((a) => ({ label: a.label, icon: a.icon, role: a.role, onPress: () => void perform(a) }))}
+            disabled={busy}
+          >
             {renderCard(item)}
-            <DeckCardActions
-              actions={secondary.map((a) => ({ label: a.label, icon: a.icon, role: a.role, onPress: () => void perform(a) }))}
-              disabled={busy}
-            />
-          </Card>
+          </DeckCard>
         </SwipeDeck>
-        <Text className="text-xs text-faint-foreground text-center mt-3">
-          Swipe right to {primary.label.toLowerCase()} · left to skip
-        </Text>
-      </ScrollView>
+      </View>
       <DeckFooter
+        hint={`Swipe right to ${primary.label.toLowerCase()} · left to skip`}
         onSkip={skip}
         primaryLabel={primary.label}
         onPrimary={() => void perform(primary)}
@@ -234,115 +263,5 @@ export function CheckInDeck<T>({
   );
 }
 
-// ─── Shared pieces (also used by Catch Up) ───
-
-/** "2 of 17" plus a progress bar, under the Stack header. */
-export function DeckProgress({ position, total, context }: { position: number; total: number; context?: string }) {
-  return (
-    <View className="px-4 pt-2 pb-4">
-      <View className="flex-row items-center justify-between mb-2">
-        {context ? (
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{context}</Text>
-        ) : (
-          <View />
-        )}
-        <Text className="text-xs text-muted-foreground">
-          {position} of {total}
-        </Text>
-      </View>
-      <ProgressBar value={total > 0 ? position / total : 0} />
-    </View>
-  );
-}
-
-export interface FooterAction {
-  label: string;
-  icon: IconName;
-  role?: Role;
-  onPress: () => void;
-}
-
-/**
- * Extra actions as full-width rows at the bottom of the card (Settings-row style), so the only
- * buttons below the card are Skip and the main action.
- */
-export function DeckCardActions({ actions, disabled }: { actions: FooterAction[]; disabled?: boolean }) {
-  const theme = useTheme();
-  if (actions.length === 0) return null;
-  return (
-    <View className="mt-4 -mb-1 border-t border-border">
-      {actions.map((a, i) => {
-        const color = theme[a.role ?? "primary"];
-        return (
-          <Pressable
-            key={a.label}
-            onPress={a.onPress}
-            disabled={disabled}
-            className={`flex-row items-center py-3 ${i > 0 ? "border-t border-border" : ""}`}
-            style={{ minHeight: 48 }}
-            accessibilityRole="button"
-          >
-            <Ionicons name={a.icon} size={20} color={color} />
-            <Text className="text-sm font-semibold ml-3 flex-1" style={{ color }}>
-              {a.label}
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-/** Skip + the main action — always the same place on every deck. */
-export function DeckFooter({
-  onSkip,
-  primaryLabel,
-  onPrimary,
-  disabled,
-}: {
-  onSkip: () => void;
-  primaryLabel: string;
-  onPrimary: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <View className="flex-row gap-3 px-4 pt-3 pb-4 border-t border-border">
-      <View className="flex-1">
-        <Button title="Skip" variant="secondary" onPress={onSkip} disabled={disabled} />
-      </View>
-      <View className="flex-1">
-        <Button title={primaryLabel} onPress={onPrimary} disabled={disabled} />
-      </View>
-    </View>
-  );
-}
-
-/** Centred card heading: small section label, then the title. */
-export function DeckHeadline({ kicker, title, subtitle }: { kicker: string; title: string; subtitle?: string }) {
-  return (
-    <View className="items-center">
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{kicker}</Text>
-      <Text className="text-base font-bold text-foreground text-center mt-1.5" numberOfLines={2}>
-        {title}
-      </Text>
-      {subtitle ? <Text className="text-sm text-muted-foreground text-center mt-1">{subtitle}</Text> : null}
-    </View>
-  );
-}
-
-/** Label / value row for card details. */
-export function DeckRow({ label, value, valueColor }: { label: string; value: React.ReactNode; valueColor?: string }) {
-  return (
-    <View className="flex-row justify-between items-center py-2.5 border-b border-border">
-      <Text className="text-sm text-muted-foreground">{label}</Text>
-      {typeof value === "string" ? (
-        <Text className="text-sm font-semibold text-foreground" style={valueColor ? { color: valueColor } : undefined}>
-          {value}
-        </Text>
-      ) : (
-        value
-      )}
-    </View>
-  );
-}
+export { DeckCard, DeckCardActions, DeckFooter, DeckHeadline, DeckProgress, DeckRow } from "./DeckParts";
+export type { FooterAction } from "./DeckParts";

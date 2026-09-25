@@ -31,6 +31,7 @@ export default function MonthEndCheckScreen() {
 
   return (
     <CheckInDeck<MonthEndItem>
+      id="monthEnd"
       title="Month-end check"
       context={monthLabel(cycle)}
       loadItems={load}

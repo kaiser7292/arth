@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useColorScheme as useNativeWindColorScheme } from "nativewind";
-import { Card, Money, Text } from "@/components/ui";
-import { DeckCardActions, DeckFooter, DeckHeadline, DeckProgress, DeckRow } from "@/components/check-in/CheckInDeck";
+import { Money, Text } from "@/components/ui";
+import { DeckCard, DeckFooter, DeckHeadline, DeckProgress, DeckRow } from "@/components/check-in/DeckParts";
 import { CatchUpCardView } from "@/components/expense/catch-up/CatchUpCardView";
 import { SwipeDeck } from "@/components/expense/catch-up/SwipeDeck";
 import type { CatchUpCard } from "@/services/catch-up";
@@ -54,15 +54,17 @@ function Deck({ title, position, total, card, primaryLabel }: { title: string; p
   return (
     <Phone label={title}>
       <DeckProgress position={((position - 1 + key) % total) + 1} total={total} />
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-        <SwipeDeck cardKey={String(key)} onSwipeLeft={() => setKey((k) => k + 1)} onSwipeRight={() => setKey((k) => k + 1)} rightLabel={primaryLabel}>
+      <View className="flex-1 px-4">
+        <SwipeDeck fill cardKey={String(key)} onSwipeLeft={() => setKey((k) => k + 1)} onSwipeRight={() => setKey((k) => k + 1)} rightLabel={primaryLabel}>
           {card}
         </SwipeDeck>
-        <Text className="text-xs text-faint-foreground text-center mt-3">
-          Swipe right to {primaryLabel.toLowerCase()} · left to skip
-        </Text>
-      </ScrollView>
-      <DeckFooter onSkip={() => setKey((k) => k + 1)} primaryLabel={primaryLabel} onPrimary={() => setKey((k) => k + 1)} />
+      </View>
+      <DeckFooter
+        hint={`Swipe right to ${primaryLabel.toLowerCase()} · left to skip`}
+        onSkip={() => setKey((k) => k + 1)}
+        primaryLabel={primaryLabel}
+        onPrimary={() => setKey((k) => k + 1)}
+      />
     </Phone>
   );
 }
@@ -83,7 +85,12 @@ export default function CheckInPreview() {
           total={2}
           primaryLabel="Remind"
           card={
-            <Card>
+            <DeckCard
+              actions={[
+                { label: "Mark settled", icon: "checkmark-done-outline", onPress: noop },
+                { label: "Open ledger", icon: "list-outline", role: "mutedForeground", onPress: noop },
+              ]}
+            >
               <DeckHeadline kicker="Owes you" title="Manoj Kumar Jain" />
               <Money value={169787.37} className="text-title font-bold text-center text-success mt-1" />
               <View className="mt-4">
@@ -91,13 +98,7 @@ export default function CheckInPreview() {
                 <DeckRow label="Entries" value="132" />
                 <DeckRow label="Last reminded" value="Never" />
               </View>
-              <DeckCardActions
-                actions={[
-                  { label: "Mark settled", icon: "checkmark-done-outline", onPress: noop },
-                  { label: "Open ledger", icon: "list-outline", role: "mutedForeground", onPress: noop },
-                ]}
-              />
-            </Card>
+            </DeckCard>
           }
         />
         <Deck

@@ -27,6 +27,7 @@ export default function SettleUpScreen() {
 
   return (
     <CheckInDeck<HisaabPersonWithBalance>
+      id="settleUp"
       title="Settle up"
       loadItems={load}
       keyOf={(p) => p.id}

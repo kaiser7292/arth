@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import { Card, Money, Text } from "@/components/ui";
-import { DeckCardActions } from "@/components/check-in/CheckInDeck";
-import type { FooterAction } from "@/components/check-in/CheckInDeck";
+import { Money, Text } from "@/components/ui";
+import { DeckCard } from "@/components/check-in/DeckParts";
+import type { FooterAction } from "@/components/check-in/DeckParts";
 import { useTheme } from "@/hooks/use-theme";
 import type { Category } from "@/services/category";
 import type { CatchUpCard } from "@/services/catch-up";
@@ -58,7 +58,7 @@ export function CatchUpCardView({
   const kindLabel = card.kind === "pending" && isCredit ? "Money received" : meta.label;
 
   return (
-    <Card>
+    <DeckCard actions={actions}>
       <View className="flex-row items-center justify-center mb-3">
         <Ionicons name={meta.icon} size={14} color={theme.mutedForeground} />
         <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1.5">
@@ -81,9 +81,7 @@ export function CatchUpCardView({
       {card.kind === "match" && <MatchBody card={card} accountMap={accountMap} />}
 
       {card.kind === "duplicate" && <DuplicateBody card={card} accountMap={accountMap} />}
-
-      <DeckCardActions actions={actions} />
-    </Card>
+    </DeckCard>
   );
 }
 

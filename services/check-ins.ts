@@ -36,3 +36,29 @@ export async function getCheckInCounts(userId: string, now: Date = new Date()): 
   ]);
   return { monthEnd, ruleSuggestions, subscriptions, settleUp };
 }
+
+// ─── Moving from one check-in to the next ───
+
+export type CheckInId = keyof CheckInCounts;
+
+/** Order the decks are offered in: Home's Check-ins card and auto-advance both follow it. */
+export const CHECK_IN_ORDER: CheckInId[] = ["monthEnd", "settleUp", "subscriptions", "ruleSuggestions"];
+
+/**
+ * The next deck to open after finishing `current`: the first one after it (wrapping round) that
+ * has something in it and hasn't already been done in this run.
+ */
+export function pickNextCheckIn(
+  counts: CheckInCounts,
+  current: CheckInId,
+  visited: readonly string[],
+): CheckInId | null {
+  const n = CHECK_IN_ORDER.length;
+  const start = CHECK_IN_ORDER.indexOf(current);
+  for (let k = 1; k < n; k++) {
+    const id = CHECK_IN_ORDER[(start + k) % n];
+    if (id === current || visited.includes(id)) continue;
+    if (counts[id] > 0) return id;
+  }
+  return null;
+}

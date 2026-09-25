@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, ScrollView, View } from "react-native";
+import { AppState, View } from "react-native";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { CatchUpCardView } from "@/components/expense/catch-up/CatchUpCardView";
 import { CatchUpDone } from "@/components/expense/catch-up/CatchUpDone";
@@ -527,11 +527,7 @@ export default function CatchUpScreen() {
     <ScreenContainer padTop={false}>
       <DeckProgress position={currentIdx + 1} total={deck.length} />
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <View className="flex-1 px-4">
         {batchOffer && (
           <Card className="mb-3">
             <Text className="text-sm text-foreground">
@@ -563,6 +559,7 @@ export default function CatchUpScreen() {
           rightNeedsInput={needsInput}
           rightLabel={primaryLabel}
           enabled={!picker && !ccPickerOpen}
+          fill
         >
           <CatchUpCardView
             card={card}
@@ -574,12 +571,14 @@ export default function CatchUpScreen() {
             actions={cardActions}
           />
         </SwipeDeck>
-        <Text className="text-xs text-faint-foreground text-center mt-3">
-          Swipe right to {primaryLabel.toLowerCase()} · left to skip
-        </Text>
-      </ScrollView>
+      </View>
 
-      <DeckFooter onSkip={skip} primaryLabel={primaryLabel} onPrimary={() => primary()} />
+      <DeckFooter
+        hint={`Swipe right to ${primaryLabel.toLowerCase()} · left to skip`}
+        onSkip={skip}
+        primaryLabel={primaryLabel}
+        onPrimary={() => primary()}
+      />
 
       <CategoryPickerSheet
         visible={picker != null}

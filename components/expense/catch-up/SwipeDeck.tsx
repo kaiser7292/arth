@@ -4,7 +4,6 @@ import { View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
-  FadeIn,
   interpolate,
   runOnJS,
   useAnimatedStyle,
@@ -18,7 +17,7 @@ import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import { useTheme } from "@/hooks/use-theme";
 
 interface SwipeDeckProps {
-  /** Changes per card. A new key re-centres the card and fades it in. */
+  /** Identity of the card on screen. A new key mounts a brand-new card. */
   cardKey: string;
   onSwipeRight: () => void;
   onSwipeLeft: () => void;
@@ -30,25 +29,34 @@ interface SwipeDeckProps {
   rightLabel: string;
   leftLabel?: string;
   enabled?: boolean;
+  /** Stretch to fill the parent's height, so the whole middle of the screen is swipeable. */
+  fill?: boolean;
   children: React.ReactNode;
 }
-
-const SPRING = { damping: 20, stiffness: 220, mass: 0.8 };
 
 /**
  * One card that can be flung right (primary action) or left (skip).
  *
- * The action fires after the fly-off finishes so the next card never appears under a card
- * that's still moving. The card is content-sized; the parent decides where it sits.
+ * Each card is its own component instance (keyed by cardKey), so its position starts at 0 by
+ * construction. Two earlier versions reused one instance and reset the position after the swap;
+ * on Android that lost a race with Reanimated's `entering` layout animation, which snapshots the
+ * style at mount (still off-screen) and restores it when it ends - the next card never appeared.
+ * The fade-in is therefore done by hand here, with no layout animation at all.
  */
-export function SwipeDeck({
-  cardKey,
+export function SwipeDeck(props: SwipeDeckProps) {
+  return <SwipeCard key={props.cardKey} {...props} />;
+}
+
+const SPRING = { damping: 20, stiffness: 220, mass: 0.8 };
+
+function SwipeCard({
   onSwipeRight,
   onSwipeLeft,
   rightNeedsInput = false,
   rightLabel,
   leftLabel = "Skip",
   enabled = true,
+  fill = false,
   children,
 }: SwipeDeckProps) {
   const theme = useTheme();
@@ -56,16 +64,15 @@ export function SwipeDeck({
   const { width } = useWindowDimensions();
   const threshold = width * 0.28;
   const translateX = useSharedValue(0);
+  const opacity = useSharedValue(reduceMotion ? 1 : 0);
 
-  // The shared value outlives the card: after a fly-off it still holds ±1.3 × width, so without
-  // this the next card rendered off-screen (the "next card doesn't show up" bug).
   useEffect(() => {
-    translateX.value = 0;
-  }, [cardKey, translateX]);
+    opacity.value = withTiming(1, { duration: MOTION.base });
+  }, [opacity]);
 
   const pan = Gesture.Pan()
     .enabled(enabled)
-    // Horizontal intent only: lets the card's own ScrollView (raw SMS) keep vertical drags.
+    // Horizontal intent only: vertical drags still scroll the card's content.
     .activeOffsetX([-12, 12])
     .failOffsetY([-14, 14])
     .onUpdate((e) => {
@@ -91,6 +98,7 @@ export function SwipeDeck({
     });
 
   const cardStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
     transform: [
       { translateX: translateX.value },
       {
@@ -109,11 +117,7 @@ export function SwipeDeck({
 
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View
-        key={cardKey}
-        entering={reduceMotion ? undefined : FadeIn.duration(MOTION.base)}
-        style={cardStyle}
-      >
+      <Animated.View style={[fill ? { flex: 1 } : null, cardStyle]}>
         {children}
         <Animated.View pointerEvents="none" style={[hint, { left: 28 }, rightHint]}>
           <View

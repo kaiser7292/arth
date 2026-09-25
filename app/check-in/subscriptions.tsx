@@ -36,6 +36,7 @@ export default function SubscriptionCheckScreen() {
 
   return (
     <CheckInDeck<SubscriptionItem>
+      id="subscriptions"
       title="Subscriptions"
       loadItems={load}
       keyOf={(i) => i.sub.id}

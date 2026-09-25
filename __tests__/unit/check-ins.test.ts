@@ -33,6 +33,7 @@ import { isCoveredByRule, pickSuggestions } from "../../services/rule-suggestion
 import { REVIEW_EVERY_DAYS, classifySubscription, yearlyCost } from "../../services/subscription-check";
 import { classifyBalance, getCycleMonth, isMonthEndWindow } from "../../services/month-end-check";
 import { reminderMessage } from "../../services/settle-up-check";
+import { pickNextCheckIn } from "../../services/check-ins";
 
 const rule = (merchant: string, withCategory = true): SmartRule =>
   ({
@@ -118,5 +119,23 @@ describe("settle-up reminder", () => {
     expect(msg).toMatch(/^Hi Rahul,/);
     expect(msg).toContain("1,500");
     expect(msg).toContain("2026-09-01");
+  });
+});
+
+describe("auto-advance between check-ins", () => {
+  const counts = { monthEnd: 0, settleUp: 2, subscriptions: 17, ruleSuggestions: 3 };
+
+  it("goes to the next deck in order that has items", () => {
+    expect(pickNextCheckIn(counts, "settleUp", [])).toBe("subscriptions");
+    expect(pickNextCheckIn(counts, "subscriptions", [])).toBe("ruleSuggestions");
+  });
+
+  it("wraps round but skips empty and already-done decks", () => {
+    expect(pickNextCheckIn(counts, "ruleSuggestions", [])).toBe("settleUp");
+    expect(pickNextCheckIn(counts, "ruleSuggestions", ["settleUp", "subscriptions"])).toBeNull();
+  });
+
+  it("stops when nothing else has items", () => {
+    expect(pickNextCheckIn({ monthEnd: 0, settleUp: 1, subscriptions: 0, ruleSuggestions: 0 }, "settleUp", [])).toBeNull();
   });
 });

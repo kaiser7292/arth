@@ -26,6 +26,7 @@ export default function RuleSuggestionsScreen() {
 
   return (
     <CheckInDeck<RuleSuggestion>
+      id="ruleSuggestions"
       title="Rule suggestions"
       loadItems={load}
       keyOf={(s) => s.key}
