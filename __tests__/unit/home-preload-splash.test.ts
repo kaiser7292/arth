@@ -30,8 +30,14 @@ jest.mock("@/utils/logger", () => ({ logger: { warn: jest.fn(), error: jest.fn()
 jest.mock("@/services/settings", () => ({ getDataVersion: () => 1 }));
 jest.mock("@/utils/budget-helpers", () => ({ getMonthDateRange: () => ({ startDate: "2026-09-01", endDate: "2026-09-30" }) }));
 jest.mock("@/utils/fiscal-year", () => mockStubModule());
+const mockInsightCalls = { n: 0 };
 jest.mock("@/services/insight-engine", () =>
-  mockStubModule({ getInsights: () => mockHold.insights ?? Promise.resolve([]) }),
+  mockStubModule({
+    getInsights: () => {
+      mockInsightCalls.n++;
+      return mockHold.insights ?? Promise.resolve([]);
+    },
+  }),
 );
 jest.mock("@/services/duplicate-detection", () =>
   mockStubModule({ scanAllDuplicatesCached: () => mockHold.duplicates ?? Promise.resolve({ groups: [] }) }),
@@ -52,6 +58,7 @@ beforeEach(() => {
   jest.resetModules();
   mockHold.insights = null;
   mockHold.duplicates = null;
+  mockInsightCalls.n = 0;
 });
 
 describe("startup loader waits for Home's data only", () => {
@@ -73,5 +80,20 @@ describe("startup loader waits for Home's data only", () => {
     const started = Date.now();
     await expect(waitForHomeSection(60)).resolves.toBe(false);
     expect(Date.now() - started).toBeLessThan(1000);
+  });
+
+  it("starts the other screens' data only after Home's is in (they share one database)", async () => {
+    let releaseHome: (v: unknown) => void = () => {};
+    mockHold.duplicates = new Promise((r) => {
+      releaseHome = r;
+    });
+    const { preloadHomeData, waitForHomeSection } = require("../../services/home-preload");
+    const full = preloadHomeData();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mockInsightCalls.n).toBe(0);
+    releaseHome({ groups: [] });
+    await expect(waitForHomeSection(1000)).resolves.toBe(true);
+    await full;
+    expect(mockInsightCalls.n).toBeGreaterThan(0);
   });
 });

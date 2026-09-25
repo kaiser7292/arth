@@ -8,7 +8,7 @@ import { ToastProvider } from "@/components/ui";
 import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
 import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
-import { preloadHomeData, waitForHomeSection } from "@/services/home-preload";
+import { preloadHomeData } from "@/services/home-preload";
 import { runDailyNotificationCheck, syncNotifBackgroundTask } from "@/services/notification-scheduler";
 import { materialiseMaturedInvestments, migrateLegacyDematPensionAccounts } from "@/services/investment-accounts";
 import { migrateInvestmentsHomeCardPreference } from "@/services/home-card-preferences";
@@ -37,10 +37,10 @@ import { Stack, useRouter, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as TaskManager from "expo-task-manager";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Appearance, AppState, BackHandler, Easing, ScrollView, TouchableOpacity, View } from "react-native";
+import { AppState, BackHandler, ScrollView, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Circle, G, Rect, Svg } from "react-native-svg";
 import "../global.css";
+import { ArthLoader as SplashScreen } from "@/components/ArthLoader";
 import { useTheme } from "@/hooks/use-theme";
 
 /**
@@ -103,106 +103,6 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-/** Longest the startup loader waits for Home's data before opening Home anyway. */
-const HOME_DATA_MAX_WAIT_MS = 8000;
-
-function SplashScreen({ step }: { step: string }) {
-  const theme = useTheme();
-  const isDark = Appearance.getColorScheme() === "dark";
-  const pulseAnim = useRef(new Animated.Value(0.6)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 900,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0.6,
-          duration: 900,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [pulseAnim]);
-
-  return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: isDark ? "#111111" : "#FFFFFF" }}>
-      <Animated.View style={{ 
-        opacity: pulseAnim,
-        marginBottom: 20,
-        shadowColor: "#134E4A",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 8
-      }}>
-        <View style={{ width: 120, height: 120, borderRadius: 30, overflow: 'hidden' }}>
-          <Svg width={120} height={120} viewBox="0 0 400 400">
-            <Rect
-              width="400"
-              height="400"
-              rx="80"
-              ry="80"
-              fill="#134E4A"
-            />
-            <Circle
-              cx="200"
-              cy="200"
-              r="152"
-              fill="none"
-              stroke={theme.warning}
-              strokeWidth="5.5"
-            />
-            <Circle
-              cx="200"
-              cy="200"
-              r="139"
-              fill="none"
-              stroke={theme.warning}
-              strokeWidth="1.2"
-            />
-            <G fill={theme.warning} opacity={0.6}>
-              <Circle cx="200" cy="55" r="2.3"/>
-              <Circle cx="271" cy="75" r="2.3"/>
-              <Circle cx="325" cy="129" r="2.3"/>
-              <Circle cx="345" cy="200" r="2.3"/>
-              <Circle cx="325" cy="271" r="2.3"/>
-              <Circle cx="271" cy="325" r="2.3"/>
-              <Circle cx="200" cy="345" r="2.3"/>
-              <Circle cx="129" cy="325" r="2.3"/>
-              <Circle cx="75" cy="271" r="2.3"/>
-              <Circle cx="55" cy="200" r="2.3"/>
-              <Circle cx="75" cy="129" r="2.3"/>
-              <Circle cx="129" cy="75" r="2.3"/>
-            </G>
-          </Svg>
-          <View style={{ position: 'absolute', width: 120, height: 120, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 60, fontWeight: "bold", color: "#FFFFFF" }}>अ</Text>
-          </View>
-        </View>
-      </Animated.View>
-      <Text style={{ fontSize: 36, fontWeight: "bold", color: isDark ? "#FFFFFF" : "#111111", letterSpacing: 2 }}>
-        अर्थ
-      </Text>
-      <Text style={{ fontSize: 16, fontWeight: "600", color: isDark ? "#D1D5DB" : theme.mutedForeground, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>
-        Arth
-      </Text>
-      <Text style={{ fontSize: 13, color: isDark ? theme.mutedForeground : theme.faintForeground, marginTop: 12, fontStyle: "italic" }}>
-        your finances, your way
-      </Text>
-      <Text style={{ fontSize: 12, color: isDark ? theme.mutedForeground : theme.faintForeground, marginTop: 32 }}>
-        {step}
-      </Text>
-    </View>
-  );
-}
 
 /**
  * Cancels background work registered by the old scheduled-scan system
@@ -247,8 +147,6 @@ export default function RootLayout(): React.JSX.Element {
   const [dbReady, setDbReady] = useState(false);
   const [minSplashDone, setMinSplashDone] = useState(false);
   const [lockEvaluated, setLockEvaluated] = useState(false);
-  // Keep the Arth loader up until Home's data is in, so Home never opens on zeros.
-  const [homeDataReady, setHomeDataReady] = useState(false);
   const [lockEvaluationInProgress, setLockEvaluationInProgress] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [initStep, setInitStep] = useState("Starting up...");
@@ -318,17 +216,13 @@ export default function RootLayout(): React.JSX.Element {
               })
             : Promise.resolve(),
         ]);
-        // The splash waits for HOME's section of the preload only (not the other 13 screens), and
-        // at most HOME_DATA_MAX_WAIT_MS: the Home section includes the duplicate scan, which scales
-        // with history - the reason v17.5.9 stopped the splash waiting on the whole preload. Past
-        // the cap, Home opens and fills in when its data lands.
+        // v17.5.9 — splash must NOT wait for preload. preloadHomeData
+        // includes scanAllDuplicatesCached, which scales with DB size; holding
+        // the splash on it inflates cold-start time for users with long
+        // history. Fire-and-forget — Home shows its own skeleton until the
+        // preload cache settles. Any failure is logged but non-fatal.
         preloadHomeData().catch((e) => logger.warn("Home preload failed (non-fatal):", e));
-        setInitStepThrottled("Loading your finances...");
-        waitForHomeSection(HOME_DATA_MAX_WAIT_MS)
-          .then((ready) => {
-            if (!ready) logger.warn("Home data took longer than the splash cap; opening anyway");
-          })
-          .finally(() => setHomeDataReady(true));
+        setInitStepThrottled("Almost ready...");
         // v17.5.0 — Android 13+ needs an explicit runtime POST_NOTIFICATIONS
         // prompt (declared in manifest since v17.5.0). Without this, the OS
         // silently drops every notification call. Fire-and-forget idempotent
@@ -489,14 +383,13 @@ export default function RootLayout(): React.JSX.Element {
   // existing user whose stamp-write failed — err on the side of not
   // interrupting an existing user with the wizard.
   useEffect(() => {
-    // Same moment the splash lifts (it also waits for Home's data), as before that wait existed.
-    if (!dbReady || !minSplashDone || !lockEvaluated || !homeDataReady) return;
+    if (!dbReady || !minSplashDone || !lockEvaluated) return;
     if (!getFlag("v15_onboarding_wizard")) return;
     if (migrationFailedRef.current) return;
     if (getOnboardingCompletedVersion()) return;
     if (!routerRef.current) return;
     routerRef.current.replace("/(onboarding)/welcome");
-  }, [dbReady, minSplashDone, lockEvaluated, homeDataReady]);
+  }, [dbReady, minSplashDone, lockEvaluated]);
 
   // Show error screen first if initialization failed
   if (initError) {
@@ -530,7 +423,7 @@ export default function RootLayout(): React.JSX.Element {
   }
 
   // Show splash screen during initialization
-  if (!dbReady || !minSplashDone || !lockEvaluated || !homeDataReady) {
+  if (!dbReady || !minSplashDone || !lockEvaluated) {
     return <SplashScreen step={initStep} />;
   }
 

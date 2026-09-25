@@ -672,7 +672,10 @@ export function preloadHomeData(): Promise<void> {
     () => undefined,
     () => undefined,
   );
-  homePreloadPromise = runPreload(home, version);
+  // The other 13 sections start only once Home's is in. They all share one SQLite connection;
+  // started together, Home's queries queued behind Insights, Goals etc. and Home waited for all
+  // of them.
+  homePreloadPromise = homeSectionPromise.then(() => runPreload(home, version));
   return homePreloadPromise;
 }
 

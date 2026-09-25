@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { InsightsPage } from "@/components/home/pages/InsightsPage";
 import { ReviewQueuePage } from "@/components/home/pages/ReviewQueuePage";
 import { VaultPage } from "@/components/home/pages/VaultPage";
@@ -49,7 +49,8 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getCcExpenseTotals } from "@/services/financial-account";
 import { getHisaabSummary } from "@/services/hisaab";
 import { isHomeCardVisible } from "@/services/home-card-preferences";
-import { peekHomeSnapshot, saveHomeSnapshot, waitForHomePreload, type HomePreloadData } from "@/services/home-preload";
+import { peekHomeSnapshot, saveHomeSnapshot, waitForHomeSection, type HomePreloadData } from "@/services/home-preload";
+import { ArthLoader } from "@/components/ArthLoader";
 import type { LoansSummary } from "@/services/loan-accounts";
 import { getLoansSummary } from "@/services/loan-accounts";
 import {
@@ -88,6 +89,9 @@ const HOME_TABS: SwipePagerPage[] = [
   { key: "vault", label: "Vault" },
 ];
 
+/** Longest Home shows the Arth loader on a cold start before rendering with what it has. */
+const HOME_FIRST_LOAD_MAX_WAIT_MS = 6000;
+
 export default function HomeScreen() {
   const alert = useAlert();
   const router = useRouter();
@@ -101,6 +105,17 @@ export default function HomeScreen() {
   // see services/home-preload.ts) so a re-mount after unlock renders instantly.
   const [snapshot] = useState(peekHomeSnapshot);
   const preloaded = snapshot?.data ?? null;
+
+  // Cold start: show the Arth loader in place of Home until its first data is in, so Home never
+  // opens on zeros. Done here, not by holding the root splash - that delayed the navigator and
+  // raced the biometric-lock redirect (v4.1.6). Capped so Home can never stick on the loader.
+  const [firstLoadDone, setFirstLoadDone] = useState(snapshot != null);
+  useEffect(() => {
+    if (firstLoadDone) return;
+    const t = setTimeout(() => setFirstLoadDone(true), HOME_FIRST_LOAD_MAX_WAIT_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [totalSpent, setTotalSpent] = useState(preloaded?.totalSpent ?? 0);
   const [totalBudget, setTotalBudget] = useState(preloaded?.totalBudget ?? 0);
@@ -185,12 +200,14 @@ export default function HomeScreen() {
     if (source !== "data-version") {
       // Cold start: the preloader is usually still running when Home first
       // focuses. Wait for it instead of firing the same queries in parallel.
-      if (!peekHomeSnapshot()) await waitForHomePreload();
+      // Only Home's own section of the preload matters here, not the other 13 screens.
+      if (!peekHomeSnapshot()) await waitForHomeSection(HOME_FIRST_LOAD_MAX_WAIT_MS);
       const snap = peekHomeSnapshot();
       // A snapshot taken moments ago at the current data version is exactly
       // what a reload would return — apply it and skip the queries.
       if (snap && snap.version === getDataVersion() && Date.now() - snap.at < 30_000) {
         applyHomeData(snap.data);
+        setFirstLoadDone(true);
         return;
       }
     }
@@ -269,6 +286,7 @@ export default function HomeScreen() {
     } catch (e) {
       logger.warn("Home loadData failed", e);
     }
+    setFirstLoadDone(true);
   }, [month, startDate, endDate, applyHomeData]);
 
   useDataRefresh(loadData);
@@ -340,6 +358,10 @@ export default function HomeScreen() {
       disabled: smsScanning,
     }] : []),
   ];
+
+  if (!firstLoadDone) {
+    return <ArthLoader step="Loading your finances..." />;
+  }
 
   return (
     <ScreenContainer>
