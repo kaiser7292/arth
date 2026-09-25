@@ -12,6 +12,7 @@
  * but never logged or transmitted.
  */
 
+import { cleanDueLabel } from "@/services/sms/due-description";
 import { getDatabase } from "@/database";
 import { autoPopulateAccountMode, findPaymentModeByType } from "@/services/account-master";
 import { autoDetectTransfer, createTransfer } from "@/services/account-transfer";
@@ -634,7 +635,8 @@ export async function createExpenseFromSms(
       expenseId,
       userId,
       parsed.amount,
-      description,
+      // Dues get a clean label ("HDFC credit card bill"), not "…Amount Due via HDFC Bank (Amount Due)".
+      cleanDueLabel(description),
       normalizedMerchant ?? null,
       rawMerchantName,
       categoryId,

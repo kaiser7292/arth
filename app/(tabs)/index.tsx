@@ -11,6 +11,7 @@ import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { ForecastActionBar } from "@/components/expense/ForecastActionBar";
 import { LinkExpenseSheet } from "@/components/expense/LinkExpenseSheet";
 import { CheckInsCard } from "@/components/home/CheckInsCard";
+import { cleanDueLabel } from "@/services/sms/due-description";
 import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
 import { useAlert } from "@/hooks/use-alert";
 import { formatError } from "@/utils/error-message";
@@ -696,17 +697,18 @@ export default function HomeScreen() {
                 {upcomingDues.slice(0, 4).map((f) => {
                   const today = new Date().toISOString().split("T")[0];
                   const isOverdue = f.due_date != null && f.due_date < today;
+                  const label = cleanDueLabel(f.description || f.merchant_name);
                   return (
                     <View key={f.id} className="border-t border-border">
                       <Pressable
                         onPress={() => router.push(`/expense/${f.id}`)}
-                        accessibilityLabel={`${f.description || f.merchant_name || "Upcoming expense"}, ${formatAmount(f.amount)}`}
+                        accessibilityLabel={`${label}, ${formatAmount(f.amount)}`}
                         accessibilityRole="button"
                         className="flex-row items-center py-2"
                       >
                         <View
                           className="w-7 h-7 rounded-full items-center justify-center mr-2.5"
-                          style={{ backgroundColor: isOverdue ? "#EF444414" : "#F59E0B14" }}
+                          style={{ backgroundColor: theme.alpha(isOverdue ? "danger" : "warning", 0.08) }}
                         >
                           <Ionicons
                             name={isOverdue ? "alert-circle" : "time-outline"}
@@ -714,19 +716,19 @@ export default function HomeScreen() {
                             color={isOverdue ? theme.danger : theme.warning}
                           />
                         </View>
-                        <View className="flex-1">
+                        <View className="flex-1 mr-3">
                           <Text
                             className="text-sm text-foreground"
-                            numberOfLines={1}
+                            numberOfLines={2}
                           >
-                            {f.description || f.merchant_name || "Upcoming expense"}
+                            {label}
                           </Text>
                           <Text className="text-xs text-faint-foreground">
                             {isOverdue ? "Overdue" : "Due"}: {formatDateForDisplay(f.due_date!)}
                           </Text>
                         </View>
                         <Text
-                          className="text-sm font-semibold"
+                          className="text-sm font-semibold shrink-0"
                           style={{ color: isOverdue ? theme.danger : theme.warning }}
                         >
                           {formatAmount(f.amount)}
