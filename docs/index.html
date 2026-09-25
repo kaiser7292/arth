@@ -163,6 +163,11 @@ nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(
 /* ── Integrations ─────────────────────────────────────── */
 .int-g{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:32px}
 .int-c{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px}
+/* Logos sit on a white chip: these are third-party marks in fixed brand
+   colours, and several go invisible against the dark-theme card. */
+.int-logo{display:inline-flex;align-items:center;justify-content:center;background:#fff;
+  border-radius:9px;padding:8px 11px;margin-bottom:13px;min-height:38px}
+.int-logo img{height:20px;width:auto;max-width:118px;object-fit:contain;display:block}
 .int-n{font-family:'Outfit',sans-serif;font-size:.975rem;font-weight:600;color:var(--text);margin-bottom:5px}
 .int-d{font-size:.845rem;color:var(--muted);line-height:1.65}
 .int-b{display:inline-flex;margin-top:11px;background:var(--brand-ghost);color:var(--brand);border-radius:5px;padding:3px 9px;font-size:.7rem;font-weight:600;letter-spacing:.03em}
@@ -1235,16 +1240,19 @@ footer{background:var(--dark-bg);padding-block:24px}
     <p class="sec-sub reveal reveal-d2">Holdings, positions and funds, synced straight from your broker.</p>
     <div class="int-g">
       <div class="int-c reveal">
+        <div class="int-logo"><img src="/brand/kite.svg" alt="Zerodha Kite logo" width="30" height="20" loading="lazy"></div>
         <div class="int-n">Zerodha Kite</div>
         <div class="int-d">Equity holdings, mutual funds, SIPs, open positions, and order book. OAuth-based, same daily re-auth as the Kite app.</div>
         <span class="int-b">Equity · MF</span>
       </div>
       <div class="int-c reveal reveal-d1">
+        <div class="int-logo"><img src="/brand/angelone.png" alt="Angel One logo" width="86" height="20" loading="lazy"></div>
         <div class="int-n">Angel One SmartAPI</div>
         <div class="int-d">Holdings, positions, order book, and margin data. TOTP auto-generated on-device. No manual 2FA needed.</div>
         <span class="int-b">Equity · Funds · Orders</span>
       </div>
       <div class="int-c reveal reveal-d2">
+        <div class="int-logo"><img src="/brand/zebpay.svg" alt="Zebpay logo" width="24" height="20" loading="lazy"></div>
         <div class="int-n">Zebpay</div>
         <div class="int-d">Crypto portfolio with live INR prices, available cash, and open orders via the Zebpay Build API.</div>
         <span class="int-b">Crypto · Portfolio</span>
