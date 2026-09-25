@@ -24,15 +24,25 @@ jest.mock("../../database", () => ({ getDatabase: () => mockAdapter }));
 jest.mock("../../services/settings", () => ({ bumpDataVersion: jest.fn() }));
 jest.mock("../../utils/uuid", () => ({ generateUUID: () => `gen-${++mockNextId}` }));
 
-import { finaliseFDMaturityForExpenses, materialiseMaturedInvestments } from "../../services/investment-accounts";
+import {
+  finaliseFDMaturityForExpenses,
+  matchMaturityPayout,
+  materialiseMaturedInvestments,
+} from "../../services/investment-accounts";
 
-function seed(eventDate: string, principal: number, interest: number, override: number | null = null) {
+function seed(
+  eventDate: string,
+  principal: number,
+  interest: number,
+  override: number | null = null,
+  source: string | null = "savings-fa",
+) {
   mockNextId = 0;
   mockSqlite = new DatabaseSync(":memory:");
   mockSqlite.exec(`
     CREATE TABLE financial_accounts (
       id TEXT PRIMARY KEY, user_id TEXT, is_active INTEGER DEFAULT 1, bank_name TEXT,
-      closed_at TEXT, closed_note TEXT, updated_at TEXT
+      closed_at TEXT, closed_note TEXT, updated_at TEXT, account_type TEXT
     );
     CREATE TABLE investment_products (
       id TEXT PRIMARY KEY, financial_account_id TEXT, source_account_id TEXT, status TEXT,
@@ -55,12 +65,12 @@ function seed(eventDate: string, principal: number, interest: number, override: 
     );
   `);
   mockSqlite.exec(`
-    INSERT INTO financial_accounts (id, user_id, bank_name) VALUES ('fd-fa', 'u1', 'HDFC');
-    INSERT INTO financial_accounts (id, user_id, bank_name) VALUES ('savings-fa', 'u1', 'HDFC');
+    INSERT INTO financial_accounts (id, user_id, bank_name, account_type) VALUES ('fd-fa', 'u1', 'HDFC', 'investment');
+    INSERT INTO financial_accounts (id, user_id, bank_name, account_type) VALUES ('savings-fa', 'u1', 'HDFC', 'savings');
   `);
   mockSqlite
-    .prepare(`INSERT INTO investment_products VALUES ('prod-1', 'fd-fa', 'savings-fa', 'active', NULL, ?, NULL);`)
-    .run(override);
+    .prepare(`INSERT INTO investment_products VALUES ('prod-1', 'fd-fa', ?, 'active', NULL, ?, NULL);`)
+    .run(source, override);
   mockSqlite
     .prepare(
       `INSERT INTO investment_schedule_entries
@@ -170,3 +180,125 @@ describe("finaliseFDMaturityForExpenses", () => {
     expect(scheduleRow().status).toBe("scheduled");
   });
 });
+
+// ─── FDs close when the payout is actually credited (bank SMS, single or split) ───
+
+const credit = (id: string, amount: number, date: string, status = "approved") =>
+  mockSqlite
+    .prepare(
+      `INSERT INTO expenses (id, user_id, amount, account_id, date, nature, source, status)
+       VALUES (?, 'u1', ?, 'savings-fa', ?, 'credit', 'sms_auto', ?);`,
+    )
+    .run(id, amount, date, status);
+const expense = (id: string) =>
+  mockSqlite.prepare("SELECT status, deleted_at FROM expenses WHERE id = ?").get(id) as {
+    status: string;
+    deleted_at: string | null;
+  };
+
+describe("matured FDs close once the payout is credited", () => {
+  it("bank SMS arriving AFTER Arth queued its own credit: closes the FD, withdraws the duplicate", async () => {
+    seed("2020-01-01", 100000, 7000);
+    await materialiseMaturedInvestments("u1"); // queues Arth's placeholder
+    const placeholder = scheduleRow().linked_expense_id!;
+    credit("sms-credit", 107000, "2020-01-02"); // the real credit, approved
+    await finaliseFDMaturityForExpenses(["sms-credit"]);
+
+    expect(fdClosedAt()).not.toBeNull();
+    expect(productStatus()).toBe("matured");
+    expect(scheduleRow()).toMatchObject({ status: "materialised", linked_expense_id: "sms-credit" });
+    expect(expense(placeholder)).toMatchObject({ status: "rejected" });
+    expect(expense(placeholder).deleted_at).not.toBeNull();
+  });
+
+  it("late bank SMS still pending: swaps it in for the placeholder, closes once it's approved", async () => {
+    seed("2020-01-01", 100000, 7000);
+    await materialiseMaturedInvestments("u1");
+    credit("sms-credit", 107000, "2020-01-02", "pending_review");
+    await materialiseMaturedInvestments("u1"); // next app open
+    expect(scheduleRow()).toMatchObject({ status: "scheduled", linked_expense_id: "sms-credit" });
+    expect(fdClosedAt()).toBeNull();
+
+    mockSqlite.exec("UPDATE expenses SET status = 'approved' WHERE id = 'sms-credit'");
+    await finaliseFDMaturityForExpenses(["sms-credit"]);
+    expect(fdClosedAt()).not.toBeNull();
+  });
+
+  it("principal and interest credited separately: closes the FD, queues nothing", async () => {
+    seed("2020-01-01", 100000, 7000);
+    credit("principal", 100000, "2020-01-01");
+    credit("interest", 7000, "2020-01-01");
+    await materialiseMaturedInvestments("u1");
+    expect(fdClosedAt()).not.toBeNull();
+    expect(count("expenses")).toBe(2);
+  });
+
+  it("interest paid net of TDS (10%): still closes", async () => {
+    seed("2020-01-01", 100000, 7000);
+    credit("principal", 100000, "2020-01-01");
+    credit("interest-net", 6300, "2020-01-02");
+    await materialiseMaturedInvestments("u1");
+    expect(fdClosedAt()).not.toBeNull();
+  });
+
+  it("single maturity credit net of TDS: closes", async () => {
+    seed("2020-01-01", 100000, 7000);
+    credit("maturity-net", 106300, "2020-01-01");
+    await materialiseMaturedInvestments("u1");
+    expect(fdClosedAt()).not.toBeNull();
+  });
+
+  it("waits while one half of a split payout is still pending", async () => {
+    seed("2020-01-01", 100000, 7000);
+    credit("principal", 100000, "2020-01-01");
+    credit("interest", 7000, "2020-01-01", "pending_review");
+    await materialiseMaturedInvestments("u1");
+    expect(fdClosedAt()).toBeNull();
+    mockSqlite.exec("UPDATE expenses SET status = 'approved' WHERE id = 'interest'");
+    await finaliseFDMaturityForExpenses(["interest"]);
+    expect(fdClosedAt()).not.toBeNull();
+  });
+
+  it("only the principal arrived: stays open and queues the payout for review", async () => {
+    seed("2020-01-01", 100000, 7000);
+    credit("principal", 100000, "2020-01-01");
+    await materialiseMaturedInvestments("u1");
+    expect(fdClosedAt()).toBeNull();
+  });
+
+  it("FD with no source account: finds the payout on a savings account", async () => {
+    seed("2020-01-01", 100000, 7000, null, null);
+    credit("sms-credit", 107000, "2020-01-03");
+    await materialiseMaturedInvestments("u1");
+    expect(fdClosedAt()).not.toBeNull();
+  });
+
+  it("ignores a matching amount far from the maturity date", async () => {
+    seed("2020-01-01", 100000, 7000);
+    credit("unrelated", 107000, "2020-03-01");
+    await materialiseMaturedInvestments("u1");
+    expect(fdClosedAt()).toBeNull();
+  });
+
+  it("closes the account of an FD already marked matured but left open", async () => {
+    seed("2020-01-01", 100000, 7000);
+    mockSqlite.exec("UPDATE investment_products SET status = 'matured'");
+    mockSqlite.exec("UPDATE investment_schedule_entries SET status = 'materialised'");
+    await materialiseMaturedInvestments("u1");
+    expect(fdClosedAt()).not.toBeNull();
+  });
+});
+
+describe("matchMaturityPayout", () => {
+  const c = (id: string, amount: number) => ({ id, amount, date: "2020-01-01", status: "approved" });
+  const exp = { principal: 100000, interest: 7000, maturity: 107000 };
+
+  it("prefers a single full credit over a split", () => {
+    expect(matchMaturityPayout([c("p", 100000), c("i", 7000), c("full", 107000)], exp)?.map((x) => x.id)).toEqual(["full"]);
+  });
+
+  it("doesn't pair the principal with an unrelated small credit", () => {
+    expect(matchMaturityPayout([c("p", 100000), c("tiny", 500)], exp)).toBeNull();
+  });
+});
+

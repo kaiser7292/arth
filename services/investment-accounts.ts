@@ -973,7 +973,9 @@ export async function getInvestmentSummary(
 export async function materialiseMaturedInvestments(userId: string): Promise<number> {
   const db = getDatabase();
   const today = todayIso();
-  let materialised = 0;
+  // Match real payout credits first (single, or principal + interest, from the bank's SMS) and
+  // close FDs whose payout is already approved. Entries it links are skipped below.
+  let materialised = await settleMaturedFDs(userId);
 
   const due = await db.getAllAsync<{
     schedule_id: string;
@@ -1163,4 +1165,207 @@ export async function finaliseFDMaturityForExpenses(expenseIds: string[]): Promi
     }
   }
   if (rows.length > 0) bumpDataVersion();
+
+  // The approved credit may be the bank's own payout (or half of a principal + interest pair)
+  // rather than Arth's queued placeholder - match those too.
+  const users = await db.getAllAsync<{ user_id: string }>(
+    `SELECT DISTINCT user_id FROM expenses
+      WHERE id IN (${placeholders}) AND nature = 'credit' AND status = 'approved';`,
+    ...expenseIds,
+  );
+  for (const u of users) {
+    try {
+      await settleMaturedFDs(u.user_id);
+    } catch (e) {
+      logger.warn("settleMaturedFDs after approval failed (non-fatal):", e);
+    }
+  }
+}
+
+// ─── Settling matured FDs by their actual payout ─────────────
+
+export interface PayoutCredit {
+  id: string;
+  amount: number;
+  date: string;
+  status: string;
+}
+
+export interface ExpectedPayout {
+  /** What the FD pays out in total (override-aware). */
+  maturity: number;
+  principal: number;
+  interest: number;
+}
+
+/** Interest can arrive net of TDS (10%, or 20% without PAN): accept down to this share of it. */
+export const MIN_NET_INTEREST_SHARE = 0.75;
+
+const tol = (x: number) => Math.max(Math.abs(x) * 0.005, 1);
+
+/**
+ * Which credit(s) are this FD's payout, or null. Banks pay a maturity either as ONE credit
+ * (principal + interest, possibly net of TDS) or as TWO: the principal, and the interest
+ * separately (again possibly net of TDS). Pure.
+ */
+export function matchMaturityPayout(credits: PayoutCredit[], exp: ExpectedPayout): PayoutCredit[] | null {
+  const interest = Math.max(exp.interest, 0);
+  const minSingle = exp.principal + interest * MIN_NET_INTEREST_SHARE - tol(exp.maturity);
+  const maxSingle = exp.maturity + tol(exp.maturity);
+  const singles = credits
+    .filter((c) => c.amount >= minSingle && c.amount <= maxSingle)
+    .sort((a, b) => Math.abs(a.amount - exp.maturity) - Math.abs(b.amount - exp.maturity));
+  if (singles.length > 0) return [singles[0]];
+
+  if (interest <= 0) return null;
+  const principals = credits
+    .filter((c) => Math.abs(c.amount - exp.principal) <= tol(exp.principal))
+    .sort((a, b) => Math.abs(a.amount - exp.principal) - Math.abs(b.amount - exp.principal));
+  if (principals.length === 0) return null;
+  const p = principals[0];
+  const interests = credits
+    .filter(
+      (c) =>
+        c.id !== p.id &&
+        c.amount >= interest * MIN_NET_INTEREST_SHARE - tol(interest) &&
+        c.amount <= interest + tol(interest),
+    )
+    .sort((a, b) => Math.abs(a.amount - interest) - Math.abs(b.amount - interest));
+  return interests.length > 0 ? [p, interests[0]] : null;
+}
+
+/**
+ * Closes every matured FD whose payout has been credited AND approved.
+ *
+ * For each maturity event that's due and not finalised, looks for the payout among credits on
+ * the FD's source account (or any savings account when none is recorded), dated from 3 days
+ * before to 10 days after maturity:
+ *   - the bank's real credit(s) win over Arth's own queued "FD maturity" placeholder; if the
+ *     placeholder is still unapproved it's withdrawn, so the same money isn't counted twice
+ *   - once every matched credit is approved, the FD is finalised: product -> matured, bucket
+ *     withdrawal recorded, FD account closed
+ * Also closes the account of any FD already marked matured but left open.
+ * Idempotent. Returns how many FDs it closed.
+ */
+export async function settleMaturedFDs(userId: string): Promise<number> {
+  const db = getDatabase();
+  const today = todayIso();
+  let closed = 0;
+
+  const entries = await db.getAllAsync<{
+    schedule_id: string;
+    event_date: string;
+    principal_component: number | null;
+    interest_component: number | null;
+    maturity_amount_override: number | null;
+    source_account_id: string | null;
+    linked_expense_id: string | null;
+  }>(
+    `SELECT se.id AS schedule_id, se.event_date, se.principal_component, se.interest_component,
+            ip.maturity_amount_override, ip.source_account_id, se.linked_expense_id
+       FROM investment_schedule_entries se
+       JOIN investment_products ip ON ip.id = se.product_id
+       JOIN financial_accounts fa ON fa.id = ip.financial_account_id
+      WHERE fa.user_id = ? AND fa.is_active = 1
+        AND se.kind = 'maturity' AND se.status = 'scheduled' AND se.event_date <= ?;`,
+    userId,
+    today,
+  );
+
+  for (const e of entries) {
+    try {
+      const principal = e.principal_component ?? 0;
+      const interest = e.interest_component ?? 0;
+      const expected = { principal, interest, maturity: e.maturity_amount_override ?? principal + interest };
+      if (expected.maturity <= 0) continue;
+
+      const accountIds = e.source_account_id
+        ? [e.source_account_id]
+        : (
+            await db.getAllAsync<{ id: string }>(
+              `SELECT id FROM financial_accounts
+                WHERE user_id = ? AND is_active = 1 AND account_type = 'savings';`,
+              userId,
+            )
+          ).map((r) => r.id);
+      if (accountIds.length === 0) continue;
+
+      // Arth's own queued payout (see materialiseMaturedInvestments) - not a real credit.
+      const placeholder = e.linked_expense_id
+        ? await db.getFirstAsync<{ id: string; status: string; source: string; description: string | null }>(
+            `SELECT id, status, source, description FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
+            e.linked_expense_id,
+          )
+        : null;
+      const isArthPlaceholder =
+        placeholder != null && placeholder.source === "manual" && (placeholder.description ?? "").endsWith("FD maturity");
+
+      // An approved placeholder IS the reviewed payout - finalise on it as before.
+      if (placeholder && isArthPlaceholder && placeholder.status === "approved") {
+        await finaliseScheduleEntry(e.schedule_id);
+        closed++;
+        continue;
+      }
+
+      const ph = accountIds.map(() => "?").join(",");
+      const credits = await db.getAllAsync<PayoutCredit>(
+        `SELECT c.id, c.amount, c.date, c.status FROM expenses c
+          WHERE c.user_id = ? AND c.account_id IN (${ph}) AND c.nature = 'credit'
+            AND c.status IN ('pending_review', 'approved') AND c.deleted_at IS NULL
+            AND c.date >= date(?, '-3 day') AND c.date <= date(?, '+10 day')
+            AND c.id != ?
+            AND NOT EXISTS (
+              SELECT 1 FROM investment_schedule_entries x
+               WHERE x.linked_expense_id = c.id AND x.id != ?
+            );`,
+        userId,
+        ...accountIds,
+        e.event_date,
+        e.event_date,
+        isArthPlaceholder && placeholder ? placeholder.id : "",
+        e.schedule_id,
+      );
+      const match = matchMaturityPayout(credits, expected);
+      if (!match) continue;
+
+      // The real credit replaces Arth's unapproved placeholder, so the money isn't in twice.
+      if (isArthPlaceholder && placeholder && placeholder.status === "pending_review") {
+        await db.runAsync(
+          `UPDATE expenses SET status = 'rejected', deleted_at = datetime('now') WHERE id = ?;`,
+          placeholder.id,
+        );
+      }
+      await db.runAsync(
+        `UPDATE investment_schedule_entries SET linked_expense_id = ? WHERE id = ?;`,
+        match[0].id,
+        e.schedule_id,
+      );
+
+      if (match.every((c) => c.status === "approved")) {
+        await finaliseScheduleEntry(e.schedule_id);
+        closed++;
+      }
+    } catch (err) {
+      logger.warn(`settleMaturedFDs: entry ${e.schedule_id} failed (non-fatal):`, err);
+    }
+  }
+
+  // Repair: an FD already marked matured but whose account was never closed.
+  const openMatured = await db.getAllAsync<{ id: string }>(
+    `SELECT fa.id FROM financial_accounts fa
+       JOIN investment_products ip ON ip.financial_account_id = fa.id
+      WHERE fa.user_id = ? AND ip.status = 'matured' AND fa.closed_at IS NULL;`,
+    userId,
+  );
+  for (const a of openMatured) {
+    await db.runAsync(
+      `UPDATE financial_accounts SET closed_at = datetime('now'), closed_note = 'Fixed deposit matured', updated_at = datetime('now')
+        WHERE id = ? AND closed_at IS NULL;`,
+      a.id,
+    );
+    closed++;
+  }
+
+  if (closed > 0) bumpDataVersion();
+  return closed;
 }
