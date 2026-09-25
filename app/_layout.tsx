@@ -8,7 +8,7 @@ import { ToastProvider } from "@/components/ui";
 import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
 import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
-import { preloadHomeData } from "@/services/home-preload";
+import { preloadHomeData, waitForHomeSection } from "@/services/home-preload";
 import { runDailyNotificationCheck, syncNotifBackgroundTask } from "@/services/notification-scheduler";
 import { materialiseMaturedInvestments, migrateLegacyDematPensionAccounts } from "@/services/investment-accounts";
 import { migrateInvestmentsHomeCardPreference } from "@/services/home-card-preferences";
@@ -102,6 +102,9 @@ class ErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
+
+/** Longest the startup loader waits for Home's data before opening Home anyway. */
+const HOME_DATA_MAX_WAIT_MS = 8000;
 
 function SplashScreen({ step }: { step: string }) {
   const theme = useTheme();
@@ -244,6 +247,8 @@ export default function RootLayout(): React.JSX.Element {
   const [dbReady, setDbReady] = useState(false);
   const [minSplashDone, setMinSplashDone] = useState(false);
   const [lockEvaluated, setLockEvaluated] = useState(false);
+  // Keep the Arth loader up until Home's data is in, so Home never opens on zeros.
+  const [homeDataReady, setHomeDataReady] = useState(false);
   const [lockEvaluationInProgress, setLockEvaluationInProgress] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [initStep, setInitStep] = useState("Starting up...");
@@ -313,13 +318,17 @@ export default function RootLayout(): React.JSX.Element {
               })
             : Promise.resolve(),
         ]);
-        // v17.5.9 — splash must NOT wait for preload. preloadHomeData
-        // includes scanAllDuplicatesCached, which scales with DB size; holding
-        // the splash on it inflates cold-start time for users with long
-        // history. Fire-and-forget — Home shows its own skeleton until the
-        // preload cache settles. Any failure is logged but non-fatal.
+        // The splash waits for HOME's section of the preload only (not the other 13 screens), and
+        // at most HOME_DATA_MAX_WAIT_MS: the Home section includes the duplicate scan, which scales
+        // with history - the reason v17.5.9 stopped the splash waiting on the whole preload. Past
+        // the cap, Home opens and fills in when its data lands.
         preloadHomeData().catch((e) => logger.warn("Home preload failed (non-fatal):", e));
-        setInitStepThrottled("Almost ready...");
+        setInitStepThrottled("Loading your finances...");
+        waitForHomeSection(HOME_DATA_MAX_WAIT_MS)
+          .then((ready) => {
+            if (!ready) logger.warn("Home data took longer than the splash cap; opening anyway");
+          })
+          .finally(() => setHomeDataReady(true));
         // v17.5.0 — Android 13+ needs an explicit runtime POST_NOTIFICATIONS
         // prompt (declared in manifest since v17.5.0). Without this, the OS
         // silently drops every notification call. Fire-and-forget idempotent
@@ -480,13 +489,14 @@ export default function RootLayout(): React.JSX.Element {
   // existing user whose stamp-write failed — err on the side of not
   // interrupting an existing user with the wizard.
   useEffect(() => {
-    if (!dbReady || !minSplashDone || !lockEvaluated) return;
+    // Same moment the splash lifts (it also waits for Home's data), as before that wait existed.
+    if (!dbReady || !minSplashDone || !lockEvaluated || !homeDataReady) return;
     if (!getFlag("v15_onboarding_wizard")) return;
     if (migrationFailedRef.current) return;
     if (getOnboardingCompletedVersion()) return;
     if (!routerRef.current) return;
     routerRef.current.replace("/(onboarding)/welcome");
-  }, [dbReady, minSplashDone, lockEvaluated]);
+  }, [dbReady, minSplashDone, lockEvaluated, homeDataReady]);
 
   // Show error screen first if initialization failed
   if (initError) {
@@ -520,7 +530,7 @@ export default function RootLayout(): React.JSX.Element {
   }
 
   // Show splash screen during initialization
-  if (!dbReady || !minSplashDone || !lockEvaluated) {
+  if (!dbReady || !minSplashDone || !lockEvaluated || !homeDataReady) {
     return <SplashScreen step={initStep} />;
   }
 

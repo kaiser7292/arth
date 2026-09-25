@@ -660,19 +660,30 @@ async function loadTransactionsSection(): Promise<TransactionsPreloadData | null
  * back to their own fetch path gracefully.
  */
 export function preloadHomeData(): Promise<void> {
-  homePreloadPromise = runPreload();
+  const version = getDataVersion();
+  // Home's own section publishes its snapshot the moment it's ready, instead of waiting for the
+  // other 13 sections. The startup loader waits on this (see waitForHomeSection), so Home never
+  // opens on zeros while slower screens like Insights are still loading.
+  const home = loadHomeSection().then((data) => {
+    if (data) saveHomeSnapshot(data, version);
+    return data;
+  });
+  homeSectionPromise = home.then(
+    () => undefined,
+    () => undefined,
+  );
+  homePreloadPromise = runPreload(home, version);
   return homePreloadPromise;
 }
 
-async function runPreload(): Promise<void> {
-  const version = getDataVersion();
+async function runPreload(homeSection: Promise<HomePreloadData | null>, version: number): Promise<void> {
   const [
     home, accounts, balanceSheet, creditCards,
     bankAccounts, wallets, pensionAccounts,
     goals, yearlyPlan, loans, vault,
     investments, insights, transactions,
   ] = await Promise.all([
-    loadHomeSection(),
+    homeSection,
     loadAccountsSection(),
     loadBalanceSheetSection(),
     loadCreditCardsSection(),
@@ -687,7 +698,6 @@ async function runPreload(): Promise<void> {
     loadInsightsSection(),
     loadTransactionsSection(),
   ]);
-  if (home) saveHomeSnapshot(home, version);
   cache.accounts = accounts;
   cache.balanceSheet = balanceSheet;
   cache.creditCards = creditCards;
@@ -723,6 +733,7 @@ export interface HomeSnapshot {
 
 let homeSnapshot: HomeSnapshot | null = null;
 let homePreloadPromise: Promise<void> | null = null;
+let homeSectionPromise: Promise<void> | null = null;
 
 export function peekHomeSnapshot(): HomeSnapshot | null {
   return homeSnapshot;
@@ -730,6 +741,24 @@ export function peekHomeSnapshot(): HomeSnapshot | null {
 
 export function saveHomeSnapshot(data: HomePreloadData, version: number): void {
   homeSnapshot = { data, version, at: Date.now() };
+}
+
+/**
+ * Resolves once Home's own data is in (its snapshot is saved), or after `maxWaitMs` - whichever
+ * comes first. The startup loader waits on this. The cap is there because the Home section runs
+ * the duplicate scan, which grows with history (the reason v17.5.9 stopped the splash waiting on
+ * the whole preload); past the cap Home opens and fills in when the data lands.
+ */
+export async function waitForHomeSection(maxWaitMs: number): Promise<boolean> {
+  if (!homeSectionPromise) return homeSnapshot != null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<false>((resolve) => {
+    timer = setTimeout(() => resolve(false), maxWaitMs);
+  });
+  const done = homeSectionPromise.then(() => true as const);
+  const result = await Promise.race([done, timedOut]);
+  if (timer) clearTimeout(timer);
+  return result;
 }
 
 /** Resolves once the app-start preload settles (immediately if none is running). */
