@@ -294,6 +294,16 @@ footer{background:var(--dark-bg);padding-block:24px}
 .p-bar{height:.42em;border-radius:1em;background:#2A3634;overflow:hidden;margin:.4em 0 .25em}
 .p-bar-f{height:100%;border-radius:1em;background:var(--pgreen)}
 .p-hr{height:1px;background:var(--pborder);margin:.55em 0}
+/* day-of-week column chart */
+.p-days{display:flex;align-items:flex-end;gap:.3em;height:5.4em;margin-top:.5em}
+.p-days>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.p-days i{display:block;border-radius:.25em .25em 0 0;background:#25312F}
+.p-days .hi i{background:var(--pamber)}
+.p-dayl{display:flex;gap:.3em;margin-top:.3em}
+.p-dayl span{flex:1;text-align:center;font-size:.78em;color:var(--pmuted)}
+/* severity-flagged card */
+.p-flag{border-left:2.5px solid;border-radius:.2em .7em .7em .2em;padding:.55em .7em;background:var(--psurf)}
+.p-flag b{display:block;font-size:.76em;font-weight:700;letter-spacing:.08em;margin-bottom:.15em}
 .p-ic{width:2.1em;height:2.1em;border-radius:.62em;display:flex;align-items:center;
   justify-content:center;flex-shrink:0}
 .p-ic svg{width:1.15em;height:1.15em}
@@ -834,6 +844,196 @@ footer{background:var(--dark-bg);padding-block:24px}
   </div>
 </section>
 
+<!-- SCROLL-PINNED: WHAT IT FINDS -->
+<section class="pin-s" id="insights">
+  <div class="w">
+    <div class="sec-lbl reveal">Beyond tracking</div>
+    <h2 class="sec-h reveal reveal-d1">Then it starts telling you things.</h2>
+    <p class="sec-sub reveal reveal-d2">Capture is the boring half. This is the half that changes what you do.</p>
+  </div>
+
+  <div class="pin-wrap">
+    <div class="pin-stage">
+      <div class="w pin-grid">
+
+        <div class="pin-copy">
+          <div class="pin-step on">
+            <div class="pin-n">STEP 01</div>
+            <h3 class="pin-t">It notices what you don't.</h3>
+            <p class="pin-d">Sunday is your most expensive day of the week, by a factor of two. Nobody works that out by staring at a bank statement.</p>
+            <div class="pin-rail"><span class="on"></span><span></span><span></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 02</div>
+            <h3 class="pin-t">It tells you where the month lands.</h3>
+            <p class="pin-d">Planned against actual, line by line, with the variance on each one — while there are still days left to do something about it.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 03</div>
+            <h3 class="pin-t">It lets you test a decision first.</h3>
+            <p class="pin-d">Model a raise, a new EMI or an early prepayment, and watch the next six months redraw before you commit to any of it.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 04</div>
+            <h3 class="pin-t">And the things you'd rather not hear.</h3>
+            <p class="pin-d">No term cover. Savings rate under 30%. Corpus runs dry in 13 years. Blunt, specific, and with the arithmetic shown.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+          </div>
+        </div>
+
+        <div class="pin-ph">
+          <div class="phone" role="img" aria-label="Arth analysis screens: spending patterns, month-end projection, cash-flow simulator and retirement risk flags">
+            <div class="phone-scr">
+
+              <!-- 01 spending personality -->
+              <div class="pscr on">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Spending Personality</span></div><span style="width:1em"></span></div>
+                <div class="p-body">
+                  <div class="p-lbl">Day of week pattern</div>
+                  <div class="p-card">
+                    <div class="p-sm p-amb">₹9,840</div>
+                    <div class="p-days">
+                      <div class="hi"><i style="height:100%"></i></div>
+                      <div><i style="height:32%"></i></div>
+                      <div><i style="height:27%"></i></div>
+                      <div><i style="height:34%"></i></div>
+                      <div><i style="height:24%"></i></div>
+                      <div><i style="height:29%"></i></div>
+                      <div><i style="height:46%"></i></div>
+                    </div>
+                    <div class="p-dayl"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+                  </div>
+                  <div class="p-card">
+                    <div class="p-r">
+                      <div><div class="p-sm p-mut">Weekday avg</div><div class="p-num">₹3,060<span class="p-mut p-sm" style="font-weight:400">/day</span></div></div>
+                      <div class="p-sm p-mut">vs</div>
+                      <div style="text-align:right"><div class="p-sm p-mut">Weekend avg</div><div class="p-num">₹6,180<span class="p-mut p-sm" style="font-weight:400">/day</span></div></div>
+                    </div>
+                    <div class="p-sm p-mut" style="text-align:center;margin-top:.5em">You spend 2.0× more on weekends</div>
+                  </div>
+                  <div class="p-lbl">Behavioural insights</div>
+                  <div class="p-card" style="padding:.7em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(251,191,36,.15);color:var(--pamber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Weekend spender</div><div class="p-sm p-mut" style="line-height:1.5">Your most expensive day is Sunday — 2.0× your weekday average.</div></div>
+                    </div>
+                  </div>
+                  <div class="p-card" style="padding:.7em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(248,113,113,.15);color:var(--pred)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Rising spending</div><div class="p-sm p-mut" style="line-height:1.5">Groceries are up against your 3-month average.</div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 02 month-end projection -->
+              <div class="pscr">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Sept End Projection</span></div><span style="width:1em"></span></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-lbl">Planned vs actual</div>
+                    <div class="p-r" style="margin-top:.5em">
+                      <div><div class="p-sm p-mut">Planned</div><div class="p-num">₹4,58,700</div></div>
+                      <div style="text-align:center"><div class="p-sm p-mut">Actual</div><div class="p-num">₹4,49,030</div></div>
+                      <div style="text-align:right"><div class="p-sm p-mut">Variance</div><div class="p-num p-grn">−₹9,670</div></div>
+                    </div>
+                  </div>
+                  <div class="p-card" style="padding:.75em .8em">
+                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Salary</span><span class="p-num p-mut">₹2,83,400</span><span class="p-num" style="width:5.2em;text-align:right">₹2,83,240</span><span class="p-num p-grn" style="width:3.4em;text-align:right">−₹160</span></div>
+                    <div class="p-hr" style="margin:.4em 0"></div>
+                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Rent</span><span class="p-num p-mut">₹20,000</span><span class="p-num" style="width:5.2em;text-align:right">₹20,000</span><span class="p-num p-mut" style="width:3.4em;text-align:right">₹0</span></div>
+                    <div class="p-hr" style="margin:.4em 0"></div>
+                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">SIP</span><span class="p-num p-mut">₹17,000</span><span class="p-num" style="width:5.2em;text-align:right">₹17,000</span><span class="p-num p-mut" style="width:3.4em;text-align:right">₹0</span></div>
+                    <div class="p-hr" style="margin:.4em 0"></div>
+                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Weekend</span><span class="p-num p-mut">₹2,000</span><span class="p-num" style="width:5.2em;text-align:right">₹2,690</span><span class="p-num p-red" style="width:3.4em;text-align:right">+₹690</span></div>
+                    <div class="p-hr" style="margin:.4em 0"></div>
+                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Utilities</span><span class="p-num p-mut">₹390</span><span class="p-num" style="width:5.2em;text-align:right">₹387</span><span class="p-num p-grn" style="width:3.4em;text-align:right">−₹3</span></div>
+                  </div>
+                  <div class="p-lbl">Already happened · 17</div>
+                  <div class="p-card" style="padding:.6em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Rent</div><div class="p-sm p-mut">Planned ₹20,000</div></div>
+                      <div class="p-num">₹20,000</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 03 simulator -->
+              <div class="pscr">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Simulator</div><div class="p-hdr-s">What-if scenarios</div></div></div>
+                <div class="p-pills"><div class="p-pill">Salary hike</div><div class="p-pill on">New EMI</div><div class="p-pill">Prepay</div></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-r"><span class="p-lbl">Scenario</span><span class="p-sm p-tl">Edit</span></div>
+                    <div class="p-r" style="margin-top:.5em"><span class="p-r-n">Car loan EMI</span><span class="p-num">₹18,500<span class="p-mut p-sm" style="font-weight:400">/mo</span></span></div>
+                    <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Starts</span><span class="p-num p-mut">Nov 2026 · 60 months</span></div>
+                  </div>
+                  <div class="p-lbl">Projected bank balance</div>
+                  <div class="p-card" style="padding:.8em .8em">
+                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Oct</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:100%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,70,380</span></div>
+                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Nov</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:88%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,51,880</span></div>
+                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Dec</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:78%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,33,380</span></div>
+                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Jan</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:67%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,14,880</span></div>
+                    <div class="p-li"><span class="p-sm p-mut" style="width:2.4em">Feb</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:56%;background:var(--pamber)"></div></div><span class="p-num p-sm p-amb" style="width:4.6em;text-align:right">₹96,380</span></div>
+                  </div>
+                  <div class="p-flag" style="border-color:var(--pamber)">
+                    <b class="p-amb">HEADS UP</b>
+                    <div class="p-sm" style="line-height:1.5">Drops below your ₹1,00,000 buffer in February.</div>
+                  </div>
+                  <div class="p-r p-sm"><span class="p-mut">Without this change</span><span class="p-num p-grn">₹2,16,380 by Feb</span></div>
+                </div>
+              </div>
+
+              <!-- 04 retirement readiness -->
+              <div class="pscr">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Retirement Readiness</span></div><span style="width:1em"></span></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-r"><span class="p-sm">6% withdrawal rate</span><span class="p-num p-red">13 yrs</span></div>
+                    <div class="p-r p-sm"><span class="p-mut">₹8.2L/mo · ₹98.2L/yr</span><span class="p-red">Runs out</span></div>
+                  </div>
+                  <div class="p-lbl">Risk flags</div>
+                  <div class="p-flag" style="border-color:var(--pred)">
+                    <b class="p-red">CRITICAL</b>
+                    <div style="font-weight:600">No term life insurance</div>
+                    <div class="p-sm p-mut" style="line-height:1.5">With dependents, cover of at least 10× annual income is non-negotiable.</div>
+                  </div>
+                  <div class="p-flag" style="border-color:var(--pred)">
+                    <b class="p-red">CRITICAL</b>
+                    <div style="font-weight:600">No health insurance</div>
+                    <div class="p-sm p-mut" style="line-height:1.5">One hospitalisation can wipe out years of savings.</div>
+                  </div>
+                  <div class="p-flag" style="border-color:var(--pamber)">
+                    <b class="p-amb">HIGH</b>
+                    <div style="font-weight:600">Single income reliance</div>
+                    <div class="p-sm p-mut" style="line-height:1.5">Build a six-month emergency fund as priority.</div>
+                  </div>
+                  <div class="p-flag" style="border-color:#60A5FA">
+                    <b style="color:#60A5FA">MEDIUM</b>
+                    <div style="font-weight:600">Savings rate below 30%</div>
+                    <div class="p-sm p-mut" style="line-height:1.5">Currently 29%. For early retirement, aim for 40–50%.</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- PRIVACY (dark) -->
 <section class="prv">
   <div class="w">
@@ -1032,36 +1232,45 @@ if (window.IntersectionObserver) {
 // Scroll-pinned walkthrough: scroll position drives the step, so the user
 // controls the pace. Sticky does the pinning, so native scrolling is untouched.
 (function(){
-  var wrap = document.getElementById('pin-wrap');
-  if (!wrap) return;
-  var steps   = wrap.querySelectorAll('.pin-step');
-  var screens = wrap.querySelectorAll('.pscr');
-  var n = steps.length;
-  if (!n || screens.length !== n) return;
+  var wraps = document.querySelectorAll('.pin-wrap');
+  if (!wraps.length) return;
+  var all = [];
 
-  var cur = -1;
+  [].forEach.call(wraps, function(wrap){
+    var steps   = wrap.querySelectorAll('.pin-step');
+    var screens = wrap.querySelectorAll('.pscr');
+    var n = steps.length;
+    if (!n || screens.length !== n) return;
+    var cur = -1;
 
-  function set(i) {
-    if (i === cur) return;
-    cur = i;
-    for (var k = 0; k < n; k++) {
-      steps[k].classList.toggle('on', k === i);
-      screens[k].classList.toggle('on', k === i);
-    }
-  }
-  // One rect read and at most one class swap per event, so this runs inline.
-  // A requestAnimationFrame guard would deadlock permanently if a frame never
-  // arrives -- the pending flag stays set and every later scroll is dropped.
-  function update() {
-    var r = wrap.getBoundingClientRect();
-    var travel = r.height - window.innerHeight;
-    // travel <= 0 means the stage is not pinning (reduced motion unpins it),
-    // in which case the steps stack and the phone just holds the first screen.
-    if (travel <= 0) { set(0); return; }
-    var p = -r.top / travel;
-    p = p < 0 ? 0 : (p > 1 ? 1 : p);
-    set(Math.min(Math.floor(p * n), n - 1));
-  }
+    all.push(function(){
+      var r = wrap.getBoundingClientRect();
+      // Skip sections nowhere near the viewport.
+      if (r.bottom < 0 || r.top > window.innerHeight) return;
+      var travel = r.height - window.innerHeight;
+      var i;
+      // travel <= 0 means the stage is not pinning (reduced motion unpins it),
+      // in which case the steps stack and the phone just holds the first screen.
+      if (travel <= 0) {
+        i = 0;
+      } else {
+        var p = -r.top / travel;
+        p = p < 0 ? 0 : (p > 1 ? 1 : p);
+        i = Math.min(Math.floor(p * n), n - 1);
+      }
+      if (i === cur) return;
+      cur = i;
+      for (var k = 0; k < n; k++) {
+        steps[k].classList.toggle('on', k === i);
+        screens[k].classList.toggle('on', k === i);
+      }
+    });
+  });
+
+  // One rect read and at most one class swap per section per event, so this runs
+  // inline. A requestAnimationFrame guard would deadlock permanently if a frame
+  // never arrives -- the pending flag stays set and every later scroll is dropped.
+  function update() { for (var i = 0; i < all.length; i++) all[i](); }
   window.addEventListener('scroll', update, { passive: true });
   window.addEventListener('resize', update, { passive: true });
   update();
