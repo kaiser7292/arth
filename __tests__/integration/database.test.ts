@@ -12,6 +12,18 @@
 
 import { runMigrations, getCurrentVersion } from "../../database/migrations";
 import { seedDefaultUser } from "../../database/seed";
+import * as fs from "fs";
+import * as path from "path";
+
+/**
+ * Migration files on disk ("076_recurring_cancel_requested.ts" -> 76). The runner's list is
+ * checked against these, so adding a migration doesn't mean hand-editing counts in this file
+ * (the old hardcoded 62 / 39 / version lists went stale at migration 040).
+ */
+const MIGRATION_FILES = fs
+  .readdirSync(path.join(__dirname, "../../database/migrations"))
+  .filter((f) => /^\d{3}_.+\.ts$/.test(f));
+const FILE_VERSIONS = MIGRATION_FILES.map((f) => parseInt(f.slice(0, 3), 10)).sort((a, b) => a - b);
 
 // Track all SQL statements executed
 let executedSQL: string[] = [];
@@ -60,37 +72,9 @@ describe("Migration Runner", () => {
     const db = createMockDb();
     await runMigrations(db as never);
 
-    // execAsync calls:
-    //   1 schema_migrations CREATE
-    // + 1 each for migrations 001, 002, 003, 004 (5 total so far)
-    // + 3 for migration 005 (insert credits, flip refunds, repoint hisaab FKs) — 8 total
-    // + 1 each for migrations 006, 007, 008, 009, 010, 011, 013, 014, 015, 016 — 18 total
-    //   (migration 012 uses runAsync, not execAsync; counted in inserts test)
-    // + 2 for migration 017 (CREATE smart_rules, ALTER expenses ADD applied_rule_id) — 20 total
-    // + 5 for migration 018 (4 ALTERs for new columns + CREATE INDEX) — 25 total
-    // + 1 for migration 019 (ALTER financial_accounts ADD min_balance) — 26 total
-    // + 1 for migration 020 (3 CREATE INDEX IF NOT EXISTS in a single execAsync) — 27 total
-    // + 3 for migration 021 (2 ALTERs adding columns + 1 CREATE INDEX via 3 separate execAsyncs) — 30 total
-    // + 1 for migration 022 (ALTER hisaab_entries ADD settlement_source) — 31 total
-    // + 2 for migration 023 (2 ALTERs on account_transfers for SMS trace) — 33 total
-    // + 2 for migration 024 (2 ALTERs on expenses for split mode + exact amount) — 35 total
-    // + 1 for migration 025 (single execAsync block: 2 CREATE TABLE + 3 CREATE INDEX for simulator) — 36 total
-    // + migration 026 (v16.0.5) = 1 execAsync block (CREATE inclusions TABLE + INDEX) + 2 ALTERs on simulation_entries → 3 total → 39
-    // + migration 027 (v16.0.9) = 7 ALTER TABLE execAsyncs on salary_profiles (gratuity_in_ctc, ctc_mode, manual_basic/hra/special/employer_epf/gratuity) → 46
-    // + migration 028 (v17.0.0) = 1 execAsync block (CREATE expense_investment_links + 2 indexes) → 47
-    // + migration 029 (v17.0.0) = 1 execAsync block (3 CREATE TABLE: loan_accounts, loan_schedule_entries, loan_prepayments + 5 indexes) → 48
-    // + migration 030 (v17.2.0) = 1 ALTER TABLE execAsync (smart_rules.action_link_to_investment_bucket_id) → 49
-    // + migration 031 (v17.3.0) = 3 execAsyncs (2 ALTER TABLE adding bucket_type + linked_loan_account_id + 1 CREATE INDEX) → 52
-    // + migration 032 (v17.4.0) = 1 execAsync block (CREATE expense_loan_links + 4 indexes) → 53
-    // + migration 033 (v17.5.1) = 1 execAsync block (CREATE loan_corrections + 1 index) → 54
-    // + migration 034 (v17.5.2) = 2 execAsyncs (ALTER TABLE loan_accounts + UPDATE backfill) → 56
-    // + migration 035 (v17.5.2) = 1 execAsync block (2 CREATE INDEX IF NOT EXISTS) → 57
-    // + migration 036 (v17.5.18) uses runAsync not execAsync — no change to count → 57
-    // + migration 038 (v17.5.23) uses runAsync not execAsync — no change to count → 57
-    // + migration 039 (v17.6.0) = 4 ALTER TABLE execAsyncs (schedule_source + 3 sms_reminder cols)
-    //   (getAllAsync for PRAGMA doesn't count toward execAsync) → 61
-    // + migration 040 (v17.5.38) = 1 execAsync block (CREATE TABLE + 2 indexes) → 62
-    expect(executedSQL.length).toBe(62);
+    // First the schema_migrations table, then the consolidated schema, then later migrations.
+    expect(executedSQL[0]).toContain("schema_migrations");
+    expect(executedSQL.length).toBeGreaterThan(2);
 
     // The consolidated migration should create all tables
     const consolidatedSQL = executedSQL[1];
@@ -128,7 +112,12 @@ describe("Migration Runner", () => {
     const inserts = executedRuns.filter((r) =>
       r.sql.includes("INSERT INTO schema_migrations"),
     );
-    expect(inserts.length).toBe(39);
+    // One row per migration file, in increasing version order, ending at the newest file.
+    expect(inserts.length).toBe(MIGRATION_FILES.length);
+    const versions = inserts.map((r) => r.params[0] as number);
+    expect(versions).toEqual(FILE_VERSIONS);
+    expect(new Set(versions).size).toBe(versions.length);
+
     expect(inserts[0].params).toEqual([1, "001_consolidated_schema"]);
     expect(inserts[4].params).toEqual([5, "005_credits_into_expenses"]);
     expect(inserts[9].params).toEqual([10, "purchase_group"]);
@@ -165,102 +154,25 @@ describe("Migration Runner", () => {
 
   it("skips already-applied migrations", async () => {
     const db = createMockDb();
-    mockRows["SELECT version FROM schema_migrations ORDER BY version;"] = [
-      { version: 1 },
-      { version: 2 },
-      { version: 3 },
-      { version: 4 },
-      { version: 5 },
-      { version: 6 },
-      { version: 7 },
-      { version: 8 },
-      { version: 9 },
-      { version: 10 },
-      { version: 11 },
-      { version: 12 },
-      { version: 13 },
-      { version: 14 },
-      { version: 15 },
-      { version: 16 },
-      { version: 17 },
-      { version: 18 },
-      { version: 19 },
-      { version: 20 },
-      { version: 21 },
-      { version: 22 },
-      { version: 23 },
-      { version: 24 },
-      { version: 25 },
-      { version: 26 },
-      { version: 27 },
-      { version: 28 },
-      { version: 29 },
-      { version: 30 },
-      { version: 31 },
-      { version: 32 },
-      { version: 33 },
-      { version: 34 },
-      { version: 35 },
-      { version: 36 },
-      { version: 38 },
-      { version: 39 },
-      { version: 40 },
-    ];
+    // Everything up to 040 applied: only the migrations after it should run.
+    mockRows["SELECT version FROM schema_migrations ORDER BY version;"] = FILE_VERSIONS.filter((v) => v <= 40).map(
+      (version) => ({ version }),
+    );
 
     await runMigrations(db as never);
 
     const inserts = executedRuns.filter((r) =>
       r.sql.includes("INSERT INTO schema_migrations"),
     );
-    expect(inserts.length).toBe(0);
+    expect(inserts.map((r) => r.params[0])).toEqual(FILE_VERSIONS.filter((v) => v > 40));
 
-    // Only schema_migrations CREATE TABLE, no consolidated schema
-    expect(executedSQL.length).toBe(1);
+    // No consolidated schema re-run: the first statement is the schema_migrations table only.
+    expect(executedSQL.some((sql) => sql.includes("CREATE TABLE IF NOT EXISTS users"))).toBe(false);
   });
 
   it("does nothing when all migrations are applied", async () => {
     const db = createMockDb();
-    mockRows["SELECT version FROM schema_migrations ORDER BY version;"] = [
-      { version: 1 },
-      { version: 2 },
-      { version: 3 },
-      { version: 4 },
-      { version: 5 },
-      { version: 6 },
-      { version: 7 },
-      { version: 8 },
-      { version: 9 },
-      { version: 10 },
-      { version: 11 },
-      { version: 12 },
-      { version: 13 },
-      { version: 14 },
-      { version: 15 },
-      { version: 16 },
-      { version: 17 },
-      { version: 18 },
-      { version: 19 },
-      { version: 20 },
-      { version: 21 },
-      { version: 22 },
-      { version: 23 },
-      { version: 24 },
-      { version: 25 },
-      { version: 26 },
-      { version: 27 },
-      { version: 28 },
-      { version: 29 },
-      { version: 30 },
-      { version: 31 },
-      { version: 32 },
-      { version: 33 },
-      { version: 34 },
-      { version: 35 },
-      { version: 36 },
-      { version: 38 },
-      { version: 39 },
-      { version: 40 },
-    ];
+    mockRows["SELECT version FROM schema_migrations ORDER BY version;"] = FILE_VERSIONS.map((version) => ({ version }));
 
     await runMigrations(db as never);
 

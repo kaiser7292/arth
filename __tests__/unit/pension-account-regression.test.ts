@@ -97,7 +97,7 @@ describe("#4 Pension summary", () => {
   it("getPensionSummary returns correct totals", async () => {
     const { getPensionSummary } = require("../../services/financial-account");
     
-    mockRows["SELECT * FROM financial_accounts WHERE user_id = ? AND account_type = 'pension' AND is_active = 1"] = [
+    mockRows["SELECT * FROM financial_accounts WHERE user_id = ? AND account_type = 'pension' AND is_active = 1 AND closed_at IS NULL"] = [
       {
         id: "acc-1",
         last_known_balance: 50000,
@@ -125,7 +125,7 @@ describe("#4 Pension summary", () => {
   it("getPensionSummary returns zero for no pension accounts", async () => {
     const { getPensionSummary } = require("../../services/financial-account");
     
-    mockRows["SELECT * FROM financial_accounts WHERE user_id = ? AND account_type = 'pension' AND is_active = 1"] = [];
+    mockRows["SELECT * FROM financial_accounts WHERE user_id = ? AND account_type = 'pension' AND is_active = 1 AND closed_at IS NULL"] = [];
 
     const summary = await getPensionSummary("u-1");
 

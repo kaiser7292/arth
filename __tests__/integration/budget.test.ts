@@ -122,9 +122,11 @@ describe("upsertBudget", () => {
     });
 
     expect(id).toBe("existing-budget");
-    const update = executedRuns.find((r) => r.sql.includes("UPDATE budgets SET amount"));
-    expect(update).toBeDefined();
-    expect(update!.params).toEqual([10000, "Updated", "existing-budget"]);
+    // One atomic upsert (INSERT ... ON CONFLICT DO UPDATE) that reuses the existing row's id.
+    const upsert = executedRuns.find((r) => r.sql.includes("INSERT INTO budgets"));
+    expect(upsert).toBeDefined();
+    expect(upsert!.sql).toContain("ON CONFLICT(user_id, category_id, month)");
+    expect(upsert!.params).toEqual(["existing-budget", "user-1", "cat-1", "2026-04", 10000, "Updated"]);
   });
 });
 

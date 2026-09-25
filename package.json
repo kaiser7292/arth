@@ -83,6 +83,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@babel/plugin-transform-dynamic-import": "^7.29.7",
     "@testing-library/react-native": "^13.3.3",
     "@types/crypto-js": "^4.2.2",
     "@types/jest": "^29.5.14",

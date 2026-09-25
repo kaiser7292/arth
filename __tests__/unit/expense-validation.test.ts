@@ -38,8 +38,9 @@ describe("parseAmount", () => {
     expect(parseAmount("0")).toBeNull();
   });
 
-  it("allows negative numbers", () => {
-    expect(parseAmount("-100")).toBe(-100);
+  // Transaction guard: expenses are positive; refunds and income are separate "credit" entries.
+  it("rejects negative numbers", () => {
+    expect(parseAmount("-100")).toBeNull();
   });
 
   it("returns null for Infinity", () => {
@@ -77,9 +78,9 @@ describe("validateExpense", () => {
     expect(errors!.amount).toBeDefined();
   });
 
-  it("allows negative amount", () => {
+  it("rejects a negative amount", () => {
     const errors = validateExpense({ ...validData, amount: "-50" });
-    expect(errors).toBeNull();
+    expect(errors?.amount).toBeDefined();
   });
 
   it("returns error for non-numeric amount", () => {

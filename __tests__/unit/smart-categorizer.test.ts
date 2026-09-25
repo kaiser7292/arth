@@ -25,6 +25,8 @@ let mockDbInserts: { sql: string; params: unknown[] }[] = [];
 
 jest.mock("@/database", () => ({
   getDatabase: () => ({
+    // The code wraps multi-row writes in a transaction; run the body straight through.
+    withTransactionAsync: jest.fn(async (fn: () => Promise<void>) => { await fn(); }),
     getAllAsync: jest.fn(async (sql: string) => {
       return mockDbRows[sql] ?? mockDbRows["__all__"] ?? [];
     }),

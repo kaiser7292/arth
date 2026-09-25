@@ -6,6 +6,8 @@ let executedRuns: { sql: string; params: unknown[] }[] = [];
 let mockRows: Record<string, unknown[]> = {};
 
 const mockDb = {
+  // The code wraps multi-row writes in a transaction; run the body straight through.
+  withTransactionAsync: jest.fn(async (fn: () => Promise<void>) => { await fn(); }),
   getAllAsync: jest.fn(async (sql: string) => mockRows[sql] ?? []),
   getFirstAsync: jest.fn(async (sql: string) => {
     const rows = mockRows[sql] ?? [];
@@ -126,6 +128,8 @@ describe("createExpense", () => {
       null, // purchase_group_id
       null, // due_date
       null, // v15.2: applied_rule_id (smart-rules returned null in mock DB)
+      null, // migration 061: applied_rule_ids
+      expect.any(String), // created_at (set at insert time)
     ]);
   });
 

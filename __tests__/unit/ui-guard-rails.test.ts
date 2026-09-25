@@ -33,7 +33,12 @@ describe("UI Guard Rails", () => {
       "app/expense/add.tsx",
       "app/expense/[id].tsx",
       "app/expense/review-queue.tsx",
-      "app/expense/catch-up.tsx",
+      // Tab screens: (tabs)/_layout.tsx sets headerShown: false, so each pads for the status bar.
+      "app/(tabs)/index.tsx",
+      "app/(tabs)/expenses.tsx",
+      "app/(tabs)/budget.tsx",
+      "app/(tabs)/goals.tsx",
+      "app/(tabs)/settings.tsx",
       "app/budget/[categoryId].tsx",
       // v15.8.1: app/summary/[month].tsx migrated to Stack header — now uses padTop={false}.
       // v15 onboarding wizard — (onboarding)/_layout.tsx sets headerShown: false
@@ -53,7 +58,8 @@ describe("UI Guard Rails", () => {
       for (const file of files) {
         if (file.endsWith("_layout.tsx")) continue;
 
-        const relPath = path.relative(ROOT, file);
+        // Forward slashes on every OS - the allow-list below is written that way.
+        const relPath = path.relative(ROOT, file).split(path.sep).join("/");
 
         // Skip screens that have headerShown: false — they use padTop={true}
         if (CUSTOM_HEADER_SCREENS.has(relPath)) continue;

@@ -60,7 +60,7 @@ describe("#1 Pension account creation flow", () => {
   it("getPensionSummary includes newly created pension account", async () => {
     const { getPensionSummary } = require("../../services/financial-account");
     
-    mockRows["SELECT * FROM financial_accounts WHERE user_id = ? AND account_type = 'pension' AND is_active = 1"] = [
+    mockRows["SELECT * FROM financial_accounts WHERE user_id = ? AND account_type = 'pension' AND is_active = 1 AND closed_at IS NULL"] = [
       {
         id: "acc-1",
         last_known_balance: 50000,

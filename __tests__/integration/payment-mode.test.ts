@@ -8,6 +8,8 @@ let executedRuns: { sql: string; params: unknown[] }[] = [];
 let mockRows: Record<string, unknown[]> = {};
 
 const mockDb = {
+  // The code wraps multi-row writes in a transaction; run the body straight through.
+  withTransactionAsync: jest.fn(async (fn: () => Promise<void>) => { await fn(); }),
   getAllAsync: jest.fn(async (sql: string) => mockRows[sql] ?? []),
   getFirstAsync: jest.fn(async (sql: string) => {
     const rows = mockRows[sql] ?? [];

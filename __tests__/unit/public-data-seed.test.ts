@@ -96,9 +96,11 @@ describe("seedPublicData (Phase 2 — MCC + IFSC bundles shipped)", () => {
     const mccInserts = executedRuns.filter((r) =>
       /INSERT OR IGNORE INTO mcc_codes/i.test(r.sql),
     );
+    // Rows are inserted in multi-row batches, so count rows (4 values each, passed as one array), not statements.
+    const mccRows = mccInserts.reduce((n, r) => n + r.params.flat().length / 4, 0);
     // greggles/mcc-codes ships ~981 rows; assert we inserted a realistic volume.
-    expect(mccInserts.length).toBeGreaterThan(900);
-    expect(mccInserts.length).toBeLessThan(1100);
+    expect(mccRows).toBeGreaterThan(900);
+    expect(mccRows).toBeLessThan(1100);
   });
 
   it("inserts IFSC bundle rows into ifsc_bank_registry", async () => {
@@ -107,8 +109,9 @@ describe("seedPublicData (Phase 2 — MCC + IFSC bundles shipped)", () => {
     const ifscInserts = executedRuns.filter((r) =>
       /INSERT OR IGNORE INTO ifsc_bank_registry/i.test(r.sql),
     );
-    // razorpay/ifsc ships ~1500 bank prefixes.
-    expect(ifscInserts.length).toBeGreaterThan(1000);
+    // Multi-row batches: count rows (4 values each). razorpay/ifsc ships ~1500 bank prefixes.
+    const ifscRows = ifscInserts.reduce((n, r) => n + r.params.flat().length / 4, 0);
+    expect(ifscRows).toBeGreaterThan(1000);
   });
 
   it("records the seeded version in data_bundle_versions", async () => {

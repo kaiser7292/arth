@@ -160,7 +160,7 @@ export default function CorrectionForm() {
 
   if (!loaded || !loan) {
     return (
-      <ScreenContainer>
+      <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center">
           <Text style={{ color: colors.textSecondary }}>Loading...</Text>
         </View>

@@ -55,6 +55,8 @@ import { DEFAULT_USER_ID } from "../../constants/app";
 beforeEach(() => {
   mockGetFirstAsync.mockReset();
   mockGetAllAsync.mockReset();
+  // Queries return lists; default to "no rows" so code that maps over results has one.
+  mockGetAllAsync.mockResolvedValue([]);
   mockRunAsync.mockClear();
   executedRuns.length = 0;
   mockUuidCounter = 0;

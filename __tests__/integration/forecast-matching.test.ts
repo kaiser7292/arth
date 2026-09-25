@@ -312,7 +312,7 @@ describe("dismissOverdueForecasts", () => {
       (r) => r.sql.includes("status = 'rejected'") && r.sql.includes("due_date"),
     );
     expect(update).toBeDefined();
-    expect(update!.params).toEqual(["user-1", "2026-04-10"]);
+    expect(update!.params).toEqual([expect.any(String), "user-1", "2026-04-10"]); // updated_at first
     expect(count).toBe(3); // from mock runAsync returning changes: 3
   });
 });
