@@ -101,7 +101,6 @@ export default function MonthEndCheckScreen() {
           },
         },
       ]}
-      doneTitle="Books closed for the month"
       emptyIcon="calendar-outline"
       emptyTitle="All accounts checked"
       emptySubtitle="Every bank, card and wallet account has been checked for this month."

@@ -80,7 +80,6 @@ export default function SettleUpScreen() {
           },
         },
       ]}
-      doneTitle="All caught up on hisaab"
       emptyIcon="people-outline"
       emptyTitle="Nobody owes you"
       emptySubtitle="People with a balance in your favour in Hisaab show up here."

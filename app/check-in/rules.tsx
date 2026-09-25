@@ -88,7 +88,6 @@ export default function RuleSuggestionsScreen() {
           }),
         },
       ]}
-      doneTitle="All suggestions reviewed"
       emptyIcon="flash-outline"
       emptyTitle="No suggestions right now"
       emptySubtitle="When you file the same merchant under the same category a few times, it shows up here."

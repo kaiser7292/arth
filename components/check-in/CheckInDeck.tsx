@@ -49,7 +49,6 @@ interface CheckInDeckProps<T> {
   /** Swipe right / main button. */
   primary: DeckAction<T>;
   secondary?: DeckAction<T>[];
-  doneTitle: string;
   emptyIcon: IconName;
   emptyTitle: string;
   emptySubtitle?: string;
@@ -73,7 +72,6 @@ export function CheckInDeck<T>({
   renderCard,
   primary,
   secondary = [],
-  doneTitle,
   emptyIcon,
   emptyTitle,
   emptySubtitle,
@@ -216,15 +214,21 @@ export function CheckInDeck<T>({
     const counts = new Map<string, number>();
     log.forEach((o) => counts.set(o, (counts.get(o) ?? 0) + 1));
     const summary = [...counts.entries()].map(([o, n]) => `${o} ${n}`).join(" · ");
+    // Reaching here with a finished deck means there was no next check-in to move on to:
+    // everything is done, so end on the one shared "all caught up" state.
     return (
       <ScreenContainer padTop={false}>
         <EmptyState
-          icon={empty ? emptyIcon : "checkmark-done-outline"}
-          title={empty ? emptyTitle : doneTitle}
-          subtitle={empty ? emptySubtitle : summary || undefined}
+          icon={empty ? emptyIcon : "checkmark-done-circle-outline"}
+          title={empty ? emptyTitle : "You're all caught up"}
+          subtitle={
+            empty
+              ? emptySubtitle
+              : [summary, "Every check-in is done for now."].filter(Boolean).join(" · ")
+          }
           action={
             <View className="w-full px-4 mt-4">
-              <Button title="Done" onPress={() => router.back()} />
+              <Button title="Back to Home" onPress={() => router.dismissTo("/(tabs)")} />
             </View>
           }
         />

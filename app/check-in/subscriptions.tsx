@@ -97,7 +97,6 @@ export default function SubscriptionCheckScreen() {
           }),
         },
       ]}
-      doneTitle="Subscriptions reviewed"
       emptyIcon="repeat-outline"
       emptyTitle="Nothing to review"
       emptySubtitle="New subscriptions, ones you marked to cancel that are still charging, and anything not reviewed in 3 months show up here."
