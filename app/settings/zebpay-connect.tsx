@@ -10,8 +10,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAlert } from '@/hooks/use-alert';
 import { logger } from '@/utils/logger';
 import { formatAmount } from '@/utils/format';
-import { todayIso } from '@/utils/date';
-import { addOrUpdateSnapshot } from '@/services/financial-account';
+import { saveBrokerSnapshot } from '@/services/financial-account';
+import { getBrokerLinkedAccount, setBrokerLinkedAccount } from '@/services/broker-link';
 import { getDematAccountsForPicker } from '@/services/kite-connect';
 import {
   isZebpayConnected,
@@ -44,7 +44,7 @@ export default function ZebpayConnectScreen() {
   const [orders, setOrders]               = useState<ZebpayOrder[]>([]);
   const [totalInr, setTotalInr]           = useState(0);
   const [inrBalance, setInrBalance]       = useState(0);
-  const [linkedAccountId, setLinkedAccountId] = useState<string | null>(null);
+  const [linkedAccountId, setLinkedAccountId] = useState<string | null>(() => getBrokerLinkedAccount('zebpay'));
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [pickerAccounts, setPickerAccounts] = useState<{ id: string; label: string }[]>([]);
   const { query, setQuery, sort, changeSort, view } = usePortfolioView('zebpay');
@@ -81,8 +81,10 @@ export default function ZebpayConnectScreen() {
     }
   };
 
-  const handleUpdateSnapshot = async () => {
-    if (!linkedAccountId) {
+  // accountIdOverride: the account just picked (state hasn't updated yet at that point).
+  const handleUpdateSnapshot = async (accountIdOverride?: string) => {
+    const accountId = accountIdOverride ?? linkedAccountId;
+    if (!accountId) {
       const accounts = await getDematAccountsForPicker().catch(() => []);
       if (accounts.length === 0) {
         alert('No Account', 'Add a demat/investment account in Accounts first, then link it here.');
@@ -94,8 +96,9 @@ export default function ZebpayConnectScreen() {
     }
     setSavingSnapshot(true);
     try {
-      await addOrUpdateSnapshot(linkedAccountId, todayIso(), totalInr);
-      alert('Snapshot Saved', `Crypto portfolio ${formatAmount(totalInr)} saved for today.`);
+      // Crypto holdings are the portfolio; the INR wallet balance is the fund (0 when empty).
+      const saved = await saveBrokerSnapshot(accountId, totalInr, inrBalance);
+      alert('Snapshot Saved', `Crypto portfolio ${formatAmount(saved.portfolio)} and INR funds ${formatAmount(saved.fund)} saved for today.`);
     } catch (err: any) {
       alert('Error', err.message || 'Failed to save snapshot');
     } finally {
@@ -105,8 +108,9 @@ export default function ZebpayConnectScreen() {
 
   const handlePickAccount = (id: string) => {
     setLinkedAccountId(id);
+    setBrokerLinkedAccount('zebpay', id);
     setShowAccountPicker(false);
-    handleUpdateSnapshot();
+    handleUpdateSnapshot(id);
   };
 
   const handleDisconnect = () => {
@@ -123,6 +127,7 @@ export default function ZebpayConnectScreen() {
               await clearZebpayCredentials();
               setConnected(false);
               setBalances([]); setOrders([]); setTotalInr(0); setInrBalance(0); setLinkedAccountId(null);
+              setBrokerLinkedAccount('zebpay', null);
             } catch (e) {
               logger.error('Failed to disconnect Zebpay:', e);
             }
@@ -212,7 +217,7 @@ export default function ZebpayConnectScreen() {
             <PortfolioSummary
               current={totalInr}
               funds={inrBalance > 0 ? inrBalance : null}
-              onSaveSnapshot={handleUpdateSnapshot}
+              onSaveSnapshot={() => handleUpdateSnapshot()}
               saving={savingSnapshot}
             />
           )}

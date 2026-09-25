@@ -10,6 +10,7 @@ import { getDatabase } from "@/database";
 import { addCredit } from "@/services/account-credit";
 import type { MonthlyTotal } from "@/services/expense-types";
 import { bumpDataVersion } from "@/services/settings";
+import { todayIso } from "@/utils/date";
 import { generateUUID } from "@/utils/uuid";
 import type { ParsedSMS } from "./sms/bank-patterns";
 
@@ -1168,8 +1169,37 @@ export async function updateFundBalance(
   accountId: string,
   amount: number,
 ): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10);
-  await addOrUpdateFundSnapshot(accountId, today, amount);
+  // Local date, like portfolio snapshots. toISOString() is UTC, which in India files anything
+  // saved between midnight and 5:30 AM under the previous day.
+  await addOrUpdateFundSnapshot(accountId, todayIso(), toAmount(amount));
+}
+
+/** A money value from a broker API: missing, empty or non-numeric counts as 0. */
+export function toAmount(value: unknown): number {
+  const n = typeof value === "number" ? value : parseFloat(String(value ?? ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * "Update snapshot" for a broker-linked account (Kite, Angel One, Zebpay): records today's
+ * portfolio value AND today's fund (idle cash) together, in one transaction, so it's never
+ * half-saved. A fund of 0 is saved as 0 rather than skipped - otherwise the last non-zero
+ * figure keeps showing as if the cash were still there.
+ */
+export async function saveBrokerSnapshot(
+  accountId: string,
+  portfolioValue: unknown,
+  fundValue: unknown,
+  date: string = todayIso(),
+): Promise<{ portfolio: number; fund: number }> {
+  const portfolio = toAmount(portfolioValue);
+  const fund = toAmount(fundValue);
+  const db = getDatabase();
+  await db.withTransactionAsync(async () => {
+    await addOrUpdateSnapshot(accountId, date, portfolio);
+    await addOrUpdateFundSnapshot(accountId, date, fund);
+  });
+  return { portfolio, fund };
 }
 
 /**

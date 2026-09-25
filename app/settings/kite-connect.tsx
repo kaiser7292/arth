@@ -11,7 +11,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAlert } from '@/hooks/use-alert';
 import { useTheme } from '@/hooks/use-theme';
 import { formatAmount } from '@/utils/format';
-import { todayIso } from '@/utils/date';
 import { generateTOTP, totpSecondsRemaining } from '@/utils/totp';
 import {
   KITE_LOGIN_WATCHER_JS,
@@ -39,7 +38,7 @@ import {
   PortfolioSummary,
   usePortfolioView,
 } from '@/components/portfolio/PortfolioList';
-import { addOrUpdateSnapshot, updateFundBalance } from '@/services/financial-account';
+import { saveBrokerSnapshot } from '@/services/financial-account';
 import {
   clearKiteCredentials,
   clearKiteSession,
@@ -359,12 +358,9 @@ export default function KiteConnectScreen() {
     }
     setSavingSnapshot(true);
     try {
-      const today = todayIso();
-      await Promise.all([
-        addOrUpdateSnapshot(linkedAccountId, today, portfolioTotal),
-        updateFundBalance(linkedAccountId, fundsAvailable),
-      ]);
-      alert('Snapshot Saved', `Portfolio ₹${formatAmount(portfolioTotal)} and funds ₹${formatAmount(fundsAvailable)} saved for today.`);
+      // Portfolio and funds are always saved together; funds of 0 are saved as 0.
+      const saved = await saveBrokerSnapshot(linkedAccountId, portfolioTotal, fundsAvailable);
+      alert('Snapshot Saved', `Portfolio ${formatAmount(saved.portfolio)} and funds ${formatAmount(saved.fund)} saved for today.`);
     } catch (err: any) {
       alert('Error', err.message || 'Failed to save snapshot');
     } finally {

@@ -10,8 +10,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAlert } from '@/hooks/use-alert';
 import { logger } from '@/utils/logger';
 import { formatAmount } from '@/utils/format';
-import { todayIso } from '@/utils/date';
-import { addOrUpdateSnapshot, updateFundBalance } from '@/services/financial-account';
+import { saveBrokerSnapshot } from '@/services/financial-account';
+import { getBrokerLinkedAccount, setBrokerLinkedAccount } from '@/services/broker-link';
 import { getDematAccountsForPicker } from '@/services/kite-connect';
 import {
   isAngelConnected,
@@ -67,7 +67,7 @@ export default function AngelConnectScreen() {
   const [clientId, setClientId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [savingSnapshot, setSavingSnapshot] = useState(false);
-  const [linkedAccountId, setLinkedAccountId] = useState<string | null>(null);
+  const [linkedAccountId, setLinkedAccountId] = useState<string | null>(() => getBrokerLinkedAccount('angel'));
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [pickerAccounts, setPickerAccounts] = useState<{ id: string; label: string }[]>([]);
 
@@ -117,8 +117,11 @@ export default function AngelConnectScreen() {
     }
   }, [alert]);
 
-  const handleUpdateSnapshot = async () => {
-    if (!linkedAccountId) {
+  // accountIdOverride: the account just picked. State hasn't updated yet at that point, so reading
+  // linkedAccountId there would re-open the picker instead of saving.
+  const handleUpdateSnapshot = async (accountIdOverride?: string) => {
+    const accountId = accountIdOverride ?? linkedAccountId;
+    if (!accountId) {
       const accounts = await getDematAccountsForPicker().catch(() => []);
       if (accounts.length === 0) {
         alert('No Demat Account', 'Add a demat/investment account in Accounts first, then link it here.');
@@ -132,11 +135,9 @@ export default function AngelConnectScreen() {
     const fundsAvailable = parseMoney(funds?.availablecash ?? funds?.net);
     setSavingSnapshot(true);
     try {
-      await Promise.all([
-        addOrUpdateSnapshot(linkedAccountId, todayIso(), portfolioTotal),
-        updateFundBalance(linkedAccountId, fundsAvailable),
-      ]);
-      alert('Snapshot Saved', `Portfolio ${formatAmount(portfolioTotal)} and funds ${formatAmount(fundsAvailable)} saved for today.`);
+      // Portfolio and funds are always saved together; funds of 0 are saved as 0.
+      const saved = await saveBrokerSnapshot(accountId, portfolioTotal, fundsAvailable);
+      alert('Snapshot Saved', `Portfolio ${formatAmount(saved.portfolio)} and funds ${formatAmount(saved.fund)} saved for today.`);
     } catch (err: any) {
       alert('Error', err.message || 'Failed to save snapshot');
     } finally {
@@ -146,8 +147,9 @@ export default function AngelConnectScreen() {
 
   const handlePickAccount = (id: string) => {
     setLinkedAccountId(id);
+    setBrokerLinkedAccount('angel', id);
     setShowAccountPicker(false);
-    handleUpdateSnapshot();
+    handleUpdateSnapshot(id);
   };
 
   const handleDisconnect = useCallback(() => {
@@ -273,7 +275,7 @@ export default function AngelConnectScreen() {
               extras={funds && parseMoney(funds.totalpnl) !== 0
                 ? [{ label: "Today's P&L", value: parseMoney(funds.totalpnl), signed: true }]
                 : undefined}
-              onSaveSnapshot={handleUpdateSnapshot}
+              onSaveSnapshot={() => handleUpdateSnapshot()}
               saving={savingSnapshot}
             />
           )}
