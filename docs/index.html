@@ -243,7 +243,7 @@ footer{background:var(--dark-bg);padding-block:24px}
   background:var(--pbg);border-radius:29px;overflow:hidden;font-size:9px;
   font-family:'DM Sans',system-ui,sans-serif;color:var(--ptext);line-height:1.35}
 /* punch-hole front camera, centred in the status bar like a Pixel/Galaxy */
-.phone-scr::after{content:'';position:absolute;top:.95em;left:50%;transform:translateX(-50%);
+.phone-scr::after{content:'';position:absolute;top:1.57em;left:50%;transform:translateX(-50%);
   width:.92em;height:.92em;border-radius:50%;background:#000;
   box-shadow:0 0 0 1px rgba(255,255,255,.09);z-index:6;pointer-events:none}
 /* Android gesture-navigation pill */
@@ -263,11 +263,13 @@ footer{background:var(--dark-bg);padding-block:24px}
 }
 
 /* status bar + chrome */
+/* Top inset matches the real screenshots: status text starts ~2.8% down the
+   screen, which keeps it clear of the corner radius instead of tucked into it. */
 .p-stat{display:flex;justify-content:space-between;align-items:center;
-  padding:.8em 1.25em .25em;font-size:.92em;font-weight:600;flex-shrink:0}
+  padding:1.55em 1.25em .45em;font-size:.92em;font-weight:600;flex-shrink:0}
 .p-stat-i{display:flex;align-items:center;gap:.32em}
 .p-stat-i svg{height:.85em;width:auto;display:block}
-.p-hdr{display:flex;align-items:center;gap:.55em;padding:.7em 1.15em .6em;flex-shrink:0}
+.p-hdr{display:flex;align-items:center;gap:.55em;padding:.95em 1.15em .6em;flex-shrink:0}
 .p-hdr-t{font-family:'Outfit',sans-serif;font-weight:700;font-size:1.3em;letter-spacing:-.01em}
 .p-hdr-s{font-size:.88em;color:var(--pmuted);margin-top:.1em}
 .p-chev{color:var(--pteal);font-size:1.25em;line-height:1}
