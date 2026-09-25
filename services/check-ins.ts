@@ -2,6 +2,7 @@ import { getMonthEndPendingCount, isMonthEndWindow } from "@/services/month-end-
 import { getRuleSuggestions } from "@/services/rule-suggestions";
 import { getPeopleWhoOweYou, needsNudge } from "@/services/settle-up-check";
 import { getSubscriptionCheckItems } from "@/services/subscription-check";
+import { settingsStorage } from "@/services/storage";
 import { logger } from "@/utils/logger";
 
 /**
@@ -34,7 +35,32 @@ export async function getCheckInCounts(userId: string, now: Date = new Date()): 
       (await getPeopleWhoOweYou(userId)).filter((p) => needsNudge(p.id, now.getTime())).length,
     ),
   ]);
-  return { monthEnd, ruleSuggestions, subscriptions, settleUp };
+  const counts = { monthEnd, ruleSuggestions, subscriptions, settleUp };
+  // A snoozed check-in counts as empty: hidden on Home and passed over by auto-advance.
+  for (const id of Object.keys(counts) as (keyof CheckInCounts)[]) {
+    if (isCheckInSnoozed(id, now.getTime())) counts[id] = 0;
+  }
+  return counts;
+}
+
+// ─── Snooze ───
+
+/** Skipping every card in a check-in means "not now": keep it out of the way for a week. */
+export const SNOOZE_DAYS = 7;
+const SNOOZE_PREFIX = "check_in_snoozed_until__";
+
+export function snoozeCheckIn(id: keyof CheckInCounts, now: number = Date.now()): void {
+  settingsStorage.set(SNOOZE_PREFIX + id, now + SNOOZE_DAYS * 86400000);
+}
+
+export function isCheckInSnoozed(id: keyof CheckInCounts, now: number = Date.now()): boolean {
+  const until = settingsStorage.getNumber(SNOOZE_PREFIX + id);
+  return until != null && now < until;
+}
+
+/** True when the run was all skips - no card was acted on. */
+export function skippedEverything(outcomes: readonly string[]): boolean {
+  return outcomes.length > 0 && outcomes.every((o) => o === "Skipped");
 }
 
 // ─── Moving from one check-in to the next ───

@@ -10,7 +10,7 @@ import { DeckCard, DeckFooter, DeckProgress } from "./DeckParts";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { DeferredAction } from "@/services/catch-up";
 import type { CheckInId } from "@/services/check-ins";
-import { getCheckInCounts, pickNextCheckIn } from "@/services/check-ins";
+import { getCheckInCounts, pickNextCheckIn, skippedEverything, snoozeCheckIn } from "@/services/check-ins";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 
@@ -185,13 +185,19 @@ export function CheckInDeck<T>({
       // Commit the last action first, so the counts below reflect it.
       await deferred.flush();
       undoPoint.current = null;
+      const snoozed = skippedEverything(logRef.current);
+      if (snoozed) snoozeCheckIn(id);
+      const doneMsg = snoozed
+        ? `Skipped everything, so ${CHECK_IN_ROUTES[id].title} is hidden for a week.`
+        : `${CHECK_IN_ROUTES[id].title} done.`;
       const visited = [...(visitedParam ? visitedParam.split(",") : []), id];
       const next = pickNextCheckIn(await getCheckInCounts(DEFAULT_USER_ID), id, visited);
       if (cancelled) return;
       if (next) {
-        toast(`${CHECK_IN_ROUTES[id].title} done. Next: ${CHECK_IN_ROUTES[next].title}`);
+        toast(`${doneMsg} Next: ${CHECK_IN_ROUTES[next].title}`);
         router.replace({ pathname: CHECK_IN_ROUTES[next].href as never, params: { visited: visited.join(",") } });
       } else {
+        if (snoozed) toast(doneMsg);
         setAdvancing(false);
       }
     })().catch(() => setAdvancing(false));

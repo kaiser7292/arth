@@ -1,4 +1,5 @@
 import { getDatabase } from "@/database";
+import { categorizeByMerchant } from "@/services/smart-categorizer";
 import { createRule, getActiveRules } from "@/services/smart-rules";
 import type { SmartRule } from "@/services/smart-rules";
 import { settingsStorage } from "@/services/storage";
@@ -7,7 +8,7 @@ import { settingsStorage } from "@/services/storage";
  * "You've filed Swiggy as Food 7 times. Make it automatic?"
  *
  * A suggestion is a merchant the user keeps filing under the same category, with no Smart Rule
- * covering it yet. Dismissals are device-local (MMKV) — a lost dismissal only means the card
+ * covering it yet, and that the built-in auto-categorization doesn't already get right. Dismissals are device-local (MMKV) — a lost dismissal only means the card
  * comes back once, so it isn't worth a table.
  */
 
@@ -103,7 +104,33 @@ export async function getRuleSuggestions(userId: string): Promise<RuleSuggestion
     since,
   );
   const rules = await getActiveRules();
-  return pickSuggestions(rows, rules, loadDismissed());
+  const candidates = pickSuggestions(rows, rules, loadDismissed());
+  return dropAlreadyAutomatic(candidates, async (merchant) =>
+    (await categorizeByMerchant(userId, merchant)).categoryId,
+  );
+}
+
+/**
+ * Drop merchants Arth already files automatically. The smart categorizer (built-in keyword list
+ * of 200+ Indian merchants, the merchant-brand registry, and mappings learned from the user's
+ * own corrections) runs on every new SMS transaction; if it already picks the suggested
+ * category, a Smart Rule would change nothing - "Swiggy -> Food" is noise.
+ */
+export async function dropAlreadyAutomatic(
+  suggestions: RuleSuggestion[],
+  autoCategoryFor: (merchant: string) => Promise<string | null>,
+): Promise<RuleSuggestion[]> {
+  const keep: RuleSuggestion[] = [];
+  for (const s of suggestions) {
+    let auto: string | null = null;
+    try {
+      auto = await autoCategoryFor(s.merchant);
+    } catch {
+      // If the lookup fails, err on the side of still suggesting.
+    }
+    if (auto !== s.categoryId) keep.push(s);
+  }
+  return keep;
 }
 
 /** Creates "Merchant → Category" (merchant contains X, applies to debits). */

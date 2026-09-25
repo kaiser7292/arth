@@ -26,14 +26,15 @@ jest.mock("../../services/hisaab", () => ({ getPersonsWithBalances: jest.fn(), r
 jest.mock("../../services/balance-source", () => ({ getBalanceSourceInfo: jest.fn() }));
 jest.mock("../../services/financial-account", () => ({ getActiveAccounts: jest.fn() }));
 jest.mock("../../services/settings", () => ({ bumpDataVersion: jest.fn() }));
+jest.mock("../../services/smart-categorizer", () => ({ categorizeByMerchant: jest.fn(async () => ({ categoryId: null })) }));
 
 import type { SmartRule } from "../../services/smart-rules";
 import type { RecurringTransaction } from "../../services/recurring-detector";
-import { isCoveredByRule, pickSuggestions } from "../../services/rule-suggestions";
+import { dropAlreadyAutomatic, isCoveredByRule, pickSuggestions } from "../../services/rule-suggestions";
 import { REVIEW_EVERY_DAYS, classifySubscription, yearlyCost } from "../../services/subscription-check";
 import { classifyBalance, getCycleMonth, isMonthEndWindow } from "../../services/month-end-check";
 import { reminderMessage } from "../../services/settle-up-check";
-import { pickNextCheckIn } from "../../services/check-ins";
+import { SNOOZE_DAYS, isCheckInSnoozed, pickNextCheckIn, skippedEverything, snoozeCheckIn } from "../../services/check-ins";
 
 const rule = (merchant: string, withCategory = true): SmartRule =>
   ({
@@ -137,5 +138,44 @@ describe("auto-advance between check-ins", () => {
 
   it("stops when nothing else has items", () => {
     expect(pickNextCheckIn({ monthEnd: 0, settleUp: 1, subscriptions: 0, ruleSuggestions: 0 }, "settleUp", [])).toBeNull();
+  });
+});
+
+describe("rule suggestions skip what's already automatic", () => {
+  const s = (merchant: string, categoryId: string) => ({ key: merchant.toLowerCase(), merchant, categoryId, count: 5, total: 500 });
+
+  it("drops merchants the categorizer already files under the same category", async () => {
+    const auto: Record<string, string> = { Swiggy: "food", "Uber": "travel" };
+    const out = await dropAlreadyAutomatic(
+      [s("Swiggy", "food"), s("Uber", "shopping"), s("Local Kirana", "groceries")],
+      async (m) => auto[m] ?? null,
+    );
+    // Swiggy is already automatic; Uber is auto-filed differently (a rule changes something);
+    // Local Kirana isn't known at all.
+    expect(out.map((x) => x.merchant)).toEqual(["Uber", "Local Kirana"]);
+  });
+
+  it("still suggests when the lookup fails", async () => {
+    const out = await dropAlreadyAutomatic([s("Swiggy", "food")], async () => {
+      throw new Error("db");
+    });
+    expect(out).toHaveLength(1);
+  });
+});
+
+describe("snoozing a check-in you skipped entirely", () => {
+  it("only counts as 'skipped everything' when no card was acted on", () => {
+    expect(skippedEverything(["Skipped", "Skipped"])).toBe(true);
+    expect(skippedEverything(["Skipped", "Reminded"])).toBe(false);
+    expect(skippedEverything([])).toBe(false);
+  });
+
+  it("hides the check-in for a week, then brings it back", () => {
+    const now = new Date("2026-09-25T10:00:00").getTime();
+    snoozeCheckIn("settleUp", now);
+    expect(isCheckInSnoozed("settleUp", now + 1)).toBe(true);
+    expect(isCheckInSnoozed("settleUp", now + (SNOOZE_DAYS - 1) * 86400000)).toBe(true);
+    expect(isCheckInSnoozed("settleUp", now + SNOOZE_DAYS * 86400000 + 1)).toBe(false);
+    expect(isCheckInSnoozed("subscriptions", now + 1)).toBe(false);
   });
 });
