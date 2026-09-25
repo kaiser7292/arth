@@ -1,3 +1,4 @@
+import { exportSettings, importSettings, type SettingValue } from "@/services/backup-settings";
 import { getDatabase } from "@/database";
 import { TABLE_SCHEMAS } from "@/database/TABLE_SCHEMAS";
 import { bumpDataVersion, setLastBackupAt } from "@/services/settings";
@@ -319,7 +320,8 @@ export async function createBackup(password: string): Promise<BackupResult> {
     let vaultKey: string | null = null;
     try { vaultKey = await SecureStore.getItemAsync(VAULT_KEY_STORE); } catch { /* ignore */ }
 
-    const payload = JSON.stringify({ metadata, data: tableData, vaultKey });
+    // Settings (preferences and decisions kept outside the database) - see services/backup-settings.ts.
+    const payload = JSON.stringify({ metadata, data: tableData, vaultKey, settings: exportSettings() });
 
     // 3. Generate salt and IV (as hex strings)
     const saltHex = arrayToHex(Crypto.getRandomBytes(SALT_LENGTH));
@@ -525,6 +527,7 @@ export async function pickAndValidateBackupFile(): Promise<PickedBackupFile | nu
 export async function restoreFromData(
   data: Record<string, unknown[]>,
   vaultKey?: string | null,
+  settings?: SettingValue[] | null,
 ): Promise<RestoreResult> {
   const db = getDatabase();
   const tablesRestored: string[] = [];
@@ -677,6 +680,16 @@ export async function restoreFromData(
     try { await SecureStore.setItemAsync(VAULT_KEY_STORE, vaultKey); } catch { /* ignore */ }
   }
 
+  // Settings kept outside the database. Absent in backups made before they were included -
+  // then the device's current settings are left as they are.
+  if (settings) {
+    try {
+      importSettings(settings);
+    } catch (e) {
+      console.warn("[backup] restore: settings could not be restored", e);
+    }
+  }
+
   if (failedRows > 0) {
     console.warn(`[backup] restore: ${failedRows} row(s) across the backup failed to restore and were skipped.`);
   }
@@ -752,7 +765,12 @@ export async function restoreBackup(
     }
 
     // 5. Parse JSON
-    let parsed: { metadata: BackupMetadata; data: Record<string, unknown[]>; vaultKey?: string | null };
+    let parsed: {
+      metadata: BackupMetadata;
+      data: Record<string, unknown[]>;
+      vaultKey?: string | null;
+      settings?: SettingValue[] | null;
+    };
     try {
       parsed = JSON.parse(payload);
     } catch {
@@ -777,7 +795,7 @@ export async function restoreBackup(
     }
 
     // 7. Restore tables via shared restoreFromData helper
-    return await restoreFromData(parsed.data, parsed.vaultKey);
+    return await restoreFromData(parsed.data, parsed.vaultKey, parsed.settings);
   } catch (e) {
     try { await getDatabase().execAsync("PRAGMA foreign_keys = ON;"); } catch { /* ignore */ }
     return {

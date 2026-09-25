@@ -117,6 +117,9 @@ Every time you add/modify a table or column, ALL of these must happen together:
 5. **Update cascade paths** in `data-cleanup.ts`, `permanentlyDeleteExpense`, `hardDeletePerson`
 6. **Update mock objects** in test files
 7. **Update any SQL query that references the column** — particularly `SELECT id, account_id, …, your_new_col, …` queries scattered across services
+8. **Settings outside the database (MMKV) are backed up too.** Every key written to `settingsStorage` / `duplicateDismissalsStorage` / `minBalanceAcksStorage` must be listed in `SETTINGS_REGISTRY` (`services/backup-settings.ts`) — as backed up, or device-only with a reason — with the type the code reads it as.
+
+**Guard tests enforce both:** `__tests__/integration/backup-coverage.test.ts` builds the real schema from every migration and fails if a table isn't in `BACKUP_TABLES` or a column isn't in `TABLE_SCHEMAS`; `__tests__/integration/settings-backup-coverage.test.ts` scans the code for storage writes and fails on any key missing from the registry (computed keys go in its `DYNAMIC` list).
 
 **The classic trap (May 2026 incident):** Migration 023 added `source_sms_address` to `account_transfers`. Later a query started selecting `source_sms_address` from `expenses` (a different table) on the assumption it existed there too. The query failed with "no such column", which silently crashed the entire account-ledger data-load callback — balance summary updated correctly (different query path) but the transaction list stayed empty. Lesson: every column referenced in SQL must have a migration adding it to the SPECIFIC table being queried.
 

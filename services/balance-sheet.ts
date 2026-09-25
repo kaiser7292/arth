@@ -28,6 +28,7 @@ import {
   isDematLikeAccount,
   isPensionLikeAccount,
   type InvestmentProduct,
+  withoutFinishedInvestments,
 } from "@/services/investment-accounts";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 
@@ -397,10 +398,14 @@ export async function getBalanceSheetColumn(
   isLive: boolean,
   minDate: string | null,
 ): Promise<BalanceSheetColumn> {
-  const accounts = await loadAccounts(userId);
+  const loaded = await loadAccounts(userId);
 
-  const investmentIds = accounts.filter((a) => a.account_type === "investment").map((a) => a.id);
+  const investmentIds = loaded.filter((a) => a.account_type === "investment").map((a) => a.id);
   const investmentProducts = await batchInvestmentProducts(investmentIds);
+  // Closed accounts are already left out by loadAccounts. Also leave out an FD marked matured /
+  // closed whose account is still open: its money has moved to the account it was paid into, so
+  // counting both would double it.
+  const accounts = withoutFinishedInvestments(loaded, investmentProducts);
 
   // dematIds now covers both the legacy account_type='demat' and a
   // Phase-2-converted investment+valuation='market' account — see

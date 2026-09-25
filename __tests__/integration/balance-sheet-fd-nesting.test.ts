@@ -53,7 +53,7 @@ function seed() {
     );
     CREATE TABLE investment_products (
       id TEXT PRIMARY KEY, financial_account_id TEXT, instrument TEXT, valuation TEXT,
-      source_account_id TEXT
+      source_account_id TEXT, status TEXT DEFAULT 'active'
     );
     CREATE TABLE demat_portfolio_snapshots (account_id TEXT, snapshot_date TEXT, portfolio_value REAL);
     CREATE TABLE demat_fund_snapshots (account_id TEXT, snapshot_date TEXT, fund_value REAL);
@@ -112,5 +112,30 @@ describe("getBalanceSheetColumn — FD nesting", () => {
     expect(fdRow).toBeDefined();
     expect(fdRow!.amount).toBe(50000);
     expect(col.totalAssets).toBe(150000); // still counted, just not nested
+  });
+
+  it("drops a matured FD once its payout is in savings - the money is counted once", async () => {
+    seed();
+    // FD matured: its account is closed and the payout (principal + interest) landed in savings.
+    mockSqlite.exec(`
+      UPDATE financial_accounts SET closed_at = '2026-05-10' WHERE id = 'fd-1';
+      UPDATE investment_products SET status = 'matured' WHERE id = 'prod-1';
+      INSERT INTO expenses (id, account_id, amount, nature, status, date, description)
+      VALUES ('payout', 'savings-1', 53000, 'credit', 'approved', '2026-05-10', 'HDFC FD maturity');
+    `);
+    const col = await getBalanceSheetColumn("u1", "2026-05-20", "Today", true, null);
+    const savingsRow = col.assets.find((r) => r.group === "savings")!;
+    expect(savingsRow.children ?? []).toHaveLength(0);
+    expect(col.assets.find((r) => r.group === "investment")).toBeUndefined();
+    expect(savingsRow.amount).toBe(153000);
+    expect(col.totalAssets).toBe(153000);
+  });
+
+  it("drops an FD marked matured even if its account was left open", async () => {
+    seed();
+    mockSqlite.exec("UPDATE investment_products SET status = 'matured' WHERE id = 'prod-1';");
+    const col = await getBalanceSheetColumn("u1", "2026-05-20", "Today", true, null);
+    expect(col.assets.find((r) => r.group === "savings")!.children ?? []).toHaveLength(0);
+    expect(col.totalAssets).toBe(100000);
   });
 });

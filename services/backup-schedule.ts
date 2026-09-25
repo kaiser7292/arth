@@ -6,6 +6,7 @@ import * as TaskManager from "expo-task-manager";
 import { settingsStorage as storage } from "@/services/storage";
 import { isNotificationEnabled } from "@/services/notifications";
 import { BACKUP_TABLES, restoreFromData } from "@/services/backup";
+import { exportSettings, type SettingValue } from "@/services/backup-settings";
 import type { RestoreResult } from "@/services/backup";
 import { getDatabase } from "@/database";
 import { logger } from "@/utils/logger";
@@ -113,7 +114,16 @@ export async function createScheduledBackup(): Promise<void> {
   }
 
   const file = new File(dir, buildFileName(now));
-  file.write(JSON.stringify({ version: 1, createdAt: now.toISOString(), tables: BACKUP_TABLES, data: tableData }));
+  file.write(
+    JSON.stringify({
+      version: 1,
+      createdAt: now.toISOString(),
+      tables: BACKUP_TABLES,
+      data: tableData,
+      // Preferences and decisions kept outside the database (services/backup-settings.ts).
+      settings: exportSettings(),
+    }),
+  );
   pruneOldBackups(dir);
   storage.set(KEY_LAST_RUN, now.toISOString());
 }
@@ -188,16 +198,16 @@ export async function restoreScheduledBackup(filePath: string): Promise<RestoreR
       return { success: false, tablesRestored: [], totalRows: 0, failedRows: 0, error: "Backup file not found." };
     }
     const raw = await file.text();
-    let payload: { data: Record<string, unknown[]> };
+    let payload: { data: Record<string, unknown[]>; settings?: SettingValue[] | null };
     try {
-      payload = JSON.parse(raw) as { data: Record<string, unknown[]> };
+      payload = JSON.parse(raw) as { data: Record<string, unknown[]>; settings?: SettingValue[] | null };
     } catch {
       return { success: false, tablesRestored: [], totalRows: 0, failedRows: 0, error: "Backup file is corrupted." };
     }
     if (!payload?.data) {
       return { success: false, tablesRestored: [], totalRows: 0, failedRows: 0, error: "Invalid backup format." };
     }
-    return await restoreFromData(payload.data);
+    return await restoreFromData(payload.data, null, payload.settings);
   } catch (e) {
     return {
       success: false,
