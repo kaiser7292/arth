@@ -1,8 +1,11 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { Text } from "@/components/ui";
+import { ReportAnswerSheet } from "@/components/ai/ReportAnswerSheet";
 import {
+  AVAILABLE_MODELS,
   chatWithAI,
+  getActiveModelId,
   initAIContext,
   isAIDataAccountsEnabled,
   isAIDataBudgetEnabled,
@@ -21,10 +24,12 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import { ActivityIndicator, AppState, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import Constants from "expo-constants";
 import { useTheme } from "@/hooks/use-theme";
 
 const CHAT_HISTORY_KEY = "arth_ai_chat_history";
+const LLAMA_LICENSE_URL = "https://www.llama.com/llama3_2/license/";
 const MAX_STORED = 30;
 
 interface DisplayMessage {
@@ -149,6 +154,8 @@ export default function AIChatScreen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [retryText, setRetryText] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [reportingId, setReportingId] = useState<string | null>(null);
+  const [reportedIds, setReportedIds] = useState<Set<string>>(() => new Set());
   const scrollRef = useRef<ScrollView>(null);
   const historyRef = useRef<ChatMessage[]>([]);
   const isMounted = useRef(true);
@@ -432,6 +439,9 @@ export default function AIChatScreen() {
                 <Text className="text-sm text-center text-muted-foreground">
                   Everything runs privately on your phone.
                 </Text>
+                <Pressable onPress={() => Linking.openURL(LLAMA_LICENSE_URL)} hitSlop={8} className="mt-3">
+                  <Text className="text-xs text-faint-foreground">Built with Llama</Text>
+                </Pressable>
               </View>
             )}
 
@@ -514,6 +524,24 @@ export default function AIChatScreen() {
                           )}
                         </Pressable>
                       ) : null}
+
+                      {/* Report — Play AI-generated content policy */}
+                      {!isUser && msg.content && !msg.failed ? (
+                        reportedIds.has(msg.id) ? (
+                          <View className="flex-row items-center gap-1">
+                            <Ionicons name="flag" size={12} color={colors.textSecondary} />
+                            <Text className="text-xs text-muted-foreground">Reported</Text>
+                          </View>
+                        ) : (
+                          <Pressable
+                            onPress={() => setReportingId(msg.id)}
+                            hitSlop={8}
+                            accessibilityLabel="Report this answer"
+                          >
+                            <Ionicons name="flag-outline" size={13} color={colors.textSecondary} />
+                          </Pressable>
+                        )
+                      ) : null}
                     </View>
                   )}
                 </View>
@@ -583,6 +611,25 @@ export default function AIChatScreen() {
           </View>
         </>
       )}
+      {(() => {
+        const idx = messages.findIndex((m) => m.id === reportingId);
+        const answer = idx >= 0 ? messages[idx] : null;
+        const question = messages.slice(0, Math.max(idx, 0)).reverse().find((m) => m.role === "user");
+        const modelId = getActiveModelId();
+        return (
+          <ReportAnswerSheet
+            visible={answer != null}
+            onClose={() => setReportingId(null)}
+            onReported={() => {
+              if (answer) setReportedIds((prev) => new Set(prev).add(answer.id));
+            }}
+            question={question?.content ?? null}
+            answer={answer?.content ?? ""}
+            modelName={AVAILABLE_MODELS.find((m) => m.id === modelId)?.name ?? modelId}
+            appVersion={Constants.expoConfig?.version ?? "-"}
+          />
+        );
+      })()}
     </KeyboardAvoidingView>
   );
 }

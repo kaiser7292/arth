@@ -863,6 +863,12 @@ export default function SettingsScreen() {
                 onPress={() => router.push("/settings/help")}
               />
             )}
+            <SettingsRow
+              icon="document-text-outline"
+              label="Open-source licences"
+              subtitle="Libraries and models Arth is built with"
+              onPress={() => router.push("/settings/licenses")}
+            />
             <View className="flex-row items-center justify-between py-2 border-b border-border">
               <Text className="text-sm" style={{ color: colors.textSecondary }}>App Name</Text>
               <View className="flex-row items-center" style={{ gap: 4 }}>

@@ -46,6 +46,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="sms-templates/matches/[id]" options={{ title: "Matched SMS" }} />
       <Stack.Screen name="sms-scan-runs" options={{ title: "SMS Scan Runs" }} />
       <Stack.Screen name="sms-disclosure" options={{ title: "Read Bank SMS" }} />
+      <Stack.Screen name="licenses" options={{ title: "Open-source Licences" }} />
       <Stack.Screen name="reconciliation/index" options={{ title: "Reconcile Accounts" }} />
       <Stack.Screen name="reconciliation/new" options={{ title: "New Reconciliation" }} />
       <Stack.Screen name="reconciliation/[sessionId]" options={{ title: "Reconciliation" }} />

@@ -32,7 +32,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, ScrollView, Switch, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 
 type Phase = "idle" | "downloading" | "cancelling";
@@ -403,6 +403,17 @@ export default function AIAssistantSettings() {
                     </View>
                   );
                 })}
+                <Text className="text-xs text-faint-foreground mt-3 leading-4">
+                  Built with Llama. Llama 3.2 is licensed under the Llama 3.2 Community License, Copyright © Meta Platforms, Inc. All Rights Reserved.
+                </Text>
+                <View className="flex-row mt-1" style={{ gap: 16 }}>
+                  <Pressable onPress={() => Linking.openURL("https://www.llama.com/llama3_2/license/")} hitSlop={8}>
+                    <Text className="text-xs font-semibold text-primary">License</Text>
+                  </Pressable>
+                  <Pressable onPress={() => Linking.openURL("https://www.llama.com/llama3_2/use-policy/")} hitSlop={8}>
+                    <Text className="text-xs font-semibold text-primary">Acceptable use policy</Text>
+                  </Pressable>
+                </View>
               </Card>
 
               {/* Debug info */}
