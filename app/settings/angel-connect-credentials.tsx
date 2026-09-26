@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Card, ScreenContainer, Text } from '@/components/ui';
+import { BrokerTermsCard } from '@/components/broker/BrokerTermsCard';
+import { acceptBrokerTerms, hasAcceptedBrokerTerms } from '@/services/broker-terms';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAlert } from '@/hooks/use-alert';
@@ -69,6 +71,7 @@ export default function AngelConnectCredentialsScreen() {
   const [totpSecret, setTotpSecret] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [agreed, setAgreed] = useState(() => hasAcceptedBrokerTerms('angel'));
 
   useEffect(() => {
     getAngelCredentials()
@@ -89,6 +92,8 @@ export default function AngelConnectCredentialsScreen() {
       alert('Missing Fields', 'Please fill in all four fields before connecting.');
       return;
     }
+    if (!agreed) return;
+    acceptBrokerTerms('angel');
     setIsSaving(true);
     try {
       await connectAngel(apiKey.trim(), clientId.trim(), password.trim(), totpSecret.trim());
@@ -214,13 +219,15 @@ export default function AngelConnectCredentialsScreen() {
             />
           </Card>
 
+<BrokerTermsCard broker="angel" agreed={agreed} onAgreedChange={setAgreed} />
+
           {/* Action buttons */}
           <View className="flex-row gap-3 mb-3">
             <Pressable
               onPress={handleConnect}
-              disabled={isSaving}
+              disabled={isSaving || !agreed}
               className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
-              style={{ backgroundColor: theme.primary, opacity: isSaving ? 0.7 : 1 }}
+              style={{ backgroundColor: theme.primary, opacity: isSaving || !agreed ? 0.5 : 1 }}
             >
               {isSaving ? (
                 <ActivityIndicator size="small" color="#fff" />

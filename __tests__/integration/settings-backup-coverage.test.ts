@@ -27,6 +27,7 @@ const STORE_EXPORTS: Record<string, SettingsStoreId> = {
  */
 const DYNAMIC: Record<string, string[]> = {
   "services/broker-link.ts|KEY[broker]": ["angel_linked_account_id", "zebpay_linked_account_id"],
+  "services/broker-terms.ts|ACCEPTED_KEYS[id]": ["broker_terms_accepted_kite", "broker_terms_accepted_angel", "broker_terms_accepted_zebpay"],
   "services/home-card-preferences.ts|key": ["home_card_hidden__investments"],
   "services/min-balance.ts|ackKey(accountId": ["min_balance_ack_acc_2026-09"],
   "services/notifications.ts|key": ["notif_overdue", "notif_upcoming", "notif_scheduled_backup", "notif_new_transaction"],

@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Card, ScreenContainer, Text } from '@/components/ui';
+import { BrokerTermsCard } from '@/components/broker/BrokerTermsCard';
+import { acceptBrokerTerms, hasAcceptedBrokerTerms } from '@/services/broker-terms';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAlert } from '@/hooks/use-alert';
@@ -23,6 +25,7 @@ export default function ZebpayConnectCredentialsScreen() {
   const [secretKey, setSecretKey] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy]       = useState(false);
+  const [agreed, setAgreed] = useState(() => hasAcceptedBrokerTerms('zebpay'));
   const [hasExisting, setHasExisting] = useState(false);
 
   useEffect(() => {
@@ -43,6 +46,8 @@ export default function ZebpayConnectCredentialsScreen() {
       alert('Missing Fields', 'Enter both API Key and Secret Key.');
       return;
     }
+    if (!agreed) return;
+    acceptBrokerTerms('zebpay');
     setIsBusy(true);
     try {
       await connectZebpay(apiKey.trim(), secretKey.trim());
@@ -144,12 +149,14 @@ export default function ZebpayConnectCredentialsScreen() {
             </View>
           </Card>
 
+<BrokerTermsCard broker="zebpay" agreed={agreed} onAgreedChange={setAgreed} />
+
           <View className="flex-row gap-3 mb-3">
             <Pressable
               onPress={handleConnect}
-              disabled={isBusy}
+              disabled={isBusy || !agreed}
               className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
-              style={{ backgroundColor: theme.primary, opacity: isBusy ? 0.7 : 1 }}
+              style={{ backgroundColor: theme.primary, opacity: isBusy || !agreed ? 0.5 : 1 }}
             >
               {isBusy ? (
                 <ActivityIndicator size="small" color="#fff" />

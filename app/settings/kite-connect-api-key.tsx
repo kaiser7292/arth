@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ActivityIndicator, TextInput, View, Pressable } from 'react-native';
+import { ActivityIndicator, ScrollView, TextInput, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Card, ScreenContainer, Text } from '@/components/ui';
+import { BrokerTermsCard } from '@/components/broker/BrokerTermsCard';
+import { acceptBrokerTerms, hasAcceptedBrokerTerms } from '@/services/broker-terms';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAlert } from '@/hooks/use-alert';
@@ -23,6 +25,7 @@ export default function KiteConnectApiKeyScreen() {
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [agreed, setAgreed] = useState(() => hasAcceptedBrokerTerms('kite'));
 
   useEffect(() => {
     getKiteApiKey()
@@ -36,6 +39,8 @@ export default function KiteConnectApiKeyScreen() {
       alert('Error', 'Please enter your API key');
       return;
     }
+    if (!agreed) return;
+    acceptBrokerTerms('kite');
     setIsSaving(true);
     try {
       await storeKiteApiKey(apiKey.trim());
@@ -110,6 +115,7 @@ export default function KiteConnectApiKeyScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
       <View className="mx-4 mt-3">
 
         {/* Input */}
@@ -142,13 +148,15 @@ export default function KiteConnectApiKeyScreen() {
           </Text>
         </Card>
 
+<BrokerTermsCard broker="kite" agreed={agreed} onAgreedChange={setAgreed} />
+
         {/* Action buttons */}
         <View className="flex-row gap-3 mb-3">
           <Pressable
             onPress={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !agreed}
             className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
-            style={{ backgroundColor: theme.primary, opacity: isSaving ? 0.7 : 1 }}
+            style={{ backgroundColor: theme.primary, opacity: isSaving || !agreed ? 0.5 : 1 }}
           >
             {isSaving ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -210,6 +218,7 @@ export default function KiteConnectApiKeyScreen() {
         </Card>
 
       </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }

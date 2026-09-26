@@ -94,6 +94,9 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("kite_linked_account_id", "string"),
   S("angel_linked_account_id", "string"),
   S("zebpay_linked_account_id", "string"),
+  S("broker_terms_accepted_kite", "string"),
+  S("broker_terms_accepted_angel", "string"),
+  S("broker_terms_accepted_zebpay", "string"),
   S("kite_login_vault_entry_id", "string"),
   // Other stores
   { store: "duplicateDismissals", key: "dismissed_groups", type: "string", backup: true },

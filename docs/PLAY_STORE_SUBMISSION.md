@@ -52,7 +52,7 @@ phone (SMS, transactions, everything in the database) is **not** collected and i
 | Data type | Collected | Shared | Ephemeral | Required? | Purpose |
 |---|---|---|---|---|---|
 | Personal info → **User IDs** (Zerodha / Angel One client ID) | Yes | No | Yes | Optional | App functionality |
-| Financial info → **Other financial info** (broker access token / API keys sent to the broker to fetch holdings) | Yes | No | Yes | Optional | App functionality |
+| Financial info → **Other financial info** (user's own broker API keys/secrets and access tokens, sent only to the broker to fetch holdings; Kite login code passes through the connection server) | Yes | No | Yes | Optional | App functionality |
 
 Not declared, with reasoning (keep in case Google asks):
 - **SMS, transactions, balances, Vault** — processed and stored only on the device.
@@ -79,10 +79,12 @@ Not declared, with reasoning (keep in case Google asks):
 
 ## 4. Open items before submitting
 
-- **Kite Connect terms.** Every Play user's Kite login would go through your Kite Connect app
-  and server. Check that Zerodha's Kite Connect terms allow a public app to use your API key
-  for other people's accounts (a personal-use app may not). If not, hide Kite in the Play build
-  or have users enter their own API key and secret.
+- **Kite BYOK (not working for other users yet).** Every broker connection is bring-your-own-key, and
+  each credentials screen shows the broker's terms with an agreement tick box. But the Kite token
+  exchange server holds only the owner's API secret, so another user's own API key can't complete
+  login. Fix before a Play release that shows Kite: the user also enters their API secret, the app
+  sends it with the request token, and the server uses it once without storing it (server change on
+  the VM). Until then, hide Kite in the Play build or label it "owner's key only".
 - **Server logs.** The policy says the connection server does not store tokens. Confirm the
   server doesn't log request bodies (check the Node app and nginx/Caddy access logs on the VM).
 - **Terms of Use** in `legal.html` are fine for Play; no changes needed.
