@@ -120,6 +120,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("legacy_sms_task_cleaned", "boolean", DEVICE("one-time cleanup marker for this install")),
   S("notif_last_schedule_sync_ts", "number", PROGRESS),
   S("sms_permission_asked", "boolean", DEVICE("Android permission state is per device")),
+  S("sms_disclosure_accepted_at", "string", DEVICE("Play policy: SMS disclosure is shown again before the permission prompt on a new device")),
   S("last_sms_check_timestamp", "number", DEVICE("how far THIS phone's SMS inbox has been read")),
   S("last_auto_scan_run_timestamp", "number", PROGRESS),
   S("kite_token_expiry", "string", SESSION),
