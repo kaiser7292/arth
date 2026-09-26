@@ -62,7 +62,7 @@ Build takes 3–8 minutes. Outputs:
 - APK (GitHub): `android/app/build/outputs/apk/release/app-arm64-v8a-release.apk`
 - AAB (Play Store): `android/app/build/outputs/bundle/release/app-release.aab`
 
-> **Note:** Both contain arm64-v8a code only. `withArmOnly` enables APK ABI splits (hence the `app-arm64-v8a-release.apk` filename) and pins `reactNativeArchitectures=arm64-v8a` in `gradle.properties`, because the AAB ignores APK splits. This strips 32-bit/x86 libs and cuts the APK from ~210 MB to ~120 MB. 32-bit-only phones show "not compatible" on Play.
+> **Note:** Both contain arm64-v8a code only. `withArmOnly` pins `reactNativeArchitectures=arm64-v8a` in `gradle.properties`; the React Native gradle plugin turns that into `ndk.abiFilters`, which filters prebuilt libraries (Hermes, libreactnative…) as well as compiled ones, for APK and AAB. This cuts the APK from ~210 MB to ~120 MB. 32-bit-only phones show "not compatible" on Play. The plugin also names the APK `app-arm64-v8a-release.apk`, because the website download buttons link to that release asset name.
 
 ### Step 3b — Verify before publishing
 ```powershell
@@ -120,7 +120,7 @@ The arm64-v8a native libs are dominated by `llama.rn` (the AI assistant feature)
 | `Conflicting configuration: ndk abiFilters cannot be present when splits abi filters are set` | `withArmOnly` now uses `splits` — if an old `ndk { abiFilters }` block remains in `build.gradle`, the plugin's regex didn't remove it. Check `withArmOnly.js`. |
 | `EBUSY: resource busy` on prebuild | A Gradle daemon is holding a lock. Run Step 1 (Stop-Process java) and retry. |
 | `workflow scope required` | `gh auth refresh -h github.com -s workflow` |
-| Build succeeds but wrong APK filename | The splits plugin is applied. Look for `app-arm64-v8a-release.apk`, not `app-release.apk`. |
+| Build succeeds but wrong APK filename | `withArmOnly` sets the release APK name to `app-arm64-v8a-release.apk`. If you see `app-release.apk`, prebuild didn't run the plugin. |
 | expo prebuild fails | Run `npm install` first; check that Node is on PATH. |
 
 ---

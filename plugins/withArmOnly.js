@@ -1,16 +1,20 @@
 const { withAppBuildGradle, withGradleProperties } = require("expo/config-plugins");
 
 /**
- * Restricts the release APK to arm64-v8a only via splits config.
- * Cuts APK size from ~210 MB to ~120 MB by stripping x86/x86_64 emulator libs.
- * All modern Android phones (2015+) support arm64-v8a.
+ * Restricts release builds (APK and Play AAB) to arm64-v8a.
+ * Cuts the APK from ~210 MB to ~120 MB by dropping 32-bit and x86 libraries.
+ * All modern Android phones (2015+) support arm64-v8a; 32-bit-only phones
+ * show "not compatible" on Play.
  *
- * Note: splits.abi and ndk.abiFilters are mutually exclusive in AGP 8+.
- * This plugin uses splits and removes any ndk.abiFilters block if present.
+ * How: pin reactNativeArchitectures=arm64-v8a in gradle.properties. The React
+ * Native gradle plugin then sets ndk.abiFilters from it, which filters BOTH our
+ * compiled code and the prebuilt .so files inside dependency AARs (Hermes,
+ * libreactnative, fbjni…), for the APK and the AAB alike.
  *
- * splits only apply to APKs. The Play AAB (bundleRelease) ignores them, so
- * reactNativeArchitectures is also pinned to arm64-v8a in gradle.properties:
- * the AAB ships arm64 only, and neither build compiles the 3 discarded ABIs.
+ * This plugin used to enable APK ABI splits instead. Splits don't apply to the
+ * AAB, and while they are on the RN plugin skips abiFilters — so the AAB shipped
+ * all four ABIs. Any leftover splits block from an older prebuild is removed.
+ * Never add splits back alongside abiFilters: they conflict in AGP 8+.
  */
 function withArmOnly(config) {
   config = withGradleProperties(config, (config) => {
@@ -22,24 +26,25 @@ function withArmOnly(config) {
   });
 
   return withAppBuildGradle(config, (config) => {
-    let gradle = config.modResults.contents;
+    let gradle = config.modResults.contents
+      .replace(/\n\s*splits \{\s*\n\s*abi \{[\s\S]*?\n\s*\}\s*\n\s*\}/, "")
+      // Short-lived jniLibs.excludes attempt (RN's pickFirsts override excludes)
+      .replace(/\n\/\/ ARTH_NON_ARM64_EXCLUDES[\s\S]*?\n\}\n/, "\n");
 
-    // Remove ndk { abiFilters ... } if prebuild added it (conflicts with splits)
-    gradle = gradle.replace(/\n\s*ndk \{\s*\n\s*abiFilters[^\n]*\n\s*\}/g, "");
-
-    // Idempotency guard
-    if (gradle.includes("splits {")) {
-      config.modResults.contents = gradle;
-      return config;
+    // Keep the release APK named app-arm64-v8a-release.apk (the name splits used to
+    // produce): the website's download buttons link to that GitHub release asset.
+    if (!gradle.includes("ARTH_APK_NAME")) {
+      gradle += `
+// ARTH_APK_NAME (plugins/withArmOnly.js)
+android.applicationVariants.all { variant ->
+    if (variant.buildType.name == "release") {
+        variant.outputs.all { outputFileName = "app-arm64-v8a-release.apk" }
+    }
+}
+`;
     }
 
-    // Insert splits block after the closing brace of packagingOptions
-    config.modResults.contents = gradle.replace(
-      /(packagingOptions \{[\s\S]*?\n\s*\})/,
-      (match) =>
-        match +
-        `\n    splits {\n        abi {\n            enable true\n            reset()\n            include "arm64-v8a"\n            universalApk false\n        }\n    }`
-    );
+    config.modResults.contents = gradle;
     return config;
   });
 }
