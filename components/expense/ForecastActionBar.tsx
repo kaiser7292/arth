@@ -89,16 +89,19 @@ export function ForecastActionBar({
   };
 
   if (compact) {
+    // Home's Upcoming Dues rows: the same small rounded buttons as the Reminders card above it,
+    // with Delete kept on the row as a quiet icon button (the confirm dialog carries the red).
+    const pill = "px-3 py-1.5 rounded-pill";
     return (
-      <View className="flex-row items-center mt-1">
+      <View className="flex-row items-center" style={{ gap: 6 }}>
         <Pressable
           onPress={handleMarkAsPaid}
           accessibilityLabel={isRepayment ? "Pay bill" : "Mark as paid"}
           accessibilityRole="button"
-          className="flex-row items-center mr-3 py-1"
+          className={pill}
+          style={{ backgroundColor: theme.primary }}
         >
-          <Ionicons name="checkmark-circle-outline" size={14} color={theme.success} />
-          <Text className="text-label font-medium text-success ml-0.5">
+          <Text className="text-xs font-semibold text-primary-foreground">
             {isRepayment ? "Pay" : "Paid"}
           </Text>
         </Pressable>
@@ -107,12 +110,10 @@ export function ForecastActionBar({
             onPress={handleRealiseNow}
             accessibilityLabel="Realise now"
             accessibilityRole="button"
-            className="flex-row items-center mr-3 py-1"
+            className={`${pill} border`}
+            style={{ borderColor: colors.border }}
           >
-            <Ionicons name="arrow-forward-circle-outline" size={14} color={colors.blue} />
-            <Text className="text-label font-medium ml-0.5" style={{ color: theme.primary }}>
-              Realise
-            </Text>
+            <Text className="text-xs font-semibold text-muted-foreground">Realise</Text>
           </Pressable>
         )}
         {onPaidExternally && (
@@ -120,24 +121,23 @@ export function ForecastActionBar({
             onPress={handlePaidExternally}
             accessibilityLabel="Paid externally"
             accessibilityRole="button"
-            className="flex-row items-center mr-3 py-1"
+            className={`${pill} border`}
+            style={{ borderColor: colors.border }}
           >
-            <Ionicons name="exit-outline" size={14} color={colors.textSecondary} />
-            <Text className="text-label font-medium ml-0.5" style={{ color: colors.textSecondary }}>
-              External
+            <Text className="text-xs font-semibold text-muted-foreground">
+              {isRepayment ? "Paid elsewhere" : "Elsewhere"}
             </Text>
           </Pressable>
         )}
+        <View className="flex-1" />
         <Pressable
           onPress={handleDelete}
           accessibilityLabel="Delete forecast"
           accessibilityRole="button"
-          className="flex-row items-center py-1"
+          hitSlop={6}
+          className="w-8 h-8 rounded-pill items-center justify-center"
         >
-          <Ionicons name="trash-outline" size={13} color={theme.danger} />
-          <Text className="text-label font-medium text-danger ml-0.5">
-            Delete
-          </Text>
+          <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
         </Pressable>
       </View>
     );

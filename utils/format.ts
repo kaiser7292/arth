@@ -36,9 +36,9 @@ function formatPositiveAmount(abs: number, decimals: number, grouping: NumberGro
   if (decimals === 0) return applyGrouping(fixed, grouping);
   const [intPart, decPart] = fixed.split(".");
   const grouped = applyGrouping(intPart, grouping);
-  // Trim trailing zeros from decimal to avoid "1,234.00" noise \u2014 keep max 2 sig digits.
-  const trimmed = decPart.replace(/0+$/, "");
-  return trimmed ? `${grouped}.${trimmed}` : grouped;
+  // Whole amounts drop the ".00" noise ("1,234"); otherwise show every decimal place, so
+  // amounts read as money ("9,148.20", not "9,148.2").
+  return /^0+$/.test(decPart) ? grouped : `${grouped}.${decPart}`;
 }
 
 /**

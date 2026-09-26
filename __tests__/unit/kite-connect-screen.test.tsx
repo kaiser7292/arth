@@ -107,7 +107,7 @@ describe("Kite Connect screen", () => {
     const { findByText, findAllByText } = renderScreen();
     expect(await findByText("IBULLSLTD")).toBeTruthy();
     expect(await findAllByText("HDFC NIFTY 50 INDEX FUND - DIRECT PLAN")).toHaveLength(2);
-    expect(await findByText("21.8 units · @ ₹229.2")).toBeTruthy();
+    expect(await findByText("21.8 units · @ ₹229.20")).toBeTruthy();
   });
 
   it("survives every field being missing or null", async () => {
