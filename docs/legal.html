@@ -112,22 +112,43 @@ footer{background:var(--dark-bg);padding-block:24px}
   <div class="doc-section" id="privacy">
     <div class="doc-title">Privacy Policy</div>
     <div class="doc-body">
-      <span class="effective">Effective: 20 September 2026</span>
-      <h3>What we collect</h3>
-      <p><strong>Nothing.</strong> Arth does not collect, transmit, or store any personal or financial data on any server. All data — transactions, accounts, SMS logs, preferences — lives exclusively in a SQLite database on your Android device.</p>
-      <h3>SMS access</h3>
-      <p>Arth requests READ_SMS permission to detect bank transactions. Processing happens entirely on-device. No SMS content is ever transmitted externally. Only messages from recognised bank senders are read.</p>
-      <h3>Internet access</h3>
-      <p>Internet permission is used only for features you explicitly enable:</p>
+      <span class="effective">Effective: 26 September 2026</span>
+      <p>This policy covers Arth, the Android app published by Sourav Baid (&ldquo;we&rdquo;). Arth has no user accounts and no Arth cloud. Your financial records are stored in a database on your phone, and we cannot see them.</p>
+
+      <h3>Data stored on your device</h3>
+      <p>Transactions, accounts, balances, budgets, loans, investments, family ledger (Hisaab) entries, reminders, settings and any passwords you save in the Vault are stored only on your device. Vault entries and broker credentials are encrypted with a key protected by Android&rsquo;s secure keystore. None of this is sent to us.</p>
+
+      <h3>SMS messages</h3>
+      <p>If you allow it, Arth reads the SMS messages on your phone to find bank, card and UPI transaction alerts. It keeps only messages from banks and payment services and ignores personal messages. From those alerts it extracts the amount, date, merchant, account or card last 4 digits and balance, and uses them to add your transactions and keep account balances up to date. Recognised alerts are stored on your device so you can review them. SMS messages are processed only on your device and are never uploaded, shared or sent to any server, including ours. You can turn SMS reading off in Settings, and revoke the permission in Android settings, at any time.</p>
+
+      <h3>Features that use the internet</h3>
+      <p>Arth only goes online for the features below, and only when you use them:</p>
       <ul>
-        <li>Connecting to Zerodha Kite, Angel One, or Zebpay via their official APIs — credentials go directly to those services, not through Arth's servers (there are none)</li>
-        <li>Google Drive backup, if enabled: your encrypted backup file goes directly to your own Drive account</li>
+        <li><strong>Zerodha Kite.</strong> When you connect Kite, you sign in on Zerodha&rsquo;s own login page. Zerodha returns a one-time request token, which Arth sends to our connection server (integration.souravbaid.com) to exchange for an access token, because Zerodha requires that step to run on a registered server. The server passes the access token back to your phone and does not store it or any of your data. After that, Arth fetches your holdings and positions directly from Zerodha.</li>
+        <li><strong>Angel One and Zebpay.</strong> The client ID, PIN, API keys and one-time codes you enter are sent directly to Angel One or Zebpay to fetch your holdings. They are stored only on your device, encrypted, and never pass through our servers.</li>
+        <li><strong>Vault autofill for Kite.</strong> If you link a Vault entry to Kite, Arth fills your Zerodha user ID, password and 2FA code into Zerodha&rsquo;s login page on your device. They go only to Zerodha.</li>
+        <li><strong>Arth AI.</strong> The first time you use the assistant, Arth downloads a language model file from Hugging Face (huggingface.co). Like any download, this reveals your IP address to Hugging Face. The assistant then runs entirely on your device; your questions and data are never sent anywhere.</li>
+        <li><strong>Voice entry.</strong> Voice entry uses your phone&rsquo;s speech recognition service (usually Google). Depending on your phone&rsquo;s settings, that service may process your voice on its own servers under its own privacy policy. Arth receives only the recognised text.</li>
       </ul>
-      <p>When these features are not in use, Arth makes no network requests.</p>
+      <p>Each of these services has its own privacy policy, which applies to the data you send them.</p>
+
+      <h3>Other permissions</h3>
+      <ul>
+        <li><strong>Calendar</strong>, only if you turn on calendar sync, to add bills, EMIs and reminders to the calendar you choose.</li>
+        <li><strong>Microphone</strong>, only while you use voice entry.</li>
+        <li><strong>Notifications, alarms and start on boot</strong>, for reminders and the daily summary.</li>
+        <li><strong>Fingerprint or face</strong>, for app lock. Biometric data is handled by Android and never seen by Arth.</li>
+      </ul>
+
       <h3>Backups</h3>
-      <p>The backup feature creates an AES-GCM encrypted file on your device. If you enable Google Drive backup, this encrypted file is uploaded directly to your personal Drive. We have no access to it.</p>
-      <h3>Analytics and tracking</h3>
-      <p>There are no analytics SDKs, crash reporters, or tracking libraries in Arth. We have zero visibility into how you use the app.</p>
+      <p>Backups are encrypted files (AES-GCM) saved on your device or wherever you choose to put them, such as your Downloads folder or a cloud drive you share them to. We never receive them.</p>
+
+      <h3>Analytics, ads and tracking</h3>
+      <p>Arth contains no analytics, advertising, crash-reporting or tracking libraries. We do not sell or share your data, and we have no visibility into how you use the app.</p>
+
+      <h3>Keeping and deleting your data</h3>
+      <p>Your data stays on your device until you delete it. You can delete individual records in the app (deleted items are kept in the Recycle Bin for 30 days), disconnect any broker in Settings, or remove everything by clearing Arth&rsquo;s storage or uninstalling the app. Because we hold none of your data, there is nothing for us to delete on our side.</p>
+
       <h3>Children</h3>
       <p>Arth is not directed at children under 13. We do not knowingly collect data from children.</p>
       <h3>Changes to this policy</h3>
