@@ -20,8 +20,11 @@
       "permissions": [
         "android.permission.READ_SMS",
         "android.permission.POST_NOTIFICATIONS",
-        "android.permission.SCHEDULE_EXACT_ALARM",
-        "android.permission.USE_EXACT_ALARM"
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
+      "blockedPermissions": [
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
       ],
       "allowBackup": false,
       "softwareKeyboardLayoutMode": "resize",
@@ -51,7 +54,6 @@
     "plugins": [
       "expo-router",
       "./plugins/withDisableBackup",
-      "./plugins/withNotificationListener",
       "./plugins/withArmOnly",
       "./plugins/withAapt2Fix",
       "./plugins/withLargeHeap",

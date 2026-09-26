@@ -41,6 +41,9 @@ import {
   getSmsStartDate,
   setSmsStartDate,
   getSmsStartTimestamp,
+  hasAcceptedSmsDisclosure,
+  acceptSmsDisclosure,
+  requestSmsPermission,
 } from "../../services/sms/sms-permissions";
 
 describe("sms-permissions", () => {
@@ -134,6 +137,39 @@ describe("sms-permissions", () => {
     it("returns false when permission denied", async () => {
       (PermissionsAndroid.check as jest.Mock).mockResolvedValue(false);
       expect(await hasSmsPermission()).toBe(false);
+    });
+  });
+
+  describe("SMS disclosure gate", () => {
+    it("has no disclosure acceptance by default", () => {
+      expect(hasAcceptedSmsDisclosure()).toBe(false);
+    });
+
+    it("records acceptance", () => {
+      acceptSmsDisclosure();
+      expect(hasAcceptedSmsDisclosure()).toBe(true);
+    });
+
+    it("does not show the OS prompt before the disclosure is accepted", async () => {
+      (PermissionsAndroid.check as jest.Mock).mockResolvedValue(false);
+      const granted = await requestSmsPermission();
+      expect(granted).toBe(false);
+      expect(PermissionsAndroid.request).not.toHaveBeenCalled();
+    });
+
+    it("shows the OS prompt once the disclosure is accepted", async () => {
+      (PermissionsAndroid.check as jest.Mock).mockResolvedValue(false);
+      (PermissionsAndroid.request as jest.Mock).mockResolvedValue("granted");
+      acceptSmsDisclosure();
+      const granted = await requestSmsPermission();
+      expect(granted).toBe(true);
+      expect(PermissionsAndroid.request).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns true without prompting when permission is already granted", async () => {
+      (PermissionsAndroid.check as jest.Mock).mockResolvedValue(true);
+      expect(await requestSmsPermission()).toBe(true);
+      expect(PermissionsAndroid.request).not.toHaveBeenCalled();
     });
   });
 });

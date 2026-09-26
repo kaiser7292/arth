@@ -24,6 +24,7 @@ const KEYS = {
   SMS_START_DATE: "sms_start_date",
   SMS_END_DATE: "sms_end_date",
   SMS_SCAN_ACCOUNT_IDS: "sms_scan_account_ids",
+  SMS_DISCLOSURE_ACCEPTED_AT: "sms_disclosure_accepted_at",
 } as const;
 
 // ─── Detection Enabled (permission granted + user opted in) ───
@@ -54,6 +55,18 @@ export function hasAskedSmsPermission(): boolean {
 
 function markSmsPermissionAsked(): void {
   storage.set(KEYS.SMS_PERMISSION_ASKED, true);
+}
+
+// ─── Disclosure Consent ───
+// Google Play requires an in-app disclosure, accepted by the user, before the
+// READ_SMS runtime prompt. The acceptance time is kept as a record of consent.
+
+export function hasAcceptedSmsDisclosure(): boolean {
+  return !!storage.getString(KEYS.SMS_DISCLOSURE_ACCEPTED_AT);
+}
+
+export function acceptSmsDisclosure(): void {
+  storage.set(KEYS.SMS_DISCLOSURE_ACCEPTED_AT, new Date().toISOString());
 }
 
 // ─── Last Check Timestamp (for polling) ───
@@ -168,7 +181,8 @@ export async function hasSmsPermission(): Promise<boolean> {
 /**
  * Request READ_SMS permission.
  * Returns true if permission was granted, false otherwise.
- * Note: The explanation dialog should be shown in the UI layer before calling this.
+ * Refuses to show the OS prompt until the user has accepted the in-app
+ * disclosure (SmsDisclosure) — a Play policy requirement.
  */
 export async function requestSmsPermission(): Promise<boolean> {
   if (Platform.OS !== "android") return false;
@@ -176,6 +190,8 @@ export async function requestSmsPermission(): Promise<boolean> {
   // Already granted?
   const alreadyGranted = await hasSmsPermission();
   if (alreadyGranted) return true;
+
+  if (!hasAcceptedSmsDisclosure()) return false;
 
   markSmsPermissionAsked();
 
@@ -185,7 +201,7 @@ export async function requestSmsPermission(): Promise<boolean> {
     {
       title: "SMS Permission",
       message:
-        "Artha reads your bank transaction SMS to automatically detect expenses. " +
+        "Arth reads your bank transaction SMS to automatically detect expenses. " +
         "SMS data is processed locally on your device and never sent anywhere.",
       buttonPositive: "Allow",
       buttonNegative: "Deny",

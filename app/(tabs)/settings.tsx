@@ -28,7 +28,6 @@ import {
 } from "@/services/settings";
 import {
   disableSmsDetection,
-  enableSmsDetection,
   getSmsEndDate,
   getSmsScanAccountIds,
   getSmsStartDate,
@@ -168,6 +167,7 @@ export default function SettingsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      setSmsEnabled(isSmsDetectionEnabled());
       setDismissedDupCount(getDismissedDuplicateCount());
       countUnrecognisedSms()
         .then(setUnrecognisedSmsCount)
@@ -223,25 +223,8 @@ export default function SettingsScreen() {
     setSmsToggling(true);
     try {
       if (enable) {
-        // Show explanation dialog before requesting permission
-        alert(
-          "Read Bank SMS",
-          "Arth can read your bank transaction SMS (ICICI, HDFC, Axis, SBI, UPI) to detect expenses.\n\nWhat happens:\n• Only bank/UPI SMS are read - personal messages are ignored\n• All processing happens on your device\n• Detected expenses go to a review queue - you approve each one\n• You can scan manually or turn on automatic scanning\n\nWe'll ask for SMS permission next.",
-          [
-            { text: "Not Now", style: "cancel" },
-            {
-              text: "Continue",
-              onPress: async () => {
-                const granted = await enableSmsDetection();
-                if (granted) {
-                  setSmsEnabled(true);
-                } else {
-                  alert("Permission Denied", "SMS reading requires SMS permission. You can enable it later in Settings.");
-                }
-              },
-            },
-          ],
-        );
+        // Play policy: full-screen disclosure before the READ_SMS prompt
+        router.push("/settings/sms-disclosure");
       } else {
         disableSmsDetection();
         setSmsEnabled(false);

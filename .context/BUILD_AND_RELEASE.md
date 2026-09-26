@@ -83,7 +83,6 @@ All plugins live in `plugins/` and are registered in `app.json` under `expo.plug
 | `withAapt2Fix` | Writes `android.aapt2FromMavenOverride` to `gradle.properties` pointing to the SDK build-tools 35.0.0 AAPT2 binary. Prevents the AGP 8.11+ AAPT2 daemon crash on this Windows machine. |
 | `withDisableBackup` | Disables Android auto-backup (privacy — no finance data in cloud). |
 | `withLargeHeap` | Sets `android:largeHeap="true"` in the manifest. |
-| `withNotificationListener` | Wires notification listener service. |
 
 **Never edit `android/app/build.gradle` or `android/gradle.properties` directly** — changes are wiped on the next prebuild. All permanent customisations must go through a config plugin.
 

@@ -8,6 +8,8 @@ export {
   isSmsAutoEnabled,
   setSmsAutoEnabled,
   hasAskedSmsPermission,
+  hasAcceptedSmsDisclosure,
+  acceptSmsDisclosure,
   getLastSmsCheckTimestamp,
   setLastSmsCheckTimestamp,
   getSmsStartDate,
