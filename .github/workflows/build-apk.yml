@@ -110,7 +110,8 @@ jobs:
             echo "package_name=com.souravbaid.artha" >> $GITHUB_OUTPUT
             echo "apk_name=arth" >> $GITHUB_OUTPUT
             echo "release_suffix=" >> $GITHUB_OUTPUT
-            # Production builds include all ABIs for maximum device compatibility.
+            # No flag needed: withArmOnly pins reactNativeArchitectures=arm64-v8a
+            # in gradle.properties for every build.
             echo "abi_flag=" >> $GITHUB_OUTPUT
           fi
 

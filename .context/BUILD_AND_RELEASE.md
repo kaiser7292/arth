@@ -53,18 +53,26 @@ npx expo prebuild --platform android
 - Prebuild automatically applies all config plugins (`withArmOnly`, `withAapt2Fix`, `withLargeHeap`, etc.) — no manual patching of gradle files needed.
 - Prebuild re-generates `android/app/build.gradle` and `android/gradle.properties` — never edit those files by hand between prebuilds, edits will be lost.
 
-### Step 3 — Gradle assembleRelease
+### Step 3 — Gradle build (APK + AAB)
 ```powershell
 cd android
-.\gradlew assembleRelease
+.\gradlew assembleRelease bundleRelease
 ```
-Build takes 3–8 minutes. Output: `android/app/build/outputs/apk/release/app-arm64-v8a-release.apk`
+Build takes 3–8 minutes. Outputs:
+- APK (GitHub): `android/app/build/outputs/apk/release/app-arm64-v8a-release.apk`
+- AAB (Play Store): `android/app/build/outputs/bundle/release/app-release.aab`
 
-> **Note:** The APK filename is `app-arm64-v8a-release.apk` (not `app-release.apk`) because the `withArmOnly` config plugin enables ABI splits targeting arm64-v8a only. This is intentional — it strips x86/x86_64 emulator libs and cuts the APK from ~210 MB to ~120 MB.
+> **Note:** Both contain arm64-v8a code only. `withArmOnly` enables APK ABI splits (hence the `app-arm64-v8a-release.apk` filename) and pins `reactNativeArchitectures=arm64-v8a` in `gradle.properties`, because the AAB ignores APK splits. This strips 32-bit/x86 libs and cuts the APK from ~210 MB to ~120 MB. 32-bit-only phones show "not compatible" on Play.
+
+### Step 3b — Verify before publishing
+```powershell
+cd ..   # back to repo root
+powershell -ExecutionPolicy Bypass -File scripts\verify-release.ps1
+```
+Checks both files are signed with the Arth release key (see Signing), prints version and size, confirms arm64-only, and checks every native library is 16 KB page aligned (Play rejects uploads that aren't). Don't publish if it fails.
 
 ### Step 4 — Create GitHub release
 ```powershell
-cd ..   # back to repo root
 gh release create vX.Y.Z "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" --title "vX.Y.Z" --notes "## What's new
 
 - Bullet point"
@@ -114,6 +122,17 @@ The arm64-v8a native libs are dominated by `llama.rn` (the AI assistant feature)
 | `workflow scope required` | `gh auth refresh -h github.com -s workflow` |
 | Build succeeds but wrong APK filename | The splits plugin is applied. Look for `app-arm64-v8a-release.apk`, not `app-release.apk`. |
 | expo prebuild fails | Run `npm install` first; check that Node is on PATH. |
+
+---
+
+## Play Store Release
+
+The AAB goes to Play only; never attach it to a GitHub release. Policy form answers are in `docs/PLAY_STORE_SUBMISSION.md`.
+
+- **versionCode must increase on every upload.** Play permanently rejects a versionCode it has seen, even from a failed or discarded upload. The version bump (`MAJOR*10000 + MINOR*100 + PATCH`) handles this; if an upload has to be redone, bump the patch version.
+- **First release:** Play Console → Create app → Test and release → Internal testing → create release → upload `app-release.aab`. Under App signing choose **Use your own key** and follow the PEPK export steps with `C:\Users\soura\.arth\arth-release.jks`, so Play signs with the same key as the GitHub APK.
+- **Closed test before production:** new personal developer accounts must run a closed test with at least 12 testers for 14 consecutive days before production access is granted.
+- **Each release after that:** same build, verify, then upload the AAB to the track and publish the APK to GitHub.
 
 ---
 

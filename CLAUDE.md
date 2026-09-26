@@ -146,13 +146,14 @@ Get-Process -Name "java" -ErrorAction SilentlyContinue | Stop-Process -Force
 # 2. Prebuild (applies config plugins — do NOT use --clean unless deps changed)
 npx expo prebuild --platform android
 
-# 3. Build APK
-cd android; .\gradlew assembleRelease
+# 3. Build APK (GitHub) + AAB (Play), then verify signing/alignment from repo root
+cd android; .\gradlew assembleRelease bundleRelease; cd ..
+powershell -ExecutionPolicy Bypass -File scripts\verify-release.ps1
 
-# 4. Release (from repo root)
+# 4. Release to GitHub (APK only; the AAB goes to Play Console)
 gh release create vX.Y.Z "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" --title "vX.Y.Z" --notes "..."
 ```
-Output APK is `app-arm64-v8a-release.apk` (~120 MB). See `.context/BUILD_AND_RELEASE.md` for full details.
+Output APK is `app-arm64-v8a-release.apk` (~120 MB); AAB is `android/app/build/outputs/bundle/release/app-release.aab`. See `.context/BUILD_AND_RELEASE.md` for full details.
 GitHub Actions auto-builds on push to staging/main (not master).
 
 ### Git Convention

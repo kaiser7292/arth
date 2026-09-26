@@ -1,4 +1,4 @@
-const { withAppBuildGradle } = require("expo/config-plugins");
+const { withAppBuildGradle, withGradleProperties } = require("expo/config-plugins");
 
 /**
  * Restricts the release APK to arm64-v8a only via splits config.
@@ -7,8 +7,20 @@ const { withAppBuildGradle } = require("expo/config-plugins");
  *
  * Note: splits.abi and ndk.abiFilters are mutually exclusive in AGP 8+.
  * This plugin uses splits and removes any ndk.abiFilters block if present.
+ *
+ * splits only apply to APKs. The Play AAB (bundleRelease) ignores them, so
+ * reactNativeArchitectures is also pinned to arm64-v8a in gradle.properties:
+ * the AAB ships arm64 only, and neither build compiles the 3 discarded ABIs.
  */
 function withArmOnly(config) {
+  config = withGradleProperties(config, (config) => {
+    const props = config.modResults;
+    const existing = props.find((p) => p.type === "property" && p.key === "reactNativeArchitectures");
+    if (existing) existing.value = "arm64-v8a";
+    else props.push({ type: "property", key: "reactNativeArchitectures", value: "arm64-v8a" });
+    return config;
+  });
+
   return withAppBuildGradle(config, (config) => {
     let gradle = config.modResults.contents;
 
