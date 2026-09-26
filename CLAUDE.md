@@ -396,6 +396,7 @@ Shows savings rate + saved-this-FY. Guards:
 | `withAapt2Fix` | `plugins/withAapt2Fix.js` | Pins AAPT2 binary to prevent Windows AGP 8.11+ crash |
 | `withDisableBackup` | `plugins/withDisableBackup.js` | Disables Android cloud backup |
 | `withLargeHeap` | `plugins/withLargeHeap.js` | `android:largeHeap="true"` |
+| `withReleaseSigning` | `plugins/withReleaseSigning.js` | Release key from `~/.arth/signing.properties`; release build fails without it |
 
 All registered in `app.json` under `expo.plugins`. Applied automatically on every `expo prebuild`.
 

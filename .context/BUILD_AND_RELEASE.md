@@ -83,6 +83,7 @@ All plugins live in `plugins/` and are registered in `app.json` under `expo.plug
 | `withAapt2Fix` | Writes `android.aapt2FromMavenOverride` to `gradle.properties` pointing to the SDK build-tools 35.0.0 AAPT2 binary. Prevents the AGP 8.11+ AAPT2 daemon crash on this Windows machine. |
 | `withDisableBackup` | Disables Android auto-backup (privacy — no finance data in cloud). |
 | `withLargeHeap` | Sets `android:largeHeap="true"` in the manifest. |
+| `withReleaseSigning` | Signs release builds with the Arth release key from `~/.arth/signing.properties` (see Signing). |
 
 **Never edit `android/app/build.gradle` or `android/gradle.properties` directly** — changes are wiped on the next prebuild. All permanent customisations must go through a config plugin.
 
@@ -118,12 +119,16 @@ The arm64-v8a native libs are dominated by `llama.rn` (the AI assistant feature)
 
 ## Signing
 
-**Using debug keystore for release** (intentional for personal-use app):
-- Keystore: `android/app/debug.keystore`
-- Alias: `androiddebugkey` / Password: `android`
-- Wired in `build.gradle` under `signingConfigs.release → signingConfig signingConfigs.debug`
+Release builds (APK and AAB) are signed with the **Arth release key** by the `withReleaseSigning` config plugin. The same key signs the GitHub APK and is the Play app signing key, so Play and sideloaded installs update each other.
 
-SHA-256 fingerprint of the installed APK is tracked in the GitHub release notes for reference.
+- Keystore: `C:\Users\soura\.arth\arth-release.jks` (alias `arth`, created 2026-09-26, valid until 2054)
+- Build reads `~/.arth/signing.properties` (or the path in `ARTH_SIGNING_PROPERTIES`) with `storeFile`, `storePassword`, `keyAlias`, `keyPassword`. Outside the repo; never commit it.
+- SHA-256 fingerprint: `4D:D5:90:CD:90:CA:6F:32:A9:3C:0B:6F:C6:A4:D4:DD:57:AA:52:72:97:74:01:6C:04:9C:34:E6:27:67:FA:EB`
+- A release build **fails** if the properties file is missing, rather than falling back to the public debug key (a debug-signed APK can't update release-signed installs). `ARTH_ALLOW_DEBUG_SIGNING=1` overrides this for throwaway builds.
+- GitHub Actions uses the same file: the self-hosted runner runs on this PC as the same Windows user.
+- **The key cannot be recreated.** Losing it means no more updates on Play or GitHub. Backups: password manager + offline copy.
+
+Builds up to v4.1.6 were signed with the public debug key. Moving to the release key requires a one-time backup, uninstall, reinstall, restore.
 
 ---
 
