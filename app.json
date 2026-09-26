@@ -24,7 +24,10 @@
       ],
       "blockedPermissions": [
         "android.permission.USE_EXACT_ALARM",
-        "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+        "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "allowBackup": false,
       "softwareKeyboardLayoutMode": "resize",
