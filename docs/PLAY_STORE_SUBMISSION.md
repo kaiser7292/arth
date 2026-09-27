@@ -52,7 +52,7 @@ phone (SMS, transactions, everything in the database) is **not** collected and i
 | Data type | Collected | Shared | Ephemeral | Required? | Purpose |
 |---|---|---|---|---|---|
 | Personal info → **User IDs** (Zerodha / Angel One client ID) | Yes | No | Yes | Optional | App functionality |
-| Financial info → **Other financial info** (user's own broker API keys/secrets and access tokens, sent only to the broker to fetch holdings; Kite login code passes through the connection server) | Yes | No | Yes | Optional | App functionality |
+| Financial info → **Other financial info** (user's own broker API keys/secrets and access tokens, sent only to the broker to fetch holdings; the Kite secret itself is never sent, only a checksum) | Yes | No | Yes | Optional | App functionality |
 
 Not declared, with reasoning (keep in case Google asks):
 - **SMS, transactions, balances, Vault** — processed and stored only on the device.
@@ -79,12 +79,12 @@ Not declared, with reasoning (keep in case Google asks):
 
 ## 4. Open items before submitting
 
-- **Kite BYOK (not working for other users yet).** Every broker connection is bring-your-own-key, and
-  each credentials screen shows the broker's terms with an agreement tick box. But the Kite token
-  exchange server holds only the owner's API secret, so another user's own API key can't complete
-  login. Fix before a Play release that shows Kite: the user also enters their API secret, the app
-  sends it with the request token, and the server uses it once without storing it (server change on
-  the VM). Until then, hide Kite in the Play build or label it "owner's key only".
-- **Server logs.** The policy says the connection server does not store tokens. Confirm the
-  server doesn't log request bodies (check the Node app and nginx/Caddy access logs on the VM).
+- **Kite BYOK — done in code, needs one real login.** Each user enters their own Kite API key and
+  secret; the token exchange runs on the phone directly against `api.kite.trade/session/token`
+  (checksum only; the secret never leaves the device), so the connection server is no longer used.
+  Before submitting, log in once with a real key + secret to confirm Zerodha accepts the exchange
+  from a phone (its docs mention no IP restriction for it; the SEBI static-IP rule covers order
+  placement, which Arth never does).
+- **Connection server.** No longer used by the app. It can be shut down once the real login above
+  works (keep it until then as a fallback).
 - **Terms of Use** in `legal.html` are fine for Play; no changes needed.

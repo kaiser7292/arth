@@ -1,3 +1,4 @@
+import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { settingsStorage } from '@/services/storage';
 import { getDatabase } from '@/database';
@@ -5,6 +6,7 @@ import { DEFAULT_USER_ID } from '@/constants/app';
 import { logger } from '@/utils/logger';
 
 const KITE_API_KEY       = 'kite_api_key';
+const KITE_API_SECRET    = 'kite_api_secret';
 const KITE_ACCESS_TOKEN  = 'kite_access_token';
 const KITE_USER_ID       = 'kite_user_id';
 const KITE_PUBLIC_TOKEN  = 'kite_public_token';
@@ -21,7 +23,6 @@ const MMKV_SIPS_CACHE        = 'kite_sips_cache';          // JSON — active SI
 const MMKV_ORDERS_CACHE      = 'kite_orders_cache';        // JSON — recent equity orders
 const MMKV_MF_ORDERS_CACHE   = 'kite_mf_orders_cache';    // JSON — recent MF orders
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_KITE_BACKEND_URL ?? '';
 const KITE_API   = 'https://api.kite.trade';
 
 // ── Public types ────────────────────────────────────────────────────────────
@@ -159,6 +160,18 @@ export async function getKiteApiKey(): Promise<string | null> {
 }
 
 /**
+ * The user's own Kite Connect API secret (bring-your-own-key). It never leaves the phone:
+ * only a SHA-256 checksum derived from it is sent to Zerodha during login.
+ */
+export async function storeKiteApiSecret(apiSecret: string): Promise<void> {
+  await SecureStore.setItemAsync(KITE_API_SECRET, apiSecret);
+}
+
+export async function getKiteApiSecret(): Promise<string | null> {
+  return readSecure(KITE_API_SECRET);
+}
+
+/**
  * Store OAuth credentials and record token expiry (next 6 AM).
  */
 export async function storeKiteAccessToken(credentials: KiteOAuthResponse): Promise<void> {
@@ -206,20 +219,44 @@ export async function clearKiteSession(): Promise<void> {
 /** Full wipe including the API key. Use only from the API key screen when the user explicitly removes it. */
 export async function clearKiteCredentials(): Promise<void> {
   await SecureStore.deleteItemAsync(KITE_API_KEY);
+  await SecureStore.deleteItemAsync(KITE_API_SECRET);
   await clearKiteSession();
 }
 
+/**
+ * Exchange the one-time request_token for an access_token, directly with Zerodha.
+ *
+ * Kite's token API needs checksum = SHA-256(api_key + request_token + api_secret). Zerodha
+ * asks public apps not to embed *their* api_secret; with bring-your-own-key each user
+ * supplies their own secret, kept encrypted on their phone, so no server is involved.
+ */
 export async function exchangeRequestToken(requestToken: string): Promise<KiteOAuthResponse> {
-  const response = await fetch(`${BACKEND_URL}/api/kite/exchange-token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ request_token: requestToken }),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to exchange token');
+  const apiKey = await getKiteApiKey();
+  const apiSecret = await getKiteApiSecret();
+  if (!apiKey || !apiSecret) {
+    throw new Error('Add your Kite API key and API secret in Zerodha credentials, then connect again.');
   }
-  return response.json();
+  const checksum = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    apiKey + requestToken + apiSecret,
+  );
+  const body = `api_key=${encodeURIComponent(apiKey)}&request_token=${encodeURIComponent(requestToken)}&checksum=${checksum}`;
+  const response = await fetch(`${KITE_API}/session/token`, {
+    method: 'POST',
+    headers: { 'X-Kite-Version': '3', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  let json: any = null;
+  try {
+    json = await response.json();
+  } catch {
+    /* non-JSON error page */
+  }
+  if (!response.ok || json?.status !== 'success' || !json?.data?.access_token) {
+    throw new Error(json?.message || `Zerodha rejected the login (HTTP ${response.status}). Check your API key and secret.`);
+  }
+  const { access_token, user_id, public_token } = json.data;
+  return { access_token, user_id, public_token };
 }
 
 export async function isKiteAuthenticated(): Promise<boolean> {

@@ -15,7 +15,9 @@ jest.mock("../../services/broker-terms", () => ({
 }));
 jest.mock("../../services/kite-connect", () => ({
   getKiteApiKey: jest.fn(async () => "apikey123"),
+  getKiteApiSecret: jest.fn(async () => "secret456"),
   storeKiteApiKey: jest.fn(async () => {}),
+  storeKiteApiSecret: jest.fn(async () => {}),
   clearKiteCredentials: jest.fn(),
 }));
 const mockSave = jest.fn(async () => ({ entryId: "vault_z", created: true }));
@@ -49,7 +51,7 @@ describe("Zerodha credentials screen", () => {
     await waitFor(() => expect(mockLink).toHaveBeenCalledWith("vault_z"));
     expect(storeKiteApiKey).toHaveBeenCalledWith("apikey123");
     expect(mockSave).toHaveBeenCalledWith("kite", {
-      apiKey: "apikey123", clientId: "AB1234", password: "s3cret", totpSecret: "JBSWY3DPEHPK3PXP",
+      apiKey: "apikey123", apiSecret: "secret456", clientId: "AB1234", password: "s3cret", totpSecret: "JBSWY3DPEHPK3PXP",
     });
   });
 

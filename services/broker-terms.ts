@@ -32,7 +32,7 @@ export const BROKER_TERMS: Record<BrokerId, BrokerTerms> = {
       { label: "Developer console", url: "https://developers.kite.trade/apps" },
     ],
     credentialsNote:
-      "Your API key is stored encrypted on this phone and sent only to Zerodha. You sign in on Zerodha's own page; the one-time login code passes through Arth's connection server, which doesn't keep it.",
+      "Your API key and secret are stored encrypted on this phone. You sign in on Zerodha's own page, and Arth talks to Zerodha directly; your secret itself is never sent, only a one-way checksum made from it.",
   },
   angel: {
     id: "angel",

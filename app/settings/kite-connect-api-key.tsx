@@ -12,7 +12,9 @@ import { useAlert } from '@/hooks/use-alert';
 import { logger } from '@/utils/logger';
 import {
   getKiteApiKey,
+  getKiteApiSecret,
   storeKiteApiKey,
+  storeKiteApiSecret,
   clearKiteCredentials,
 } from '@/services/kite-connect';
 import { BrokerVaultActions } from '@/components/broker/BrokerVaultActions';
@@ -26,6 +28,7 @@ export default function KiteConnectApiKeyScreen() {
   const theme = useTheme();
 
   const [apiKey, setApiKey] = useState('');
+  const [apiSecret, setApiSecret] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [agreed, setAgreed] = useState(() => hasAcceptedBrokerTerms('kite'));
@@ -38,7 +41,9 @@ export default function KiteConnectApiKeyScreen() {
   useEffect(() => {
     Promise.all([
       getKiteApiKey().then((key) => { if (key) setApiKey(key); }),
+      getKiteApiSecret().then((sec) => { if (sec) setApiSecret(sec); }),
       loadBrokerSecretsFromVault('kite').then((v) => {
+        if (v?.apiSecret) setApiSecret((cur) => cur || v.apiSecret!);
         if (v?.clientId) setLoginId(v.clientId);
         if (v?.password) setLoginPassword(v.password);
         if (v?.totpSecret) setTotpKey(v.totpSecret);
@@ -49,8 +54,8 @@ export default function KiteConnectApiKeyScreen() {
   }, []);
 
   const handleSave = async () => {
-    if (!apiKey.trim()) {
-      alert('Error', 'Please enter your API key');
+    if (!apiKey.trim() || !apiSecret.trim()) {
+      alert('Error', 'Enter both your Kite API key and API secret.');
       return;
     }
     if (!agreed) return;
@@ -66,10 +71,12 @@ export default function KiteConnectApiKeyScreen() {
     setIsSaving(true);
     try {
       await storeKiteApiKey(apiKey.trim());
+      await storeKiteApiSecret(apiSecret.trim());
       const hasLogin = loginId.trim() || loginPassword.trim() || totp;
       if (hasLogin) {
         const { entryId } = await saveBrokerSecretsToVault('kite', {
           apiKey: apiKey.trim(),
+          apiSecret: apiSecret.trim(),
           clientId: loginId.trim().toUpperCase(),
           password: loginPassword,
           totpSecret: totp,
@@ -80,7 +87,7 @@ export default function KiteConnectApiKeyScreen() {
         'Saved',
         hasLogin
           ? 'Arth will fill your Zerodha login and TOTP code when you connect.'
-          : 'API key saved successfully.',
+          : 'API key and secret saved.',
       );
       router.back();
     } catch (e) {
@@ -156,8 +163,25 @@ export default function KiteConnectApiKeyScreen() {
             secureTextEntry
             style={inputStyle}
           />
-          <Text className="text-xs text-muted-foreground mt-2">
+          <Text className="text-xs text-muted-foreground mt-2 mb-4">
             Found at developers.kite.trade/apps → your app → API Key
+          </Text>
+          <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            API Secret
+          </Text>
+          <TextInput
+            value={apiSecret}
+            onChangeText={setApiSecret}
+            placeholder="Your app's API secret"
+            placeholderTextColor={colors.textSecondary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+            style={inputStyle}
+          />
+          <Text className="text-xs text-muted-foreground mt-2">
+            Same page, next to the API key. It stays encrypted on this phone; only a one-way checksum made from
+            it is sent to Zerodha when you log in.
           </Text>
         </Card>
 
@@ -256,9 +280,10 @@ export default function KiteConnectApiKeyScreen() {
 
         <BrokerVaultActions
           broker="kite"
-          secrets={{ apiKey, clientId: loginId, password: loginPassword, totpSecret: totpKey }}
+          secrets={{ apiKey, apiSecret, clientId: loginId, password: loginPassword, totpSecret: totpKey }}
           onFill={(v) => {
             if (v.apiKey) setApiKey(v.apiKey);
+            if (v.apiSecret) setApiSecret(v.apiSecret);
             if (v.clientId) setLoginId(v.clientId);
             if (v.password) setLoginPassword(v.password);
             if (v.totpSecret) setTotpKey(v.totpSecret);
@@ -270,13 +295,14 @@ export default function KiteConnectApiKeyScreen() {
           <View className="flex-row items-center mb-2">
             <Ionicons name="information-circle-outline" size={16} color={theme.primary} />
             <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.primary }}>
-              How to get your API key
+              How to set up your Kite Connect app
             </Text>
           </View>
           <Text className="text-xs text-muted-foreground leading-5">
-            1. Go to developers.kite.trade/apps{'\n'}
-            2. Open your app (or create one){'\n'}
-            3. Copy the API Key from the app details page
+            1. Go to developers.kite.trade/apps and sign in with your Zerodha account{'\n'}
+            2. Create an app (Zerodha may charge for Kite Connect; check their current pricing){'\n'}
+            3. Set the Redirect URL to https://127.0.0.1 (any URL works; Arth reads the login result itself){'\n'}
+            4. Copy the API Key and API Secret from the app details page into the fields above
           </Text>
         </Card>
 
