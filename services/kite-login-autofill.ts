@@ -1,11 +1,13 @@
 import { settingsStorage } from '@/services/storage';
 import { decryptCustomFields, decryptField, getVaultEntries, getVaultEntry, type VaultEntry } from '@/services/vault';
+import { normalizeCustomFields } from '@/services/broker-vault';
 
 const MMKV_KITE_VAULT_ENTRY = 'kite_login_vault_entry_id';
 
+/** Any of these may be missing: Arth fills what it has and the user types the rest. */
 export interface KiteLoginSecrets {
-  userId: string;
-  password: string;
+  userId: string | null;
+  password: string | null;
   totpSecret: string | null;
 }
 
@@ -22,20 +24,28 @@ function loginIdOf(entry: VaultEntry): string | null {
   return entry.username || entry.phone || entry.email || null;
 }
 
-/** Vault entries that can log in to Kite: need a login ID and a password. */
+async function totpSecretOf(entry: VaultEntry): Promise<string | null> {
+  if (!entry.custom_fields) return null;
+  return normalizeCustomFields(await decryptCustomFields(entry.custom_fields)).totp_secret || null;
+}
+
+/** Vault entries that can help log in to Kite: a login ID and password, or a TOTP key. */
 export async function getKiteLoginCandidates(): Promise<VaultEntry[]> {
   const entries = await getVaultEntries();
-  return entries.filter((e) => e.password_enc && loginIdOf(e));
+  const out: VaultEntry[] = [];
+  for (const e of entries) {
+    if ((e.password_enc && loginIdOf(e)) || (await totpSecretOf(e))) out.push(e);
+  }
+  return out;
 }
 
 export async function getKiteLoginSecrets(entryId: string): Promise<KiteLoginSecrets | null> {
   const entry = await getVaultEntry(entryId);
-  if (!entry?.password_enc) return null;
+  if (!entry) return null;
   const userId = loginIdOf(entry);
-  const password = await decryptField(entry.password_enc);
-  if (!userId || !password) return null;
-  const custom = await decryptCustomFields(entry.custom_fields);
-  return { userId, password, totpSecret: custom.totp_secret || null };
+  const password = entry.password_enc ? (await decryptField(entry.password_enc)) || null : null;
+  const totpSecret = await totpSecretOf(entry);
+  return userId || password || totpSecret ? { userId, password, totpSecret } : null;
 }
 
 /** Only ever hand credentials to Zerodha's own login host. */
@@ -87,13 +97,15 @@ function __arthSet(el, v) {
 }
 `;
 
-export function buildLoginFillJs(userId: string, password: string): string {
+export function buildLoginFillJs(userId: string | null, password: string | null): string {
   return `
 (function () {
   ${SET_VALUE_JS}
   var uid = document.getElementById('userid');
-  if (uid && !uid.value) __arthSet(uid, ${JSON.stringify(userId)});
-  __arthSet(document.getElementById('password'), ${JSON.stringify(password)});
+  var userId = ${JSON.stringify(userId ?? '')};
+  var password = ${JSON.stringify(password ?? '')};
+  if (userId && uid && !uid.value) __arthSet(uid, userId);
+  if (password) __arthSet(document.getElementById('password'), password);
 })();
 true;
 `;

@@ -16,6 +16,9 @@ import {
   clearKiteCredentials,
 } from '@/services/kite-connect';
 import { BrokerVaultActions } from '@/components/broker/BrokerVaultActions';
+import { loadBrokerSecretsFromVault, saveBrokerSecretsToVault } from '@/services/broker-vault';
+import { setKiteVaultEntryId } from '@/services/kite-login-autofill';
+import { isValidTotpSecret } from '@/utils/totp';
 
 export default function KiteConnectApiKeyScreen() {
   const alert = useAlert();
@@ -26,11 +29,22 @@ export default function KiteConnectApiKeyScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [agreed, setAgreed] = useState(() => hasAcceptedBrokerTerms('kite'));
+  // Optional: lets Arth fill Zerodha's login page when you reconnect each day.
+  const [loginId, setLoginId] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [totpKey, setTotpKey] = useState('');
+  const [showTotpKey, setShowTotpKey] = useState(false);
 
   useEffect(() => {
-    getKiteApiKey()
-      .then((key) => { if (key) setApiKey(key); })
-      .catch((e) => logger.error('Error loading Kite API key:', e))
+    Promise.all([
+      getKiteApiKey().then((key) => { if (key) setApiKey(key); }),
+      loadBrokerSecretsFromVault('kite').then((v) => {
+        if (v?.clientId) setLoginId(v.clientId);
+        if (v?.password) setLoginPassword(v.password);
+        if (v?.totpSecret) setTotpKey(v.totpSecret);
+      }),
+    ])
+      .catch((e) => logger.error('Error loading Kite credentials:', e))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -40,14 +54,38 @@ export default function KiteConnectApiKeyScreen() {
       return;
     }
     if (!agreed) return;
+    const totp = totpKey.replace(/[\s=]/g, '').toUpperCase();
+    if (totp && !isValidTotpSecret(totp)) {
+      alert(
+        'Invalid TOTP key',
+        'Paste the text key Zerodha showed when you set up TOTP (letters A–Z and digits 2–7), not a 6-digit code.',
+      );
+      return;
+    }
     acceptBrokerTerms('kite');
     setIsSaving(true);
     try {
       await storeKiteApiKey(apiKey.trim());
-      alert('Success', 'API key saved successfully');
+      const hasLogin = loginId.trim() || loginPassword.trim() || totp;
+      if (hasLogin) {
+        const { entryId } = await saveBrokerSecretsToVault('kite', {
+          apiKey: apiKey.trim(),
+          clientId: loginId.trim().toUpperCase(),
+          password: loginPassword,
+          totpSecret: totp,
+        });
+        setKiteVaultEntryId(entryId);
+      }
+      alert(
+        'Saved',
+        hasLogin
+          ? 'Arth will fill your Zerodha login and TOTP code when you connect.'
+          : 'API key saved successfully.',
+      );
       router.back();
-    } catch {
-      alert('Error', 'Failed to save API key');
+    } catch (e) {
+      logger.error('Failed to save Kite credentials:', e);
+      alert('Error', 'Failed to save. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -75,6 +113,18 @@ export default function KiteConnectApiKeyScreen() {
       ],
     );
   };
+
+  const inputStyle = {
+    color: colors.text,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontFamily: 'Inter',
+  } as const;
 
   if (isLoading) {
     return (
@@ -104,20 +154,63 @@ export default function KiteConnectApiKeyScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             secureTextEntry
-            style={{
-              color: colors.text,
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderWidth: 1,
-              borderRadius: 8,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              fontSize: 14,
-              fontFamily: 'Inter',
-            }}
+            style={inputStyle}
           />
           <Text className="text-xs text-muted-foreground mt-2">
             Found at developers.kite.trade/apps → your app → API Key
+          </Text>
+        </Card>
+
+        {/* Zerodha login — optional, for filling the daily login */}
+        <Card className="mb-3">
+          <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+            Zerodha login (optional)
+          </Text>
+          <Text className="text-xs text-muted-foreground mb-3">
+            Arth fills these on Zerodha’s login page when you connect each day. You still tap Login yourself.
+          </Text>
+          <TextInput
+            value={loginId}
+            onChangeText={setLoginId}
+            placeholder="User ID, e.g. AB1234"
+            placeholderTextColor={colors.textSecondary}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            style={[inputStyle, { marginBottom: 10 }]}
+          />
+          <TextInput
+            value={loginPassword}
+            onChangeText={setLoginPassword}
+            placeholder="Password"
+            placeholderTextColor={colors.textSecondary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+            style={[inputStyle, { marginBottom: 10 }]}
+          />
+          <View className="flex-row items-center">
+            <TextInput
+              value={totpKey}
+              onChangeText={setTotpKey}
+              placeholder="TOTP key"
+              placeholderTextColor={colors.textSecondary}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              secureTextEntry={!showTotpKey}
+              style={[inputStyle, { flex: 1 }]}
+            />
+            <Pressable
+              onPress={() => setShowTotpKey((v) => !v)}
+              hitSlop={8}
+              className="ml-3"
+              accessibilityLabel={showTotpKey ? 'Hide TOTP key' : 'Show TOTP key'}
+            >
+              <Ionicons name={showTotpKey ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+          <Text className="text-xs text-muted-foreground mt-2">
+            The TOTP key is the text code Zerodha shows when you set up TOTP (“Can’t scan the QR code?”). Stored
+            encrypted in your Vault.
           </Text>
         </Card>
 
@@ -163,9 +256,12 @@ export default function KiteConnectApiKeyScreen() {
 
         <BrokerVaultActions
           broker="kite"
-          secrets={{ apiKey }}
+          secrets={{ apiKey, clientId: loginId, password: loginPassword, totpSecret: totpKey }}
           onFill={(v) => {
             if (v.apiKey) setApiKey(v.apiKey);
+            if (v.clientId) setLoginId(v.clientId);
+            if (v.password) setLoginPassword(v.password);
+            if (v.totpSecret) setTotpKey(v.totpSecret);
           }}
         />
 

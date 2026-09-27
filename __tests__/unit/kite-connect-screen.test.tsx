@@ -1,13 +1,27 @@
 import React from "react";
-import { render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 
 jest.mock("nativewind", () => ({
   useColorScheme: () => ({ colorScheme: "light", setColorScheme: jest.fn() }),
 }));
-jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+jest.mock("expo-router", () => {
+  const { useEffect } = require("react");
+  return { router: { push: jest.fn() }, useFocusEffect: (cb: () => void) => useEffect(cb, [cb]) };
+});
 jest.mock("expo-linking", () => ({ parse: jest.fn(() => ({ queryParams: {} })) }));
 jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn() }));
-jest.mock("react-native-webview", () => ({ WebView: () => null }));
+const mockInject = jest.fn();
+let mockWebView: any = null;
+jest.mock("react-native-webview", () => {
+  const React = require("react");
+  return {
+    WebView: React.forwardRef((props: any, ref: any) => {
+      mockWebView = props;
+      React.useImperativeHandle(ref, () => ({ injectJavaScript: mockInject }));
+      return null;
+    }),
+  };
+});
 jest.mock("../../hooks/use-alert", () => ({ useAlert: () => jest.fn() }));
 const mockStorage = new Map<string, string>();
 jest.mock("../../services/storage", () => ({
@@ -24,19 +38,23 @@ jest.mock("../../services/financial-account", () => ({
   addOrUpdateSnapshot: jest.fn(),
   updateFundBalance: jest.fn(),
 }));
-jest.mock("../../services/vault", () => ({ getVaultEntry: jest.fn(async () => null) }));
+const mockLink = { id: null as string | null };
+jest.mock("../../services/vault", () => ({
+  getVaultEntry: jest.fn(async (id: string) => (id ? { id, title: "Zerodha Kite" } : null)),
+}));
 jest.mock("../../services/kite-login-autofill", () => ({
-  KITE_LOGIN_WATCHER_JS: "",
-  buildLoginFillJs: jest.fn(),
-  buildTotpFillJs: jest.fn(),
+  KITE_LOGIN_WATCHER_JS: "WATCHER",
+  buildLoginFillJs: (u: string | null, p: string | null) => `fill-login:${u}:${p}`,
+  buildTotpFillJs: (code: string) => `fill-totp:${code}`,
   getKiteLoginCandidates: jest.fn(async () => []),
-  getKiteLoginSecrets: jest.fn(async () => null),
-  getKiteVaultEntryId: jest.fn(() => null),
-  isKiteLoginUrl: jest.fn(() => true),
+  getKiteLoginSecrets: jest.fn(async () => ({ userId: "AB1234", password: "pw", totpSecret: "JBSWY3DPEHPK3PXP" })),
+  getKiteVaultEntryId: jest.fn(() => mockLink.id),
+  isKiteLoginUrl: jest.requireActual("../../services/kite-login-autofill").isKiteLoginUrl,
   setKiteVaultEntryId: jest.fn(),
 }));
 
 const mockCache: Record<string, any> = {};
+const mockAuthed = { value: true };
 jest.mock("../../services/kite-connect", () => ({
   clearKiteCredentials: jest.fn(),
   clearKiteSession: jest.fn(),
@@ -53,7 +71,7 @@ jest.mock("../../services/kite-connect", () => ({
   getKiteLoginUrl: jest.fn(() => "https://kite.zerodha.com/connect/login"),
   getLastSynced: () => "2026-09-24T04:49:00.000Z",
   getLinkedAccountId: () => "acc1",
-  isKiteAuthenticated: jest.fn(async () => true),
+  isKiteAuthenticated: jest.fn(async () => mockAuthed.value),
   isKiteTokenExpired: () => false,
   setLinkedAccountId: jest.fn(),
   storeKiteAccessToken: jest.fn(),
@@ -101,7 +119,35 @@ function setCache() {
 }
 
 describe("Kite Connect screen", () => {
-  beforeEach(() => { mockStorage.clear(); setCache(); });
+  beforeEach(() => {
+    mockStorage.clear(); setCache();
+    mockAuthed.value = true; mockLink.id = null; mockWebView = null; mockInject.mockClear();
+  });
+
+  it("Connect fills user ID, password and a current TOTP code from the saved login", async () => {
+    mockAuthed.value = false;
+    const { findByText } = renderScreen();
+    mockLink.id = "vault_z"; // saved on the credentials screen after this one opened
+    fireEvent.press(await findByText("Connect"));
+    await waitFor(() => expect(mockWebView).not.toBeNull());
+    expect(mockWebView.injectedJavaScript).toBe("WATCHER");
+
+    const page = (type: string, url = "https://kite.zerodha.com/connect/login?api_key=k") =>
+      act(() => mockWebView.onMessage({ nativeEvent: { url, data: JSON.stringify({ arth: "kite-login", type }) } }));
+
+    await page("login_form");
+    await waitFor(() => expect(mockInject).toHaveBeenCalledWith("fill-login:AB1234:pw"));
+
+    jest.useFakeTimers();
+    await page("totp_form");
+    jest.runAllTimers();
+    jest.useRealTimers();
+    await waitFor(() => expect(mockInject).toHaveBeenCalledWith(expect.stringMatching(/^fill-totp:\d{6}$/)));
+
+    mockInject.mockClear();
+    await page("login_form", "https://evil.example.com/");
+    expect(mockInject).not.toHaveBeenCalled();
+  });
 
   it("renders a synced portfolio without throwing", async () => {
     const { findByText, findAllByText } = renderScreen();

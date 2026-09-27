@@ -71,12 +71,14 @@ describe("vault entry link", () => {
 });
 
 describe("getKiteLoginCandidates", () => {
-  it("excludes entries without a login ID or password (e.g. the API key entry)", async () => {
+  it("offers entries with a login ID + password, or a TOTP key; not the old API key entry", async () => {
     mockEntries.api = entry("api", { password_enc: "enc:apikey" });
     mockEntries.nopw = entry("nopw", { username: "AB1234" });
     mockEntries.ok = entry("ok", { username: "AB1234", password_enc: "enc:pw" });
+    mockEntries.totp = entry("totp", { custom_fields: JSON.stringify({ totp_secret: "JBSWY3DPEHPK3PXP" }) });
+    mockEntries.legacy = entry("legacy", { custom_fields: JSON.stringify({ "TOTP Secret": "JBSWY3DPEHPK3PXP" }) });
     const ids = (await getKiteLoginCandidates()).map((e) => e.id);
-    expect(ids).toEqual(["ok"]);
+    expect(ids).toEqual(["ok", "totp", "legacy"]);
   });
 });
 
@@ -99,8 +101,15 @@ describe("getKiteLoginSecrets", () => {
     });
   });
 
-  it("returns null for a missing entry or one without a password", async () => {
-    mockEntries.z = entry("z", { username: "AB1234" });
+  it("returns just a TOTP key when that's all the entry has", async () => {
+    mockEntries.z = entry("z", { custom_fields: JSON.stringify({ totp_secret: "JBSWY3DPEHPK3PXP" }) });
+    await expect(getKiteLoginSecrets("z")).resolves.toEqual({
+      userId: null, password: null, totpSecret: "JBSWY3DPEHPK3PXP",
+    });
+  });
+
+  it("returns null for a missing entry or one with nothing usable", async () => {
+    mockEntries.z = entry("z", { title: "empty" });
     await expect(getKiteLoginSecrets("z")).resolves.toBeNull();
     await expect(getKiteLoginSecrets("missing")).resolves.toBeNull();
   });
@@ -112,6 +121,13 @@ describe("fill scripts", () => {
     const js = buildLoginFillJs("AB1234", pw);
     expect(js).toContain(JSON.stringify(pw));
     expect(js).toContain(JSON.stringify("AB1234"));
+    expect(() => new Function(js)).not.toThrow();
+  });
+
+  it("leaves out a missing user ID or password rather than typing an empty value", () => {
+    const js = buildLoginFillJs(null, "pw");
+    expect(js).toContain('var userId = "";');
+    expect(js).toContain("if (userId && uid && !uid.value)");
     expect(() => new Function(js)).not.toThrow();
   });
 

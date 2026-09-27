@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import * as Clipboard from 'expo-clipboard';
@@ -145,6 +145,15 @@ export default function KiteConnectScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Coming back from the credentials screen: pick up a newly saved login.
+  useFocusEffect(
+    useCallback(() => {
+      const entryId = getKiteVaultEntryId();
+      if (!entryId) { setVaultEntry(null); return; }
+      getVaultEntry(entryId).then(setVaultEntry).catch(() => {});
+    }, []),
+  );
+
   // ── Connect / reconnect ──────────────────────────────────────────────────
 
   const handleConnectPress = async () => {
@@ -161,7 +170,11 @@ export default function KiteConnectScreen() {
         );
         return;
       }
-      const secrets = vaultEntry ? await getKiteLoginSecrets(vaultEntry.id) : null;
+      // Read the link fresh: it may have been set on the credentials screen since this one opened.
+      const entryId = getKiteVaultEntryId();
+      const entry = entryId ? await getVaultEntry(entryId) : null;
+      setVaultEntry(entry);
+      const secrets = entry ? await getKiteLoginSecrets(entry.id) : null;
       setLoginTotpSecret(secrets?.totpSecret ?? null);
       setLoginUrl(getKiteLoginUrl(credentials.apiKey));
       setShowWebView(true);
@@ -222,7 +235,7 @@ export default function KiteConnectScreen() {
     const secrets = await getKiteLoginSecrets(vaultEntry.id);
     if (!secrets) return;
 
-    if (msg.type === 'login_form') {
+    if (msg.type === 'login_form' && (secrets.userId || secrets.password)) {
       webViewRef.current?.injectJavaScript(buildLoginFillJs(secrets.userId, secrets.password));
     } else if (msg.type === 'totp_form' && secrets.totpSecret) {
       // A code about to roll over would likely be rejected; wait for the next one.
