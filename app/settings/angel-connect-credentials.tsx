@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAlert } from '@/hooks/use-alert';
 import { logger } from '@/utils/logger';
 import { connectAngel, getAngelCredentials, clearAngelCredentials } from '@/services/angel-connect';
-import { createVaultEntry, searchVaultEntries } from '@/services/vault';
+import { BrokerVaultActions } from '@/components/broker/BrokerVaultActions';
 
 function CredentialField({
   label,
@@ -104,37 +104,6 @@ export default function AngelConnectCredentialsScreen() {
       alert('Connection Failed', msg || 'Could not connect to Angel One. Check your credentials and try again.');
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleSaveToVault = async () => {
-    if (!apiKey.trim()) {
-      alert('Not Connected', 'Connect first, then save to Vault.');
-      return;
-    }
-    try {
-      const existing = await searchVaultEntries('Angel One SmartAPI');
-      if (existing.length > 0) {
-        alert('Already in Vault', 'An "Angel One SmartAPI" entry already exists in your Vault.');
-        return;
-      }
-      await createVaultEntry({
-        title: 'Angel One SmartAPI',
-        category: 'demat',
-        login_method: 'password',
-        username: clientId.trim() || undefined,
-        password: password.trim() || undefined,
-        url: 'https://smartapi.angelone.in',
-        notes: 'Angel One SmartAPI credentials used by Arth for portfolio sync',
-        custom_fields_data: {
-          'API Key': apiKey.trim(),
-          'TOTP Secret': totpSecret.trim(),
-        },
-      });
-      alert('Saved to Vault', 'Your Angel One credentials have been added to your Vault.');
-    } catch (e) {
-      logger.error('Failed to save Angel creds to vault:', e);
-      alert('Error', 'Could not save to Vault. Please try again.');
     }
   };
 
@@ -259,17 +228,16 @@ export default function AngelConnectCredentialsScreen() {
             )}
           </View>
 
-          {/* Save to Vault */}
-          {apiKey ? (
-            <Pressable
-              onPress={handleSaveToVault}
-              className="flex-row items-center justify-center mb-3 py-3 rounded-lg border border-border"
-              style={{ backgroundColor: colors.surface }}
-            >
-              <Ionicons name="lock-closed-outline" size={16} color={colors.text} />
-              <Text className="text-sm font-semibold text-foreground ml-2">Save to Vault</Text>
-            </Pressable>
-          ) : null}
+          <BrokerVaultActions
+            broker="angel"
+            secrets={{ apiKey, clientId, password, totpSecret }}
+            onFill={(v) => {
+              if (v.apiKey) setApiKey(v.apiKey);
+              if (v.clientId) setClientId(v.clientId);
+              if (v.password) setPassword(v.password);
+              if (v.totpSecret) setTotpSecret(v.totpSecret);
+            }}
+          />
 
           {/* How to get credentials */}
           <Card>

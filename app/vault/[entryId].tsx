@@ -18,6 +18,7 @@ import {
   getVaultEntry,
 } from "@/services/vault";
 import { useTheme } from "@/hooks/use-theme";
+import { normalizeCustomFields } from "@/services/broker-vault";
 import { generateTOTP, totpSecondsRemaining } from "@/utils/totp";
 
 const CLIPBOARD_TTL_MS = 30_000;
@@ -61,7 +62,7 @@ export default function VaultEntryScreen() {
       }
       if (e?.custom_fields) {
         const cf = await decryptCustomFields(e.custom_fields);
-        setCustomFields(cf);
+        setCustomFields(normalizeCustomFields(cf));
       }
     } finally {
       setLoading(false);
@@ -402,6 +403,22 @@ export default function VaultEntryScreen() {
           />
         )}
 
+        {/* API credentials (broker "Save to Vault"), the TOTP secret itself, and any other saved
+            field - so nothing stored on an entry is ever invisible. */}
+        {Object.entries(customFields)
+          .filter(([k, v]) => v && !SHOWN_ELSEWHERE.has(k))
+          .sort(([a], [b]) => fieldOrder(a) - fieldOrder(b))
+          .map(([k, v]) => (
+            <ExtraSecretRow
+              key={k}
+              label={fieldLabel(k)}
+              value={v}
+              onCopy={() => handleCopy(fieldLabel(k), v)}
+              copied={copiedField === fieldLabel(k)}
+              colors={colors}
+            />
+          ))}
+
         {/* Statement PDF Password — banking and demat */}
         {(entry.category === "banking" || entry.category === "demat") && customFields.statement_password && (
           <SecretRow
@@ -547,6 +564,29 @@ function FieldRow({
       </View>
     </View>
   );
+}
+
+/** Custom fields with their own rows above (per category). Everything else goes through ExtraSecretRow. */
+const SHOWN_ELSEWHERE = new Set([
+  "card_holder", "card_number", "expiry", "cvv", "statement_password", "secondary_password", "mpin", "tpin",
+]);
+const FIELD_LABELS: Record<string, string> = {
+  api_key: "API Key",
+  api_secret: "API Secret",
+  totp_secret: "TOTP Secret",
+};
+const FIELD_ORDER = ["api_key", "api_secret", "totp_secret"];
+function fieldLabel(key: string): string {
+  return FIELD_LABELS[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+function fieldOrder(key: string): number {
+  const i = FIELD_ORDER.indexOf(key);
+  return i === -1 ? FIELD_ORDER.length : i;
+}
+
+function ExtraSecretRow(props: { label: string; value: string; onCopy: () => void; copied: boolean; colors: any }) {
+  const [show, setShow] = useState(false);
+  return <SecretRow {...props} show={show} onToggle={() => setShow((v) => !v)} />;
 }
 
 function SecretRow({

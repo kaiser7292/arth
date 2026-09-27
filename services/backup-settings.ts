@@ -98,6 +98,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("broker_terms_accepted_angel", "string"),
   S("broker_terms_accepted_zebpay", "string"),
   S("kite_login_vault_entry_id", "string"),
+  P("broker_vault_entry__", "string"),
   // Other stores
   { store: "duplicateDismissals", key: "dismissed_groups", type: "string", backup: true },
   { store: "minBalanceAcks", key: "min_balance_ack_", prefix: true, type: "boolean", backup: true },

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Card, ScreenContainer, Text } from '@/components/ui';
 import { BrokerTermsCard } from '@/components/broker/BrokerTermsCard';
+import { BrokerVaultActions } from '@/components/broker/BrokerVaultActions';
 import { acceptBrokerTerms, hasAcceptedBrokerTerms } from '@/services/broker-terms';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -189,6 +190,15 @@ export default function ZebpayConnectCredentialsScreen() {
               </Pressable>
             )}
           </View>
+
+          <BrokerVaultActions
+            broker="zebpay"
+            secrets={{ apiKey, apiSecret: secretKey }}
+            onFill={(v) => {
+              if (v.apiKey) setApiKey(v.apiKey);
+              if (v.apiSecret) setSecretKey(v.apiSecret);
+            }}
+          />
 
           <Card>
             <View className="flex-row items-center mb-2">

@@ -1,3 +1,4 @@
+import { normalizeCustomFields } from "@/services/broker-vault";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -39,6 +40,12 @@ const CATEGORY_LOGIN_METHODS: Record<VaultCategory, LoginMethod[]> = {
   social:        ["email_password", "google", "apple", "password", "phone_otp"],
   other:         ["password", "email_password", "google", "apple", "phone_otp", "pin", "none"],
 };
+
+/** Custom fields this form edits; any other saved field is carried through untouched. */
+const FORM_FIELDS = new Set([
+  "card_number", "card_holder", "expiry", "cvv", "secondary_password", "mpin", "tpin",
+  "totp_secret", "statement_password", "api_key", "api_secret",
+]);
 
 export default function VaultAddScreen() {
   const router = useRouter();
@@ -97,6 +104,11 @@ export default function VaultAddScreen() {
   const [showTpin, setShowTpin] = useState(false);
   const [totpSecret, setTotpSecret] = useState("");
   const [showTotpSecret, setShowTotpSecret] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [apiSecret, setApiSecret] = useState("");
+  const [showApiSecret, setShowApiSecret] = useState(false);
+  // Custom fields this form has no input for - kept as they are when the entry is saved.
+  const [otherFields, setOtherFields] = useState<Record<string, string>>({});
   // Statement PDF password (banking + card + demat)
   const [statementPwd, setStatementPwd] = useState("");
   const [showStatementPwd, setShowStatementPwd] = useState(false);
@@ -123,7 +135,10 @@ export default function VaultAddScreen() {
         setNotes(entry.notes ?? "");
         let expandMore = !!(entry.url || entry.notes);
         if (entry.custom_fields) {
-          const fields = await decryptCustomFields(entry.custom_fields);
+          const fields = normalizeCustomFields(await decryptCustomFields(entry.custom_fields));
+          setOtherFields(Object.fromEntries(Object.entries(fields).filter(([k]) => !FORM_FIELDS.has(k))));
+          setApiKey(fields.api_key ?? "");
+          setApiSecret(fields.api_secret ?? "");
           setCardNumber(fields.card_number ?? "");
           setCardHolder(fields.card_holder ?? "");
           setCardExpiry(fields.expiry ?? "");
@@ -133,7 +148,8 @@ export default function VaultAddScreen() {
           setTpin(fields.tpin ?? "");
           setTotpSecret(fields.totp_secret ?? "");
           setStatementPwd(fields.statement_password ?? "");
-          if (fields.secondary_password || fields.mpin || fields.tpin || fields.totp_secret || fields.statement_password) {
+          if (fields.secondary_password || fields.mpin || fields.tpin || fields.totp_secret || fields.statement_password
+              || fields.api_key || fields.api_secret) {
             expandMore = true;
           }
         }
@@ -208,8 +224,12 @@ export default function VaultAddScreen() {
           cf.totp_secret = secret;
         }
         if (statementPwd.trim()) cf.statement_password = statementPwd.trim();
+        if (apiKey.trim()) cf.api_key = apiKey.trim();
+        if (apiSecret.trim()) cf.api_secret = apiSecret.trim();
         customFieldsData = cf;
       }
+      // Never drop a saved field the form doesn't show.
+      if (Object.keys(otherFields).length > 0) customFieldsData = { ...otherFields, ...(customFieldsData ?? {}) };
 
       const input = {
         title,
@@ -238,7 +258,7 @@ export default function VaultAddScreen() {
     }
   }, [title, category, loginMethod, username, email, phone, password, pin, url, notes,
       cardNumber, cardHolder, cardExpiry, cardCvv, editId, linkedAccountId,
-      secondaryPassword, mpin, tpin, totpSecret, statementPwd]);
+      secondaryPassword, mpin, tpin, totpSecret, statementPwd, apiKey, apiSecret, otherFields]);
 
   if (loading) {
     return (
@@ -817,6 +837,34 @@ export default function VaultAddScreen() {
                 <Text className="text-xs text-muted-foreground mb-3 -mt-1">
                   Arth will show the current 6-digit code and can fill it in on the Zerodha Kite login.
                 </Text>
+
+                <Field label="API Key (optional)" colors={colors}>
+                  <TextInput
+                    value={apiKey}
+                    onChangeText={setApiKey}
+                    placeholder="Broker API key, for portfolio sync"
+                    placeholderTextColor={colors.textSecondary}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    className="flex-1 text-sm text-foreground"
+                  />
+                </Field>
+
+                <Field label="API Secret (optional)" colors={colors}>
+                  <TextInput
+                    value={apiSecret}
+                    onChangeText={setApiSecret}
+                    placeholder="Broker API secret"
+                    placeholderTextColor={colors.textSecondary}
+                    secureTextEntry={!showApiSecret}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    className="flex-1 text-sm text-foreground"
+                  />
+                  <Pressable onPress={() => setShowApiSecret((p) => !p)} hitSlop={8}>
+                    <Ionicons name={showApiSecret ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                  </Pressable>
+                </Field>
 
                 <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
                   <TextInput
