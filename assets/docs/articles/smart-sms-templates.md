@@ -100,6 +100,8 @@ If you launched from the Unrecognised SMS list, the sender is pre-filled from th
 
 This is the label Arth uses when it shows you matched expenses (e.g. "TataNeu" under the expense row). For well-known banks, start typing and pick from the suggestion list. For wallets or anything not in the list, type freeform.
 
+**Default payment mode (optional).** Pick a payment mode (e.g. "Kotak UPI") and every transaction this template detects gets it - even if the SMS itself suggests a different one. A [Smart Rule](smart-rules) can still override it.
+
 ### Step 9 - (Optional) Check the pattern
 
 Below the details card is a collapsible **Pattern Preview (advanced)** section. Expand it to see the matching pattern if you want to verify what will actually be detected.

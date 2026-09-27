@@ -1,56 +1,75 @@
 ---
 title: Home screen cards
 slug: home-cards
-summary: Choose which summary cards appear on your Home tab and reorder them to put what matters most at the top.
-tags: [home screen, cards, customize, hide card, show card, home tab, dashboard, preferences]
-contextKeys: [home-cards, settings-home]
+summary: Choose which cards appear on your Home tab, and hide every amount with one tap when someone's looking at your screen.
+tags: [home screen, cards, customize, hide card, show card, home tab, dashboard, preferences, hide amounts, privacy, eye icon, investments card, check-ins card]
+contextKeys: [home-cards, settings-home, home]
 phrasings:
   - How do I hide a card on the home screen?
   - Customise home screen
   - Remove a card from home
   - What cards are on the home screen?
-  - Reorder home cards
   - Home screen layout
   - Show spending card
   - Hide budget card
   - Reset home cards
   - Home tab cards
+  - Hide amounts
+  - Hide my balance
+  - Eye icon on home
+  - Why do all amounts show dots?
+  - Privacy mode
+  - Where did the Demat card go?
+  - Where did the Pension card go?
 ---
 
-The **Home tab** is your daily dashboard. You can choose which summary cards appear there and hide anything you don't use regularly.
+The **Home tab** is your daily dashboard. You can choose which cards appear there and hide anything you don't use.
 
 ## Managing home cards
 
-Open **Settings → Preferences → Home Cards** to see the full list of available cards and toggle each one on or off.
-
-Changes take effect the next time the Home tab refreshes — navigate away and back or restart Arth.
+Open **Settings tab → Preferences & Security → Home Cards** and switch each card on or off. Changes show up as soon as you go back to Home.
 
 ## Available cards
 
-The home screen can show a variety of cards covering different aspects of your finances. Common ones include:
+- **Low-balance alerts** - a red card when a savings account dips below the threshold you set.
+- **Upcoming dues** - forecasted payments and reminder cycles due in the next few days, with **Pay** and **Paid elsewhere** buttons.
+- **Review Queue** - how many items need you, with a **Catch up** button.
+- **Check-ins** - month-end check, settle up, subscriptions and rule suggestions, when there's something to swipe through. See [Check-ins](check-ins).
+- **Total Spent** - this month's spending against your budget, with days remaining.
+- **Hisaab - Family Ledger** - quick access to money owed between you and family or friends.
+- **Insights & Analytics** - merchants, accounts, trends, comparisons and patterns.
+- **Credit cards** - utilisation and next statement across your cards.
+- **Bank balances** - closing balance across your savings accounts.
+- **Wallets** - Paytm, PhonePe and other wallet balances.
+- **Investments** - total value across demat, pension and fixed deposit accounts. See [Investments and fixed deposits](investments).
+- **Reminders** - active reminders due soon or overdue.
+- **Cash-flow Simulator** - a shortcut to your what-if plans.
+- **Loans summary** - total outstanding and next EMI.
 
-- **Financial snapshot** — overall balance, income vs spending this month
-- **Budget overview** — spending against budget limits by category
-- **Account summary** — balances across your bank accounts, wallets, and credit cards
-- **Loans** — total outstanding and next EMI due
-- **Savings pulse** — savings rate progress toward your target
-- **Upcoming** — bills or forecasted expenses due soon
-- **Hisaab** — net amount owed to or by family members
+The **Investments** card replaced the separate Demat and Pension cards. If you had hidden either of those, the Investments card starts hidden too.
+
+## Hide amounts
+
+Tap the **eye** icon at the top of the Home tab to hide every amount in Arth - balances, spending, transactions, everything. Amounts show as **••••**, always the same length, so nobody can guess how big a number is. Plus and minus signs and red/green colouring are hidden too.
+
+Tap the eye again to show amounts. Arth remembers your choice, even after you close the app. The home screen widget follows it too.
 
 ## Resetting to defaults
 
-At the bottom of the Home Cards settings screen, a **Reset to defaults** option restores the original set of visible cards. All your custom visibility toggles are cleared and the default set is restored.
+At the bottom of the Home Cards screen, **Reset to defaults** turns every card back on.
 
 ## Common situations
 
-**"A card I need isn't showing."** Open Settings → Preferences → Home Cards and toggle it on.
+**"A card I need isn't showing."** Some cards only appear when they have something to show - for example Check-ins, Low-balance alerts and Upcoming dues. If it's switched on in Home Cards and still missing, there's nothing for it right now.
 
-**"I hid a card and now I can't find where that information went."** The data is still in Arth — you just hid the card. The same information is available on its dedicated screen (Budget tab, Goals tab, Transactions tab, etc.). Toggle the card back on from Settings if you want it on the home screen again.
+**"I hid a card and now I can't find that information."** The data is still in Arth - you just hid the card. Toggle it back on from Home Cards.
 
-**"I reset to defaults but my preferred cards are gone."** After a reset, re-enable the cards you want from the same Settings screen.
+**"All my amounts show dots."** Hide amounts is on. Tap the eye icon at the top of Home.
 
 ## Related
 
-- Set up income for the savings card: [Income Calculator](salary-calculator)
-- Manage loan cards: [Loans and EMI tracking](loans)
-- Family lending card: [Hisaab — family lending and borrowing](hisaab)
+- [Investments and fixed deposits](investments)
+- [Check-ins](check-ins)
+- [Catch Up - review one card at a time](catch-up)
+- [Privacy and offline-first](privacy-offline)
+- [Hisaab - shared accounts with people](hisaab)

@@ -30,7 +30,7 @@ Buckets can optionally link to milestones - a bucket's growth then counts toward
 ## Where to find them
 
 **Goals tab** (bottom nav).
-- "Life Milestones" section → all active milestones with progress bars.
+- "Life Milestones" card → all your milestones, active and completed, sorted by due date (soonest first; milestones with no date go last).
 - "Investment Buckets" section → all buckets with current vs target.
 - "Yearly Plan" card → planned vs actual this FY.
 - "YoY Comparison" link → side-by-side with last FY.
@@ -43,6 +43,8 @@ Buckets can optionally link to milestones - a bucket's growth then counts toward
 4. Tap **Save**.
 
 The milestone's progress bar fills as linked buckets grow and as you log direct milestone contributions.
+
+**Monthly saving needed** is the amount left to reach the target divided by the months until the due date - counting the current month, since you can still save in it. If you didn't set a deadline, Arth uses the end of the plan period (start financial year + duration) instead.
 
 ## Create an investment bucket
 

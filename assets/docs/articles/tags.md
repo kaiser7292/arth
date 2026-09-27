@@ -23,7 +23,7 @@ phrasings:
 
 ## Creating a tag
 
-1. Open **Settings → Master Data → Tags**.
+1. Open **Settings → Data Management → Tags**.
 2. Tap the **+** button.
 3. Enter a **name** for the tag.
 4. Choose a **colour** from the available palette.
@@ -59,5 +59,5 @@ The tag list in Settings shows how many expenses each tag is attached to. This h
 
 ## Related
 
-- Add and manage expenses: [Recording expenses](add-expense)
+- Add and manage expenses: [Recording expenses](transactions)
 - Filter transactions: [Transactions tab](transactions)

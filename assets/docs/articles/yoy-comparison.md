@@ -58,4 +58,4 @@ The comparison always shows the most recently completed FY against the current F
 - Track active loans: [Loans and EMI tracking](loans)
 - See your full-year plan: [Yearly Plan and budget](yearly-plan)
 - Understand your financial health: [Financial Health grade explained](financial-health-grade)
-- Full net-worth picture: [Balance Sheet](balance-sheet)
+- Full net-worth picture: [Net Worth](balance-sheet)

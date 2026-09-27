@@ -29,7 +29,7 @@ Arth keeps two time concepts separate and uses them for different things.
 
 ## Change it
 
-1. Open the **Settings tab → Preferences → Region → Fiscal Year**.
+1. Open the **Settings tab → Preferences & Security → Region → Fiscal Year**.
 2. Pick when your FY starts:
   - **January** - calendar year (US / Europe personal, Singapore)
   - **April** - India, UK, Japan, Hong Kong

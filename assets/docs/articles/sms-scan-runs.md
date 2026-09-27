@@ -77,6 +77,6 @@ Inside a scan run, the hardware back button navigates through view levels in ord
 
 ## Related
 
-- Write a parser for an unrecognised bank: [Smart SMS Templates](sms-templates)
+- Write a parser for an unrecognised bank: [Smart SMS Templates](smart-sms-templates)
 - Manage which accounts are scanned: [Setting up your accounts](accounts)
 - Review and approve detected transactions: [Review queue](review-queue)

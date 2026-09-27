@@ -1,75 +1,84 @@
 ---
-title: Balance Sheet
+title: Net Worth
 slug: balance-sheet
-summary: See your net worth at a point in time — assets minus liabilities — with a live column and a historical column for comparison.
-tags: [balance sheet, net worth, assets, liabilities, investments, savings, demat, goals, historical, live balance]
-contextKeys: [balance-sheet, goals-tab]
+summary: See your net worth - everything you own minus everything you owe - grouped into sections with subtotals, for today and for past financial years.
+tags: [net worth, balance sheet, assets, liabilities, investments, savings, fixed deposit, demat, pension, goals, historical, live balance]
+contextKeys: [balance-sheet, net-worth, goals-tab]
 phrasings:
-  - What is the balance sheet in Arth?
+  - What is net worth in Arth?
+  - Where is the balance sheet?
   - How is net worth calculated?
   - What counts as an asset?
   - What counts as a liability?
   - How do I see my net worth?
-  - Add a balance sheet column
+  - Add a net worth column
   - Historical net worth
-  - Balance sheet past year
+  - Net worth last year
   - Net worth comparison
   - Goals track section
-  - Demat in balance sheet
-  - Loan in balance sheet
+  - Demat in net worth
+  - Loan in net worth
+  - Where is my FD in net worth?
+  - Deposits under savings account
   - How is demat value shown?
 ---
 
-The **Balance Sheet** (Goals tab → Track section → Balance Sheet) shows your net worth — total assets minus total liabilities — at one or more points in time. It is a snapshot view, not a running ledger.
+**Net Worth** (Goals tab → Track → Net Worth) shows everything you own minus everything you owe, at one or more points in time. It used to be called **Balance Sheet**.
 
-## Default columns
+## Columns
 
-When you open the Balance Sheet for the first time, it shows two columns:
+When you open it, you see two columns:
 
-- **Previous FY close** — your net worth at the last day of the previous fiscal year
-- **Live** — your net worth right now, updated each time the page loads
+- **Previous FY close** - your net worth on the last day of the previous financial year.
+- **Today** - your net worth right now, worked out fresh every time the screen loads.
 
-You can tap the **+** button to add more historical columns, such as the FY-close two years ago or any specific month-end.
+Tap **+** to add an earlier financial year's closing column. Tap a column you added to remove it. Today and the previous FY close are always there.
 
-## What goes into assets
+## Sections
 
-- **Savings and current accounts** — the closing balance of each bank account as of the column date
-- **Wallets** — wallet balances
-- **Demat accounts** — the value of your demat holdings. Arth uses the last price snapshot you have recorded (either entered manually or fetched via Kite Connect if you have linked it). If no price has been recorded, the demat account shows the cost basis.
-- **Pension / NPS / EPF** — the balance of each pension account as of the column date
-- **Investment Buckets** — cumulative contributions tracked in Arth (note: this is the contributed amount, not the market value, unless you update the bucket value manually)
+Assets and liabilities are each split into sections, and every section shows its **subtotal** on its heading row - even when it's collapsed. Tap a section to collapse or expand it. Empty sections don't appear.
 
-## What goes into liabilities
+**Assets**
 
-- **Loans** — outstanding principal on each active loan as of the column date
-- **Credit card outstanding** — current outstanding balance on each credit card account
+- **Liquid Cash** - savings accounts and wallets.
+- **Investments** - demat accounts (portfolio and idle funds), pension accounts (EPF / NPS / PPF), and other investment accounts.
+- **Receivables** - money people owe you in Hisaab.
 
-## Net worth
+**Liabilities**
 
-Net worth is Assets minus Liabilities. A positive number means your assets exceed your obligations. Arth shows this as the final line at the bottom of the Balance Sheet.
+- **Credit** - what you owe on credit cards.
+- **Debt** - outstanding loans.
+- **Payables** - money you owe people in Hisaab.
 
-## Adding and removing columns
+**Net Worth** = total assets − total liabilities, shown as the last line.
 
-Tap the **+** button to add a historical month-end column. Select any past month from the date picker. The column appears alongside the existing ones.
+## Fixed deposits
 
-To remove a column you added, tap the column header. The Live and Previous FY close columns cannot be removed — they are always present.
+A fixed deposit is money that left a savings account, so it sits **under the savings account that funded it**, not as a separate line. Each savings account shows "+₹X deposits" under its balance. Tap the account to see each FD on its own line. Deposits count towards your total assets.
 
-## Recomputing indicator
+FDs that have matured or closed are left out, so the payout isn't counted twice. See [Investments and fixed deposits](investments).
 
-A small spinner appears next to column headers while Arth is computing the values. Balance sheet data is not cached — it recalculates each time the screen opens or a data change occurs. On the first open after a long session, there may be a brief moment where numbers appear as loading placeholders.
+## How each value is worked out
+
+- **Savings, wallets, pension** - the account's closing balance on the column date.
+- **Demat** - the latest portfolio and fund snapshot on or before the column date. Record snapshots yourself or save them from a broker connection ([Zerodha Kite](kite-connect), [Angel One](angel-one), [Zebpay](zebpay)).
+- **Credit cards** - the amount used on the column date.
+- **Loans** - outstanding principal on the column date.
+- **Hisaab** - the net amounts owed to you and by you.
 
 ## Common situations
 
-**"My net worth shows much lower than expected."** Check whether your demat accounts have an up-to-date price snapshot. If the last snapshot is old or zero, the demat value will be understated. Update the price via the demat account detail screen or link Kite Connect for live prices.
+**"My net worth is lower than expected."** Check your demat accounts have a recent snapshot. If the last one is old or missing, the value is understated. Sync your broker and tap **Update Snapshot with These Values**, or record a snapshot on the demat account.
 
-**"My loan is in the assets section."** Loans are liabilities. If a loan account appears under assets, check that the account type is set to `Loan` in Settings → Master Data → Accounts. The balance sheet categorises by account type.
+**"My FD isn't listed."** Look under the savings account that funded it and tap to expand. If it has no funding account, it appears as its own line under Investments.
 
-**"I have a PPF account — how do I track it?"** Add it as a Savings account or a custom Investment Bucket. Arth does not have a dedicated PPF account type; the balance you enter is used as-is.
+**"A loan appears under assets."** Check the account type is **Loan** in Settings tab → Data Management → Accounts.
 
-**"The Live column and account balance don't match."** The balance sheet uses the account's computed closing balance as of today, which includes all approved transactions. If there are pending-review SMS transactions that affect this account, approve or reject them first to see the accurate balance.
+**"Today's column doesn't match my account balance."** Net Worth only counts approved transactions. Approve or reject pending items in the Review Queue first.
 
 ## Related
 
-- Link live demat prices: [Kite Connect (Zerodha)](kite-connect)
-- Track savings accounts: [Setting up your accounts](accounts)
-- See net worth change over years: [Year-over-Year comparison](yoy-comparison)
+- [Investments and fixed deposits](investments)
+- [Accounts and balances](accounts)
+- [Year-over-Year comparison](yoy-comparison)
+- [Financial Health grade explained](financial-health-grade)

@@ -32,6 +32,10 @@ The screen has:
 - **Scan Now** - rescans existing SMS.
 - **Test a Sample** - paste any SMS to see how it would parse.
 
+## Turning it on
+
+When you switch SMS detection on (during onboarding or in Settings), Arth first shows a screen explaining what it reads and why. Accept it, and then Android asks for SMS permission. Arth won't ask for the permission before you've seen that screen. On a new phone you'll see it again.
+
 ## What Arth reads
 
 Only SMS from **registered bank / UPI senders** (DLT transactional codes). Personal messages, OTPs, and promotional SMS are ignored by the sender-allowlist. The built-in allowlist covers:
@@ -53,14 +57,18 @@ Step by step, what Arth does the moment a bank SMS arrives (or during a Scan Now
    - **Payment received on credit card** → Arth tries three routes, in order: (1) match to a pending forecast for the CC bill, (2) reclassify as a transfer from savings if a matching debit exists there, (3) otherwise create a pending credit.
    - **Reminder / due-date SMS** → creates or updates a forecast.
    - **Balance-only SMS** (no transaction, just a balance update) → silently updates the account's `last_known_balance`. Nothing in Review Queue.
-5. **Wait for you.** The parsed row sits in the Review Queue. Nothing enters your budget, ledger, or account balance until you approve it.
+5. **Wait for you.** The parsed row sits in the Review Queue. Nothing enters your budget, ledger, or account balance until you approve it (unless a Smart Rule auto-approves it). Swipe through them with [Catch Up](catch-up).
+
+## Background checks and notifications
+
+With **New Transactions** turned on in Settings tab → Preferences & Security → Notifications, Arth also checks your SMS in the background about every 30 minutes and sends a notification for anything new - with **Approve** and **Reject** buttons that work without opening the app. See [Notifications and the home screen widget](notifications).
 
 ## Privacy
 
 - **Reading** happens via the Android OS on your device. No network call.
 - **Parsing** runs entirely within the app on your phone.
-- **Storage** - the raw SMS body is kept locally on your device; it is not transmitted.
-- Arth has **zero** network permissions for normal use.
+- **Storage** - the raw SMS body is kept locally on your device; it is never transmitted.
+- SMS detection never uses the internet. See [Privacy and offline-first](privacy-offline) for the optional features that do.
 
 ## Improving detection over time
 

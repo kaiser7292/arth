@@ -23,8 +23,8 @@ Every account has a ledger view - a running balance starting from an opening fig
 
 Four paths:
 - **Home tab → Account card → tap**.
-- **Settings tab → Master Data → Accounts → tap an account → View Ledger**.
-- **Settings tab → Master Data → Accounts → [Bank Accounts / Credit Cards / Wallets / Demat]** → tap any account → opens the ledger.
+- **Settings tab → Data Management → Accounts → tap an account → View Ledger**.
+- **Settings tab → Data Management → Accounts → [Bank Accounts / Credit Cards / Wallets / Demat]** → tap any account → opens the ledger.
 - **Transactions tab → tap an expense → Account → View Ledger**.
 
 ## How the running balance is computed
@@ -96,10 +96,10 @@ Check the **Balance Source Card** on the account-detail screen. If it says "stal
 The card's utilized changes every time you log an expense or credit on it. That's correct behavior - the "stored" utilized (in the SMS) is a point-in-time snapshot; the ledger utilized is live.
 
 **"My auto-detected balance is marked stale but nothing happened on the card."**
-Check if a **transfer** was recorded on the card after the last balance SMS (payments often flow as transfers from savings). Settings tab → Master Data → Accounts → Credit Cards → tap the card → check recent transfer rows. Any transfer on the card after the last balance SMS flags the balance as stale - that's intentional.
+Check if a **transfer** was recorded on the card after the last balance SMS (payments often flow as transfers from savings). Settings tab → Data Management → Accounts → Credit Cards → tap the card → check recent transfer rows. Any transfer on the card after the last balance SMS flags the balance as stale - that's intentional.
 
 **"Is there a history of adjustments?"**
-Yes - Settings tab → Master Data → Accounts → scroll any account type's summary; the "Drift" column shows your total adjustments for the current month.
+Yes - Settings tab → Data Management → Accounts → scroll any account type's summary; the "Drift" column shows your total adjustments for the current month.
 
 ## Related
 - How pool (shared-limit) credit cards are handled: [Accounts and balances](accounts)

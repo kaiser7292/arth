@@ -235,7 +235,7 @@ export function searchDocs(query: string, limit = 10): DocsSearchHit[] {
 const DOMAIN_GROUPS: Array<{ label: string; slugs: string[] }> = [
   {
     label: "Start here",
-    slugs: ["getting-started"],
+    slugs: ["getting-started", "transactions"],
   },
   {
     label: "Track day-to-day",
@@ -243,38 +243,62 @@ const DOMAIN_GROUPS: Array<{ label: string; slugs: string[] }> = [
       "accounts",
       "categories",
       "tags",
-      "reconciliation",
-      "refunds",
+      "payment-modes",
       "transfers",
+      "refunds",
+      "split-tender",
       "hisaab",
       "review-queue",
+      "catch-up",
+      "check-ins",
+      "reconciliation",
     ],
   },
   {
     label: "Plan & remind",
     slugs: [
       "budget",
+      "yearly-plan",
+      "goals-milestones",
+      "investments",
+      "loans",
+      "risk-coverage",
       "simulator",
       "reminders",
-      "goals-milestones",
-      "loans",
+      "calendar-sync",
+      "salary-calculator",
     ],
   },
   {
-    label: "Let Artha do the work",
+    label: "Let Arth do the work",
     slugs: [
       "sms-detection",
       "smart-sms-templates",
+      "sms-scan-runs",
       "smart-rules",
       "merchant-aliases",
       "duplicate-detection",
+      "voice-input",
+      "ai-assistant",
+      "notifications",
+    ],
+  },
+  {
+    label: "Connect your broker",
+    slugs: [
+      "kite-connect",
+      "angel-one",
+      "zebpay",
     ],
   },
   {
     label: "Understand your money",
     slugs: [
       "insights",
-      "projection-block",
+      "reports",
+      "balance-sheet",
+      "financial-health-grade",
+      "yoy-comparison",
       "projection-math",
       "min-balance-alert",
     ],
@@ -282,6 +306,7 @@ const DOMAIN_GROUPS: Array<{ label: string; slugs: string[] }> = [
   {
     label: "Personalize",
     slugs: [
+      "home-cards",
       "preferences-region",
       "fiscal-year",
     ],
@@ -289,8 +314,9 @@ const DOMAIN_GROUPS: Array<{ label: string; slugs: string[] }> = [
   {
     label: "Protect your data",
     slugs: [
-      "biometric-lock",
       "privacy-offline",
+      "biometric-lock",
+      "vault",
       "backup-restore",
       "recycle-bin",
       "audit-log",

@@ -53,7 +53,7 @@ Each entry has an optional **Login method** field that records how you authentic
 
 ## Adding an entry
 
-1. Open **Settings → Vault** or tap Vault from the main menu.
+1. Open the **Home tab** and swipe to the **Vault** page (or tap **Vault** at the top).
 2. Tap the **+** button.
 3. Choose a **category**.
 4. Fill in the **name** (e.g. "HDFC NetBanking") and whichever fields are relevant — username, password, PIN, account number, expiry, etc.
@@ -61,15 +61,32 @@ Each entry has an optional **Login method** field that records how you authentic
 6. Add any **notes** for context.
 7. Tap **Save**.
 
+## Demat entries: TOTP codes and broker keys
+
+**Demat** entries have extra optional fields:
+
+- **TOTP Secret** - the text key your broker shows when you set up two-factor login (letters A-Z and digits 2-7, not a 6-digit code). The entry screen then shows a live **TOTP Code** you can copy, so you don't need a separate authenticator app open.
+- **API Key** and **API Secret** - for connecting the broker to Arth.
+
+## Broker connections and the Vault
+
+The [Zerodha Kite](kite-connect), [Angel One](angel-one) and [Zebpay](zebpay) screens each have **Save to Vault** / **Update Vault** and **Fill from Vault** buttons:
+
+- **Save to Vault** keeps one Vault entry per broker with your API key, API secret, TOTP secret, login ID and password.
+- **Fill from Vault** puts them back - handy after restoring a backup on a new phone.
+- For Zerodha, Arth can use the linked Vault entry to fill your user ID, password and TOTP code on Zerodha's login page each day. Values are only filled on kite.zerodha.com.
+
+When you add a savings, credit card or loan account, Arth also offers **Add credentials** to create a Vault entry for it.
+
 ## Finding a saved entry
 
 Use the **search bar** at the top of the Vault screen to filter entries by name, username, or note text. Entries are also grouped by category so you can browse by type.
 
 ## Security
 
-All Vault data is stored in Arth's local SQLite database on your device. It is protected by the same app-level biometric lock that secures the rest of Arth — no data is sent to any server. Arth does not encrypt the database itself beyond what your Android device's OS-level storage encryption provides. If you need an additional encryption layer, consider enabling full-device encryption in your Android settings.
+Vault entries are stored in Arth's local database on your device - nothing is sent to any server. **Passwords, PINs, TOTP secrets, API keys and other secret fields are encrypted** (AES-256) with a key kept in Android's secure storage. Entry names, categories and renewal dates are not encrypted, so Arth can list and search them. On top of that, your phone's own storage encryption and Arth's app lock protect everything.
 
-Because the Vault is part of your Arth data, it is included in your **Arth backup file** — encrypted with AES-GCM using your chosen backup password. If you share a backup, the recipient can restore the Vault data after entering the correct backup password.
+The Vault is included in your **Arth backup file** - encrypted with your backup password - along with the key needed to read the secret fields on a new phone. Anyone who has your backup file **and** its password can see your Vault. Treat both carefully.
 
 ## Common situations
 
@@ -83,6 +100,6 @@ Because the Vault is part of your Arth data, it is included in your **Arth backu
 
 ## Related
 
-- Set up biometric lock: [Biometric and PIN lock](lock)
-- Back up your data (includes Vault): [Backup and restore](backup)
+- Set up biometric lock: [Locking the app with Face / Fingerprint](biometric-lock)
+- Back up your data (includes Vault): [Backup and restore](backup-restore)
 - AI data access toggle for Vault: [AI assistant](ai-assistant)

@@ -1,7 +1,7 @@
 ﻿---
 title: Auto-categorize with smart rules
 slug: smart-rules
-summary: Define IF/THEN rules that tag, categorize, or auto-approve expenses as they land. Runs before every other categorizer.
+summary: Define IF/THEN rules that categorize, tag, split, link or auto-approve expenses and credits as they land. Runs before every other categorizer.
 tags: [smart-rules, automation, categorize, rules, auto-approve]
 contextKeys: [settings-smart-rules, smart-rule-detail]
 phrasings:
@@ -25,24 +25,30 @@ Smart rules are explicit "IF this THEN that" rules you define once and Arth appl
 
 ## Anatomy of a rule
 
-**Conditions (AND semantics - all must match):**
-- **Merchant contains** - case-insensitive substring (e.g. "swiggy")
-- **Merchant pattern** - advanced pattern matching for power users
-- **Min amount** / **Max amount** - inclusive bounds
-- **Account** - limit to expenses on a specific account
-- **Payment mode** - limit to a specific mode (UPI, credit card, etc.)
-- **SMS keyword** - only match SMS-parsed expenses whose raw body contains this text
+**Applies to** - **Expenses** (debits and spending), **Credits** (salary, refunds and other money in) or **All transactions**. The rules list shows "· Credits" or "· All transactions" on rules that aren't expense-only.
 
-You need at least one condition. Combine any.
+**When (conditions):** choose **Match ALL** (every condition must match) or **Match ANY** (one is enough).
+- **Merchant** / **Description** - contains, doesn't contain, starts with, ends with, equals, matches regex, is empty, and more
+- **Amount** - equals, is at least, is at most, is between
+- **Account**, **Payment mode**, **Category** - equals / doesn't equal / is empty
+- **SMS body** - text in the original bank SMS
+- **Day of month** - e.g. "is between 1 and 5", or "equals 10" for the 10th of every month
+- **Weekday occurrence** - e.g. the **4th Monday** or the **last Friday** of the month
 
-**Actions:**
-- **Set category** - force the expense's category
+You need at least one condition.
+
+**Then (actions):**
+- **Set category** - force the category
 - **Set payment mode** - force the payment mode
 - **Set description** - override the auto-generated description
 - **Add tags** - attach tags (multiple allowed)
-- **Override right-spend** - mark as unavoidable or discretionary
-- **Split with person** - automatically create a split (equal, I owe full, they owe full, by %, or by exact amount)
-- **Auto-approve from review queue** - skip Review Queue and go straight into ledger (default: OFF per user safety)
+- **Mark unavoidable / discretionary**
+- **Auto split with person** - automatically create a split (equal, I owe full, they owe full, by %, or by exact amount)
+- **Link investment bucket** - count the payment towards a yearly-plan investment bucket (each bucket shows its financial year)
+- **Mark as loan repayment** - pick the loan; Arth matches each payment to the nearest scheduled EMI by date and amount
+- **Auto-approve from review** - skip the Review Queue and go straight into the ledger (default: OFF for safety)
+
+Every action works on SMS-detected transactions, manual entries, past transactions and rules you apply by hand.
 
 ## Create a rule
 
@@ -53,7 +59,11 @@ You need at least one condition. Combine any.
 5. (Optional) **Retroactive apply** - see below.
 6. Tap **Save**.
 
-From now on, every new expense that satisfies the conditions has the actions applied. A small badge on the expense - "Processed by rule: Swiggy → Food" - shows which rule fired.
+After you save a new rule, Arth opens **Apply to past expenses** straight away (see below). After editing a rule, it asks whether to **Apply to Past** or **Skip**.
+
+From now on, every new transaction that satisfies the conditions has the actions applied. A **Processed by rule** badge on the transaction shows which rule fired; if more than one rule matched, all of them are listed.
+
+To see everything a rule has touched, open the rule and view its **Rule Applications**.
 
 ## Retroactive apply
 
@@ -65,6 +75,10 @@ After saving a rule, you can apply it to existing expenses:
 5. Confirm. All applicable actions are applied — category, payment mode, description, right-spend, auto-approve, and split.
 6. Runs in a single transaction.
 
+## Apply a rule to one transaction
+
+Open any transaction and tap the **⚡** icon at the top. Pick a rule and Arth applies its actions straight away - the conditions are skipped, since you chose it. The badge then reads **Applied manually**.
+
 ## Rules vs learned mappings
 
 Arth has two separate systems for auto-categorization. They don't conflict - smart rules run first, then learned mappings.
@@ -73,7 +87,7 @@ Arth has two separate systems for auto-categorization. They don't conflict - sma
 
 - **How it's created** - you write it manually on the Smart Rules screen.
 - **When it fires** - immediately on the very next matching expense.
-- **What it can do** - set category, set payment mode, set description, add tags, force is-right-spend, auto-approve from review queue, split with person.
+- **What it can do** - everything in the actions list above.
 - **Where to see it** - Settings tab → Automation → Smart Rules. Every rule is listed, editable, and deletable.
 - **In backup** - yes, rules travel with your backup file.
 
@@ -103,6 +117,12 @@ Rule: merchant contains "Amazon" + min amount 5000 → action: add tag "Big Purc
 **"Every UPI to my landlord should be Rent category, auto-approved."**
 Rule: merchant pattern matching your landlord's name + payment mode = UPI → action: set category Rent + auto-approve ON.
 
+**"My salary credit should always be filed as Salary."**
+Rule: Applies to **Credits** → merchant contains your employer's name → action: set category Salary.
+
+**"Rent goes out on the 1st-5th of every month."**
+Rule: day of month is between 1 and 5 + merchant contains your landlord → set category Rent.
+
 **"I want to rebuild what Arth 'learned' - can I see it?"**
 Learned mappings are internal. Smart rules are the visible, editable layer. Migrate important learned patterns into explicit rules.
 
@@ -116,3 +136,4 @@ Most common cause: the merchant name changed. Check the raw_merchant_name via **
 - Base auto-categorization (no rules): [Categories and how they're decided](categories)
 - Clean merchant names first: [Fixing merchant names](merchant-aliases)
 - Automation vs manual review: [The review queue](review-queue)
+- Let Arth suggest rules for you: [Check-ins](check-ins)

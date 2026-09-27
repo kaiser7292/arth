@@ -26,12 +26,18 @@ The review queue is the single screen where you clean up anything Arth couldn't 
 2. Tap the **Review Queue** card near the top. When there are items to review, the card shows a count; when you're caught up, it shows a green tick and no count.
 
 You can also open it from:
-- **Home** → the "pending" chip inside the month-spend ring
+- **Home** → swipe to the **Queue** page
 - **Settings tab** → "SMS Detection" section → "Review now"
 - **Settings tab** → "Possible Duplicates" panel → opens the queue filtered to Duplicates
 - **Budget tab** → "Uncategorized" card → opens the queue filtered to Uncategorized
 
 > Note: the review queue is **not** on the Transactions tab. Approved expenses go straight into Expenses; pending items live here until you act on them.
+
+## Catch Up: one card at a time
+
+Tap **Catch up (N)** on the Home Review Queue card, or at the top of the Queue page, to go through pending items one card at a time - swipe right to approve, left to skip, with Undo on every action. See [Catch Up](catch-up).
+
+You can also approve or reject new transactions straight from a notification. See [Notifications and the home screen widget](notifications).
 
 ## What the screen shows
 
@@ -94,3 +100,4 @@ Use **Filter chip: Uncategorized** → **Select All** → pick the most common c
 - Set up automatic rules for recurring patterns: [Auto-categorize with smart rules](smart-rules)
 - Understand duplicate detection: [Duplicate expenses](duplicate-detection)
 - How SMS parsing works on-device: [How SMS detection works](sms-detection)
+- Swipe through items one at a time: [Catch Up](catch-up)

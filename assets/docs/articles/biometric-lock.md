@@ -25,7 +25,7 @@ Arth can require a biometric check (Face ID / fingerprint) before opening. This 
 
 ## Turn it on
 
-1. Open the **Settings tab → Security & Privacy → App Lock**.
+1. Open the **Settings tab → Preferences & Security → Security → App Lock**.
 2. Toggle **App Lock** on.
 3. Arth asks for a biometric check right away - this proves you can authenticate on this device.
 4. Pick a **timeout** - how long after you last unlocked before the app re-locks:
@@ -40,7 +40,7 @@ Same screen - toggle off. **Turning off ALSO requires a biometric check**, so so
 
 ## Lock Now button
 
-On the same Security & Privacy screen there's a **Lock Now** button. Useful if you're handing your phone to someone for a second and want to force a re-auth on next open.
+On the same Security screen there's a **Lock Now** button. Useful if you're handing your phone to someone for a second and want to force a re-auth on next open.
 
 ## Fallbacks
 
@@ -62,7 +62,7 @@ Consequence: after restoring a backup on a new device, the lock is off by defaul
 
 ## Common situations
 
-**App locks every time I switch to another app for 3 seconds.** Your timeout is set to **Immediately**. Change it to 1 or 5 minutes in Security & Privacy → App Lock.
+**App locks every time I switch to another app for 3 seconds.** Your timeout is set to **Immediately**. Change it to 1 or 5 minutes in Preferences & Security → Security → App Lock.
 
 **I'm travelling and don't have biometric set up on this loaner phone.** Turn the lock off before handing the phone to someone. If you're locked out on a restore, the device-passcode fallback covers that.
 

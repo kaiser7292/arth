@@ -34,7 +34,7 @@ The **Cash-flow Simulator** is the one Arth screen that looks forward. Everywher
 
 ## Where to find it
 
-**Home tab → Explore & Tools → Cash-flow Simulator.**
+**Home tab → Simulator page** (swipe across, or tap **Simulator** at the top). If the **Cash-flow Simulator** card is on your Home screen, tap it too.
 
 Also searchable in the help center as "plan", "simulate", "what-if", "project", or "hisaab in simulator".
 
@@ -53,15 +53,19 @@ Each scenario has its own horizon date and its own list of planned entries. They
 
 1. Simulator home → tap **+ New scenario** (the primary button on empty state; on a populated home, tap the **New scenario** action at the top of the list).
 2. Enter a name and pick a horizon date.
-3. Optionally start fresh or copy planned entries from an existing scenario (all upcoming entries + hisaab inclusions get duplicated).
+3. Optionally copy entries from an existing scenario:
+   - **Upcoming only** - copies only future entries; dates stay as they are.
+   - **Full setup** - copies all entries and resets them to upcoming.
+   - Choose **Copy with updated dates** to shift every date forward to fit the new scenario's horizon (a recurring entry's end date moves too), or **Keep dates as-is**.
 4. Tap **Create**.
 
 The new scenario opens immediately, pre-seeded (on fresh creates) with active reminders and open CC forecasts that fall inside the horizon.
 
-### Active vs archived vs deleted
+### Active vs done vs deleted
 
 - **Active** - editable, contributes to the projection.
-- **Archived** - read-only past plans. Auto-archive 90 days after horizon; hard-deleted 180 days after archive.
+- **Done** - tap **Mark done** (the ✓ button) when a plan has run its course. It moves to a **Completed** section on the Simulator page (**Show completed** / **Hide completed**). Open it and tap **Restore scenario** to make it active again.
+- **Archived** - scenarios auto-archive 90 days after their horizon and are removed 180 days after that.
 - **Delete** - permanent, from the three-dot menu on the detail screen or the card actions on the list. Entries + hisaab inclusions cascade away. No recycle bin for scenarios. Any real transactions are untouched.
 
 ## Planned entries
@@ -81,6 +85,7 @@ Fields:
 - **Category** *(outgoings only, not for hisaab)*.
 - **Merchant / description** *(optional)*.
 - **Hisaab person** *(required for collect / payback only)*.
+- **Repeat this entry** *(optional)* - Doesn't repeat, Weekly, Monthly, Quarterly, Yearly, Last day of month, or a custom weekday (e.g. the 2nd Friday). Arth adds a copy on every cycle up to the horizon, or an end date you set.
 
 ### Add an entry
 
@@ -90,7 +95,9 @@ Fields:
 4. Amount, date, account. If hisaab, pick the person.
 5. **Save**.
 
-Tap a row to edit. Trash icon on each row for one-tap delete. Long-press for Duplicate + Remove.
+Tap a row to edit. Trash icon on each row for one-tap delete. Long-press for Duplicate + Remove. For a repeating entry, you choose **Remove this occurrence** or **Remove entire series**.
+
+Editing a repeating entry's date or frequency regenerates its future copies (ones already matched to a real transaction are kept). Extending a scenario's horizon extends repeating entries too.
 
 ### How entries are grouped
 
@@ -105,7 +112,7 @@ Hisaab entries appear under their direction (Collect → Incoming; Pay back → 
 
 When you create or open a scenario, Arth pre-fills with:
 
-- Every **active recurring reminder** due before the horizon.
+- Every **active recurring reminder** due before the horizon - on its own schedule, so a monthly reminder shows up every month within the horizon.
 - Every **open credit-card repayment forecast** due before the horizon.
 
 Tap **Menu → Re-seed from reminders** any time to re-pull. Already-added entries aren't duplicated.
@@ -140,6 +147,8 @@ Hisaab balances don't automatically count toward your simulator starting balance
 
 Positive-balance people (they owe you) lift the Money available side. Negative-balance people (you owe them) lift the Money owed side.
 
+Inclusions follow the person's **live** Hisaab balance. Arth stores the percentage you chose, so if a new entry or settlement changes their balance, the included amount updates automatically - and moves to the other side if the balance flips.
+
 Each inclusion is **per-scenario** - including Manoj in "With Goa trip" doesn't affect "Tight month".
 
 Inclusions are included in the backup and restore cleanly. If a hisaab person is deleted, their inclusion is automatically removed from the scenario.
@@ -162,6 +171,7 @@ These show up inside the Incoming / Outgoing lists with the sublabel "Collect fr
   - If a matching real transaction exists (same account, date within ±3 days, **exact amount to the paise**) → the entry auto-links and moves to "Already happened".
   - If nothing matches → the entry moves to **Stale** and appears in a dedicated card. You resolve via three actions:
     - **It happened · Link** - pick the real transaction from the recent ledger; the entry marks as fulfilled.
+- **Wrong link?** Expand a fulfilled entry and tap **Unlink transaction** next to the one that doesn't belong. Removing the last link puts the entry back to upcoming (or stale, if its date has passed).
     - **Reschedule** - pick a new future date; the entry re-enters the simulation.
     - **Remove** - discard.
 - **Retention.** Non-default scenarios auto-archive 90 days after horizon; delete 180 days after archive. Entries in fulfilled / dismissed state purge 30 days after horizon.

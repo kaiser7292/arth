@@ -28,7 +28,7 @@ Arth has one locale / preferences screen that controls all display formatting: c
 
 ## Where to find it
 
-**Settings tab → Preferences → Region.**
+**Settings tab → Preferences & Security → Region.**
 
 Also asked during onboarding - the three format pickers appear after you pick your theme.
 

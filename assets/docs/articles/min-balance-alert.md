@@ -17,7 +17,7 @@ Indian banks often require you to keep a minimum balance in your savings account
 
 ## Where to find it
 
-**Settings tab → Master Data → Accounts → tap any savings account → Minimum Balance Alert.**
+**Settings tab → Data Management → Accounts → tap any savings account → Minimum Balance Alert.**
 
 The feature is **off by default** (threshold = 0). Set any positive rupee amount to turn it on for that account.
 
@@ -56,7 +56,7 @@ If the resulting closing is less than your minimum, you'll see the alert.
 Arth's number is based on your tracked transactions. If you have unreviewed SMS in the Review Queue, or a recent expense hasn't been categorized yet, Arth's number can lag your bank's. Approve the pending items, then refresh Home.
 
 **"I want to turn off the alert for one account."**
-Settings tab → Master Data → Accounts → tap the account → set Minimum Balance to 0 or clear the field. Save.
+Settings tab → Data Management → Accounts → tap the account → set Minimum Balance to 0 or clear the field. Save.
 
 **"Can I get an alert when balance drops by a percentage, not a fixed amount?"**
 Not yet. v1 only supports fixed rupee thresholds. Percentage-based thresholds may come later.

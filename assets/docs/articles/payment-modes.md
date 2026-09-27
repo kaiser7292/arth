@@ -35,7 +35,7 @@ Arth ships with a set of standard types:
 
 ## Managing payment modes
 
-Open **Settings → Master Data → Payment Modes** to see all your payment modes.
+Open **Settings → Data Management → Payment Modes** to see all your payment modes.
 
 **To add a custom mode** — tap + and enter a name and type. For example, you might add "GPay UPI" and "PhonePe UPI" as separate modes under the UPI type if you want more granular tracking.
 
@@ -59,5 +59,5 @@ Payment mode is shown on individual expense detail screens. The Insights tab inc
 
 ## Related
 
-- Add and manage expenses: [Recording expenses](add-expense)
+- Add and manage expenses: [Recording expenses](transactions)
 - See spending by payment method: [Insights and analytics](insights)

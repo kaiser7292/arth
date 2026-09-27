@@ -42,15 +42,18 @@ Each row shows the action in a coloured pill, a short description, the amount, t
 
 ## Filters
 
-At the top of the screen you can scope by:
+The filters work the same way as on the Transactions tab:
 
-- **Date range** - 7 days / 30 days / 90 days / this year / all time. Defaults to 30 days.
-- **Source** - SMS (bank auto-detection) vs Manual (you typed it in). Multi-select.
-- **Type** - Expenses, Credits, Transfers, Hisaab settlements, Forecasts. Multi-select.
-- **Action** - any of the actions above. Multi-select.
-- **Search** - free-text against merchant name, description, and account label.
+- **Date range** - chips at the top: last 7, 30 or 90 days. Defaults to 30 days.
+- **Search box** - free text against merchant name, description, and account label.
+- **Funnel** (next to the search box) - opens the full-screen filter with:
+  - **Source** - SMS (bank auto-detection) vs Manual (you typed it in).
+  - **Type** - Expenses, Credits, Transfers, Hisaab settlements, Forecasts.
+  - **Action** - any of the actions above.
 
-The filter panel is collapsed by default; tap "Add filters" to expand. Tap "Clear" to reset everything.
+Active filters show as chips under the search box - tap a chip's ✕ to remove it.
+
+The list is grouped by day. Only **today** starts open; tap any other day to expand it. Arth remembers which days you opened.
 
 ## Common things you can do with it
 
@@ -75,7 +78,7 @@ Action: Reclassified by Rule. Scan the list, edit any miscategorized ones. You c
 
 ## Tips
 
-- **If the log feels empty**, widen the date range. Default is 30 days.
+- **If the log feels empty**, widen the date range to 90 days.
 - **If an action doesn't show up as expected**, check whether the record is in the Recycle Bin - soft-deleted rows show up as "Deleted" entries here.
 - **Rows are capped at 500** per view to keep it fast. If you hit the cap, narrow the date range.
 

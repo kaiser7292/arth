@@ -34,7 +34,7 @@ A **loan** in Arth is a structured obligation with a fixed principal, interest r
 
 - **Home tab → Your Accounts → Loans card** - shows total outstanding, monthly EMI, and next EMI due date. Tap to open the full loans list.
 - **Goals tab → Loans** - list of all active and closed loans with per-loan outstanding, current EMI, and bank name.
-- **Settings tab → Master Data → Accounts** → Loans → tap any loan.
+- **Settings tab → Data Management → Accounts** → Loans → tap any loan.
 
 Tapping a loan anywhere routes you to the loan detail screen.
 
@@ -112,7 +112,7 @@ If you want to actually foreclose, use **Record Prepayment** and change the kind
 
 ## Loan accounts in Account Master
 
-Every loan automatically creates a matching entry in **Settings → Master Data → Accounts** (type `Loan`). Tapping that entry routes to the loan detail screen - the loan's amortization schedule is the source of truth, so generic balance-tracking UI (Monthly Balance Ledger, Payment Modes, Bank-Reported Balance) is not shown for loans. You'll see a "View loan details" tile instead.
+Every loan automatically creates a matching entry in **Settings → Data Management → Accounts** (type `Loan`). Tapping that entry routes to the loan detail screen - the loan's amortization schedule is the source of truth, so generic balance-tracking UI (Monthly Balance Ledger, Payment Modes, Bank-Reported Balance) is not shown for loans. You'll see a "View loan details" tile instead.
 
 ## SMS auto-detection and EMI matching
 

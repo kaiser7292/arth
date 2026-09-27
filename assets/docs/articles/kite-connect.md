@@ -1,64 +1,96 @@
 ---
-title: Kite Connect (Zerodha)
+title: Zerodha Kite
 slug: kite-connect
-summary: Link your Zerodha account to fetch live demat prices and update your balance sheet and home screen with current market values.
-tags: [Kite Connect, Zerodha, demat, live prices, portfolio, market value, API, equity, stock price, NAV, mutual fund]
+summary: Connect Zerodha with your own Kite Connect API key to see your stocks, mutual funds, SIPs and orders, and save portfolio snapshots to your demat account.
+tags: [Kite Connect, Zerodha, Kite, demat, portfolio, holdings, mutual fund, SIP, orders, positions, API key, API secret, TOTP, broker, integration, BYOK, snapshot]
 contextKeys: [kite-connect, settings-kite]
 phrasings:
   - How do I link Zerodha to Arth?
   - Kite Connect setup
-  - Live demat prices
-  - Zerodha API in Arth
-  - Update demat value automatically
-  - Fetch portfolio value
-  - Kite Connect API key
-  - Why is my demat value not updating?
-  - Live portfolio value in balance sheet
   - Zerodha integration
+  - Kite Connect API key
+  - Where do I find the API secret?
+  - Redirect URL for Kite Connect
+  - Token is invalid or has expired
+  - Failed to initiate Kite login
+  - Why do I have to log in to Zerodha every day?
+  - Fill Zerodha login automatically
+  - Zerodha TOTP key
+  - Update demat value from Zerodha
+  - Update snapshot
+  - Mutual fund P&L shows zero
+  - See my SIPs in Arth
   - Connect demat account to Arth
+  - Is it safe to give Arth my API secret?
 ---
 
-**Kite Connect** is Zerodha's developer API. When you link it to Arth, your demat account value updates automatically with live market prices instead of relying on the cost basis or a manually entered snapshot.
+Connect your Zerodha account to see your holdings inside Arth and save their value to your demat account. The connection is **read-only** - Arth can't place orders or move money.
 
-## Prerequisites
+## Before you start: your own Kite Connect app
 
-You need an active **Zerodha Kite Connect subscription**. This is a paid developer plan separate from your regular Zerodha trading account. Sign up at kite.trade and generate an API key and API secret from the developer console.
+Arth connects with **your own** Kite Connect API key ("bring your own key"). There is no shared Arth server in between.
 
-## Linking your account
+1. Go to **developers.kite.trade/apps** and sign in with your Zerodha account.
+2. **Create an app.** Zerodha may charge for Kite Connect - check their current pricing.
+3. Set the **Redirect URL** to `https://127.0.0.1`. Any URL works; Arth reads the login result itself.
+4. Copy the **API Key** and **API Secret** from the app's details page.
 
-1. Open **Settings → Integrations → Kite Connect**.
-2. Enter your **API key** and **API secret** from the Zerodha developer console.
-3. Tap **Connect**. Arth opens a Zerodha login page inside the app.
-4. Log in with your Zerodha credentials (user ID and password, followed by the two-factor TOTP or PIN).
-5. On success, Arth receives an access token from Zerodha and stores it securely on your device.
+## Set it up in Arth
 
-The access token expires every day at 6:00 AM IST (Zerodha's standard session reset). You will need to re-authenticate each morning if you want fresh prices that day.
+1. **Settings tab → Integrations → Zerodha Kite.**
+2. Enter your **API Key** and **API Secret**.
+3. *(Optional)* Fill in the **Zerodha login** card - **User ID**, **Password** and **TOTP key**. Arth then fills these in on Zerodha's login page for you. You still tap Login yourself. A TOTP key on its own is enough to fill the 6-digit code.
+4. Read the terms card and tick the agreement box.
+5. Tap **Connect**. Zerodha's own login page opens. Log in (or let Arth fill it), and Arth finishes the connection.
 
-## What updates after linking
+The **TOTP key** is the text code Zerodha shows when you set up TOTP ("Can't scan the QR code?").
 
-Once connected, Arth can fetch your current portfolio holdings and their market values from Zerodha. These prices flow into:
+## Where your credentials go
 
-- **Demat account balance** on the Home tab and account ledger
-- **Balance Sheet** — the Live column shows current market value instead of cost basis
-- **Year-over-Year comparison** — the demat value reflects live prices
+- Your API key, API secret and login are stored **encrypted on this phone**.
+- You sign in on Zerodha's own page, and Arth talks **directly to Zerodha**. Your API secret itself is never sent - only a one-way checksum made from it.
+- The login fill only happens on kite.zerodha.com.
+- Credentials are **not in backups**. Tap **Save to Vault** so the [Vault](vault) (which is backed up) keeps a copy. After a restore, use **Fill from Vault** to reconnect.
 
-Prices update each time you open the relevant screen, as long as the Kite Connect session is active.
+## What you'll see
+
+After connecting, the Zerodha screen shows:
+
+- **Summary** - current value, invested, P&L and available funds.
+- **Stocks** and **Mutual funds** - one row each with quantity, average price, latest price or NAV, value and P&L. Mutual funds show the date of the NAV so you can spot a stale value.
+- **Open positions**, **Active SIPs**, **Recent stock orders** and **Recent MF orders**.
+
+Search by name or symbol, and sort by Value, P&L, P&L % or Name. Arth remembers your sort.
+
+## Save the value to your demat account
+
+1. The first time, tap **Link Demat Account** and pick your Zerodha demat account. Arth tries to match it automatically by your BO number.
+2. Tap **Update Snapshot with These Values**. Arth saves today's **portfolio value** and **funds** (idle cash) together to that demat account.
+
+The snapshot feeds the Investments card, your demat account, and [Net Worth](balance-sheet).
+
+## Daily login
+
+Zerodha ends every Kite Connect session at around **6 AM** each day. When the session has expired, the screen asks you to **Reconnect**. With your login saved, reconnecting is a couple of taps, and Arth syncs straight after.
 
 ## Disconnecting
 
-Open Settings → Integrations → Kite Connect and tap **Disconnect**. Arth deletes the stored access token. Demat values revert to the last manually recorded snapshot (cost basis) until you reconnect.
+Tap **Disconnect Kite** at the bottom of the Zerodha screen. Arth removes the session. Your API key stays saved so reconnecting is quick; tap **Clear** on the credentials screen to remove it. To revoke Arth's access completely, delete the app in the Kite Connect developer console.
 
 ## Common situations
 
-**"My demat value is not updating even though I'm connected."** The Kite Connect access token expires at 6 AM IST every day. Open Settings → Integrations → Kite Connect and reconnect by logging in again.
+**"Token is invalid or has expired."** Your daily session has ended. Tap **Reconnect**.
 
-**"I don't have a Kite Connect subscription."** You can still track your demat account in Arth — enter the current market value manually on the demat account detail screen whenever you want to update it. The Balance Sheet will use that figure.
+**"Connect fails straight away."** Check the API key and API secret are copied exactly, with no extra spaces, and that the redirect URL is set in your Kite Connect app.
 
-**"I don't see Kite Connect in Settings."** The integration may be behind a feature flag if it was recently added. Check that your app is on the latest version.
+**"My demat value didn't change."** Syncing only shows the numbers. Tap **Update Snapshot with These Values** to save them to your demat account.
 
-**"Arth shows a different value than my Zerodha portfolio."** Arth fetches the value from Kite Connect's holdings API, which reflects settled holdings. Intraday positions may not be included. Check the Zerodha app for real-time intraday view.
+**"I don't have Kite Connect."** You can still track the account - record a snapshot yourself on the demat account screen.
 
 ## Related
 
-- See your net worth with live prices: [Balance Sheet](balance-sheet)
-- Set up your demat account: [Setting up your accounts](accounts)
+- [Investments and fixed deposits](investments)
+- [Angel One](angel-one)
+- [Zebpay](zebpay)
+- [Vault - storing credentials and passwords](vault)
+- [Net Worth](balance-sheet)

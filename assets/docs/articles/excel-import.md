@@ -45,7 +45,7 @@ Each template has its own expected columns. Fill in the sheet following the colu
 - **Amount** *(required)* - a positive number. Direction is "expense", so don't put a minus sign.
 - **Merchant** *(recommended)* - free text. Blank is allowed but makes the row hard to identify later.
 - **Description** *(optional)* - free text.
-- **Category** *(required)* - must match an existing category name **exactly** (case-sensitive). Create missing categories first in Settings tab → Master Data → Categories.
+- **Category** *(required)* - must match an existing category name **exactly** (case-sensitive). Create missing categories first in Settings tab → Data Management → Categories.
 - **Payment Mode** *(optional)* - matches a configured payment mode (e.g. "UPI", "Credit Card", "Cash").
 - **Account** *(optional)* - matches a configured account name (e.g. "HDFC Savings").
 - **Right Spend** *(optional)* - `1` for unavoidable, `0` for discretionary.
@@ -92,7 +92,7 @@ There's no one-click undo for a bulk import. Your options:
 
 ## Common situations
 
-**Category "Food" doesn't match - my category is "Food & Groceries".** Update the sheet's category column to `Food & Groceries` exactly, OR create a `Food` category first and merge it into `Food & Groceries` later via Settings tab → Master Data → Categories.
+**Category "Food" doesn't match - my category is "Food & Groceries".** Update the sheet's category column to `Food & Groceries` exactly, OR create a `Food` category first and merge it into `Food & Groceries` later via Settings tab → Data Management → Categories.
 
 **I imported from Axio / Walnut / Money Manager.** Export as CSV from the source app, then map columns to Arth's template. A few minutes of spreadsheet work.
 

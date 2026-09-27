@@ -41,7 +41,7 @@ For every person you have a hisaab with:
 ## Add a person
 
 1. Home tab → Hisaab card → tap **+**.
-2. Fill: name, optional phone number (used to flag duplicate splits).
+2. Fill: name, optional phone number and email. They show under the person's name in the list, so they're handy when you settle up.
 3. Tap **Save**.
 
 ## Split an expense with someone
@@ -97,9 +97,13 @@ This is available for any realized credit on a savings, wallet, or loan account.
 
 ## Export
 
-Home tab → Hisaab card → tap the person → menu → **Export Excel / Export PDF.** Share via Android share sheet.
+Home tab → Hisaab card → tap the person to open their ledger → menu → **Export Excel / Export PDF.** Share via Android share sheet.
 
 Export contains: every entry with date, amount, description, direction, running balance, and settlements.
+
+## Settle up check-in
+
+People who owe you appear in the **Settle up** [check-in](check-ins) on Home. Swipe through them to send a **Remind** message (WhatsApp or anything else) or **Mark settled**.
 
 ## Common situations
 

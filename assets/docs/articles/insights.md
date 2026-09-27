@@ -42,7 +42,7 @@ The **Insights screen** is where Arth explains your spending patterns - not as a
 
 ## Where to find it
 
-**Home tab → Insights card** (the big "View your insights" row). Tap to open the Insights screen.
+**Home tab → Insights page** - swipe across from Overview, or tap **Insights** at the top. The **Insights & Analytics** card on Overview opens it too.
 
 Insights is **not** a bottom tab - Arth has five tabs (Home / Transactions / Budget / Goals / Settings) and Insights lives under Home.
 
@@ -53,7 +53,7 @@ Top to bottom:
 - **Forecast card** - month-end projection with fixed / variable / daily pace / confidence. Same math as the Budget tab's Month-End Projection widget. See [Month-end projection](projection-math).
 - **Insight cards** - up to five severity-ranked findings for the current month. Each is tappable and opens a drill-down breakdown.
 - **Spending Pulse** - this month's total vs last month's total, with an arrow showing the change. Tap **Compare** to open a detailed compare screen.
-- **Explore quick actions** - shortcuts to Compare, Forecast, Patterns, and Merchants pages.
+- **Explore quick actions** - shortcuts to Compare, Forecast, Patterns, Merchants and **Reports** (four in-depth reports you can save as PDF - see [Reports](reports)).
 
 ## The five insight types
 

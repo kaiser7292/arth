@@ -22,7 +22,7 @@ Categories classify your spending. Every expense can have one. Arth comes with a
 
 ## Where to find them
 
-- **Settings tab → Master Data → Categories** - the master list. Add, edit, reorder, delete.
+- **Settings tab → Data Management → Categories** - the master list. Add, edit, reorder, delete.
 - Individual expenses: tap the expense → tap the **Category** row to change it.
 
 ## How auto-categorization works
@@ -52,7 +52,7 @@ After three corrections for the same merchant, Arth stops getting it wrong for t
 
 ## Manage the category list
 
-**Settings tab → Master Data → Categories:**
+**Settings tab → Data Management → Categories:**
 - **+** top-right to add. Pick a name, icon, colour.
 - Tap a row to rename, change icon/colour, or delete.
 - Long-press and drag to reorder.
@@ -60,7 +60,7 @@ After three corrections for the same merchant, Arth stops getting it wrong for t
 ## Common situations
 
 **"Delete a category I don't use."**
-Settings tab → Master Data → Categories → tap it → **Delete**. If any expenses are tagged with it, the delete is blocked. Reassign those expenses to another category first, or use the "Merge into…" option which re-tags them in bulk.
+Settings tab → Data Management → Categories → tap it → **Delete**. If any expenses are tagged with it, the delete is blocked. Reassign those expenses to another category first, or use the "Merge into…" option which re-tags them in bulk.
 
 **"Why didn't it learn after one correction?"**
 To avoid false learning from one-off merchants, Arth needs three corrections for the same merchant name before learning. Smart rules are the faster path - set an explicit rule once and it applies forever.

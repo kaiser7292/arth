@@ -44,7 +44,7 @@ Reminders are always created **from an expense you just paid**. This lets Arth r
 1. Open the expense you just paid - Transactions tab → tap it.
 2. Tap **Set reminder**.
 3. Pick:
-   - **Repeats** - Weekly / Monthly / Quarterly / Yearly.
+   - **Repeats** - Weekly, Monthly (same day each month), Quarterly, Yearly, **Last day of month**, or a **custom weekday** such as the 2nd Friday or the last Monday of each month.
    - **Starts** - a calendar date picker. Arth suggests the next cycle's start (e.g. for Monthly, one month from the expense date). Tap to change.
    - **Until** *(optional)* - a calendar date picker. Leave blank for open-ended.
    - **Notes** *(optional)*.
@@ -62,6 +62,12 @@ Reminders appear on the Home card as **Due Soon** (≤ 3 days) or **Overdue**. E
 
 - **Pick an existing expense.** If you already logged the payment (e.g. the SMS came in), pick that expense from the list of recent same-merchant expenses. It becomes the fulfillment, and the reminder's next due date advances.
 - **Log new expense.** Opens the Add Expense screen pre-filled with everything except the amount. You type the amount. On save, the expense is linked to the reminder and the next due date advances.
+
+## Reminders elsewhere in Arth
+
+- **Calendar** - turn on [Calendar sync](calendar-sync) to see reminders in your phone's calendar, with an alert the day before.
+- **Simulator** - reminders are pre-filled into new [simulator](simulator) scenarios on their own schedule.
+- **Subscriptions check-in** - recurring payments Arth spots are reviewed in [Check-ins](check-ins).
 
 ## Advance semantics
 
