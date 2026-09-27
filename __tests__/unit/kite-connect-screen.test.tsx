@@ -8,7 +8,9 @@ jest.mock("expo-router", () => {
   const { useEffect } = require("react");
   return { router: { push: jest.fn() }, useFocusEffect: (cb: () => void) => useEffect(cb, [cb]) };
 });
-jest.mock("expo-linking", () => ({ parse: jest.fn(() => ({ queryParams: {} })) }));
+jest.mock("expo-linking", () => ({
+  parse: (u: string) => ({ queryParams: Object.fromEntries(new URL(u).searchParams) }),
+}));
 jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn() }));
 const mockInject = jest.fn();
 let mockWebView: any = null;
@@ -139,6 +141,24 @@ describe("Kite Connect screen", () => {
     } finally {
       getVaultEntry.mockImplementation(original);
     }
+  });
+
+  it("exchanges Zerodha's one-time token once even when the redirect is reported twice", async () => {
+    mockAuthed.value = false;
+    const kite = require("../../services/kite-connect");
+    kite.exchangeRequestToken.mockClear();
+    kite.exchangeRequestToken.mockImplementation(async () => ({ access_token: "t", user_id: "AB1234", public_token: "p" }));
+    const { findByText } = renderScreen();
+    fireEvent.press(await findByText("Connect"));
+    await waitFor(() => expect(mockWebView).not.toBeNull());
+    const nav = mockWebView.onNavigationStateChange;
+    const url = "https://example.com/kite/callback?action=login&status=success&request_token=abc123";
+    await act(async () => {
+      await Promise.all([nav({ url, loading: true }), nav({ url, loading: false })]);
+    });
+    expect(kite.exchangeRequestToken).toHaveBeenCalledTimes(1);
+    expect(kite.exchangeRequestToken).toHaveBeenCalledWith("abc123");
+    expect(mockAlert).not.toHaveBeenCalledWith("Could not connect to Kite", expect.anything());
   });
 
   it("shows the real reason when Connect can't start", async () => {

@@ -81,6 +81,9 @@ export default function KiteConnectScreen() {
   const [showWebView, setShowWebView]         = useState(false);
   const [loginUrl, setLoginUrl]               = useState('');
   const webViewRef = useRef<WebView>(null);
+  // Android's WebView reports the redirect more than once; Zerodha's request_token is single-use,
+  // so a second exchange fails with "Token is invalid or has expired" after the first succeeded.
+  const exchangedTokens = useRef(new Set<string>());
 
   // Vault-backed login fill
   const [vaultEntry, setVaultEntry]             = useState<VaultEntry | null>(null);
@@ -306,6 +309,8 @@ export default function KiteConnectScreen() {
       alert('Error', 'Authentication failed or was cancelled');
       return;
     }
+    if (exchangedTokens.current.has(requestToken)) return;
+    exchangedTokens.current.add(requestToken);
 
     let connected = false;
     try {
