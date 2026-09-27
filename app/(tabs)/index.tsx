@@ -8,10 +8,9 @@ import { SimulatorPage } from "@/components/home/pages/SimulatorPage";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { ForecastActionBar } from "@/components/expense/ForecastActionBar";
 import { LinkExpenseSheet } from "@/components/expense/LinkExpenseSheet";
 import { CheckInsCard } from "@/components/home/CheckInsCard";
-import { cleanDueLabel } from "@/services/sms/due-description";
+import { DueRow } from "@/components/home/DueRow";
 import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
 import { useAlert } from "@/hooks/use-alert";
 import { formatError } from "@/utils/error-message";
@@ -77,7 +76,7 @@ import {
     getDaysRemaining,
     getMonthDateRange,
 } from "@/utils/budget-helpers";
-import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
+import { formatAmount } from "@/utils/expense-validation";
 import { logger } from "@/utils/logger";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -142,6 +141,11 @@ export default function HomeScreen() {
   const [ccAccounts, setCcAccounts] = useState<FinancialAccount[]>(preloaded?.ccAccounts ?? []);
   const [bankAccounts, setBankAccounts] = useState<FinancialAccount[]>(preloaded?.bankAccounts ?? []);
   const [walletAccounts, setWalletAccounts] = useState<FinancialAccount[]>(preloaded?.walletAccounts ?? []);
+  // Card digits for Upcoming Dues ("Axis credit card ••4521"), so same-bank bills can be told apart.
+  const accountIdentifiers = useMemo(
+    () => new Map([...ccAccounts, ...bankAccounts, ...walletAccounts].map((a) => [a.id, a.account_identifier])),
+    [ccAccounts, bankAccounts, walletAccounts],
+  );
   const [ccExpenseTotals, setCcExpenseTotals] = useState<Record<string, number>>(preloaded?.ccExpenseTotals ?? {});
   const [computedBalanceMap, setComputedBalanceMap] = useState<Record<string, number | null>>(preloaded?.computedBalanceMap ?? {});
   const [investmentSummary, setInvestmentSummary] = useState<InvestmentSummary>(
@@ -576,7 +580,7 @@ export default function HomeScreen() {
                           preloadedCandidates: match!.matches,
                         })}
                         accessibilityRole="button"
-                        className="px-3 py-1.5 rounded-lg flex-row items-center"
+                        className="px-3 py-1.5 rounded-pill flex-row items-center"
                         style={{ backgroundColor: theme.success + "22" }}
                       >
                         <Text className="text-xs font-semibold mr-1" style={{ color: theme.success }}>
@@ -601,7 +605,7 @@ export default function HomeScreen() {
                           }}
                           accessibilityRole="button"
                           accessibilityLabel="Skip this reminder cycle"
-                          className="px-3 py-1.5 rounded-lg border"
+                          className="px-3 py-1.5 rounded-pill border"
                           style={{ borderColor: colors.border }}
                         >
                           <Text className="text-xs font-semibold text-muted-foreground">Skip</Text>
@@ -610,7 +614,7 @@ export default function HomeScreen() {
                           onPress={() => setLinkSheetFor({ ruleId: r.rule.id, description })}
                           accessibilityRole="button"
                           accessibilityLabel="Link expense to this reminder"
-                          className="px-3 py-1.5 rounded-lg"
+                          className="px-3 py-1.5 rounded-pill"
                           style={{ backgroundColor: theme.primary }}
                         >
                           <Text className="text-xs font-semibold text-primary-foreground">Link</Text>
@@ -716,65 +720,28 @@ export default function HomeScreen() {
             </Pressable>
             {duesOpen && (
               <>
-                {upcomingDues.slice(0, 4).map((f) => {
-                  const today = new Date().toISOString().split("T")[0];
-                  const isOverdue = f.due_date != null && f.due_date < today;
-                  const label = cleanDueLabel(f.description || f.merchant_name);
-                  return (
-                    <View key={f.id} className="border-t border-border">
-                      <Pressable
-                        onPress={() => router.push(`/expense/${f.id}`)}
-                        accessibilityLabel={`${label}, ${formatAmount(f.amount)}`}
-                        accessibilityRole="button"
-                        className="flex-row items-center py-2"
-                      >
-                        <View
-                          className="w-7 h-7 rounded-full items-center justify-center mr-2.5"
-                          style={{ backgroundColor: theme.alpha(isOverdue ? "danger" : "warning", 0.08) }}
-                        >
-                          <Ionicons
-                            name={isOverdue ? "alert-circle" : "time-outline"}
-                            size={14}
-                            color={isOverdue ? theme.danger : theme.warning}
-                          />
-                        </View>
-                        <View className="flex-1 mr-3">
-                          <Text
-                            className="text-sm text-foreground"
-                            numberOfLines={2}
-                          >
-                            {label}
-                          </Text>
-                          <Text className="text-xs text-faint-foreground">
-                            {isOverdue ? "Overdue" : "Due"}: {formatDateForDisplay(f.due_date!)}
-                          </Text>
-                        </View>
-                        <Text
-                          className="text-sm font-semibold shrink-0"
-                          style={{ color: isOverdue ? theme.danger : theme.warning }}
-                        >
-                          {formatAmount(f.amount)}
-                        </Text>
-                      </Pressable>
-                      <ForecastActionBar
-                        forecastId={f.id}
-                        forecastType={f.forecast_type}
-                        compact
-                        onMarkAsPaid={handleForecastMarkPaid}
-                        onRealiseNow={handleForecastRealise}
-                        onDelete={handleForecastDelete}
-                        onRepaymentPaid={handleForecastRepaymentPaid}
-                        onPaidExternally={handleForecastPaidExternally}
-                      />
-                    </View>
-                  );
-                })}
+                <View className="mt-3">
+                {upcomingDues.slice(0, 4).map((f) => (
+                  <View key={f.id} className="border-t border-border">
+                    <DueRow
+                      due={f}
+                      accountIdentifier={f.account_id ? accountIdentifiers.get(f.account_id) : null}
+                      onOpen={(id) => router.push(`/expense/${id}`)}
+                      onMarkAsPaid={handleForecastMarkPaid}
+                      onRealiseNow={handleForecastRealise}
+                      onDelete={handleForecastDelete}
+                      onRepaymentPaid={handleForecastRepaymentPaid}
+                      onPaidExternally={handleForecastPaidExternally}
+                    />
+                  </View>
+                ))}
+                </View>
                 {upcomingDues.length > 4 && (
                   <Pressable
                     onPress={() => router.push("/expense/review-queue")}
                     accessibilityLabel={`View all ${upcomingDues.length} dues`}
                     accessibilityRole="button"
-                    className="pt-2 items-center"
+                    className="border-t border-border pt-3 items-center"
                   >
                     <Text className="text-xs font-medium" style={{ color: theme.primary }}>
                       +{upcomingDues.length - 4} more - view all

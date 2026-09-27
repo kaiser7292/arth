@@ -49,3 +49,38 @@ export function cleanDueLabel(text: string | null | undefined): string {
   const head = bank && !t.toLowerCase().includes(bankWord) ? `${t} via ${bank}` : t;
   return head || "Upcoming payment";
 }
+
+/**
+ * "••4521" for a due, so two bills from the same bank can be told apart. Prefers the linked
+ * account's identifier; falls back to the card digits in the reminder SMS ("ending 4521",
+ * "XX4521", "**4521").
+ */
+export function dueCardSuffix(
+  accountIdentifier: string | null | undefined,
+  rawText: string | null | undefined,
+): string | null {
+  const fromAccount = (accountIdentifier ?? "").replace(/\D/g, "");
+  if (fromAccount.length >= 4) return `••${fromAccount.slice(-4)}`;
+  const m = (rawText ?? "").match(/(?:ending(?:\s+(?:in|with))?|[xX*]{2,})\s*:?\s*(\d{4})\b/);
+  return m ? `••${m[1]}` : null;
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * When a due falls, the way the Reminders card says it: "Due today", "Due tomorrow",
+ * "Due in 4 days · 30 Sep", "Overdue by 2 days". Both dates are local YYYY-MM-DD.
+ */
+export function dueWhen(dueDate: string, today: string): { text: string; overdue: boolean } {
+  const day = (iso: string) => {
+    const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+    return Date.UTC(y, m - 1, d) / 86_400_000;
+  };
+  const diff = day(dueDate) - day(today);
+  const [, mm, dd] = dueDate.slice(0, 10).split("-").map(Number);
+  const short = `${dd} ${MONTHS[mm - 1]}`;
+  if (diff < 0) return { text: `Overdue by ${-diff} day${diff === -1 ? "" : "s"} · ${short}`, overdue: true };
+  if (diff === 0) return { text: "Due today", overdue: false };
+  if (diff === 1) return { text: "Due tomorrow", overdue: false };
+  return { text: `Due in ${diff} days · ${short}`, overdue: false };
+}
