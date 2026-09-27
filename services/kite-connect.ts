@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { settingsStorage } from '@/services/storage';
 import { getDatabase } from '@/database';
 import { DEFAULT_USER_ID } from '@/constants/app';
+import { logger } from '@/utils/logger';
 
 const KITE_API_KEY       = 'kite_api_key';
 const KITE_ACCESS_TOKEN  = 'kite_access_token';
@@ -140,8 +141,21 @@ export async function storeKiteApiKey(apiKey: string): Promise<void> {
   await SecureStore.setItemAsync(KITE_API_KEY, apiKey);
 }
 
+/**
+ * Secure storage can refuse to decrypt a value (after a restore, or when the phone's keystore
+ * changes). Treat that as "not saved" so the user is asked to enter it again, not shown an error.
+ */
+async function readSecure(key: string): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(key);
+  } catch (e) {
+    logger.error(`Kite: could not read ${key} from secure storage`, e);
+    return null;
+  }
+}
+
 export async function getKiteApiKey(): Promise<string | null> {
-  return SecureStore.getItemAsync(KITE_API_KEY);
+  return readSecure(KITE_API_KEY);
 }
 
 /**
@@ -160,9 +174,9 @@ export async function storeKiteAccessToken(credentials: KiteOAuthResponse): Prom
 export async function getKiteCredentials(): Promise<KiteCredentials | null> {
   const apiKey = await getKiteApiKey();
   if (!apiKey) return null;
-  const accessToken  = await SecureStore.getItemAsync(KITE_ACCESS_TOKEN);
-  const userId       = await SecureStore.getItemAsync(KITE_USER_ID);
-  const publicToken  = await SecureStore.getItemAsync(KITE_PUBLIC_TOKEN);
+  const accessToken  = await readSecure(KITE_ACCESS_TOKEN);
+  const userId       = await readSecure(KITE_USER_ID);
+  const publicToken  = await readSecure(KITE_PUBLIC_TOKEN);
   return {
     apiKey,
     accessToken:  accessToken  || undefined,

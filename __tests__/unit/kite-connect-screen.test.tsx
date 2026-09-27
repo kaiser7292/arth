@@ -22,7 +22,8 @@ jest.mock("react-native-webview", () => {
     }),
   };
 });
-jest.mock("../../hooks/use-alert", () => ({ useAlert: () => jest.fn() }));
+const mockAlert = jest.fn();
+jest.mock("../../hooks/use-alert", () => ({ useAlert: () => mockAlert }));
 const mockStorage = new Map<string, string>();
 jest.mock("../../services/storage", () => ({
   settingsStorage: {
@@ -121,7 +122,33 @@ function setCache() {
 describe("Kite Connect screen", () => {
   beforeEach(() => {
     mockStorage.clear(); setCache();
-    mockAuthed.value = true; mockLink.id = null; mockWebView = null; mockInject.mockClear();
+    mockAuthed.value = true; mockLink.id = null; mockWebView = null; mockInject.mockClear(); mockAlert.mockClear();
+  });
+
+  it("still opens Zerodha's page when the saved login can't be read", async () => {
+    mockAuthed.value = false;
+    mockLink.id = "vault_z";
+    const { getVaultEntry } = require("../../services/vault");
+    const original = getVaultEntry.getMockImplementation();
+    getVaultEntry.mockImplementation(async () => { throw new Error("database is locked"); });
+    try {
+      const { findByText } = renderScreen();
+      fireEvent.press(await findByText("Connect"));
+      await waitFor(() => expect(mockWebView).not.toBeNull());
+      expect(mockAlert).not.toHaveBeenCalled();
+    } finally {
+      getVaultEntry.mockImplementation(original);
+    }
+  });
+
+  it("shows the real reason when Connect can't start", async () => {
+    mockAuthed.value = false;
+    const { getKiteCredentials } = require("../../services/kite-connect");
+    getKiteCredentials.mockRejectedValueOnce(new Error("keystore unavailable"));
+    const { findByText } = renderScreen();
+    fireEvent.press(await findByText("Connect"));
+    await waitFor(() => expect(mockAlert).toHaveBeenCalledWith("Could not start Kite login", "keystore unavailable"));
+    expect(mockWebView).toBeNull();
   });
 
   it("Connect fills user ID, password and a current TOTP code from the saved login", async () => {

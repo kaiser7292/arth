@@ -12,6 +12,7 @@ import { useAlert } from '@/hooks/use-alert';
 import { useTheme } from '@/hooks/use-theme';
 import { formatAmount } from '@/utils/format';
 import { generateTOTP, totpSecondsRemaining } from '@/utils/totp';
+import { logger } from '@/utils/logger';
 import {
   KITE_LOGIN_WATCHER_JS,
   buildLoginFillJs,
@@ -112,8 +113,12 @@ export default function KiteConnectScreen() {
 
   const load = useCallback(async () => {
     try {
-      const entryId = getKiteVaultEntryId();
-      setVaultEntry(entryId ? await getVaultEntry(entryId) : null);
+      try {
+        const entryId = getKiteVaultEntryId();
+        setVaultEntry(entryId ? await getVaultEntry(entryId) : null);
+      } catch (e) {
+        logger.error('Kite: could not load the saved login', e);
+      }
       const auth = await isKiteAuthenticated();
       setIsAuthenticated(auth);
       if (auth) {
@@ -170,16 +175,24 @@ export default function KiteConnectScreen() {
         );
         return;
       }
-      // Read the link fresh: it may have been set on the credentials screen since this one opened.
-      const entryId = getKiteVaultEntryId();
-      const entry = entryId ? await getVaultEntry(entryId) : null;
-      setVaultEntry(entry);
-      const secrets = entry ? await getKiteLoginSecrets(entry.id) : null;
-      setLoginTotpSecret(secrets?.totpSecret ?? null);
+      // Filling the login is a convenience: if the saved login can't be read, still open the page.
+      try {
+        // Read the link fresh: it may have been set on the credentials screen since this one opened.
+        const entryId = getKiteVaultEntryId();
+        const entry = entryId ? await getVaultEntry(entryId) : null;
+        const secrets = entry ? await getKiteLoginSecrets(entry.id) : null;
+        setVaultEntry(entry);
+        setLoginTotpSecret(secrets?.totpSecret ?? null);
+      } catch (e) {
+        logger.error('Kite: could not load the saved login for filling', e);
+        setVaultEntry(null);
+        setLoginTotpSecret(null);
+      }
       setLoginUrl(getKiteLoginUrl(credentials.apiKey));
       setShowWebView(true);
-    } catch {
-      alert('Error', 'Failed to initiate Kite login');
+    } catch (e) {
+      const reason = e instanceof Error && e.message ? e.message : String(e);
+      alert('Could not start Kite login', reason);
     }
   };
 
