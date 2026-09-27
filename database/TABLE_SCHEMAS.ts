@@ -246,6 +246,18 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "manual_special", // 027
     "manual_employer_epf", // 027
     "manual_gratuity", // 027
+    "income_type", // 077
+    "business_scheme", // 077
+    "business_receipts", // 077
+    "business_digital_pct", // 077
+    "business_expenses", // 077
+    "business_tds_pct", // 077
+    "business_gst_pct", // 077
+    "side_business_enabled", // 077
+    "rental_annual_rent", // 077
+    "rental_municipal_tax", // 077
+    "rental_loan_interest", // 077
+    "business_receipt_account_ids", // 077
   ] as const,
 
   pending_sms: [

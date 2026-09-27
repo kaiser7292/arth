@@ -12,7 +12,8 @@ import { useTheme } from "@/hooks/use-theme";
 // ─── Props ────────────────────────────────────────────────
 
 export interface TaxBreakdownProps {
-  calculation: SalaryCalculation;
+  /** A salary or business calculation — only the two regime results and the pick are read. */
+  calculation: Pick<SalaryCalculation, "newRegimeTax" | "oldRegimeTax" | "selectedRegime">;
 }
 
 // ─── Component ────────────────────────────────────────────

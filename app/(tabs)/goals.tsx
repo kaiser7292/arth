@@ -73,7 +73,7 @@ export default function GoalsScreen() {
       try {
         const activePols = await getActivePolicies(DEFAULT_USER_ID);
         setInsuranceCount(activePols.length);
-        const monthlyIncome = salary?.manual_monthly_in_hand || salary?.computed_monthly_in_hand || 0;
+        const monthlyIncome = salary?.computed_monthly_in_hand || salary?.manual_monthly_in_hand || 0;
         const adeq = await getInsuranceAdequacy(DEFAULT_USER_ID, monthlyIncome * 12);
         setInsuranceAdequacy(adeq);
       } catch {

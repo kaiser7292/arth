@@ -6,4 +6,8 @@ export type { TaxBreakdownProps } from "./TaxBreakdown";
 export { OldRegimeDeductions, AnnualDeductions, AdditionalIncome } from "./DeductionsSection";
 export type { OldRegimeDeductionsProps, AnnualDeductionsProps, AdditionalIncomeProps } from "./DeductionsSection";
 export { SalarySummary, SalaryFooter } from "./SalarySummary";
+export { BusinessInputs, BusinessResults, BusinessWarnings, AdvanceTaxCard, ReceiptsTracker, InlineNote } from "./BusinessIncomeSection";
+export type { BusinessInputsProps, ReceiptsTrackerProps, ReceiptAccountOption } from "./BusinessIncomeSection";
+export { OtherIncomeSection } from "./OtherIncomeSection";
+export type { OtherIncomeSectionProps } from "./OtherIncomeSection";
 export type { SalarySummaryProps, SalaryFooterProps } from "./SalarySummary";

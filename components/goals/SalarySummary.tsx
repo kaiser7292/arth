@@ -6,7 +6,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 
 
 import { formatAmount } from "@/utils/expense-validation";
-import type { SalaryCalculation, BonusTaxResult, CapitalGainsTaxResult } from "@/services/tax-engine";
+import type { SalaryCalculation } from "@/services/tax-engine";
 import { BreakdownRow } from "./salary-helpers";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -226,15 +226,14 @@ export function SalarySummary({ calculation }: { calculation: SalaryCalculation 
 // ─── Grand Total + CG Reference + Save Buttons ───────────
 
 export interface SalaryFooterProps {
-  inputMode: "ctc" | "direct";
-  manualInHand?: string;
-  calculation: SalaryCalculation | null;
-  directAnnual: number;
+  /** "Salary" or "Business" — the main income line in the total. */
+  primaryLabel: string;
+  primaryAnnual: number;
+  otherIncomeNet: number;
+  netBonus: number;
+  netCapitalGains: number;
   hasSalaryData: boolean;
   totalIncome: number;
-  bonusTaxResult: BonusTaxResult | null;
-  expectedBonus: string;
-  capitalGainsTaxResult: CapitalGainsTaxResult | null;
   saving: boolean;
   onSaveDraft: () => void;
   onSaveComplete: () => void;
@@ -242,27 +241,26 @@ export interface SalaryFooterProps {
 }
 
 export function SalaryFooter({
-  inputMode,
-  manualInHand,
-  calculation,
-  directAnnual,
+  primaryLabel,
+  primaryAnnual,
+  otherIncomeNet,
+  netBonus,
+  netCapitalGains,
   hasSalaryData,
   totalIncome,
-  bonusTaxResult,
-  expectedBonus,
-  capitalGainsTaxResult,
   saving,
   onSaveDraft,
   onSaveComplete,
   onCapitalGainsReference,
 }: SalaryFooterProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colors } = useColorScheme();
   const theme = useTheme();
 
-  const parsedManualFtr = parseFloat(manualInHand ?? "") || 0;
-  const effectiveAnnualSalary = inputMode === "ctc"
-    ? (parsedManualFtr > 0 ? parsedManualFtr * 12 : (calculation?.annualInHand ?? 0))
-    : directAnnual;
+  const extraLines = [
+    { label: "Other Income", amount: otherIncomeNet },
+    { label: "Bonus", amount: netBonus },
+    { label: "Capital Gains", amount: netCapitalGains },
+  ].filter((l) => l.amount !== 0);
 
   return (
     <>
@@ -279,28 +277,16 @@ export function SalaryFooter({
             <View className="mt-2">
               <View className="flex-row items-center justify-center">
                 <Text className="text-xs text-faint-foreground">
-                  Salary:{" "}
-                  {formatAmount(effectiveAnnualSalary)}
+                  {primaryLabel}: {formatAmount(primaryAnnual)}
                 </Text>
               </View>
-              {(bonusTaxResult ? bonusTaxResult.netBonus : (parseFloat(expectedBonus) || 0)) > 0 && (
-                <View className="flex-row items-center justify-center mt-0.5">
+              {extraLines.map((l) => (
+                <View key={l.label} className="flex-row items-center justify-center mt-0.5">
                   <Text className="text-xs text-faint-foreground">
-                    + Bonus:{" "}
-                    {formatAmount(
-                      bonusTaxResult ? bonusTaxResult.netBonus : (parseFloat(expectedBonus) || 0),
-                    )}
-                    {bonusTaxResult ? " (net)" : ""}
+                    {l.amount > 0 ? "+" : "-"} {l.label}: {formatAmount(Math.abs(l.amount))} (net)
                   </Text>
                 </View>
-              )}
-              {capitalGainsTaxResult && capitalGainsTaxResult.totalNet > 0 && (
-                <View className="flex-row items-center justify-center mt-0.5">
-                  <Text className="text-xs text-faint-foreground">
-                    + Capital Gains: {formatAmount(capitalGainsTaxResult.totalNet)} (net)
-                  </Text>
-                </View>
-              )}
+              ))}
             </View>
           </View>
         </Card>

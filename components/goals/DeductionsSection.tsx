@@ -19,6 +19,8 @@ export interface OldRegimeDeductionsProps {
   onHomeLoanChange: (v: string) => void;
   otherDeductions: string;
   onOtherDeductionsChange: (v: string) => void;
+  /** HRA exemption is salary-only; hidden for business income. Default true. */
+  showHra?: boolean;
 }
 
 export function OldRegimeDeductions({
@@ -32,6 +34,7 @@ export function OldRegimeDeductions({
   onHomeLoanChange,
   otherDeductions,
   onOtherDeductionsChange,
+  showHra = true,
 }: OldRegimeDeductionsProps) {
   return (
     <Card className="mb-4">
@@ -61,16 +64,18 @@ export function OldRegimeDeductions({
             placeholder="0"
             containerClassName="mb-2"
           />
+          {showHra && (
+            <Input
+              label="HRA Exemption (Annual)"
+              value={hraExemption}
+              onChangeText={onHraExemptionChange}
+              keyboardType="numeric"
+              placeholder="0"
+              containerClassName="mb-2"
+            />
+          )}
           <Input
-            label="HRA Exemption (Annual)"
-            value={hraExemption}
-            onChangeText={onHraExemptionChange}
-            keyboardType="numeric"
-            placeholder="0"
-            containerClassName="mb-2"
-          />
-          <Input
-            label="Home Loan Interest (max 2L)"
+            label="Own Home Loan Interest (max 2L)"
             value={homeLoan}
             onChangeText={onHomeLoanChange}
             keyboardType="numeric"
@@ -152,6 +157,8 @@ export interface AdditionalIncomeProps {
   onCgRealEstateChange: (v: string) => void;
   capitalGainsTaxResult: CapitalGainsTaxResult | null;
   additionalIncomeNet: number;
+  /** Bonus is salary income; hidden for business income. Default true. */
+  showBonus?: boolean;
 }
 
 export function AdditionalIncome({
@@ -172,6 +179,7 @@ export function AdditionalIncome({
   onCgRealEstateChange,
   capitalGainsTaxResult,
   additionalIncomeNet,
+  showBonus = true,
 }: AdditionalIncomeProps) {
   
   const theme = useTheme();
@@ -191,6 +199,8 @@ export function AdditionalIncome({
         }
       >
         <View className="pt-2">
+          {showBonus && (
+          <>
           {/* Bonus */}
           <Input
             label="Expected Annual Bonus"
@@ -217,6 +227,8 @@ export function AdditionalIncome({
 
           {/* Divider */}
           <View className="border-t border-border my-3" />
+          </>
+          )}
 
           {/* Capital Gains */}
           <Text className="text-xs font-semibold text-muted-foreground mb-2">

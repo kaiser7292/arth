@@ -1,6 +1,7 @@
 import { getDatabase } from "@/database";
 import { bumpDataVersion } from "@/services/settings";
 import { generateUUID } from "@/utils/uuid";
+import type { BusinessScheme } from "@/services/tax-engine";
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -49,6 +50,22 @@ export interface SalaryProfile {
   manual_special: number;
   manual_employer_epf: number;
   manual_gratuity: number;
+  /** 'business' = self-employed / freelance primary income (migration 077). */
+  income_type: "salaried" | "business";
+  business_scheme: BusinessScheme;
+  /** Annual receipts excluding GST. Primary income for 'business'; side income when side_business_enabled. */
+  business_receipts: number;
+  business_digital_pct: number;
+  business_expenses: number;
+  business_tds_pct: number;
+  business_gst_pct: number;
+  /** Salaried profile also has freelance / business income (uses the business_* fields). */
+  side_business_enabled: number;
+  rental_annual_rent: number;
+  rental_municipal_tax: number;
+  rental_loan_interest: number;
+  /** JSON array of account ids whose credits count as business receipts. */
+  business_receipt_account_ids: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -94,6 +111,18 @@ export interface CreateSalaryProfileInput {
   manual_special?: number;
   manual_employer_epf?: number;
   manual_gratuity?: number;
+  income_type?: "salaried" | "business";
+  business_scheme?: BusinessScheme;
+  business_receipts?: number;
+  business_digital_pct?: number;
+  business_expenses?: number;
+  business_tds_pct?: number;
+  business_gst_pct?: number;
+  side_business_enabled?: boolean;
+  rental_annual_rent?: number;
+  rental_municipal_tax?: number;
+  rental_loan_interest?: number;
+  business_receipt_account_ids?: string | null;
 }
 
 export interface UpdateSalaryProfileInput {
@@ -134,6 +163,18 @@ export interface UpdateSalaryProfileInput {
   manual_special?: number;
   manual_employer_epf?: number;
   manual_gratuity?: number;
+  income_type?: "salaried" | "business";
+  business_scheme?: BusinessScheme;
+  business_receipts?: number;
+  business_digital_pct?: number;
+  business_expenses?: number;
+  business_tds_pct?: number;
+  business_gst_pct?: number;
+  side_business_enabled?: boolean;
+  rental_annual_rent?: number;
+  rental_municipal_tax?: number;
+  rental_loan_interest?: number;
+  business_receipt_account_ids?: string | null;
 }
 
 // ─── CRUD ──────────────────────────────────────────────────
@@ -193,8 +234,9 @@ export async function createSalaryProfile(
       status, capital_gains_equity_ltcg, capital_gains_equity_stcg, capital_gains_debt,
       capital_gains_fd, capital_gains_gold, capital_gains_real_estate, manual_monthly_in_hand,
       monthly_overrides, salary_credit_day,
-      gratuity_in_ctc, ctc_mode, manual_basic, manual_hra, manual_special, manual_employer_epf, manual_gratuity)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+      gratuity_in_ctc, ctc_mode, manual_basic, manual_hra, manual_special, manual_employer_epf, manual_gratuity,
+      income_type, business_scheme, business_receipts, business_digital_pct, business_expenses, business_tds_pct, business_gst_pct, side_business_enabled, rental_annual_rent, rental_municipal_tax, rental_loan_interest, business_receipt_account_ids)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     id,
     input.yearly_plan_id ?? null,
     input.financial_year ?? null,
@@ -236,6 +278,18 @@ export async function createSalaryProfile(
     input.manual_special ?? 0,
     input.manual_employer_epf ?? 0,
     input.manual_gratuity ?? 0,
+    input.income_type ?? "salaried",
+    input.business_scheme ?? "presumptive_profession",
+    input.business_receipts ?? 0,
+    input.business_digital_pct ?? 100,
+    input.business_expenses ?? 0,
+    input.business_tds_pct ?? 0,
+    input.business_gst_pct ?? 0,
+    input.side_business_enabled ? 1 : 0,
+    input.rental_annual_rent ?? 0,
+    input.rental_municipal_tax ?? 0,
+    input.rental_loan_interest ?? 0,
+    input.business_receipt_account_ids ?? null,
   );
 
   bumpDataVersion();
@@ -398,6 +452,54 @@ export async function updateSalaryProfile(
   if (input.manual_gratuity !== undefined) {
     fields.push("manual_gratuity = ?");
     values.push(input.manual_gratuity);
+  }
+  if (input.income_type !== undefined) {
+    fields.push("income_type = ?");
+    values.push(input.income_type);
+  }
+  if (input.business_scheme !== undefined) {
+    fields.push("business_scheme = ?");
+    values.push(input.business_scheme);
+  }
+  if (input.business_receipts !== undefined) {
+    fields.push("business_receipts = ?");
+    values.push(input.business_receipts);
+  }
+  if (input.business_digital_pct !== undefined) {
+    fields.push("business_digital_pct = ?");
+    values.push(input.business_digital_pct);
+  }
+  if (input.business_expenses !== undefined) {
+    fields.push("business_expenses = ?");
+    values.push(input.business_expenses);
+  }
+  if (input.business_tds_pct !== undefined) {
+    fields.push("business_tds_pct = ?");
+    values.push(input.business_tds_pct);
+  }
+  if (input.business_gst_pct !== undefined) {
+    fields.push("business_gst_pct = ?");
+    values.push(input.business_gst_pct);
+  }
+  if (input.side_business_enabled !== undefined) {
+    fields.push("side_business_enabled = ?");
+    values.push(input.side_business_enabled ? 1 : 0);
+  }
+  if (input.rental_annual_rent !== undefined) {
+    fields.push("rental_annual_rent = ?");
+    values.push(input.rental_annual_rent);
+  }
+  if (input.rental_municipal_tax !== undefined) {
+    fields.push("rental_municipal_tax = ?");
+    values.push(input.rental_municipal_tax);
+  }
+  if (input.rental_loan_interest !== undefined) {
+    fields.push("rental_loan_interest = ?");
+    values.push(input.rental_loan_interest);
+  }
+  if (input.business_receipt_account_ids !== undefined) {
+    fields.push("business_receipt_account_ids = ?");
+    values.push(input.business_receipt_account_ids);
   }
 
   if (fields.length === 0) return;

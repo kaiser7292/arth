@@ -8,13 +8,7 @@ import {
 } from "@/services/life-milestone";
 import { bumpDataVersion, getFYStartMonth } from "@/services/settings";
 import { getCurrentFY } from "@/utils/fiscal-year";
-import {
-  computeBonusTax,
-  computeCapitalGainsTax,
-  calculateSalary,
-  getProfessionalTax,
-  type CapitalGainsTaxInput,
-} from "@/services/tax-engine";
+import { computeIncomeProfile } from "@/services/income-calculation";
 
 // ─── Yearly Plan ────────────────────────────────────────────
 
@@ -802,52 +796,13 @@ export async function deriveYearlyPlan(
 
   const profile = await getSalaryProfileByFY(userId, financialYear);
   if (profile && profile.computed_monthly_in_hand > 0) {
+    // computed_monthly_in_hand is what the Income Calculator saved: the recurring in-hand
+    // (salary or business, plus side income after its tax). Bonus and capital gains are
+    // recomputed post-tax by the same code the calculator uses.
     annualSalary = profile.computed_monthly_in_hand * 12;
-
-    if (profile.input_mode === "direct") {
-      // Direct mode: all amounts are already post-tax
-      expectedBonus = profile.expected_bonus ?? 0;
-      expectedCapitalGains = profile.expected_capital_gains ?? 0;
-    } else {
-      // CTC mode: compute post-tax bonus and capital gains
-      const grossSalary = profile.annual_ctc
-        ? calculateSalary({
-            annualCTC: profile.annual_ctc,
-            basicPct: profile.basic_pct,
-            hraPct: profile.hra_pct,
-            isMetro: profile.is_metro === 1,
-            epfMode: profile.epf_mode as "full_basic" | "restricted",
-            epfInCTC: profile.epf_in_ctc === 1,
-            vpfMonthly: profile.vpf_monthly,
-            professionalTaxAnnual: getProfessionalTax(profile.state),
-            deductions80C: profile.deductions_80c,
-            deductions80D: profile.deductions_80d,
-            hraExemptionAnnual: profile.hra_exemption_annual,
-            homeLoanInterest: profile.home_loan_interest,
-            otherDeductions: profile.other_deductions,
-          }).ctcBreakdown.grossSalary
-        : annualSalary;
-
-      const rawBonus = profile.expected_bonus ?? 0;
-      if (rawBonus > 0) {
-        const bonusTax = computeBonusTax(grossSalary, rawBonus, profile.tax_regime as "new" | "old");
-        expectedBonus = bonusTax.netBonus;
-      }
-
-      const cgInput: CapitalGainsTaxInput = {
-        equity_ltcg: profile.capital_gains_equity_ltcg ?? 0,
-        equity_stcg: profile.capital_gains_equity_stcg ?? 0,
-        debt: profile.capital_gains_debt ?? 0,
-        fd: profile.capital_gains_fd ?? 0,
-        gold: profile.capital_gains_gold ?? 0,
-        real_estate: profile.capital_gains_real_estate ?? 0,
-      };
-      const hasCG = Object.values(cgInput).some((v) => v > 0);
-      if (hasCG) {
-        const cgTax = computeCapitalGainsTax(cgInput, grossSalary, profile.tax_regime as "new" | "old");
-        expectedCapitalGains = cgTax.totalNet;
-      }
-    }
+    const income = computeIncomeProfile(profile, parseInt(financialYear, 10));
+    expectedBonus = income.netBonus;
+    expectedCapitalGains = income.netCapitalGains;
     sources.push("Income: from salary profile");
   } else {
     // Fallback: try previous FY plan

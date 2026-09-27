@@ -692,7 +692,7 @@ export async function generateRetirementReport(
     const netWorth = bs.netWorth;
 
     const monthlyInHand =
-      salary?.manual_monthly_in_hand || salary?.computed_monthly_in_hand || 0;
+      salary?.computed_monthly_in_hand || salary?.manual_monthly_in_hand || 0;
     const monthlyEMI = loansSummary?.totalMonthlyEMI ?? 0;
 
     const { start: fyStart } = getFYRange(fyYear, startMonth);

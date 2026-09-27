@@ -11,6 +11,7 @@ import { getMilestonesForFY, getCombinedMilestoneContributionsForFY } from "@/se
 import { getFYRange, getFiscalMonth, getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
+import { deriveDirectBaseMonthly } from "@/services/income-calculation";
 import {
   calculateSavingsSnapshot,
   calculateMonthlySavingsTrend,
@@ -186,7 +187,12 @@ export async function getSavingsTrend(
   if (salaryProfile?.monthly_overrides) {
     try {
       const overrides: Record<number, string> = JSON.parse(salaryProfile.monthly_overrides);
-      const defaultInHand = salaryProfile.manual_monthly_in_hand || salaryProfile.computed_monthly_in_hand || 0;
+      // computed_monthly_in_hand is the year's average; the default month is what's left
+      // after taking the overridden months out.
+      const defaultInHand = deriveDirectBaseMonthly(
+        salaryProfile.computed_monthly_in_hand || salaryProfile.manual_monthly_in_hand || 0,
+        overrides,
+      );
       monthlyIncomeOverrides = new Map<number, number>();
       for (let i = 0; i < 12; i++) {
         const ov = overrides[i];

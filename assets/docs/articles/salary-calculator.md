@@ -2,7 +2,7 @@
 title: Income Calculator
 slug: salary-calculator
 summary: Set your salary or income profile so Arth can calculate in-hand pay, taxes, and feed the Yearly Plan and Financial Health grade.
-tags: [income, salary, CTC, take-home, tax, EPF, VPF, NPS, HRA, 80C, deductions, new tax regime, old tax regime, bonus, capital gains, savings rate, income calculator]
+tags: [income, salary, business, freelance, self-employed, presumptive, 44ADA, 44AD, advance tax, TDS, rental income, CTC, take-home, tax, EPF, VPF, NPS, HRA, 80C, deductions, new tax regime, old tax regime, bonus, capital gains, savings rate, income calculator]
 contextKeys: [salary-calculator, goals-tab, income-profile]
 phrasings:
   - How do I set my salary in Arth?
@@ -20,12 +20,22 @@ phrasings:
   - PF contribution in Arth
   - Why is my savings rate wrong?
   - Set salary profile
+  - I'm a freelancer, how do I enter my income?
+  - Business income tax
+  - Advance tax dates
+  - Presumptive taxation 44ADA
+  - Rental income tax
+  - Side income with salary
   - How does income feed the yearly plan?
 ---
 
 The **Income Calculator** (Goals tab → Income Calculator) is where you tell Arth what you earn. Without it, the Yearly Plan has no income figure, the Financial Health grade cannot compute a savings rate, and Monthly Headroom on the Financial Health card stays blank.
 
-## Two input modes
+## Income type
+
+Pick **Salaried** or **Business / Freelance** at the top. Salaried has two input modes (below). Business / Freelance is for self-employed people, consultants, contractors and business owners - see [Business and freelance income](#business-and-freelance-income).
+
+## Two input modes (salaried)
 
 **CTC mode** — you enter your annual Cost to Company and Arth breaks it down into gross, taxes, EPF/VPF/NPS deductions, and net in-hand. Use this if you know your annual package but not the monthly number.
 
@@ -49,6 +59,33 @@ The **Income Calculator** (Goals tab → Income Calculator) is where you tell Ar
 **NPS** — employer NPS contribution as a percentage of basic (common in government and some private employers).
 
 **Gratuity** — whether to include the employer gratuity component when computing your annual CTC-to-net bridge.
+
+## Business and freelance income
+
+Enter what you expect to **receive in the year, excluding GST**, and choose how your profit is taxed:
+
+- **Professional** (presumptive, 44ADA) - tax on 50% of receipts, no books needed. For doctors, lawyers, consultants, designers, developers and other professionals. Up to ₹50 lakh of receipts, or ₹75 lakh if cash is 5% or less.
+- **Business** (presumptive, 44AD) - tax on 6% of digital and 8% of cash turnover. For traders, shops, contractors and small businesses. Up to ₹2 crore, or ₹3 crore if cash is 5% or less.
+- **Full books** - tax on actual profit (receipts minus business expenses).
+
+Above the presumptive limit, Arth switches to actual profit and warns you. It also warns if your real profit is below the presumptive figure, because declaring less needs a tax audit.
+
+Business income gets **no standard deduction** (that's only for salary and pension), but the ₹12 lakh zero-tax rebate in the new regime still applies.
+
+**TDS by clients** - most clients withhold 10% of professional fees (1-2% on contracts). This already counts towards your tax. If TDS is more than your tax, the difference comes back as a refund.
+
+**Advance tax** - if the tax left after TDS is ₹10,000 or more, you pay it during the year: 15% by 15 June, 45% by 15 September, 75% by 15 December and 100% by 15 March. On a presumptive scheme you can pay it all by 15 March. Arth shows each instalment with its amount.
+
+**Actual receipts** - pick the accounts your clients pay into and Arth adds up the credits there this year (leaving out refunds, transfers between your own accounts and family settlements). It undoes GST and TDS, compares the total with your estimate, and projects the full year. Tap **Use This as My Estimate** to update your figure.
+
+## Other income
+
+The **Other Income** section adds regular income besides your main one:
+
+- **Freelance or business on the side** (salaried only) - same fields as above.
+- **Rent from a let-out property** - rent, municipal tax and the home-loan interest on that property. Arth deducts 30% of the rent for repairs automatically.
+
+Tax is worked out on your total income, so Arth shows the **extra tax** this income adds and, for salaried people, an advance tax card for it - your employer only deducts tax on your salary.
 
 ## Tax regime
 
@@ -89,11 +126,11 @@ At the bottom of the Income Calculator, you set a **target savings rate** as a p
 
 **"My actual take-home differs from what Arth computed."** Your employer may have specific breakdowns or perks (meal vouchers, car allowance, leave encashment) that Arth does not model. Switch to Direct monthly mode and enter the actual number from your bank statement.
 
-**"I have two income sources."** The Income Calculator is for your primary income. Add the secondary source's annual amount to Bonus — or switch to Direct monthly mode and enter the combined monthly take-home.
+**"I have two income sources."** Enter your main income as usual, then add freelance, business or rental income under **Other Income**. Arth taxes it together with your main income.
 
 **"Capital gains change every year."** Update the capital gains figure after each financial year's broker tax statement. The Yearly Plan will recalculate the surplus accordingly.
 
-**"I'm self-employed — no fixed salary."** Use Direct monthly mode and enter a representative average monthly take-home. The Yearly Plan and grade work best with a stable figure; update it when your average changes significantly.
+**"I'm self-employed — no fixed salary."** Choose **Business / Freelance** and enter your expected receipts for the year. Check the actual receipts card every few months and update your estimate if you're ahead or behind.
 
 ## Related
 

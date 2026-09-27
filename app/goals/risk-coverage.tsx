@@ -52,7 +52,7 @@ export default function RiskCoverageScreen() {
     ]);
     setPolicies(pols);
 
-    const monthlyIncome = salary?.manual_monthly_in_hand || salary?.computed_monthly_in_hand || 0;
+    const monthlyIncome = salary?.computed_monthly_in_hand || salary?.manual_monthly_in_hand || 0;
     const annualIncome = monthlyIncome * 12;
     const adeq = await getInsuranceAdequacy(DEFAULT_USER_ID, annualIncome);
     setAdequacy(adeq);

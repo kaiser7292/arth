@@ -3,8 +3,9 @@
  *
  * Supports:
  * - CTC breakdown (Basic, HRA, Special Allowance, EPF, Gratuity)
- * - New Tax Regime FY 2025-26 (7 slabs + 87A rebate)
+ * - New Tax Regime FY 2025-26 / 2026-27 (7 slabs + 87A rebate; Budget 2026 left them unchanged)
  * - Old Tax Regime (4 slabs + deductions)
+ * - Business / professional income (presumptive or regular books) + advance tax
  * - EPF (full_basic vs restricted)
  * - Professional Tax (state-wise)
  * - Surcharge (5 tiers) + 4% Health & Education Cess
@@ -100,7 +101,7 @@ const EPF_RESTRICTED_MONTHLY_WAGE = 15000;
 /** Gratuity rate: 4.81% of Basic (15/26 * 1/12 * basic) */
 const GRATUITY_RATE = 0.0481;
 
-/** Standard deduction — New regime (FY 2025-26) */
+/** Standard deduction — New regime (FY 2025-26 onward) — salary/pension income only */
 const STD_DEDUCTION_NEW = 75000;
 
 /** Standard deduction — Old regime */
@@ -109,7 +110,7 @@ const STD_DEDUCTION_OLD = 50000;
 /** Health & Education Cess */
 const CESS_RATE = 0.04;
 
-// ─── New Tax Regime FY 2025-26 Slabs ──────────────────────
+// ─── New Tax Regime Slabs (FY 2025-26, unchanged for 2026-27) ─
 
 const NEW_REGIME_SLABS = [
   { upTo: 400000, rate: 0 },
@@ -375,12 +376,20 @@ function calculateSurcharge(
 }
 
 /**
- * New Tax Regime FY 2025-26 calculation.
+ * New Tax Regime calculation for salary income (standard deduction applied).
+ * Slabs, rebate and standard deduction are unchanged for FY 2025-26 and FY 2026-27.
  */
 export function calculateNewRegimeTax(grossSalary: number): TaxResult {
-  const standardDeduction = STD_DEDUCTION_NEW;
-  const taxableIncome = Math.max(grossSalary - standardDeduction, 0);
+  const taxableIncome = Math.max(grossSalary - STD_DEDUCTION_NEW, 0);
+  return newRegimeTaxOnTaxable(taxableIncome, grossSalary);
+}
 
+/**
+ * New regime tax on an already-computed taxable income. Shared by salary (after
+ * standard deduction) and business income (which gets no standard deduction).
+ * `rateBase` is the figure the effective rate is expressed against.
+ */
+function newRegimeTaxOnTaxable(taxableIncome: number, rateBase: number): TaxResult {
   const baseTax = calculateSlabTax(taxableIncome, NEW_REGIME_SLABS);
 
   // Section 87A rebate: if taxable ≤ Rs 12L, rebate up to Rs 60K
@@ -407,7 +416,7 @@ export function calculateNewRegimeTax(grossSalary: number): TaxResult {
   const surcharge = calculateSurcharge(taxableIncome, taxAfterRebate, true);
   const cess = (taxAfterRebate + surcharge) * CESS_RATE;
   const totalTax = taxAfterRebate + surcharge + cess;
-  const effectiveRate = grossSalary > 0 ? (totalTax / grossSalary) * 100 : 0;
+  const effectiveRate = rateBase > 0 ? (totalTax / rateBase) * 100 : 0;
 
   return {
     taxableIncome,
@@ -449,7 +458,13 @@ export function calculateOldRegimeTax(
     (deductions.professionalTax ?? 0); // Section 16(iii)
 
   const taxableIncome = Math.max(grossSalary - totalDeductions, 0);
+  return oldRegimeTaxOnTaxable(taxableIncome, grossSalary);
+}
 
+/**
+ * Old regime tax on an already-computed taxable income (all deductions applied).
+ */
+function oldRegimeTaxOnTaxable(taxableIncome: number, rateBase: number): TaxResult {
   const baseTax = calculateSlabTax(taxableIncome, OLD_REGIME_SLABS);
 
   // Section 87A rebate: if taxable ≤ Rs 5L, rebate up to Rs 12.5K
@@ -474,7 +489,7 @@ export function calculateOldRegimeTax(
   const surcharge = calculateSurcharge(taxableIncome, taxAfterRebate, false);
   const cess = (taxAfterRebate + surcharge) * CESS_RATE;
   const totalTax = taxAfterRebate + surcharge + cess;
-  const effectiveRate = grossSalary > 0 ? (totalTax / grossSalary) * 100 : 0;
+  const effectiveRate = rateBase > 0 ? (totalTax / rateBase) * 100 : 0;
 
   return {
     taxableIncome,
@@ -594,6 +609,11 @@ export function computeCapitalGainsTax(
   gains: CapitalGainsTaxInput,
   totalSalaryIncome: number,
   taxRegime: "new" | "old",
+  /**
+   * Deduction taken off the base income before finding its slab. Defaults to the
+   * salaried standard deduction; pass 0 when the base is business income, which has none.
+   */
+  standardDeduction?: number,
 ): CapitalGainsTaxResult {
   const items: CapitalGainsTaxItem[] = [];
 
@@ -628,7 +648,7 @@ export function computeCapitalGainsTax(
 
   // 3. Debt MF: slab rate (marginal — on top of salary income)
   if (gains.debt > 0) {
-    const tax = computeMarginalSlabTax(totalSalaryIncome, gains.debt, taxRegime);
+    const tax = computeMarginalSlabTax(totalSalaryIncome, gains.debt, taxRegime, standardDeduction);
     items.push({
       label: "Debt MF",
       gross: gains.debt,
@@ -640,7 +660,7 @@ export function computeCapitalGainsTax(
 
   // 4. FD interest: slab rate
   if (gains.fd > 0) {
-    const tax = computeMarginalSlabTax(totalSalaryIncome + gains.debt, gains.fd, taxRegime);
+    const tax = computeMarginalSlabTax(totalSalaryIncome + gains.debt, gains.fd, taxRegime, standardDeduction);
     items.push({
       label: "FD Interest",
       gross: gains.fd,
@@ -687,25 +707,32 @@ export function computeCapitalGainsTax(
 
 /**
  * Compute marginal slab tax: tax on (base + additional) minus tax on (base alone).
- * Used for income taxed at slab rate on top of existing salary income.
+ * Used for income taxed at slab rate on top of existing income.
+ *
+ * Runs the full regime calculation both times, so the 87A rebate, marginal relief and
+ * surcharge are respected. (Slab-only arithmetic charged tax on, say, ₹1L of FD interest
+ * on top of a ₹9L salary, when the whole ₹10L is covered by the new-regime rebate.)
  */
 function computeMarginalSlabTax(
   baseIncome: number,
   additionalIncome: number,
   taxRegime: "new" | "old",
+  standardDeduction?: number,
 ): number {
-  const slabs = taxRegime === "new" ? NEW_REGIME_SLABS : OLD_REGIME_SLABS;
-  const stdDeduction = taxRegime === "new" ? STD_DEDUCTION_NEW : STD_DEDUCTION_OLD;
-
+  const stdDeduction = standardDeduction ?? (taxRegime === "new" ? STD_DEDUCTION_NEW : STD_DEDUCTION_OLD);
   const taxableBase = Math.max(baseIncome - stdDeduction, 0);
   const taxableWithAdditional = Math.max(baseIncome + additionalIncome - stdDeduction, 0);
+  return Math.max(
+    regimeTaxOnTaxable(taxRegime, taxableWithAdditional) - regimeTaxOnTaxable(taxRegime, taxableBase),
+    0,
+  );
+}
 
-  const taxBase = calculateSlabTax(taxableBase, slabs);
-  const taxWithAdditional = calculateSlabTax(taxableWithAdditional, slabs);
-
-  const marginalTax = taxWithAdditional - taxBase;
-  // Add 4% cess
-  return Math.round(marginalTax + marginalTax * CESS_RATE);
+/** Total tax (after rebate, relief, surcharge, cess) on a taxable income. */
+function regimeTaxOnTaxable(regime: "new" | "old", taxable: number): number {
+  return regime === "new"
+    ? newRegimeTaxOnTaxable(taxable, taxable).totalTax
+    : oldRegimeTaxOnTaxable(taxable, taxable).totalTax;
 }
 
 // ─── Bonus Tax (Marginal Method) ──────────────────────────
@@ -720,35 +747,22 @@ export interface BonusTaxResult {
 /**
  * Compute marginal tax on bonus.
  *
- * Method: tax on (salary + bonus) - tax on (salary alone).
- * Uses the selected regime's slabs. Standard deduction already applied to salary.
+ * Method: tax on (salary + bonus) - tax on (salary alone), in the selected regime.
  */
 export function computeBonusTax(
   annualSalaryIncome: number,
   bonusAmount: number,
   taxRegime: "new" | "old",
+  /** Deduction taken off the salary before stacking the bonus. Defaults to the standard deduction. */
+  standardDeduction?: number,
 ): BonusTaxResult {
   if (bonusAmount <= 0) {
     return { grossBonus: 0, taxOnBonus: 0, netBonus: 0, effectiveRate: 0 };
   }
 
-  const slabs = taxRegime === "new" ? NEW_REGIME_SLABS : OLD_REGIME_SLABS;
-  const stdDeduction = taxRegime === "new" ? STD_DEDUCTION_NEW : STD_DEDUCTION_OLD;
-
-  // Taxable income from salary alone (standard deduction already applied)
-  const taxableWithoutBonus = Math.max(annualSalaryIncome - stdDeduction, 0);
-  // Taxable income with bonus (bonus is fully taxable, no additional deduction)
-  const taxableWithBonus = Math.max(annualSalaryIncome + bonusAmount - stdDeduction, 0);
-
-  const taxWithout = calculateSlabTax(taxableWithoutBonus, slabs);
-  const taxWith = calculateSlabTax(taxableWithBonus, slabs);
-
-  // Marginal tax = difference
-  let taxOnBonus = taxWith - taxWithout;
-
-  // Apply cess (4%) on the marginal tax
-  taxOnBonus = taxOnBonus + taxOnBonus * CESS_RATE;
-  taxOnBonus = Math.round(taxOnBonus);
+  // Marginal tax = tax on (salary + bonus) − tax on salary alone, through the full
+  // regime calculation so a bonus that stays inside the 87A rebate is tax-free.
+  const taxOnBonus = computeMarginalSlabTax(annualSalaryIncome, bonusAmount, taxRegime, standardDeduction);
 
   const netBonus = bonusAmount - taxOnBonus;
   const effectiveRate = bonusAmount > 0
@@ -761,4 +775,366 @@ export function computeBonusTax(
     netBonus,
     effectiveRate,
   };
+}
+
+// ─── Business / Professional Income ───────────────────────
+
+/**
+ * How a self-employed person's profit is worked out for tax.
+ *
+ * - presumptive_profession: 44ADA (Section 58 of the Income-tax Act 2025) — 50% of
+ *   receipts is deemed profit. Doctors, lawyers, consultants, designers, developers, etc.
+ * - presumptive_business: 44AD (Section 58) — 6% of digital + 8% of cash turnover is
+ *   deemed profit. Traders, shops, small businesses, contractors.
+ * - regular: books of account — profit = receipts − business expenses.
+ */
+export type BusinessScheme = "presumptive_profession" | "presumptive_business" | "regular";
+
+export interface BusinessIncomeInput {
+  scheme: BusinessScheme;
+  /** Annual receipts / turnover, excluding GST collected. */
+  grossReceipts: number;
+  /** Share of receipts received through banking channels (UPI, NEFT, cheque, card), 0–100. */
+  digitalReceiptsPct: number;
+  /** Annual running costs of the business. Reduce tax only under regular books; always reduce in-hand. */
+  businessExpenses: number;
+  /** % of receipts that clients withhold as TDS (e.g. 10 for professional fees). */
+  tdsPct: number;
+  professionalTaxAnnual: number;
+  // Old regime deductions
+  deductions80C: number;
+  deductions80D: number;
+  homeLoanInterest: number;
+  otherDeductions: number;
+}
+
+export interface BusinessIncomeCalculation {
+  /** Scheme the user picked. */
+  scheme: BusinessScheme;
+  /** Scheme actually used — falls back to "regular" when receipts exceed the presumptive limit. */
+  appliedScheme: BusinessScheme;
+  /** Receipts limit for the picked presumptive scheme (null for regular). */
+  presumptiveLimit: number | null;
+  exceedsPresumptiveLimit: boolean;
+  /** Profit the tax is computed on, before old-regime deductions. */
+  taxableProfit: number;
+  /** Receipts − expenses − professional tax: what the business actually earns. */
+  actualProfit: number;
+  /**
+   * Presumptive scheme with actual profit below the deemed profit. Declaring the lower
+   * figure needs a tax audit, so the estimate keeps the deemed profit.
+   */
+  actualBelowDeemed: boolean;
+  newRegimeTax: TaxResult;
+  oldRegimeTax: TaxResult;
+  selectedRegime: "new" | "old";
+  /** TDS withheld by clients over the year — already counts towards the tax bill. */
+  tdsCredit: number;
+  professionalTaxAnnual: number;
+  /** Receipts − expenses − professional tax − income tax. TDS is part of the tax, not extra. */
+  annualInHand: number;
+  monthlyInHand: number;
+}
+
+/** 44ADA: 50% of gross receipts is deemed profit. */
+const PRESUMPTIVE_PROFESSION_RATE = 0.5;
+/** 44AD: 6% of digital turnover, 8% of cash turnover. */
+const PRESUMPTIVE_BUSINESS_DIGITAL_RATE = 0.06;
+const PRESUMPTIVE_BUSINESS_CASH_RATE = 0.08;
+/** Receipts limits. The higher limit applies when cash receipts are at most 5% of the total. */
+const PRESUMPTIVE_PROFESSION_LIMIT = 5000000;
+const PRESUMPTIVE_PROFESSION_LIMIT_DIGITAL = 7500000;
+const PRESUMPTIVE_BUSINESS_LIMIT = 20000000;
+const PRESUMPTIVE_BUSINESS_LIMIT_DIGITAL = 30000000;
+const PRESUMPTIVE_MAX_CASH_PCT = 5;
+
+function clampPct(v: number): number {
+  if (!Number.isFinite(v)) return 100;
+  return Math.min(Math.max(v, 0), 100);
+}
+
+/** Receipts limit for a presumptive scheme, given the share of digital receipts. */
+export function getPresumptiveLimit(
+  scheme: BusinessScheme,
+  digitalReceiptsPct: number,
+): number | null {
+  if (scheme === "regular") return null;
+  const mostlyDigital = 100 - clampPct(digitalReceiptsPct) <= PRESUMPTIVE_MAX_CASH_PCT;
+  if (scheme === "presumptive_profession") {
+    return mostlyDigital ? PRESUMPTIVE_PROFESSION_LIMIT_DIGITAL : PRESUMPTIVE_PROFESSION_LIMIT;
+  }
+  return mostlyDigital ? PRESUMPTIVE_BUSINESS_LIMIT_DIGITAL : PRESUMPTIVE_BUSINESS_LIMIT;
+}
+
+/**
+ * Business / freelance income: receipts → taxable profit → tax (both regimes) → in-hand.
+ *
+ * No standard deduction (that is for salary and pension only). The 87A rebate, marginal
+ * relief, surcharge and cess apply exactly as for salary.
+ */
+export function calculateBusinessIncome(input: BusinessIncomeInput): BusinessIncomeCalculation {
+  const receipts = Math.max(input.grossReceipts, 0);
+  const expenses = Math.max(input.businessExpenses, 0);
+  const profTax = Math.max(input.professionalTaxAnnual, 0);
+  const digitalPct = clampPct(input.digitalReceiptsPct);
+
+  const presumptiveLimit = getPresumptiveLimit(input.scheme, digitalPct);
+  const exceedsPresumptiveLimit = presumptiveLimit !== null && receipts > presumptiveLimit;
+  const appliedScheme: BusinessScheme = exceedsPresumptiveLimit ? "regular" : input.scheme;
+
+  const actualProfit = receipts - expenses - profTax;
+
+  let taxableProfit: number;
+  if (appliedScheme === "presumptive_profession") {
+    taxableProfit = receipts * PRESUMPTIVE_PROFESSION_RATE;
+  } else if (appliedScheme === "presumptive_business") {
+    const digital = receipts * (digitalPct / 100);
+    taxableProfit =
+      digital * PRESUMPTIVE_BUSINESS_DIGITAL_RATE +
+      (receipts - digital) * PRESUMPTIVE_BUSINESS_CASH_RATE;
+  } else {
+    // Professional tax paid is a business expense under regular books.
+    taxableProfit = Math.max(actualProfit, 0);
+  }
+  taxableProfit = Math.round(taxableProfit);
+
+  const actualBelowDeemed = appliedScheme !== "regular" && actualProfit < taxableProfit;
+
+  const newRegimeTax = newRegimeTaxOnTaxable(taxableProfit, taxableProfit);
+
+  const oldDeductions =
+    Math.min(input.deductions80C, 150000) +
+    Math.min(input.deductions80D, 75000) +
+    Math.min(input.homeLoanInterest, 200000) +
+    input.otherDeductions;
+  const oldRegimeTax = oldRegimeTaxOnTaxable(
+    Math.max(taxableProfit - oldDeductions, 0),
+    taxableProfit,
+  );
+
+  const selectedRegime = newRegimeTax.totalTax <= oldRegimeTax.totalTax ? "new" : "old";
+  const selectedTax = selectedRegime === "new" ? newRegimeTax : oldRegimeTax;
+
+  const tdsCredit = Math.round(receipts * (Math.min(Math.max(input.tdsPct, 0), 100) / 100));
+  const annualInHand = receipts - expenses - profTax - selectedTax.totalTax;
+
+  return {
+    scheme: input.scheme,
+    appliedScheme,
+    presumptiveLimit,
+    exceedsPresumptiveLimit,
+    taxableProfit,
+    actualProfit,
+    actualBelowDeemed,
+    newRegimeTax,
+    oldRegimeTax,
+    selectedRegime,
+    tdsCredit,
+    professionalTaxAnnual: profTax,
+    annualInHand,
+    monthlyInHand: annualInHand / 12,
+  };
+}
+
+// ─── Advance Tax ──────────────────────────────────────────
+
+export interface AdvanceTaxInstalment {
+  /** ISO date (YYYY-MM-DD). */
+  dueDate: string;
+  /** Share of the year's net tax that must be paid by this date, 0–100. */
+  cumulativePct: number;
+  /** Amount to pay in this instalment. */
+  amount: number;
+}
+
+export interface AdvanceTaxPlan {
+  totalTax: number;
+  tdsCredit: number;
+  /** Tax still owed after TDS. */
+  netPayable: number;
+  /** TDS in excess of the tax — comes back as a refund after filing the return. */
+  refundExpected: number;
+  /** Advance tax is only required when the net amount is ₹10,000 or more. */
+  required: boolean;
+  instalments: AdvanceTaxInstalment[];
+}
+
+/** No advance tax is due when the year's tax, after TDS, is below this. */
+const ADVANCE_TAX_THRESHOLD = 10000;
+
+/**
+ * Advance tax instalments for a tax year starting April `taxYearStart`.
+ * Regular: 15% by 15 Jun, 45% by 15 Sep, 75% by 15 Dec, 100% by 15 Mar.
+ * Presumptive (44AD / 44ADA): everything by 15 Mar.
+ */
+export function computeAdvanceTaxSchedule(
+  totalTax: number,
+  tdsCredit: number,
+  taxYearStart: number,
+  presumptive: boolean,
+): AdvanceTaxPlan {
+  const netPayable = Math.max(Math.round(totalTax - tdsCredit), 0);
+  const refundExpected = Math.max(Math.round(tdsCredit - totalTax), 0);
+  const required = netPayable >= ADVANCE_TAX_THRESHOLD;
+
+  const steps: Array<{ dueDate: string; cumulativePct: number }> = presumptive
+    ? [{ dueDate: `${taxYearStart + 1}-03-15`, cumulativePct: 100 }]
+    : [
+        { dueDate: `${taxYearStart}-06-15`, cumulativePct: 15 },
+        { dueDate: `${taxYearStart}-09-15`, cumulativePct: 45 },
+        { dueDate: `${taxYearStart}-12-15`, cumulativePct: 75 },
+        { dueDate: `${taxYearStart + 1}-03-15`, cumulativePct: 100 },
+      ];
+
+  const instalments: AdvanceTaxInstalment[] = [];
+  if (required) {
+    let paidSoFar = 0;
+    for (const step of steps) {
+      const cumulative = Math.round((netPayable * step.cumulativePct) / 100);
+      instalments.push({ ...step, amount: cumulative - paidSoFar });
+      paidSoFar = cumulative;
+    }
+  }
+
+  return { totalTax, tdsCredit, netPayable, refundExpected, required, instalments };
+}
+
+// ─── Other Income: side business + rent ───────────────────
+
+export interface RentalIncomeInput {
+  /** Rent received for the year from a let-out property. */
+  annualRent: number;
+  /** Municipal / property tax paid on it. */
+  municipalTax: number;
+  /** Home-loan interest paid on the let-out property. */
+  loanInterest: number;
+}
+
+/**
+ * Income from a let-out house property: (rent − municipal tax) less 30% standard
+ * deduction, less loan interest. Negative when interest exceeds the rest.
+ */
+export function computeLetOutIncome(r: RentalIncomeInput): number {
+  const annualValue = Math.max(r.annualRent - r.municipalTax, 0);
+  return Math.round(annualValue * 0.7 - Math.max(r.loanInterest, 0));
+}
+
+/** A house-property loss can be set off against other income only up to this, old regime only. */
+const HOUSE_PROPERTY_LOSS_SETOFF_CAP = 200000;
+
+export interface OtherIncomeInput {
+  /** Primary income's taxable figure in each regime (after its own deductions). */
+  baseTaxableNew: number;
+  baseTaxableOld: number;
+  /** Primary income's tax in the regime it was computed in. */
+  primaryTax: number;
+  /** Self-occupied home-loan interest already claimed in the old-regime base (shares the ₹2L loss cap). */
+  selfOccupiedInterestClaimed: number;
+  /** Side business / freelance (null when none). Its professional tax and old-regime deductions are ignored. */
+  sideBusiness: BusinessIncomeInput | null;
+  rental: RentalIncomeInput | null;
+}
+
+export interface OtherIncomeResult {
+  sideBusiness: BusinessIncomeCalculation | null;
+  /** Taxable side-business profit. */
+  sideBusinessProfit: number;
+  /** Let-out property income as computed (can be negative). */
+  rentalIncome: number;
+  /** Rental figure actually added in each regime (loss not allowed in new, capped in old). */
+  rentalCountedNew: number;
+  rentalCountedOld: number;
+  /** Tax on everything combined, in each regime. */
+  combinedTaxNew: number;
+  combinedTaxOld: number;
+  /** Cheaper regime for the combined income. */
+  bestRegime: "new" | "old";
+  combinedTax: number;
+  /** Extra tax the other income adds over the primary's tax. Never below zero. */
+  extraTax: number;
+  /** Cash the other income brings in: side receipts − side expenses + rent − municipal tax. */
+  grossCash: number;
+  /** grossCash − extraTax. */
+  netCash: number;
+  /** TDS withheld on the side business. */
+  tdsCredit: number;
+}
+
+/**
+ * Tax on side income (freelance / business, rent) stacked on a primary income.
+ *
+ * Tax is progressive over TOTAL income, so the side income is not taxed on its own:
+ * the combined income is taxed in both regimes and the extra over the primary's tax
+ * is what the side income costs.
+ */
+export function calculateOtherIncome(input: OtherIncomeInput): OtherIncomeResult {
+  const side = input.sideBusiness
+    ? calculateBusinessIncome({
+        ...input.sideBusiness,
+        professionalTaxAnnual: 0,
+        deductions80C: 0,
+        deductions80D: 0,
+        homeLoanInterest: 0,
+        otherDeductions: 0,
+      })
+    : null;
+  const sideBusinessProfit = side?.taxableProfit ?? 0;
+
+  const rentalIncome = input.rental ? computeLetOutIncome(input.rental) : 0;
+  const rentalCountedNew = Math.max(rentalIncome, 0);
+  const lossRoomOld = Math.max(
+    HOUSE_PROPERTY_LOSS_SETOFF_CAP - Math.min(input.selfOccupiedInterestClaimed, HOUSE_PROPERTY_LOSS_SETOFF_CAP),
+    0,
+  );
+  const rentalCountedOld = Math.max(rentalIncome, -lossRoomOld);
+
+  const combinedTaxNew = regimeTaxOnTaxable(
+    "new",
+    Math.max(input.baseTaxableNew + sideBusinessProfit + rentalCountedNew, 0),
+  );
+  const combinedTaxOld = regimeTaxOnTaxable(
+    "old",
+    Math.max(input.baseTaxableOld + sideBusinessProfit + rentalCountedOld, 0),
+  );
+  const bestRegime = combinedTaxNew <= combinedTaxOld ? "new" : "old";
+  const combinedTax = Math.min(combinedTaxNew, combinedTaxOld);
+  const extraTax = Math.max(combinedTax - input.primaryTax, 0);
+
+  const sideCash = input.sideBusiness
+    ? Math.max(input.sideBusiness.grossReceipts, 0) - Math.max(input.sideBusiness.businessExpenses, 0)
+    : 0;
+  const rentCash = input.rental
+    ? Math.max(input.rental.annualRent, 0) - Math.max(input.rental.municipalTax, 0)
+    : 0;
+  const grossCash = sideCash + rentCash;
+
+  return {
+    sideBusiness: side,
+    sideBusinessProfit,
+    rentalIncome,
+    rentalCountedNew,
+    rentalCountedOld,
+    combinedTaxNew,
+    combinedTaxOld,
+    bestRegime,
+    combinedTax,
+    extraTax,
+    grossCash,
+    netCash: grossCash - extraTax,
+    tdsCredit: side?.tdsCredit ?? 0,
+  };
+}
+
+// ─── Actual receipts (bank credits → gross receipts) ──────
+
+/**
+ * Turn money that reached the bank into the receipts figure the tax is based on.
+ *
+ * An invoice of R carries GST on top and has TDS withheld from R, so the bank sees
+ * R × (1 + gst% − tds%). Dividing by that recovers R.
+ */
+export function grossUpBankReceipts(bankCredits: number, gstPct: number, tdsPct: number): number {
+  const factor = 1 + Math.max(gstPct, 0) / 100 - Math.min(Math.max(tdsPct, 0), 100) / 100;
+  if (factor <= 0) return 0;
+  return Math.round(bankCredits / factor);
 }

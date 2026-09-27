@@ -96,9 +96,8 @@ export function StatePicker({
                   onChange(state);
                   setExpanded(false);
                 }}
-                className={`px-3 py-2.5 border-b border-border ${
-                  value === state ? "bg-[rgba(37,99,235,0.08)]" : ""
-                }`}
+                className="px-3 py-2.5 border-b border-border"
+                style={value === state ? { backgroundColor: theme.alpha("primary", 0.08) } : undefined}
               >
                 <Text
                   className={`text-sm ${

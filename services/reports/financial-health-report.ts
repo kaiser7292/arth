@@ -202,7 +202,7 @@ export async function generateFinancialHealthReport(
     // --- Income ---
     const salary = await getSalaryProfileByFY(userId, String(fyYear));
     const monthlyIncome =
-      salary?.manual_monthly_in_hand || salary?.computed_monthly_in_hand || 0;
+      salary?.computed_monthly_in_hand || salary?.manual_monthly_in_hand || 0;
 
     // --- Loans ---
     const loansSummary = await getLoansSummary(userId);
