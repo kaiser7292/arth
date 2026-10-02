@@ -136,6 +136,26 @@ The AAB goes to Play only; never attach it to a GitHub release. Policy form answ
 
 ---
 
+## Demo build (store screenshots)
+
+A separate "Arth Demo" app (`com.souravbaid.arth.demo`) with **Settings → Demo build → Load sample data**, which fills a fresh install with fictional accounts, three months of transactions, budgets, a loan, goals and a Hisaab (`services/demo-data.ts`). It installs next to the real Arth and never touches its data. Never publish it.
+
+```powershell
+$env:ARTH_DEMO = "1"
+npx expo prebuild --platform android
+cd android; Remove-Item -Recurse -Force app\build\generated\autolinking, build\generated\autolinking -ErrorAction SilentlyContinue
+.\gradlew assembleRelease; cd ..
+# copy android\app\build\outputs\apk\release\app-arm64-v8a-release.apk somewhere safe, then RESTORE:
+Remove-Item Env:ARTH_DEMO
+npx expo prebuild --platform android
+Remove-Item -Recurse -Force android\app\build\generated\autolinking, android\build\generated\autolinking -ErrorAction SilentlyContinue
+```
+
+- The generated autolinking files remember the previous package; delete them whenever the package changes or the build fails with `cannot find symbol ... BuildConfig`.
+- `verify-release.ps1` fails any APK whose package isn't `com.souravbaid.arth`, so a demo build can't slip into a release.
+
+---
+
 ## Signing
 
 Release builds (APK and AAB) are signed with the **Arth release key** by the `withReleaseSigning` config plugin. The same key signs the GitHub APK and is the Play app signing key, so Play and sideloaded installs update each other.

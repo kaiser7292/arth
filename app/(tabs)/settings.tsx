@@ -46,6 +46,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Switch, View } from "react-native";
 import { PRIVACY_POLICY_URL, TERMS_URL } from "@/components/sms/SmsDisclosure";
+import { isDemoBuild, seedDemoData } from "@/services/demo-data";
 import { useTheme } from "@/hooks/use-theme";
 
 const SMS_DATE_PRESETS = [
@@ -854,6 +855,32 @@ export default function SettingsScreen() {
                 </View>
             </>
           </Card>
+
+          {isDemoBuild() && (
+            <Card title="Demo build" className="mb-4">
+              <SettingsRow
+                icon="flask-outline"
+                label="Load sample data"
+                subtitle="Fictional accounts and transactions for screenshots"
+                onPress={() =>
+                  alert("Load sample data?", "Adds three months of fictional accounts, transactions, budgets, a loan, goals and a family ledger.", [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Load",
+                      onPress: async () => {
+                        try {
+                          await seedDemoData();
+                          alert("Sample data loaded", "Head to the Arth tab to see it.");
+                        } catch (e) {
+                          alert("Couldn't load sample data", e instanceof Error ? e.message : String(e));
+                        }
+                      },
+                    },
+                  ])
+                }
+              />
+            </Card>
+          )}
 
           <Card title="About & Help" className="mb-4">
             {getFlag("v15_help_center") && (

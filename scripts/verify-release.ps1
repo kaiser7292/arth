@@ -10,6 +10,7 @@
 $ErrorActionPreference = "Stop"
 
 $ExpectedSha256 = "4DD590CD90CA6F32A93C0B6FC6A4D4DD57AA52729774016C049C34E62767FAEB"
+$ExpectedPackage = "com.souravbaid.arth"
 $Root = Split-Path -Parent $PSScriptRoot
 $Apk = Join-Path $Root "android\app\build\outputs\apk\release\app-arm64-v8a-release.apk"
 $Aab = Join-Path $Root "android\app\build\outputs\bundle\release\app-release.aab"
@@ -102,7 +103,10 @@ else {
     $badging = & $aapt2 dump badging $Apk 2>$null | Select-String "^package:" | Select-Object -First 1
     if ($badging -match "name='([^']+)' versionCode='(\d+)' versionName='([^']+)'") {
         Info "Package $($Matches[1]), version $($Matches[3]) (versionCode $($Matches[2]))"
-    }
+        # A demo build (ARTH_DEMO=1, see app.config.js) must never be published.
+        if ($Matches[1] -ne $ExpectedPackage) { Fail "Package is $($Matches[1]), expected $ExpectedPackage - is this a demo build? Re-run prebuild without ARTH_DEMO." }
+        else { Pass "Package is $ExpectedPackage" }
+    } else { Fail "Could not read the APK package name" }
     $certs = & $apksigner verify --print-certs $Apk 2>&1
     if ($LASTEXITCODE -ne 0) { Fail "apksigner verify failed: $certs" }
     else {
