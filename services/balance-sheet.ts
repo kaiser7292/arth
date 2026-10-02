@@ -182,6 +182,7 @@ async function batchHisaabAsOf(
            SELECT 1 FROM expenses x WHERE x.id = e.linked_expense_id AND x.deleted_at IS NOT NULL
          ))
        WHERE p.owner_user_id = ? AND p.is_active = 1
+         AND COALESCE(p.exclude_from_net_worth, 0) = 0
        GROUP BY p.id;`,
       userId,
     );
@@ -217,6 +218,7 @@ async function batchHisaabAsOf(
          SELECT 1 FROM expenses x WHERE x.id = e.linked_expense_id AND x.deleted_at IS NOT NULL
        ))
      WHERE p.owner_user_id = ? AND p.is_active = 1
+       AND COALESCE(p.exclude_from_net_worth, 0) = 0
      GROUP BY p.id;`,
     exclusive,
     userId,

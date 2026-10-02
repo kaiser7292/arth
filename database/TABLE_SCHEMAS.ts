@@ -323,6 +323,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "is_active",
     "created_at",
     "updated_at",
+    "exclude_from_net_worth", // 078
   ] as const,
 
   hisaab_entries: [

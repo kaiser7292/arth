@@ -57,7 +57,7 @@ function seed() {
     );
     CREATE TABLE demat_portfolio_snapshots (account_id TEXT, snapshot_date TEXT, portfolio_value REAL);
     CREATE TABLE demat_fund_snapshots (account_id TEXT, snapshot_date TEXT, fund_value REAL);
-    CREATE TABLE hisaab_persons (id TEXT PRIMARY KEY, owner_user_id TEXT, is_active INTEGER, initial_balance REAL);
+    CREATE TABLE hisaab_persons (id TEXT PRIMARY KEY, owner_user_id TEXT, is_active INTEGER, initial_balance REAL, exclude_from_net_worth INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE hisaab_entries (id TEXT PRIMARY KEY, hisaab_person_id TEXT, type TEXT, amount REAL, date TEXT, linked_expense_id TEXT);
   `);
 
@@ -137,5 +137,35 @@ describe("getBalanceSheetColumn — FD nesting", () => {
     const col = await getBalanceSheetColumn("u1", "2026-05-20", "Today", true, null);
     expect(col.assets.find((r) => r.group === "savings")!.children ?? []).toHaveLength(0);
     expect(col.totalAssets).toBe(100000);
+  });
+});
+
+describe("getBalanceSheetColumn — Hisaab people left out of net worth", () => {
+  function seedHisaab() {
+    seed();
+    mockSqlite.exec(`
+      INSERT INTO hisaab_persons (id, owner_user_id, is_active, initial_balance) VALUES ('p-friend', 'u1', 1, 0);
+      INSERT INTO hisaab_persons (id, owner_user_id, is_active, initial_balance) VALUES ('p-family', 'u1', 1, 0);
+      INSERT INTO hisaab_entries (id, hisaab_person_id, type, amount, date) VALUES ('e1', 'p-friend', 'debit', 2000, '2026-05-10');
+      INSERT INTO hisaab_entries (id, hisaab_person_id, type, amount, date) VALUES ('e2', 'p-family', 'debit', 30000, '2026-05-10');
+    `);
+  }
+
+  it("counts everyone by default", async () => {
+    seedHisaab();
+    const col = await getBalanceSheetColumn("u1", "2026-05-20", "Today", true, null);
+    expect(col.assets.find((r) => r.group === "hisaab_owed")!.amount).toBe(32000);
+  });
+
+  it("leaves an excluded person out, live and in a past column", async () => {
+    seedHisaab();
+    mockSqlite.prepare("UPDATE hisaab_persons SET exclude_from_net_worth = 1 WHERE id = 'p-family';").run();
+
+    const live = await getBalanceSheetColumn("u1", "2026-05-20", "Today", true, null);
+    expect(live.assets.find((r) => r.group === "hisaab_owed")!.amount).toBe(2000);
+    expect(live.netWorth).toBe(150000 + 2000);
+
+    const past = await getBalanceSheetColumn("u1", "2026-05-31", "FY", false, null);
+    expect(past.assets.find((r) => r.group === "hisaab_owed")?.amount ?? 0).toBe(2000);
   });
 });

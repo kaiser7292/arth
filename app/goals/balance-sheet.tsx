@@ -15,6 +15,7 @@ import { getBalanceSheet, hasDataInRange } from "@/services/balance-sheet";
 import type { BalanceSheetColumn, BalanceSheetRow } from "@/services/balance-sheet";
 import { consumeBalanceSheetPreload } from "@/services/home-preload";
 import { useTheme } from "@/hooks/use-theme";
+import { HisaabNetWorthSheet } from "@/components/goals/HisaabNetWorthSheet";
 
 const preloaded = consumeBalanceSheetPreload();
 
@@ -51,6 +52,7 @@ export default function BalanceSheetScreen() {
   // the user knows old numbers on screen are about to change. Without this,
   // numbers silently swap in on every data-refresh event.
   const [recomputing, setRecomputing] = useState(false);
+  const [hisaabSheetOpen, setHisaabSheetOpen] = useState(false);
 
   // Default: previous FY close + Live. User can add more via the + button.
   const buildDefaultSpecs = useCallback((): ColumnSpec[] => {
@@ -768,6 +770,25 @@ export default function BalanceSheetScreen() {
           </ScrollView>
         </View>
 
+        {/* Which Hisaab people count towards net worth */}
+        <Pressable onPress={() => setHisaabSheetOpen(true)} className="mx-4 mb-2" accessibilityRole="button">
+          <Card>
+            <View className="flex-row items-center">
+              <View
+                className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
+              >
+                <Ionicons name="people-outline" size={18} color={theme.primary} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-foreground">Hisaab in Net Worth</Text>
+                <Text className="text-xs text-muted-foreground">Choose whose balances count</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </View>
+          </Card>
+        </Pressable>
+
         {/* Caveats footer */}
         <Card className="mx-4 mb-2">
           <View className="flex-row items-start">
@@ -780,6 +801,7 @@ export default function BalanceSheetScreen() {
           </View>
         </Card>
       </ScrollView>
+      <HisaabNetWorthSheet visible={hisaabSheetOpen} onClose={() => setHisaabSheetOpen(false)} />
     </ScreenContainer>
   );
 }

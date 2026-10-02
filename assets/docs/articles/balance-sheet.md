@@ -64,7 +64,7 @@ FDs that have matured or closed are left out, so the payout isn't counted twice.
 - **Demat** - the latest portfolio and fund snapshot on or before the column date. Record snapshots yourself or save them from a broker connection ([Zerodha Kite](kite-connect), [Angel One](angel-one), [Zebpay](zebpay)).
 - **Credit cards** - the amount used on the column date.
 - **Loans** - outstanding principal on the column date.
-- **Hisaab** - the net amounts owed to you and by you.
+- **Hisaab** - the net amounts owed to you and by you. To leave someone out (say, a family member's running tab you don't expect back), tap **Hisaab in Net Worth** below the table and switch them off. Their Hisaab ledger doesn't change.
 
 ## Common situations
 

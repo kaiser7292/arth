@@ -27,6 +27,8 @@ export interface HisaabPerson {
   is_active: number;
   created_at: string;
   updated_at: string;
+  /** 1 = this person's balance is left out of net worth / the balance sheet (migration 078). */
+  exclude_from_net_worth: number;
 }
 
 export interface HisaabEntry {
@@ -330,6 +332,20 @@ export async function getPersonsWithBalances(
      ) DESC;`,
     userId,
   );
+}
+
+/**
+ * Include or leave out a person's balance from net worth (balance sheet, Goals, reports).
+ * The Hisaab ledger itself is unchanged.
+ */
+export async function setPersonExcludedFromNetWorth(id: string, excluded: boolean): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE hisaab_persons SET exclude_from_net_worth = ?, updated_at = datetime('now') WHERE id = ?;`,
+    excluded ? 1 : 0,
+    id,
+  );
+  bumpDataVersion();
 }
 
 /**
