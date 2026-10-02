@@ -40,12 +40,12 @@ echo Branch: %BRANCH%
 
 REM -- Build flavor
 if "%BRANCH%"=="staging" (
-    set PACKAGE_NAME=com.souravbaid.artha.staging
+    set PACKAGE_NAME=com.souravbaid.arth.staging
     set APP_NAME=Arth Stg
     set APK_NAME=arth-staging
     set IS_STAGING=1
 ) else (
-    set PACKAGE_NAME=com.souravbaid.artha
+    set PACKAGE_NAME=com.souravbaid.arth
     set APP_NAME=Arth
     set APK_NAME=arth
     set IS_STAGING=0
@@ -55,7 +55,7 @@ set ABI_FLAG=-PreactNativeArchitectures=arm64-v8a
 REM -- For staging: temporarily patch app.json package/name
 if "%IS_STAGING%"=="1" (
     echo Patching app.json for staging...
-    powershell -Command "(Get-Content app.json) -replace '\"package\": \"com.souravbaid.artha\"', '\"package\": \"%PACKAGE_NAME%\"' | Set-Content app.json"
+    powershell -Command "(Get-Content app.json) -replace '\"package\": \"com.souravbaid.arth\"', '\"package\": \"%PACKAGE_NAME%\"' | Set-Content app.json"
     powershell -Command "(Get-Content app.json) -replace '\"name\": \"Arth\"', '\"name\": \"%APP_NAME%\"' | Set-Content app.json"
 )
 

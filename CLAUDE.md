@@ -8,7 +8,7 @@ Personal finance app for Android. React Native + Expo, 100% local (SQLite + MMKV
 **Repo:** github.com/kaiser7292/artha
 
 ### Naming: "Arth" vs "Artha"
-The app was rebranded from **Artha** to **Arth** (commit `815a3e2`, 2026-05-22) — every user-visible string (home screen, onboarding, settings, help articles, etc.) now says "Arth." **"Artha" intentionally remains** at the technical layer only: GitHub repo name, Android package id (`com.souravbaid.artha`), Expo slug/scheme, and the backup file's internal `MAGIC_HEADER`/legacy `.artha` extension (kept for backward compatibility). When discussing the product with the owner, call it **Arth**; "Artha" in code/config/docs below refers to the project, not a naming bug.
+The app was rebranded from **Artha** to **Arth** (commit `815a3e2`, 2026-05-22) — every user-visible string (home screen, onboarding, settings, help articles, etc.) now says "Arth." **"Artha" intentionally remains** at the technical layer only: GitHub repo name, Expo slug/scheme, and the backup file's internal `MAGIC_HEADER`/legacy `.artha` extension (kept for backward compatibility). The Android package id was changed to **`com.souravbaid.arth`** in v4.4.1 (2026-10-02), before the first Play Store upload; installs of `com.souravbaid.artha` (v4.4.0 and earlier) are a different app to Android and move over via backup/restore. When discussing the product with the owner, call it **Arth**; "Artha" in code/config/docs below refers to the project, not a naming bug.
 
 ---
 

@@ -99,7 +99,7 @@ jobs:
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
             echo "branch=staging" >> $GITHUB_OUTPUT
-            echo "package_name=com.souravbaid.artha.staging" >> $GITHUB_OUTPUT
+            echo "package_name=com.souravbaid.arth.staging" >> $GITHUB_OUTPUT
             echo "apk_name=arth-staging" >> $GITHUB_OUTPUT
             echo "release_suffix=-staging" >> $GITHUB_OUTPUT
             # Build only arm64-v8a for staging — covers all modern Android phones,
@@ -107,7 +107,7 @@ jobs:
             echo "abi_flag=-PreactNativeArchitectures=arm64-v8a" >> $GITHUB_OUTPUT
           else
             echo "branch=main" >> $GITHUB_OUTPUT
-            echo "package_name=com.souravbaid.artha" >> $GITHUB_OUTPUT
+            echo "package_name=com.souravbaid.arth" >> $GITHUB_OUTPUT
             echo "apk_name=arth" >> $GITHUB_OUTPUT
             echo "release_suffix=" >> $GITHUB_OUTPUT
             # No flag needed: withArmOnly pins reactNativeArchitectures=arm64-v8a
@@ -118,7 +118,7 @@ jobs:
       - name: Update package name for staging
         if: steps.config.outputs.branch == 'staging'
         run: |
-          sed -i 's/"package": "com.souravbaid.artha"/"package": "com.souravbaid.artha.staging"/g' app.json
+          sed -i 's/"package": "com.souravbaid.arth"/"package": "com.souravbaid.arth.staging"/g' app.json
           sed -i 's/"name": "Arth"/"name": "Arth Stg"/g' app.json
 
       # Cache the generated android/ directory keyed on files that affect native code.
