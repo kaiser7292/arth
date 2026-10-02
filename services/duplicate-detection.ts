@@ -16,7 +16,7 @@
 import { duplicateDismissalsStorage as dismissStorage, settingsStorage } from "./storage";
 import { getDatabase } from "@/database";
 import type { Expense } from "@/services/expense";
-import { getDataVersion, subscribeDataVersion } from "@/services/settings";
+import { bumpDataVersion, getDataVersion, subscribeDataVersion } from "@/services/settings";
 
 // ---------------------------------------------------------------------------
 // Dismissed groups ("Keep both" state)
@@ -58,6 +58,9 @@ export function dismissDuplicateGroup(expenses: Expense[]): void {
   set.add(groupKey(expenses));
   saveDismissedSet(set);
   invalidateDuplicateScanCache();
+  // Dismissals live in MMKV, not the database, so nothing else signals the change; without this
+  // Home kept showing the duplicate after Catch Up dismissed it.
+  bumpDataVersion();
 }
 
 /** Count of currently-dismissed groups (for the Settings surface). */
@@ -69,6 +72,7 @@ export function getDismissedDuplicateCount(): number {
 export function clearDismissedDuplicates(): void {
   saveDismissedSet(new Set());
   invalidateDuplicateScanCache();
+  bumpDataVersion();
 }
 
 /** Restore a single dismissed group so it resurfaces on the next scan. */
@@ -77,6 +81,7 @@ export function restoreDismissedGroup(key: string): void {
   set.delete(key);
   saveDismissedSet(set);
   invalidateDuplicateScanCache();
+  bumpDataVersion();
 }
 
 export interface DismissedGroup {

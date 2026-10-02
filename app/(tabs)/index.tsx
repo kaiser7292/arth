@@ -398,7 +398,7 @@ export default function HomeScreen() {
         {showBackupReminder && (
           <Pressable
             onPress={() => router.push("/settings/backup-restore")}
-            className="mx-4 mb-3 p-3 rounded-xl flex-row items-center"
+            className="mx-4 mt-3 p-3 rounded-xl flex-row items-center"
             style={{ backgroundColor: theme.warning + "1A" }}
           >
             <Ionicons name="shield-outline" size={20} color={theme.warning} />

@@ -465,6 +465,16 @@ export default function CatchUpScreen() {
     }
   }, [batchOffer, act]);
 
+  // Write the last action (still held for Undo) before leaving, so the screen we land on - usually
+  // Home - loads the finished state instead of the one from before Catch Up's final card.
+  const leaveAfterCommit = useCallback(
+    (go: () => void) => {
+      undoPoint.current = null;
+      void deferred.flush().finally(go);
+    },
+    [deferred],
+  );
+
   const openCard = useCallback(
     async (id: string) => {
       // The edit screen must see the committed state, not what's held for Undo.
@@ -520,8 +530,8 @@ export default function CatchUpScreen() {
       <ScreenContainer padTop={false}>
         <CatchUpDone
           stats={stats}
-          onViewSpending={() => router.replace("/(tabs)/budget")}
-          onClose={() => router.back()}
+          onViewSpending={() => leaveAfterCommit(() => router.replace("/(tabs)/budget"))}
+          onClose={() => leaveAfterCommit(() => router.back())}
         />
       </ScreenContainer>
     );

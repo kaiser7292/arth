@@ -35,7 +35,7 @@ function MinBalanceAlertImpl({ breach, onDismiss }: MinBalanceAlertProps) {
 
   return (
     <View
-      className="mx-4 mb-3 p-3 rounded-xl flex-row items-center"
+      className="mx-4 mt-3 p-3 rounded-xl flex-row items-center"
       style={{ backgroundColor: dangerColor + "14" }}
     >
       <Pressable
