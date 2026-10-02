@@ -72,7 +72,7 @@ export default function OnboardingAccountsPreview() {
   };
 
   const handleContinue = () => {
-    router.push("/(onboarding)/done");
+    router.push("/(onboarding)/budget");
   };
 
   const handleSkip = () => {

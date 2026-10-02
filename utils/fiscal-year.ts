@@ -118,3 +118,14 @@ export function getFYMonthLabels(startMonth: number = 4): string[] {
   }
   return labels;
 }
+
+/** "YYYY-MM" from this month to the end of the financial year — what Budget Configuration applies to. */
+export function monthsToFYEnd(today: Date = new Date(), fyStartMonth: number = 4): string[] {
+  const months: string[] = [];
+  const d = new Date(today.getFullYear(), today.getMonth(), 1);
+  do {
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    d.setMonth(d.getMonth() + 1);
+  } while (d.getMonth() + 1 !== fyStartMonth);
+  return months;
+}

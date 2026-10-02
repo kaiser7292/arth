@@ -66,7 +66,7 @@ export default function OnboardingRegion() {
     // setCurrency() also sets the grouping to that currency's default.
     setCurrency(currencyId);
     setDateFormat(dateFormatId);
-    router.push("/(onboarding)/sms-consent");
+    router.push("/(onboarding)/categories");
   };
 
   const handleSkip = () => {

@@ -43,13 +43,13 @@ Arth has **five bottom tabs**, in this order from left to right. **Swipe left or
 - **Transactions** - the full ledger. Swipe between five pages: **All**, **Expenses**, **Committed** (forecast / recurring), **Credits**, and **Transfers**. Search (by typing or voice), filter, sort, and save favourite filter combinations as named views.
 - **Budget** - monthly caps per category with progress bars. Right-spend (unavoidable) vs discretionary split. Month-End Projection widget.
 - **Goals** - Financial Health, yearly plan, investment buckets, life milestones, loans, risk coverage (insurance), net worth, year-over-year comparison and the income calculator.
-- **Settings** - accounts, categories, payment modes, voice input, Arth AI, reminders, smart rules, SMS templates, merchant aliases, audit log, broker integrations (Zerodha, Angel One, Zebpay), backup/restore, SMS detection, region, notifications, calendar sync, home cards, security (app lock), and this help center.
+- **Settings** - accounts, categories, payment modes, voice input, Arth AI, reminders, smart rules, SMS templates, merchant categories, merchant aliases, audit log, broker integrations (Zerodha, Angel One, Zebpay), backup/restore, SMS detection, region, notifications, calendar sync, home cards, security (app lock), and this help center.
 
 > Insights is one of the Home tab's swipe pages — swipe right from Overview or tap the "Insights" label at the top.
 
 ## Your first week (in order)
 
-1. **Onboarding** - pick a theme, set your fiscal year start (default: April for India), grant SMS permission if you want auto-detection.
+1. **Onboarding** - set your region and financial year (default: April for India), choose your categories, add your monthly take-home pay, allow SMS reading if you want auto-detection, set a few budgets, and turn on app lock and notifications. Every step can be skipped. Moving phones? Tap **Restore from a backup** on the first screen.
 2. **Add your accounts.** Settings tab → Data Management → Accounts → **+**. Add savings, credit cards, wallets, loans, demat, pension - everything your money moves through. Add fixed deposits from the Investments card on Home.
 3. **Turn on SMS detection** (if you skipped it). Settings tab → SMS Detection → **Enable**.
 4. **Open the Review Queue** after a day - approve what Arth auto-captured. This is the main loop of Arth.

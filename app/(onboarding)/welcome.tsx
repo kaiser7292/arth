@@ -1,12 +1,15 @@
+import { useCallback } from "react";
 import { View, ScrollView, Pressable } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import {
+  getOnboardingCompletedVersion,
   setOnboardingCompletedVersion,
 } from "@/services/settings";
+import { getDatabase } from "@/database";
 import { getCurrentAppVersion } from "@/services/onboarding";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -32,6 +35,30 @@ export default function OnboardingWelcome() {
   const router = useRouter();
   
   const theme = useTheme();
+
+  // Coming back from "Restore from a backup": a successful restore brings back the onboarding
+  // stamp (it's in the backup's settings) or at least the user's data, so go straight in.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        if (getOnboardingCompletedVersion()) {
+          if (!cancelled) router.replace("/(tabs)");
+          return;
+        }
+        const row = await getDatabase()
+          .getFirstAsync<{ n: number }>("SELECT COUNT(*) AS n FROM expenses WHERE deleted_at IS NULL;")
+          .catch(() => null);
+        if (!cancelled && (row?.n ?? 0) > 0) {
+          setOnboardingCompletedVersion(getCurrentAppVersion());
+          router.replace("/(tabs)");
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [router]),
+  );
 
   const handleSkip = () => {
     setOnboardingCompletedVersion(getCurrentAppVersion());
@@ -87,7 +114,12 @@ export default function OnboardingWelcome() {
           onPress={() => router.push("/(onboarding)/region")}
           className="mb-3"
         />
-        <Pressable onPress={handleSkip} className="py-3 items-center">
+        <Pressable onPress={() => router.push("/settings/backup-restore")} className="py-3 items-center">
+          <Text className="text-sm font-semibold text-primary">
+            Restore from a backup
+          </Text>
+        </Pressable>
+        <Pressable onPress={handleSkip} className="py-2 items-center">
           <Text className="text-sm text-muted-foreground">
             Skip for now
           </Text>
