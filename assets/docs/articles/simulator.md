@@ -106,7 +106,7 @@ The planned list segregates by direction:
 - **Outgoing** (red arrow, total shown as −₹X) - with sub-groups Today / Tomorrow / This week / Later.
 - **Incoming** (green arrow, total shown as +₹X) - same sub-groups.
 
-Hisaab entries appear under their direction (Collect → Incoming; Pay back → Outgoing) with a sublabel like "Collect from Manoj".
+Hisaab entries appear under their direction (Collect → Incoming; Pay back → Outgoing) with a sublabel like "Collect from Jane Doe".
 
 ### Auto-seeded entries
 
@@ -149,7 +149,7 @@ Positive-balance people (they owe you) lift the Money available side. Negative-b
 
 Inclusions follow the person's **live** Hisaab balance. Arth stores the percentage you chose, so if a new entry or settlement changes their balance, the included amount updates automatically - and moves to the other side if the balance flips.
 
-Each inclusion is **per-scenario** - including Manoj in "With Goa trip" doesn't affect "Tight month".
+Each inclusion is **per-scenario** - including Jane Doe in "With Goa trip" doesn't affect "Tight month".
 
 Inclusions are included in the backup and restore cleanly. If a hisaab person is deleted, their inclusion is automatically removed from the scenario.
 
@@ -157,12 +157,12 @@ Inclusions are included in the backup and restore cleanly. If a hisaab person is
 
 Separately from inclusions, you can **plan** specific cash-flow events tied to a hisaab person:
 
-- **Collect from hisaab** - "Manoj's paying me ₹15,000 on the 18th, landing in HDFC savings."
+- **Collect from hisaab** - "Jane Doe's paying me ₹15,000 on the 18th, landing in HDFC savings."
 - **Pay back to hisaab** - "I'm paying Raj ₹8,000 back on the 22nd, from ICICI savings."
 
-These show up inside the Incoming / Outgoing lists with the sublabel "Collect from Manoj" / "Pay back to Raj". They affect the projected balance like any other entry.
+These show up inside the Incoming / Outgoing lists with the sublabel "Collect from Jane Doe" / "Pay back to John Doe". They affect the projected balance like any other entry.
 
-**Difference from inclusions:** an inclusion sits in the starting balance (money I already consider in play). A planned hisaab entry is a cash-flow event at a specific date. Use both together - include 50 % of Manoj's ₹30,000 in your starting balance (you'll count on ₹15,000 being realized eventually) AND add a "Collect from Manoj · ₹10,000 · 18 May" planned entry (a specific payment you're expecting that day).
+**Difference from inclusions:** an inclusion sits in the starting balance (money I already consider in play). A planned hisaab entry is a cash-flow event at a specific date. Use both together - include 50 % of Jane Doe's ₹30,000 in your starting balance (you'll count on ₹15,000 being realized eventually) AND add a "Collect from Jane Doe · ₹10,000 · 18 May" planned entry (a specific payment you're expecting that day).
 
 ## How the simulator stays alive
 
@@ -186,9 +186,9 @@ These show up inside the Incoming / Outgoing lists with the sublabel "Collect fr
 
 **An SMS landed that matches my planned rent but the simulator still shows it as upcoming.** Check account + date + amount. The match window is ±3 days; amount must match exactly to the paise. A ₹1,000 planned entry won't match a ₹997 real expense. Tap **It happened · Link** to match manually if the amounts don't line up.
 
-**I'm expecting Manoj to pay me back ₹30,000 before horizon.** Two ways:
-- **Simpler:** Expand Starting balance → Include hisaab balances → tick Manoj, keep 100 % / ₹30,000. Your money-available rises by ₹30,000.
-- **Date-specific:** Add a "Collect from hisaab · Manoj · ₹30,000 · 18 May" planned entry. The projection dips until 18 May then lifts.
+**I'm expecting Jane Doe to pay me back ₹30,000 before horizon.** Two ways:
+- **Simpler:** Expand Starting balance → Include hisaab balances → tick Jane Doe, keep 100 % / ₹30,000. Your money-available rises by ₹30,000.
+- **Date-specific:** Add a "Collect from hisaab · Jane Doe · ₹30,000 · 18 May" planned entry. The projection dips until 18 May then lifts.
 
 **I deleted a scenario by mistake.** Scenario deletion is permanent - no recycle bin. Any real transactions, hisaab balances, and reminder rules are untouched. Recreate and re-add.
 

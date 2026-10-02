@@ -321,7 +321,7 @@ function personStatementHtml(
         <tr><td>
           <div class="pff">
             <span class="pff-left">Arth · अर्थ</span>
-            <span class="pff-center">Your Finance, Your Way · Created by Sourav Baid · ${today}</span>
+            <span class="pff-center">Your Finance, Your Way · Made with Arth · ${today}</span>
             <span class="pff-right"><span class="pg"></span></span>
           </div>
         </td></tr>
@@ -335,7 +335,7 @@ function personStatementHtml(
             <span class="brand-name">Arth</span><span class="brand-roman">अर्थ</span>
             <span class="brand-tagline"> · Your Finance, Your Way</span>
           </div>
-          <span class="brand-creator">Created by Sourav Baid</span>
+          <span class="brand-creator">Made with Arth</span>
         </div>
         <h1>HISAAB STATEMENT</h1>
         <div class="subtitle">Account of: ${htmlEscape(name)}</div>

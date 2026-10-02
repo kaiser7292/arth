@@ -74,11 +74,10 @@ export const HISAAB_TEMPLATE_COLUMNS = [
 export function generateHisaabTemplateCSV(): string {
   const header = HISAAB_TEMPLATE_COLUMNS.join(",");
   const samples = [
-    'Tarun,,66761,initial_balance,"Previous Hisaab Total"',
-    'Tarun,2023-10-16,70000,credit,"Mama Credit"',
-    'Tarun,2023-10-16,250,debit,"Office Doc/Courier/Photo"',
-    'Aastha,,5708.50,initial_balance,"Opening Balance"',
-    'Rajat,,-1469.13,initial_balance,"Opening Balance"',
+    'Jane Doe,,5000,initial_balance,"Opening Balance"',
+    'Jane Doe,2025-04-10,2000,credit,"Paid back"',
+    'Jane Doe,2025-04-12,850,debit,"Dinner share"',
+    'John Doe,,-1500,initial_balance,"Opening Balance"',
   ];
   return `${header}\n${samples.join("\n")}\n`;
 }

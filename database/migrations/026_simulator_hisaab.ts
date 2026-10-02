@@ -7,7 +7,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
  * the behavior that shipped in v16.0.0–16.0.4.
  *
  * 1. New table `simulation_hisaab_inclusions` — per-scenario opt-in
- *    for each hisaab person. Lets the user say "include Manoj's ₹65k
+ *    for each hisaab person. Lets the user say "include Jane Doe's ₹65k
  *    as money available in THIS scenario, but not others". Stored as
  *    a rupee amount; the UI may compute it from a percentage but the
  *    DB only carries the absolute value.
@@ -31,7 +31,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
  *                     in/out; hisaab_person_id is metadata only.
  *      hisaab_kind    TEXT CHECK ('collect' | 'payback' | NULL) — the
  *                     semantic flavor so the UI can render "Collect
- *                     from Manoj" vs "Pay back to Raj".
+ *                     from Jane Doe" vs "Pay back to John Doe".
  *
  * Idempotent. Safe to re-run.
  */

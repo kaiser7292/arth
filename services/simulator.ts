@@ -108,7 +108,7 @@ export interface SimulationEntry {
 /**
  * v16.0.5 — per-scenario hisaab inclusion.
  *
- * Represents "include Manoj's ₹32,500 as money-available in this scenario".
+ * Represents "include Jane Doe's ₹32,500 as money-available in this scenario".
  * `amount` is always positive; direction carried by `amount_sign` so a
  * later sign flip on the underlying hisaab ledger doesn't reclassify the
  * inclusion between asset and liability.

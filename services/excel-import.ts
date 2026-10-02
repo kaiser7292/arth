@@ -177,8 +177,8 @@ export const TEMPLATE_COLUMNS = [
  */
 export function generateTemplateCSV(): string {
   const header = TEMPLATE_COLUMNS.join(",");
-  const sample1 = "2025-05-15,450,Swiggy order,Swiggy,Food & Dining,UPI,Yes";
-  const sample2 = "2025-05-16,1200,Uber ride,Uber,Transport,Credit Card,No";
+  const sample1 = "2025-05-15,450,Swiggy order,Swiggy,Food,UPI,Yes";
+  const sample2 = "2025-05-16,1200,Uber ride,Uber,Travel & Going Out,Credit Card,No";
   return `${header}\n${sample1}\n${sample2}\n`;
 }
 

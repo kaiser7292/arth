@@ -191,7 +191,7 @@ export default function HisaabPersonsScreen() {
                   label="Name"
                   value={formName}
                   onChangeText={setFormName}
-                  placeholder="e.g. Tarun"
+                  placeholder="e.g. Jane Doe"
                   maxLength={50}
                   containerClassName="mb-3"
                 />
