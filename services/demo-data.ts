@@ -21,6 +21,12 @@ import { createManualAccount, updateAccountFinancials } from "@/services/financi
 import { createEntry, createPerson } from "@/services/hisaab";
 import { createLifeMilestone } from "@/services/life-milestone";
 import { createLoan } from "@/services/loan-accounts";
+import { seedOpeningBalance } from "@/services/account-balance";
+import { linkExpenseAsEMI } from "@/services/expense-loan-link";
+import { createSalaryProfile } from "@/services/salary-profile";
+import { getFYStartMonth } from "@/services/settings";
+import { createInvestmentBucket } from "@/services/yearly-plan";
+import { getCurrentFY } from "@/utils/fiscal-year";
 import { getPaymentModes, seedDefaultPaymentModes } from "@/services/payment-mode";
 import { bumpDataVersion } from "@/services/settings";
 
@@ -109,6 +115,15 @@ export async function seedDemoData(): Promise<void> {
   await updateAccountFinancials(card, { credit_limit: 300000 });
   await updateAccountFinancials(card2, { credit_limit: 150000 });
 
+  const today = new Date();
+  const MONTHS = 3; // full months before the current one
+  const firstMonth = new Date(today.getFullYear(), today.getMonth() - MONTHS, 1, 12);
+  const firstMonthKey = `${firstMonth.getFullYear()}-${String(firstMonth.getMonth() + 1).padStart(2, "0")}`;
+  // Opening balances anchor the ledgers, so no "No opening balance set" warnings.
+  await seedOpeningBalance(savings, firstMonthKey, 86500);
+  await seedOpeningBalance(savings2, firstMonthKey, 140000);
+  await seedOpeningBalance(wallet, firstMonthKey, 800);
+
   const accountFor = (mode: string, i: number) =>
     mode === "Credit Card" ? (i % 3 === 0 ? card2 : card) : mode === "Wallet" ? wallet : savings;
 
@@ -124,11 +139,27 @@ export async function seedDemoData(): Promise<void> {
       date: iso(date),
     });
 
-  // ── Three months of activity, oldest first ──
-  const today = new Date();
-  for (let m = 2; m >= 0; m--) {
+  // ── Loan: a car loan taken just before the data starts, so every EMI due so far is paid ──
+  const loanStart = new Date(firstMonth.getFullYear(), firstMonth.getMonth() - 1, 20, 12);
+  const loanId = await createLoan({
+    user_id: U, bank_name: "HDFC Bank", account_identifier: "5560", loan_type: "auto",
+    principal_sanctioned: 650000, principal_disbursed: 650000,
+    disbursement_date: iso(loanStart), emi_start_date: iso(new Date(firstMonth.getFullYear(), firstMonth.getMonth(), 10, 12)),
+    emi_day_of_month: 10, interest_rate_pa: 9.1, interest_type: "fixed", interest_method: "reducing",
+    tenure_months: 60, account_label: "Car loan",
+  });
+  const dueEmis = await db.getAllAsync<{ id: string; due_date: string; emi_amount: number }>(
+    "SELECT id, due_date, emi_amount FROM loan_schedule_entries WHERE loan_account_id = ? AND due_date <= ? ORDER BY due_date;",
+    loanId,
+    iso(today),
+  );
+
+  // ── Three full months plus the current month so far, oldest first ──
+  for (let m = MONTHS; m >= 0; m--) {
     const monthStart = new Date(today.getFullYear(), today.getMonth() - m, 1, 12);
-    const lastDay = m === 0 ? today.getDate() : new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+    const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+    const lastDay = m === 0 ? today.getDate() : daysInMonth;
+    const share = lastDay / daysInMonth; // the current month only gets its share of spending
     const on = (day: number) => new Date(monthStart.getFullYear(), monthStart.getMonth(), Math.min(day, lastDay), 12);
 
     await createExpense({
@@ -147,10 +178,16 @@ export async function seedDemoData(): Promise<void> {
       if (day <= lastDay) await spend(on(day), merchant, cat, mode, amount, i++);
     }
     for (const [merchant, cat, mode, lo, hi, perMonth] of SPENDS) {
-      for (let k = 0; k < perMonth; k++) {
+      const count = Math.round(perMonth * share);
+      for (let k = 0; k < count; k++) {
         const day = 1 + Math.floor(rand() * lastDay);
         await spend(on(day), merchant, cat, mode, between(lo, hi), i++);
       }
+    }
+    if (lastDay >= 4) {
+      await createTransfer({ userId: U, fromAccountId: savings, toAccountId: wallet, amount: 2000, description: "Amazon Pay top-up", date: iso(on(4)) });
+      await spend(on(4 + Math.floor(rand() * Math.max(1, lastDay - 4))), "Amazon", "Shopping & Gifts", "Wallet", between(300, 900), i++);
+      await spend(on(4 + Math.floor(rand() * Math.max(1, lastDay - 4))), "Swiggy Instamart", "Grocery & Supplies", "Wallet", between(200, 600), i++);
     }
 
     if (lastDay >= 7) {
@@ -162,21 +199,23 @@ export async function seedDemoData(): Promise<void> {
     }
   }
 
+  // ── Pay every EMI due so far. createExpense matches an EMI-sized payment to the
+  // installment by itself; link explicitly only if that match didn't happen. ──
+  for (const emi of dueEmis) {
+    const expenseId = await createExpense({
+      user_id: U, amount: emi.emi_amount, merchant_name: "HDFC Bank", description: "Car loan EMI",
+      category_id: cats["EMIs"], payment_mode_id: modes["Net Banking"], account_id: savings, date: emi.due_date,
+    });
+    const linked = await db.getFirstAsync<{ id: string }>("SELECT id FROM expense_loan_links WHERE expense_id = ?;", expenseId);
+    const entry = await db.getFirstAsync<{ status: string }>("SELECT status FROM loan_schedule_entries WHERE id = ?;", emi.id);
+    if (!linked && entry?.status === "scheduled") await linkExpenseAsEMI(expenseId, loanId, emi.id);
+  }
+
   // ── Budgets for the current month ──
   const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   for (const [cat, amount] of Object.entries(BUDGETS)) {
     if (cats[cat]) await upsertBudget({ user_id: U, category_id: cats[cat], month, amount });
   }
-
-  // ── Loan ──
-  const loanStart = daysAgo(400);
-  await createLoan({
-    user_id: U, bank_name: "HDFC Bank", account_identifier: "5560", loan_type: "auto",
-    principal_sanctioned: 650000, principal_disbursed: 650000,
-    disbursement_date: iso(loanStart), emi_start_date: iso(new Date(loanStart.getFullYear(), loanStart.getMonth() + 1, 10, 12)),
-    emi_day_of_month: 10, interest_rate_pa: 9.1, interest_type: "fixed", interest_method: "reducing",
-    tenure_months: 60, account_label: "Car loan",
-  });
 
   // ── Hisaab (family ledger) ──
   const priya = await createPerson({ owner_user_id: U, name: "Priya" });
@@ -184,14 +223,22 @@ export async function seedDemoData(): Promise<void> {
   const ananya = await createPerson({ owner_user_id: U, name: "Ananya" });
   await createEntry({ hisaab_person_id: priya, amount: 2400, description: "Dinner at Toit", date: iso(daysAgo(9)), type: "debit" });
   await createEntry({ hisaab_person_id: priya, amount: 1150, description: "Concert tickets", date: iso(daysAgo(24)), type: "debit" });
-  await createEntry({ hisaab_person_id: rohan, amount: 5000, description: "Borrowed for trip", date: iso(daysAgo(18)), type: "credit" });
+  await createEntry({ hisaab_person_id: rohan, amount: 1800, description: "Cab to the airport", date: iso(daysAgo(12)), type: "debit" });
+  await createEntry({ hisaab_person_id: rohan, amount: 1200, description: "Movie tickets", date: iso(daysAgo(20)), type: "credit" });
   await createEntry({ hisaab_person_id: ananya, amount: 3200, description: "Goa stay share", date: iso(daysAgo(40)), type: "debit" });
   await createEntry({ hisaab_person_id: ananya, amount: 3200, description: "Paid back", date: iso(daysAgo(30)), type: "settlement" });
 
-  // ── Goals ──
+  // ── Goals and the yearly plan (income, investment goals, life goals) ──
+  const fy = String(getCurrentFY(getFYStartMonth()));
   const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), 1, 12);
-  await createLifeMilestone({ user_id: U, name: "Home down payment", target_amount: 1500000, target_date: iso(new Date(today.getFullYear() + 3, 2, 31, 12)), monthly_contribution_planned: 30000 });
+  const home = await createLifeMilestone({ user_id: U, name: "Home down payment", target_amount: 1500000, target_date: iso(new Date(today.getFullYear() + 3, 2, 31, 12)), monthly_contribution_planned: 30000 });
   await createLifeMilestone({ user_id: U, name: "Europe trip", target_amount: 350000, target_date: iso(nextYear), monthly_contribution_planned: 15000 });
+  await createInvestmentBucket({ user_id: U, financial_year: fy, name: "Emergency fund", annual_target: 120000 });
+  await createInvestmentBucket({ user_id: U, financial_year: fy, name: "Index fund SIP", annual_target: 180000, linked_milestone_id: home });
+  await createSalaryProfile({
+    user_id: U, financial_year: fy, input_mode: "ctc", annual_ctc: 2400000, tax_regime: "new",
+    status: "complete", computed_monthly_in_hand: 142500, computed_annual_tax: 290000, salary_credit_day: 1,
+  });
 
   bumpDataVersion();
 }

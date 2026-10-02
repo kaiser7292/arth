@@ -84,6 +84,43 @@ describe("seedDemoData", () => {
     const today = new Date();
     const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     expect(count(`SELECT COUNT(*) AS n FROM expenses WHERE date > '${todayIso}'`)).toBe(0);
+
+    // screens that looked unfinished in the first screenshots
+    expect(count("SELECT COUNT(*) AS n FROM account_month_balances")).toBeGreaterThanOrEqual(3); // no "No opening balance set"
+    expect(count(`SELECT COUNT(*) AS n FROM loan_schedule_entries WHERE due_date <= '${todayIso}' AND status = 'scheduled'`)).toBe(0); // no overdue EMI
+    expect(count("SELECT COUNT(*) AS n FROM expense_loan_links")).toBeGreaterThanOrEqual(3);
+    expect(count("SELECT COUNT(*) AS n FROM salary_profiles WHERE computed_monthly_in_hand > 0")).toBe(1); // "Set your income" done
+    expect(count("SELECT COUNT(*) AS n FROM investment_buckets")).toBe(2); // "Add investment goals" done
+    expect(count(
+      "SELECT COUNT(*) AS n FROM expenses e JOIN financial_accounts a ON a.id = e.account_id WHERE a.account_type = 'wallet'",
+    )).toBeGreaterThan(0);
+  });
+
+  it("keeps every account's balance believable", async () => {
+    await seedDemoData();
+    const rows = mockDb.prepare(`
+      SELECT a.bank_name, a.account_type,
+        COALESCE((SELECT opening_balance FROM account_month_balances b WHERE b.account_id = a.id ORDER BY month LIMIT 1), 0)
+        + COALESCE((SELECT SUM(amount) FROM expenses WHERE account_id = a.id AND nature = 'credit'), 0)
+        - COALESCE((SELECT SUM(amount) FROM expenses WHERE account_id = a.id AND nature = 'realized'), 0)
+        - COALESCE((SELECT SUM(amount) FROM account_transfers WHERE from_account_id = a.id), 0)
+        + COALESCE((SELECT SUM(amount) FROM account_transfers WHERE to_account_id = a.id), 0) AS closing
+      FROM financial_accounts a WHERE a.account_type IN ('savings', 'wallet')
+    `).all() as { bank_name: string; closing: number }[];
+    for (const r of rows) expect([r.bank_name, r.closing > 0]).toEqual([r.bank_name, true]);
+  });
+
+  it("gives the current month only its share of spending (screenshots taken on the 2nd)", async () => {
+    jest.useFakeTimers({ now: new Date(2026, 9, 2, 10), doNotFake: ["nextTick", "setImmediate", "queueMicrotask", "setTimeout", "setInterval"] });
+    try {
+      await seedDemoData();
+      const thisMonth = count("SELECT COUNT(*) AS n FROM expenses WHERE nature = 'realized' AND date >= '2026-10-01'");
+      const lastMonth = count("SELECT COUNT(*) AS n FROM expenses WHERE nature = 'realized' AND date >= '2026-09-01' AND date < '2026-10-01'");
+      expect(thisMonth).toBeLessThan(lastMonth / 5);
+      expect(count("SELECT COUNT(*) AS n FROM expenses WHERE date > '2026-10-02'")).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("refuses outside a demo build", async () => {
