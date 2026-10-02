@@ -75,7 +75,7 @@ If you skip the rate and maturity, the FD shows **Rate & maturity not set** on t
 
 Arth shows a live preview of the maturity amount as you type. If your bank quotes a different figure, you can enter a **maturity amount override**.
 
-You can also link the FD to a yearly-plan **investment bucket**, the same way a demat transfer can. The deposit counts towards the bucket, and a withdrawal is recorded in the bucket when the FD matures.
+You can also link the FD to a yearly-plan **investment bucket** - pick it under **Count towards investment bucket** when you add the FD, or later from the FD's details. The deposit counts towards the bucket, and a withdrawal is recorded in the bucket when the FD matures.
 
 > An FD account / receipt number is required. It's how Arth tells apart several FDs at the same bank. Letters are allowed.
 

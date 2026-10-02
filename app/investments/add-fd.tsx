@@ -7,7 +7,9 @@ import { Button, Card, Input, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { createFDAccount } from "@/services/investment-accounts";
+import { createFDAccount, linkFDToBucket } from "@/services/investment-accounts";
+import { BucketLinkPicker } from "@/components/account/BucketLinkPicker";
+import { logger } from "@/utils/logger";
 import type { CompoundingFreq, InterestMethod } from "@/services/investment-engine";
 import { computeFDMaturityValue } from "@/services/investment-engine";
 import { getAccountById } from "@/services/financial-account";
@@ -42,6 +44,7 @@ export default function AddFDScreen() {
   const [sourceAccountId, setSourceAccountId] = useState<string | null>(null);
   const [sourceAccountLabel, setSourceAccountLabel] = useState<string | null>(null);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const [bucketId, setBucketId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const projectedValue = useMemo(() => {
@@ -89,7 +92,7 @@ export default function AddFDScreen() {
 
     setSaving(true);
     try {
-      await createFDAccount({
+      const fdAccountId = await createFDAccount({
         user_id: DEFAULT_USER_ID,
         bank_name: bankName.trim(),
         account_identifier: identifier,
@@ -101,6 +104,18 @@ export default function AddFDScreen() {
         maturity_date: maturityDate,
         source_account_id: sourceAccountId!,
       });
+      if (bucketId) {
+        try {
+          await linkFDToBucket(fdAccountId, bucketId);
+        } catch (e) {
+          // The FD itself is saved; only the bucket link failed. Say so instead of losing the FD.
+          logger.error("Link new FD to bucket failed:", e);
+          alert(
+            "FD saved",
+            "The fixed deposit is saved, but it couldn't be linked to the bucket. Open it from Investments to try again.",
+          );
+        }
+      }
       router.back();
     } catch (e) {
       alert("Couldn't save", formatError("Save fixed deposit", e));
@@ -109,7 +124,7 @@ export default function AddFDScreen() {
     }
   }, [
     bankName, accountIdentifier, principal, interestRate, interestMethod, compoundingFreq,
-    startDate, maturityDate, sourceAccountId, alert, router,
+    startDate, maturityDate, sourceAccountId, bucketId, alert, router,
   ]);
 
   return (
@@ -239,6 +254,8 @@ export default function AddFDScreen() {
             The deposit moves out of this account now. At maturity, the principal moves back here and the interest lands as a credit for you to review.
           </Text>
         </Card>
+
+        <BucketLinkPicker value={bucketId} onChange={setBucketId} className="mt-3" />
 
         {projectedValue != null && (
           <Card className="mt-3">
