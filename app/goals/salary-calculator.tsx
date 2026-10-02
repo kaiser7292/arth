@@ -10,6 +10,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import {
+  getEpfMonthlyCeilingLabel,
   getProfessionalTax,
   grossUpBankReceipts,
   type BusinessScheme,
@@ -951,6 +952,12 @@ export default function SalaryCalculatorScreen() {
                   directMonthly={directMonthly}
                   onDirectMonthlyChange={setDirectMonthly}
                   directAnnual={directAnnual}
+                  epfCeilingMonthly={getEpfMonthlyCeilingLabel(selectedFYNum)}
+                  basicBelowHalf={
+                    !!calculation &&
+                    calculation.ctcBreakdown.grossSalary > 0 &&
+                    calculation.ctcBreakdown.basic < calculation.ctcBreakdown.grossSalary * 0.5
+                  }
                 />
 
                 {/* Old Regime Deductions */}

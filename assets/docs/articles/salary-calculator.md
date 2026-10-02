@@ -43,14 +43,14 @@ Pick **Salaried** or **Business / Freelance** at the top. Salaried has two input
 
 ## CTC mode: what you fill in
 
-**Basic salary percentage** — the portion of your CTC that counts as basic pay. Typically 40–50%. This drives the PF calculation.
+**Basic salary percentage** — the portion of your CTC that counts as basic pay. This drives the PF and gratuity calculation. Under the new Labour Codes (from 21 November 2025), basic + DA must be at least 50% of your pay for PF and gratuity; Arth warns you if yours is lower, since your employer may restructure your salary.
 
 **HRA percentage** — the portion of CTC paid as House Rent Allowance. Used to compute the HRA exemption if you are in the old tax regime.
 
 **Metro or non-metro** — affects the HRA exemption cap (50% of basic for metro cities, 40% for others).
 
 **EPF mode** — choose between:
-- Statutory (12% of basic up to ₹15,000/month ceiling, i.e., max ₹1,800/month employee contribution)
+- Statutory (12% of basic up to the wage ceiling). The ceiling went up from ₹15,000 to ₹25,000 a month on 17 September 2026, so the most you contribute goes from ₹1,800 to ₹3,000 a month. For FY 2026-27 Arth uses ₹15,000 until 16 September and ₹25,000 after.
 - Actual (12% of full basic salary with no ceiling)
 - None (no EPF deducted, e.g., employer is exempt or you are on a different scheme)
 

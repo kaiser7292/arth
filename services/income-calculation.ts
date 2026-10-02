@@ -14,6 +14,7 @@ import {
   computeCapitalGainsTax,
   computeAdvanceTaxSchedule,
   getProfessionalTax,
+  getEpfAnnualWageCap,
   type AdvanceTaxPlan,
   type BonusTaxResult,
   type BusinessIncomeCalculation,
@@ -199,6 +200,7 @@ export function computeIncomeProfile(
         hraExemptionAnnual: p.hra_exemption_annual ?? 0,
         homeLoanInterest: p.home_loan_interest ?? 0,
         otherDeductions: p.other_deductions ?? 0,
+        epfAnnualWageCap: getEpfAnnualWageCap(fyYear),
         manualBreakdown:
           p.ctc_mode === "manual"
             ? {

@@ -91,12 +91,40 @@ export interface TaxInput {
    * and the rupee values are used as-is. Special allowance is derived if zero.
    */
   manualBreakdown?: ManualCTCBreakdown;
+  /** Annual EPF wage ceiling for the tax year (getEpfAnnualWageCap). Defaults to the old ₹15,000/month. */
+  epfAnnualWageCap?: number;
 }
 
 // ─── Constants ─────────────────────────────────────────────
 
-/** EPF statutory wage ceiling */
-const EPF_RESTRICTED_MONTHLY_WAGE = 15000;
+/**
+ * EPF statutory wage ceiling (Basic + DA per month). Raised from ₹15,000 to ₹25,000 by
+ * notification S.O. 5109(E) under the Code on Social Security, effective 17 Sep 2026.
+ */
+const EPF_CEILING_OLD_MONTHLY = 15000;
+const EPF_CEILING_NEW_MONTHLY = 25000;
+/** First day the ₹25,000 ceiling applies. */
+export const EPF_CEILING_CHANGE_DATE = "2026-09-17";
+/** Annual cap under the old ceiling — the default for callers that don't say which year. */
+const EPF_LEGACY_ANNUAL_CAP = EPF_CEILING_OLD_MONTHLY * 12;
+
+/**
+ * EPF wage ceiling for an Indian tax year (April `fyYear` → March `fyYear + 1`), as an
+ * annual figure. FY 2026-27 straddles the change: April–August and 1–16 September at
+ * ₹15,000, 17–30 September and October–March at ₹25,000 (September pro-rated by days,
+ * the way payroll applies it).
+ */
+export function getEpfAnnualWageCap(fyYear: number): number {
+  if (fyYear <= 2025) return EPF_CEILING_OLD_MONTHLY * 12;
+  if (fyYear >= 2027) return EPF_CEILING_NEW_MONTHLY * 12;
+  const september = (EPF_CEILING_OLD_MONTHLY * 16 + EPF_CEILING_NEW_MONTHLY * 14) / 30;
+  return Math.round(EPF_CEILING_OLD_MONTHLY * 5 + september + EPF_CEILING_NEW_MONTHLY * 6);
+}
+
+/** Monthly EPF ceiling in force for most of the tax year — for labels. */
+export function getEpfMonthlyCeilingLabel(fyYear: number): number {
+  return fyYear >= 2026 ? EPF_CEILING_NEW_MONTHLY : EPF_CEILING_OLD_MONTHLY;
+}
 
 /** Gratuity rate: 4.81% of Basic (15/26 * 1/12 * basic) */
 const GRATUITY_RATE = 0.0481;
@@ -205,6 +233,8 @@ export function calculateCTCBreakdown(
   epfInCTC: boolean,
   gratuityInCTC: boolean = true,
   manualBreakdown?: ManualCTCBreakdown,
+  /** Annual EPF wage ceiling for "restricted" mode — see getEpfAnnualWageCap. */
+  epfAnnualWageCap: number = EPF_LEGACY_ANNUAL_CAP,
 ): CTCBreakdown {
   if (manualBreakdown) {
     const basic = manualBreakdown.basic;
@@ -245,7 +275,7 @@ export function calculateCTCBreakdown(
   // Employer EPF contribution
   const epfBase =
     epfMode === "restricted"
-      ? Math.min(basic, EPF_RESTRICTED_MONTHLY_WAGE * 12)
+      ? Math.min(basic, epfAnnualWageCap)
       : basic;
   const employerEPF = epfBase * 0.12;
 
@@ -278,10 +308,12 @@ export function calculateEPF(
   annualBasic: number,
   epfMode: "full_basic" | "restricted",
   vpfMonthly: number,
+  /** Annual EPF wage ceiling for "restricted" mode — see getEpfAnnualWageCap. */
+  epfAnnualWageCap: number = EPF_LEGACY_ANNUAL_CAP,
 ): EPFResult {
   const epfBase =
     epfMode === "restricted"
-      ? Math.min(annualBasic, EPF_RESTRICTED_MONTHLY_WAGE * 12)
+      ? Math.min(annualBasic, epfAnnualWageCap)
       : annualBasic;
 
   const employeeContribution = epfBase * 0.12;
@@ -515,12 +547,14 @@ export function calculateSalary(input: TaxInput): SalaryCalculation {
     input.epfInCTC,
     input.gratuityInCTC ?? true,
     input.manualBreakdown,
+    input.epfAnnualWageCap,
   );
 
   const epf = calculateEPF(
     ctcBreakdown.basic,
     input.epfMode,
     input.vpfMonthly,
+    input.epfAnnualWageCap,
   );
 
   const newRegimeTax = calculateNewRegimeTax(ctcBreakdown.grossSalary);

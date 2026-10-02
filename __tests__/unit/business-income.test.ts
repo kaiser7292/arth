@@ -6,11 +6,14 @@
 
 import {
   calculateBusinessIncome,
+  calculateEPF,
   calculateOtherIncome,
   computeAdvanceTaxSchedule,
   computeBonusTax,
   computeCapitalGainsTax,
   computeLetOutIncome,
+  getEpfAnnualWageCap,
+  getEpfMonthlyCeilingLabel,
   getPresumptiveLimit,
   grossUpBankReceipts,
   type BusinessIncomeInput,
@@ -368,5 +371,40 @@ describe("computeIncomeProfile", () => {
     expect(r.totalAnnualIncome).toBe(1350000);
     expect(r.other).toBeNull();
     expect(r.annualTax).toBe(0);
+  });
+});
+
+// ─── EPF wage ceiling ₹15,000 → ₹25,000 (17 Sep 2026) ─────
+
+
+describe("EPF wage ceiling by tax year", () => {
+  it("₹15,000/month up to FY 2025-26, ₹25,000/month from FY 2027-28", () => {
+    expect(getEpfAnnualWageCap(2025)).toBe(180000);
+    expect(getEpfAnnualWageCap(2027)).toBe(300000);
+  });
+
+  it("FY 2026-27 switches on 17 September (September pro-rated by day)", () => {
+    // Apr–Aug 5 × 15,000 + Sep (16 × 15,000 + 14 × 25,000) / 30 + Oct–Mar 6 × 25,000
+    expect(getEpfAnnualWageCap(2026)).toBe(244667);
+    expect(getEpfMonthlyCeilingLabel(2026)).toBe(25000);
+    expect(getEpfMonthlyCeilingLabel(2025)).toBe(15000);
+  });
+
+  it("restricted employee PF uses the year's ceiling", () => {
+    expect(calculateEPF(800000, "restricted", 0, getEpfAnnualWageCap(2027)).employeeContribution).toBe(36000);
+    // Default stays at the old ceiling for callers that don't pass a year
+    expect(calculateEPF(800000, "restricted", 0).employeeContribution).toBe(21600);
+    // Basic below the ceiling is unaffected
+    expect(calculateEPF(240000, "restricted", 0, getEpfAnnualWageCap(2027)).employeeContribution).toBe(28800);
+  });
+
+  it("income profile applies the ceiling for the selected FY", () => {
+    const p = { ...emptyProfile, annual_ctc: 2000000 };
+    const fy25 = computeIncomeProfile(p, 2025);
+    const fy27 = computeIncomeProfile(p, 2027);
+    expect(fy25.salary!.epf.employeeContribution).toBe(21600);
+    expect(fy27.salary!.epf.employeeContribution).toBe(36000);
+    // More PF deducted → less in hand
+    expect(fy27.primaryAnnualInHand).toBeLessThan(fy25.primaryAnnualInHand);
   });
 });

@@ -62,6 +62,14 @@ export interface SalaryInputFormProps {
   monthlyOverrides?: MonthlyOverrides;
   onMonthlyOverridesChange?: (overrides: MonthlyOverrides) => void;
   fyStartMonth?: number;
+
+  /** EPF wage ceiling (₹/month) for the selected year — labels the "Minimum" EPF option. */
+  epfCeilingMonthly?: number;
+  /**
+   * Basic pay is under half of gross pay. The Labour Codes (from 21 Nov 2025) count the
+   * excess allowances as wages for PF and gratuity, so the employer may restructure.
+   */
+  basicBelowHalf?: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────
@@ -105,6 +113,8 @@ export function SalaryInputForm({
   monthlyOverrides,
   onMonthlyOverridesChange,
   fyStartMonth = 4,
+  epfCeilingMonthly = 15000,
+  basicBelowHalf = false,
 }: SalaryInputFormProps) {
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -411,12 +421,27 @@ export function SalaryInputForm({
         )}
       </Card>
 
+      {basicBelowHalf && (
+        <View
+          className="flex-row items-start px-3 py-2.5 rounded-lg mb-4"
+          style={{ backgroundColor: theme.alpha("warning", 0.08) }}
+        >
+          <Ionicons name="alert-circle-outline" size={16} color={theme.warning} />
+          <Text className="text-xs text-muted-foreground ml-2 flex-1">
+            Basic pay is under half of your gross pay. Under the new Labour Codes (from 21 Nov 2025),
+            basic + DA must be at least 50% of pay for PF and gratuity, so your employer may raise
+            basic. That means more PF and gratuity and slightly lower take-home. Check your latest
+            salary slip.
+          </Text>
+        </View>
+      )}
+
       {/* EPF & Settings */}
       <Card title="EPF & Settings" className="mb-4">
         <Toggle
           label="EPF Mode"
           options={[
-            { label: "Minimum (15K)", value: "restricted" },
+            { label: `Minimum (${Math.round(epfCeilingMonthly / 1000)}K)`, value: "restricted" },
             { label: "12% of Basic Pay", value: "full_basic" },
           ]}
           value={epfMode}
