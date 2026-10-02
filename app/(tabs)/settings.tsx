@@ -450,6 +450,7 @@ export default function SettingsScreen() {
             <SettingsRow icon="repeat-outline" label="Reminders" subtitle="Rent, subscriptions, anything that repeats" onPress={() => router.push("/settings/recurring-rules")} />
             <SettingsRow icon="flash-outline" label="Smart Rules" subtitle="Auto-categorize expenses by merchant, amount, account" onPress={() => router.push("/settings/smart-rules")} />
             <SettingsRow icon="construct-outline" label="Smart SMS Templates" subtitle="Teach Arth to read SMS from any bank" onPress={() => router.push("/settings/sms-templates")} />
+            <SettingsRow icon="pricetags-outline" label="Merchant Categories" subtitle="Choose which category each merchant goes to" onPress={() => router.push("/settings/merchant-categories")} />
             <SettingsRow icon="swap-horizontal-outline" label="Merchant Aliases" subtitle="Clean up SMS merchant names" onPress={() => router.push("/settings/merchant-aliases")} />
             <SettingsRow icon="list-outline" label="Audit Log" subtitle="See every action taken on detected and manual records" onPress={() => router.push("/settings/audit-log")} />
           </Card>

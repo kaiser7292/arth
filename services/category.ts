@@ -2,6 +2,7 @@ import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
 import { DEFAULT_CATEGORIES } from "@/database/defaults/categories";
 import { bumpDataVersion } from "@/services/settings";
+import { renameCategoryInMerchantRules } from "@/services/merchant-categories";
 
 export interface Category {
   id: string;
@@ -135,11 +136,20 @@ export async function updateCategory(
 
   if (fields.length === 0) return;
 
+  // Merchant rules point at categories by name; keep them following a rename.
+  const before =
+    input.name !== undefined
+      ? await db.getFirstAsync<{ name: string }>("SELECT name FROM categories WHERE id = ?;", id)
+      : null;
+
   values.push(id);
   await db.runAsync(
     `UPDATE categories SET ${fields.join(", ")} WHERE id = ?;`,
     ...values,
   );
+  if (before && input.name && before.name !== input.name) {
+    await renameCategoryInMerchantRules(before.name, input.name);
+  }
   bumpDataVersion();
 }
 

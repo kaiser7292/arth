@@ -19,6 +19,8 @@ phrasings:
 
 Smart rules are explicit "IF this THEN that" rules you define once and Arth applies forever. They run before every other auto-detection - so they always win over learned mappings and built-in merchant aliases.
 
+Arth also has built-in merchant rules (Swiggy → Food, Uber → Travel and 250+ more) that you can see and change in **Settings → Automation → Merchant Categories**. A Smart Rule overrides all of them. See "How Arth picks a category" for the full order.
+
 ## Where to find them
 
 **Settings tab → Automation → Smart Rules.** Tap **+** to create, tap a row to edit or delete.

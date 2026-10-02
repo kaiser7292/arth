@@ -1,3 +1,4 @@
+import { findRuleForMerchant, setMerchantRule } from "@/services/merchant-categories";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { AmountInput } from "@/components/expense/AmountInput";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
@@ -558,6 +559,19 @@ export default function ExpenseDetailScreen() {
         });
       }
 
+      // Offer to make a category change permanent for this merchant (Merchant categories).
+      let alwaysFile: { merchant: string; categoryName: string } | null = null;
+      if (originalExpense && categoryId && categoryId !== originalExpense.category_id) {
+        const merchantForRule =
+          merchantName.trim() ||
+          (originalExpense.description ? extractMerchantFromDescription(originalExpense.description) : "");
+        const categoryName = categories.find((c) => c.id === categoryId)?.name;
+        if (merchantForRule && merchantForRule !== "Bank transaction" && categoryName) {
+          const current = await findRuleForMerchant(merchantForRule).catch(() => null);
+          if (current?.categoryName !== categoryName) alwaysFile = { merchant: merchantForRule, categoryName };
+        }
+      }
+
       // Record category correction for SMS-sourced expenses (smart categorization learning)
       if (
         originalExpense &&
@@ -619,13 +633,30 @@ export default function ExpenseDetailScreen() {
       }
       setExtraLegs([]);
       setEditing(false);
+
+      if (alwaysFile) {
+        const { merchant, categoryName } = alwaysFile;
+        alert(`Always file ${merchant} as ${categoryName}?`, "Future transactions from this merchant will go straight to this category. You can change it any time in Settings → Merchant Categories.", [
+          { text: "Not now", style: "cancel" },
+          {
+            text: "Always",
+            onPress: async () => {
+              try {
+                await setMerchantRule(merchant, categoryName);
+              } catch (err) {
+                alert("Couldn't save", formatError("Save merchant rule", err));
+              }
+            },
+          },
+        ]);
+      }
     } catch (e) {
       logger.error("Update expense failed:", e);
       alert("Error", formatError("Save expense", e));
     } finally {
       setSaving(false);
     }
-  }, [amount, description, merchantName, categoryId, paymentModeId, accountId, date, isRightSpend, id, expense, originalExpense, multiSplitSummary, extraLegs]);
+  }, [amount, description, merchantName, categoryId, paymentModeId, accountId, date, isRightSpend, id, expense, originalExpense, multiSplitSummary, extraLegs, categories]);
 
   const openRulePicker = useCallback(async () => {
     try {

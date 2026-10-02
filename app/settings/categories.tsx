@@ -15,6 +15,7 @@ import {
   hardDeleteCategory,
 } from "@/services/category";
 import type { Category } from "@/services/category";
+import { countMerchantRulesForCategory } from "@/services/merchant-categories";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -40,6 +41,35 @@ export default function CategoriesScreen() {
     }, [loadCategories]),
   );
 
+  /**
+   * Merchants still filed into a category that's about to go would land uncategorised.
+   * Offer to move them first; resolves true when it's fine to go ahead.
+   */
+  const confirmMerchantRules = useCallback(
+    async (cat: Category, verb: string): Promise<boolean> => {
+      const n = await countMerchantRulesForCategory(cat.name);
+      if (n === 0) return true;
+      return new Promise<boolean>((resolve) =>
+        alert(
+          `${n} merchant${n > 1 ? "s" : ""} use "${cat.name}"`,
+          `Arth files ${n > 1 ? "these merchants" : "this merchant"} into "${cat.name}". If you ${verb} it, ${n > 1 ? "they" : "it"} will land in your review queue uncategorised. Move ${n > 1 ? "them" : "it"} to another category first?`,
+          [
+            { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+            {
+              text: "Move merchants",
+              onPress: () => {
+                resolve(false);
+                router.push({ pathname: "/settings/merchant-categories", params: { category: cat.name } });
+              },
+            },
+            { text: `${verb[0].toUpperCase()}${verb.slice(1)} anyway`, style: "destructive", onPress: () => resolve(true) },
+          ],
+        ),
+      );
+    },
+    [alert, router],
+  );
+
   const handleToggleActive = useCallback(
     async (cat: Category) => {
       try {
@@ -53,6 +83,7 @@ export default function CategoriesScreen() {
             return;
           }
         }
+        if (cat.is_active === 1 && !(await confirmMerchantRules(cat, "hide"))) return;
         const newActive = cat.is_active === 1 ? 0 : 1;
         await updateCategory(cat.id, { is_active: newActive });
         loadCategories();
@@ -60,7 +91,7 @@ export default function CategoriesScreen() {
         alert("Couldn't update", getErrorMessage(e, "Failed to update category."));
       }
     },
-    [loadCategories],
+    [loadCategories, confirmMerchantRules],
   );
 
   const handleMoveUp = useCallback(
@@ -113,6 +144,7 @@ export default function CategoriesScreen() {
         );
         return;
       }
+      if (!(await confirmMerchantRules(cat, "delete"))) return;
       alert("Delete Category", `Permanently delete "${cat.name}"? This cannot be undone.`, [
         { text: "Cancel", style: "cancel" },
         {
@@ -129,7 +161,7 @@ export default function CategoriesScreen() {
         },
       ]);
     },
-    [loadCategories],
+    [loadCategories, confirmMerchantRules],
   );
 
   const renderItem = ({ item, index }: { item: Category; index: number }) => (
