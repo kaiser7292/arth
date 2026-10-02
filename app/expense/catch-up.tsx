@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, View } from "react-native";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { CatchUpCardView } from "@/components/expense/catch-up/CatchUpCardView";
+import { DescriptionSheet } from "@/components/expense/catch-up/DescriptionSheet";
 import { CatchUpDone } from "@/components/expense/catch-up/CatchUpDone";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { SwipeDeck } from "@/components/expense/catch-up/SwipeDeck";
@@ -34,6 +35,7 @@ import {
   resolveMatchAlreadyCaptured,
   resolveMatchBothDifferent,
   resolveMatchRealize,
+  updateExpense,
 } from "@/services/expense";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts } from "@/services/financial-account";
@@ -88,6 +90,8 @@ export default function CatchUpScreen() {
 
   const [picker, setPicker] = useState<{ commit: boolean } | null>(null);
   const [ccPickerOpen, setCcPickerOpen] = useState(false);
+  const [descriptionOpen, setDescriptionOpen] = useState(false);
+  const [savingDescription, setSavingDescription] = useState(false);
   const [batchOffer, setBatchOffer] = useState<BatchOffer | null>(null);
 
   const deferred = useRef(
@@ -193,6 +197,39 @@ export default function CatchUpScreen() {
         })
         .catch(() => {});
     }, []),
+  );
+
+  // ── Description, edited in place ──
+  // Written straight away (not held for undo like approve/reject): it's an edit, not a decision,
+  // so it survives a skip and the card's later approve / categorize.
+  const saveDescription = useCallback(
+    async (text: string) => {
+      if (!cardExpense) return;
+      const next = text.trim() || null;
+      if (next === (cardExpense.description?.trim() || null)) {
+        setDescriptionOpen(false);
+        return;
+      }
+      setSavingDescription(true);
+      try {
+        await updateExpense(cardExpense.id, { description: next });
+        const id = cardExpense.id;
+        setDeck((prev) =>
+          prev.map((c) =>
+            (c.kind === "pending" || c.kind === "uncategorized") && c.expense.id === id
+              ? ({ ...c, expense: { ...c.expense, description: next } } as CatchUpCard)
+              : c,
+          ),
+        );
+        setDescriptionOpen(false);
+      } catch (e) {
+        logger.error("Catch up: save description failed", e);
+        toast("Couldn't save the description", { tone: "danger" });
+      } finally {
+        setSavingDescription(false);
+      }
+    },
+    [cardExpense, toast],
   );
 
   // ── Action plumbing ──
@@ -505,7 +542,7 @@ export default function CatchUpScreen() {
   const cardActions: FooterAction[] = [];
   if (card.kind === "pending" || card.kind === "uncategorized") {
     cardActions.push({
-      label: "Edit, split or add a note",
+      label: "Edit or split",
       icon: "create-outline",
       onPress: () => void openCard(card.expense.id),
     });
@@ -558,7 +595,7 @@ export default function CatchUpScreen() {
           onSwipeLeft={skip}
           rightNeedsInput={needsInput}
           rightLabel={primaryLabel}
-          enabled={!picker && !ccPickerOpen}
+          enabled={!picker && !ccPickerOpen && !descriptionOpen}
           fill
         >
           <CatchUpCardView
@@ -568,6 +605,7 @@ export default function CatchUpScreen() {
             categoryId={cardExpense ? categoryFor(cardExpense) : null}
             onPickCategory={() => setPicker({ commit: false })}
             onOpen={openCard}
+            onEditDescription={() => setDescriptionOpen(true)}
             actions={cardActions}
           />
         </SwipeDeck>
@@ -586,6 +624,13 @@ export default function CatchUpScreen() {
         selectedId={cardExpense ? categoryFor(cardExpense) : null}
         onSelect={onPickCategory}
         onClose={() => setPicker(null)}
+      />
+      <DescriptionSheet
+        visible={descriptionOpen}
+        initial={cardExpense?.description ?? ""}
+        saving={savingDescription}
+        onSave={(t) => void saveDescription(t)}
+        onClose={() => setDescriptionOpen(false)}
       />
       <AccountPickerSheet
         visible={ccPickerOpen}

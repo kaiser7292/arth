@@ -114,8 +114,9 @@ export default function CheckInPreview() {
               categoryId={null}
               onPickCategory={noop}
               onOpen={noop}
+              onEditDescription={noop}
               actions={[
-                { label: "Edit, split or add a note", icon: "create-outline", onPress: noop },
+                { label: "Edit or split", icon: "create-outline", onPress: noop },
                 { label: "Reject", icon: "close-circle-outline", role: "danger", onPress: noop },
               ]}
             />
@@ -134,8 +135,9 @@ export default function CheckInPreview() {
               categoryId="food"
               onPickCategory={noop}
               onOpen={noop}
+              onEditDescription={noop}
               actions={[
-                { label: "Edit, split or add a note", icon: "create-outline", onPress: noop },
+                { label: "Edit or split", icon: "create-outline", onPress: noop },
                 { label: "Reject", icon: "close-circle-outline", role: "danger", onPress: noop },
               ]}
             />

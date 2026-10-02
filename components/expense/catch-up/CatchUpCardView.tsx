@@ -20,6 +20,8 @@ interface CatchUpCardViewProps {
   categoryId: string | null;
   onPickCategory: () => void;
   onOpen: (expenseId: string) => void;
+  /** Add / change the description in place (pending / uncategorized only). */
+  onEditDescription: () => void;
   /** Extra actions (Reject, Already captured, Edit details…) as rows at the bottom of the card. */
   actions: FooterAction[];
 }
@@ -50,6 +52,7 @@ export function CatchUpCardView({
   categoryId,
   onPickCategory,
   onOpen,
+  onEditDescription,
   actions,
 }: CatchUpCardViewProps) {
   const theme = useTheme();
@@ -75,6 +78,7 @@ export function CatchUpCardView({
           categoryId={categoryId}
           onPickCategory={onPickCategory}
           onOpen={onOpen}
+          onEditDescription={onEditDescription}
         />
       )}
 
@@ -93,6 +97,7 @@ function SingleExpenseBody({
   categoryId,
   onPickCategory,
   onOpen,
+  onEditDescription,
 }: {
   expense: Expense;
   isCredit: boolean;
@@ -101,11 +106,15 @@ function SingleExpenseBody({
   categoryId: string | null;
   onPickCategory: () => void;
   onOpen: (id: string) => void;
+  onEditDescription: () => void;
 }) {
   const theme = useTheme();
   const [showSms, setShowSms] = useState(false);
   const category = categoryId ? categoryMap.get(categoryId) : undefined;
   const account = accountText(accountMap, expense.account_id);
+  const description = expense.description?.trim() || null;
+  // With no merchant the title already IS the description — don't repeat it below.
+  const showDescriptionText = description != null && !!expense.merchant_name;
 
   return (
     <View>
@@ -149,6 +158,23 @@ function SingleExpenseBody({
           <Ionicons name="chevron-down" size={14} color={category?.color ?? theme.mutedForeground} style={{ marginLeft: 4 }} />
         </Pressable>
       )}
+
+      <Pressable
+        onPress={onEditDescription}
+        className="flex-row items-center self-center mt-3 px-3"
+        style={{ minHeight: 40, maxWidth: "100%" }}
+        accessibilityRole="button"
+        accessibilityLabel={description ? `Description ${description}, tap to change` : "Add a description"}
+      >
+        <Ionicons
+          name={description ? "create-outline" : "add-circle-outline"}
+          size={16}
+          color={theme.primary}
+        />
+        <Text className="text-sm font-medium ml-1.5 flex-shrink" style={{ color: theme.primary }} numberOfLines={2}>
+          {showDescriptionText ? description : description ? "Edit description" : "Add description"}
+        </Text>
+      </Pressable>
 
       {expense.raw_source_text ? (
         <View className="mt-4">
