@@ -44,7 +44,8 @@ import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, Switch, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Switch, View } from "react-native";
+import { PRIVACY_POLICY_URL, TERMS_URL } from "@/components/sms/SmsDisclosure";
 import { useTheme } from "@/hooks/use-theme";
 
 const SMS_DATE_PRESETS = [
@@ -863,6 +864,17 @@ export default function SettingsScreen() {
                 onPress={() => router.push("/settings/help")}
               />
             )}
+            <SettingsRow
+              icon="shield-checkmark-outline"
+              label="Privacy policy"
+              subtitle="What Arth reads, stores and never sends"
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {})}
+            />
+            <SettingsRow
+              icon="reader-outline"
+              label="Terms of use"
+              onPress={() => Linking.openURL(TERMS_URL).catch(() => {})}
+            />
             <SettingsRow
               icon="document-text-outline"
               label="Open-source licences"

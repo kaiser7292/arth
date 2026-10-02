@@ -79,12 +79,8 @@ Not declared, with reasoning (keep in case Google asks):
 
 ## 4. Open items before submitting
 
-- **Kite BYOK — done in code, needs one real login.** Each user enters their own Kite API key and
-  secret; the token exchange runs on the phone directly against `api.kite.trade/session/token`
-  (checksum only; the secret never leaves the device), so the connection server is no longer used.
-  Before submitting, log in once with a real key + secret to confirm Zerodha accepts the exchange
-  from a phone (its docs mention no IP restriction for it; the SEBI static-IP rule covers order
-  placement, which Arth never does).
-- **Connection server.** No longer used by the app. It can be shut down once the real login above
-  works (keep it until then as a fallback).
+- **Kite BYOK — done and confirmed.** Each user enters their own Kite API key and secret; the token
+  exchange runs on the phone directly against `api.kite.trade/session/token` (checksum only). A real
+  login was confirmed working on 2026-10-02, so the old connection server (Oracle VM) is no longer
+  needed and can be shut down.
 - **Terms of Use** in `legal.html` are fine for Play; no changes needed.

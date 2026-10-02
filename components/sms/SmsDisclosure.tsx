@@ -12,6 +12,7 @@ import { Button, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 
 export const PRIVACY_POLICY_URL = "https://souravbaid.com/legal.html#privacy";
+export const TERMS_URL = "https://souravbaid.com/legal.html#terms";
 
 const SECTIONS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body: string }> = [
   {
