@@ -10,6 +10,9 @@ import { useTheme } from "@/hooks/use-theme";
 import { getCategories, type Category } from "@/services/category";
 import {
   LEARNED_THRESHOLD,
+  applyRuleToPastTransactions,
+  countPastTransactionsForRule,
+  keywordFromMerchant,
   forgetLearnedMerchant,
   listLearnedMerchants,
   listMerchantRules,
@@ -83,6 +86,16 @@ export default function MerchantCategoriesScreen() {
     } catch (e) {
       alert(`Couldn't ${what}`, getErrorMessage(e, "Please try again."));
     }
+  };
+
+  /** After a rule changes: offer to move earlier transactions it now covers. */
+  const offerPastMove = async (keyword: string, categoryName: string) => {
+    const n = await countPastTransactionsForRule(keyword, categoryName).catch(() => 0);
+    if (n === 0) return;
+    alert(`Move ${n} earlier ${n === 1 ? "transaction" : "transactions"}?`, `${n} past ${titleCase(keyword)} ${n === 1 ? "transaction is" : "transactions are"} in another category. Move ${n === 1 ? "it" : "them"} to ${categoryName}?`, [
+      { text: "Leave them", style: "cancel" },
+      { text: "Move", onPress: () => run(() => applyRuleToPastTransactions(keyword, categoryName), "move them") },
+    ]);
   };
 
   const badge = (r: MerchantRule) => {
@@ -190,7 +203,9 @@ export default function MerchantCategoriesScreen() {
           <View className="px-4 pb-6">
             <Text className="text-lg font-semibold text-foreground mb-1">{titleCase(editing.keyword)}</Text>
             <Text className="text-xs text-muted-foreground mb-4 leading-4">
-              Any merchant containing "{editing.keyword}" is filed here.
+              {editing.matchMode === "word"
+                ? `Merchants named "${editing.keyword}" (as whole words) are filed here.`
+                : `Any merchant containing "${editing.keyword}" is filed here.`}
               {editing.builtInCategory ? ` Built-in category: ${editing.builtInCategory}.` : " You added this rule."}
             </Text>
             <Pressable onPress={() => setPicker("edit")} className="flex-row items-center justify-between py-3 border-b border-border">
@@ -250,8 +265,9 @@ export default function MerchantCategoriesScreen() {
             disabled={!newMerchant.trim() || !addCategory}
             onPress={() =>
               run(async () => {
-                await setMerchantRule(newMerchant, addCategory!);
+                const keyword = await setMerchantRule(keywordFromMerchant(newMerchant) || newMerchant, addCategory!);
                 setAdding(false);
+                await offerPastMove(keyword, addCategory!);
               }, "save the merchant")
             }
           />
@@ -273,6 +289,7 @@ export default function MerchantCategoriesScreen() {
           if (editing) {
             run(async () => {
               await setMerchantRule(editing.keyword, name);
+              await offerPastMove(editing.keyword, name);
               setEditing({ ...editing, categoryName: name, isActive: true, categoryMissing: false,
                 source: editing.builtInCategory === name ? "builtin" : editing.builtInCategory ? "edited" : "custom" });
             }, "change the category");

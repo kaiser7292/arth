@@ -17,7 +17,7 @@
 
 import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
-import { DEFAULT_MERCHANT_MAPPINGS } from "@/database/defaults/merchant-mappings";
+import { BUILT_IN_MERCHANT_MAPPINGS } from "@/database/defaults/merchant-mappings";
 import { bumpDataVersion } from "@/services/settings";
 import { getFlag } from "@/services/feature-flags";
 import { resolveMerchantBrand } from "@/services/public-data/lookup";
@@ -121,37 +121,49 @@ interface RuleMatch {
   confidence: number;
 }
 
-/**
- * Find the best rule-based match for a merchant string.
- * Checks if any keyword from merchant_mappings is a substring of the merchant.
- * Prefers longer keywords (more specific) and higher confidence.
- */
-async function getRuleMatch(normalizedMerchant: string): Promise<RuleMatch | null> {
-  const db = getDatabase();
-  const rows = await db.getAllAsync<{ keyword: string; category_name: string; confidence: number }>(
-    `SELECT keyword, category_name, confidence FROM merchant_mappings WHERE is_active = 1;`,
-  );
+/** How a keyword rule matches: anywhere in the merchant ("contains") or as whole words ("word"). */
+export type MatchMode = "contains" | "word";
 
-  let best: RuleMatch | null = null;
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Does a keyword rule match this (already normalized) merchant? "contains" suits app brands that
+ * SMS glue to other text (PYU*SWIGGY); "word" keeps short store names (More, Metro) from matching
+ * inside other words.
+ */
+export function keywordMatches(normalizedMerchant: string, keyword: string, mode: MatchMode | string = "contains"): boolean {
+  if (mode !== "word") return normalizedMerchant.includes(keyword);
+  return new RegExp(`(^|[^a-z0-9])${escapeRegex(keyword)}($|[^a-z0-9])`).test(normalizedMerchant);
+}
+
+/**
+ * Find the best rule-based match for a merchant string: the longest matching keyword wins
+ * (more specific), then the higher confidence. Turned-off rules take part too: if the best match
+ * is one the user switched off, `blocked` is set so the caller files nothing rather than falling
+ * through to the brand registry (which would put Swiggy back in Food).
+ */
+async function getRuleMatch(normalizedMerchant: string): Promise<{ match: RuleMatch | null; blocked: boolean }> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{
+    keyword: string; category_name: string; confidence: number; is_active: number; match_mode: string | null;
+  }>(`SELECT keyword, category_name, confidence, is_active, match_mode FROM merchant_mappings;`);
+
+  let best: (RuleMatch & { active: boolean }) | null = null;
 
   for (const row of rows) {
-    if (normalizedMerchant.includes(row.keyword)) {
-      // Prefer longer keyword matches (more specific) and higher confidence
-      if (
-        !best ||
-        row.keyword.length > best.keyword.length ||
-        (row.keyword.length === best.keyword.length && row.confidence > best.confidence)
-      ) {
-        best = {
-          keyword: row.keyword,
-          categoryName: row.category_name,
-          confidence: row.confidence,
-        };
-      }
+    if (!keywordMatches(normalizedMerchant, row.keyword, row.match_mode ?? "contains")) continue;
+    if (
+      !best ||
+      row.keyword.length > best.keyword.length ||
+      (row.keyword.length === best.keyword.length && row.confidence > best.confidence)
+    ) {
+      best = { keyword: row.keyword, categoryName: row.category_name, confidence: row.confidence, active: row.is_active === 1 };
     }
   }
 
-  return best;
+  if (!best) return { match: null, blocked: false };
+  if (!best.active) return { match: null, blocked: true };
+  return { match: { keyword: best.keyword, categoryName: best.categoryName, confidence: best.confidence }, blocked: false };
 }
 
 /**
@@ -206,7 +218,9 @@ export async function categorizeByMerchant(
   }
 
   // Layer 1: Check rule-based mapping
-  const rule = await getRuleMatch(normalized);
+  const { match: rule, blocked } = await getRuleMatch(normalized);
+  // The user turned off the rule that covers this merchant: leave it for them to categorise.
+  if (blocked) return none;
   if (rule) {
     const categoryId = await getCategoryIdByName(userId, rule.categoryName);
     if (categoryId) {
@@ -301,37 +315,48 @@ export async function recordCategoryCorrection(
 // ─── Seed default mappings ───
 
 /**
- * Seed the merchant_mappings table with default data.
- * Skips entries that already exist (by keyword).
+ * Version of the built-in rule set. Bump when BUILT_IN_MERCHANT_MAPPINGS gains rules so existing
+ * installs top up on next launch. 2 = OpenStreetMap store brands (whole-word).
+ */
+export const MERCHANT_MAPPINGS_VERSION = 2;
+const MERCHANT_MAPPINGS_VERSION_KEY = "merchant_mappings_version";
+
+/**
+ * Seed or top up the built-in merchant rules. INSERT OR IGNORE by keyword, so rules the user
+ * changed, turned off or added are never touched; only keywords Arth doesn't have yet are added.
  */
 export async function seedMerchantMappings(): Promise<void> {
-  // Cheap skip on every cold start after the first successful seed — avoids
-  // even the COUNT query below on every initDatabase() call.
-  if (settingsStorage.getBoolean(MERCHANT_MAPPINGS_SEEDED_KEY)) return;
-
-  const db = getDatabase();
-
-  const existing = await db.getFirstAsync<{ count: number }>(
-    "SELECT COUNT(*) as count FROM merchant_mappings;",
-  );
-
-  if (existing && existing.count > 0) {
-    settingsStorage.set(MERCHANT_MAPPINGS_SEEDED_KEY, true);
-    return; // Already seeded
+  // Cheap skip on every cold start once this install has the current rule set.
+  if (
+    settingsStorage.getBoolean(MERCHANT_MAPPINGS_SEEDED_KEY) &&
+    (settingsStorage.getNumber(MERCHANT_MAPPINGS_VERSION_KEY) ?? 1) >= MERCHANT_MAPPINGS_VERSION
+  ) {
+    return;
   }
 
+  await insertBuiltInMerchantMappings();
+  settingsStorage.set(MERCHANT_MAPPINGS_SEEDED_KEY, true);
+  settingsStorage.set(MERCHANT_MAPPINGS_VERSION_KEY, MERCHANT_MAPPINGS_VERSION);
+  await bumpDataVersion();
+}
+
+/**
+ * Add any built-in rule the table is missing (INSERT OR IGNORE: user edits are kept). Restore
+ * calls this too - a backup from before a rule-set update would otherwise leave the new built-ins
+ * out, and the per-device version marker would stop seedMerchantMappings from adding them back.
+ */
+export async function insertBuiltInMerchantMappings(): Promise<void> {
+  const db = getDatabase();
   await db.withTransactionAsync(async () => {
-    for (const mapping of DEFAULT_MERCHANT_MAPPINGS) {
-      const id = generateUUID();
+    for (const mapping of BUILT_IN_MERCHANT_MAPPINGS) {
       await db.runAsync(
-        `INSERT OR IGNORE INTO merchant_mappings (id, keyword, category_name, confidence) VALUES (?, ?, ?, ?);`,
-        id,
+        `INSERT OR IGNORE INTO merchant_mappings (id, keyword, category_name, confidence, match_mode) VALUES (?, ?, ?, ?, ?);`,
+        generateUUID(),
         mapping.keyword,
         mapping.categoryName,
         mapping.confidence,
+        mapping.matchMode ?? "contains",
       );
     }
   });
-  settingsStorage.set(MERCHANT_MAPPINGS_SEEDED_KEY, true);
-  await bumpDataVersion();
 }

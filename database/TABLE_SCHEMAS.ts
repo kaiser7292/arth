@@ -281,6 +281,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "confidence",
     "is_active",
     "created_at",
+    "match_mode",
   ] as const,
 
   merchant_corrections: [

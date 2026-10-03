@@ -694,6 +694,15 @@ export async function restoreFromData(
     console.warn(`[backup] restore: ${failedRows} row(s) across the backup failed to restore and were skipped.`);
   }
 
+  // A backup from before a built-in rule update lacks the newer built-in merchant rules; add them
+  // back without touching the restored (user-edited) ones.
+  try {
+    const { insertBuiltInMerchantMappings } = await import("@/services/smart-categorizer");
+    await insertBuiltInMerchantMappings();
+  } catch (e) {
+    console.warn("[backup] restore: built-in merchant rules could not be topped up", e);
+  }
+
   await bumpDataVersion();
   return { success: true, tablesRestored, totalRows, failedRows, error: null };
 }

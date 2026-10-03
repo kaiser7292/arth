@@ -1,4 +1,4 @@
-import { findRuleForMerchant, setMerchantRule } from "@/services/merchant-categories";
+import { applyRuleToPastTransactions, countPastTransactionsForRule, findRuleForMerchant, keywordForAlwaysFile, setMerchantRule } from "@/services/merchant-categories";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { AmountInput } from "@/components/expense/AmountInput";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
@@ -560,15 +560,19 @@ export default function ExpenseDetailScreen() {
       }
 
       // Offer to make a category change permanent for this merchant (Merchant categories).
-      let alwaysFile: { merchant: string; categoryName: string } | null = null;
+      let alwaysFile: { keyword: string; categoryName: string } | null = null;
       if (originalExpense && categoryId && categoryId !== originalExpense.category_id) {
         const merchantForRule =
           merchantName.trim() ||
           (originalExpense.description ? extractMerchantFromDescription(originalExpense.description) : "");
         const categoryName = categories.find((c) => c.id === categoryId)?.name;
         if (merchantForRule && merchantForRule !== "Bank transaction" && categoryName) {
+          // Change the rule that covers this merchant today ("swiggy"), not a one-off spelling of it.
           const current = await findRuleForMerchant(merchantForRule).catch(() => null);
-          if (current?.categoryName !== categoryName) alwaysFile = { merchant: merchantForRule, categoryName };
+          if (!current || !current.isActive || current.categoryName !== categoryName) {
+            const keyword = current?.keyword ?? (await keywordForAlwaysFile(merchantForRule));
+            if (keyword.length >= 2) alwaysFile = { keyword, categoryName };
+          }
         }
       }
 
@@ -635,14 +639,29 @@ export default function ExpenseDetailScreen() {
       setEditing(false);
 
       if (alwaysFile) {
-        const { merchant, categoryName } = alwaysFile;
-        alert(`Always file ${merchant} as ${categoryName}?`, "Future transactions from this merchant will go straight to this category. You can change it any time in Settings → Merchant Categories.", [
+        const { keyword, categoryName } = alwaysFile;
+        const label = keyword.replace(/\b\w/g, (c) => c.toUpperCase());
+        alert(`Always file ${label} as ${categoryName}?`, `Future transactions from merchants matching "${keyword}" will go straight to ${categoryName}. You can change it any time in Settings → Merchant Categories.`, [
           { text: "Not now", style: "cancel" },
           {
             text: "Always",
             onPress: async () => {
               try {
-                await setMerchantRule(merchant, categoryName);
+                await setMerchantRule(keyword, categoryName);
+                const past = await countPastTransactionsForRule(keyword, categoryName);
+                if (past > 0) {
+                  alert(`Move ${past} earlier ${past === 1 ? "transaction" : "transactions"} too?`, `${past} past ${label} ${past === 1 ? "transaction is" : "transactions are"} in another category.`, [
+                    { text: "Leave them", style: "cancel" },
+                    {
+                      text: "Move",
+                      onPress: () => {
+                        applyRuleToPastTransactions(keyword, categoryName).catch((err) =>
+                          alert("Couldn't move them", formatError("Move transactions", err)),
+                        );
+                      },
+                    },
+                  ]);
+                }
               } catch (err) {
                 alert("Couldn't save", formatError("Save merchant rule", err));
               }

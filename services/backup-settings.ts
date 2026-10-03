@@ -121,6 +121,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("backup_warning_dismissed_until", "string", PROGRESS),
   S("scheduled_backup_last_run_at", "string", PROGRESS),
   S("merchant_mappings_seeded", "boolean", DEVICE("seeding marker for this install")),
+  S("merchant_mappings_version", "number", DEVICE("which built-in rule set this install has seeded")),
   S("legacy_sms_task_cleaned", "boolean", DEVICE("one-time cleanup marker for this install")),
   S("notif_last_schedule_sync_ts", "number", PROGRESS),
   S("sms_permission_asked", "boolean", DEVICE("Android permission state is per device")),

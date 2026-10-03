@@ -16,7 +16,8 @@ import {
   recordCategoryCorrection,
   seedMerchantMappings,
 } from "../../services/smart-categorizer";
-import { DEFAULT_MERCHANT_MAPPINGS } from "../../database/defaults/merchant-mappings";
+import { BUILT_IN_MERCHANT_MAPPINGS, DEFAULT_MERCHANT_MAPPINGS } from "../../database/defaults/merchant-mappings";
+import { settingsStorage } from "../../services/storage";
 
 // ─── Mock database ───
 
@@ -28,6 +29,12 @@ jest.mock("@/database", () => ({
     // The code wraps multi-row writes in a transaction; run the body straight through.
     withTransactionAsync: jest.fn(async (fn: () => Promise<void>) => { await fn(); }),
     getAllAsync: jest.fn(async (sql: string) => {
+      // Rule lookups now read every rule (on and off) with its match mode; the fixtures below
+      // list active "contains" rules under the old query text.
+      if (sql === "SELECT keyword, category_name, confidence, is_active, match_mode FROM merchant_mappings;") {
+        const legacy = mockDbRows["SELECT keyword, category_name, confidence FROM merchant_mappings WHERE is_active = 1;"] ?? [];
+        return (legacy as Record<string, unknown>[]).map((r) => ({ is_active: 1, match_mode: "contains", ...r }));
+      }
       return mockDbRows[sql] ?? mockDbRows["__all__"] ?? [];
     }),
     getFirstAsync: jest.fn(async (sql: string, ...params: unknown[]) => {
@@ -437,29 +444,34 @@ describe("Default Merchant Mappings", () => {
 describe("seedMerchantMappings", () => {
   beforeEach(resetMocks);
 
-  it("seeds all default mappings when table is empty", async () => {
-    // Mock empty table
-    const countQuery = "SELECT COUNT(*) as count FROM merchant_mappings;";
-    mockDbRows[countQuery] = [{ count: 0 }];
+  const inserts = () => mockDbInserts.filter((r) => r.sql.includes("INSERT OR IGNORE INTO merchant_mappings"));
+  const clearSeedFlags = () => {
+    settingsStorage.delete("merchant_mappings_seeded");
+    settingsStorage.delete("merchant_mappings_version");
+  };
 
+  it("seeds every built-in rule (curated + OpenStreetMap) on a fresh install", async () => {
+    clearSeedFlags();
     await seedMerchantMappings();
-
-    const inserts = mockDbInserts.filter((r) =>
-      r.sql.includes("INSERT OR IGNORE INTO merchant_mappings"),
-    );
-    expect(inserts.length).toBe(DEFAULT_MERCHANT_MAPPINGS.length);
+    expect(inserts().length).toBe(BUILT_IN_MERCHANT_MAPPINGS.length);
+    expect(BUILT_IN_MERCHANT_MAPPINGS.length).toBeGreaterThan(DEFAULT_MERCHANT_MAPPINGS.length + 100);
+    // match_mode is the last parameter: OpenStreetMap brands are whole-word
+    expect(inserts().some((r) => JSON.stringify(r).includes('"word"'))).toBe(true);
   });
 
-  it("skips seeding when table already has data", async () => {
-    const countQuery = "SELECT COUNT(*) as count FROM merchant_mappings;";
-    mockDbRows[countQuery] = [{ count: 100 }];
-
+  it("tops up an install seeded before the OpenStreetMap brands (INSERT OR IGNORE keeps user edits)", async () => {
+    clearSeedFlags();
+    settingsStorage.set("merchant_mappings_seeded", true);
     await seedMerchantMappings();
+    expect(inserts().length).toBe(BUILT_IN_MERCHANT_MAPPINGS.length);
+  });
 
-    const inserts = mockDbInserts.filter((r) =>
-      r.sql.includes("INSERT OR IGNORE INTO merchant_mappings"),
-    );
-    expect(inserts.length).toBe(0);
+  it("does nothing once this install has the current rule set", async () => {
+    clearSeedFlags();
+    await seedMerchantMappings();
+    mockDbInserts.length = 0;
+    await seedMerchantMappings();
+    expect(inserts().length).toBe(0);
   });
 });
 
