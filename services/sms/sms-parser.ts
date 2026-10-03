@@ -57,6 +57,48 @@ export interface ParsedItem {
 }
 
 /**
+ * Fill in what a parse doesn't carry itself: FD / counterparty signals, account type from
+ * keywords, UPI P2M/P2A, payment mode and time. Runs after hardcoded and template parses —
+ * here and when a new template reads messages from the Unrecognised backlog.
+ */
+export function enrichParsedSms(parsed: ParsedSMS, body: string): ParsedSMS {
+  // FD events + counterparty name — hardcoded parses already have these;
+  // this covers DB-template parses too.
+  annotateMoneySignals(parsed, body);
+
+  // Enrich account type with keyword-based detection from raw SMS body
+  // This overrides the pattern's accountType if keywords give a more specific answer
+  if (!parsed.accountType || parsed.accountType === "savings") {
+    const keywordType = inferAccountTypeFromKeywords(body);
+    if (keywordType) {
+      parsed.accountType = keywordType;
+    }
+  }
+
+  // Detect UPI P2M/P2A subtype from raw SMS body
+  if (
+    (parsed.type === "upi_debit" || parsed.type === "upi_credit" || parsed.type === "debit") &&
+    !parsed.upiSubtype
+  ) {
+    const upiMatch = body.match(/UPI\/(P2[MA])\//i);
+    if (upiMatch) {
+      parsed.upiSubtype = upiMatch[1].toUpperCase() === "P2M" ? "p2m" : "p2a";
+    }
+  }
+
+  // V4: Infer payment mode from parsed data + raw SMS body
+  if (!parsed.paymentMode) {
+    parsed.paymentMode = inferPaymentMode(parsed, body);
+  }
+
+  // V4: Extract transaction time from raw SMS body
+  if (!parsed.transactionTime) {
+    parsed.transactionTime = extractTime(body);
+  }
+  return parsed;
+}
+
+/**
  * Parse a batch of raw SMS messages.
  * Stores each in pending_sms, skipping duplicates.
  * Returns a summary of results.
@@ -169,39 +211,7 @@ export async function parseSmsBatch(
         continue;
       }
 
-      // FD events + counterparty name — hardcoded parses already have these;
-      // this covers DB-template parses too.
-      annotateMoneySignals(parsed, sms.body);
-
-      // Enrich account type with keyword-based detection from raw SMS body
-      // This overrides the pattern's accountType if keywords give a more specific answer
-      if (!parsed.accountType || parsed.accountType === "savings") {
-        const keywordType = inferAccountTypeFromKeywords(sms.body);
-        if (keywordType) {
-          parsed.accountType = keywordType;
-        }
-      }
-
-      // Detect UPI P2M/P2A subtype from raw SMS body
-      if (
-        (parsed.type === "upi_debit" || parsed.type === "upi_credit" || parsed.type === "debit") &&
-        !parsed.upiSubtype
-      ) {
-        const upiMatch = sms.body.match(/UPI\/(P2[MA])\//i);
-        if (upiMatch) {
-          parsed.upiSubtype = upiMatch[1].toUpperCase() === "P2M" ? "p2m" : "p2a";
-        }
-      }
-
-      // V4: Infer payment mode from parsed data + raw SMS body
-      if (!parsed.paymentMode) {
-        parsed.paymentMode = inferPaymentMode(parsed, sms.body);
-      }
-
-      // V4: Extract transaction time from raw SMS body
-      if (!parsed.transactionTime) {
-        parsed.transactionTime = extractTime(sms.body);
-      }
+      enrichParsedSms(parsed, sms.body);
 
       if (parsed.skip) {
         result.skipped++;

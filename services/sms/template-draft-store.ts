@@ -18,8 +18,8 @@
  *   - clearDraft() called after save, or from the list screen as safety
  */
 
-import type { TaggedSpan } from "./template-compiler";
-import type { UserTxType, SenderMatchMode } from "./user-sms-templates";
+import type { MatchStyle, TaggedSpan, WordRules } from "./template-compiler";
+import type { UserTxType, SenderMatchMode, TemplateSample } from "./user-sms-templates";
 
 export interface TemplateDraft {
   /** Set when editing an existing user template; null for a fresh create. */
@@ -38,6 +38,11 @@ export interface TemplateDraft {
   useManualRegex?: boolean;
   /** migration 055 — default payment mode ID for expenses from this template */
   defaultPaymentModeId?: string | null;
+  /** migration 081 — flexible (default for new) or exact. */
+  matchStyle?: MatchStyle;
+  wordRules?: WordRules;
+  /** More examples of the same format, each with its own taps. */
+  extraSamples?: TemplateSample[];
 }
 
 let current: TemplateDraft | null = null;
@@ -52,12 +57,15 @@ export function startDraft(init: Partial<TemplateDraft> = {}): TemplateDraft {
     smsBody: init.smsBody ?? "",
     spans: init.spans ?? [],
     bankName: init.bankName ?? "",
-    txType: init.txType ?? "debit",
+    txType: init.txType ?? "auto",
     label: init.label ?? "",
     createdFromSmsId: init.createdFromSmsId ?? null,
     senderPattern: init.senderPattern ?? "",
     senderMatchMode: init.senderMatchMode ?? "code",
     defaultPaymentModeId: init.defaultPaymentModeId ?? null,
+    matchStyle: init.matchStyle ?? "flexible",
+    wordRules: init.wordRules ?? { required: [], optional: [] },
+    extraSamples: init.extraSamples ?? [],
   };
   return current;
 }

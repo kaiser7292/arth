@@ -183,3 +183,46 @@ export function inferCreditKind(text: string | null | undefined): "salary" | "in
   if (/\bsalary\b|\bsal\s+(?:for|cr)\b|\bpayroll\b/i.test(text)) return "salary";
   return null;
 }
+
+// ─── Direction from the words ("Auto" template type) ──────────────────────────
+
+const REFUND_WORDS = /\b(?:refund(?:ed)?|reversal|reversed|cash\s*back)\b/gi;
+const IN_WORDS = /\b(?:credited|received|deposited|added\s+to|credit\s+of|cr)\b/gi;
+const OUT_WORDS = /\b(?:debited|spent|sent|paid|withdrawn|purchase|txn\s+of|debit\s+of|dr)\b/gi;
+
+function lastIndexBefore(rx: RegExp, text: string, limit: number): number {
+  let best = -1;
+  for (const m of text.matchAll(rx)) {
+    if ((m.index ?? 0) < limit) best = Math.max(best, m.index ?? 0);
+  }
+  return best;
+}
+
+/**
+ * Money in, money out or a refund, from the words of a (normalised) SMS — for templates set to
+ * "Auto". When both in- and out-words appear, the one closest before the amount wins
+ * ("Rs 500 debited from A/c … credited to Ramesh" is money out). With neither, it's money out
+ * at low confidence (every template match still goes through review).
+ */
+export function inferDirection(
+  text: string,
+  amountIndex: number = text.length,
+): { type: "debit" | "credit" | "refund"; confident: boolean } {
+  if (REFUND_WORDS.test(text)) {
+    REFUND_WORDS.lastIndex = 0;
+    return { type: "refund", confident: true };
+  }
+  REFUND_WORDS.lastIndex = 0;
+  const hasIn = text.search(IN_WORDS) >= 0;
+  const hasOut = text.search(OUT_WORDS) >= 0;
+  if (hasIn && !hasOut) return { type: "credit", confident: true };
+  if (hasOut && !hasIn) return { type: "debit", confident: true };
+  if (!hasIn && !hasOut) return { type: "debit", confident: false };
+  // Both: the nearest before the amount; if neither is before it, the first in the message.
+  const inBefore = lastIndexBefore(IN_WORDS, text, amountIndex);
+  const outBefore = lastIndexBefore(OUT_WORDS, text, amountIndex);
+  if (inBefore >= 0 || outBefore >= 0) {
+    return { type: inBefore > outBefore ? "credit" : "debit", confident: true };
+  }
+  return { type: text.search(IN_WORDS) < text.search(OUT_WORDS) ? "credit" : "debit", confident: true };
+}

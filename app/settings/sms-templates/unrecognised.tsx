@@ -8,10 +8,16 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import {
   listUnrecognisedSms,
+  listUserTemplates,
   type UnrecognisedSmsRow,
+  type UserSmsTemplate,
 } from "@/services/sms/user-sms-templates";
+
+/** DLT sender code ("VM-SBIINB-S" → "SBIINB"), the key messages are grouped and taught by. */
+const senderCode = (address: string): string => address.toUpperCase().match(/[A-Z]{4,}/)?.[0] ?? address.toUpperCase();
 import { useTheme } from "@/hooks/use-theme";
 import { SendSmsToDeveloperSheet } from "@/components/sms/SendSmsToDeveloperSheet";
+import { getBacklogDays } from "@/services/sms/backlog-days";
 
 /**
  * v15.6.0 — Browser for pending_sms rows that never became expenses.
@@ -39,11 +45,18 @@ export default function UnrecognisedSmsScreen() {
   const [query, setQuery] = useState("");
   const [reportRow, setReportRow] = useState<{ body: string; address: string } | null>(null);
   const [grouped, setGrouped] = useState(true);
+  // Your templates by sender code — "Close to your … template, add as an example".
+  const [templatesBySender, setTemplatesBySender] = useState<Map<string, UserSmsTemplate>>(new Map());
 
   const load = useCallback(async () => {
     try {
-      const data = await listUnrecognisedSms(200);
+      const [data, templates] = await Promise.all([listUnrecognisedSms(200), listUserTemplates()]);
       setRows(data);
+      const bySender = new Map<string, UserSmsTemplate>();
+      for (const t of templates) {
+        if (t.sender_pattern && (t.sender_match_mode ?? "code") === "code") bySender.set(t.sender_pattern.toUpperCase(), t);
+      }
+      setTemplatesBySender(bySender);
     } catch (e) {
       alert(
         "Couldn't load SMS",
@@ -80,17 +93,6 @@ export default function UnrecognisedSmsScreen() {
     return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   }, []);
 
-  /** Canonicalize the body so near-duplicates group together. */
-  const canonicalKey = useCallback((body: string): string => {
-    return body
-      .replace(/\d/g, "#")      // normalise amounts, dates, refs
-      .replace(/[A-Za-z]{8,}/g, "W") // long words become a placeholder (merchant names)
-      .replace(/\s+/g, " ")
-      .trim()
-      .toLowerCase()
-      .slice(0, 60);
-  }, []);
-
   // Apply query filter + optional grouping.
   const displayRows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -107,7 +109,9 @@ export default function UnrecognisedSmsScreen() {
     }
     const groups = new Map<string, { row: UnrecognisedSmsRow; count: number }>();
     for (const r of filtered) {
-      const key = `${r.address}|${canonicalKey(r.body)}`;
+      // One card per sender: teaching it uses the newest message, and the tag screen offers the
+      // others as extra examples.
+      const key = senderCode(r.address);
       const existing = groups.get(key);
       if (existing) {
         existing.count++;
@@ -120,14 +124,14 @@ export default function UnrecognisedSmsScreen() {
     return Array.from(groups.values()).sort(
       (a, b) => b.row.sms_date - a.row.sms_date,
     );
-  }, [rows, query, grouped, canonicalKey]);
+  }, [rows, query, grouped]);
 
   return (
     <ScreenContainer padTop={false}>
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
           <Text className="text-xs text-faint-foreground">
-            Bank SMS from the last 30 days that Arth couldn't read. Tap "Teach" to build a template.
+            Bank SMS from the last {getBacklogDays()} days that Arth couldn&apos;t read, grouped by sender. Teach a sender once and Arth reads its past and future messages.
           </Text>
         </View>
 
@@ -174,7 +178,7 @@ export default function UnrecognisedSmsScreen() {
               className="text-xs ml-1.5"
               style={{ color: grouped ? accentColor : colors.textSecondary }}
             >
-              Group similar SMS (same sender + pattern)
+              Group by sender
             </Text>
           </Pressable>
         </View>
@@ -231,10 +235,28 @@ export default function UnrecognisedSmsScreen() {
                     style={{ color: accentColor }}
                   >
                     {item.count > 1
-                      ? `Teach Arth (${item.count} similar SMS)`
+                      ? `Teach this sender (${item.count} messages)`
                       : "Teach Arth to read this"}
                   </Text>
                 </Pressable>
+                {templatesBySender.has(senderCode(item.row.address)) && (
+                  <Pressable
+                    onPress={() =>
+                      router.push({
+                        pathname: "/settings/sms-templates/[id]",
+                        params: { id: templatesBySender.get(senderCode(item.row.address))!.id, addExample: item.row.body },
+                      })
+                    }
+                    className="flex-row items-center mt-2 p-2 rounded-lg"
+                    style={{ backgroundColor: accentColor + "12" }}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="link-outline" size={15} color={accentColor} />
+                    <Text className="text-xs ml-1.5 flex-1" style={{ color: accentColor }}>
+                      Close to your {templatesBySender.get(senderCode(item.row.address))!.template_id ?? templatesBySender.get(senderCode(item.row.address))!.bank_name} template — add as an example
+                    </Text>
+                  </Pressable>
+                )}
                 <Pressable
                   onPress={() => setReportRow({ body: item.row.body, address: item.row.address })}
                   className="flex-row items-center justify-center py-2 mt-1"
@@ -252,7 +274,7 @@ export default function UnrecognisedSmsScreen() {
                 subtitle={
                   query
                     ? "Try a different search term, or clear the search."
-                    : "Every bank SMS from the last 30 days either became an expense or was intentionally skipped (OTPs, balance enquiries)."
+                    : `Every bank SMS from the last ${getBacklogDays()} days either became an expense or was intentionally skipped (OTPs, balance enquiries).`
                 }
               />
             }

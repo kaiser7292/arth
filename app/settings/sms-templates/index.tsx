@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { View, Pressable, FlatList, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { EmptyState, FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { EmptyState, FAB, LoadingState, ScreenContainer, SelectSheet, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -15,6 +15,7 @@ import {
   type UserSmsTemplate,
 } from "@/services/sms/user-sms-templates";
 import { clearUnrecognisedSms } from "@/services/sms/sms-parser";
+import { BACKLOG_DAY_OPTIONS, getBacklogDays, setBacklogDays } from "@/services/sms/template-backlog";
 
 import { useTheme } from "@/hooks/use-theme";
 
@@ -39,6 +40,8 @@ export default function SmartSmsTemplatesListScreen() {
   const [templates, setTemplates] = useState<UserSmsTemplate[]>([]);
   const [matchCounts, setMatchCounts] = useState<Record<string, number>>({});
   const [unrecognisedCount, setUnrecognisedCount] = useState(0);
+  const [backlogDays, setBacklogDaysState] = useState(getBacklogDays());
+  const [daysPickerOpen, setDaysPickerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [diagnosingId, setDiagnosingId] = useState<string | null>(null);
 
@@ -123,7 +126,7 @@ export default function SmartSmsTemplatesListScreen() {
         }
         if (scanned === 0) {
           lines.push("");
-          lines.push("No SMS from this bank in the last 30 days - Arth will match it once one arrives.");
+          lines.push(`No SMS from this bank in the last ${getBacklogDays()} days - Arth will match it once one arrives.`);
         }
         alert(`Diagnose: ${tpl.template_id ?? tpl.bank_name}`, lines.join("\n"));
       } catch (e) {
@@ -177,8 +180,8 @@ export default function SmartSmsTemplatesListScreen() {
                     </Text>
                     <Text className="text-xs text-faint-foreground mt-0.5">
                       {unrecognisedCount > 0
-                        ? "Last 30 days of bank SMS that didn't parse. Tap any to teach Arth."
-                        : "Arth has read every bank SMS from the last 30 days."}
+                        ? `Last ${backlogDays} days of bank SMS that didn't parse. Tap any to teach Arth.`
+                        : `Arth has read every bank SMS from the last ${backlogDays} days.`}
                     </Text>
                   </View>
                   <Ionicons
@@ -186,6 +189,23 @@ export default function SmartSmsTemplatesListScreen() {
                     size={18}
                     color={colors.textSecondary}
                   />
+                </Pressable>
+                {/* How far back a new template reads unread messages (live count + "Read them now"). */}
+                <Pressable
+                  onPress={() => setDaysPickerOpen(true)}
+                  className="flex-row items-center mt-2 pt-2 border-t border-border"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+                  <View className="flex-1 ml-3">
+                    <Text className="text-sm text-foreground">Read past messages from</Text>
+                    <Text className="text-xs text-faint-foreground mt-0.5">
+                      When you teach a template, Arth checks unread messages this far back.
+                    </Text>
+                  </View>
+                  <Text className="text-sm font-semibold" style={{ color: accentColor }}>
+                    Last {backlogDays} days
+                  </Text>
                 </Pressable>
                 {unrecognisedCount > 0 && (
                   <Pressable
@@ -314,6 +334,21 @@ export default function SmartSmsTemplatesListScreen() {
           accessibilityLabel="Teach Arth a new SMS"
         />
       </View>
+      <SelectSheet
+        visible={daysPickerOpen}
+        title="Read past messages from"
+        options={BACKLOG_DAY_OPTIONS.map((d) => ({
+          value: String(d),
+          label: d === 365 ? "Last year" : `Last ${d} days`,
+          description: d === 90 ? "Recommended" : undefined,
+        }))}
+        value={String(backlogDays)}
+        onChange={(v) => {
+          setBacklogDays(Number(v));
+          setBacklogDaysState(Number(v));
+        }}
+        onClose={() => setDaysPickerOpen(false)}
+      />
     </ScreenContainer>
   );
 }

@@ -33,7 +33,53 @@
 
 import { normalizeSms, mapOriginalSpanToNormalized } from "./sms-normalize";
 
-export type TaggedField = "amount" | "account" | "merchant" | "date" | "balance" | "ref";
+export type TaggedField =
+  | "amount"
+  | "account"
+  | "merchant"
+  | "date"
+  | "balance"
+  | "ref"
+  /** Other party's name — "transfer from Mr. SOURAVBAID". Feeds own-account transfer detection. */
+  | "counterparty"
+  /** The other account's digits — "To A/c xxxx0006". Feeds transfer pairing. */
+  | "other_account";
+
+export const ALL_TAGGED_FIELDS: TaggedField[] = [
+  "amount",
+  "account",
+  "merchant",
+  "date",
+  "balance",
+  "ref",
+  "counterparty",
+  "other_account",
+];
+
+/**
+ * How strictly a template matches the words around its fields.
+ *   exact    — every word between fields must appear as in the sample (the original behaviour)
+ *   flexible — only key words must appear (the 2 words before each field, the word after a
+ *              name/merchant, words common to all examples, words the user marked required);
+ *              the rest may change
+ */
+export type MatchStyle = "exact" | "flexible";
+
+/** User overrides on top of the automatic word choice (flexible only). Normalised words. */
+export interface WordRules {
+  required: string[];
+  optional: string[];
+}
+
+/** One word of the sample's surrounding text and whether the flexible pattern keeps it. */
+export interface WordState {
+  /** Offsets in the ORIGINAL sample body. */
+  start: number;
+  end: number;
+  /** Normalised form — what WordRules store. */
+  word: string;
+  state: "auto" | "common" | "required" | "free";
+}
 
 export interface TaggedSpan {
   field: TaggedField;
@@ -48,6 +94,12 @@ export interface CompileInput {
   spans: TaggedSpan[];
   /** For validation: require these fields are all present. */
   requiredFields?: TaggedField[];
+  /** Default "exact" — existing templates and callers keep today's behaviour. */
+  style?: MatchStyle;
+  /** Flexible only: words the user made required / optional. */
+  wordRules?: WordRules;
+  /** More examples of the same format, each tagged with the same fields in the same order. */
+  extraSamples?: { smsBody: string; spans: TaggedSpan[] }[];
 }
 
 export interface CompileSuccess {
@@ -58,6 +110,8 @@ export interface CompileSuccess {
   capturedFields: TaggedField[];
   /** Values extracted from the sample — useful for "preview" before save. */
   extracted: Partial<Record<TaggedField, string>>;
+  /** Flexible only: which words of the first sample the pattern keeps. */
+  wordStates?: WordState[];
 }
 
 export interface CompileError {
@@ -69,8 +123,16 @@ export interface CompileError {
     | "missing_required_field"
     | "empty_span"
     | "invalid_regex"
-    | "roundtrip_mismatch";
+    | "roundtrip_mismatch"
+    /** Flexible pattern kept no real word — it would match far too much. */
+    | "too_loose"
+    /** An extra example has different fields or a different field order. */
+    | "different_format"
+    /** The pattern doesn't read an extra example the way it was tagged. */
+    | "extra_sample_mismatch";
   detail?: string;
+  /** Flexible only: the word states, so the screen can still let the user fix the words. */
+  wordStates?: WordState[];
 }
 
 export type CompileResult = CompileSuccess | CompileError;
@@ -109,7 +171,19 @@ const FIELD_REGEX: Record<TaggedField, string> = {
   // Passbook IDs should be left in anchor text (not tagged as ref) so they
   // get wildcarded by the passbook ID wildcarding logic.
   ref: "[A-Za-z0-9 &.,'*\\-\\/:#]{1,30}?",
+  // Person / business name. Non-greedy so the word after it ends the capture.
+  counterparty: "[A-Za-z][A-Za-z .]{1,40}?",
+  // Masked other account: "xxxxxxxxxx0006", "**1234", "1234".
+  other_account: "[Xx*]{0,12}\\d{3,6}",
 };
+
+/** Fields that capture free text and stop at the next anchor (non-greedy). */
+const LAZY_FIELDS = new Set<TaggedField>(["merchant", "ref", "counterparty"]);
+
+/** Greedy version of a lazy field's regex — used when nothing follows it to stop on. */
+function greedy(field: TaggedField): string {
+  return FIELD_REGEX[field].replace(/\+\?$/, "+").replace(/\}\?$/, "}");
+}
 
 /**
  * Transform "URL" segments in anchor text into a regex fragment that
@@ -234,7 +308,243 @@ function sortSpans(spans: TaggedSpan[]): TaggedSpan[] {
   return [...spans].sort((a, b) => a.start - b.start);
 }
 
+interface PreparedSample {
+  body: string;
+  normBody: string;
+  normToOrig: number[];
+  /** Tagged spans sorted by position, original offsets. */
+  sorted: TaggedSpan[];
+  /** Same spans in normalised offsets. */
+  normSpans: TaggedSpan[];
+}
+
+function prepareSample(smsBody: string, spans: TaggedSpan[]): PreparedSample | CompileError {
+  const sorted = sortSpans(spans);
+  const norm = normalizeSms(smsBody);
+  const normSpans: TaggedSpan[] = [];
+  for (const s of sorted) {
+    const mapped = mapOriginalSpanToNormalized(s, norm.normalizedToOriginal);
+    if (!mapped) {
+      return {
+        ok: false,
+        reason: "empty_span",
+        detail: `${s.field} — tagged text was removed by normalization (e.g. URL). Re-tag elsewhere.`,
+      };
+    }
+    normSpans.push({ field: s.field, start: mapped.start, end: mapped.end });
+  }
+  return { body: smsBody, normBody: norm.text, normToOrig: norm.normalizedToOriginal, sorted, normSpans };
+}
+
+const isError = (x: PreparedSample | CompileError): x is CompileError => "ok" in x;
+
+interface GapWord {
+  word: string;
+  start: number;
+  end: number;
+}
+
+/** Whitespace-separated words of normBody[from, to), normalised offsets. */
+function wordsIn(normBody: string, from: number, to: number): GapWord[] {
+  const out: GapWord[] = [];
+  const re = /\S+/g;
+  const text = normBody.slice(from, to);
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    out.push({ word: m[0], start: from + m.index, end: from + m.index + m[0].length });
+  }
+  return out;
+}
+
+/** Gap k = text before field k; gap n = text after the last field. */
+function gapBounds(sample: PreparedSample, k: number): [number, number] {
+  const n = sample.normSpans.length;
+  const from = k === 0 ? 0 : sample.normSpans[k - 1].end;
+  const to = k < n ? sample.normSpans[k].start : sample.normBody.length;
+  return [from, to];
+}
+
+/** Indexes into `a` of a longest common subsequence of a and b (by word text). */
+function lcsIndexes(a: string[], b: string[]): Set<number> {
+  const dp: number[][] = Array.from({ length: a.length + 1 }, () => new Array<number>(b.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--) {
+    for (let j = b.length - 1; j >= 0; j--) {
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const keep = new Set<number>();
+  let i = 0;
+  let j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      keep.add(i);
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else j++;
+  }
+  return keep;
+}
+
+/** Words before a field that tell the pattern where the field starts. */
+export const LEAD_IN_WORDS = 2;
+/** Most characters a "can change" stretch may span. */
+const FLEX_GAP = "[\\s\\S]{0,120}?";
+const CURRENCY_WORD = /^(?:rs\.?|inr|₹)$/;
+
+/**
+ * Direction verbs are interchangeable in a flexible pattern, so one template reads a bank's
+ * "credited" and "debited" messages alike ("Auto" type tells them apart at match time). The
+ * small word banks put after them ("credited with", "debited for") becomes optional.
+ */
+const DIRECTION_WORD = /^(?:credited|debited|received|deposited|spent|sent|paid|withdrawn|refunded|reversed)[.,:]?$/;
+const DIRECTION_ALT = "(?:credited|debited|received|deposited|spent|sent|paid|withdrawn|refunded|reversed)[.,:]?";
+const FILLER_WORD = /^(?:with|for|of|by)$/;
+const OPTIONAL_FILLER = "(?:\\s+(?:with|for|of|by))?";
+
+/** Word as compared between examples: all direction verbs count as the same word. */
+const compareForm = (w: string) => (DIRECTION_WORD.test(w) ? "§direction" : w);
+
+/** Does the kept set include at least one real word (3+ letters, not a currency word)? */
+function hasAnchorWord(words: string[]): boolean {
+  return words.some((w) => !CURRENCY_WORD.test(w) && (w.match(/[a-z]/gi) ?? []).length >= 3);
+}
+
+/**
+ * Flexible pattern for the first sample. For each stretch of text around the fields, keeps:
+ *   - the last LEAD_IN_WORDS words before each field
+ *   - the first word after a free-text field (so its capture knows where to stop)
+ *   - words common to every example (when there are extra examples)
+ *   - words the user made required
+ * minus words the user made optional; everything else becomes a bounded "anything" gap.
+ * With extra examples, automatic words are only kept if every example has them.
+ */
+function buildFlexible(
+  first: PreparedSample,
+  extras: PreparedSample[],
+  rules: WordRules,
+): { pattern: string; wordStates: WordState[]; keptWords: string[] } {
+  const n = first.normSpans.length;
+  const required = new Set(rules.required);
+  const optional = new Set(rules.optional);
+  let pattern = "";
+  const wordStates: WordState[] = [];
+  const keptWords: string[] = [];
+
+  for (let k = 0; k <= n; k++) {
+    const [from, to] = gapBounds(first, k);
+    const words = wordsIn(first.normBody, from, to);
+    const texts = words.map((w) => w.word);
+
+    let common: Set<number> | null = null;
+    for (const ex of extras) {
+      const [ef, et] = gapBounds(ex, k);
+      const theirs = wordsIn(ex.normBody, ef, et).map((w) => compareForm(w.word));
+      const shared = lcsIndexes(texts.map(compareForm), theirs);
+      const prev: Set<number> | null = common;
+      common = prev ? new Set<number>([...prev].filter((i: number) => shared.has(i))) : shared;
+    }
+
+    const states: WordState["state"][] = words.map((w, i) => {
+      if (required.has(w.word)) return "required";
+      if (optional.has(w.word)) return "free";
+      const isLeadIn =
+        k < n &&
+        (i >= words.length - LEAD_IN_WORDS ||
+          // "credited with rs." — the verb before a joining word in the lead-in comes along
+          (i === words.length - LEAD_IN_WORDS - 1 &&
+            DIRECTION_WORD.test(w.word) &&
+            FILLER_WORD.test(words[i + 1]?.word ?? "")));
+      const isTerminator = k > 0 && i === 0 && LAZY_FIELDS.has(first.normSpans[k - 1].field);
+      if (common) {
+        if (common.has(i)) return "common";
+        return "free";
+      }
+      return isLeadIn || isTerminator ? "auto" : "free";
+    });
+
+    let out = "";
+    let started = k > 0;
+    let dropping = false;
+    let cursor = from;
+    let afterDirection = false;
+    words.forEach((w, i) => {
+      const kept = states[i] !== "free";
+      // End = where the next normalised character starts in the original (normalisation can
+      // shorten a word — "INR " becomes "rs."), minus any whitespace before it.
+      const origStart = first.normToOrig[w.start];
+      let origEnd = w.end < first.normToOrig.length ? first.normToOrig[w.end] : first.body.length;
+      while (origEnd > origStart + 1 && /\s/.test(first.body[origEnd - 1])) origEnd--;
+      wordStates.push({
+        start: origStart,
+        end: origEnd,
+        word: w.word,
+        state: states[i],
+      });
+      if (!kept) {
+        dropping = true;
+        return;
+      }
+      keptWords.push(w.word);
+      // "with/for/of/by" right after a direction verb is already covered by its optional group.
+      if (afterDirection && !dropping && FILLER_WORD.test(w.word)) {
+        cursor = w.end;
+        afterDirection = false;
+        return;
+      }
+      if (dropping) {
+        if (started) out += FLEX_GAP;
+      } else if (started) {
+        out += escapeLiteral(first.normBody.slice(cursor, w.start));
+      }
+      if (DIRECTION_WORD.test(w.word)) {
+        out += DIRECTION_ALT + OPTIONAL_FILLER;
+        afterDirection = true;
+      } else {
+        out += escapeLiteral(w.word);
+        afterDirection = false;
+      }
+      started = true;
+      dropping = false;
+      cursor = w.end;
+    });
+    if (k < n) {
+      if (dropping) {
+        if (started) out += FLEX_GAP;
+      } else if (started) {
+        out += escapeLiteral(first.normBody.slice(cursor, to));
+      }
+      const field = first.normSpans[k].field;
+      pattern += out + `(?<${field}>${FIELD_REGEX[field]})`;
+    } else {
+      pattern += out;
+    }
+  }
+
+  // A lazy field that ends the pattern (nothing kept after it) would capture one character.
+  const lastField = first.normSpans[n - 1]?.field;
+  if (lastField && LAZY_FIELDS.has(lastField) && pattern.endsWith(`(?<${lastField}>${FIELD_REGEX[lastField]})`)) {
+    pattern = pattern.slice(0, pattern.length - FIELD_REGEX[lastField].length - 1) + greedy(lastField) + ")";
+  }
+  return { pattern, wordStates, keptWords };
+}
+
+/** Run the compiled pattern on a prepared sample and check every field reads as tagged. */
+function roundTrip(re: RegExp, sample: PreparedSample): string | null {
+  const m = re.exec(sample.normBody);
+  if (!m || !m.groups) return "Compiled regex didn't match the sample SMS";
+  for (const s of sample.normSpans) {
+    const got = m.groups[s.field];
+    const want = sample.normBody.slice(s.start, s.end);
+    if (got == null || got.trim() !== want.trim()) return `Field ${s.field}: expected "${want}", got "${got}"`;
+  }
+  return null;
+}
+
 export function compileTemplate(input: CompileInput): CompileResult {
+  if ((input.style ?? "exact") === "flexible" || (input.extraSamples?.length ?? 0) > 0) {
+    return compileFlexible(input);
+  }
   const { smsBody, spans, requiredFields = ["amount"] } = input;
 
   if (spans.length === 0) {
@@ -315,11 +625,11 @@ export function compileTemplate(input: CompileInput): CompileResult {
     // text to stop on, `+?` collapses to 1 character — wrong. Switch to
     // greedy so the field grabs everything to end of string.
     let fieldRegex = FIELD_REGEX[s.field];
-    if (s.field === "merchant" || s.field === "ref") {
+    if (LAZY_FIELDS.has(s.field)) {
       const isLast = idx === normSpans.length - 1;
       const hasTail = normBody.slice(s.end).trim().length > 0;
       if (isLast && !hasTail) {
-        fieldRegex = fieldRegex.replace(/\+\?$/, "+");
+        fieldRegex = greedy(s.field);
       }
     }
     pattern += `(?<${s.field}>${fieldRegex})`;
@@ -377,6 +687,77 @@ export function compileTemplate(input: CompileInput): CompileResult {
     patternRegex: pattern,
     capturedFields,
     extracted,
+  };
+}
+
+function validateSpans(spans: TaggedSpan[], requiredFields: TaggedField[]): CompileError | null {
+  if (spans.length === 0) return { ok: false, reason: "no_spans" };
+  const sorted = sortSpans(spans);
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].start < sorted[i - 1].end) {
+      return { ok: false, reason: "overlapping_spans", detail: `${sorted[i - 1].field} overlaps ${sorted[i].field}` };
+    }
+  }
+  const seen = new Set<TaggedField>();
+  for (const s of sorted) {
+    if (s.end <= s.start) return { ok: false, reason: "empty_span", detail: s.field };
+    if (seen.has(s.field)) return { ok: false, reason: "duplicate_field", detail: s.field };
+    seen.add(s.field);
+  }
+  for (const req of requiredFields) {
+    if (!seen.has(req)) return { ok: false, reason: "missing_required_field", detail: req };
+  }
+  return null;
+}
+
+/**
+ * Flexible (and multi-example) compile. Same spans/round-trip rules as exact; the words around
+ * the fields are reduced to the key ones (see buildFlexible).
+ */
+function compileFlexible(input: CompileInput): CompileResult {
+  const { smsBody, spans, requiredFields = ["amount"], wordRules = { required: [], optional: [] } } = input;
+  const bad = validateSpans(spans, requiredFields);
+  if (bad) return bad;
+
+  const first = prepareSample(smsBody, spans);
+  if (isError(first)) return first;
+  const extras: PreparedSample[] = [];
+  const order = first.sorted.map((s) => s.field).join(",");
+  for (const [i, ex] of (input.extraSamples ?? []).entries()) {
+    const exBad = validateSpans(ex.spans, requiredFields);
+    if (exBad) return { ...exBad, detail: `Example ${i + 2}: ${exBad.detail ?? exBad.reason}` };
+    const prepared = prepareSample(ex.smsBody, ex.spans);
+    if (isError(prepared)) return { ...prepared, detail: `Example ${i + 2}: ${prepared.detail ?? ""}` };
+    if (prepared.sorted.map((s) => s.field).join(",") !== order) {
+      return { ok: false, reason: "different_format", detail: `Example ${i + 2}` };
+    }
+    extras.push(prepared);
+  }
+
+  const { pattern, wordStates, keptWords } = buildFlexible(first, extras, wordRules);
+  if (!hasAnchorWord(keptWords)) return { ok: false, reason: "too_loose", wordStates };
+
+  let re: RegExp;
+  try {
+    re = new RegExp(pattern, "i");
+  } catch (e) {
+    return { ok: false, reason: "invalid_regex", detail: e instanceof Error ? e.message : String(e) };
+  }
+  const firstErr = roundTrip(re, first);
+  if (firstErr) return { ok: false, reason: "roundtrip_mismatch", detail: firstErr, wordStates };
+  for (const [i, ex] of extras.entries()) {
+    const err = roundTrip(re, ex);
+    if (err) return { ok: false, reason: "extra_sample_mismatch", detail: `Example ${i + 2}: ${err}`, wordStates };
+  }
+
+  const extracted: Partial<Record<TaggedField, string>> = {};
+  for (const s of first.sorted) extracted[s.field] = smsBody.slice(s.start, s.end);
+  return {
+    ok: true,
+    patternRegex: pattern,
+    capturedFields: first.sorted.map((s) => s.field),
+    extracted,
+    wordStates,
   };
 }
 
@@ -440,6 +821,16 @@ export function autoTag(smsBody: string): TaggedSpan[] {
     1,
   );
 
+  // OTHER ACCOUNT: "To A/c xxxxxxxxxx0006", "to a/c **1234" — the destination of a transfer.
+  pushFirst("other_account", /\bto\s+a\/?c(?:\s+no\.?)?\s+([Xx*]{0,12}\d{3,6})\b/i, 1);
+
+  // NAME: "transfer from Mr. SOURAVBAID", "Transferred to RAHUL VERMA", "linked to mobile 9XX-NAME".
+  pushFirst(
+    "counterparty",
+    /(?:transfer(?:red)?\s+(?:from|to)|trf\s+(?:from|to)|linked\s+to\s+mobile\s+[\dX*x]+-)\s*(?:(?:Mr|Mrs|Ms)\.?\s*)?([A-Za-z][A-Za-z ]{1,40}?)(?=\s*[.(]|\s+(?:Ref|Avl|on)\b|$)/i,
+    1,
+  );
+
   // De-dupe field and remove overlaps (keep first occurrence).
   const seen = new Set<TaggedField>();
   const clean: TaggedSpan[] = [];
@@ -473,6 +864,12 @@ export function explainCompileError(err: CompileError): string {
       return `An empty ${err.detail ?? "field"} span slipped through. Re-tag the field.`;
     case "invalid_regex":
       return `Couldn't build a matcher from this tagging. Try tagging fewer special characters. ${err.detail ? `(${err.detail})` : ""}`.trim();
+    case "too_loose":
+      return "This would read almost any message. With no field selected, tap a word that always appears (like \"credited\" or \"debited\") to make it required.";
+    case "different_format":
+      return `${err.detail ?? "The other example"} has different fields or a different order. Save it as its own template instead.`;
+    case "extra_sample_mismatch":
+      return `The pattern doesn't read ${err.detail?.split(":")[0] ?? "the other example"} the way it's tagged. Check its tags, or make fewer words required.`;
     case "roundtrip_mismatch":
       return `The generated pattern doesn't cleanly extract the tagged values. Often fixed by using long-press to tag only the number/digits, not "Rs." or "Bal:". ${err.detail ? `Details: ${err.detail}` : ""}`.trim();
     default:
@@ -506,9 +903,9 @@ export function deriveSpansFromRegex(
   if (!m || !m.groups) return null;
 
   const spans: TaggedSpan[] = [];
-  const fieldOrder: TaggedField[] = ["amount", "account", "merchant", "date", "balance", "ref"];
+  const fieldOrder: TaggedField[] = ALL_TAGGED_FIELDS;
   const orderInPattern: TaggedField[] = [];
-  const namedRe = /\(\?<(amount|account|merchant|date|balance|ref)>/g;
+  const namedRe = /\(\?<(amount|account|merchant|date|balance|ref|counterparty|other_account)>/g;
   let nm: RegExpExecArray | null;
   while ((nm = namedRe.exec(patternRegex)) !== null) {
     orderInPattern.push(nm[1] as TaggedField);
@@ -570,9 +967,9 @@ export function testTemplate(
   if (!m || !m.groups) return null;
 
   const result: Partial<Record<TaggedField, string>> = {};
-  const fieldOrder: TaggedField[] = ["amount", "account", "merchant", "date", "balance", "ref"];
+  const fieldOrder: TaggedField[] = ALL_TAGGED_FIELDS;
   const orderInPattern: TaggedField[] = [];
-  const namedRe = /\(\?<(amount|account|merchant|date|balance|ref)>/g;
+  const namedRe = /\(\?<(amount|account|merchant|date|balance|ref|counterparty|other_account)>/g;
   let nm: RegExpExecArray | null;
   while ((nm = namedRe.exec(patternRegex)) !== null) {
     orderInPattern.push(nm[1] as TaggedField);
@@ -607,4 +1004,4 @@ export function testTemplate(
 }
 
 // Exposed for unit tests.
-export const __test__ = { escapeLiteral, FIELD_REGEX };
+export const __test__ = { escapeLiteral, FIELD_REGEX, lcsIndexes };

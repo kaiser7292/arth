@@ -19,11 +19,13 @@ import { generateUUID } from "@/utils/uuid";
 import { bumpDataVersion } from "@/services/settings";
 import { logger } from "@/utils/logger";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { compileTemplate, type TaggedSpan } from "./template-compiler";
+import { compileTemplate, type MatchStyle, type TaggedSpan, type WordRules } from "./template-compiler";
 import { normalizeSms } from "./sms-normalize";
 import { looksLikeTransaction } from "./bank-senders";
+import { backlogSinceMs } from "./backlog-days";
 
-export type UserTxType = "debit" | "credit" | "refund";
+/** "auto" works out money in / out / refund from the SMS words at match time. */
+export type UserTxType = "auto" | "debit" | "credit" | "refund";
 
 /**
  * v15.11.0 — how to match a template's saved sender against an incoming SMS's
@@ -52,6 +54,39 @@ export interface UserSmsTemplate {
   sender_pattern: string | null;
   /** migration 055 */
   default_payment_mode_id: string | null;
+  /** migration 081 — 'flexible' | 'exact'; NULL = exact. */
+  match_style: MatchStyle | null;
+  /** migration 081 — JSON WordRules. */
+  word_rules: string | null;
+  /** migration 081 — JSON TemplateSample[] (first = sample_sms). */
+  samples: string | null;
+}
+
+/** One example the template was built from, with its taps. */
+export interface TemplateSample {
+  body: string;
+  spans: TaggedSpan[];
+}
+
+export function parseWordRules(raw: string | null | undefined): WordRules {
+  try {
+    const v = raw ? JSON.parse(raw) : null;
+    return {
+      required: Array.isArray(v?.required) ? v.required.filter((w: unknown) => typeof w === "string") : [],
+      optional: Array.isArray(v?.optional) ? v.optional.filter((w: unknown) => typeof w === "string") : [],
+    };
+  } catch {
+    return { required: [], optional: [] };
+  }
+}
+
+export function parseSamples(raw: string | null | undefined): TemplateSample[] {
+  try {
+    const v = raw ? JSON.parse(raw) : null;
+    return Array.isArray(v) ? v.filter((x) => typeof x?.body === "string" && Array.isArray(x?.spans)) : [];
+  } catch {
+    return [];
+  }
 }
 
 export interface CreateUserTemplateInput {
@@ -72,6 +107,11 @@ export interface CreateUserTemplateInput {
   patternRegex?: string;
   /** migration 055 — payment mode ID to apply when SMS parse doesn't detect one. */
   defaultPaymentModeId?: string | null;
+  /** migration 081 — default "flexible" for new templates. */
+  matchStyle?: MatchStyle;
+  wordRules?: WordRules;
+  /** More examples of the same format (beyond sampleSms). */
+  extraSamples?: TemplateSample[];
 }
 
 export interface UpdateUserTemplateInput {
@@ -87,6 +127,9 @@ export interface UpdateUserTemplateInput {
   patternRegex?: string;
   /** migration 055 — payment mode ID to apply when SMS parse doesn't detect one. */
   defaultPaymentModeId?: string | null;
+  matchStyle?: MatchStyle;
+  wordRules?: WordRules;
+  extraSamples?: TemplateSample[];
 }
 
 export class UserTemplateCompileError extends Error {
@@ -106,7 +149,8 @@ export async function listUserTemplates(): Promise<UserSmsTemplate[]> {
   return db.getAllAsync<UserSmsTemplate>(
     `SELECT id, user_id, bank_name, template_id, pattern_regex, tx_type,
             priority, source, sample_sms, created_from_sms_id, source_version,
-            sender_match_mode, sender_pattern, deleted_at, default_payment_mode_id
+            sender_match_mode, sender_pattern, deleted_at, default_payment_mode_id,
+            match_style, word_rules, samples
      FROM sms_template_patterns
      WHERE source = 'user' AND deleted_at IS NULL
      ORDER BY bank_name ASC, priority ASC;`,
@@ -118,7 +162,8 @@ export async function getDeletedUserTemplates(): Promise<UserSmsTemplate[]> {
   return db.getAllAsync<UserSmsTemplate>(
     `SELECT id, user_id, bank_name, template_id, pattern_regex, tx_type,
             priority, source, sample_sms, created_from_sms_id, source_version,
-            sender_match_mode, sender_pattern, deleted_at, default_payment_mode_id
+            sender_match_mode, sender_pattern, deleted_at, default_payment_mode_id,
+            match_style, word_rules, samples
      FROM sms_template_patterns
      WHERE source = 'user' AND user_id = ? AND deleted_at IS NOT NULL
      ORDER BY deleted_at DESC;`,
@@ -131,7 +176,8 @@ export async function getUserTemplate(id: string): Promise<UserSmsTemplate | nul
   const row = await db.getFirstAsync<UserSmsTemplate>(
     `SELECT id, user_id, bank_name, template_id, pattern_regex, tx_type,
             priority, source, sample_sms, created_from_sms_id, source_version,
-            sender_match_mode, sender_pattern, deleted_at, default_payment_mode_id
+            sender_match_mode, sender_pattern, deleted_at, default_payment_mode_id,
+            match_style, word_rules, samples
      FROM sms_template_patterns
      WHERE id = ? AND source = 'user' AND deleted_at IS NULL;`,
     id,
@@ -192,6 +238,9 @@ export async function createUserTemplate(
     const compiled = compileTemplate({
       smsBody: input.sampleSms,
       spans: input.spans,
+      style: input.matchStyle ?? "flexible",
+      wordRules: input.wordRules,
+      extraSamples: (input.extraSamples ?? []).map((x) => ({ smsBody: x.body, spans: x.spans })),
     });
     if (!compiled.ok) {
       throw new UserTemplateCompileError(compiled.reason, compiled.detail);
@@ -214,8 +263,9 @@ export async function createUserTemplate(
     `INSERT INTO sms_template_patterns
        (id, bank_name, template_id, pattern_regex, tx_type, priority,
         source_version, source, user_id, sample_sms, created_from_sms_id,
-        sender_match_mode, sender_pattern, default_payment_mode_id)
-     VALUES (?, ?, ?, ?, ?, ?, 'user-authored', 'user', ?, ?, ?, ?, ?, ?);`,
+        sender_match_mode, sender_pattern, default_payment_mode_id,
+        match_style, word_rules, samples)
+     VALUES (?, ?, ?, ?, ?, ?, 'user-authored', 'user', ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     id,
     input.bankName.trim(),
     label,
@@ -228,6 +278,9 @@ export async function createUserTemplate(
     input.senderMatchMode,
     input.senderPattern.trim().toUpperCase(),
     input.defaultPaymentModeId ?? null,
+    input.patternRegex ? "exact" : (input.matchStyle ?? "flexible"),
+    JSON.stringify(input.wordRules ?? { required: [], optional: [] }),
+    JSON.stringify([{ body: input.sampleSms, spans: input.spans }, ...(input.extraSamples ?? [])]),
   );
 
   // v15.7.0: when the template was spawned from an Unrecognised SMS row,
@@ -283,6 +336,9 @@ export async function updateUserTemplate(
   // v15.13.0: if manual regex is provided, validate it instead of compiling
   let patternRegex = existing.pattern_regex;
   let sampleSms = existing.sample_sms ?? "";
+  let matchStyle: MatchStyle = input.matchStyle ?? existing.match_style ?? "exact";
+  const wordRules = input.wordRules ?? parseWordRules(existing.word_rules);
+  let samples = existing.samples;
   
   if (input.patternRegex !== undefined) {
     // Validate the manual regex
@@ -293,24 +349,41 @@ export async function updateUserTemplate(
       throw new UserTemplateCompileError("invalid_regex", e instanceof Error ? e.message : String(e));
     }
     if (input.sampleSms !== undefined) sampleSms = input.sampleSms;
-  } else if (input.sampleSms !== undefined || input.spans !== undefined) {
+  } else if (
+    input.sampleSms !== undefined ||
+    input.spans !== undefined ||
+    input.matchStyle !== undefined ||
+    input.wordRules !== undefined ||
+    input.extraSamples !== undefined
+  ) {
     // Recompile if sample or spans changed. If only bankName/txType/label
     // changed, keep the existing regex.
+    const stored = parseSamples(existing.samples);
     const newBody = input.sampleSms ?? existing.sample_sms ?? "";
-    const newSpans = input.spans ?? []; // caller must provide; absent spans = error
+    // Taps: given, or the stored ones for an unchanged sample (templates saved after migration 081).
+    const newSpans = input.spans ?? (stored[0]?.body === newBody ? stored[0].spans : []);
+    const extras = input.extraSamples ?? stored.slice(1);
     if (newSpans.length === 0) {
       throw new UserTemplateCompileError(
         "no_spans",
         "Editing the sample requires re-tagging the fields",
       );
     }
-    const compiled = compileTemplate({ smsBody: newBody, spans: newSpans });
+    const compiled = compileTemplate({
+      smsBody: newBody,
+      spans: newSpans,
+      style: matchStyle,
+      wordRules,
+      extraSamples: extras.map((x) => ({ smsBody: x.body, spans: x.spans })),
+    });
     if (!compiled.ok) {
       throw new UserTemplateCompileError(compiled.reason, compiled.detail);
     }
     patternRegex = compiled.patternRegex;
     sampleSms = newBody;
+    samples = JSON.stringify([{ body: newBody, spans: newSpans }, ...extras]);
   }
+  if (input.patternRegex !== undefined) matchStyle = "exact";
 
   // v15.11.1: same auto-label preference as create — sender pattern wins
   // over the generic "<bank> <type>" fallback when user left it blank.
@@ -332,7 +405,10 @@ export async function updateUserTemplate(
          sample_sms = ?,
          sender_match_mode = ?,
          sender_pattern = ?,
-         default_payment_mode_id = ?
+         default_payment_mode_id = ?,
+         match_style = ?,
+         word_rules = ?,
+         samples = ?
      WHERE id = ? AND source = 'user';`,
     (input.bankName ?? existing.bank_name).trim(),
     label,
@@ -345,6 +421,9 @@ export async function updateUserTemplate(
     "defaultPaymentModeId" in input
       ? (input.defaultPaymentModeId ?? null)
       : existing.default_payment_mode_id,
+    matchStyle,
+    JSON.stringify(wordRules),
+    samples,
     id,
   );
   await bumpDataVersion();
@@ -450,7 +529,7 @@ export async function testPatternAgainstUnrecognised(
   senderClaim?: UserSenderClaim,
 ): Promise<{ total: number; matched: number; samples: string[] }> {
   const db = getDatabase();
-  const thirtyDaysAgoMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const sinceMs = backlogSinceMs(); // the look-back setting (default 90 days)
   // SQL-side narrow filter: use the sender pattern's core substring when
   // we have one, else fall back to bank-name prefix (legacy). Safe for
   // both wallets (MYTNEU) and banks (HDFC).
@@ -465,7 +544,7 @@ export async function testPatternAgainstUnrecognised(
         AND (address LIKE ? OR address LIKE ?)
       ORDER BY sms_date DESC
       LIMIT 200;`,
-    thirtyDaysAgoMs,
+    sinceMs,
     `%${sqlPrefix}%`,
     `%${bankName.trim().split(" ")[0].substring(0, 4)}%`,
   );
@@ -514,7 +593,7 @@ export async function diagnoseUserTemplate(
   if (!t) return null;
 
   const db = getDatabase();
-  const thirtyDaysAgoMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const sinceMs = backlogSinceMs(); // the look-back setting (default 90 days)
   const senderPrefix = t.bank_name.trim().split(" ")[0].substring(0, 4);
   const claimed: UserSenderClaim[] =
     t.sender_match_mode && t.sender_pattern
@@ -528,7 +607,7 @@ export async function diagnoseUserTemplate(
       WHERE sms_date >= ?
       ORDER BY sms_date DESC
       LIMIT 500;`,
-    thirtyDaysAgoMs,
+    sinceMs,
   );
 
   let re: RegExp;
@@ -566,13 +645,13 @@ export async function diagnoseUserTemplate(
  */
 export async function countUnrecognisedSms(): Promise<number> {
   const db = getDatabase();
-  const thirtyDaysAgoMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const sinceMs = backlogSinceMs(); // the look-back setting (default 90 days)
   const row = await db.getFirstAsync<{ n: number }>(
     `SELECT COUNT(*) AS n FROM pending_sms
       WHERE status IN ('pending', 'failed')
         AND expense_id IS NULL
         AND sms_date >= ?;`,
-    thirtyDaysAgoMs,
+    sinceMs,
   );
   return row?.n ?? 0;
 }
@@ -705,7 +784,7 @@ export interface UnrecognisedSmsRow {
  */
 export async function listUnrecognisedSms(limit = 50): Promise<UnrecognisedSmsRow[]> {
   const db = getDatabase();
-  const thirtyDaysAgoMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const sinceMs = backlogSinceMs(); // the look-back setting (default 90 days)
   // v15.6.0: include 'failed' rows too — these are SMS the parser saw but
   // couldn't extract values from. Users can teach a template that covers them.
   return db.getAllAsync<UnrecognisedSmsRow>(
@@ -716,7 +795,7 @@ export async function listUnrecognisedSms(limit = 50): Promise<UnrecognisedSmsRo
        AND sms_date >= ?
      ORDER BY sms_date DESC
      LIMIT ?;`,
-    thirtyDaysAgoMs,
+    sinceMs,
     limit,
   );
 }

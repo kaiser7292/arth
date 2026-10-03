@@ -3,7 +3,7 @@ import { BRAND_COLOR, STATUS_COLORS, TRANSFER_COLOR } from "@/constants/semantic
 import { Text } from "@/components/ui";
 import { View, Pressable, ScrollView } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import type { TaggedField, TaggedSpan } from "@/services/sms/template-compiler";
+import type { TaggedField, TaggedSpan, WordState } from "@/services/sms/template-compiler";
 import { useTheme } from "@/hooks/use-theme";
 
 /**
@@ -35,6 +35,25 @@ export interface TokenTaggerProps {
   spans: TaggedSpan[];
   activeField: TaggedField | null;
   onSpanChange: (next: TaggedSpan[]) => void;
+  /**
+   * Flexible templates: which surrounding words the pattern keeps. When given, untagged words
+   * are drawn as kept (outlined) or free to change (dashed, muted), and tapping one with no
+   * field selected calls onToggleWord.
+   */
+  wordStates?: WordState[];
+  onToggleWord?: (word: WordState) => void;
+}
+
+/** The kept/free state for a token: the "most kept" word state overlapping it. */
+function stateFor(tok: { start: number; end: number }, wordStates: WordState[] | undefined): WordState | null {
+  if (!wordStates) return null;
+  const rank = { required: 3, common: 2, auto: 1, free: 0 } as const;
+  let best: WordState | null = null;
+  for (const w of wordStates) {
+    if (w.end <= tok.start || w.start >= tok.end) continue;
+    if (!best || rank[w.state] > rank[best.state]) best = w;
+  }
+  return best;
 }
 
 interface Token {
@@ -67,6 +86,8 @@ export const FIELD_COLORS: Record<TaggedField, { bg: string; text: string; label
   date: { bg: TRANSFER_COLOR, text: "#FFFFFF", label: "Date" },
   balance: { bg: "#0EA5E9", text: "#FFFFFF", label: "Balance" },
   ref: { bg: "#F43F5E", text: "#FFFFFF", label: "Ref / Note" },
+  counterparty: { bg: "#D4537E", text: "#FFFFFF", label: "From / to name" },
+  other_account: { bg: "#185FA5", text: "#FFFFFF", label: "Other account" },
 };
 
 /** All spans (any field) that the token falls inside. */
@@ -205,6 +226,8 @@ export function TokenTagger({
   spans,
   activeField,
   onSpanChange,
+  wordStates,
+  onToggleWord,
 }: TokenTaggerProps) {
   const { colors } = useColorScheme();
   const tokens = useMemo(() => tokenize(smsBody), [smsBody]);
@@ -231,11 +254,16 @@ export function TokenTagger({
         return;
       }
 
-      if (!activeField) return; // UI prompts "tap a field first"
+      if (!activeField) {
+        // Flexible: with no field selected, a tap makes a word required / lets it change.
+        const ws = stateFor(tok, wordStates);
+        if (ws && onToggleWord) onToggleWord(ws);
+        return; // otherwise the UI prompts "tap a field first"
+      }
 
       onSpanChange(extendFieldWithToken(spans, activeField, tok, smsBody));
     },
-    [spans, activeField, onSpanChange, smsBody],
+    [spans, activeField, onSpanChange, smsBody, wordStates, onToggleWord],
   );
 
   const handleLongPress = useCallback(
@@ -272,6 +300,8 @@ export function TokenTagger({
           // the last one wins the palette.
           const field = owning.length > 0 ? owning[owning.length - 1].field : null;
           const palette = field ? FIELD_COLORS[field] : null;
+          const ws = palette ? null : stateFor(tok, wordStates);
+          const kept = ws ? ws.state !== "free" : true;
           return (
             <Pressable
               key={`${tok.start}-${idx}`}
@@ -290,20 +320,23 @@ export function TokenTagger({
                   : pressed
                   ? colors.border
                   : colors.surface,
-                borderWidth: palette ? 0 : 1,
-                borderColor: colors.border,
+                borderWidth: palette ? 0 : ws?.state === "required" ? 2 : 1,
+                borderColor: ws && kept ? colors.text : colors.border,
+                borderStyle: ws && !kept ? "dashed" : "solid",
                 opacity: pressed && !palette ? 0.7 : 1,
               })}
               accessibilityRole="button"
               accessibilityLabel={
                 field
                   ? `${tok.text}, tagged as ${FIELD_COLORS[field].label}. Tap to untag.`
-                  : `${tok.text}. Tap to tag. Long-press to tag part of the word.`
+                  : ws
+                    ? `${tok.text}, ${kept ? "must appear" : "can change"}. Tap with no field selected to switch.`
+                    : `${tok.text}. Tap to tag. Long-press to tag part of the word.`
               }
             >
               <Text
                 style={{
-                  color: palette ? palette.text : colors.text,
+                  color: palette ? palette.text : kept ? colors.text : colors.textSecondary,
                   fontSize: 14,
                   fontWeight: palette ? "600" : "400",
                 }}

@@ -99,3 +99,22 @@ describe("detectSip", () => {
     expect(sipFundLabel("BSE STAR MF", "")).toBe("BSE STAR MF");
   });
 });
+
+describe("inferDirection", () => {
+  const { inferDirection } = jest.requireActual("../../services/sms/money-signals");
+  it.each([
+    ["your a/c credited rs.500", "credit"],
+    ["rs.500 debited from a/c xx12", "debit"],
+    ["rs.200 spent on card at swiggy", "debit"],
+    ["refund of rs.300 processed", "refund"],
+    ["cashback of rs.20 added", "refund"],
+    ["rs.500 debited from a/c xx12 and credited to ramesh", "debit"],
+    ["a/c xx12 credited with rs.500 by transfer, debited a/c xx99", "credit"],
+  ])("%s → %s", (text, type) => {
+    const amountAt = text.indexOf("rs.");
+    expect(inferDirection(text, amountAt >= 0 ? amountAt : undefined).type).toBe(type);
+  });
+  it("is unsure without direction words", () => {
+    expect(inferDirection("rs.500 at shop")).toEqual({ type: "debit", confident: false });
+  });
+});

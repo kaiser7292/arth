@@ -6,10 +6,12 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import {
   getUserTemplate,
+  parseSamples,
+  parseWordRules,
   type UserSmsTemplate,
 } from "@/services/sms/user-sms-templates";
 import { startDraft } from "@/services/sms/template-draft-store";
-import { compileTemplate, deriveSpansFromRegex } from "@/services/sms/template-compiler";
+import { autoTag, compileTemplate, deriveSpansFromRegex } from "@/services/sms/template-compiler";
 import { useTheme } from "@/hooks/use-theme";
 
 /**
@@ -25,7 +27,8 @@ import { useTheme } from "@/hooks/use-theme";
  */
 export default function EditSmsTemplateScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // addExample: a message from Unrecognised to add to this template as another example.
+  const { id, addExample } = useLocalSearchParams<{ id: string; addExample?: string }>();
   const alert = useAlert();
   
   const theme = useTheme();
@@ -45,16 +48,35 @@ export default function EditSmsTemplateScreen() {
         }
         setTemplate(t);
         const sampleBody = t.sample_sms ?? "";
+        // Templates saved since migration 081 keep their taps; older ones are reverse-mapped.
+        const samples = parseSamples(t.samples);
+        const storedFirst = samples[0]?.body === sampleBody ? samples[0].spans : null;
         const restoredSpans =
-          sampleBody.length > 0
-            ? deriveSpansFromRegex(t.pattern_regex, sampleBody) ?? []
-            : [];
+          storedFirst ??
+          (sampleBody.length > 0 ? deriveSpansFromRegex(t.pattern_regex, sampleBody) ?? [] : []);
+        // A template with more than one example is flexible by definition.
+        let matchStyle = t.match_style ?? "exact";
+        const wordRules = parseWordRules(t.word_rules);
+        const extraSamples = samples.slice(1);
+        if (addExample && addExample !== sampleBody && !extraSamples.some((x) => x.body === addExample)) {
+          extraSamples.push({
+            body: addExample,
+            spans: deriveSpansFromRegex(t.pattern_regex, addExample) ?? autoTag(addExample),
+          });
+          matchStyle = "flexible";
+        }
         // Detect if the stored regex was manually edited by comparing against
         // what auto-compile would produce from the restored spans.
         let isManualRegex = false;
         let manualRegexValue: string | null = null;
         if (restoredSpans.length > 0 && sampleBody.length > 0) {
-          const autoCompiled = compileTemplate({ smsBody: sampleBody, spans: restoredSpans });
+          const autoCompiled = compileTemplate({
+            smsBody: sampleBody,
+            spans: restoredSpans,
+            style: matchStyle,
+            wordRules,
+            extraSamples: samples.slice(1).map((x) => ({ smsBody: x.body, spans: x.spans })),
+          });
           if (autoCompiled.ok && autoCompiled.patternRegex !== t.pattern_regex) {
             isManualRegex = true;
             manualRegexValue = t.pattern_regex;
@@ -73,6 +95,9 @@ export default function EditSmsTemplateScreen() {
           useManualRegex: isManualRegex,
           manualRegex: manualRegexValue,
           defaultPaymentModeId: t.default_payment_mode_id ?? null,
+          matchStyle,
+          wordRules,
+          extraSamples,
         });
         router.replace("/settings/sms-templates/tag");
       } catch (e) {

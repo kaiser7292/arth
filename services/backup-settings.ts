@@ -71,6 +71,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("form_last_account_received", "string"),
   S("form_last_account_transfer_from", "string"),
   S("form_last_account_transfer_to", "string"),
+  S("template_backlog_days", "number"),
   S("scheduled_backup_enabled", "boolean"),
   S("scheduled_backup_frequency_hours", "number"),
   S("notif_overdue", "boolean"),

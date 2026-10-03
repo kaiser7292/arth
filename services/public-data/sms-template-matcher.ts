@@ -30,9 +30,10 @@ import { identifyBank } from "@/services/sms/bank-senders";
 import type { ParsedSMS, TransactionType } from "@/services/sms/bank-patterns";
 import { parseDateAny } from "@/services/sms/bank-patterns";
 import { normalizeSms } from "@/services/sms/sms-normalize";
+import { cleanCounterpartyName, inferDirection } from "@/services/sms/money-signals";
 import { logger } from "@/utils/logger";
 
-interface TemplateRow {
+export interface TemplateRow {
   id: string;
   bank_name: string;
   template_id: string | null;
@@ -51,7 +52,7 @@ interface TemplateRow {
  * The template's `sender_pattern` is stored upper-cased; we normalise the
  * incoming address the same way before comparing.
  */
-function senderMatches(
+export function senderMatches(
   row: TemplateRow,
   senderAddress: string,
   codeFromSender: string | null,
@@ -95,7 +96,7 @@ function normaliseMerchant(raw: string | undefined): string | null {
   return trimmed;
 }
 
-async function resolveSenderBank(senderAddress: string): Promise<string | null> {
+export async function resolveSenderBank(senderAddress: string): Promise<string | null> {
   const hardcoded = identifyBank(senderAddress);
   if (hardcoded) return hardcoded.bank;
   const codeMatch = senderAddress.toUpperCase().match(/[A-Z]{4,}/);
@@ -159,92 +160,112 @@ export async function tryTemplateMatch(
     if (row.sender_match_mode && row.sender_pattern) {
       if (!senderMatches(row, senderAddress, codeFromSender)) continue;
     }
-    let regex: RegExp;
-    try {
-      regex = new RegExp(row.pattern_regex, "i");
-    } catch {
-      continue;
-    }
+    const parsed = matchTemplateRow(row, normalizedBody, bank);
+    if (parsed) return parsed;
+  }
 
-    const match = regex.exec(normalizedBody);
-    if (!match) continue;
+  return null;
+}
 
-    const groups = match.groups ?? {};
-    const amountRaw = groups["amount"];
-    const txType = TX_TYPE_ALIASES[row.tx_type] ?? "debit";
-    // v15.5: user-authored templates get lower confidence than system ones
-    // so downstream (review queue, smart rules) can treat them more
-    // cautiously if needed.
-    const confidence = row.source === "user" ? 0.5 : 0.7;
 
-    // v15.10.0: account capture can be either last-3-6 digits of a card/
-    // savings (populate cardLast4, existing behavior) OR a multi-word
-    // nickname for a wallet (populate accountNickname, new). Downstream
-    // linkExpenseToAccount decides which field to match against.
-    const accountRaw = groups["account"];
-    const isAllDigits = accountRaw != null && /^\d+$/.test(accountRaw);
-    const cardLast4 = isAllDigits ? accountRaw.slice(-4) : null;
-    const accountNickname = !isAllDigits && accountRaw ? accountRaw.trim() : null;
+/**
+ * Run ONE template row against an already-normalised SMS body. Returns the parse, or null when
+ * the row doesn't match (or matched without an amount). Sender scoping is the caller's job.
+ * Shared by the live matcher and by reading the Unrecognised backlog with a new template.
+ */
+export function matchTemplateRow(row: TemplateRow, normalizedBody: string, bank: string | null): ParsedSMS | null {
+  let regex: RegExp;
+  try {
+    regex = new RegExp(row.pattern_regex, "i");
+  } catch {
+    return null;
+  }
 
-    const parsedDate = groups["date"] ? parseDateAny(groups["date"]) : null;
+  const match = regex.exec(normalizedBody);
+  if (!match) return null;
 
-    // reminder_hint matches are staged by reminder-hints.ts; we still return
-    // a ParsedSMS so the parser records the SMS in pending_sms, but mark it
-    // skip so it doesn't flow into the expense path.
-    if (row.tx_type === "reminder_hint") {
-      return {
-        amount: amountRaw ? parseAmount(amountRaw) : 0,
-        merchant: normaliseMerchant(groups["merchant"]),
-        cardLast4,
-        accountNickname,
-        date: parsedDate,
-        // v15.11.0: sender-scoped templates may be for brands the app
-        // doesn't recognise (wallets, new fintechs). Prefer the template's
-        // own bank_name when sender routing matched, falling back to the
-        // DLT-resolved bank for legacy bank-scoped matches.
-        bank: (row.sender_match_mode && row.bank_name) ? row.bank_name : (bank ?? "Unknown"),
-        type: txType,
-        skip: true,
-        confidence,
-        dueDate: groups["dueDate"] ?? null,
-        isForecast: false,
-        upiRef: groups["ref"] ?? null,
-      };
-    }
+  const groups = match.groups ?? {};
+  const amountRaw = groups["amount"];
+  // "auto": money in / out / refund from the words, nearest to the amount.
+  let txType: TransactionType = TX_TYPE_ALIASES[row.tx_type] ?? "debit";
+  let autoUnsure = false;
+  if (row.tx_type === "auto") {
+    const amountAt = amountRaw ? normalizedBody.indexOf(amountRaw, match.index) : normalizedBody.length;
+    const dir = inferDirection(normalizedBody, amountAt >= 0 ? amountAt : normalizedBody.length);
+    txType = dir.type;
+    autoUnsure = !dir.confident;
+  }
+  // v15.5: user-authored templates get lower confidence than system ones
+  // so downstream (review queue, smart rules) can treat them more
+  // cautiously if needed.
+  const confidence = autoUnsure ? 0.3 : row.source === "user" ? 0.5 : 0.7;
 
-    // Balance-only / merchant-only patterns that never carry an amount are
-    // not expenses on their own — skip so they don't land in pending_sms as
-    // a 0-rupee transaction.
-    if (!amountRaw || parseAmount(amountRaw) === 0) {
-      if (row.tx_type === "balance_inquiry") {
-        continue;
-      }
-      continue;
-    }
+  // v15.10.0: account capture can be either last-3-6 digits of a card/
+  // savings (populate cardLast4, existing behavior) OR a multi-word
+  // nickname for a wallet (populate accountNickname, new). Downstream
+  // linkExpenseToAccount decides which field to match against.
+  const accountRaw = groups["account"];
+  const isAllDigits = accountRaw != null && /^\d+$/.test(accountRaw);
+  const cardLast4 = isAllDigits ? accountRaw.slice(-4) : null;
+  const accountNickname = !isAllDigits && accountRaw ? accountRaw.trim() : null;
 
-    const amount = parseAmount(amountRaw);
-    if (amount <= 0) continue;
+  const parsedDate = groups["date"] ? parseDateAny(groups["date"]) : null;
 
+  // Name / other account tagged on the template feed own-account transfer detection.
+  const counterpartyName = groups["counterparty"] ? cleanCounterpartyName(groups["counterparty"]) : null;
+  const otherDigits = groups["other_account"]?.replace(/\D/g, "") ?? "";
+  const counterpartyAcctLast4 = otherDigits.length >= 3 ? otherDigits.slice(-4) : null;
+
+  // reminder_hint matches are staged by reminder-hints.ts; we still return
+  // a ParsedSMS so the parser records the SMS in pending_sms, but mark it
+  // skip so it doesn't flow into the expense path.
+  if (row.tx_type === "reminder_hint") {
     return {
-      amount,
+      amount: amountRaw ? parseAmount(amountRaw) : 0,
       merchant: normaliseMerchant(groups["merchant"]),
       cardLast4,
       accountNickname,
       date: parsedDate,
-      bank: bank ?? "Unknown",
+      // v15.11.0: sender-scoped templates may be for brands the app
+      // doesn't recognise (wallets, new fintechs). Prefer the template's
+      // own bank_name when sender routing matched, falling back to the
+      // DLT-resolved bank for legacy bank-scoped matches.
+      bank: (row.sender_match_mode && row.bank_name) ? row.bank_name : (bank ?? "Unknown"),
       type: txType,
-      skip: false,
+      skip: true,
       confidence,
-      dueDate: null,
+      dueDate: groups["dueDate"] ?? null,
       isForecast: false,
       upiRef: groups["ref"] ?? null,
-      availableBalance: groups["balance"] ? parseAmount(groups["balance"]) : null,
-      _matchSource: "template" as const,
-      _matchedTemplateId: row.id,
     };
   }
 
-  return null;
+  // Balance-only / merchant-only patterns that never carry an amount are
+  // not expenses on their own — skip so they don't land in pending_sms as
+  // a 0-rupee transaction.
+  if (!amountRaw) return null;
+  const amount = parseAmount(amountRaw);
+  if (amount <= 0) return null;
+
+  return {
+    amount,
+    merchant: normaliseMerchant(groups["merchant"]) ?? counterpartyName,
+    cardLast4,
+    accountNickname,
+    date: parsedDate,
+    bank: bank ?? "Unknown",
+    type: txType,
+    skip: false,
+    confidence,
+    dueDate: null,
+    isForecast: false,
+    upiRef: groups["ref"] ?? null,
+    availableBalance: groups["balance"] ? parseAmount(groups["balance"]) : null,
+    counterpartyName,
+    counterpartyAcctLast4,
+    _matchSource: "template" as const,
+    _matchedTemplateId: row.id,
+  };
 }
 
 // Exposed for unit tests.

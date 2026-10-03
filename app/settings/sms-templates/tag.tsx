@@ -17,10 +17,22 @@ import {
   compileTemplate,
   testTemplate,
   autoTag,
+  deriveSpansFromRegex,
   explainCompileError,
+  type MatchStyle,
   type TaggedField,
   type TaggedSpan,
+  type WordRules,
+  type WordState,
 } from "@/services/sms/template-compiler";
+import {
+  applyTemplateToBacklog,
+  findBacklogMatches,
+  getBacklogDays,
+  type BacklogMatch,
+} from "@/services/sms/template-backlog";
+import { TemplatePreviewSheet } from "@/components/sms-templates/TemplatePreviewSheet";
+import { ExamplePickerSheet } from "@/components/sms-templates/ExamplePickerSheet";
 import {
   getDraft,
   updateDraft,
@@ -30,9 +42,10 @@ import {
   createUserTemplate,
   updateUserTemplate,
   findDuplicateUserTemplate,
-  testPatternAgainstUnrecognised,
+  listUnrecognisedSms,
   type UserTxType,
   type SenderMatchMode,
+  type TemplateSample,
 } from "@/services/sms/user-sms-templates";
 import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -62,7 +75,7 @@ import { useTheme } from "@/hooks/use-theme";
  *   - Step indicator (1 / 2 / 3)
  */
 
-const FIELDS: TaggedField[] = ["amount", "account", "merchant", "date", "balance", "ref"];
+const FIELDS: TaggedField[] = ["amount", "account", "merchant", "date", "balance", "ref", "counterparty", "other_account"];
 
 /**
  * v15.10.0 — user-visible "what does each field look like?" helper, shown
@@ -93,6 +106,14 @@ const FIELD_FORMAT_HELP: Record<TaggedField, { format: string; examples: string 
   ref: {
     format: "Alphanumeric with optional -/.&':#",
     examples: "UPI/123456789012   ·   NEFT-REF-55123   ·   IMPS/R/0429",
+  },
+  counterparty: {
+    format: "Who sent or received the money — a person or business name",
+    examples: "SOURAVBAID   ·   RAHUL VERMA   ·   ACME PVT LTD",
+  },
+  other_account: {
+    format: "Last digits of the other account in a transfer",
+    examples: "xxxxxxxxxx0006   ·   **1234   ·   1234",
   },
 };
 
@@ -151,8 +172,18 @@ export default function TagSmsTemplateScreen() {
   const [testResult, setTestResult] = useState<
     { ok: true; extracted: Partial<Record<TaggedField, string>> } | { ok: false } | null
   >(null);
-  const [unrecResult, setUnrecResult] = useState<{ matched: number; total: number; samples: string[] } | null>(null);
-  const [unrecLoading, setUnrecLoading] = useState(false);
+  // Flexible matching: how strict, user word overrides, and extra examples.
+  const [matchStyle, setMatchStyle] = useState<MatchStyle>(draft?.matchStyle ?? "flexible");
+  const [wordRules, setWordRules] = useState<WordRules>(draft?.wordRules ?? { required: [], optional: [] });
+  const [extraSamples, setExtraSamples] = useState<TemplateSample[]>(draft?.extraSamples ?? []);
+  // Which unread messages from this sender the template reads (live, and the preview on Save).
+  const [coverage, setCoverage] = useState<{ total: number; matches: BacklogMatch[] } | null>(null);
+  const [coverageLoading, setCoverageLoading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [examplePickerOpen, setExamplePickerOpen] = useState(false);
+  const [exampleCandidates, setExampleCandidates] = useState<{ id: string; body: string }[]>([]);
+  const backlogDays = useMemo(() => getBacklogDays(), []);
   const [duplicateFound, setDuplicateFound] = useState<{ id: string; label: string } | null>(null);
   const [showRegexPreview, setShowRegexPreview] = useState(false);
   // v15.13.0: manual regex edit mode — restored from draft when editing a template
@@ -181,8 +212,8 @@ export default function TagSmsTemplateScreen() {
 
   // Persist changes to draft store so Back re-entry doesn't lose them.
   useEffect(() => {
-    updateDraft({ spans, bankName, txType, label, senderPattern, senderMatchMode, useManualRegex, manualRegex, defaultPaymentModeId });
-  }, [spans, bankName, txType, label, senderPattern, senderMatchMode, useManualRegex, manualRegex, defaultPaymentModeId]);
+    updateDraft({ spans, bankName, txType, label, senderPattern, senderMatchMode, useManualRegex, manualRegex, defaultPaymentModeId, matchStyle, wordRules, extraSamples });
+  }, [spans, bankName, txType, label, senderPattern, senderMatchMode, useManualRegex, manualRegex, defaultPaymentModeId, matchStyle, wordRules, extraSamples]);
 
   // v15.11.0: the "effective" sender string we'll actually save, after
   // auto-extraction when mode = code. Displayed below the input so the user
@@ -201,14 +232,102 @@ export default function TagSmsTemplateScreen() {
   // where stale test results would linger.
   useEffect(() => {
     setTestResult(null);
-    setUnrecResult(null);
-  }, [spans, bankName, txType]);
+  }, [spans, bankName, txType, matchStyle, wordRules, extraSamples]);
 
   // Live compile for preview.
   const compiled = useMemo(() => {
     if (spans.length === 0 || !smsBody) return null;
-    return compileTemplate({ smsBody, spans });
-  }, [spans, smsBody]);
+    return compileTemplate({
+      smsBody,
+      spans,
+      style: matchStyle,
+      wordRules,
+      extraSamples: extraSamples.map((x) => ({ smsBody: x.body, spans: x.spans })),
+    });
+  }, [spans, smsBody, matchStyle, wordRules, extraSamples]);
+
+  // Word states drive the outlined (must appear) / dashed (can change) words. Kept on errors so
+  // a "too loose" template can be fixed by tapping a word.
+  const wordStates: WordState[] | undefined =
+    matchStyle === "flexible" && compiled ? compiled.wordStates : undefined;
+
+  const toggleWord = useCallback((ws: WordState) => {
+    const w = ws.word;
+    setWordRules((r) => {
+      const required = r.required.filter((x) => x !== w);
+      const optional = r.optional.filter((x) => x !== w);
+      if (ws.state === "required") return { required, optional }; // back to automatic
+      if (ws.state === "free") return { required: [...required, w], optional };
+      return { required, optional: [...optional, w] }; // automatic / shared → can change
+    });
+  }, []);
+
+  // The pattern actually in use (manual override or compiled).
+  const activePattern = useManualRegex ? manualRegex : compiled && compiled.ok ? compiled.patternRegex : "";
+
+  // Live "Reads X of Y" against this sender's unread messages.
+  useEffect(() => {
+    if (!activePattern.trim() || !effectiveSenderPattern) {
+      setCoverage(null);
+      return;
+    }
+    let cancelled = false;
+    setCoverageLoading(true);
+    const timer = setTimeout(() => {
+      findBacklogMatches({
+        id: draft?.editingId ?? undefined,
+        patternRegex: activePattern,
+        txType,
+        bankName: bankName.trim(),
+        senderMatchMode,
+        senderPattern: effectiveSenderPattern,
+      })
+        .then((r) => {
+          if (!cancelled) setCoverage(r);
+        })
+        .catch(() => {
+          if (!cancelled) setCoverage(null);
+        })
+        .finally(() => {
+          if (!cancelled) setCoverageLoading(false);
+        });
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [activePattern, effectiveSenderPattern, senderMatchMode, txType, bankName, draft?.editingId]);
+
+  // "Add another example": the sender's other unread messages.
+  const openExamplePicker = useCallback(async () => {
+    try {
+      const rows = await listUnrecognisedSms(200);
+      const used = new Set([smsBody, ...extraSamples.map((x) => x.body)]);
+      const code = effectiveSenderPattern.toUpperCase();
+      setExampleCandidates(
+        rows
+          .filter((r) => !used.has(r.body))
+          .filter((r) => !code || r.address.toUpperCase().includes(code))
+          .slice(0, 30)
+          .map((r) => ({ id: r.id, body: r.body })),
+      );
+    } catch {
+      setExampleCandidates([]);
+    }
+    setExamplePickerOpen(true);
+  }, [smsBody, extraSamples, effectiveSenderPattern]);
+
+  const addExample = useCallback(
+    (body: string) => {
+      setExamplePickerOpen(false);
+      // Pre-tag with what the template reads now, else Arth's best guess; the user fixes the rest.
+      const fromTemplate = activePattern ? deriveSpansFromRegex(activePattern, body) : null;
+      setExtraSamples((prev) => [...prev, { body, spans: fromTemplate ?? autoTag(body) }]);
+      setMatchStyle("flexible"); // learning from several examples is a flexible-matching feature
+      setActiveField(null);
+    },
+    [activePattern],
+  );
 
   // v15.10.0: preview comes directly from the tagged spans, NOT from the
   // compile result. Previously, if ANY field's tag failed round-trip
@@ -395,39 +514,6 @@ export default function TagSmsTemplateScreen() {
     else setTestResult({ ok: false });
   }, [compiled, testSample, useManualRegex, manualRegex, alert]);
 
-  const handleTestUnrecognised = useCallback(async () => {
-    if (!compiled || !compiled.ok || !bankName.trim()) return;
-    const regexToUse = useManualRegex ? manualRegex : compiled.patternRegex;
-    if (!regexToUse.trim()) return;
-    // Validate manual regex
-    if (useManualRegex) {
-      try {
-        new RegExp(regexToUse, "i");
-      } catch (e) {
-        alert("Invalid regex", e instanceof Error ? e.message : String(e));
-        return;
-      }
-    }
-    setUnrecLoading(true);
-    try {
-      // v15.11.2: pass the sender claim so wallet/new-brand templates
-      // find their SMSes. Bank name alone doesn't overlap with the
-      // actual sender address for most wallets.
-      const result = await testPatternAgainstUnrecognised(
-        regexToUse,
-        bankName.trim(),
-        effectiveSenderPattern
-          ? { mode: senderMatchMode, pattern: effectiveSenderPattern.toUpperCase() }
-          : undefined,
-      );
-      setUnrecResult(result);
-    } catch (e) {
-      alert("Test failed", e instanceof Error ? e.message : String(e));
-    } finally {
-      setUnrecLoading(false);
-    }
-  }, [compiled, bankName, alert, effectiveSenderPattern, senderMatchMode, useManualRegex, manualRegex]);
-
   const handleSave = useCallback(async () => {
     if (saving) return;
 
@@ -467,6 +553,13 @@ export default function TagSmsTemplateScreen() {
       alert("Can't save yet", explainCompileError(compiled!));
       return;
     }
+    // Show what it will read before saving; the sheet's button continues below.
+    setExcluded(new Set());
+    setPreviewOpen(true);
+  }, [saving, bankName, spans, compiled, effectiveSenderPattern, useManualRegex, manualRegex, alert]);
+
+  const confirmSave = useCallback(async () => {
+    if (saving) return;
     if (duplicateFound) {
       alert(
         "You already have a template for this",
@@ -492,8 +585,9 @@ export default function TagSmsTemplateScreen() {
       savingRef.current = true;
       try {
         const regexToSave = useManualRegex ? manualRegex : undefined;
+        let saved;
         if (draft?.editingId) {
-          await updateUserTemplate(draft.editingId, {
+          saved = await updateUserTemplate(draft.editingId, {
             bankName: bankName.trim(),
             txType,
             sampleSms: smsBody,
@@ -503,9 +597,12 @@ export default function TagSmsTemplateScreen() {
             senderMatchMode,
             patternRegex: regexToSave,
             defaultPaymentModeId,
+            matchStyle,
+            wordRules,
+            extraSamples,
           });
         } else {
-          await createUserTemplate({
+          saved = await createUserTemplate({
             bankName: bankName.trim(),
             txType,
             sampleSms: smsBody,
@@ -516,7 +613,49 @@ export default function TagSmsTemplateScreen() {
             senderMatchMode,
             patternRegex: regexToSave,
             defaultPaymentModeId,
+            matchStyle,
+            wordRules,
+            extraSamples,
           });
+        }
+        setPreviewOpen(false);
+        const toRead = (coverage?.matches ?? []).filter((m) => !excluded.has(m.id)).length;
+        if (toRead > 0) {
+          const tpl = {
+            id: saved.id,
+            patternRegex: saved.pattern_regex,
+            txType: saved.tx_type,
+            bankName: saved.bank_name,
+            senderMatchMode: saved.sender_match_mode,
+            senderPattern: saved.sender_pattern,
+          };
+          const finish = () => {
+            router.replace("/settings/sms-templates");
+            clearDraft();
+          };
+          alert(
+            `Read ${toRead} past message${toRead === 1 ? "" : "s"} now?`,
+            "They were sitting in Unrecognised. They'll go to your review queue, the same as new ones.",
+            [
+              { text: "Not now", style: "cancel", onPress: finish },
+              {
+                text: "Read them",
+                onPress: async () => {
+                  try {
+                    const created = await applyTemplateToBacklog(tpl, [...excluded]);
+                    alert(
+                      created > 0 ? `${created} added to your review queue` : "Nothing new to add",
+                      created > 0 ? "Review them in Catch Up or the review queue." : "They may already have been read.",
+                      [{ text: "OK", onPress: finish }],
+                    );
+                  } catch (e) {
+                    alert("Couldn't read them", e instanceof Error ? e.message : String(e), [{ text: "OK", onPress: finish }]);
+                  }
+                },
+              },
+            ],
+          );
+          return;
         }
         // v15.11.2: navigate FIRST, clear draft SECOND.
         //
@@ -542,7 +681,7 @@ export default function TagSmsTemplateScreen() {
         setSaving(false);
       }
     }
-  }, [saving, bankName, spans, compiled, smsBody, txType, label, draft, router, alert, duplicateFound, effectiveSenderPattern, senderMatchMode, useManualRegex, manualRegex, defaultPaymentModeId]);
+  }, [saving, bankName, spans, smsBody, txType, label, draft, router, alert, duplicateFound, effectiveSenderPattern, senderMatchMode, useManualRegex, manualRegex, defaultPaymentModeId, matchStyle, wordRules, extraSamples, coverage, excluded]);
 
   if (!smsBody) {
     return (
@@ -676,6 +815,36 @@ export default function TagSmsTemplateScreen() {
           <Text className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
             2. The SMS
           </Text>
+          <Text className="text-xs text-faint-foreground mb-1.5">Match</Text>
+          <View className="flex-row mb-1.5" style={{ gap: 8 }}>
+            {(["flexible", "exact"] as const).map((m) => (
+              <Pressable
+                key={m}
+                onPress={() => {
+                  if (m === "exact" && extraSamples.length > 0) {
+                    alert("Remove the extra examples first", "Exact matching uses one example. Remove the others to switch.");
+                    return;
+                  }
+                  setMatchStyle(m);
+                }}
+                className="flex-1 items-center py-2 rounded-lg"
+                style={{
+                  backgroundColor: matchStyle === m ? accentColor : "transparent",
+                  borderWidth: 1,
+                  borderColor: matchStyle === m ? accentColor : colors.border,
+                }}
+              >
+                <Text className="text-sm font-semibold" style={{ color: matchStyle === m ? "#FFFFFF" : colors.text }}>
+                  {m === "flexible" ? "Flexible" : "Exact"}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text className="text-label text-faint-foreground mb-3">
+            {matchStyle === "flexible"
+              ? "Only the outlined words must appear; dashed words can change. With no field selected, tap a word to switch it."
+              : "Every word between the fields must match exactly. A changed word stops it reading the message."}
+          </Text>
           <Text className="text-label text-faint-foreground mb-3">
             Tap a word to tag. Tap a tagged word to untag it. Long-press to pick just part of a word (e.g. "1,500" out of "Rs.1,500").
           </Text>
@@ -684,8 +853,79 @@ export default function TagSmsTemplateScreen() {
             spans={spans}
             activeField={activeField}
             onSpanChange={setSpans}
+            wordStates={wordStates}
+            onToggleWord={toggleWord}
           />
         </Card>
+
+        {/* More examples of the same format */}
+        {extraSamples.map((ex, i) => (
+          <Card key={`ex-${i}`} className="mb-4">
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Example {i + 2}
+              </Text>
+              <Pressable
+                onPress={() => setExtraSamples((prev) => prev.filter((_, j) => j !== i))}
+                hitSlop={8}
+                accessibilityLabel={`Remove example ${i + 2}`}
+              >
+                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+            <Text className="text-label text-faint-foreground mb-3">
+              Tag the same fields here. Words both messages share are kept; the rest can change.
+            </Text>
+            <TokenTagger
+              smsBody={ex.body}
+              spans={ex.spans}
+              activeField={activeField}
+              onSpanChange={(next) =>
+                setExtraSamples((prev) => prev.map((x, j) => (j === i ? { ...x, spans: next } : x)))
+              }
+            />
+          </Card>
+        ))}
+        {!useManualRegex && extraSamples.length < 2 && (
+          <Pressable
+            onPress={() => void openExamplePicker()}
+            className="flex-row items-center justify-center py-3 mb-4 rounded-xl border border-dashed border-border"
+            accessibilityRole="button"
+          >
+            <Ionicons name="add-circle-outline" size={18} color={accentColor} />
+            <Text className="ml-2 text-sm font-medium" style={{ color: accentColor }}>
+              Add another example
+            </Text>
+          </Pressable>
+        )}
+
+        {/* Live: what it reads among this sender's unread messages */}
+        <Pressable
+          onPress={() => coverage && setPreviewOpen(true)}
+          className="mb-4 p-3 rounded-xl flex-row items-center"
+          style={{ backgroundColor: coverage && coverage.matches.length > 0 ? theme.alpha("success", 0.12) : theme.alpha("foreground", 0.05) }}
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name={coverage && coverage.matches.length > 0 ? "checkmark-circle-outline" : "mail-unread-outline"}
+            size={18}
+            color={coverage && coverage.matches.length > 0 ? theme.success : colors.textSecondary}
+          />
+          <Text className="text-xs ml-2 flex-1" style={{ color: colors.text }}>
+            {!effectiveSenderPattern
+              ? "Add the sender ID below to see which unread messages this reads."
+              : coverageLoading && !coverage
+                ? "Checking your unread messages…"
+                : coverage
+                  ? `Reads ${coverage.matches.length} of ${coverage.total} unread from ${effectiveSenderPattern} in the last ${backlogDays} days`
+                  : "Finish tagging to see which unread messages this reads."}
+          </Text>
+          {coverage && coverage.matches.length > 0 && (
+            <Text className="text-xs font-semibold" style={{ color: theme.success }}>
+              See list
+            </Text>
+          )}
+        </Pressable>
 
         {/* Card 3: Metadata (tx type + bank + label) */}
         <Card className="mb-4">
@@ -695,7 +935,7 @@ export default function TagSmsTemplateScreen() {
 
           <Text className="text-xs text-faint-foreground mb-1.5">Transaction type</Text>
           <View className="flex-row mb-3" style={{ gap: 8 }}>
-            {(["debit", "credit", "refund"] as const).map((t) => (
+            {(["auto", "debit", "credit", "refund"] as const).map((t) => (
               <Pressable
                 key={t}
                 onPress={() => setTxType(t)}
@@ -713,11 +953,16 @@ export default function TagSmsTemplateScreen() {
                     textTransform: "capitalize",
                   }}
                 >
-                  {t === "debit" ? "Expense" : t}
+                  {t === "debit" ? "Expense" : t === "auto" ? "Auto" : t}
                 </Text>
               </Pressable>
             ))}
           </View>
+          {txType === "auto" && (
+            <Text className="text-label text-faint-foreground -mt-1.5 mb-3">
+              Arth reads money in or out from the words — “credited”, “debited”, “refund” — so one template covers both.
+            </Text>
+          )}
 
           {/* v15.11.0: sender ID routing. The template matches future SMSes
               based on the sender (header of the message), not the bank name.
@@ -1028,23 +1273,13 @@ export default function TagSmsTemplateScreen() {
               textAlignVertical: "top",
             }}
           />
-          <View className="mt-2 flex-row" style={{ gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Button
-                title="Test this SMS"
-                onPress={handleTest}
-                variant="secondary"
-                disabled={testSample.trim().length < 10 || !compiled || !compiled.ok}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                title={unrecLoading ? "Scanning…" : "Test against recent"}
-                onPress={handleTestUnrecognised}
-                variant="secondary"
-                disabled={!compiled || !compiled.ok || !bankName.trim() || unrecLoading}
-              />
-            </View>
+          <View className="mt-2">
+            <Button
+              title="Test this SMS"
+              onPress={handleTest}
+              variant="secondary"
+              disabled={testSample.trim().length < 10 || !compiled || !compiled.ok}
+            />
           </View>
           {testResult && (
             <View className="mt-3">
@@ -1072,34 +1307,6 @@ export default function TagSmsTemplateScreen() {
               )}
             </View>
           )}
-          {unrecResult && (
-            <View className="mt-3 p-2.5 rounded-lg" style={{ backgroundColor: accentColor + "10" }}>
-              <View className="flex-row items-center">
-                <Ionicons
-                  name={unrecResult.matched > 0 ? "checkmark-circle" : "information-circle-outline"}
-                  size={16}
-                  color={accentColor}
-                />
-                <Text className="text-xs font-semibold ml-1" style={{ color: accentColor }}>
-                  Matches {unrecResult.matched} of {unrecResult.total} recent unrecognised SMS
-                </Text>
-              </View>
-              {unrecResult.samples.length > 0 && (
-                <View className="mt-1.5">
-                  {unrecResult.samples.map((s, i) => (
-                    <Text
-                      key={i}
-                      className="text-label mt-0.5 ml-5"
-                      style={{ color: colors.textSecondary }}
-                      numberOfLines={1}
-                    >
-                      • {s}
-                    </Text>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
         </Card>
 
         <Button
@@ -1110,6 +1317,33 @@ export default function TagSmsTemplateScreen() {
         />
       </ScrollView>
       </KeyboardAvoidingView>
+      <TemplatePreviewSheet
+        visible={previewOpen}
+        loading={coverageLoading && !coverage}
+        total={coverage?.total ?? 0}
+        days={backlogDays}
+        sender={effectiveSenderPattern}
+        matches={coverage?.matches ?? []}
+        excluded={excluded}
+        onToggle={(id) =>
+          setExcluded((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+          })
+        }
+        saving={saving}
+        saveTitle={draft?.editingId ? "Save changes" : "Save template"}
+        onSave={() => void confirmSave()}
+        onClose={() => setPreviewOpen(false)}
+      />
+      <ExamplePickerSheet
+        visible={examplePickerOpen}
+        candidates={exampleCandidates}
+        onPick={addExample}
+        onClose={() => setExamplePickerOpen(false)}
+      />
     </ScreenContainer>
   );
 }

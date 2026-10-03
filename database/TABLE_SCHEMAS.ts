@@ -619,6 +619,10 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "deleted_at",
     // migration 055
     "default_payment_mode_id",
+    // migration 081 — flexible templates
+    "match_style",
+    "word_rules",
+    "samples",
   ] as const,
 
   // v16.0.0 — cash-flow simulator (migration 025)
