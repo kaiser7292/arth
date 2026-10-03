@@ -10,7 +10,7 @@ import { logger } from "@/utils/logger";
 import { round2 } from "@/utils/math";
 import { generateUUID } from "@/utils/uuid";
 import { splitNewExpense } from "./expense-splits";
-import type { CreateExpenseInput, Expense, SplitConfig, UpdateExpenseInput } from "./expense-types";
+import type { CreateExpenseInput, CreditKind, Expense, SplitConfig, UpdateExpenseInput } from "./expense-types";
 
 /**
  * Create a new expense. Returns the new ID.
@@ -114,8 +114,8 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
 
   const now = new Date().toISOString(); // Local time in ISO format
   await db.runAsync(
-    `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, nature, is_right_spend, refund_of_expense_id, purchase_group_id, due_date, applied_rule_id, applied_rule_ids, source, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', ?);`,
+    `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, nature, is_right_spend, refund_of_expense_id, purchase_group_id, due_date, applied_rule_id, applied_rule_ids, credit_kind, source, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', ?);`,
     id,
     input.user_id,
     round2(input.amount),
@@ -134,6 +134,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
     input.due_date ?? null,
     appliedRuleId,
     appliedRuleIdsJson,
+    input.nature === "credit" ? (input.credit_kind ?? null) : null,
     now,
   );
 
@@ -177,7 +178,7 @@ export async function updateExpense(
   const db = getDatabase();
 
   // Capture old values for edit history
-  const editableFields = ["amount", "description", "merchant_name", "category_id", "payment_mode_id", "date", "is_right_spend", "currency", "account_id"] as const;
+  const editableFields = ["amount", "description", "merchant_name", "category_id", "payment_mode_id", "date", "is_right_spend", "currency", "account_id", "credit_kind"] as const;
   const changedFields = editableFields.filter((f) => (input as Record<string, unknown>)[f] !== undefined);
   let oldValues: Record<string, string | null> = {};
   if (changedFields.length > 0) {
@@ -262,6 +263,10 @@ export async function updateExpense(
   if (input.account_id !== undefined) {
     fields.push("account_id = ?");
     values.push(input.account_id);
+  }
+  if (input.credit_kind !== undefined) {
+    fields.push("credit_kind = ?");
+    values.push(input.credit_kind);
   }
 
   if (fields.length === 0) return;
@@ -841,6 +846,83 @@ export async function deleteAllRejectedExpenses(userId: string): Promise<number>
   );
   if (result.changes > 0) bumpDataVersion();
   return result.changes;
+}
+
+/**
+ * Switch a manually entered transaction between money spent and money received
+ * (edit form's Spent / Received switch). Refuses when the row is tied to
+ * something that only makes sense on one side — a split, a split-tender
+ * purchase, a refund link, an investment / loan link, a hisaab settlement, or
+ * a transfer — so nothing elsewhere is left pointing at the wrong kind of row.
+ * Becoming a credit drops the spending-only fields (category, payment mode,
+ * unavoidable flag); becoming an expense drops the credit type.
+ */
+export async function changeTransactionNature(
+  id: string,
+  to: "realized" | "credit",
+  creditKind: CreditKind | null = null,
+): Promise<void> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{
+    nature: string;
+    source: string;
+    split_person_id: string | null;
+    split_mode: string | null;
+    purchase_group_id: string | null;
+    refund_of_expense_id: string | null;
+    reclassified_as_transfer: number | null;
+  }>(
+    `SELECT nature, source, split_person_id, split_mode, purchase_group_id, refund_of_expense_id, reclassified_as_transfer
+       FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
+    id,
+  );
+  if (!row) throw new Error("Transaction not found");
+  if (row.nature === to) return;
+  if (row.nature !== "realized" && row.nature !== "credit") throw new Error("Only expenses and credits can switch type.");
+  if (row.source !== "manual") throw new Error("Bank-detected transactions keep the type the bank reported.");
+  if (row.split_person_id || row.split_mode) throw new Error("Remove the split first.");
+  if (row.purchase_group_id) throw new Error("Remove it from the split purchase first.");
+  if (row.refund_of_expense_id) throw new Error("Unlink it from the refunded expense first.");
+  if (row.reclassified_as_transfer === 1) throw new Error("It's already a transfer. Undo the transfer first.");
+
+  const linked = await db.getFirstAsync<{ what: string }>(
+    `SELECT 'refunds' AS what FROM expenses WHERE refund_of_expense_id = ? AND deleted_at IS NULL
+     UNION ALL SELECT 'investment' FROM expense_investment_links WHERE expense_id = ?
+     UNION ALL SELECT 'loan' FROM expense_loan_links WHERE expense_id = ?
+     UNION ALL SELECT 'split' FROM expense_splits WHERE expense_id = ?
+     UNION ALL SELECT 'settlement' FROM hisaab_entries WHERE linked_expense_id = ?
+     LIMIT 1;`,
+    id,
+    id,
+    id,
+    id,
+    id,
+  );
+  if (linked) {
+    const why: Record<string, string> = {
+      refunds: "Refunds are linked to it. Unlink them first.",
+      investment: "It's linked to an investment bucket. Unlink that first.",
+      loan: "It's linked to a loan payment. Unlink that first.",
+      split: "Remove the split first.",
+      settlement: "It's linked to a hisaab entry. Unlink that first.",
+    };
+    throw new Error(why[linked.what] ?? "It's linked to something else. Unlink that first.");
+  }
+
+  if (to === "credit") {
+    await db.runAsync(
+      `UPDATE expenses SET nature = 'credit', credit_kind = ?, category_id = NULL, payment_mode_id = NULL,
+              is_right_spend = NULL, money_event = NULL, updated_at = datetime('now') WHERE id = ?;`,
+      creditKind,
+      id,
+    );
+  } else {
+    await db.runAsync(
+      `UPDATE expenses SET nature = 'realized', credit_kind = NULL, money_event = NULL, updated_at = datetime('now') WHERE id = ?;`,
+      id,
+    );
+  }
+  bumpDataVersion();
 }
 
 /**

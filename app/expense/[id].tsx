@@ -3,6 +3,15 @@ import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { AmountInput } from "@/components/expense/AmountInput";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
 import { MarkAsFDSheet } from "@/components/expense/MarkAsFDSheet";
+import { MoneyEventPanel } from "@/components/expense/MoneyEventPanel";
+import {
+  CreditKindChips,
+  StickySaveBar,
+  TransactionTypeSwitch,
+  TYPE_LABEL,
+  type TransactionType,
+} from "@/components/expense/TransactionFormParts";
+import type { CreditKind } from "@/services/expense-types";
 import {
     AccountPicker,
     CategoryPicker,
@@ -45,7 +54,7 @@ import {
   type InvestmentProduct,
 } from "@/services/investment-accounts";
 import type { Expense, RecurringFrequency, RecurringRule, SplitConfig } from "@/services/expense";
-import { MAX_PURCHASE_GROUP_LEGS, addLegToExistingGroup, approveExpense, convertToSplitTender, createRecurringRule, deleteExpense, deleteSplitExpense, fulfillReminder, getActiveRecurringRules, getExpenseById, getGroupSiblings, getRecurringRuleForExpense, markForecastAsPaid, markForecastPaidExternally, markRepaymentAsPaid, propagateSharedEdit, realizeForecast, rejectExpense, removeSplit, restoreExpense, splitExistingExpense, stopRecurringRule, suggestReminderForExpense, unfulfillReminder, unlinkFromGroup, updateExpense } from "@/services/expense";
+import { MAX_PURCHASE_GROUP_LEGS, addLegToExistingGroup, approveExpense, changeTransactionNature, convertToSplitTender, createRecurringRule, deleteExpense, deleteSplitExpense, fulfillReminder, getActiveRecurringRules, getExpenseById, getGroupSiblings, getRecurringRuleForExpense, markForecastAsPaid, markForecastPaidExternally, markRepaymentAsPaid, propagateSharedEdit, realizeForecast, rejectExpense, removeSplit, restoreExpense, splitExistingExpense, stopRecurringRule, suggestReminderForExpense, unfulfillReminder, unlinkFromGroup, updateExpense } from "@/services/expense";
 import {
     getLinkForExpense,
     InvestmentLinkError,
@@ -113,7 +122,8 @@ export default function ExpenseDetailScreen() {
   const { colors } = useColorScheme();
   const theme = useTheme();
   const toast = useToast();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // act=money: opened from a money-event card (Catch Up / review queue) — jump straight to its action.
+  const { id, act } = useLocalSearchParams<{ id: string; act?: string }>();
   const scrollRef = useRef<ScrollView>(null);
   const tagsSectionRef = useRef<View>(null);
 
@@ -346,7 +356,13 @@ export default function ExpenseDetailScreen() {
     }, [expense?.id, expense?.nature]),
   );
 
+  // Edit form's Spent / Received switch and credit type (credits and expenses only).
+  const [editType, setEditType] = useState<TransactionType>("spent");
+  const [editCreditKind, setEditCreditKind] = useState<CreditKind | null>(null);
+
   function populateForm(exp: Expense) {
+    setEditType(exp.nature === "credit" ? "received" : "spent");
+    setEditCreditKind(exp.credit_kind ?? null);
     // For split expenses, show the original total amount (not the post-split budget amount)
     const displayAmount = exp.split_original_amount ?? exp.amount;
     setAmount(String(displayAmount));
@@ -425,6 +441,12 @@ export default function ExpenseDetailScreen() {
 
     try {
       const parsedAmount = parseAmount(amount)!;
+      // Spent ↔ Received on a manual entry: switch the row's type before saving its fields.
+      const wasCredit = expense?.nature === "credit";
+      const isCreditNow = expense?.nature === "forecast" ? false : editType === "received";
+      if (expense && expense.nature !== "forecast" && wasCredit !== isCreditNow) {
+        await changeTransactionNature(id, isCreditNow ? "credit" : "realized", isCreditNow ? editCreditKind : null);
+      }
       const isSingleSplit = expense?.split_person_id != null && expense?.split_pct != null;
       const isMultiSplit = multiSplitSummary != null && multiSplitSummary.splits.length > 0;
 
@@ -546,6 +568,16 @@ export default function ExpenseDetailScreen() {
           const msSummary = await getMultiSplitSummary(id);
           setMultiSplitSummary(msSummary);
         }
+      } else if (isCreditNow) {
+        // Credits keep their category (older ones borrowed a spending category) and have a type instead.
+        await updateExpense(id, {
+          amount: parsedAmount,
+          description: description.trim() || null,
+          merchant_name: merchantName.trim() || null,
+          account_id: accountId,
+          date,
+          credit_kind: editCreditKind,
+        });
       } else {
         await updateExpense(id, {
           amount: parsedAmount,
@@ -561,7 +593,7 @@ export default function ExpenseDetailScreen() {
 
       // Offer to make a category change permanent for this merchant (Merchant categories).
       let alwaysFile: { keyword: string; categoryName: string } | null = null;
-      if (originalExpense && categoryId && categoryId !== originalExpense.category_id) {
+      if (!isCreditNow && originalExpense && categoryId && categoryId !== originalExpense.category_id) {
         const merchantForRule =
           merchantName.trim() ||
           (originalExpense.description ? extractMerchantFromDescription(originalExpense.description) : "");
@@ -675,7 +707,7 @@ export default function ExpenseDetailScreen() {
     } finally {
       setSaving(false);
     }
-  }, [amount, description, merchantName, categoryId, paymentModeId, accountId, date, isRightSpend, id, expense, originalExpense, multiSplitSummary, extraLegs, categories]);
+  }, [amount, description, merchantName, categoryId, paymentModeId, accountId, date, isRightSpend, id, expense, originalExpense, multiSplitSummary, extraLegs, categories, editType, editCreditKind]);
 
   const openRulePicker = useCallback(async () => {
     try {
@@ -1622,6 +1654,29 @@ export default function ExpenseDetailScreen() {
     [date],
   );
 
+  // Edit form: is this being saved as a credit, and may its type be switched?
+  const editIsCredit = expense?.nature !== "forecast" && editType === "received";
+  const canSwitchType =
+    !!expense &&
+    expense.source === "manual" &&
+    (expense.nature === "realized" || expense.nature === "credit") &&
+    !expense.split_person_id &&
+    !expense.purchase_group_id &&
+    !expense.refund_of_expense_id &&
+    !(multiSplitSummary && multiSplitSummary.splits.length > 0);
+
+  // Opened from a money-event card: go straight to the action it promised (once).
+  const moneyActDone = useRef(false);
+  useEffect(() => {
+    if (act !== "money" || moneyActDone.current || !loaded || !expense?.money_event) return;
+    moneyActDone.current = true;
+    if (expense.money_event === "fd_open" && expense.account_id) setMarkAsFDVisible(true);
+    else if (expense.money_event === "self_transfer") {
+      if (expense.nature === "credit") setCreditTransferPickerVisible(true);
+      else setTransferPickerVisible(true);
+    } else if (expense.money_event === "sip") setInvestmentSheetVisible(true);
+  }, [act, loaded, expense]);
+
   if (!loaded || !expense) {
     return (
       <ScreenContainer>
@@ -1648,11 +1703,9 @@ export default function ExpenseDetailScreen() {
           </View>
           <Text className="text-lg font-semibold text-foreground">
             {editing
-              ? expense.nature === "credit"
-                ? "Edit Credit"
-                : expense.nature === "forecast"
-                  ? "Edit Forecast"
-                  : "Edit Expense"
+              ? expense.nature === "forecast"
+                ? "Edit forecast"
+                : `Edit ${TYPE_LABEL[editType].noun}`
               : expense.nature === "credit"
                 ? "Credit"
                 : expense.nature === "forecast"
@@ -1688,6 +1741,21 @@ export default function ExpenseDetailScreen() {
           {editing ? (
             /* ========== EDIT MODE ========== */
             <View className="p-4">
+              {/* Spent / Received / Transfer — manual entries switch freely; bank-detected ones keep
+                  the bank's type, and Transfer goes through the usual (undoable) transfer picker. */}
+              {canSwitchType && (
+                <TransactionTypeSwitch
+                  value={editType}
+                  onChange={(t) => {
+                    if (t === "transfer") {
+                      if (expense.nature === "credit") setCreditTransferPickerVisible(true);
+                      else setTransferPickerVisible(true);
+                      return;
+                    }
+                    setEditType(t);
+                  }}
+                />
+              )}
               {/* Amount */}
               <AmountInput
                 value={amount}
@@ -1700,16 +1768,18 @@ export default function ExpenseDetailScreen() {
 
               {/* Description */}
               <Input
-                label="Description"
+                label="Note"
                 value={description}
                 onChangeText={setDescription}
-                placeholder="What did you spend on?"
+                placeholder={editIsCredit ? "What's this money for?" : "What was it for?"}
                 maxLength={200}
                 containerClassName="mb-4"
               />
 
               {/* Merchant Name */}
               <MerchantPicker
+                label={editIsCredit ? "Received from" : "Paid to"}
+                placeholder={editIsCredit ? "Employer, bank, friend (optional)" : "Swiggy, rent, electricity bill (optional)"}
                 value={merchantName}
                 onChangeText={setMerchantName}
                 merchantNames={merchantNames}
@@ -1723,8 +1793,13 @@ export default function ExpenseDetailScreen() {
                 onCloseSuggestions={() => setShowMerchants(false)}
               />
 
+              {editIsCredit && (
+                <CreditKindChips value={editCreditKind} onChange={setEditCreditKind} />
+              )}
+
               {/* Account picker (V4) */}
               <AccountPicker
+                label={editIsCredit ? "Into account" : "Paid from"}
                 accounts={accounts}
                 accountId={accountId}
                 selectedAccount={selectedAccount}
@@ -1771,6 +1846,8 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
+              {/* Spending-only fields: category, payment mode, unavoidable. */}
+              {!editIsCredit && (<>
               {/* Category picker */}
               <CategoryPicker
                 categories={categories}
@@ -1813,12 +1890,13 @@ export default function ExpenseDetailScreen() {
                 isRightSpend={isRightSpend}
                 onToggle={() => setIsRightSpend(!isRightSpend)}
               />
+              </>)}
 
               {/* ───── Split-tender management ─────
                   - Standalone expenses can be converted to split-tender
                   - Existing legs can add siblings (up to cap) or unlink from the group
                   Split-tender is not offered for credits or forecasts. */}
-              {expense.nature !== "credit" && expense.nature !== "forecast" && (
+              {!editIsCredit && expense.nature !== "forecast" && (
                 <View className="mb-4">
                   {extraLegs.map((leg, idx) => {
                     const legAccount = accounts.find((a) => a.id === leg.accountId);
@@ -2010,21 +2088,6 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* Save button */}
-              <Button
-                title={
-                  expense.nature === "credit"
-                    ? "Update Credit"
-                    : expense.nature === "forecast"
-                      ? "Update Forecast"
-                      : extraLegs.length > 0 || expense.purchase_group_id
-                        ? "Update Purchase"
-                        : "Update Expense"
-                }
-                onPress={handleSave}
-                loading={saving}
-                className="mb-4"
-              />
             </View>
           ) : (
             /* ========== READ-ONLY MODE (Axio-inspired) ========== */
@@ -2049,6 +2112,22 @@ export default function ExpenseDetailScreen() {
                 refundedAmount={refundedAmount}
                 splitOriginalAmount={expense.split_original_amount}
               />
+
+              {/* 1a. Money event — FD deposit / FD closure / own-account transfer / SIP */}
+              {expense.money_event && (
+                <MoneyEventPanel
+                  expense={expense}
+                  bankName={expenseAccount?.bank_name ?? null}
+                  onSetUpFD={() => setMarkAsFDVisible(true)}
+                  onPickTransferAccount={() =>
+                    expense.nature === "credit" ? setCreditTransferPickerVisible(true) : setTransferPickerVisible(true)
+                  }
+                  onLinkBucket={() => setInvestmentSheetVisible(true)}
+                  onChanged={() => {
+                    getExpenseById(id).then((e) => e && setExpense(e)).catch(() => {});
+                  }}
+                />
+              )}
 
               {/* 1b. Split-tender siblings (if this expense is one leg of a split purchase) */}
               {siblings.length > 0 && (
@@ -3423,6 +3502,7 @@ export default function ExpenseDetailScreen() {
             </View>
           )}
         </ScrollView>
+        {editing && <StickySaveBar title="Save changes" onPress={handleSave} loading={saving} />}
       </KeyboardAvoidingView>
 
       {expense && (

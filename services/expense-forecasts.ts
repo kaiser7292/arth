@@ -444,6 +444,51 @@ export async function findMatchingRepaymentForecast(
   return candidates[0] ?? null;
 }
 
+/** Smallest remainder worth keeping a bill open for (rounding / small fees). */
+const PART_PAYMENT_MIN_REMAINDER = 1;
+
+/**
+ * A credit-card payment smaller than the open bill: reduce that bill's repayment forecast to
+ * what's still due ("₹12,500 still due") instead of leaving the full amount showing as unpaid.
+ * Only a bill due from 10 days before to 30 days after the payment counts. A later payment
+ * matching the remainder closes it through the usual ±0.5% match. Returns the new remainder,
+ * or null when there was no open bill to reduce.
+ */
+export async function applyPartPaymentToRepaymentForecast(
+  userId: string,
+  ccAccountId: string,
+  amount: number,
+  paymentDate: string,
+): Promise<number | null> {
+  const db = getDatabase();
+  const forecast = await db.getFirstAsync<{ id: string; amount: number; description: string | null }>(
+    `SELECT id, amount, description FROM expenses
+      WHERE user_id = ? AND nature = 'forecast' AND forecast_type = 'repayment'
+        AND status != 'rejected' AND deleted_at IS NULL
+        AND account_id = ? AND amount > ?
+        AND COALESCE(due_date, date) >= date(?, '-10 day') AND COALESCE(due_date, date) <= date(?, '+30 day')
+      ORDER BY COALESCE(due_date, date) ASC
+      LIMIT 1;`,
+    userId,
+    ccAccountId,
+    amount,
+    paymentDate,
+    paymentDate,
+  );
+  if (!forecast) return null;
+  const remainder = Math.round((forecast.amount - amount) * 100) / 100;
+  if (remainder < PART_PAYMENT_MIN_REMAINDER) return null;
+  const base = (forecast.description ?? "Credit card bill").replace(/\s*·\s*₹[\d,.]+ still due$/, "");
+  await db.runAsync(
+    `UPDATE expenses SET amount = ?, description = ?, updated_at = datetime('now') WHERE id = ?;`,
+    remainder,
+    `${base} · ₹${remainder.toLocaleString("en-IN")} still due`,
+    forecast.id,
+  );
+  bumpDataVersion();
+  return remainder;
+}
+
 /**
  * Mark a REPAYMENT forecast as paid from a specific savings/wallet account.
  * Creates an inter-account transfer (savings → CC), updates CC dues + available limit.

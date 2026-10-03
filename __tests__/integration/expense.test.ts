@@ -129,6 +129,7 @@ describe("createExpense", () => {
       null, // due_date
       null, // v15.2: applied_rule_id (smart-rules returned null in mock DB)
       null, // migration 061: applied_rule_ids
+      null, // migration 080: credit_kind (expenses have none)
       expect.any(String), // created_at (set at insert time)
     ]);
   });

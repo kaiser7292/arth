@@ -9,7 +9,23 @@ import {
 } from "@/components/expense/ExpenseFormFields";
 import { SplitSheet } from "@/components/expense/SplitSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
-import { Button, Input, ScreenContainer, Text } from "@/components/ui";
+import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
+import {
+    CreditKindChips,
+    DateQuickChips,
+    MoreOptions,
+    StickySaveBar,
+    TransactionTypeSwitch,
+    TYPE_LABEL,
+    useTypeColor,
+    type TransactionType,
+} from "@/components/expense/TransactionFormParts";
+import { createTransfer } from "@/services/account-transfer";
+import type { CreditKind } from "@/services/expense-types";
+import { getLastAccount, rememberAccount, type FormAccountSlot } from "@/services/form-memory";
+import { categorizeByMerchant } from "@/services/smart-categorizer";
+import { inferCreditKind } from "@/services/sms/money-signals";
+import { Input, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -71,6 +87,7 @@ export default function AddExpenseScreen() {
     prefillCategoryId?: string;
     prefillDate?: string;
     prefillSplitPersonId?: string;
+    prefillCreditKind?: string;
   }>();
   const isRefund = params.type === "refund";
   const linkedExpenseId = params.linkExpenseId ?? null;
@@ -92,6 +109,25 @@ export default function AddExpenseScreen() {
   const [isRightSpend, setIsRightSpend] = useState(true);
   const [errors, setErrors] = useState<ExpenseValidationErrors>({});
   const [saving, setSaving] = useState(false);
+
+  // What this entry records. Refunds, credit duplicates and "Add credit" are money received.
+  const [txType, setTxType] = useState<TransactionType>(
+    params.type === "transfer" ? "transfer" : params.type === "credit" || isRefund ? "received" : "spent",
+  );
+  const [creditKind, setCreditKind] = useState<CreditKind | null>(
+    isRefund ? "refund" : ((params.prefillCreditKind as CreditKind | undefined) ?? null),
+  );
+  // Once the user picks a credit type or category, suggestions stop overwriting it.
+  const creditKindTouched = useRef(isRefund || !!params.prefillCreditKind);
+  const categoryTouched = useRef(false);
+  const [categoryHint, setCategoryHint] = useState<string | null>(null);
+  // "Refund" picked on a plain credit: which expense it refunds.
+  const [pickedRefund, setPickedRefund] = useState<{ id: string; summary: string } | null>(null);
+  const [refundPickerOpen, setRefundPickerOpen] = useState(false);
+  // Transfer destination.
+  const [toAccountId, setToAccountId] = useState<string | null>(null);
+  const [showToAccounts, setShowToAccounts] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Tags state
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -191,7 +227,10 @@ export default function AddExpenseScreen() {
         } else if (linked.account_id) {
           setAccountId(linked.account_id);
         }
-        if (linked.category_id) setCategoryId(linked.category_id);
+        if (linked.category_id) {
+          setCategoryId(linked.category_id);
+          categoryTouched.current = true;
+        }
         if (linked.payment_mode_id) setPaymentModeId(linked.payment_mode_id);
         // Capture split mode so we know whether to ask for the other person's refund share.
         if (linked.split_original_amount) {
@@ -220,7 +259,10 @@ export default function AddExpenseScreen() {
         // Amount intentionally not prefilled.
         if (src.merchant_name) setMerchantName(src.merchant_name);
         if (src.description) setDescription(src.description);
-        if (src.category_id) setCategoryId(src.category_id);
+        if (src.category_id) {
+          setCategoryId(src.category_id);
+          categoryTouched.current = true;
+        }
         if (src.payment_mode_id) setPaymentModeId(src.payment_mode_id);
         if (src.account_id) setAccountId(src.account_id);
         if (src.is_right_spend !== null) setIsRightSpend(src.is_right_spend === 1);
@@ -249,7 +291,15 @@ export default function AddExpenseScreen() {
         if (src.payment_mode_id) setPaymentModeId(src.payment_mode_id);
         if (src.account_id) setAccountId(src.account_id);
         if (src.is_right_spend !== null) setIsRightSpend(src.is_right_spend === 1);
-        if (src.nature === "credit") setIsCreditDuplicate(true);
+        if (src.nature === "credit") {
+          setIsCreditDuplicate(true);
+          setTxType("received");
+          if (src.credit_kind) {
+            setCreditKind(src.credit_kind);
+            creditKindTouched.current = true;
+          }
+        }
+        if (src.category_id) categoryTouched.current = true;
       })
       .catch((e) => logger.warn("Load source expense for duplicate failed:", e));
   }, [copyFromExpenseId]);
@@ -271,7 +321,10 @@ export default function AddExpenseScreen() {
     if (prefillDate) setDate(prefillDate);
     if (prefillPaymentModeId) setPaymentModeId(prefillPaymentModeId);
     if (prefillAccountId) setAccountId(prefillAccountId);
-    if (prefillCategoryId) setCategoryId(prefillCategoryId);
+    if (prefillCategoryId) {
+      setCategoryId(prefillCategoryId);
+      categoryTouched.current = true;
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -281,6 +334,71 @@ export default function AddExpenseScreen() {
       getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch((e) => logger.warn("Load accounts failed:", e));
     }, []),
   );
+
+  // Start on the account last used for this kind of entry, unless the screen was opened with one.
+  const accountDefaulted = useRef(false);
+  const pickLastAccount = useCallback(
+    (slot: FormAccountSlot) => {
+      const id = getLastAccount(slot);
+      return id && accounts.some((a) => a.id === id) ? id : null;
+    },
+    [accounts],
+  );
+  useEffect(() => {
+    if (accountDefaulted.current || accounts.length === 0) return;
+    accountDefaulted.current = true;
+    if (params.prefillAccountId || refundAccountId || linkedExpenseId || copyFromExpenseId || fulfillsReminderId) return;
+    if (txType === "transfer") {
+      setAccountId((a) => a ?? pickLastAccount("transfer_from"));
+      setToAccountId((t) => t ?? pickLastAccount("transfer_to"));
+    } else {
+      setAccountId((a) => a ?? pickLastAccount(txType === "received" ? "received" : "spent"));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts]);
+
+  const changeType = useCallback(
+    (t: TransactionType) => {
+      setTxType(t);
+      setMoreOpen(false);
+      if (t !== "spent") {
+        setSplitConfig(null);
+        setExtraLegs([]);
+      }
+      if (t === "transfer") {
+        setAccountId((a) => a ?? pickLastAccount("transfer_from"));
+        setToAccountId((x) => x ?? pickLastAccount("transfer_to"));
+      } else {
+        setAccountId((a) => a ?? pickLastAccount(t === "received" ? "received" : "spent"));
+      }
+    },
+    [pickLastAccount],
+  );
+
+  // Suggestions from who you paid / who paid you: a category for spending, a type for credits.
+  const categoryIdRef = useRef(categoryId);
+  categoryIdRef.current = categoryId;
+  useEffect(() => {
+    const m = merchantName.trim();
+    if (txType === "received") {
+      if (!creditKindTouched.current) setCreditKind(inferCreditKind(m));
+      return;
+    }
+    if (txType !== "spent" || categoryTouched.current || m.length < 2) return;
+    const timer = setTimeout(() => {
+      categorizeByMerchant(DEFAULT_USER_ID, m)
+        .then((r) => {
+          if (categoryTouched.current || !r.categoryId) return;
+          setCategoryId(r.categoryId);
+          setCategoryHint(`suggested from ${m}`);
+          const cat = categories.find((c) => c.id === r.categoryId);
+          if (cat) setIsRightSpend(cat.is_unavoidable === 1);
+        })
+        .catch(() => {});
+    }, 400);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [merchantName, txType, categories]);
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const selectedPaymentMode = paymentModes.find((p) => p.id === paymentModeId);
@@ -368,6 +486,45 @@ export default function AddExpenseScreen() {
       }
     }
 
+    // Transfer: two accounts, an amount and a date — nothing else applies.
+    if (txType === "transfer") {
+      if (!accountId || !toAccountId) {
+        alert("Pick both accounts", "Choose the account the money left and the one it went to.");
+        return;
+      }
+      if (accountId === toAccountId) {
+        alert("Same account", "Pick two different accounts.");
+        return;
+      }
+      setErrors({});
+      setSaving(true);
+      try {
+        await createTransfer({
+          userId: DEFAULT_USER_ID,
+          fromAccountId: accountId,
+          toAccountId,
+          amount: parseAmount(amount)!,
+          description: description.trim() || undefined,
+          date,
+          source: "manual",
+        });
+        rememberAccount("transfer_from", accountId);
+        rememberAccount("transfer_to", toAccountId);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        navigateAfterSave();
+      } catch (e) {
+        logger.error("Save transfer failed:", e);
+        alert("Error", formatError("Save transfer", e));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    const isCredit = txType === "received";
+    // The expense this credit refunds: from the refund flow, or picked on a "Refund" credit.
+    const refundOf = isRefund ? linkedExpenseId : isCredit && creditKind === "refund" ? (pickedRefund?.id ?? null) : null;
+
     setErrors({});
     setSaving(true);
 
@@ -375,12 +532,12 @@ export default function AddExpenseScreen() {
       const parsedAmount = parseAmount(amount)!;
 
       // Validate refund amount doesn't exceed remaining refundable amount
-      if (isRefund && linkedExpenseId) {
-        const linked = await getExpenseById(linkedExpenseId);
+      if (refundOf) {
+        const linked = await getExpenseById(refundOf);
         if (linked) {
           const originalAmount = linked.split_original_amount ?? linked.amount;
           const { getRefundedAmount } = await import("@/services/expense");
-          const alreadyRefunded = await getRefundedAmount(linkedExpenseId);
+          const alreadyRefunded = await getRefundedAmount(refundOf);
           const remainingRefundable = Math.max(0, originalAmount - alreadyRefunded);
           if (parsedAmount > remainingRefundable) {
             alert("Invalid Refund Amount", `Refund amount cannot exceed the remaining refundable amount of ₹${remainingRefundable.toLocaleString("en-IN")}.`);
@@ -391,7 +548,7 @@ export default function AddExpenseScreen() {
       }
 
       // Split-tender path: create 2-3 linked expenses sharing a purchase_group_id.
-      if (extraLegs.length > 0) {
+      if (!isCredit && extraLegs.length > 0) {
         const shared = {
           user_id: DEFAULT_USER_ID,
           description: description.trim() || undefined,
@@ -418,26 +575,42 @@ export default function AddExpenseScreen() {
         return;
       }
 
-      const expenseInput = {
-        user_id: DEFAULT_USER_ID,
-        amount: parsedAmount,
-        description: description.trim() || undefined,
-        merchant_name: merchantName.trim() || undefined,
-        category_id: categoryId ?? undefined,
-        payment_mode_id: paymentModeId ?? undefined,
-        account_id: accountId,
-        date,
-        is_right_spend: isRightSpend ? 1 : 0,
-        ...(isRefund
-          ? { nature: "credit" as const, refund_of_expense_id: linkedExpenseId }
-          : isCreditDuplicate
-          ? { nature: "credit" as const }
-          : {}),
-      };
+      // A spend with no payment mode picked takes the account's only linked mode, if it has one.
+      let resolvedPaymentModeId = paymentModeId;
+      if (!isCredit && !resolvedPaymentModeId && accountId) {
+        const linkedModes = await getLinkedModesForAccount(accountId);
+        if (linkedModes.length === 1) resolvedPaymentModeId = linkedModes[0].id;
+      }
+
+      const expenseInput = isCredit
+        ? {
+            user_id: DEFAULT_USER_ID,
+            amount: parsedAmount,
+            description: description.trim() || undefined,
+            merchant_name: merchantName.trim() || undefined,
+            // A refund keeps the refunded expense's category so budgets net it off.
+            category_id: refundOf ? (categoryId ?? undefined) : undefined,
+            account_id: accountId,
+            date,
+            nature: "credit" as const,
+            credit_kind: creditKind,
+            refund_of_expense_id: refundOf,
+          }
+        : {
+            user_id: DEFAULT_USER_ID,
+            amount: parsedAmount,
+            description: description.trim() || undefined,
+            merchant_name: merchantName.trim() || undefined,
+            category_id: categoryId ?? undefined,
+            payment_mode_id: resolvedPaymentModeId ?? undefined,
+            account_id: accountId,
+            date,
+            is_right_spend: isRightSpend ? 1 : 0,
+          };
 
       let createdId: string;
-      // Refunds don't split — skip splitNewExpense path even if splitConfig exists.
-      if (splitConfig && !isRefund) {
+      // Credits and refunds don't split — skip splitNewExpense path even if splitConfig exists.
+      if (splitConfig && !isCredit) {
         createdId = await splitNewExpense(expenseInput, parsedAmount, splitConfig);
       } else {
         createdId = await createExpense(expenseInput);
@@ -447,10 +620,10 @@ export default function AddExpenseScreen() {
       await addTagsToExpense(createdId, selectedTagIds);
 
       // Adjust split hisaab if this is a refund against a split expense.
-      if (isRefund && linkedExpenseId) {
+      if (refundOf) {
         try {
           const parsedOtherShare = parseAmount(otherPersonRefundShare) ?? 0;
-          await adjustSplitAfterRefund(linkedExpenseId, parsedAmount, parsedOtherShare > 0 ? parsedOtherShare : undefined);
+          await adjustSplitAfterRefund(refundOf, parsedAmount, parsedOtherShare > 0 ? parsedOtherShare : undefined);
         } catch (e) {
           logger.warn("adjustSplitAfterRefund failed (non-fatal):", e);
         }
@@ -467,6 +640,7 @@ export default function AddExpenseScreen() {
         }
       }
 
+      rememberAccount(isCredit ? "received" : "spent", accountId);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigateAfterSave();
     } catch (e) {
@@ -475,7 +649,7 @@ export default function AddExpenseScreen() {
     } finally {
       setSaving(false);
     }
-  }, [amount, description, merchantName, categoryId, paymentModeId, accountId, date, isRightSpend, splitConfig, selectedTagIds, extraLegs, isRefund, linkedExpenseId, otherPersonRefundShare, fulfillsReminderId, alert, navigateAfterSave]);
+  }, [amount, description, merchantName, categoryId, paymentModeId, accountId, toAccountId, date, isRightSpend, splitConfig, selectedTagIds, extraLegs, isRefund, linkedExpenseId, otherPersonRefundShare, fulfillsReminderId, alert, navigateAfterSave, txType, creditKind, pickedRefund]);
 
   const handleDateShift = useCallback(
     (days: number) => {
@@ -491,6 +665,38 @@ export default function AddExpenseScreen() {
   );
 
 
+  const typeColor = useTypeColor(txType);
+  const merchantProps = {
+    value: merchantName,
+    onChangeText: setMerchantName,
+    merchantNames,
+    showSuggestions: showMerchants,
+    onToggleSuggestions: () => {
+      setShowMerchants(!showMerchants);
+      setShowCategories(false);
+      setShowPaymentModes(false);
+      setShowAccounts(false);
+    },
+    onCloseSuggestions: () => setShowMerchants(false),
+  };
+  // The type is fixed for a refund of a specific expense and for reminder entries.
+  const showTypeSwitch = !isRefund && !fulfillsReminderId;
+  const dateField = (
+    <>
+      <DateQuickChips date={date} onSetDate={setDate} />
+              <DateSelector
+                date={date}
+                showDatePicker={showDatePicker}
+                onToggleDatePicker={() => setShowDatePicker(!showDatePicker)}
+                onDateShift={handleDateShift}
+                onSetDate={setDate}
+                onCloseDatePicker={() => setShowDatePicker(false)}
+                dateError={errors.date}
+              />
+
+    </>
+  );
+
   return (
     <ScreenContainer>
       <KeyboardAvoidingView
@@ -503,19 +709,20 @@ export default function AddExpenseScreen() {
             <Ionicons name="close" size={24} color={colors.textSecondary} />
           </Pressable>
           <Text className="text-lg font-semibold text-foreground">
-            {isRefund ? (linkedExpenseId ? "Add Linked Refund" : "Add Refund") : "Add Expense"}
+            {isRefund ? "New refund" : `New ${TYPE_LABEL[txType].noun}`}
           </Text>
           <View className="w-10" />
         </View>
-
         <ScrollView
           ref={scrollRef}
           className="flex-1"
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: tagPickerOpen ? 320 : 40 }}
+          contentContainerStyle={{ paddingBottom: tagPickerOpen ? 320 : 24 }}
         >
           <View className="p-4">
+            {showTypeSwitch && <TransactionTypeSwitch value={txType} onChange={changeType} />}
+
             {/* Amount — Large prominent input */}
             <AmountInput
               value={amount}
@@ -526,385 +733,501 @@ export default function AddExpenseScreen() {
               error={errors.amount}
               autoFocus={!params.prefillAmount && !params.prefillMerchant && !params.prefillPaymentModeId}
             />
+            <Text className="text-xs text-center mb-4" style={{ color: typeColor }}>
+              {TYPE_LABEL[txType].amountHint}
+            </Text>
 
-            {/* Split with someone — hidden for refunds (doesn't make sense to split a refund) */}
-            {!isRefund && (
-            <View className="mb-4">
-              {splitConfig && splitPreview ? (
-                <Pressable
-                  onPress={() => setShowSplitSheet(true)}
-                  className="p-4 rounded-xl border"
-                  style={{ backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.alpha("primary", 0.25) }}
-                >
-                  <View className="flex-row items-center justify-between mb-2">
-                    <View className="flex-row items-center">
-                      <Ionicons name="people" size={18} color={theme.primary} />
-                      <Text className="ml-2 text-sm font-semibold" style={{ color: theme.primary }}>
-                        Split with {splitPerson?.name ?? "someone"}
-                      </Text>
-                    </View>
-                    <Pressable
-                      onPress={() => setSplitConfig(null)}
-                      className="p-1"
-                    >
-                      <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
-                    </Pressable>
-                  </View>
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-xs text-muted-foreground">
-                      My budget: {"\u20B9"}{splitPreview.myBudgetAmount.toLocaleString("en-IN")}
-                    </Text>
-                    <Text className="text-xs text-warning">
-                      {splitPreview.hisaabType === "debit" ? "They owe" : "I owe"}: {"\u20B9"}{splitPreview.hisaabAmount.toLocaleString("en-IN")}
-                    </Text>
-                  </View>
-                  <Text className="text-label text-faint-foreground mt-1">Tap to change</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  onPress={() => setShowSplitSheet(true)}
-                  className="flex-row items-center rounded-lg border border-border bg-card px-4 py-3"
-                >
-                  <Ionicons name="people-outline" size={20} color={colors.textSecondary} />
-                  <Text className="ml-3 text-base font-medium text-foreground">
-                    Split with someone?
-                  </Text>
-                  <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} style={{ marginLeft: "auto" }} />
-                </Pressable>
-              )}
-            </View>
-            )}
-
-            {!isRefund && (
-            <SplitSheet
-              visible={showSplitSheet}
-              onClose={() => setShowSplitSheet(false)}
-              totalAmount={parsedAmountForPreview}
-              onConfirm={(config) => setSplitConfig(config)}
-            />
-            )}
-
-            {/* Other person's refund share — only for exact-amount splits */}
-            {isRefund && linkedExpenseSplitMode === 'exact' && (
-              <View className="mb-4 p-4 rounded-xl border border-border bg-card">
-                <View className="flex-row items-center mb-3">
-                  <Ionicons name="people-outline" size={16} color={colors.textSecondary} />
-                  <Text className="ml-2 text-sm font-semibold text-foreground">
-                    Split refund
-                  </Text>
-                </View>
-                <Text className="text-xs text-muted-foreground mb-3">
-                  This expense was split by exact amount. How much of this refund goes back to the other person?
-                </Text>
-                <Input
-                  label="Other person's share of this refund"
-                  value={otherPersonRefundShare}
-                  onChangeText={setOtherPersonRefundShare}
-                  placeholder="0.00"
-                  keyboardType="decimal-pad"
+            {txType === "spent" && (
+              <>
+                <MerchantPicker {...merchantProps} label="Paid to" placeholder="Swiggy, rent, electricity bill (optional)" />
+                <CategoryPicker
+                  categories={categories}
+                  categoryId={categoryId}
+                  selectedCategory={selectedCategory}
+                  showCategories={showCategories}
+                  hint={categoryHint}
+                  onToggle={() => {
+                    setShowCategories(!showCategories);
+                    setShowPaymentModes(false);
+                  }}
+                  onSelect={(catId) => {
+                    categoryTouched.current = true;
+                    setCategoryHint(null);
+                    setCategoryId(catId);
+                    setShowCategories(false);
+                    // Auto-set unavoidable/discretionary based on category classification
+                    const cat = categories.find((c) => c.id === catId);
+                    if (cat) setIsRightSpend(cat.is_unavoidable === 1);
+                  }}
                 />
-                <Text className="text-label text-faint-foreground mt-1">
-                  Leave at 0 if the other person doesn't get any of this refund.
-                </Text>
-              </View>
-            )}
+                <AccountPicker
+                  accounts={accounts}
+                  accountId={accountId}
+                  selectedAccount={selectedAccount}
+                  showAccounts={showAccounts}
+                  label="Paid from"
+                  onToggle={() => {
+                    setShowAccounts(!showAccounts);
+                    setShowCategories(false);
+                    setShowPaymentModes(false);
+                  }}
+                  onSelect={handleAccountSelect}
+                />
+                {dateField}
+                <MoreOptions
+                  open={moreOpen}
+                  onToggle={() => setMoreOpen(!moreOpen)}
+                  summary={splitConfig || extraLegs.length > 0 ? "split or extra payment added" : "note, payment mode, split, tags"}
+                >
+                <Input
+                  label="Note"
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="What was it for?"
+                  maxLength={200}
+                  containerClassName="mb-4"
+                />
+                {/* Payment mode picker */}
+                <PaymentModePicker
+                  paymentModes={paymentModes}
+                  paymentModeId={paymentModeId}
+                  selectedPaymentMode={selectedPaymentMode}
+                  showPaymentModes={showPaymentModes}
+                  onToggle={() => {
+                    setShowPaymentModes(!showPaymentModes);
+                    setShowCategories(false);
+                  }}
+                  onSelect={(pmId) => {
+                    setPaymentModeId(pmId);
+                    setShowPaymentModes(false);
+                  }}
+                />
 
-            {/* Description */}
-            <Input
-              label="Description"
-              value={description}
-              onChangeText={setDescription}
-              placeholder="What did you spend on?"
-              maxLength={200}
-              containerClassName="mb-4"
-            />
-
-            {/* Merchant */}
-            <MerchantPicker
-              value={merchantName}
-              onChangeText={setMerchantName}
-              merchantNames={merchantNames}
-              showSuggestions={showMerchants}
-              onToggleSuggestions={() => {
-                setShowMerchants(!showMerchants);
-                setShowCategories(false);
-                setShowPaymentModes(false);
-                setShowAccounts(false);
-              }}
-              onCloseSuggestions={() => setShowMerchants(false)}
-            />
-
-            {/* Account picker (V4) */}
-            <AccountPicker
-              accounts={accounts}
-              accountId={accountId}
-              selectedAccount={selectedAccount}
-              showAccounts={showAccounts}
-              onToggle={() => {
-                setShowAccounts(!showAccounts);
-                setShowCategories(false);
-                setShowPaymentModes(false);
-              }}
-              onSelect={handleAccountSelect}
-            />
-
-            {/* Split-tender: extra payment legs + "Add another payment source" */}
-            {!isRefund && !splitConfig && (
-              <View className="mb-4">
-                {extraLegs.map((leg, idx) => {
-                  const legAccount = accounts.find((a) => a.id === leg.accountId);
-                  const legPM = paymentModes.find((p) => p.id === leg.paymentModeId);
-                  const legAmt = parseAmount(leg.amount);
-                  const legValid = legAmt != null && legAmt > 0;
-                  return (
-                    <View
-                      key={leg.key}
-                      className="rounded-xl border border-border p-3 mb-2"
-                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
+                {/* Split with someone — hidden for refunds (doesn't make sense to split a refund) */}
+                {!isRefund && (
+                <View className="mb-4">
+                  {splitConfig && splitPreview ? (
+                    <Pressable
+                      onPress={() => setShowSplitSheet(true)}
+                      className="p-4 rounded-xl border"
+                      style={{ backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.alpha("primary", 0.25) }}
                     >
                       <View className="flex-row items-center justify-between mb-2">
                         <View className="flex-row items-center">
-                          <Ionicons name="card-outline" size={16} color={theme.primary} />
-                          <Text
-                            className="ml-2 text-xs font-semibold uppercase tracking-wider"
-                            style={{ color: theme.primary }}
-                          >
-                            Extra payment {idx + 1}
+                          <Ionicons name="people" size={18} color={theme.primary} />
+                          <Text className="ml-2 text-sm font-semibold" style={{ color: theme.primary }}>
+                            Split with {splitPerson?.name ?? "someone"}
                           </Text>
                         </View>
                         <Pressable
-                          onPress={() =>
-                            setExtraLegs((prev) => prev.filter((l) => l.key !== leg.key))
-                          }
-                          hitSlop={8}
-                          accessibilityLabel="Remove this payment source"
-                          accessibilityRole="button"
+                          onPress={() => setSplitConfig(null)}
+                          className="p-1"
                         >
-                          <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                          <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                         </Pressable>
                       </View>
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-xs text-muted-foreground">
+                          My budget: {"\u20B9"}{splitPreview.myBudgetAmount.toLocaleString("en-IN")}
+                        </Text>
+                        <Text className="text-xs text-warning">
+                          {splitPreview.hisaabType === "debit" ? "They owe" : "I owe"}: {"\u20B9"}{splitPreview.hisaabAmount.toLocaleString("en-IN")}
+                        </Text>
+                      </View>
+                      <Text className="text-label text-faint-foreground mt-1">Tap to change</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      onPress={() => setShowSplitSheet(true)}
+                      className="flex-row items-center rounded-lg border border-border bg-card px-4 py-3"
+                    >
+                      <Ionicons name="people-outline" size={20} color={colors.textSecondary} />
+                      <Text className="ml-3 text-base font-medium text-foreground">
+                        Split with someone?
+                      </Text>
+                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} style={{ marginLeft: "auto" }} />
+                    </Pressable>
+                  )}
+                </View>
+                )}
 
-                      <Input
-                        label="Amount"
-                        value={leg.amount}
-                        onChangeText={(text) =>
-                          setExtraLegs((prev) =>
-                            prev.map((l) => (l.key === leg.key ? { ...l, amount: text } : l)),
-                          )
-                        }
-                        placeholder="0.00"
-                        keyboardType="decimal-pad"
-                        error={!legValid && leg.amount.length > 0 ? "Enter a positive amount" : undefined}
-                        containerClassName="mb-3"
-                      />
+                {!isRefund && (
+                <SplitSheet
+                  visible={showSplitSheet}
+                  onClose={() => setShowSplitSheet(false)}
+                  totalAmount={parsedAmountForPreview}
+                  onConfirm={(config) => setSplitConfig(config)}
+                />
+                )}
 
-                      <AccountPicker
-                        accounts={accounts}
-                        accountId={leg.accountId}
-                        selectedAccount={legAccount}
-                        showAccounts={leg.showAccounts}
-                        onToggle={() =>
-                          setExtraLegs((prev) =>
-                            prev.map((l) =>
-                              l.key === leg.key
-                                ? {
-                                    ...l,
-                                    showAccounts: !l.showAccounts,
-                                    showPaymentModes: false,
-                                  }
-                                : { ...l, showAccounts: false, showPaymentModes: false },
-                            ),
-                          )
-                        }
-                        onSelect={(acctId) =>
-                          setExtraLegs((prev) =>
-                            prev.map((l) =>
-                              l.key === leg.key
-                                ? { ...l, accountId: acctId, showAccounts: false }
-                                : l,
-                            ),
-                          )
-                        }
-                      />
+                {/* Split-tender: extra payment legs + "Add another payment source" */}
+                {!isRefund && !splitConfig && (
+                  <View className="mb-4">
+                    {extraLegs.map((leg, idx) => {
+                      const legAccount = accounts.find((a) => a.id === leg.accountId);
+                      const legPM = paymentModes.find((p) => p.id === leg.paymentModeId);
+                      const legAmt = parseAmount(leg.amount);
+                      const legValid = legAmt != null && legAmt > 0;
+                      return (
+                        <View
+                          key={leg.key}
+                          className="rounded-xl border border-border p-3 mb-2"
+                          style={{ backgroundColor: theme.alpha("primary", 0.1) }}
+                        >
+                          <View className="flex-row items-center justify-between mb-2">
+                            <View className="flex-row items-center">
+                              <Ionicons name="card-outline" size={16} color={theme.primary} />
+                              <Text
+                                className="ml-2 text-xs font-semibold uppercase tracking-wider"
+                                style={{ color: theme.primary }}
+                              >
+                                Extra payment {idx + 1}
+                              </Text>
+                            </View>
+                            <Pressable
+                              onPress={() =>
+                                setExtraLegs((prev) => prev.filter((l) => l.key !== leg.key))
+                              }
+                              hitSlop={8}
+                              accessibilityLabel="Remove this payment source"
+                              accessibilityRole="button"
+                            >
+                              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                            </Pressable>
+                          </View>
 
-                      <PaymentModePicker
-                        paymentModes={paymentModes}
-                        paymentModeId={leg.paymentModeId}
-                        selectedPaymentMode={legPM}
-                        showPaymentModes={leg.showPaymentModes}
-                        onToggle={() =>
-                          setExtraLegs((prev) =>
-                            prev.map((l) =>
-                              l.key === leg.key
-                                ? {
-                                    ...l,
-                                    showPaymentModes: !l.showPaymentModes,
-                                    showAccounts: false,
-                                  }
-                                : { ...l, showAccounts: false, showPaymentModes: false },
-                            ),
-                          )
+                          <Input
+                            label="Amount"
+                            value={leg.amount}
+                            onChangeText={(text) =>
+                              setExtraLegs((prev) =>
+                                prev.map((l) => (l.key === leg.key ? { ...l, amount: text } : l)),
+                              )
+                            }
+                            placeholder="0.00"
+                            keyboardType="decimal-pad"
+                            error={!legValid && leg.amount.length > 0 ? "Enter a positive amount" : undefined}
+                            containerClassName="mb-3"
+                          />
+
+                          <AccountPicker
+                            accounts={accounts}
+                            accountId={leg.accountId}
+                            selectedAccount={legAccount}
+                            showAccounts={leg.showAccounts}
+                            onToggle={() =>
+                              setExtraLegs((prev) =>
+                                prev.map((l) =>
+                                  l.key === leg.key
+                                    ? {
+                                        ...l,
+                                        showAccounts: !l.showAccounts,
+                                        showPaymentModes: false,
+                                      }
+                                    : { ...l, showAccounts: false, showPaymentModes: false },
+                                ),
+                              )
+                            }
+                            onSelect={(acctId) =>
+                              setExtraLegs((prev) =>
+                                prev.map((l) =>
+                                  l.key === leg.key
+                                    ? { ...l, accountId: acctId, showAccounts: false }
+                                    : l,
+                                ),
+                              )
+                            }
+                          />
+
+                          <PaymentModePicker
+                            paymentModes={paymentModes}
+                            paymentModeId={leg.paymentModeId}
+                            selectedPaymentMode={legPM}
+                            showPaymentModes={leg.showPaymentModes}
+                            onToggle={() =>
+                              setExtraLegs((prev) =>
+                                prev.map((l) =>
+                                  l.key === leg.key
+                                    ? {
+                                        ...l,
+                                        showPaymentModes: !l.showPaymentModes,
+                                        showAccounts: false,
+                                      }
+                                    : { ...l, showAccounts: false, showPaymentModes: false },
+                                ),
+                              )
+                            }
+                            onSelect={(pmId) =>
+                              setExtraLegs((prev) =>
+                                prev.map((l) =>
+                                  l.key === leg.key
+                                    ? { ...l, paymentModeId: pmId, showPaymentModes: false }
+                                    : l,
+                                ),
+                              )
+                            }
+                          />
+                        </View>
+                      );
+                    })}
+
+                    {extraLegs.length > 0 && (
+                      <View className="p-3 rounded-xl bg-card mb-2 flex-row items-center">
+                        <Ionicons name="calculator-outline" size={16} color={colors.textSecondary} />
+                        <Text className="ml-2 text-xs text-muted-foreground flex-1">
+                          Purchase total
+                        </Text>
+                        <Text className="text-sm font-bold text-foreground">
+                          {"₹"}
+                          {(
+                            (parseAmount(amount) ?? 0) +
+                            extraLegs.reduce((s, l) => s + (parseAmount(l.amount) ?? 0), 0)
+                          ).toLocaleString("en-IN")}
+                        </Text>
+                      </View>
+                    )}
+
+                    {extraLegs.length < MAX_EXTRA_LEGS && (
+                      <Pressable
+                        onPress={() =>
+                          setExtraLegs((prev) => [
+                            ...prev,
+                            {
+                              key: `leg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                              amount: "",
+                              accountId: null,
+                              paymentModeId: null,
+                              showAccounts: false,
+                              showPaymentModes: false,
+                            },
+                          ])
                         }
-                        onSelect={(pmId) =>
-                          setExtraLegs((prev) =>
-                            prev.map((l) =>
-                              l.key === leg.key
-                                ? { ...l, paymentModeId: pmId, showPaymentModes: false }
-                                : l,
-                            ),
-                          )
-                        }
-                      />
+                        className="flex-row items-center justify-center py-3 rounded-xl border border-dashed border-border"
+                        accessibilityRole="button"
+                        accessibilityLabel="Add another payment source"
+                      >
+                        <Ionicons
+                          name="add-circle-outline"
+                          size={18}
+                          color={theme.primary}
+                        />
+                        <Text
+                          className="ml-2 text-sm font-medium"
+                          style={{ color: theme.primary }}
+                        >
+                          Add another payment source
+                        </Text>
+                      </Pressable>
+                    )}
+                    {extraLegs.length > 0 && (
+                      <Text className="text-label text-faint-foreground mt-2">
+                        Legs share the same merchant, date, and category. Up to {MAX_PURCHASE_GROUP_LEGS} payment sources per purchase.
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                {/* Spend classification toggle */}
+                <RightSpendToggle
+                  isRightSpend={isRightSpend}
+                  onToggle={() => setIsRightSpend(!isRightSpend)}
+                />
+
+                {/* Tags */}
+                <View className="mb-4">
+                  <Text className="text-xs font-medium text-muted-foreground mb-2">
+                    Tags (optional)
+                  </Text>
+                  <TagPicker
+                    selectedTagIds={selectedTagIds}
+                    onSelectionChange={setSelectedTagIds}
+                    onOpen={() => {
+                      setTagPickerOpen(true);
+                      const sub = Keyboard.addListener("keyboardDidShow", () => {
+                        scrollRef.current?.scrollToEnd({ animated: true });
+                        sub.remove();
+                      });
+                      setTimeout(() => {
+                        scrollRef.current?.scrollToEnd({ animated: true });
+                      }, 400);
+                    }}
+                    onClose={() => setTagPickerOpen(false)}
+                  />
+                </View>
+
+                </MoreOptions>
+              </>
+            )}
+
+            {txType === "received" && (
+              <>
+                {/* Other person's refund share — only for exact-amount splits */}
+                {isRefund && linkedExpenseSplitMode === 'exact' && (
+                  <View className="mb-4 p-4 rounded-xl border border-border bg-card">
+                    <View className="flex-row items-center mb-3">
+                      <Ionicons name="people-outline" size={16} color={colors.textSecondary} />
+                      <Text className="ml-2 text-sm font-semibold text-foreground">
+                        Split refund
+                      </Text>
                     </View>
-                  );
-                })}
-
-                {extraLegs.length > 0 && (
-                  <View className="p-3 rounded-xl bg-card mb-2 flex-row items-center">
-                    <Ionicons name="calculator-outline" size={16} color={colors.textSecondary} />
-                    <Text className="ml-2 text-xs text-muted-foreground flex-1">
-                      Purchase total
+                    <Text className="text-xs text-muted-foreground mb-3">
+                      This expense was split by exact amount. How much of this refund goes back to the other person?
                     </Text>
-                    <Text className="text-sm font-bold text-foreground">
-                      {"₹"}
-                      {(
-                        (parseAmount(amount) ?? 0) +
-                        extraLegs.reduce((s, l) => s + (parseAmount(l.amount) ?? 0), 0)
-                      ).toLocaleString("en-IN")}
+                    <Input
+                      label="Other person's share of this refund"
+                      value={otherPersonRefundShare}
+                      onChangeText={setOtherPersonRefundShare}
+                      placeholder="0.00"
+                      keyboardType="decimal-pad"
+                    />
+                    <Text className="text-label text-faint-foreground mt-1">
+                      Leave at 0 if the other person doesn't get any of this refund.
                     </Text>
                   </View>
                 )}
 
-                {extraLegs.length < MAX_EXTRA_LEGS && (
+                <MerchantPicker {...merchantProps} label="Received from" placeholder="Employer, bank, friend (optional)" />
+                <CreditKindChips
+                  value={creditKind}
+                  onChange={(k) => {
+                    creditKindTouched.current = true;
+                    setCreditKind(k);
+                    if (k === "refund" && !isRefund && !pickedRefund) setRefundPickerOpen(true);
+                  }}
+                />
+                {creditKind === "refund" && !isRefund && (
                   <Pressable
-                    onPress={() =>
-                      setExtraLegs((prev) => [
-                        ...prev,
-                        {
-                          key: `leg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                          amount: "",
-                          accountId: null,
-                          paymentModeId: null,
-                          showAccounts: false,
-                          showPaymentModes: false,
-                        },
-                      ])
-                    }
-                    className="flex-row items-center justify-center py-3 rounded-xl border border-dashed border-border"
-                    accessibilityRole="button"
-                    accessibilityLabel="Add another payment source"
+                    onPress={() => setRefundPickerOpen(true)}
+                    className="flex-row items-center rounded-lg border border-border bg-card px-4 py-3 mb-4"
                   >
-                    <Ionicons
-                      name="add-circle-outline"
-                      size={18}
-                      color={theme.primary}
-                    />
-                    <Text
-                      className="ml-2 text-sm font-medium"
-                      style={{ color: theme.primary }}
-                    >
-                      Add another payment source
+                    <Ionicons name="link-outline" size={18} color={colors.textSecondary} />
+                    <Text className="flex-1 ml-3 text-sm text-foreground" numberOfLines={1}>
+                      {pickedRefund ? pickedRefund.summary : "Refund of which expense? (optional)"}
                     </Text>
+                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                   </Pressable>
                 )}
-                {extraLegs.length > 0 && (
-                  <Text className="text-label text-faint-foreground mt-2">
-                    Legs share the same merchant, date, and category. Up to {MAX_PURCHASE_GROUP_LEGS} payment sources per purchase.
+                <AccountPicker
+                  accounts={accounts}
+                  accountId={accountId}
+                  selectedAccount={selectedAccount}
+                  showAccounts={showAccounts}
+                  label="Into account"
+                  onToggle={() => setShowAccounts(!showAccounts)}
+                  onSelect={(id) => {
+                    setAccountId(id);
+                    setShowAccounts(false);
+                  }}
+                />
+                {dateField}
+                <MoreOptions open={moreOpen} onToggle={() => setMoreOpen(!moreOpen)} summary="note, tags">
+                <Input
+                  label="Note"
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="What's this money for?"
+                  maxLength={200}
+                  containerClassName="mb-4"
+                />
+                {/* Tags */}
+                <View className="mb-4">
+                  <Text className="text-xs font-medium text-muted-foreground mb-2">
+                    Tags (optional)
                   </Text>
-                )}
-              </View>
+                  <TagPicker
+                    selectedTagIds={selectedTagIds}
+                    onSelectionChange={setSelectedTagIds}
+                    onOpen={() => {
+                      setTagPickerOpen(true);
+                      const sub = Keyboard.addListener("keyboardDidShow", () => {
+                        scrollRef.current?.scrollToEnd({ animated: true });
+                        sub.remove();
+                      });
+                      setTimeout(() => {
+                        scrollRef.current?.scrollToEnd({ animated: true });
+                      }, 400);
+                    }}
+                    onClose={() => setTagPickerOpen(false)}
+                  />
+                </View>
+
+                </MoreOptions>
+              </>
             )}
 
-            {/* Date selector */}
-            <DateSelector
-              date={date}
-              showDatePicker={showDatePicker}
-              onToggleDatePicker={() => setShowDatePicker(!showDatePicker)}
-              onDateShift={handleDateShift}
-              onSetDate={setDate}
-              onCloseDatePicker={() => setShowDatePicker(false)}
-              dateError={errors.date}
-            />
-
-            {/* Category picker */}
-            <CategoryPicker
-              categories={categories}
-              categoryId={categoryId}
-              selectedCategory={selectedCategory}
-              showCategories={showCategories}
-              onToggle={() => {
-                setShowCategories(!showCategories);
-                setShowPaymentModes(false);
-              }}
-              onSelect={(catId) => {
-                setCategoryId(catId);
-                setShowCategories(false);
-                // Auto-set unavoidable/discretionary based on category classification
-                const cat = categories.find((c) => c.id === catId);
-                if (cat) setIsRightSpend(cat.is_unavoidable === 1);
-              }}
-            />
-
-            {/* Payment mode picker */}
-            <PaymentModePicker
-              paymentModes={paymentModes}
-              paymentModeId={paymentModeId}
-              selectedPaymentMode={selectedPaymentMode}
-              showPaymentModes={showPaymentModes}
-              onToggle={() => {
-                setShowPaymentModes(!showPaymentModes);
-                setShowCategories(false);
-              }}
-              onSelect={(pmId) => {
-                setPaymentModeId(pmId);
-                setShowPaymentModes(false);
-              }}
-            />
-
-            {/* Spend classification toggle */}
-            <RightSpendToggle
-              isRightSpend={isRightSpend}
-              onToggle={() => setIsRightSpend(!isRightSpend)}
-            />
-
-            {/* Tags */}
-            <View className="mb-4">
-              <Text className="text-xs font-medium text-muted-foreground mb-2">
-                Tags (optional)
-              </Text>
-              <TagPicker
-                selectedTagIds={selectedTagIds}
-                onSelectionChange={setSelectedTagIds}
-                onOpen={() => {
-                  setTagPickerOpen(true);
-                  const sub = Keyboard.addListener("keyboardDidShow", () => {
-                    scrollRef.current?.scrollToEnd({ animated: true });
-                    sub.remove();
-                  });
-                  setTimeout(() => {
-                    scrollRef.current?.scrollToEnd({ animated: true });
-                  }, 400);
-                }}
-                onClose={() => setTagPickerOpen(false)}
-              />
-            </View>
-
-            {/* Save button */}
-            <Button
-              title={
-                isRefund
-                  ? "Save Refund"
-                  : extraLegs.length > 0
-                    ? "Save Purchase"
-                    : "Save Expense"
-              }
-              onPress={handleSave}
-              loading={saving}
-              className="mb-4"
-            />
+            {txType === "transfer" && (
+              <>
+                <AccountPicker
+                  accounts={accounts}
+                  accountId={accountId}
+                  selectedAccount={selectedAccount}
+                  showAccounts={showAccounts}
+                  label="From"
+                  placeholder="Account the money left"
+                  onToggle={() => {
+                    setShowAccounts(!showAccounts);
+                    setShowToAccounts(false);
+                  }}
+                  onSelect={(id) => {
+                    setAccountId(id);
+                    setShowAccounts(false);
+                  }}
+                />
+                <View className="items-center -mt-2 mb-2">
+                  <Ionicons name="arrow-down" size={18} color={colors.textSecondary} />
+                </View>
+                <AccountPicker
+                  accounts={accounts}
+                  accountId={toAccountId}
+                  selectedAccount={accounts.find((a) => a.id === toAccountId)}
+                  showAccounts={showToAccounts}
+                  label="To"
+                  placeholder="Account the money went to"
+                  onToggle={() => {
+                    setShowToAccounts(!showToAccounts);
+                    setShowAccounts(false);
+                  }}
+                  onSelect={(id) => {
+                    setToAccountId(id);
+                    setShowToAccounts(false);
+                  }}
+                />
+                {dateField}
+                <MoreOptions open={moreOpen} onToggle={() => setMoreOpen(!moreOpen)} summary="note">
+                <Input
+                  label="Note"
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Moving savings, card bill…"
+                  maxLength={200}
+                  containerClassName="mb-4"
+                />
+                </MoreOptions>
+              </>
+            )}
           </View>
         </ScrollView>
+        <StickySaveBar
+          title={
+            isRefund
+              ? "Save refund"
+              : txType === "spent" && extraLegs.length > 0
+                ? "Save purchase"
+                : `Save ${TYPE_LABEL[txType].noun}`
+          }
+          onPress={handleSave}
+          loading={saving}
+        />
       </KeyboardAvoidingView>
+      <RefundExpensePickerSheet
+        visible={refundPickerOpen}
+        creditAmount={parseAmount(amount) ?? 0}
+        onPick={(expenseId, summary) => {
+          setPickedRefund({ id: expenseId, summary });
+          setRefundPickerOpen(false);
+        }}
+        onClose={() => setRefundPickerOpen(false)}
+      />
     </ScreenContainer>
   );
 }

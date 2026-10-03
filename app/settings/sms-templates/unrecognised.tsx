@@ -11,6 +11,7 @@ import {
   type UnrecognisedSmsRow,
 } from "@/services/sms/user-sms-templates";
 import { useTheme } from "@/hooks/use-theme";
+import { SendSmsToDeveloperSheet } from "@/components/sms/SendSmsToDeveloperSheet";
 
 /**
  * v15.6.0 — Browser for pending_sms rows that never became expenses.
@@ -36,6 +37,7 @@ export default function UnrecognisedSmsScreen() {
   const [rows, setRows] = useState<UnrecognisedSmsRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [reportRow, setReportRow] = useState<{ body: string; address: string } | null>(null);
   const [grouped, setGrouped] = useState(true);
 
   const load = useCallback(async () => {
@@ -233,6 +235,14 @@ export default function UnrecognisedSmsScreen() {
                       : "Teach Arth to read this"}
                   </Text>
                 </Pressable>
+                <Pressable
+                  onPress={() => setReportRow({ body: item.row.body, address: item.row.address })}
+                  className="flex-row items-center justify-center py-2 mt-1"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="mail-outline" size={15} color={colors.textSecondary} />
+                  <Text className="text-xs font-medium ml-1.5 text-muted-foreground">Send to developer</Text>
+                </Pressable>
               </Card>
             )}
             ListEmptyComponent={
@@ -249,6 +259,12 @@ export default function UnrecognisedSmsScreen() {
           />
         )}
       </View>
+      <SendSmsToDeveloperSheet
+        visible={reportRow != null}
+        onClose={() => setReportRow(null)}
+        body={reportRow?.body ?? ""}
+        sender={reportRow?.address ?? ""}
+      />
     </ScreenContainer>
   );
 }

@@ -41,6 +41,7 @@ import { getActiveAccounts, getAllAccounts } from "@/services/financial-account"
 import { getVaultEntriesForAccount } from "@/services/vault";
 import { getPersonsByIds, getSettlementsForCredits } from "@/services/hisaab";
 import { getMonthDateRange } from "@/utils/budget-helpers";
+import { formatLocalDate } from "@/utils/fiscal-year";
 import { formatAdjustmentDescription, formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
@@ -1386,9 +1387,18 @@ const loadData = useCallback(async () => {
             label: "Add Credit",
             color: theme.success,
             onPress: () => {
-              setCreditDate(new Date().toISOString().split("T")[0]);
-              setShowAddCredit(true);
-              setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
+              // Same form as everywhere else, already on Received and this account. Date: today if
+              // today is in the viewed month, otherwise the month's first day (else the credit lands
+              // in another month and never shows up here).
+              const today = formatLocalDate(new Date());
+              router.push({
+                pathname: "/expense/add",
+                params: {
+                  type: "credit",
+                  prefillAccountId: accountId,
+                  prefillDate: today >= startDate && today <= endDate ? today : startDate,
+                },
+              });
             },
           },
           {

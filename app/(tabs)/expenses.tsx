@@ -19,7 +19,6 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
-import { addCredit } from "@/services/account-credit";
 import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
 import type { DematTarget } from "@/services/demat-transfer";
 import { isDematLikeAccountById } from "@/services/investment-accounts";
@@ -163,15 +162,6 @@ export default function ExpensesScreen() {
     () => (settingsStorage.getString(SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
   );
   const [showSortSheet, setShowSortSheet] = useState(false);
-
-  // Inline credit form
-  const [showAddCredit, setShowAddCredit] = useState(false);
-  const [creditAccountId, setCreditAccountId] = useState<string | null>(null);
-  const [creditAccountLabel, setCreditAccountLabel] = useState("");
-  const [creditAmount, setCreditAmount] = useState("");
-  const [creditDescription, setCreditDescription] = useState("");
-  const [creditDate, setCreditDate] = useState("");
-  const [showCreditAccountPicker, setShowCreditAccountPicker] = useState(false);
 
   // Inline transfer form
   const [showAddTransfer, setShowAddTransfer] = useState(false);
@@ -679,49 +669,6 @@ export default function ExpensesScreen() {
     setBulkPickerType(null);
     loadExpenses(true);
   }, [selectedExpenseIds, exitBulkMode, loadExpenses]);
-
-  // ── Credit handlers ──
-
-  const handleSaveCredit = useCallback(async () => {
-    if (!creditAccountId) {
-      alert("No Account", "Please select an account to credit.");
-      return;
-    }
-    const amount = parseFloat(creditAmount.replace(/,/g, ""));
-    if (!Number.isFinite(amount) || amount <= 0) {
-      alert("Invalid Amount", "Please enter a valid positive amount.");
-      return;
-    }
-    const date = creditDate.trim() || new Date().toISOString().split("T")[0];
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      alert("Invalid Date", "Please pick a valid date.");
-      return;
-    }
-    await addCredit({
-      accountId: creditAccountId,
-      userId: DEFAULT_USER_ID,
-      amount,
-      description: creditDescription.trim() || "Manual credit",
-      date,
-      source: "manual",
-    });
-    setShowAddCredit(false);
-    setCreditAccountId(null);
-    setCreditAccountLabel("");
-    setCreditAmount("");
-    setCreditDescription("");
-    setCreditDate("");
-    loadExpenses(true);
-  }, [creditAccountId, creditAmount, creditDescription, creditDate, alert, loadExpenses]);
-
-  const handleCancelCredit = useCallback(() => {
-    setShowAddCredit(false);
-    setCreditAccountId(null);
-    setCreditAccountLabel("");
-    setCreditAmount("");
-    setCreditDescription("");
-    setCreditDate("");
-  }, []);
 
   // ── Transfer handlers ──
 
@@ -1492,10 +1439,7 @@ export default function ExpensesScreen() {
             icon: "arrow-down-outline",
             label: "Add Credit",
             color: theme.success,
-            onPress: () => {
-              setCreditDate(new Date().toISOString().split("T")[0]);
-              setShowAddCredit(true);
-            },
+            onPress: () => router.push({ pathname: "/expense/add", params: { type: "credit" } }),
           },
           {
             icon: "swap-horizontal",
@@ -1586,69 +1530,6 @@ export default function ExpensesScreen() {
           </View>
         </View>
       )}
-      {/* Add Credit bottom sheet */}
-      {showAddCredit && (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: 0, zIndex: 50, justifyContent: "flex-end" }}
-        >
-          <Pressable style={{ flex: 1 }} onPress={handleCancelCredit} />
-          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", marginRight: 10, backgroundColor: theme.success + "20" }}>
-                <Ionicons name="arrow-down-outline" size={16} color={theme.success} />
-              </View>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>Add Credit</Text>
-            </View>
-            <Text style={{ fontSize: 11, fontWeight: "600", color: colors.textSecondary, marginBottom: 4 }}>Account</Text>
-            <Pressable
-              onPress={() => setShowCreditAccountPicker(true)}
-              style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}
-            >
-              <Ionicons name="wallet-outline" size={16} color={creditAccountId ? theme.success : colors.textSecondary} />
-              <Text style={{ flex: 1, fontSize: 14, marginLeft: 8, color: creditAccountId ? colors.text : colors.textSecondary }}>
-                {creditAccountLabel || "Select account"}
-              </Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-            </Pressable>
-            <Input
-              placeholder="Amount"
-              formula
-              value={creditAmount}
-              onChangeText={setCreditAmount}
-              containerClassName="mb-3"
-            />
-            <TextInput
-              style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12, fontSize: 14, color: colors.text }}
-              placeholder="Description (e.g. Salary, UPI received)"
-              placeholderTextColor={colors.textSecondary}
-              maxLength={200}
-              value={creditDescription}
-              onChangeText={setCreditDescription}
-            />
-            <DateInput
-              label="Date"
-              value={creditDate || new Date().toISOString().split("T")[0]}
-              onChange={setCreditDate}
-              containerClassName="mb-4"
-            />
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Pressable
-                onPress={handleCancelCredit}
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
-              >
-                <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textSecondary }}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleSaveCredit}
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", backgroundColor: theme.success }}
-              >
-                <Text style={{ fontSize: 14, fontWeight: "600", color: "#fff" }}>Add Credit</Text>
-              </Pressable>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      )}
 
       {/* Add Transfer bottom sheet */}
       {showAddTransfer && (
@@ -1727,18 +1608,6 @@ export default function ExpensesScreen() {
       )}
 
       {/* Account pickers */}
-      <AccountPickerSheet
-        visible={showCreditAccountPicker}
-        onSelect={(id) => {
-          setCreditAccountId(id);
-          const acct = accounts.find((a) => a.id === id);
-          setCreditAccountLabel(acct ? (acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`) : "Selected");
-          setShowCreditAccountPicker(false);
-        }}
-        onClose={() => setShowCreditAccountPicker(false)}
-        title="Credit Account"
-        filterTypes={["savings", "wallet", "credit_card"]}
-      />
       <AccountPickerSheet
         visible={showFromPicker}
         onSelect={(id) => {

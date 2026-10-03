@@ -13,11 +13,11 @@
  */
 
 import { cleanDueLabel } from "@/services/sms/due-description";
+import { createTransfer } from "@/services/account-transfer";
 import { getDatabase } from "@/database";
 import { autoPopulateAccountMode, findPaymentModeByType } from "@/services/account-master";
-import { autoDetectTransfer, createTransfer } from "@/services/account-transfer";
 import { findMatchingForecast, findRefundTarget } from "@/services/expense";
-import { findMatchingRepaymentForecast, markRepaymentAsPaid } from "@/services/expense-forecasts";
+import { applyPartPaymentToRepaymentForecast, findMatchingRepaymentForecast, markRepaymentAsPaid } from "@/services/expense-forecasts";
 import { discoverOrUpdateAccount, handlePaymentReceived, linkExpenseToAccount, updateAccountDues, updateNachInfo } from "@/services/financial-account";
 import { cleanMerchantName, normalizeMerchantName } from "@/services/merchant-alias";
 import { bumpDataVersion } from "@/services/settings";
@@ -29,6 +29,8 @@ import { formatLocalDate } from "@/utils/fiscal-year";
 import { logger } from "@/utils/logger";
 import { generateUUID } from "@/utils/uuid";
 import type { ParsedSMS } from "./bank-patterns";
+import { detectSip, inferCreditKind, sipFundLabel } from "./money-signals";
+import { resolveFdClosure, resolveSelfTransfer, setMoneyEvent } from "@/services/money-events";
 import { markSmsFailed, markSmsIgnored, markSmsProcessed } from "./sms-parser";
 
 export interface SmsExpenseResult {
@@ -125,8 +127,8 @@ export async function createExpenseFromSms(
     }
 
     await db.runAsync(
-      `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, raw_merchant_name, date, transaction_time, nature, source, status, raw_source_text, created_at)
-       VALUES (?, ?, ?, 'INR', ?, ?, ?, ?, ?, 'credit', 'sms_auto', 'pending_review', ?, ?);`,
+      `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, raw_merchant_name, date, transaction_time, nature, credit_kind, source, status, raw_source_text, created_at)
+       VALUES (?, ?, ?, 'INR', ?, ?, ?, ?, ?, 'credit', ?, 'sms_auto', 'pending_review', ?, ?);`,
       expenseId,
       userId,
       parsed.amount,
@@ -135,12 +137,22 @@ export async function createExpenseFromSms(
       parsed.merchant ?? null,
       date,
       transactionTime,
+      parsed.fdEvent === "closure" ? null : inferCreditKind(rawBody),
       rawBody,
       now,
     );
     // Best-effort link to an existing account (no creation).
     await linkExpenseToAccount(userId, expenseId, parsed.cardLast4, parsed.bank, parsed.accountNickname);
     const appliedRuleIds = await applyRulesToSmsCredit(expenseId, rawBody, { allowAutoApprove: true });
+
+    // Not income: an FD paying out, or the user's own money arriving from another account.
+    try {
+      if (parsed.fdEvent === "closure") await resolveFdClosure(userId, expenseId, parsed);
+      else await resolveSelfTransfer(userId, expenseId, "credit", parsed);
+    } catch (e) {
+      logger.warn("Credit money-event resolution failed (non-fatal):", e);
+    }
+
     await markSmsProcessed(pendingSmsId, expenseId);
     await bumpDataVersion();
     return { success: true, expenseId, isCredit: true, error: null, appliedRuleIds };
@@ -149,6 +161,19 @@ export async function createExpenseFromSms(
   // NACH bounce — flag but don't create an expense
   if (parsed.type === "nach_bounce") {
     await discoverOrUpdateAccount(userId, parsed, pendingSmsId);
+    // A bounced SIP is worth a heads-up — but only for a fresh SMS, not one found by a history scan.
+    const ageMs = smsDate ? Date.now() - smsDate : Infinity;
+    if (ageMs <= 3 * 24 * 60 * 60 * 1000 && detectSip("nach_debit", parsed.merchant, rawBody)) {
+      try {
+        const { sendLocalNotification } = await import("@/services/notifications");
+        await sendLocalNotification(
+          `SIP to ${sipFundLabel(parsed.merchant, rawBody)} bounced`,
+          `Check the balance in ${parsed.bank}${parsed.cardLast4 ? ` ··${parsed.cardLast4}` : ""} so the next one goes through.`,
+        );
+      } catch (e) {
+        logger.warn("SIP bounce notification failed (non-fatal):", e);
+      }
+    }
     await markSmsProcessed(pendingSmsId, null);
     return { success: true, expenseId: null, isCredit: false, error: null };
   }
@@ -187,6 +212,16 @@ export async function createExpenseFromSms(
     const forecastMatch = ccAccountId
       ? await findMatchingRepaymentForecast(userId, ccAccountId, parsed.amount, date)
       : null;
+
+    // Step 1b: no bill matches the amount — a part payment reduces the open bill to what's
+    // still due. The payment itself is then recorded as below (transfer or review credit).
+    if (!forecastMatch && ccAccountId) {
+      try {
+        await applyPartPaymentToRepaymentForecast(userId, ccAccountId, parsed.amount, date);
+      } catch (e) {
+        logger.warn("Part-payment forecast update failed (non-fatal):", e);
+      }
+    }
 
     // Step 2: look for a recent savings debit with the same amount (±0.5%)
     // that could be the other side of this payment.
@@ -537,30 +572,24 @@ export async function createExpenseFromSms(
         });
       }
 
-      // Check if this savings debit might be a self-transfer (IMPS P2A or net banking).
+      // Money that isn't spending: an FD deposit, a SIP, or a transfer to the
+      // user's own account. FD/SIP are flagged for a one-tap review card;
+      // self-transfers pair with their credit when it's already in Arth.
       // Skipped when a smart rule explicitly classified it as spending
-      // (category / split / loan / bucket) — converting it to a transfer
-      // would soft-delete the expense and silently discard the rule's work.
+      // (category / split / loan / bucket) — reclassifying it would silently
+      // discard the rule's work.
       const ruleClassifiedAsSpend =
         ruleCategoryId !== null || ruleSplitPersonId !== null || ruleLoanAccountId !== null || ruleBucketId !== null;
-      if (!ruleClassifiedAsSpend && accountId && (parsed.paymentMode === "net_banking" || parsed.upiSubtype === "p2a")) {
-        const destAccountId = await autoDetectTransfer(userId, accountId, parsed.amount, date);
-        if (destAccountId) {
-          await createTransfer({
-            userId,
-            fromAccountId: accountId,
-            toAccountId: destAccountId,
-            amount: parsed.amount,
-            description: `Self transfer — ${parsed.bank}`,
-            date,
-            linkedExpenseId: expenseId,
-            source: "sms_auto",
-          });
-          await db.runAsync(
-            `UPDATE expenses SET deleted_at = datetime('now') WHERE id = ?;`,
-            expenseId,
-          );
+      try {
+        if (parsed.fdEvent === "open") {
+          await setMoneyEvent(expenseId, "fd_open");
+        } else if (detectSip(parsed.type, parsed.merchant, rawBody)) {
+          if (!ruleBucketId) await setMoneyEvent(expenseId, "sip");
+        } else if (!ruleClassifiedAsSpend && accountId) {
+          await resolveSelfTransfer(userId, expenseId, "debit", parsed);
         }
+      } catch (e) {
+        logger.warn("Debit money-event resolution failed (non-fatal):", e);
       }
 
       await markSmsProcessed(pendingSmsId, expenseId);

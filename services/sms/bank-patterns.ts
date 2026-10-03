@@ -7,6 +7,8 @@
  * Designed from real SMS samples (see __tests__/fixtures/sms-samples/).
  */
 
+import { detectFdEvent, extractCounterpartyName } from "./money-signals";
+
 export type TransactionType =
   | "debit"
   | "credit"
@@ -69,6 +71,14 @@ export interface ParsedSMS {
    * numeric account_identifier. Only populated when cardLast4 is null.
    */
   accountNickname?: string | null;
+  /** Other party's name as the bank wrote it ("SOURAV BAI", "SOURAVBAID") — used to spot self-transfers. */
+  counterpartyName?: string | null;
+  /** Last 4 digits of the other account, when the SMS names it ("To A/c xxxxxxxxxx0006"). */
+  counterpartyAcctLast4?: string | null;
+  /** This debit funds a fixed/term deposit ("open") or this credit closes one ("closure"). */
+  fdEvent?: "open" | "closure" | null;
+  /** Deposit account digits from the SMS ("Closure of TD A/c XXXXX031705" → "031705"). */
+  fdNumber?: string | null;
   /** Internal: which pipeline stage produced this parse (hardcoded patterns or DB template). */
   _matchSource?: "hardcoded" | "template";
   /** Internal: ID of the sms_template_patterns row that matched (template only). */
@@ -151,6 +161,27 @@ function parseDDMMYY(raw: string): string | null {
   const year = parseInt(m[3], 10);
   const fullYear = year < 50 ? 2000 + year : 1900 + year;
   return `${fullYear}-${m[2]}-${m[1]}`;
+}
+
+/** Parse "30/09/26" (DD/MM/YY) → "2026-09-30" */
+function parseDDMMYYSlash(raw: string): string | null {
+  const m = raw.match(/(\d{1,2})\/(\d{2})\/(\d{2})(?!\d)/);
+  if (!m) return null;
+  const year = parseInt(m[3], 10);
+  const fullYear = year < 50 ? 2000 + year : 1900 + year;
+  return `${fullYear}-${m[2]}-${m[1].padStart(2, "0")}`;
+}
+
+/** Last 4 digits of a masked account ("XXXXX790006" → "0006"). */
+function last4(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  return digits.slice(-4);
+}
+
+/** "Avl bal:INR 1,50,000.00" / "Avl Bal INR 62,305.01" / "Avl Balance INR 20,326.76" */
+function availableBalance(body: string): number | undefined {
+  const m = body.match(/Avl\.?\s*Bal(?:ance)?\s*:?\s*(?:INR|Rs\.?)\s*([\d,]+(?:\.\d+)?)/i);
+  return m ? parseAmount(m[1]) : undefined;
 }
 
 /** Parse "09-09-25 02:31:10 IST" or "22-06-25 20:14:43" → "2025-06-22" */
@@ -1541,6 +1572,142 @@ export const BANK_PATTERNS: BankPattern[] = [
         isForecast: false,
         confidence: 0.85,
         accountType: "savings" as const,
+      };
+    },
+  },
+
+  // ─── HDFC / SBI savings — formats as sent in 2026 ───
+
+  // ═══ HDFC Savings Debit (UPDATE) ═══
+  // "UPDATE: INR 19,980.00 debited from HDFC Bank XX0221 on 08-SEP-26. Info: FD through MOBILE-XXXXXXXXXX6762:SOURAV BAID. Avl bal:INR 0.00"
+  {
+    name: "HDFC Savings Debit (UPDATE)",
+    bank: "HDFC Bank",
+    type: "debit",
+    test: /debited\s+from\s+HDFC\s+Bank\s+XX\d+\s+on\s+\d{1,2}-[A-Za-z]{3}-\d{2}/i,
+    parse: (body) => {
+      const m = body.match(
+        /(?:INR|Rs\.?)\s*([\d,]+(?:\.\d+)?)\s+debited\s+from\s+HDFC\s+Bank\s+XX(\d+)\s+on\s+(\d{1,2}-[A-Za-z]{3}-\d{2})/i,
+      );
+      if (!m) return null;
+      // "Info: FD through MOBILE-XXXXXXXXXX6762:SOURAV BAID" → merchant "FD through MOBILE", name "SOURAV BAID"
+      const info = body.match(/Info:\s*(.+?)(?:\.\s*Avl\s+bal|\s+Avl\s+bal|\.?\s*$)/i)?.[1]?.trim() ?? "";
+      const colon = info.lastIndexOf(":");
+      const name = colon >= 0 ? info.slice(colon + 1).trim() : "";
+      const merchant = (colon >= 0 ? info.slice(0, colon) : info).replace(/-[X*x]+\d*/g, "").trim();
+      return {
+        amount: parseAmount(m[1]),
+        merchant: merchant || null,
+        cardLast4: m[2],
+        date: parseDDMMMYY(m[3]),
+        bank: "HDFC Bank",
+        type: "debit",
+        skip: false,
+        dueDate: null,
+        isForecast: false,
+        confidence: 0.9,
+        availableBalance: availableBalance(body),
+        accountType: "savings" as const,
+        counterpartyName: name && /[A-Za-z]{3}/.test(name) ? name : null,
+      };
+    },
+  },
+
+  // ═══ HDFC IMPS Sent ═══
+  // "IMPS INR 30,000.00\nsent from HDFC Bank A/c XX0221 on 03-09-26\nTo A/c xxxxxxxxxx0006\nRef-624633402819"
+  {
+    name: "HDFC IMPS Sent",
+    bank: "HDFC Bank",
+    type: "debit",
+    test: /IMPS\s+INR\s+[\d,.]+\s+sent\s+from\s+HDFC\s+Bank\s+A\/c/i,
+    parse: (body) => {
+      const m = body.match(
+        /IMPS\s+INR\s+([\d,]+(?:\.\d+)?)\s+sent\s+from\s+HDFC\s+Bank\s+A\/c\s+XX(\d+)\s+on\s+(\d{2}-\d{2}-\d{2})\s+To\s+A\/c\s+([X*x]*\d+)/i,
+      );
+      if (!m) return null;
+      const toLast4 = last4(m[4]);
+      return {
+        amount: parseAmount(m[1]),
+        merchant: `IMPS to A/c XX${toLast4}`,
+        cardLast4: m[2],
+        date: parseDDMMYY(m[3]),
+        bank: "HDFC Bank",
+        type: "debit",
+        skip: false,
+        dueDate: null,
+        isForecast: false,
+        confidence: 0.9,
+        accountType: "savings" as const,
+        paymentMode: "net_banking" as const,
+        counterpartyAcctLast4: toLast4,
+      };
+    },
+  },
+
+  // ═══ SBI IMPS Credit (linked mobile) ═══
+  // "Dear Customer, Your a/c no. XXXXXXXX0006 is credited by Rs.20013.00 on 30-09-26 by a/c linked to mobile 9XXXXXX963-SOURAV BAI (IMPS Ref# 627344741256)-SBI"
+  {
+    name: "SBI IMPS Credit",
+    bank: "SBI",
+    type: "credit",
+    test: /a\/c\s+no\.\s+[X*]*\d+\s+is\s+credited\s+by\s+Rs[\s\S]*?-\s*SBI\b/i,
+    parse: (body) => {
+      const m = body.match(
+        /a\/c\s+no\.\s+([X*]*\d+)\s+is\s+credited\s+by\s+Rs\.?\s*([\d,]+(?:\.\d+)?)\s+on\s+(\d{2}-\d{2}-\d{2})(?:\s+by\s+([\s\S]+?))?(?:\s*\((?:IMPS|NEFT|UPI)?\s*Ref|\s*-\s*SBI|$)/i,
+      );
+      if (!m) return null;
+      const by = m[4]?.trim() ?? "";
+      const name = extractCounterpartyName(by);
+      return {
+        amount: parseAmount(m[2]),
+        merchant: name ?? (by || null),
+        cardLast4: last4(m[1]),
+        date: parseDDMMYY(m[3]),
+        bank: "SBI",
+        type: "credit",
+        skip: false,
+        dueDate: null,
+        isForecast: false,
+        confidence: 0.9,
+        accountType: "savings" as const,
+        paymentMode: "net_banking" as const,
+        counterpartyName: name,
+      };
+    },
+  },
+
+  // ═══ SBI Account Credited / Debited (INR, DD/MM/YY) ═══
+  // "Your A/C XXXXX790006 Credited INR 50,079.00 on 30/09/26 -Deposit by transfer from Mr. SOURAVBAID. Avl Bal INR 62,305.01-SBI"
+  // "Dear Customer, Your A/C XXXXX790006 Credited. INR 50,029.00 on 15/09/26 on account of Closure of TD A/c XXXXX031705.-SBI"
+  // "Your A/C XXXXX790006 Debited INR 50,000.00 on 11/09/26 -Transferred to Mr. SOURAVBAID. Avl Balance INR 20,326.76-SBI"
+  {
+    name: "SBI Account Credited/Debited INR",
+    bank: "SBI",
+    type: "credit",
+    test: /A\/C\s+[X*]*\d+\s+(?:Credited|Debited)\.?\s+INR[\s\S]*?SBI/i,
+    parse: (body) => {
+      const m = body.match(
+        /A\/C\s+([X*]*\d+)\s+(Credited|Debited)\.?\s+INR\s*([\d,]+(?:\.\d+)?)\s+on\s+(\d{1,2}\/\d{2}\/\d{2})\s*([\s\S]*?)(?:\.\s*Avl\s+Bal|\.?\s*-\s*SBI\s*$|$)/i,
+      );
+      if (!m) return null;
+      const isCredit = m[2].toLowerCase() === "credited";
+      const narration = m[5].replace(/^[-\s]+/, "").trim();
+      const name = extractCounterpartyName(narration);
+      return {
+        amount: parseAmount(m[3]),
+        merchant: name ?? (narration.replace(/^on\s+account\s+of\s+/i, "").replace(/\s+[X*]+\d+$/, "").trim() || null),
+        cardLast4: last4(m[1]),
+        date: parseDDMMYYSlash(m[4]),
+        bank: "SBI",
+        type: isCredit ? "credit" : "debit",
+        skip: false,
+        dueDate: null,
+        isForecast: false,
+        confidence: 0.9,
+        availableBalance: availableBalance(body),
+        accountType: "savings" as const,
+        paymentMode: /transfer/i.test(narration) ? ("net_banking" as const) : null,
+        counterpartyName: name,
       };
     },
   },
@@ -3037,6 +3204,22 @@ export const BANK_PATTERNS: BankPattern[] = [
 // ─── Main Parse Function ───
 
 /**
+ * Fill the FD-event and counterparty fields from the raw body when the
+ * pattern (or a DB template) didn't. Idempotent — safe to call twice.
+ */
+export function annotateMoneySignals(parsed: ParsedSMS, body: string): ParsedSMS {
+  if (parsed.fdEvent === undefined) {
+    const { fdEvent, fdNumber } = detectFdEvent(body, parsed.type);
+    parsed.fdEvent = fdEvent;
+    parsed.fdNumber = fdNumber;
+  }
+  if (!parsed.counterpartyName) {
+    parsed.counterpartyName = extractCounterpartyName(body);
+  }
+  return parsed;
+}
+
+/**
  * Parse a raw SMS body through all bank patterns.
  * Returns the parsed result from the first matching pattern,
  * or null if no pattern matches.
@@ -3071,6 +3254,7 @@ export function parseBankSMS(body: string): ParsedSMS | null {
         if (result.merchant && result.merchant.length > MAX_MERCHANT_LENGTH) {
           result.merchant = result.merchant.slice(0, MAX_MERCHANT_LENGTH).trim();
         }
+        annotateMoneySignals(result, body);
         return result;
       }
     }

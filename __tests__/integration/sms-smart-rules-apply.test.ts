@@ -31,11 +31,15 @@ jest.mock("../../services/account-master", () => ({
   autoPopulateAccountMode: jest.fn(),
   findPaymentModeByType: jest.fn(async () => null),
 }));
-const mockAutoDetectTransfer = jest.fn(async (): Promise<string | null> => null);
 const mockCreateTransfer = jest.fn(async () => "transfer-1");
 jest.mock("../../services/account-transfer", () => ({
-  autoDetectTransfer: (...args: unknown[]) => mockAutoDetectTransfer(...(args as [])),
   createTransfer: (...args: unknown[]) => mockCreateTransfer(...(args as [])),
+}));
+const mockResolveSelfTransfer = jest.fn(async () => "none");
+jest.mock("../../services/money-events", () => ({
+  resolveSelfTransfer: (...args: unknown[]) => mockResolveSelfTransfer(...(args as [])),
+  resolveFdClosure: jest.fn(async () => "flagged"),
+  setMoneyEvent: jest.fn(),
 }));
 jest.mock("../../services/expense", () => ({
   findMatchingForecast: jest.fn(async () => null),
@@ -43,6 +47,7 @@ jest.mock("../../services/expense", () => ({
 }));
 jest.mock("../../services/expense-forecasts", () => ({
   findMatchingRepaymentForecast: jest.fn(async () => null),
+  applyPartPaymentToRepaymentForecast: jest.fn(async () => null),
   markRepaymentAsPaid: jest.fn(),
 }));
 jest.mock("../../services/financial-account", () => ({
@@ -78,6 +83,7 @@ function seed() {
       account_id TEXT, date TEXT, transaction_time TEXT, nature TEXT, is_right_spend INTEGER,
       source TEXT, status TEXT, raw_source_text TEXT, matched_forecast_id TEXT,
       refund_of_expense_id TEXT, applied_rule_id TEXT, applied_rule_ids TEXT,
+      money_event TEXT, credit_kind TEXT,
       deleted_at TEXT, created_at TEXT, updated_at TEXT
     );
     CREATE TABLE smart_rules (
@@ -127,7 +133,7 @@ function debit(overrides: Partial<ParsedSMS> = {}): ParsedSMS {
 
 beforeEach(() => {
   seed();
-  mockAutoDetectTransfer.mockReset().mockResolvedValue(null);
+  mockResolveSelfTransfer.mockClear();
   mockCreateTransfer.mockClear();
 });
 
@@ -170,7 +176,6 @@ describe("SMS debit — every rule action lands", () => {
   });
 
   it("does not convert a rule-categorized debit into a self-transfer", async () => {
-    mockAutoDetectTransfer.mockResolvedValue("acct-2");
     addRule("r1", 10, "expense", [merchantIs("LANDLORD")], [{ type: "category", category_id: "cat-rent" }]);
 
     const res = await createExpenseFromSms(
@@ -178,18 +183,15 @@ describe("SMS debit — every rule action lands", () => {
     );
 
     expect(expenseRow(res.expenseId!).deleted_at).toBeNull();
-    expect(mockCreateTransfer).not.toHaveBeenCalled();
+    expect(mockResolveSelfTransfer).not.toHaveBeenCalled();
   });
 
-  it("still detects self-transfers when no rule classified the debit", async () => {
-    mockAutoDetectTransfer.mockResolvedValue("acct-2");
-
+  it("still checks for a self-transfer when no rule classified the debit", async () => {
     const res = await createExpenseFromSms(
       "u1", "sms-5", debit({ merchant: "SELF", paymentMode: "net_banking" } as Partial<ParsedSMS>), "body",
     );
 
-    expect(expenseRow(res.expenseId!).deleted_at).not.toBeNull();
-    expect(mockCreateTransfer).toHaveBeenCalledTimes(1);
+    expect(mockResolveSelfTransfer).toHaveBeenCalledWith("u1", res.expenseId, "debit", expect.anything());
   });
 });
 

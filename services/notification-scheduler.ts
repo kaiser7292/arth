@@ -78,7 +78,8 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
       const upcoming = forecasts.filter((e) => {
         if (!e.due_date) return false;
         const d = daysFromNow(e.due_date);
-        return d >= 0 && d <= 2;
+        // Card bills get an extra day's notice — paying one takes a transfer first.
+        return d >= 0 && d <= (e.forecast_type === "repayment" ? 3 : 2);
       });
       if (upcoming.length > 0) {
         parts.push(`${upcoming.length} payment${upcoming.length > 1 ? "s" : ""} due soon`);

@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { MONEY_EVENT_META } from "./money-event-meta";
 
 interface ExpenseListItemProps {
   expense: Expense;
@@ -163,6 +164,22 @@ function ExpenseListItemInner({
           >
             {splitNote}
           </Text>
+        ) : null}
+        {isPending && expense.money_event ? (
+          <View className="flex-row items-center mt-0.5">
+            <Ionicons
+              name={MONEY_EVENT_META[expense.money_event].icon}
+              size={12}
+              color={theme[MONEY_EVENT_META[expense.money_event].tone]}
+            />
+            <Text
+              className="text-label font-semibold ml-1"
+              numberOfLines={1}
+              style={{ color: theme[MONEY_EVENT_META[expense.money_event].tone] }}
+            >
+              {MONEY_EVENT_META[expense.money_event].tag}
+            </Text>
+          </View>
         ) : null}
       </View>
 

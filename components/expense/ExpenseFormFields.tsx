@@ -120,6 +120,9 @@ interface AccountPickerProps {
   showAccounts: boolean;
   onToggle: () => void;
   onSelect: (acctId: string | null) => void;
+  /** Field label — "Paid from", "Into account", "From", "To". Defaults to "Account". */
+  label?: string;
+  placeholder?: string;
 }
 
 export function AccountPicker({
@@ -129,6 +132,8 @@ export function AccountPicker({
   showAccounts,
   onToggle,
   onSelect,
+  label = "Account",
+  placeholder = "Select account (optional)",
 }: AccountPickerProps) {
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
@@ -142,7 +147,7 @@ export function AccountPicker({
   return (
     <View className="mb-4">
       <Text className="text-sm font-medium text-muted-foreground mb-2">
-        Account
+        {label}
       </Text>
       {accounts.length > 0 ? (
         <>
@@ -167,7 +172,7 @@ export function AccountPicker({
               <>
                 <Ionicons name="business-outline" size={18} color={colors.textSecondary} />
                 <Text className="flex-1 ml-3 text-base text-faint-foreground">
-                  Select account (optional)
+                  {placeholder}
                 </Text>
               </>
             )}
@@ -334,6 +339,8 @@ interface CategoryPickerProps {
   onSelect: (catId: string | null) => void;
   /** When true, shows a "None" option to clear selection (used in edit mode) */
   allowNone?: boolean;
+  /** Small note next to the label, e.g. "suggested from Swiggy". */
+  hint?: string | null;
 }
 
 export function CategoryPicker({
@@ -344,6 +351,7 @@ export function CategoryPicker({
   onToggle,
   onSelect,
   allowNone = false,
+  hint,
 }: CategoryPickerProps) {
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
@@ -351,7 +359,7 @@ export function CategoryPicker({
   return (
     <View className="mb-4">
       <Text className="text-sm font-medium text-muted-foreground mb-2">
-        Category
+        Category{hint ? <Text className="text-xs text-faint-foreground"> · {hint}</Text> : null}
       </Text>
       <Pressable
         onPress={onToggle}
@@ -508,6 +516,9 @@ interface MerchantPickerProps {
   showSuggestions: boolean;
   onToggleSuggestions: () => void;
   onCloseSuggestions: () => void;
+  /** Field label — "Paid to", "Received from". Defaults to "Merchant". */
+  label?: string;
+  placeholder?: string;
 }
 
 export function MerchantPicker({
@@ -517,6 +528,8 @@ export function MerchantPicker({
   showSuggestions,
   onToggleSuggestions,
   onCloseSuggestions,
+  label = "Merchant",
+  placeholder = "e.g., Amazon, Swiggy (optional)",
 }: MerchantPickerProps) {
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
@@ -531,7 +544,7 @@ export function MerchantPicker({
   return (
     <View className="mb-4">
       <Text className="text-sm font-medium text-muted-foreground mb-2">
-        Merchant
+        {label}
       </Text>
       <View className="flex-row items-center rounded-lg border border-border bg-card overflow-hidden">
         <View className="flex-1 px-4 py-2">
@@ -541,7 +554,7 @@ export function MerchantPicker({
               onChangeText(text);
               if (!showSuggestions && text.length > 0) onToggleSuggestions();
             }}
-            placeholder="e.g., Amazon, Swiggy (optional)"
+            placeholder={placeholder}
             placeholderTextColor={colors.tabIconDefault}
             maxLength={100}
             className="text-base text-foreground"

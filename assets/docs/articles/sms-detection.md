@@ -1,4 +1,4 @@
-﻿---
+---
 title: How SMS detection works
 slug: sms-detection
 summary: On-device parsing of bank SMS into expenses. Nothing leaves your phone. Android-only.
@@ -97,9 +97,16 @@ With **New Transactions** turned on in Settings tab → Preferences & Security �
 
 Arth ships parsers for ~30 Indian banks. If yours isn't on the list - or the format is unusual - you can teach Arth how to read it in a minute. See [Teach Arth to read any bank's SMS](smart-sms-templates).
 
+You can also send the message to the developer so a future update reads it for everyone: **Settings → SMS Scan Runs** (or **Smart SMS Templates → Unrecognised**), tap the message, then **Send to developer**. Names, account numbers, balances and reference numbers are hidden first, you can edit the text, and it goes from your own email app - Arth sends nothing itself.
+
+## Your first scan
+
+When you turn SMS on during setup, Arth asks how far back to read (1, 3 or 6 months) and then shows **Here's your money**: accounts found, money in and out, top spend, the next due bill, FDs and transfers spotted, and how much is waiting for review. A phone with a lot of history keeps reading in the background, and the summary appears on Home when it's done.
+
 ## Related
 
 - [The review queue](review-queue)
+- [FDs, transfers to yourself and SIPs](money-events)
 - [Fixing merchant names](merchant-aliases)
 - [Privacy and offline-first](privacy-offline)
 - [Auto-categorize with smart rules](smart-rules)

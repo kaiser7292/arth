@@ -289,6 +289,15 @@ export async function deleteTransfer(id: string): Promise<void> {
     const hasFlag = cols.some((c) => c.name === "reclassified_as_transfer");
     const hasLinked = cols.some((c) => c.name === "linked_transfer_id");
 
+    // A paired self-transfer flags the credit side too — restore it with the debit.
+    if (hasFlag && hasLinked) {
+      await db.runAsync(
+        `UPDATE expenses SET reclassified_as_transfer = 0, linked_transfer_id = NULL, updated_at = ? WHERE linked_transfer_id = ?;`,
+        now,
+        id,
+      );
+    }
+
     // v15.12.1: Remove reclassification flag instead of restoring soft-deleted expense
     // Expenses are no longer soft-deleted when reclassified, so we just remove the flag
     if (row?.linked_expense_id) {
@@ -310,43 +319,6 @@ export async function deleteTransfer(id: string): Promise<void> {
     }
   });
   await bumpDataVersion();
-}
-
-/**
- * Auto-detect if a savings debit might be a self-transfer.
- * Searches for a matching credit on another owned account within ±1 day
- * with the exact same amount.
- *
- * Returns the destination account ID if a unique match is found, null otherwise.
- */
-export async function autoDetectTransfer(
-  userId: string,
-  debitAccountId: string,
-  amount: number,
-  date: string,
-): Promise<string | null> {
-  const db = getDatabase();
-
-  const matches = await db.getAllAsync<{ account_id: string }>(
-    `SELECT e.account_id FROM expenses e
-     INNER JOIN financial_accounts fa ON fa.id = e.account_id
-     WHERE fa.user_id = ? AND fa.is_active = 1
-       AND e.nature = 'credit' AND e.status = 'approved'
-       AND e.account_id != ?
-       AND e.amount = ?
-       AND e.date >= date(?, '-1 day')
-       AND e.date <= date(?, '+1 day')
-       AND e.deleted_at IS NULL
-       AND e.source = 'sms_auto';`,
-    userId,
-    debitAccountId,
-    amount,
-    date,
-    date,
-  );
-
-  if (matches.length === 1) return matches[0].account_id;
-  return null;
 }
 
 export async function getTransferById(id: string): Promise<AccountTransfer | null> {
@@ -514,7 +486,7 @@ export async function reclassifyExpenseAsTransfer(
   if (hasFlag && hasLinked) {
     // Mark expense as reclassified instead of soft-deleting
     await db.runAsync(
-      `UPDATE expenses SET reclassified_as_transfer = 1, linked_transfer_id = ?, updated_at = ? WHERE id = ?;`,
+      `UPDATE expenses SET reclassified_as_transfer = 1, linked_transfer_id = ?, money_event = NULL, updated_at = ? WHERE id = ?;`,
       transferId,
       now,
       expenseId,
@@ -667,7 +639,7 @@ export async function reclassifyCreditAsTransfer(
   if (hasFlag && hasLinked) {
     // Mark credit as reclassified instead of soft-deleting
     await db.runAsync(
-      `UPDATE expenses SET reclassified_as_transfer = 1, linked_transfer_id = ?, updated_at = ?
+      `UPDATE expenses SET reclassified_as_transfer = 1, linked_transfer_id = ?, money_event = NULL, updated_at = ?
        WHERE id = ? AND nature = 'credit';`,
       transferId,
       now,
@@ -734,6 +706,15 @@ export async function undoTransfer(transferId: string): Promise<void> {
           transfer.linked_expense_id,
         );
       }
+    }
+
+    // A paired self-transfer also flags the other side (the credit) — restore it too.
+    if (hasFlag && hasLinked) {
+      await db.runAsync(
+        `UPDATE expenses SET reclassified_as_transfer = 0, linked_transfer_id = NULL, updated_at = ? WHERE linked_transfer_id = ?;`,
+        new Date().toISOString(),
+        transferId,
+      );
     }
 
     // Soft-delete the transfer

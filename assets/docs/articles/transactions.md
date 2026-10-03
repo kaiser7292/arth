@@ -42,7 +42,13 @@ Each **date heading** shows that day's net total, so you can see what a day cost
 
 ## Add a transaction
 
-Tap **+** (bottom-right) and pick **Add Expense**, **Add Credit** or **Add Transfer**. Fill in the amount, date, account and anything else you want, then **Save**.
+Tap **+** (bottom-right) and pick **Add Expense**, **Add Credit** or **Add Transfer**. They all open the same form, with a switch at the top:
+
+- **Spent** - who you paid, the category (Arth suggests one as you type), and which account it was paid from.
+- **Received** - who sent it, what it is (Salary, Interest, Refund, Cashback, Reimbursement, Gift or Other) and which account it went into. Picking **Refund** lets you choose the expense it refunds.
+- **Transfer** - the two accounts.
+
+Notes, payment mode, splits, extra payment sources and tags are under **More options**. The form starts on the account you used last time. When editing something you entered yourself, you can switch it between Spent and Received; transactions from bank SMS keep the type the bank sent.
 
 You can also add an expense by talking - see [Voice input](voice-input).
 

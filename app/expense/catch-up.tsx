@@ -25,6 +25,8 @@ import {
   summarizeLog,
 } from "@/services/catch-up";
 import { approveBatchWithCategory, approveWithCategory, assignCategory } from "@/services/catch-up-actions";
+import { clearMoneyEvent } from "@/services/money-events";
+import { MONEY_EVENT_META } from "@/components/expense/money-event-meta";
 import { dismissDuplicateGroup } from "@/services/duplicate-detection";
 import type { Expense } from "@/services/expense";
 import {
@@ -309,6 +311,36 @@ export default function CatchUpScreen() {
 
   // ── Card actions ──
 
+  const openCard = useCallback(
+    async (id: string, act?: "money") => {
+      // The edit screen must see the committed state, not what's held for Undo.
+      await deferred.flush();
+      undoPoint.current = null;
+      editingId.current = id;
+      router.push(act ? { pathname: "/expense/[id]", params: { id, act } } : `/expense/${id}`);
+    },
+    [deferred, router],
+  );
+
+  // "It's not an FD" / "It's not mine" / "It's not a SIP": drop the hint and approve as usual.
+  const dismissMoneyEvent = useCallback(() => {
+    if (!card || card.kind !== "pending" || !card.expense.money_event) return;
+    const e = card.expense;
+    setBatchOffer(null);
+    const categoryId = e.nature === "credit" ? e.category_id : categoryFor(e);
+    act({
+      run: async () => {
+        await clearMoneyEvent(e.id);
+        await approveWithCategory(e, categoryId, false);
+      },
+      outcome: "approved",
+      count: 1,
+      approvedSpend: e.nature === "realized" ? e.amount : 0,
+      resolvedIds: [e.id],
+      message: `Approved ${e.merchant_name ?? "transaction"}`,
+    });
+  }, [card, act, categoryFor]);
+
   const primary = useCallback(
     (overrideCategory?: string) => {
       if (!card) return;
@@ -316,6 +348,12 @@ export default function CatchUpScreen() {
       switch (card.kind) {
         case "pending": {
           const e = card.expense;
+          // FD / own-account / SIP: the action lives on the detail screen (FD sheet, account
+          // and bucket pickers) — open it there, already on that step.
+          if (e.money_event) {
+            void openCard(e.id, "money");
+            return;
+          }
           if (needsSourceAccount(e)) {
             setCcPickerOpen(true);
             return;
@@ -376,7 +414,7 @@ export default function CatchUpScreen() {
         }
       }
     },
-    [card, act, categoryFor, picked, categoryMap, offerSameAgain],
+    [card, act, categoryFor, picked, categoryMap, offerSameAgain, openCard],
   );
 
   const skip = useCallback(() => {
@@ -475,16 +513,7 @@ export default function CatchUpScreen() {
     [deferred],
   );
 
-  const openCard = useCallback(
-    async (id: string) => {
-      // The edit screen must see the committed state, not what's held for Undo.
-      await deferred.flush();
-      undoPoint.current = null;
-      editingId.current = id;
-      router.push(`/expense/${id}`);
-    },
-    [deferred, router],
-  );
+
 
   const onPickCategory = useCallback(
     (categoryId: string) => {
@@ -537,11 +566,15 @@ export default function CatchUpScreen() {
     );
   }
 
+  const eventMeta = card.kind === "pending" && card.expense.money_event ? MONEY_EVENT_META[card.expense.money_event] : null;
   const needsInput =
+    eventMeta != null ||
     (card.kind === "pending" && needsSourceAccount(card.expense)) ||
     (card.kind === "uncategorized" && !categoryFor(card.expense));
   const primaryLabel =
-    card.kind === "pending"
+    eventMeta
+      ? eventMeta.primaryAction
+      : card.kind === "pending"
       ? "Approve"
       : card.kind === "uncategorized"
         ? needsInput ? "Pick category" : "Save"
@@ -556,6 +589,9 @@ export default function CatchUpScreen() {
       icon: "create-outline",
       onPress: () => void openCard(card.expense.id),
     });
+  }
+  if (eventMeta) {
+    cardActions.push({ label: eventMeta.dismissAction, icon: "checkmark-circle-outline", onPress: dismissMoneyEvent });
   }
   if (card.kind === "pending") {
     cardActions.push({ label: "Reject", icon: "close-circle-outline", role: "danger", onPress: reject });

@@ -79,9 +79,28 @@ export interface Expense {
    * v15.12.1: When expense is reclassified as transfer, this points to the transfer record.
    */
   linked_transfer_id: string | null;
+  /** migration 080 — review hint for SMS rows: what this money movement looks like. Cleared once acted on. */
+  money_event?: MoneyEvent | null;
+  /** migration 080 — what a credit is (salary, interest, …). NULL for debits and older credits. */
+  credit_kind?: CreditKind | null;
   created_at: string;
   updated_at: string;
 }
+
+export type MoneyEvent = "fd_open" | "fd_closure" | "self_transfer" | "sip";
+
+export const CREDIT_KINDS = ["salary", "interest", "refund", "cashback", "reimbursement", "gift", "other"] as const;
+export type CreditKind = (typeof CREDIT_KINDS)[number];
+
+export const CREDIT_KIND_LABELS: Record<CreditKind, string> = {
+  salary: "Salary",
+  interest: "Interest",
+  refund: "Refund",
+  cashback: "Cashback",
+  reimbursement: "Reimbursement",
+  gift: "Gift",
+  other: "Other",
+};
 
 export interface CreateExpenseInput {
   user_id: string;
@@ -101,6 +120,8 @@ export interface CreateExpenseInput {
   refund_of_expense_id?: string | null;
   /** Set when this expense is one leg of a split-tender purchase. */
   purchase_group_id?: string | null;
+  /** migration 080 — what a credit is. Only meaningful when nature = 'credit'. */
+  credit_kind?: CreditKind | null;
 }
 
 export interface UpdateExpenseInput {
@@ -113,6 +134,7 @@ export interface UpdateExpenseInput {
   date?: string;
   is_right_spend?: number | null;
   currency?: string;
+  credit_kind?: CreditKind | null;
 }
 
 export type SplitMode = "equal" | "they_owe_full" | "i_owe_full" | "exact" | "percentage";

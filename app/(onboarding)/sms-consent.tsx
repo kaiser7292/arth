@@ -21,14 +21,17 @@ export default function OnboardingSmsConsent() {
 
   const handleGrant = async () => {
     setRequesting(true);
+    let granted = false;
     try {
       acceptSmsDisclosure();
-      await enableSmsDetection();
+      granted = await enableSmsDetection();
     } catch (e) {
       logger.warn("enableSmsDetection from onboarding failed:", e);
     } finally {
       setRequesting(false);
-      advance();
+      // With permission: choose how far back to read, then the first-scan summary.
+      if (granted) router.push("/(onboarding)/first-scan");
+      else advance();
     }
   };
 

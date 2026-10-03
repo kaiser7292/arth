@@ -20,6 +20,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="calendar-sync" options={{ title: "Calendar sync" }} />
       <Stack.Screen name="home-cards" options={{ title: "Home Cards" }} />
       <Stack.Screen name="merchant-aliases" options={{ title: "Merchant Aliases" }} />
+      <Stack.Screen name="self-names" options={{ title: "Your Name in Bank SMS" }} />
       <Stack.Screen name="merchant-categories" options={{ title: "Merchant Categories" }} />
       <Stack.Screen name="account-master" options={{ title: "Accounts" }} />
       <Stack.Screen name="account-detail" options={{ title: "Account" }} />

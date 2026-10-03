@@ -36,6 +36,7 @@ export {
   undoRefund,
   linkCreditAsRefund,
   unlinkCreditAsRefund,
+  changeTransactionNature,
 } from "./expense-crud";
 
 export type { FilteredSummary, FilteredSummaryGroup } from "./expense-queries";

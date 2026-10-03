@@ -11,6 +11,7 @@ import { splitDuplicateGroup } from "@/services/catch-up";
 import type { Expense } from "@/services/expense";
 import type { FinancialAccount } from "@/services/financial-account";
 import { formatDateForDisplay } from "@/utils/expense-validation";
+import { MONEY_EVENT_META } from "../money-event-meta";
 
 interface CatchUpCardViewProps {
   card: CatchUpCard;
@@ -58,13 +59,19 @@ export function CatchUpCardView({
   const theme = useTheme();
   const meta = KIND_META[card.kind];
   const isCredit = (card.kind === "pending" || card.kind === "uncategorized") && card.expense.nature === "credit";
-  const kindLabel = card.kind === "pending" && isCredit ? "Money received" : meta.label;
+  const moneyEvent = card.kind === "pending" ? card.expense.money_event ?? null : null;
+  const eventMeta = moneyEvent ? MONEY_EVENT_META[moneyEvent] : null;
+  const kindLabel = eventMeta ? eventMeta.tag : card.kind === "pending" && isCredit ? "Money received" : meta.label;
+  const kindColor = eventMeta ? theme[eventMeta.tone] : theme.mutedForeground;
 
   return (
     <DeckCard actions={actions}>
       <View className="flex-row items-center justify-center mb-3">
-        <Ionicons name={meta.icon} size={14} color={theme.mutedForeground} />
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1.5">
+        <Ionicons name={eventMeta?.icon ?? meta.icon} size={14} color={kindColor} />
+        <Text
+          className="text-xs font-semibold uppercase tracking-wider ml-1.5"
+          style={{ color: kindColor }}
+        >
           {kindLabel}
         </Text>
       </View>

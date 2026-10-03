@@ -1204,6 +1204,88 @@ export async function finaliseFDMaturityForExpenses(expenseIds: string[]): Promi
   }
 }
 
+/**
+ * Use this credit as the FD's payout — on its maturity date or early (premature closure, which
+ * never lines up with the schedule, so settleMaturedFDs can't find it). The maturity schedule
+ * entry is re-dated to the credit and its principal/interest set to what was actually paid; an
+ * unapproved Arth "FD maturity" placeholder is withdrawn so the money isn't in twice. If the
+ * credit is already approved the FD closes now, otherwise when the credit is approved
+ * (finaliseFDMaturityForExpenses).
+ */
+export async function linkClosureCreditToFD(financialAccountId: string, creditId: string): Promise<void> {
+  const db = getDatabase();
+  const product = await db.getFirstAsync<{ id: string; principal: number | null }>(
+    `SELECT id, principal FROM investment_products
+      WHERE financial_account_id = ? AND instrument = 'fd' AND status = 'active';`,
+    financialAccountId,
+  );
+  if (!product) throw new Error("No active fixed deposit on this account");
+  const credit = await db.getFirstAsync<{ amount: number; date: string; status: string }>(
+    `SELECT amount, date, status FROM expenses WHERE id = ? AND nature = 'credit' AND deleted_at IS NULL;`,
+    creditId,
+  );
+  if (!credit) throw new Error("Credit not found");
+
+  const principal = product.principal ?? credit.amount;
+  const interest = Math.max(Math.round((credit.amount - principal) * 100) / 100, 0);
+
+  const entry = await db.getFirstAsync<{ id: string; linked_expense_id: string | null }>(
+    `SELECT id, linked_expense_id FROM investment_schedule_entries
+      WHERE product_id = ? AND kind = 'maturity' AND status = 'scheduled'
+      ORDER BY event_num ASC LIMIT 1;`,
+    product.id,
+  );
+
+  let entryId: string;
+  if (entry) {
+    if (entry.linked_expense_id && entry.linked_expense_id !== creditId) {
+      await db.runAsync(
+        `UPDATE expenses SET status = 'rejected', deleted_at = datetime('now')
+          WHERE id = ? AND source = 'manual' AND status = 'pending_review' AND description LIKE '%FD maturity';`,
+        entry.linked_expense_id,
+      );
+    }
+    await db.runAsync(
+      `UPDATE investment_schedule_entries
+          SET linked_expense_id = ?, event_date = ?, principal_component = ?, interest_component = ?
+        WHERE id = ?;`,
+      creditId,
+      credit.date,
+      principal,
+      interest,
+      entry.id,
+    );
+    entryId = entry.id;
+  } else {
+    const next = await db.getFirstAsync<{ n: number | null }>(
+      `SELECT MAX(event_num) AS n FROM investment_schedule_entries WHERE product_id = ?;`,
+      product.id,
+    );
+    entryId = generateUUID();
+    await db.runAsync(
+      `INSERT INTO investment_schedule_entries
+         (id, product_id, event_num, event_date, kind, principal_component, interest_component, status, linked_expense_id)
+       VALUES (?, ?, ?, ?, 'maturity', ?, ?, 'scheduled', ?);`,
+      entryId,
+      product.id,
+      (next?.n ?? 0) + 1,
+      credit.date,
+      principal,
+      interest,
+      creditId,
+    );
+  }
+
+  await db.runAsync(
+    `UPDATE investment_products SET maturity_date = ?, updated_at = datetime('now') WHERE id = ?;`,
+    credit.date,
+    product.id,
+  );
+
+  if (credit.status === "approved") await finaliseScheduleEntry(entryId);
+  bumpDataVersion();
+}
+
 // ─── Settling matured FDs by their actual payout ─────────────
 
 export interface PayoutCredit {

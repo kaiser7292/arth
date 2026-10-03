@@ -98,6 +98,7 @@ const FIELD_LABELS: Record<string, string> = {
   amount: "Amount",
   description: "Description",
   is_right_spend: "Avoidability",
+  credit_kind: "Credit type",
 };
 
 export function getFieldLabel(fieldName: string): string {

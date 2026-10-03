@@ -452,6 +452,7 @@ export default function SettingsScreen() {
             <SettingsRow icon="construct-outline" label="Smart SMS Templates" subtitle="Teach Arth to read SMS from any bank" onPress={() => router.push("/settings/sms-templates")} />
             <SettingsRow icon="pricetags-outline" label="Merchant Categories" subtitle="Choose which category each merchant goes to" onPress={() => router.push("/settings/merchant-categories")} />
             <SettingsRow icon="swap-horizontal-outline" label="Merchant Aliases" subtitle="Clean up SMS merchant names" onPress={() => router.push("/settings/merchant-aliases")} />
+            <SettingsRow icon="person-circle-outline" label="Your Name in Bank SMS" subtitle="Spot transfers between your own accounts" onPress={() => router.push("/settings/self-names" as any)} />
             <SettingsRow icon="list-outline" label="Audit Log" subtitle="See every action taken on detected and manual records" onPress={() => router.push("/settings/audit-log")} />
           </Card>
 

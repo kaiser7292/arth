@@ -19,6 +19,8 @@ import { CreditCardDashboard } from "@/components/home/CreditCardDashboard";
 import { VoiceEntrySheet } from "@/components/home/VoiceEntrySheet";
 import { LoanSummaryCard } from "@/components/home/LoanSummaryCard";
 import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
+import { SelfNamePromptCard } from "@/components/home/SelfNamePromptCard";
+import { FirstScanSummaryCard } from "@/components/home/FirstScanSummaryCard";
 import { InvestmentsSummaryCard } from "@/components/home/InvestmentsSummaryCard";
 import { WalletSummary } from "@/components/home/WalletSummary";
 import { Card, ContextualHeader, Money, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text } from "@/components/ui";
@@ -444,6 +446,10 @@ export default function HomeScreen() {
             onCatchUp={() => router.push("/expense/catch-up")}
           />
         )}
+
+        {/* "Is <name> you?" — once, when bank SMS keep showing a name on transfers. Self-loading. */}
+        <SelfNamePromptCard />
+        <FirstScanSummaryCard />
 
         {/* Check-ins - swipe decks (month-end, settle-up, subscriptions, rules). Self-loading. */}
         {isHomeCardVisible("check_ins") && <CheckInsCard />}

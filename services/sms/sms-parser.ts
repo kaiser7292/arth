@@ -11,7 +11,7 @@
 
 import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
-import { parseBankSMS, inferPaymentMode, extractTime } from "./bank-patterns";
+import { parseBankSMS, inferPaymentMode, extractTime, annotateMoneySignals } from "./bank-patterns";
 import type { ParsedSMS } from "./bank-patterns";
 import type { RawSMS } from "./sms-reader";
 import { inferAccountTypeFromKeywords } from "@/services/financial-account";
@@ -168,6 +168,10 @@ export async function parseSmsBatch(
         }
         continue;
       }
+
+      // FD events + counterparty name — hardcoded parses already have these;
+      // this covers DB-template parses too.
+      annotateMoneySignals(parsed, sms.body);
 
       // Enrich account type with keyword-based detection from raw SMS body
       // This overrides the pattern's accountType if keywords give a more specific answer

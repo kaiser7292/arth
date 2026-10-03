@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { SendSmsToDeveloperSheet } from "@/components/sms/SendSmsToDeveloperSheet";
 import { View, TextInput, FlatList, Pressable, ActivityIndicator, BackHandler } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,6 +46,7 @@ export default function SmsScanRunsScreen() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ScanDetailCategory | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [reportSms, setReportSms] = useState<{ body: string; address: string } | null>(null);
   const [ruleNameMap, setRuleNameMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -499,6 +501,16 @@ export default function SmsScanRunsScreen() {
               </Text>
             </Pressable>
           )}
+          {detail.category === "unrecognized" && detail.sms_body_preview && (
+            <Pressable
+              onPress={() => setReportSms({ body: detail.sms_body_preview!, address: detail.sms_address ?? "" })}
+              className="flex-row items-center mt-2"
+              accessibilityRole="button"
+            >
+              <Ionicons name="mail-outline" size={14} color={theme.mutedForeground} />
+              <Text className="text-xs font-medium ml-1 text-muted-foreground">Send to developer</Text>
+            </Pressable>
+          )}
         </Card>
       </View>
     );
@@ -636,6 +648,12 @@ export default function SmsScanRunsScreen() {
 
       {viewMode === "drilldown" && renderDrilldown()}
       {viewMode === "category" && renderCategoryDetail()}
+      <SendSmsToDeveloperSheet
+        visible={reportSms != null}
+        onClose={() => setReportSms(null)}
+        body={reportSms?.body ?? ""}
+        sender={reportSms?.address ?? ""}
+      />
     </ScreenContainer>
   );
 }

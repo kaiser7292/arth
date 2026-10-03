@@ -242,6 +242,8 @@ export async function linkExpenseToBucket(
 
   await recomputeBucketContributed(bucketId);
   await _syncLinkedMilestone(bucketId);
+  // A SIP waiting on "Link to bucket" is now handled.
+  await db.runAsync(`UPDATE expenses SET money_event = NULL WHERE id = ? AND money_event = 'sip';`, expenseId);
   bumpDataVersion();
 
   const statusRow = await db.getFirstAsync<{ status: string }>(
