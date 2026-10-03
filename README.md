@@ -14,7 +14,7 @@
 
 Built with React Native and Expo. Open source. No data leaves your phone.
 
-**Current version: v4.5.0** · [All releases](https://github.com/kaiser7292/arth/releases)
+**Current version: v4.6.0** · [All releases](https://github.com/kaiser7292/arth/releases)
 
 ---
 
@@ -124,7 +124,7 @@ Built with React Native and Expo. Open source. No data leaves your phone.
 - Reads bank SMS from the Android inbox on demand or on a schedule
 - First run: choose 1, 3 or 6 months of history and get a "Here's your money" summary
 - 25+ supported banks out of the box (14 private, 11 PSU + EPFO, insurance), including SBI and HDFC savings-account formats as sent in 2026
-- Smart SMS Templates — teach the app new SMS formats using a visual tag-builder
+- Smart SMS Templates — teach the app new SMS formats using a visual tag-builder; flexible matching survives reworded messages, Auto type reads credits and debits with one template, and saving one reads your past unread messages too
 - Scan Runs history — inspect every parsed, filtered, or unrecognized SMS after a scan
 - Scan filtering by account so only relevant SMS are processed
 - **Send to developer** — share an unrecognised SMS with names, account numbers and balances hidden, from your own email app
@@ -188,6 +188,7 @@ artha/
 
 | Version | Highlights |
 |---------|-----------|
+| **v4.6** | Smart SMS Templates: flexible matching, Auto money-in/out type, read past unread messages into review, configurable look-back, learn from several examples, grouped Unrecognised list, name and other-account fields |
 | **v4.5** | FD, own-account transfer and SIP detection with one-tap review cards; SBI/HDFC 2026 SMS formats; first-run "Here's your money"; new Spent · Received · Transfer form with credit types; card-bill part payments; Send unrecognised SMS to developer |
 | **v4.4** | Catch Up descriptions; FD → bucket link while adding; choose which Hisaab people count in net worth; new EPF wage ceiling |
 | **v4.3** | Income Calculator for business / freelance income, other income, advance tax; help centre refresh |
