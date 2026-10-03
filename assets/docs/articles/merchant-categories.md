@@ -1,7 +1,7 @@
 ---
 title: How Arth picks a category (and how to change it)
 slug: merchant-categories
-summary: Arth files transactions using built-in rules for 250+ common Indian merchants. See them, change any of them, add your own, or override them with Smart Rules.
+summary: Arth files transactions using built-in rules for 450+ Indian merchants and store brands. See them, change any of them, add your own, or override them with Smart Rules.
 tags: [categories, merchants, auto-categorize, built-in, rules, swiggy]
 contextKeys: [settings-merchant-categories]
 phrasings:
@@ -20,7 +20,7 @@ When a transaction comes in from an SMS, Arth looks at the merchant name and fil
 
 ## Built-in merchant rules
 
-Arth ships with rules for **over 250 merchant keywords** common in India, plus about 230 extra spellings that bank SMS use for big brands (for example `PYU*Swiggy` or `AMZN*MKTPLACE`). A few examples:
+Arth ships with rules for **over 250 merchant keywords** common in India, about **190 Indian store brands** (restaurants, sweet shops, supermarkets, clothing and jewellery chains, pharmacies, fuel pumps, hotels), and about 230 extra spellings that bank SMS use for big brands (for example `PYU*Swiggy` or `AMZN*MKTPLACE`). A few examples:
 
 | Category | Built-in keywords include |
 |---|---|
@@ -37,6 +37,8 @@ Arth ships with rules for **over 250 merchant keywords** common in India, plus a
 
 A rule matches when its keyword appears anywhere in the merchant name, so **swiggy** also matches "SWIGGY BANGALORE". If two rules match, the longer, more specific keyword wins, so **swiggy instamart** beats **swiggy**.
 
+Store brands match **whole words only**, so a store called "Metro Shoes" never catches "Bangalore Metro Rail". The store-brand list comes from OpenStreetMap's Name Suggestion Index (see Settings → Open-source licences); it's built into the app, and Arth never looks merchants up online.
+
 These are just starting points. If you eat out on Swiggy but buy groceries on it too, or you'd rather Uber went under Commute, change it.
 
 ## See and change the rules
@@ -48,9 +50,13 @@ These are just starting points. If you eat out on Swiggy but buy groceries on it
 - **Yours**: a merchant you added.
 - **Category missing**: the rule points at a category you renamed away or hid. Tap it and pick a new category.
 
-Tap a merchant to **change its category**, **turn the rule off**, or **reset it** to the built-in category. Tap **+** to add your own merchant, for example "kaur's kitchen → Food" or "bescom → Rent & Utilities".
+Tap a merchant to **change its category**, **turn the rule off**, or **reset it** to the built-in category. Tap **+** to add your own merchant, for example "kaur's kitchen → Food" or "bescom → Rent & Utilities". You can paste the name exactly as the SMS shows it: Arth drops payment codes like `RSP*` and trailing numbers.
 
-When you change a transaction's category yourself, Arth also asks **"Always file Swiggy as Dining?"**. Tap **Always** and it adds the rule for you.
+**Turning a rule off** means Arth stops guessing for that merchant: its transactions wait in your review queue as Uncategorised, even for the extra SMS spellings.
+
+After you change or add a rule, Arth offers to **move earlier transactions** from that merchant into the new category. It only moves ones this rule covers (so changing "swiggy" leaves Swiggy Instamart alone) and never touches ones a Smart Rule filed.
+
+When you change a transaction's category yourself, Arth also asks **"Always file Swiggy as Dining?"**. Tap **Always** and it changes the rule that covers that merchant, so every Swiggy SMS follows, not just this one.
 
 Renaming a category keeps its merchant rules attached. If you hide or delete a category that merchants still use, Arth offers to move them first.
 
