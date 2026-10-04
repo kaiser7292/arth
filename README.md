@@ -14,7 +14,7 @@
 
 Built with React Native and Expo. Open source. No data leaves your phone.
 
-**Current version: v4.6.0** · [All releases](https://github.com/kaiser7292/arth/releases)
+**Current version: v4.6.1** · [All releases](https://github.com/kaiser7292/arth/releases)
 
 ---
 
