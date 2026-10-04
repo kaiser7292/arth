@@ -115,6 +115,9 @@ export default function CheckInPreview() {
               onPickCategory={noop}
               onOpen={noop}
               onEditDescription={noop}
+              editingDescription={false}
+              savingDescription={false}
+              onSaveDescription={noop}
               actions={[
                 { label: "Edit or split", icon: "create-outline", onPress: noop },
                 { label: "Reject", icon: "close-circle-outline", role: "danger", onPress: noop },
@@ -136,6 +139,9 @@ export default function CheckInPreview() {
               onPickCategory={noop}
               onOpen={noop}
               onEditDescription={noop}
+              editingDescription={false}
+              savingDescription={false}
+              onSaveDescription={noop}
               actions={[
                 { label: "Edit or split", icon: "create-outline", onPress: noop },
                 { label: "Reject", icon: "close-circle-outline", role: "danger", onPress: noop },

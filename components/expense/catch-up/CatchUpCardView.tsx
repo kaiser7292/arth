@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
 import { Money, Text } from "@/components/ui";
 import { DeckCard } from "@/components/check-in/DeckParts";
 import type { FooterAction } from "@/components/check-in/DeckParts";
@@ -21,8 +21,11 @@ interface CatchUpCardViewProps {
   categoryId: string | null;
   onPickCategory: () => void;
   onOpen: (expenseId: string) => void;
-  /** Add / change the description in place (pending / uncategorized only). */
+  /** Add / change the description right on the card (pending / uncategorized only). */
   onEditDescription: () => void;
+  editingDescription: boolean;
+  savingDescription: boolean;
+  onSaveDescription: (expenseId: string, text: string) => void;
   /** Extra actions (Reject, Already captured, Edit details…) as rows at the bottom of the card. */
   actions: FooterAction[];
 }
@@ -54,6 +57,9 @@ export function CatchUpCardView({
   onPickCategory,
   onOpen,
   onEditDescription,
+  editingDescription,
+  savingDescription,
+  onSaveDescription,
   actions,
 }: CatchUpCardViewProps) {
   const theme = useTheme();
@@ -86,6 +92,9 @@ export function CatchUpCardView({
           onPickCategory={onPickCategory}
           onOpen={onOpen}
           onEditDescription={onEditDescription}
+          editingDescription={editingDescription}
+          savingDescription={savingDescription}
+          onSaveDescription={onSaveDescription}
         />
       )}
 
@@ -105,6 +114,9 @@ function SingleExpenseBody({
   onPickCategory,
   onOpen,
   onEditDescription,
+  editingDescription,
+  savingDescription,
+  onSaveDescription,
 }: {
   expense: Expense;
   isCredit: boolean;
@@ -114,9 +126,17 @@ function SingleExpenseBody({
   onPickCategory: () => void;
   onOpen: (id: string) => void;
   onEditDescription: () => void;
+  editingDescription: boolean;
+  savingDescription: boolean;
+  onSaveDescription: (expenseId: string, text: string) => void;
 }) {
   const theme = useTheme();
   const [showSms, setShowSms] = useState(false);
+  const [draft, setDraft] = useState(expense.description ?? "");
+  // A fresh card starts from its own description.
+  useEffect(() => {
+    setDraft(expense.description ?? "");
+  }, [expense.id, expense.description]);
   const category = categoryId ? categoryMap.get(categoryId) : undefined;
   const account = accountText(accountMap, expense.account_id);
   const description = expense.description?.trim() || null;
@@ -139,49 +159,66 @@ function SingleExpenseBody({
         </Text>
       </Pressable>
 
-      {!isCredit && (
-        <Pressable
-          onPress={onPickCategory}
-          className="flex-row items-center self-center mt-4 px-4 rounded-full border"
-          style={{
-            minHeight: 40,
-            borderColor: category ? category.color : theme.border,
-            backgroundColor: category ? category.color + "14" : "transparent",
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={category ? `Category ${category.name}, tap to change` : "Choose a category"}
-        >
-          <Ionicons
-            name={(category?.icon as keyof typeof Ionicons.glyphMap) ?? "pricetag-outline"}
-            size={16}
-            color={category?.color ?? theme.mutedForeground}
-          />
-          <Text
-            className="text-sm font-semibold ml-1.5"
-            style={{ color: category?.color ?? theme.mutedForeground }}
-          >
-            {category?.name ?? "Choose category"}
-          </Text>
-          <Ionicons name="chevron-down" size={14} color={category?.color ?? theme.mutedForeground} style={{ marginLeft: 4 }} />
-        </Pressable>
-      )}
-
       <Pressable
-        onPress={onEditDescription}
-        className="flex-row items-center self-center mt-3 px-3"
-        style={{ minHeight: 40, maxWidth: "100%" }}
+        onPress={onPickCategory}
+        className="flex-row items-center self-center mt-4 px-4 rounded-full border"
+        style={{
+          minHeight: 40,
+          borderColor: category ? category.color : theme.border,
+          backgroundColor: category ? category.color + "14" : "transparent",
+        }}
         accessibilityRole="button"
-        accessibilityLabel={description ? `Description ${description}, tap to change` : "Add a description"}
+        accessibilityLabel={category ? `Category ${category.name}, tap to change` : "Choose a category"}
       >
         <Ionicons
-          name={description ? "create-outline" : "add-circle-outline"}
+          name={(category?.icon as keyof typeof Ionicons.glyphMap) ?? "pricetag-outline"}
           size={16}
-          color={theme.primary}
+          color={category?.color ?? theme.mutedForeground}
         />
-        <Text className="text-sm font-medium ml-1.5 flex-shrink" style={{ color: theme.primary }} numberOfLines={2}>
-          {showDescriptionText ? description : description ? "Edit description" : "Add description"}
+        <Text
+          className="text-sm font-semibold ml-1.5"
+          style={{ color: category?.color ?? theme.mutedForeground }}
+        >
+          {category?.name ?? "Choose category"}
         </Text>
+        <Ionicons name="chevron-down" size={14} color={category?.color ?? theme.mutedForeground} style={{ marginLeft: 4 }} />
       </Pressable>
+
+      {editingDescription ? (
+        <View className="flex-row items-center mt-3 rounded-lg border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Dinner with team, Mom's medicines"
+            placeholderTextColor={theme.mutedForeground}
+            autoFocus
+            maxLength={200}
+            returnKeyType="done"
+            onSubmitEditing={() => onSaveDescription(expense.id, draft)}
+            onBlur={() => onSaveDescription(expense.id, draft)}
+            className="flex-1 text-sm text-foreground py-2"
+            accessibilityLabel="Description"
+          />
+          {savingDescription && <ActivityIndicator size="small" color={theme.primary} />}
+        </View>
+      ) : (
+        <Pressable
+          onPress={onEditDescription}
+          className="flex-row items-center self-center mt-3 px-3"
+          style={{ minHeight: 40, maxWidth: "100%" }}
+          accessibilityRole="button"
+          accessibilityLabel={description ? `Description ${description}, tap to change` : "Add a description"}
+        >
+          <Ionicons
+            name={description ? "create-outline" : "add-circle-outline"}
+            size={16}
+            color={theme.primary}
+          />
+          <Text className="text-sm font-medium ml-1.5 flex-shrink" style={{ color: theme.primary }} numberOfLines={2}>
+            {showDescriptionText ? description : description ? "Edit description" : "Add description"}
+          </Text>
+        </Pressable>
+      )}
 
       {expense.raw_source_text ? (
         <View className="mt-4">

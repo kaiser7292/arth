@@ -24,6 +24,7 @@ import { getFYStartMonth, getBudgetWidgets, setBudgetWidgets, clearCollapsibleSt
 import type { BudgetWidgetId, BudgetCategorySort } from "@/services/settings";
 import {
   getMonthDateRange,
+  getDaysElapsed,
   getDaysRemaining,
   getTotalDaysInMonth,
   getBudgetStatus,
@@ -110,7 +111,9 @@ export default function BudgetScreen() {
   const { startDate, endDate } = getMonthDateRange(month);
   const daysRemaining = getDaysRemaining(month);
   const daysTotal = getTotalDaysInMonth(month);
-  const daysElapsed = daysTotal - daysRemaining;
+  const daysElapsed = getDaysElapsed(month);
+  // A month that has fully passed — no days left to spread a budget over.
+  const isPastMonth = daysRemaining === 0;
 
   const loadData = useCallback(async () => {
     try {
@@ -436,10 +439,22 @@ export default function BudgetScreen() {
                 </Text>
               </View>
               <View className="items-end">
-                <Text className="text-xs text-faint-foreground">Per day</Text>
-                <Text className="text-sm font-semibold text-foreground">
-                  {formatAmount(perDayRemaining)}
-                </Text>
+                {/* Past month: what was actually spent per day. Current/future: what's left per day,
+                    or "Over" once the budget is used up (it used to read ₹0 in both cases). */}
+                <Text className="text-xs text-faint-foreground">{isPastMonth ? "Spent per day" : "Per day"}</Text>
+                {isPastMonth ? (
+                  <Text className="text-sm font-semibold text-foreground">
+                    {formatAmount(Math.round((totalSpent / daysTotal) * 100) / 100)}
+                  </Text>
+                ) : totalBudget > 0 && totalSpent >= totalBudget ? (
+                  <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
+                    Over
+                  </Text>
+                ) : (
+                  <Text className="text-sm font-semibold text-foreground">
+                    {formatAmount(perDayRemaining)}
+                  </Text>
+                )}
               </View>
             </View>
 

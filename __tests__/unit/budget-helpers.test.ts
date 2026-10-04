@@ -119,3 +119,16 @@ describe("getPerDayRemaining", () => {
     expect(getPerDayRemaining(10000, 3000, 7)).toBe(1000);
   });
 });
+
+describe("getDaysElapsed", () => {
+  const { getDaysElapsed, getDaysRemaining } = jest.requireActual("../../utils/budget-helpers");
+  afterEach(() => jest.useRealTimers());
+
+  it("counts today in the current month, all days in a past one, none in a future one", () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 9, 4, 10, 0));
+    expect(getDaysElapsed("2026-10")).toBe(4);
+    expect(getDaysRemaining("2026-10")).toBe(28); // today counts as a day left to spend too
+    expect(getDaysElapsed("2026-09")).toBe(30);
+    expect(getDaysElapsed("2026-11")).toBe(0);
+  });
+});

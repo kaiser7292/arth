@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, View } from "react-native";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { CatchUpCardView } from "@/components/expense/catch-up/CatchUpCardView";
-import { DescriptionSheet } from "@/components/expense/catch-up/DescriptionSheet";
 import { CatchUpDone } from "@/components/expense/catch-up/CatchUpDone";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { SwipeDeck } from "@/components/expense/catch-up/SwipeDeck";
@@ -162,7 +161,9 @@ export default function CatchUpScreen() {
   }, [cardExpense, suggestions]);
 
   const categoryFor = useCallback(
-    (e: Expense): string | null => picked[e.id] ?? suggestions[e.id] ?? e.category_id ?? null,
+    // Credits: your pick or their own category — merchant suggestions are tuned for spending.
+    (e: Expense): string | null =>
+      e.nature === "credit" ? picked[e.id] ?? e.category_id ?? null : picked[e.id] ?? suggestions[e.id] ?? e.category_id ?? null,
     [picked, suggestions],
   );
 
@@ -204,18 +205,23 @@ export default function CatchUpScreen() {
   // ── Description, edited in place ──
   // Written straight away (not held for undo like approve/reject): it's an edit, not a decision,
   // so it survives a skip and the card's later approve / categorize.
+  // Takes the card's own id: the text box can lose focus after the deck has moved on, and the
+  // text must land on the transaction it was typed for.
   const saveDescription = useCallback(
-    async (text: string) => {
-      if (!cardExpense) return;
+    async (id: string, text: string) => {
+      const target = deck.find(
+        (c): c is Extract<CatchUpCard, { kind: "pending" | "uncategorized" }> =>
+          (c.kind === "pending" || c.kind === "uncategorized") && c.expense.id === id,
+      )?.expense;
+      if (!target) return;
       const next = text.trim() || null;
-      if (next === (cardExpense.description?.trim() || null)) {
+      if (next === (target.description?.trim() || null)) {
         setDescriptionOpen(false);
         return;
       }
       setSavingDescription(true);
       try {
-        await updateExpense(cardExpense.id, { description: next });
-        const id = cardExpense.id;
+        await updateExpense(id, { description: next });
         setDeck((prev) =>
           prev.map((c) =>
             (c.kind === "pending" || c.kind === "uncategorized") && c.expense.id === id
@@ -231,7 +237,7 @@ export default function CatchUpScreen() {
         setSavingDescription(false);
       }
     },
-    [cardExpense, toast],
+    [deck, toast],
   );
 
   // ── Action plumbing ──
@@ -327,7 +333,7 @@ export default function CatchUpScreen() {
     if (!card || card.kind !== "pending" || !card.expense.money_event) return;
     const e = card.expense;
     setBatchOffer(null);
-    const categoryId = e.nature === "credit" ? e.category_id : categoryFor(e);
+    const categoryId = categoryFor(e);
     act({
       run: async () => {
         await clearMoneyEvent(e.id);
@@ -358,8 +364,9 @@ export default function CatchUpScreen() {
             setCcPickerOpen(true);
             return;
           }
-          const categoryId = overrideCategory ?? (e.nature === "credit" ? e.category_id : categoryFor(e));
-          const taught = overrideCategory != null || picked[e.id] != null;
+          const categoryId = overrideCategory ?? categoryFor(e);
+          // Teaching "this merchant → this category" is for spending only.
+          const taught = e.nature !== "credit" && (overrideCategory != null || picked[e.id] != null);
           act({
             run: () => approveWithCategory(e, categoryId, taught),
             outcome: "approved",
@@ -651,7 +658,10 @@ export default function CatchUpScreen() {
             categoryId={cardExpense ? categoryFor(cardExpense) : null}
             onPickCategory={() => setPicker({ commit: false })}
             onOpen={openCard}
+            editingDescription={descriptionOpen}
+            savingDescription={savingDescription}
             onEditDescription={() => setDescriptionOpen(true)}
+            onSaveDescription={(id, text) => void saveDescription(id, text)}
             actions={cardActions}
           />
         </SwipeDeck>
@@ -671,13 +681,7 @@ export default function CatchUpScreen() {
         onSelect={onPickCategory}
         onClose={() => setPicker(null)}
       />
-      <DescriptionSheet
-        visible={descriptionOpen}
-        initial={cardExpense?.description ?? ""}
-        saving={savingDescription}
-        onSave={(t) => void saveDescription(t)}
-        onClose={() => setDescriptionOpen(false)}
-      />
+
       <AccountPickerSheet
         visible={ccPickerOpen}
         title="Paid from which account?"

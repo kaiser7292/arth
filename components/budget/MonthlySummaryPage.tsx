@@ -17,7 +17,7 @@ import {
 import { getSpendClassificationTotals } from "@/services/spend-classification";
 import type { Category } from "@/services/category";
 import { formatAmount } from "@/utils/expense-validation";
-import { getMonthDateRange, getDaysRemaining, getTotalDaysInMonth } from "@/utils/budget-helpers";
+import { getMonthDateRange, getDaysElapsed, getDaysRemaining, getTotalDaysInMonth } from "@/utils/budget-helpers";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -85,7 +85,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
       const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
       const daysTotal = getTotalDaysInMonth(month);
       const daysLeft = getDaysRemaining(month);
-      const daysElapsed = daysTotal - daysLeft;
+      const daysElapsed = getDaysElapsed(month);
 
       setData({
         totalSpent,

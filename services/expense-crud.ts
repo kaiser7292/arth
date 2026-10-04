@@ -854,8 +854,9 @@ export async function deleteAllRejectedExpenses(userId: string): Promise<number>
  * something that only makes sense on one side — a split, a split-tender
  * purchase, a refund link, an investment / loan link, a hisaab settlement, or
  * a transfer — so nothing elsewhere is left pointing at the wrong kind of row.
- * Becoming a credit drops the spending-only fields (category, payment mode,
- * unavoidable flag); becoming an expense drops the credit type.
+ * Becoming a credit drops the spending-only fields (payment mode, unavoidable
+ * flag) and keeps the category — credits use the same categories; becoming an
+ * expense drops the credit type.
  */
 export async function changeTransactionNature(
   id: string,
@@ -911,7 +912,7 @@ export async function changeTransactionNature(
 
   if (to === "credit") {
     await db.runAsync(
-      `UPDATE expenses SET nature = 'credit', credit_kind = ?, category_id = NULL, payment_mode_id = NULL,
+      `UPDATE expenses SET nature = 'credit', credit_kind = ?, payment_mode_id = NULL,
               is_right_spend = NULL, money_event = NULL, updated_at = datetime('now') WHERE id = ?;`,
       creditKind,
       id,

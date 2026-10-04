@@ -588,8 +588,8 @@ export default function AddExpenseScreen() {
             amount: parsedAmount,
             description: description.trim() || undefined,
             merchant_name: merchantName.trim() || undefined,
-            // A refund keeps the refunded expense's category so budgets net it off.
-            category_id: refundOf ? (categoryId ?? undefined) : undefined,
+            // Same categories as spending. A refund starts with the refunded expense's.
+            category_id: categoryId ?? undefined,
             account_id: accountId,
             date,
             nature: "credit" as const,
@@ -1107,6 +1107,24 @@ export default function AddExpenseScreen() {
                     <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                   </Pressable>
                 )}
+                {/* Same categories as spending — a credit can be filed too (refunds start with the
+                    refunded expense's). */}
+                <CategoryPicker
+                  categories={categories}
+                  categoryId={categoryId}
+                  selectedCategory={selectedCategory}
+                  showCategories={showCategories}
+                  allowNone
+                  onToggle={() => {
+                    setShowCategories(!showCategories);
+                    setShowAccounts(false);
+                  }}
+                  onSelect={(catId) => {
+                    categoryTouched.current = true;
+                    setCategoryId(catId);
+                    setShowCategories(false);
+                  }}
+                />
                 <AccountPicker
                   accounts={accounts}
                   accountId={accountId}

@@ -32,6 +32,19 @@ export function getDaysRemaining(month: string): number {
 }
 
 /**
+ * Days of the month that have passed, INCLUDING today — today's spending is already in the
+ * totals, so it counts as a day spent. Past month: every day; future month: none.
+ * (Not total − getDaysRemaining: remaining also counts today, so that was one short.)
+ */
+export function getDaysElapsed(month: string): number {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  if (month < currentMonth) return getTotalDaysInMonth(month);
+  if (month > currentMonth) return 0;
+  return now.getDate();
+}
+
+/**
  * Get total days in a month.
  */
 export function getTotalDaysInMonth(month: string): number {

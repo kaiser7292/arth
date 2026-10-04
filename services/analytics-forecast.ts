@@ -6,7 +6,7 @@
  */
 
 import { getDatabase } from "@/database";
-import { getMonthDateRange, getDaysRemaining, getTotalDaysInMonth } from "@/utils/budget-helpers";
+import { getMonthDateRange, getDaysElapsed, getDaysRemaining } from "@/utils/budget-helpers";
 import { normalizeMerchant } from "@/services/smart-categorizer";
 import { round2 } from "@/utils/math";
 import { getActiveClassifications } from "@/services/analytics/classifier";
@@ -83,9 +83,8 @@ export async function getAnalyticsForecast(
   if (v2Result) return v2Result;
 
   const { startDate, endDate } = getMonthDateRange(yearMonth);
-  const daysInMonth = getTotalDaysInMonth(yearMonth);
   const daysLeft = getDaysRemaining(yearMonth);
-  const daysElapsed = daysInMonth - daysLeft;
+  const daysElapsed = getDaysElapsed(yearMonth);
 
   // 1. Get all active monthly recurring transactions (fixed expenses)
   const recurrings = await db.getAllAsync<{

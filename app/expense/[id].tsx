@@ -569,11 +569,12 @@ export default function ExpenseDetailScreen() {
           setMultiSplitSummary(msSummary);
         }
       } else if (isCreditNow) {
-        // Credits keep their category (older ones borrowed a spending category) and have a type instead.
+        // Credits: same categories as spending, plus their credit type.
         await updateExpense(id, {
           amount: parsedAmount,
           description: description.trim() || null,
           merchant_name: merchantName.trim() || null,
+          category_id: categoryId,
           account_id: accountId,
           date,
           credit_kind: editCreditKind,
@@ -1846,9 +1847,7 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* Spending-only fields: category, payment mode, unavoidable. */}
-              {!editIsCredit && (<>
-              {/* Category picker */}
+              {/* Category picker — expenses and credits share the same categories. */}
               <CategoryPicker
                 categories={categories}
                 categoryId={categoryId}
@@ -1868,6 +1867,8 @@ export default function ExpenseDetailScreen() {
                 }}
               />
 
+              {/* Spending-only fields: payment mode, unavoidable. */}
+              {!editIsCredit && (<>
               {/* Payment mode picker */}
               <PaymentModePicker
                 paymentModes={paymentModes}

@@ -45,7 +45,7 @@ The card tells you what swiping right will do:
 - **Matches a forecast** → **Same payment** marks the forecast as paid using the SMS. **Different payments** keeps both.
 - **Possible duplicate** → **Keep newest** rejects the older copies. **Not duplicates** keeps them all.
 
-Tap **Add description** on the card to note what the payment was for - it's saved straight away, even if you skip the card. Tap **Show original SMS** to read the bank message, or **Edit or split** to open the full transaction.
+Tap **Add description** and type right on the card what the payment was for - it's saved when you tap Done or tap away, even if you skip the card. Swiping pauses while you type. Credits get a category chip too, with the same categories as spending. Tap **Show original SMS** to read the bank message, or **Edit or split** to open the full transaction.
 
 When you pick a category yourself, Arth remembers it for that merchant next time.
 
