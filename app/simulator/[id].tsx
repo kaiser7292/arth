@@ -1211,14 +1211,13 @@ export default function ScenarioDetailScreen() {
                       {item.description || item.merchant_name || "Entry"}
                     </Text>
                     {/*
-                      w-20 with a gap, not w-14 flush. A full grouped amount is about 60px at
-                      this size, so 56px columns wrapped mid-number - a row read
-                      "₹2,83,44 / 5" over two lines - and with no margin the planned and
-                      actual figures ran into each other.
+                      Fixed-width amount columns, one line each. The variance column carries a sign
+                      and paise ("-₹1,537.01"), so it's the widest; at 64px it wrapped onto a second
+                      line. Every amount shrinks a little rather than wrap if it's still too long.
                     */}
-                    <Text className="text-label w-20 ml-2 text-right" style={{ color: colors.textSecondary }}>{formatAmount(item.planned)}</Text>
-                    <Text className="text-label w-20 ml-2 text-right" style={{ color: colors.text }}>{formatAmount(item.actual)}</Text>
-                    <Text className="text-label w-16 ml-2 text-right" style={{ color: item.variance > 0 ? theme.danger : item.variance < 0 ? theme.success : colors.textSecondary }}>
+                    <Text className="text-label w-[74px] ml-1.5 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: colors.textSecondary }}>{formatAmount(item.planned)}</Text>
+                    <Text className="text-label w-[74px] ml-1.5 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: colors.text }}>{formatAmount(item.actual)}</Text>
+                    <Text className="text-label w-[84px] ml-1.5 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: item.variance > 0 ? theme.danger : item.variance < 0 ? theme.success : colors.textSecondary }}>
                       {item.variance > 0 ? "+" : ""}{formatAmount(item.variance)}
                     </Text>
                   </View>

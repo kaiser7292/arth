@@ -32,6 +32,7 @@ import { getSavingsSnapshot, getDistinctExpenseMonthsInRange } from "@/services/
 import { getYearEndProjection } from "@/services/forecast-engine";
 import type { YearEndProjection } from "@/utils/forecast-engine";
 import { getActiveClassifications } from "@/services/analytics/classifier";
+import { getSpendingMonthCount, getSpendingRows, SPENDING_WHERE } from "@/services/analytics/spending-rows";
 import { forecastMonthEndRealistic, getHistoricalVariableAvg as getHistVarAvgV2, projectYearEndRealistic } from "@/services/analytics/forecast-engine-v2";
 import { getBudgetsForMonth } from "@/services/budget";
 import type { Expense } from "@/services/expense-types";
@@ -548,26 +549,12 @@ async function tryV2YearEnd(
     const { startDate, endDate } = getMonthDateRange(currentMonth);
     const db = getDatabase();
 
-    // Current-month expenses feed forecastMonthEndRealistic — which sums
-    // `amount` to categorize variable / fixed spend and project month-end.
-    // Overriding `amount` to effective amount here ensures refunded items
-    // stop inflating the projection. The `id` column is still unique so
-    // downstream classifier joins still work.
-    const expenses = await db.getAllAsync<Expense>(
-      `SELECT *, ${effectiveAmountSql("expenses")} as amount FROM expenses
-       WHERE user_id = ? AND date >= ? AND date <= ?
-         AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
-         AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
-      userId, startDate, endDate,
-    );
+    // Current-month spending (refund-adjusted amounts) feeds the month-end projection. Same spending rule as the Budget tab (no transfers, investments, loan payments; refunds
+    // netted) — this used to count transfers between your own accounts as spending.
+    const expenses = await getSpendingRows(userId, startDate, endDate);
 
     const budgets = await getBudgetsForMonth(userId, currentMonth);
-    const dataMonths = await db.getFirstAsync<{ months: number }>(
-      `SELECT COUNT(DISTINCT strftime('%Y-%m', date)) as months FROM expenses WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
-      userId,
-    );
-    const months = dataMonths?.months ?? 0;
+    const months = await getSpendingMonthCount(userId);
     const historicalAvg = await getHistVarAvgV2(userId, Math.min(months, 6), currentMonth, classifications);
 
     const monthForecast = await forecastMonthEndRealistic({
@@ -581,7 +568,7 @@ async function tryV2YearEnd(
     const prevEndStr = `${prevMonthEnd.getFullYear()}-${String(prevMonthEnd.getMonth() + 1).padStart(2, "0")}-${String(prevMonthEnd.getDate()).padStart(2, "0")}`;
 
     const pastMonths = await db.getAllAsync<{ m: string; total: number }>(
-      `SELECT strftime('%Y-%m', date) as m, SUM(${effectiveAmountSql("expenses")}) as total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id) GROUP BY m ORDER BY m;`,
+      `SELECT strftime('%Y-%m', date) as m, SUM(${effectiveAmountSql("expenses")}) as total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND ${SPENDING_WHERE} GROUP BY m ORDER BY m;`,
       userId, fyStartStr, prevEndStr,
     );
 

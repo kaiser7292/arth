@@ -1,7 +1,7 @@
 ---
 title: Check-ins
 slug: check-ins
-summary: Short swipe-through reviews that keep your data honest - month-end balance check, settle up with people who owe you, subscriptions, and smart rule suggestions.
+summary: Short swipe-through reviews that keep your data honest - month-end balance check, settle up with people who owe you, subscriptions, monthly bills, and smart rule suggestions.
 tags: [check-ins, month-end, balance check, settle up, hisaab, subscriptions, recurring, cancel subscription, rule suggestions, smart rules, snooze, swipe]
 contextKeys: [check-ins, home-check-ins, check-in-month-end, check-in-settle-up, check-in-subscriptions, check-in-rules]
 phrasings:
@@ -14,6 +14,9 @@ phrasings:
   - Send a reminder on WhatsApp to settle up
   - Mark hisaab as settled
   - Review my subscriptions
+  - Is this a monthly bill
+  - Month-end projection is wrong
+  - Confirm my bills
   - Which subscriptions am I paying for?
   - Subscription still charging after I cancelled
   - Not a subscription
@@ -67,6 +70,15 @@ Each card shows the amount, how often it charges, the yearly cost, and when it l
 - **Keep** - it stays on your list.
 - **Cancel this** - a note to yourself to cancel it. Arth flags it if it charges again.
 - **Not a subscription** - removes it from your subscriptions.
+
+## Monthly bills
+
+Arth looks at the last six months of spending for payments that come at a steady rhythm - rent, a subscription, school fees - and asks **Is this a regular bill?** with the amount, how often and the usual day.
+
+- **Yes, it's a bill** - it counts as an expected bill in the Budget tab's month-end projection until it's paid that month.
+- **No, it varies** - it's treated as everyday spending from now on.
+
+Arth refreshes these patterns once a day. A bill that stops (not seen for about one and a half times its usual gap) drops out on its own; one you confirmed is paused until it comes back.
 
 ## Rule suggestions
 

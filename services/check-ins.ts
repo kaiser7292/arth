@@ -1,4 +1,5 @@
 import { getMonthEndPendingCount, isMonthEndWindow } from "@/services/month-end-check";
+import { getPatternsToConfirm } from "@/services/analytics/pattern-learner";
 import { getRuleSuggestions } from "@/services/rule-suggestions";
 import { getPeopleWhoOweYou, needsNudge } from "@/services/settle-up-check";
 import { getSubscriptionCheckItems } from "@/services/subscription-check";
@@ -15,6 +16,8 @@ export interface CheckInCounts {
   ruleSuggestions: number;
   subscriptions: number;
   settleUp: number;
+  /** "Is this a monthly bill?" — learned bill patterns you haven't answered. */
+  bills: number;
 }
 
 async function safe(label: string, fn: () => Promise<number>): Promise<number> {
@@ -27,15 +30,16 @@ async function safe(label: string, fn: () => Promise<number>): Promise<number> {
 }
 
 export async function getCheckInCounts(userId: string, now: Date = new Date()): Promise<CheckInCounts> {
-  const [monthEnd, ruleSuggestions, subscriptions, settleUp] = await Promise.all([
+  const [monthEnd, ruleSuggestions, subscriptions, settleUp, bills] = await Promise.all([
     isMonthEndWindow(now) ? safe("month-end", () => getMonthEndPendingCount(userId)) : Promise.resolve(0),
     safe("rules", async () => (await getRuleSuggestions(userId)).length),
     safe("subscriptions", async () => (await getSubscriptionCheckItems(userId)).length),
     safe("settle-up", async () =>
       (await getPeopleWhoOweYou(userId)).filter((p) => needsNudge(p.id, now.getTime())).length,
     ),
+    safe("bills", async () => (await getPatternsToConfirm(userId)).length),
   ]);
-  const counts = { monthEnd, ruleSuggestions, subscriptions, settleUp };
+  const counts = { monthEnd, ruleSuggestions, subscriptions, settleUp, bills };
   // A snoozed check-in counts as empty: hidden on Home and passed over by auto-advance.
   for (const id of Object.keys(counts) as (keyof CheckInCounts)[]) {
     if (isCheckInSnoozed(id, now.getTime())) counts[id] = 0;
@@ -68,7 +72,7 @@ export function skippedEverything(outcomes: readonly string[]): boolean {
 export type CheckInId = keyof CheckInCounts;
 
 /** Order the decks are offered in: Home's Check-ins card and auto-advance both follow it. */
-export const CHECK_IN_ORDER: CheckInId[] = ["monthEnd", "settleUp", "subscriptions", "ruleSuggestions"];
+export const CHECK_IN_ORDER: CheckInId[] = ["monthEnd", "settleUp", "subscriptions", "bills", "ruleSuggestions"];
 
 /**
  * The next deck to open after finishing `current`: the first one after it (wrapping round) that

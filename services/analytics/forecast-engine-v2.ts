@@ -1,5 +1,6 @@
 import { getDatabase } from "@/database";
-import { getMonthDateRange, getDaysRemaining, getTotalDaysInMonth } from "@/utils/budget-helpers";
+import { getMonthDateRange, getDaysElapsed, getDaysRemaining } from "@/utils/budget-helpers";
+import { getSpendingRows, median } from "./spending-rows";
 import { THRESHOLDS } from "@/utils/analytics/thresholds";
 import type {
   RealisticForecast,
@@ -19,6 +20,7 @@ import {
   matchesClassification,
 } from "./classifier";
 import type { Budget } from "@/services/budget";
+import { normalizeMerchant } from "@/services/smart-categorizer";
 
 export interface ForecastInput {
   userId: string;
@@ -32,11 +34,13 @@ export interface ForecastInput {
 
 export async function forecastMonthEndRealistic(input: ForecastInput): Promise<RealisticForecast> {
   const { month, expenses, classifications, budgets, historicalVariableAvg, dataMonths } = input;
-  const { startDate, endDate } = getMonthDateRange(month);
-  const today = new Date();
-  const dayOfMonth = today.getDate();
-  const totalDays = getTotalDaysInMonth(month);
+  const { endDate } = getMonthDateRange(month);
   const daysLeft = getDaysRemaining(month);
+  // Days of the month so far, counting today (today's spending is already in). A past month is
+  // over — its "projection" is what was spent; a future month has only history to go on.
+  const daysElapsed = getDaysElapsed(month);
+  const isPast = daysLeft === 0;
+  const isFuture = daysElapsed === 0;
 
   const fixedClassifications = getFixedClassifications(classifications);
 
@@ -74,44 +78,70 @@ export async function forecastMonthEndRealistic(input: ForecastInput): Promise<R
       };
     });
 
-  // Fixed pending: expected but not yet paid
+  // Fixed pending: expected but not yet paid. Nothing is pending in a month that's over.
   const matchedClassificationIds = new Set(fixedDoneItems.map((i) => i.classificationId));
-  const fixedPendingItems: FixedForecastItem[] = fixedClassifications
-    .filter((cls) => {
-      if (matchedClassificationIds.has(cls.id)) return false;
-      if (cls.frequency === "yearly") {
-        const expectedMonth = cls.last_seen_date?.slice(5, 7);
-        const currentMonth = month.slice(5, 7);
-        return expectedMonth === currentMonth;
-      }
-      return cls.frequency === "monthly" || cls.frequency === "weekly";
-    })
-    .map((cls) => ({
-      classificationId: cls.id,
-      merchant: cls.merchant_normalized,
-      expectedAmount: (cls.amount_range_low + cls.amount_range_high) / 2,
-      expectedDay: cls.expected_day_of_month ?? 15,
-      frequency: cls.frequency ?? "monthly",
-      categoryId: cls.category_id,
-      arrived: false,
-    }));
+  const fixedPendingItems: FixedForecastItem[] = isPast
+    ? []
+    : fixedClassifications
+        .filter((cls) => {
+          // Weekly bills recur within the month, so one payment doesn't settle them.
+          if (cls.frequency === "weekly") return true;
+          if (matchedClassificationIds.has(cls.id)) return false;
+          if (cls.frequency === "yearly" || cls.frequency === "quarterly") {
+            return expectedThisMonth(cls, month);
+          }
+          return cls.frequency === "monthly";
+        })
+        .map((cls) => {
+          const each = (cls.amount_range_low + cls.amount_range_high) / 2;
+          // Weekly: one for each week still to come (a future month: the whole month's worth).
+          const times = cls.frequency === "weekly" ? Math.max(1, Math.ceil(daysLeft / 7)) : 1;
+          return {
+            classificationId: cls.id,
+            merchant: cls.merchant_normalized,
+            expectedAmount: each * times,
+            expectedDay: cls.expected_day_of_month ?? 15,
+            frequency: cls.frequency ?? "monthly",
+            categoryId: cls.category_id,
+            arrived: false,
+          };
+        });
+
+  // Reminders you set up (rent, school fees …) due later this month and not yet paid are bills
+  // too — unless a learned pattern already covers the same merchant.
+  if (!isPast) {
+    const covered = new Set(fixedPendingItems.map((i) => i.merchant));
+    for (const r of await dueReminders(input.userId, month, endDate)) {
+      if (r.merchant && covered.has(r.merchant)) continue;
+      fixedPendingItems.push({
+        classificationId: `reminder:${r.id}`,
+        merchant: r.merchant ?? "Reminder",
+        expectedAmount: r.amount,
+        expectedDay: Number(r.next_due_date.slice(8, 10)),
+        frequency: r.frequency,
+        categoryId: r.category_id,
+        arrived: false,
+      });
+    }
+  }
 
   const fixedDoneTotal = fixedDoneItems.reduce((s, i) => s + (i.actualAmount ?? i.expectedAmount), 0);
   const fixedPendingTotal = fixedPendingItems.reduce((s, i) => s + i.expectedAmount, 0);
 
-  // Variable projection
+  // Variable projection: today's pace over the rest of the month, blended with the usual month.
+  // Days count from the 1st (not from the first variable expense — a month whose first spend
+  // was yesterday used to project as if only one day had passed).
   const variableSpent = variableExpenses.reduce((s, e) => s + e.amount, 0);
-  const variableDaysElapsed = getVariableDaysElapsed(variableExpenses, startDate);
+  const variableDaysElapsed = daysElapsed;
   const variableDailyRate = variableDaysElapsed > 0 ? variableSpent / variableDaysElapsed : 0;
   const variableProjectedRemaining = variableDailyRate * daysLeft;
 
-  // Blend with historical for early-month stability. Floor at variableSpent
-  // — historical blending must never project less than what's already spent.
-  const blendedVariableRaw = blendProjection(
-    variableSpent + variableProjectedRemaining,
-    historicalVariableAvg,
-    variableDaysElapsed
-  );
+  // Floor at variableSpent — blending must never project less than what's already spent.
+  const blendedVariableRaw = isPast
+    ? variableSpent
+    : isFuture
+      ? historicalVariableAvg
+      : blendProjection(variableSpent + variableProjectedRemaining, historicalVariableAvg, variableDaysElapsed);
   const blendedVariable = Math.max(blendedVariableRaw, variableSpent);
 
   // Category paces
@@ -163,6 +193,7 @@ export function forecastCategoryRealistic(
   month: string
 ): CategoryForecast[] {
   const daysLeft = getDaysRemaining(month);
+  const variableDays = getDaysElapsed(month);
   const categoryMap = new Map<string, { fixed: number; variable: Expense[] }>();
 
   for (const e of expenses) {
@@ -181,7 +212,6 @@ export function forecastCategoryRealistic(
   const results: CategoryForecast[] = [];
   for (const [catId, data] of categoryMap) {
     const variableSpent = data.variable.reduce((s, e) => s + e.amount, 0);
-    const variableDays = getVariableDaysElapsed(data.variable, `${month}-01`);
     const variableRate = variableDays > 0 ? variableSpent / variableDays : 0;
     const variableProjected = variableSpent + variableRate * daysLeft;
 
@@ -212,53 +242,77 @@ export function forecastCategoryRealistic(
   return results.sort((a, b) => b.totalProjected - a.totalProjected);
 }
 
+/**
+ * The usual month's variable spending: the MEDIAN over the last `months` months of spending
+ * (same rule as this month — no transfers, investments, loan payments; refunds netted), counting
+ * only the part that isn't a learned fixed bill. Median, so one unusual month can't skew it.
+ */
 export async function getHistoricalVariableAvg(
   userId: string,
   months: number,
   currentMonth: string,
   classifications: ExpenseClassificationRow[]
 ): Promise<number> {
-  const db = getDatabase();
   const totals: number[] = [];
+  const [year, m] = currentMonth.split("-").map(Number);
 
   for (let i = 1; i <= months; i++) {
-    const [year, m] = currentMonth.split("-").map(Number);
     const d = new Date(year, m - 1 - i, 1);
     const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const { startDate, endDate } = getMonthDateRange(monthStr);
-
-    const rows = await db.getAllAsync<{ amount: number; merchant_name: string | null }>(
-      `SELECT amount, merchant_name FROM expenses
-       WHERE user_id = ? AND date >= ? AND date <= ?
-         AND status != 'rejected' AND nature = 'realized' AND deleted_at IS NULL;`,
-      userId,
-      startDate,
-      endDate
-    );
-
+    const rows = await getSpendingRows(userId, startDate, endDate);
+    if (rows.length === 0) continue; // no data that month — don't count it as a ₹0 month
     let variableTotal = 0;
     for (const row of rows) {
-      const expense = row as unknown as Expense;
-      const cls = classifyExpense(expense, classifications);
-      if (cls === "variable") variableTotal += row.amount;
+      if (classifyExpense(row, classifications) === "variable") variableTotal += row.amount;
     }
     totals.push(variableTotal);
   }
+  return median(totals);
+}
 
-  if (totals.length === 0) return 0;
-  return totals.reduce((s, t) => s + t, 0) / totals.length;
+interface DueReminder {
+  id: string;
+  amount: number;
+  next_due_date: string;
+  frequency: string;
+  merchant: string | null;
+  category_id: string | null;
+}
+
+/** Active reminders with an amount, due from today to the month's end (not yet paid this cycle). */
+async function dueReminders(userId: string, month: string, endDate: string): Promise<DueReminder[]> {
+  try {
+    const db = getDatabase();
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const from = `${month}-01` > today ? `${month}-01` : today;
+    const rows = await db.getAllAsync<DueReminder & { merchant_name: string | null }>(
+      `SELECT r.id, r.amount, r.next_due_date, r.frequency, e.merchant_name, e.category_id
+         FROM recurring_expense_rules r
+         LEFT JOIN expenses e ON e.id = r.source_expense_id
+        WHERE r.user_id = ? AND r.is_active = 1 AND r.amount IS NOT NULL AND r.amount > 0
+          AND r.next_due_date >= ? AND r.next_due_date <= ?;`,
+      userId,
+      from,
+      endDate,
+    );
+    return rows.map((r) => ({ ...r, merchant: r.merchant_name ? normalizeMerchant(r.merchant_name) : null }));
+  } catch {
+    return [];
+  }
+}
+
+/** A yearly / quarterly bill is due this month when the month lines up with when it was last seen. */
+function expectedThisMonth(cls: ExpenseClassificationRow, month: string): boolean {
+  if (!cls.last_seen_date) return false;
+  const seen = Number(cls.last_seen_date.slice(5, 7));
+  const now = Number(month.slice(5, 7));
+  const gap = cls.frequency === "quarterly" ? 3 : 12;
+  return (now - seen + 12) % gap === 0 && month > cls.last_seen_date.slice(0, 7);
 }
 
 // ─── Helpers ───
-
-function getVariableDaysElapsed(variableExpenses: Expense[], monthStart: string): number {
-  if (variableExpenses.length === 0) return 0;
-  const sorted = variableExpenses.map((e) => e.date).sort();
-  const firstDate = new Date(sorted[0]);
-  const today = new Date();
-  const diff = Math.floor((today.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
-  return Math.max(diff, 1);
-}
 
 function blendProjection(
   paceProjection: number,

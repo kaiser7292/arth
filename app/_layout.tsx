@@ -248,6 +248,13 @@ export default function RootLayout(): React.JSX.Element {
           .then(() => syncTransactionAlertTasks())
           .catch((e) => logger.warn("Transaction alert setup failed:", e));
         syncCalendarIfDue(DEFAULT_USER_ID).catch((e) => logger.warn("Calendar sync failed:", e));
+        // Learned bill patterns (month-end projection, "Is this a monthly bill?"): once a day,
+        // a few seconds after launch so it never competes with first paint.
+        setTimeout(() => {
+          import("@/services/analytics/lifecycle")
+            .then((m) => m.refreshPatternsIfDue())
+            .catch((e) => logger.warn("Pattern refresh failed:", e));
+        }, 8000);
         
         // Only set dbReady to true after successful initialization
         setDbReady(true);

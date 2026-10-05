@@ -123,6 +123,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("calendar_sync_events", "string", DEVICE("event ids in this phone's calendar store")),
   S("calendar_sync_last", "string", PROGRESS),
   S("first_scan_summary_pending", "string", PROGRESS),
+  S("patterns_rebuilt_on", "string", PROGRESS),
   S("duplicate_scan_cache_v1", "string", DEVICE("cache, rebuilt from the database")),
   S("data_version", "number", DEVICE("in-memory cache invalidation counter")),
   S("last_backup_at", "string", DEVICE("when THIS device last backed up")),

@@ -124,7 +124,7 @@ describe("settle-up reminder", () => {
 });
 
 describe("auto-advance between check-ins", () => {
-  const counts = { monthEnd: 0, settleUp: 2, subscriptions: 17, ruleSuggestions: 3 };
+  const counts = { monthEnd: 0, settleUp: 2, subscriptions: 17, bills: 0, ruleSuggestions: 3 };
 
   it("goes to the next deck in order that has items", () => {
     expect(pickNextCheckIn(counts, "settleUp", [])).toBe("subscriptions");
@@ -137,7 +137,7 @@ describe("auto-advance between check-ins", () => {
   });
 
   it("stops when nothing else has items", () => {
-    expect(pickNextCheckIn({ monthEnd: 0, settleUp: 1, subscriptions: 0, ruleSuggestions: 0 }, "settleUp", [])).toBeNull();
+    expect(pickNextCheckIn({ monthEnd: 0, settleUp: 1, subscriptions: 0, bills: 0, ruleSuggestions: 0 }, "settleUp", [])).toBeNull();
   });
 });
 

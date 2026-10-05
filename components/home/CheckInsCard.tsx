@@ -19,6 +19,7 @@ const ROWS: {
   { key: "monthEnd", href: "/check-in/month-end", icon: "calendar-outline", label: (n) => `Month-end check · ${n} account${n !== 1 ? "s" : ""}` },
   { key: "settleUp", href: "/check-in/settle-up", icon: "people-outline", label: (n) => `${n} ${n !== 1 ? "people owe" : "person owes"} you` },
   { key: "subscriptions", href: "/check-in/subscriptions", icon: "repeat-outline", label: (n) => `${n} subscription${n !== 1 ? "s" : ""} to review` },
+  { key: "bills", href: "/check-in/bills", icon: "calendar-number-outline", label: (n) => `${n} possible bill${n !== 1 ? "s" : ""} to confirm` },
   { key: "ruleSuggestions", href: "/check-in/rules", icon: "flash-outline", label: (n) => `${n} rule suggestion${n !== 1 ? "s" : ""}` },
 ];
 

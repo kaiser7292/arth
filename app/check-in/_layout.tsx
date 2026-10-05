@@ -9,6 +9,7 @@ export default function CheckInLayout() {
       <Stack.Screen name="rules" options={{ title: "Rule suggestions" }} />
       <Stack.Screen name="subscriptions" options={{ title: "Subscriptions" }} />
       <Stack.Screen name="settle-up" options={{ title: "Settle up" }} />
+      <Stack.Screen name="bills" options={{ title: "Monthly bills" }} />
       <Stack.Screen name="month-end" options={{ title: "Month-end check" }} />
     </Stack>
   );
