@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withTiming,
 } from "react-native-reanimated";
+import { timing } from "@/components/motion/motion";
 import { useTheme } from "@/hooks/use-theme";
 import { COMPONENTS, MOTION } from "@/constants/design-tokens";
 
@@ -20,6 +22,8 @@ interface ProgressBarProps {
    * motion nobody asked for and thirty shared values nobody needed.
    */
   animated?: boolean;
+  /** Wait before the first fill, to stagger bars in a list (later value changes glide at once). */
+  delay?: number;
   /** Layout only (margins). Padding and radius belong to the bar. */
   className?: string;
 }
@@ -42,6 +46,7 @@ export function ProgressBar({
   trackColor,
   height = COMPONENTS.progress.height,
   animated = true,
+  delay = 0,
   className = "",
 }: ProgressBarProps) {
   const theme = useTheme();
@@ -56,7 +61,7 @@ export function ProgressBar({
       accessibilityValue={{ now: Math.round(clamped * 100), min: 0, max: 100 }}
     >
       {animated ? (
-        <AnimatedFill value={clamped} color={fill} />
+        <AnimatedFill value={clamped} color={fill} delay={delay} />
       ) : (
         <View
           className="h-full rounded-full"
@@ -68,12 +73,17 @@ export function ProgressBar({
 }
 
 /** Split out so the static path mounts no Reanimated node at all. */
-function AnimatedFill({ value, color }: { value: number; color: string }) {
+function AnimatedFill({ value, color, delay }: { value: number; color: string; delay: number }) {
   const width = useSharedValue(0);
+  const first = useRef(true);
 
+  // Fills from empty when it first shows (after `delay`), then glides to new values - month
+  // changes, budget edits. Shared easing; skipped by "Remove animations" (ReduceMotion.System).
   useEffect(() => {
-    width.value = withTiming(value, { duration: MOTION.slow });
-  }, [value, width]);
+    const fill = withTiming(value, timing(first.current ? MOTION.count - 100 : MOTION.slow));
+    width.value = first.current && delay > 0 ? withDelay(delay, fill) : fill;
+    first.current = false;
+  }, [value, width, delay]);
 
   const style = useAnimatedStyle(() => ({ width: `${width.value * 100}%` }));
 

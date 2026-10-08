@@ -6,6 +6,7 @@ import type { MonthlyTotal } from "@/services/expense";
 import { formatAmount } from "@/utils/format";
 import { CHART_COLORS } from "@/constants/semantic-colors";
 import { useTheme } from "@/hooks/use-theme";
+import { WipeIn } from "@/components/motion/Entrances";
 
 const SHORT_MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -164,8 +165,9 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
         </View>
       )}
 
-      {/* SVG chart */}
-      <View onLayout={onLayout} style={{ height: CHART_HEIGHT, marginTop: selectedIndex !== null ? 36 : 0 }}>
+      {/* SVG chart - drawn left to right when it first shows */}
+      <WipeIn style={{ marginTop: selectedIndex !== null ? 36 : 0 }}>
+      <View onLayout={onLayout} style={{ height: CHART_HEIGHT }}>
         {width > 0 && (
           <Svg width={width} height={CHART_HEIGHT}>
             <Defs>
@@ -260,6 +262,7 @@ function TrendLineChartBase({ data, color, series, showLegend }: TrendLineChartP
           </View>
         )}
       </View>
+      </WipeIn>
 
       {/* X-axis labels */}
       {width > 0 && (

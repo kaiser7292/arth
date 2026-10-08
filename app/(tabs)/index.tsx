@@ -25,6 +25,7 @@ import { InvestmentsSummaryCard } from "@/components/home/InvestmentsSummaryCard
 import { WalletSummary } from "@/components/home/WalletSummary";
 import { Card, ContextualHeader, Money, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text } from "@/components/ui";
 import type { SwipePagerPage } from "@/components/ui";
+import { AnimatedNumber, Appear, PressableScale } from "@/components/motion";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -435,7 +436,10 @@ export default function HomeScreen() {
         ))}
 
         {/* Action Required Card - unified review queue entry */}
+        {/* Cards arrive in sequence when Home first opens (Appear plays on mount only, so data
+            refreshes on focus don't replay it). */}
         {isHomeCardVisible("review_queue") && (
+          <Appear index={0}>
           <ReviewQueueCard
             counts={{
               pending: pendingCount,
@@ -445,6 +449,7 @@ export default function HomeScreen() {
             onPress={() => router.push("/expense/review-queue")}
             onCatchUp={() => router.push("/expense/catch-up")}
           />
+          </Appear>
         )}
 
         {/* "Is <name> you?" — once, when bank SMS keep showing a name on transfers. Self-loading. */}
@@ -452,11 +457,12 @@ export default function HomeScreen() {
         <FirstScanSummaryCard />
 
         {/* Check-ins - swipe decks (month-end, settle-up, subscriptions, rules). Self-loading. */}
-        {isHomeCardVisible("check_ins") && <CheckInsCard />}
+        {isHomeCardVisible("check_ins") && <Appear index={1}><CheckInsCard /></Appear>}
 
         {/* Budget Health Card */}
         {isHomeCardVisible("total_spent") && (
-          <Pressable onPress={() => router.push("/(tabs)/budget")}>
+          <Appear index={2}>
+          <PressableScale onPress={() => router.push("/(tabs)/budget")} accessibilityRole="button" accessibilityLabel="Spent this month, open Budget">
           <Card className="mx-4 mt-3">
             <View className="flex-row items-center justify-between mb-3">
               <View>
@@ -464,7 +470,7 @@ export default function HomeScreen() {
                   Spent this month
                 </Text>
                 <View className="flex-row items-baseline mt-0.5">
-                  <Money value={totalSpent} className="text-title font-bold text-foreground" />
+                  <AnimatedNumber value={totalSpent} className="text-title font-bold text-foreground" />
                   {totalBudget > 0 && (
                     <Text className="text-meta text-muted-foreground ml-1.5">
                       of {formatAmount(totalBudget)}
@@ -509,7 +515,8 @@ export default function HomeScreen() {
             )}
 
           </Card>
-          </Pressable>
+          </PressableScale>
+          </Appear>
         )}
 
         {/* Recurring reminders — pending/overdue with auto-match suggestions. */}
@@ -817,23 +824,33 @@ export default function HomeScreen() {
           </View>
         )}
         {isHomeCardVisible("credit_cards") && (
-          <CreditCardDashboard accounts={ccAccounts} expenseTotals={ccExpenseTotals} computedBalances={computedBalanceMap} />
+          <Appear index={3}>
+            <CreditCardDashboard accounts={ccAccounts} expenseTotals={ccExpenseTotals} computedBalances={computedBalanceMap} />
+          </Appear>
         )}
         {isHomeCardVisible("bank_balances") && (
-          <BankBalanceSummary accounts={bankAccounts} />
+          <Appear index={4}>
+            <BankBalanceSummary accounts={bankAccounts} />
+          </Appear>
         )}
         {isHomeCardVisible("wallets") && (
-          <WalletSummary accounts={walletAccounts} />
+          <Appear index={5}>
+            <WalletSummary accounts={walletAccounts} />
+          </Appear>
         )}
         {isHomeCardVisible("investments") && (
-          <InvestmentsSummaryCard
-            totalValue={investmentSummary.totalValue}
-            accountCount={investmentSummary.accountCount}
-            breakdown={investmentSummary.breakdown}
-          />
+          <Appear index={6}>
+            <InvestmentsSummaryCard
+              totalValue={investmentSummary.totalValue}
+              accountCount={investmentSummary.accountCount}
+              breakdown={investmentSummary.breakdown}
+            />
+          </Appear>
         )}
         {isHomeCardVisible("loans") && loansSummary && loansSummary.activeCount > 0 && (
-          <LoanSummaryCard summary={loansSummary} />
+          <Appear index={7}>
+            <LoanSummaryCard summary={loansSummary} />
+          </Appear>
         )}
 
         </ScrollView>

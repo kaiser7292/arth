@@ -5,6 +5,8 @@ import { View, Pressable } from "react-native";
 import type { MonthlyTotal } from "@/services/expense";
 import { formatAmount } from "@/utils/expense-validation";
 import { useTheme } from "@/hooks/use-theme";
+import { GrowIn } from "@/components/motion/Entrances";
+import { staggerDelay } from "@/components/motion/motion";
 
 const SHORT_MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -42,7 +44,7 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
     <View>
       {/* Bars */}
       <View className="flex-row items-end justify-between" style={{ height: 120 }}>
-        {data.map((item) => {
+        {data.map((item, i) => {
           const barHeight = maxValue > 0 ? (item.total / maxValue) * 100 : 0;
           const [, m] = item.month.split("-").map(Number);
           const label = SHORT_MONTHS[m - 1];
@@ -71,7 +73,8 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
                   {formatAmount(item.total).replace("₹", "")}
                 </Text>
               )}
-              {/* Bar */}
+              {/* Bar - grows up from the baseline, one after another, when the chart first shows */}
+              <GrowIn delay={staggerDelay(i)} style={{ width: "100%" }}>
               <View
                 className="w-full rounded-t-md"
                 style={{
@@ -80,6 +83,7 @@ function TrendBarChartBase({ data, color, budgetAmount, selectedMonth, onBarPres
                   minWidth: 20,
                 }}
               />
+              </GrowIn>
               {/* Month label */}
               <Text
                 className={`text-label mt-1 ${

@@ -3,6 +3,7 @@ import { Pressable, View, type GestureResponderEvent, type LayoutChangeEvent } f
 import Svg, { G, Line, Path } from "react-native-svg";
 import { Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
+import { GrowIn } from "@/components/motion/Entrances";
 import { formatAmount, formatCompact } from "@/utils/format";
 
 const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -119,45 +120,59 @@ function StackedAreaChartBase({ months, layers, onLayerPress, height = 150 }: St
         style={{ height }}
       >
         {width > 0 && (
-          <Svg width={width} height={height}>
-            {[0.5, 1].map((f) => (
-              <Line
-                key={f}
-                x1={0}
-                x2={width}
-                y1={y(max * f)}
-                y2={y(max * f)}
-                stroke={theme.border}
-                strokeWidth={0.5}
-                strokeDasharray="3,4"
-              />
-            ))}
-            {bands.map(({ layer, base: b, top: t }) => {
+          <>
+            {/* Gridlines, then each band on its own layer so the bands can rise from the baseline
+                one after another when the chart first shows (bottom band first). */}
+            <Svg width={width} height={height} style={{ position: "absolute" }}>
+              {[0.5, 1].map((f) => (
+                <Line
+                  key={f}
+                  x1={0}
+                  x2={width}
+                  y1={y(max * f)}
+                  y2={y(max * f)}
+                  stroke={theme.border}
+                  strokeWidth={0.5}
+                  strokeDasharray="3,4"
+                />
+              ))}
+            </Svg>
+            {bands.map(({ layer, base: b, top: t }, li) => {
               if (t.every((v, i) => v === b[i])) return null;
               const topPts = t.map((v, i) => `${x(i)} ${y(v)}`);
               const basePts = b.map((v, i) => `${x(i)} ${y(v)}`).reverse();
               const area = `M ${topPts.join(" L ")} L ${basePts.join(" L ")} Z`;
               const edge = `M ${topPts.join(" L ")}`;
               return (
-                <G key={layer.key}>
-                  <Path d={area} fill={layer.color} fillOpacity={(layer.opacity ?? 1) * 0.75} />
-                  <Path d={edge} stroke={layer.color} strokeOpacity={layer.opacity ?? 1} strokeWidth={1.25} fill="none" />
-                </G>
+                <GrowIn
+                  key={layer.key}
+                  delay={120 + li * 130}
+                  style={{ position: "absolute", left: 0, top: 0, width, height }}
+                >
+                  <Svg width={width} height={height}>
+                    <G>
+                      <Path d={area} fill={layer.color} fillOpacity={(layer.opacity ?? 1) * 0.75} />
+                      <Path d={edge} stroke={layer.color} strokeOpacity={layer.opacity ?? 1} strokeWidth={1.25} fill="none" />
+                    </G>
+                  </Svg>
+                </GrowIn>
               );
             })}
-            <Line x1={0} x2={width} y1={height - PAD_BOTTOM} y2={height - PAD_BOTTOM} stroke={theme.border} strokeWidth={1} />
-            {selected != null && (
-              <Line
-                x1={x(selected)}
-                x2={x(selected)}
-                y1={PAD_TOP}
-                y2={height - PAD_BOTTOM}
-                stroke={theme.mutedForeground}
-                strokeWidth={1}
-                strokeDasharray="3,3"
-              />
-            )}
-          </Svg>
+            <Svg width={width} height={height} style={{ position: "absolute" }}>
+              <Line x1={0} x2={width} y1={height - PAD_BOTTOM} y2={height - PAD_BOTTOM} stroke={theme.border} strokeWidth={1} />
+              {selected != null && (
+                <Line
+                  x1={x(selected)}
+                  x2={x(selected)}
+                  y1={PAD_TOP}
+                  y2={height - PAD_BOTTOM}
+                  stroke={theme.mutedForeground}
+                  strokeWidth={1}
+                  strokeDasharray="3,3"
+                />
+              )}
+            </Svg>
+          </>
         )}
         <Pressable
           onPress={onPress}

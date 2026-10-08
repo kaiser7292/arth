@@ -4,6 +4,8 @@ import { View, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput }
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ContextualHeader, PeriodNavigator, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text, WidgetCard } from "@/components/ui";
+import { AnimatedNumber, Nudge, PressableScale } from "@/components/motion";
+import { staggerDelay } from "@/components/motion/motion";
 import { SpendingSplitPage } from "@/components/budget/SpendingSplitPage";
 import { MonthlySummaryPage } from "@/components/budget/MonthlySummaryPage";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -405,9 +407,7 @@ export default function BudgetScreen() {
               </Text>
             </View>
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-2xl font-bold" style={{ color: overallColor }}>
-                {formatAmount(totalSpent)}
-              </Text>
+              <AnimatedNumber value={totalSpent} className="text-2xl font-bold" style={{ color: overallColor }} />
               <Text className="text-2xl font-bold text-foreground">
                 {formatAmount(totalBudget)}
               </Text>
@@ -789,22 +789,26 @@ export default function BudgetScreen() {
           </View>
         )}
         {displayRows.length > 0 ? (
-          displayRows.map((item) => {
+          displayRows.map((item, rowIndex) => {
             const status = getBudgetStatus(item.spent, item.budget);
             const color = getBudgetStatusColor(status);
             const pct = item.budget > 0 ? item.spent / item.budget : 0;
             const remaining = item.budget - item.spent;
 
+            // Over budget: one gentle nudge after the bars fill, never repeating.
             return (
-              <Pressable
-                key={item.category.id}
+              <Nudge key={item.category.id} active={item.budget > 0 && item.spent > item.budget} delay={700 + staggerDelay(rowIndex)}>
+              <PressableScale
                 onPress={() =>
                   router.push({
                     pathname: "/budget/[categoryId]",
                     params: { categoryId: item.category.id, month },
                   })
                 }
-                className="px-4 py-3 border-b border-border"
+                accessibilityRole="button"
+                accessibilityLabel={item.category.name}
+                style={{ paddingHorizontal: 16, paddingVertical: 12 }}
+                className="border-b border-border"
               >
                 <View className="flex-row items-center mb-2">
                   <View
@@ -834,7 +838,7 @@ export default function BudgetScreen() {
                 </View>
 
                 {item.budget > 0 && (
-                  <ProgressBar value={pct} color={color} height={8} animated={false} />
+                  <ProgressBar value={pct} color={color} height={8} delay={200 + staggerDelay(rowIndex)} />
                 )}
 
                 {item.budget > 0 && (
@@ -867,7 +871,8 @@ export default function BudgetScreen() {
                     </Text>
                   </Pressable>
                 )}
-              </Pressable>
+              </PressableScale>
+              </Nudge>
             );
           })
         ) : (

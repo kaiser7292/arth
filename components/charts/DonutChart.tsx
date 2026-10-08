@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Text } from "@/components/ui";
 import { View, Pressable } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { SpinIn } from "@/components/motion/Entrances";
 
 export interface DonutSegment {
   label: string;
@@ -106,11 +107,14 @@ function DonutChartBase({
         style={{ width: size, height: size }}
         className="items-center justify-center"
       >
-        <Svg width={size} height={size} style={{ position: "absolute" }}>
-          {wedges.map((w, i) => (
-            <Path key={i} d={w.path} fill={w.segment.color} />
-          ))}
-        </Svg>
+        {/* The ring turns in when the chart first shows; the centre text stays still. */}
+        <SpinIn style={{ position: "absolute", width: size, height: size }}>
+          <Svg width={size} height={size}>
+            {wedges.map((w, i) => (
+              <Path key={i} d={w.path} fill={w.segment.color} />
+            ))}
+          </Svg>
+        </SpinIn>
 
         {/* Center content */}
         <View

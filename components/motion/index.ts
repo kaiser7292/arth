@@ -9,4 +9,5 @@ export { PressableScale } from "./PressableScale";
 export { SegmentedControl, type SegmentOption } from "./SegmentedControl";
 export { Collapse } from "./Collapse";
 export { CrossFade } from "./CrossFade";
+export { GrowIn, Nudge, SpinIn, WipeIn } from "./Entrances";
 export { EASE, countValue, enterUp, fadeIn, fadeOut, spring, splitLayoutClasses, staggerDelay, timing, usePressScale } from "./motion";

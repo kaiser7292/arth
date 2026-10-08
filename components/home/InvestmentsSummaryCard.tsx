@@ -1,11 +1,12 @@
 import { memo } from "react";
-import { View, Pressable } from "react-native";
+import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
+import { AnimatedNumber, PressableScale } from "@/components/motion";
 
 export interface InstrumentBreakdown {
   label: string;
@@ -35,7 +36,7 @@ function InvestmentsSummaryCardImpl({ totalValue, accountCount, breakdown }: Inv
 
   return (
     <View>
-      <Pressable
+      <PressableScale
         onPress={() => router.push("/investments")}
         accessibilityLabel="View investment accounts"
         accessibilityRole="button"
@@ -64,10 +65,10 @@ function InvestmentsSummaryCardImpl({ totalValue, accountCount, breakdown }: Inv
 
           <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
             <Text className="text-xs font-semibold text-muted-foreground">Total Value</Text>
-            <Text className="text-sm font-bold text-foreground">{formatAmount(totalValue)}</Text>
+            <AnimatedNumber value={totalValue} className="text-sm font-bold text-foreground" />
           </View>
         </Card>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }

@@ -7,7 +7,7 @@ import { CatchUpCardView } from "@/components/expense/catch-up/CatchUpCardView";
 import { CatchUpDone } from "@/components/expense/catch-up/CatchUpDone";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { MerchantSheet } from "@/components/expense/catch-up/MerchantSheet";
-import { SwipeDeck } from "@/components/expense/catch-up/SwipeDeck";
+import { SwipeDeck, type SwipeDeckHandle } from "@/components/expense/catch-up/SwipeDeck";
 import { Button, Card, LoadingState, ScreenContainer, SelectSheet, Text, useToast } from "@/components/ui";
 import type { FooterAction } from "@/components/check-in/CheckInDeck";
 import { DeckFooter, DeckProgress } from "@/components/check-in/CheckInDeck";
@@ -117,6 +117,9 @@ export default function CatchUpScreen() {
   const deckRef = useRef<CatchUpCard[]>([]);
   deckRef.current = deck;
   const editingId = useRef<string | null>(null);
+  const swipeRef = useRef<SwipeDeckHandle>(null);
+  // The card Undo brought back slides in from the right instead of rising from the stack.
+  const undoneKey = useRef<string | null>(null);
   // Field edits made on the card (description, merchant, payment mode) are written straight away;
   // this chains them so "Edit or split" can wait for every one before the edit screen reads the row.
   const fieldWrites = useRef<Promise<void>>(Promise.resolve());
@@ -326,6 +329,7 @@ export default function CatchUpScreen() {
       toast("Already saved - edit it from Transactions to change it.");
       return;
     }
+    undoneKey.current = deckRef.current[point.index]?.key ?? null;
     setIndex(point.index);
     setResolved((r) => {
       const next = new Set(r);
@@ -757,7 +761,10 @@ export default function CatchUpScreen() {
         )}
 
         <SwipeDeck
+          ref={swipeRef}
           cardKey={card.key}
+          peek={nextLiveIndex(deck, currentIdx + 1, resolved) >= 0}
+          enterFrom={undoneKey.current === card.key ? "right" : "behind"}
           onSwipeRight={() => primary()}
           onSwipeLeft={skip}
           rightNeedsInput={needsInput}
@@ -789,9 +796,10 @@ export default function CatchUpScreen() {
 
       <DeckFooter
         hint={`Swipe right to ${primaryLabel.toLowerCase()} · left to skip`}
-        onSkip={skip}
+        // The buttons fling the card the way a swipe does (or open the picker it needs).
+        onSkip={() => (swipeRef.current ? swipeRef.current.fling("left") : skip())}
         primaryLabel={primaryLabel}
-        onPrimary={() => primary()}
+        onPrimary={() => (swipeRef.current ? swipeRef.current.fling("right") : primary())}
       />
 
       <CategoryPickerSheet

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect } from "react";
+import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -11,6 +11,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { spring, timing } from "@/components/motion/motion";
 import { Text } from "@/components/ui";
 import { MOTION } from "@/constants/design-tokens";
 import { useReduceMotion } from "@/hooks/use-reduce-motion";
@@ -31,7 +32,22 @@ interface SwipeDeckProps {
   enabled?: boolean;
   /** Stretch to fill the parent's height, so the whole middle of the screen is swipeable. */
   fill?: boolean;
+  /** More cards wait behind this one: show the edge of the next card under it. */
+  peek?: boolean;
+  /**
+   * How this card arrives. "behind" (default): it rises from the stack, as the next card does.
+   * "right": it slides back in from the right, as a card returned by Undo does.
+   */
+  enterFrom?: "behind" | "right";
   children: React.ReactNode;
+}
+
+export interface SwipeDeckHandle {
+  /**
+   * Fling the card as a swipe would, then run the matching callback - so the footer buttons move
+   * the card the same way a swipe does. A right fling that needs input runs onSwipeRight in place.
+   */
+  fling: (dir: "right" | "left") => void;
 }
 
 /**
@@ -41,15 +57,28 @@ interface SwipeDeckProps {
  * construction. Two earlier versions reused one instance and reset the position after the swap;
  * on Android that lost a race with Reanimated's `entering` layout animation, which snapshots the
  * style at mount (still off-screen) and restores it when it ends - the next card never appeared.
- * The fade-in is therefore done by hand here, with no layout animation at all.
+ * The entrance is therefore done by hand here, with no layout animation at all.
  */
-export function SwipeDeck(props: SwipeDeckProps) {
-  return <SwipeCard key={props.cardKey} {...props} />;
-}
+export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function SwipeDeck(props, ref) {
+  const theme = useTheme();
+  return (
+    <View style={props.fill ? { flex: 1 } : null}>
+      {props.peek && (
+        // The edge of the next card, just below this one - Catch Up reads as a stack.
+        <View
+          pointerEvents="none"
+          className="rounded-2xl border border-border"
+          style={{ position: "absolute", top: 14, bottom: -10, left: 14, right: 14, backgroundColor: theme.card, opacity: 0.7 }}
+        />
+      )}
+      <SwipeCard key={props.cardKey} ref={ref} {...props} />
+    </View>
+  );
+});
 
 const SPRING = { damping: 20, stiffness: 220, mass: 0.8 };
 
-function SwipeCard({
+const SwipeCard = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function SwipeCard({
   onSwipeRight,
   onSwipeLeft,
   rightNeedsInput = false,
@@ -57,18 +86,41 @@ function SwipeCard({
   leftLabel = "Skip",
   enabled = true,
   fill = false,
+  enterFrom = "behind",
   children,
-}: SwipeDeckProps) {
+}, ref) {
   const theme = useTheme();
   const reduceMotion = useReduceMotion();
   const { width } = useWindowDimensions();
   const threshold = width * 0.28;
-  const translateX = useSharedValue(0);
+  const fromRight = enterFrom === "right" && !reduceMotion;
+  const translateX = useSharedValue(fromRight ? width * 1.1 : 0);
   const opacity = useSharedValue(reduceMotion ? 1 : 0);
+  // Rising from behind: starts slightly smaller and lower (where the peeking card sits).
+  const rise = useSharedValue(reduceMotion || fromRight ? 1 : 0);
 
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: MOTION.base });
-  }, [opacity]);
+    opacity.value = withTiming(1, timing(MOTION.base));
+    rise.value = withSpring(1, spring("gentle"));
+    if (fromRight) translateX.value = withSpring(0, spring("gentle"));
+  }, [opacity, rise, translateX, fromRight]);
+
+  useImperativeHandle(ref, () => ({
+    fling: (dir) => {
+      if (dir === "right" && rightNeedsInput) {
+        onSwipeRight();
+        return;
+      }
+      const done = dir === "right" ? onSwipeRight : onSwipeLeft;
+      if (reduceMotion) {
+        done();
+        return;
+      }
+      translateX.value = withTiming((dir === "right" ? 1 : -1) * width * 1.3, timing(MOTION.fast + 60), (finished) => {
+        if (finished) runOnJS(done)();
+      });
+    },
+  }), [rightNeedsInput, onSwipeRight, onSwipeLeft, reduceMotion, translateX, width]);
 
   const pan = Gesture.Pan()
     .enabled(enabled)
@@ -100,6 +152,8 @@ function SwipeCard({
   const cardStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [
+      { translateY: (1 - rise.value) * 14 },
+      { scale: 0.94 + 0.06 * rise.value },
       { translateX: translateX.value },
       {
         rotate: `${interpolate(translateX.value, [-width, 0, width], [-6, 0, 6], Extrapolation.CLAMP)}deg`,
@@ -144,4 +198,4 @@ function SwipeCard({
       </Animated.View>
     </GestureDetector>
   );
-}
+});

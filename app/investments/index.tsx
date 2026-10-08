@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, EmptyState, FAB, FilterChip, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, FAB, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { AnimatedNumber, Appear, PressableScale, SegmentedControl } from "@/components/motion";
 import { StackedAreaChart, type StackedLayer } from "@/components/charts/StackedAreaChart";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -54,10 +55,10 @@ function buildRows(
   });
 }
 
-const GROUP_META: Record<InvestmentGroup, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  fd: { label: "Fixed Deposits", icon: "cash-outline", color: DATA_HEX.series[1] },
-  market: { label: "Market (Demat)", icon: "trending-up-outline", color: DATA_HEX.series[2] },
-  pension: { label: "Pension", icon: "briefcase-outline", color: DATA_HEX.series[0] },
+const GROUP_META: Record<InvestmentGroup, { label: string; short: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
+  fd: { label: "Fixed Deposits", short: "FD", icon: "cash-outline", color: DATA_HEX.series[1] },
+  market: { label: "Market (Demat)", short: "Market", icon: "trending-up-outline", color: DATA_HEX.series[2] },
+  pension: { label: "Pension", short: "Pension", icon: "briefcase-outline", color: DATA_HEX.series[0] },
 };
 const GROUP_ORDER: InvestmentGroup[] = ["fd", "market", "pension"];
 
@@ -174,11 +175,13 @@ export default function InvestmentsListScreen() {
             {/* Value over the last 12 months as stacked bands - the top edge is the total, each
                 band's thickness its share. Tap a band, chip or legend row to see that category's
                 accounts; tap an account to open it. */}
+            <Appear index={0}>
             <Card className="mx-4 mt-4">
               <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                 {view ? `${GROUP_META[view].label} value` : "Total value"}
               </Text>
-              <Text className="text-2xl font-bold text-foreground">{formatAmount(viewTotal)}</Text>
+              {/* Counts up when the screen opens, glides to the category's value when you drill in. */}
+              <AnimatedNumber value={viewTotal} className="text-2xl font-bold text-foreground" />
               {change != null && Math.abs(change) >= 1 ? (
                 <Text className="text-xs mt-0.5" style={{ color: change >= 0 ? theme.success : theme.danger }}>
                   {change >= 0 ? "+" : "−"}{formatAmount(Math.abs(change))} in 12 months
@@ -186,12 +189,13 @@ export default function InvestmentsListScreen() {
               ) : null}
 
               {activeGroups.length > 1 && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3 -mx-1" contentContainerStyle={{ paddingHorizontal: 4 }}>
-                  <FilterChip label="All" active={view == null} onPress={() => setFocus(null)} />
-                  {activeGroups.map((g) => (
-                    <FilterChip key={g} label={GROUP_META[g].label} active={view === g} onPress={() => setFocus(g)} />
-                  ))}
-                </ScrollView>
+                <SegmentedControl
+                  className="mt-3"
+                  accessibilityLabel="Show category"
+                  options={[{ value: "all", label: "All" }, ...activeGroups.map((g) => ({ value: g, label: GROUP_META[g].short }))]}
+                  value={view ?? "all"}
+                  onChange={(v) => setFocus(v === "all" ? null : (v as InvestmentGroup))}
+                />
               )}
 
               <View className="mt-3">
@@ -240,6 +244,7 @@ export default function InvestmentsListScreen() {
                 <Text className="text-label text-faint-foreground mt-1">Tap a band or category to see its accounts</Text>
               )}
             </Card>
+            </Appear>
 
             {/* Upcoming maturities — the one thing that had no visibility
                 anywhere before: an FD's date was buried in its own detail screen. */}
@@ -322,7 +327,7 @@ export default function InvestmentsListScreen() {
                                 ? `Matures ${formatDate(product.maturity_date)}`
                                 : null;
                     return (
-                      <Pressable key={account.id} onPress={() => handlePress(row)} className="mx-4">
+                      <PressableScale key={account.id} onPress={() => handlePress(row)} className="mx-4" accessibilityRole="button" accessibilityLabel={name}>
                         <Card className="mb-2">
                           <View className="flex-row items-center">
                             <View
@@ -342,7 +347,7 @@ export default function InvestmentsListScreen() {
                             <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} style={{ marginLeft: 6 }} />
                           </View>
                         </Card>
-                      </Pressable>
+                      </PressableScale>
                     );
                   })}
                 </View>
@@ -384,19 +389,24 @@ function LegendRow({
 }) {
   const { colors } = useColorScheme();
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
-      className="flex-row items-center py-2"
-      style={{ minHeight: 44 }}
+      style={{ minHeight: 44, flexDirection: "row", alignItems: "center", paddingVertical: 8 }}
       accessibilityRole="button"
       accessibilityLabel={`${label}, ${percent} percent, ${formatAmount(amount)}`}
       accessibilityHint={hint}
     >
       <View className="w-2.5 h-2.5 rounded-sm mr-2.5" style={{ backgroundColor: color, opacity }} />
-      <Text className="text-sm text-foreground flex-1" numberOfLines={1}>{label}</Text>
+      <View className="flex-1">
+        <Text className="text-sm text-foreground" numberOfLines={1}>{label}</Text>
+        {/* Share of the total, filling when the row appears. */}
+        <View style={{ opacity }}>
+          <ProgressBar value={percent / 100} color={color} height={3} className="mt-1" />
+        </View>
+      </View>
       <Text className="text-xs text-muted-foreground w-24 text-right">{formatAmount(amount)}</Text>
       <Text className="text-sm font-semibold text-foreground w-11 text-right">{percent}%</Text>
       <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-    </Pressable>
+    </PressableScale>
   );
 }
