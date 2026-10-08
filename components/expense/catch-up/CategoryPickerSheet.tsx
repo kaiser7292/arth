@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Pop } from "@/components/motion/Pop";
 import { FlatList, Pressable, View } from "react-native";
 import { Sheet, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
@@ -40,7 +41,7 @@ export function CategoryPickerSheet({ visible, categories, selectedId, onSelect,
                 <Ionicons name={cat.icon as keyof typeof Ionicons.glyphMap} size={16} color={cat.color} />
               </View>
               <Text className="text-sm font-medium text-foreground flex-1">{cat.name}</Text>
-              {selected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
+              {selected && <Pop><Ionicons name="checkmark" size={18} color={theme.primary} /></Pop>}
             </Pressable>
           );
         }}

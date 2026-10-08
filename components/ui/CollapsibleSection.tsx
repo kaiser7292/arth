@@ -3,12 +3,9 @@ import { Text } from "./Text";
 import { settingsStorage as storage } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { LayoutAnimation, Platform, Pressable, UIManager, View } from "react-native";
-
-// Enable LayoutAnimation on Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+import { Pressable, View } from "react-native";
+import { Chevron } from "@/components/motion/Chevron";
+import { Collapse } from "@/components/motion/Collapse";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -44,9 +41,13 @@ export function CollapsibleSection({
     return stored !== undefined ? stored : defaultExpanded;
   });
 
+  // Content mounts the first time the section opens and stays mounted after, so a closed heavy
+  // section costs nothing until it's wanted and closing it can animate.
+  const [everOpened, setEverOpened] = useState(expanded);
+
   const toggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     const newVal = !expanded;
+    if (newVal) setEverOpened(true);
     setExpanded(newVal);
     storage.set(fullKey, newVal);
   };
@@ -82,14 +83,10 @@ export function CollapsibleSection({
         </View>
         <View className="flex-row items-center">
           {rightContent}
-          <Ionicons
-            name={expanded ? "chevron-up" : "chevron-down"}
-            size={16}
-            color={colors.textSecondary}
-          />
+          <Chevron open={expanded} size={16} color={colors.textSecondary} />
         </View>
       </Pressable>
-      {expanded && children}
+      <Collapse open={expanded}>{everOpened ? children : null}</Collapse>
     </View>
   );
 }

@@ -1,4 +1,6 @@
 import { TextInput, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { fadeIn } from "@/components/motion/motion";
 
 import { Text } from "./Text";
 import type { TextInputProps } from "react-native";
@@ -85,7 +87,9 @@ export function Input({
       )}
       {/* Normal error (suppressed while formula preview is showing) */}
       {error && !inFormula && (
-        <Text className={COMPONENTS.input.error}>{error}</Text>
+        <Animated.View entering={fadeIn()}>
+          <Text className={COMPONENTS.input.error}>{error}</Text>
+        </Animated.View>
       )}
     </View>
   );

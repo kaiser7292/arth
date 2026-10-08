@@ -1,6 +1,9 @@
-import { Ionicons } from "@expo/vector-icons";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { Chevron } from "@/components/motion/Chevron";
+import { Collapse } from "@/components/motion/Collapse";
+import { timing } from "@/components/motion/motion";
 
 import { Button, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
@@ -39,10 +42,36 @@ export function TransactionTypeSwitch({
     { t: "received", label: "Received" },
     { t: "transfer", label: "Transfer" },
   ];
+  const shown = options.filter((o) => !hidden.includes(o.t));
+  // The selected pill glides between options (equal widths, so one measurement places it).
+  const [trackWidth, setTrackWidth] = useState(0);
+  const segment = trackWidth > 0 ? (trackWidth - 8) / shown.length : 0;
+  const index = Math.max(0, shown.findIndex((o) => o.t === value));
+  const left = useSharedValue(0);
+  const placed = useSharedValue(0);
+  useEffect(() => {
+    if (segment <= 0) return;
+    const x = 4 + index * segment;
+    if (!placed.value) {
+      left.value = x;
+      placed.value = 1;
+    } else left.value = withTiming(x, timing());
+  }, [index, segment, left, placed]);
+  const pill = useAnimatedStyle(() => ({ left: left.value, opacity: placed.value }));
   return (
-    <View className="flex-row rounded-xl p-1 mb-4" style={{ backgroundColor: theme.alpha("foreground", 0.06) }}>
-      {options
-        .filter((o) => !hidden.includes(o.t))
+    <View
+      className="flex-row rounded-xl p-1 mb-4"
+      style={{ backgroundColor: theme.alpha("foreground", 0.06) }}
+      onLayout={(e) => {
+        const w = e.nativeEvent.layout.width;
+        if (Math.abs(w - trackWidth) > 0.5) setTrackWidth(w);
+      }}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[{ position: "absolute", top: 4, bottom: 4, width: segment, borderRadius: 8, backgroundColor: theme.card }, pill]}
+      />
+      {shown
         .map((o) => {
           const selected = o.t === value;
           const tone = o.t === "spent" ? theme.danger : o.t === "received" ? theme.success : theme.primary;
@@ -53,7 +82,6 @@ export function TransactionTypeSwitch({
               accessibilityRole="tab"
               accessibilityState={{ selected }}
               className="flex-1 items-center py-2 rounded-lg"
-              style={selected ? { backgroundColor: theme.card } : undefined}
             >
               <Text
                 className={`text-sm ${selected ? "font-semibold" : "font-medium"}`}
@@ -168,9 +196,11 @@ export function MoreOptions({
         <Text className="text-sm text-muted-foreground flex-1" numberOfLines={1}>
           More options{open ? "" : ` · ${summary}`}
         </Text>
-        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={theme.mutedForeground} />
+        <Chevron open={open} size={18} color={theme.mutedForeground} />
       </Pressable>
-      {open && <View className="mt-4">{children}</View>}
+      <Collapse open={open}>
+        <View className="pt-4">{children}</View>
+      </Collapse>
     </View>
   );
 }

@@ -1,4 +1,5 @@
 import { CalendarModal } from "@/components/ui/CalendarModal";
+import { Pop } from "@/components/motion/Pop";
 
 import { Text } from "@/components/ui";
 import { TYPE_ICONS } from "@/constants/icons";
@@ -97,7 +98,7 @@ export function SearchablePickerList({
               {item.subtitle && <Text className="text-label text-muted-foreground">{item.subtitle}</Text>}
             </View>
             {selectedId === item.id && (
-              <Ionicons name="checkmark" size={16} color={colors.blue} />
+              <Pop><Ionicons name="checkmark" size={16} color={colors.blue} /></Pop>
             )}
           </Pressable>
         ))}
@@ -597,7 +598,7 @@ export function MerchantPicker({
                   {name}
                 </Text>
                 {value.toLowerCase() === name.toLowerCase() && (
-                  <Ionicons name="checkmark" size={16} color={colors.blue} />
+                  <Pop><Ionicons name="checkmark" size={16} color={colors.blue} /></Pop>
                 )}
               </Pressable>
             ))}

@@ -48,6 +48,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { listLayout } from "@/components/motion/motion";
 import { useTheme } from "@/hooks/use-theme";
 
 interface LedgerEntry {
@@ -1135,8 +1137,9 @@ const loadData = useCallback(async () => {
             const isFocused = !!focusTransferId && entry.id === focusTransferId && isTransfer;
 
             return (
+              // Rows slide to close the gap when one is deleted or converted.
+              <Animated.View key={entry.id} layout={listLayout()}>
               <Pressable
-                key={entry.id}
                 style={
                   isFocused
                     ? {
@@ -1345,6 +1348,7 @@ const loadData = useCallback(async () => {
                   )}
                 </View>
               </Pressable>
+              </Animated.View>
             );
           })}
 

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { Platform } from "react-native";
-import { Easing, FadeIn, FadeInUp, FadeOut, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { Easing, FadeIn, FadeInUp, FadeOut, LinearTransition, ZoomIn, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { MOTION } from "@/constants/design-tokens";
 
 /**
@@ -50,6 +50,21 @@ export function fadeIn(delay = 0) {
 export function fadeOut() {
   if (!LAYOUT_ANIMATIONS) return undefined;
   return FadeOut.duration(MOTION.fast).easing(EASE).reduceMotion(ReduceMotion.System);
+}
+
+/** Springs in from small - a tick appearing on the option you just picked. */
+export function popIn() {
+  if (!LAYOUT_ANIMATIONS) return undefined;
+  return ZoomIn.springify().damping(MOTION.spring.snappy.damping).stiffness(MOTION.spring.snappy.stiffness).reduceMotion(ReduceMotion.System);
+}
+
+/**
+ * Rows sliding to their new place when the list changes around them - a row removed (approved,
+ * deleted) closes its gap instead of the list jumping.
+ */
+export function listLayout() {
+  if (!LAYOUT_ANIMATIONS) return undefined;
+  return LinearTransition.duration(MOTION.base).easing(EASE).reduceMotion(ReduceMotion.System);
 }
 
 export function timing(duration: number = MOTION.base) {

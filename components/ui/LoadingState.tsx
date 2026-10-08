@@ -1,4 +1,5 @@
-import { View } from "react-native";
+import Animated from "react-native-reanimated";
+import { fadeOut } from "@/components/motion/motion";
 import type { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Text";
 import { SkeletonList } from "./Skeleton";
@@ -27,11 +28,12 @@ interface LoadingStateProps {
  */
 export function LoadingState({ message, rows = 6 }: LoadingStateProps) {
   return (
-    <View className="flex-1 pt-2" accessibilityLabel={message ?? "Loading"}>
+    // Fades out as the content takes its place, rather than the content popping in over it.
+    <Animated.View exiting={fadeOut()} style={{ flex: 1, paddingTop: 8 }} accessibilityLabel={message ?? "Loading"}>
       <SkeletonList rows={rows} />
       {message ? (
         <Text className="text-meta text-faint-foreground text-center mt-2">{message}</Text>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }

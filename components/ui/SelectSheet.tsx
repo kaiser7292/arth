@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Pop } from "@/components/motion/Pop";
 import { Pressable, View } from "react-native";
 import { Sheet } from "./Sheet";
 import { Text } from "./Text";
@@ -92,7 +93,7 @@ export function SelectSheet<T extends string>({
                 <Text className="text-meta text-muted-foreground mt-0.5">{opt.description}</Text>
               ) : null}
             </View>
-            {active && <Ionicons name="checkmark" size={18} color={theme.primary} />}
+            {active && <Pop><Ionicons name="checkmark" size={18} color={theme.primary} /></Pop>}
           </Pressable>
         );
       })}

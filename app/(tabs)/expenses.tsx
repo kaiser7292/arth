@@ -9,6 +9,8 @@ import {
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
 import { View, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import Animated from "react-native-reanimated";
+import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, Input, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
@@ -1347,7 +1349,9 @@ export default function ExpensesScreen() {
                   }
                 />
               ) : (
-                <FlatList
+                <Animated.FlatList
+                  // Rows slide up to close the gap when one is approved, deleted or moved.
+                  itemLayoutAnimation={listLayout()}
                   initialNumToRender={12}
                   maxToRenderPerBatch={10}
                   windowSize={7}
