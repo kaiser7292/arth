@@ -29,7 +29,7 @@ import { formatLocalDate } from "@/utils/fiscal-year";
 import { logger } from "@/utils/logger";
 import { generateUUID } from "@/utils/uuid";
 import type { ParsedSMS } from "./bank-patterns";
-import { detectSip, inferCreditKind, sipFundLabel } from "./money-signals";
+import { detectInvestmentWithdrawal, detectSip, inferCreditKind, sipFundLabel } from "./money-signals";
 import { resolveFdClosure, resolveSelfTransfer, setMoneyEvent } from "@/services/money-events";
 import { markSmsFailed, markSmsIgnored, markSmsProcessed } from "./sms-parser";
 
@@ -148,7 +148,9 @@ export async function createExpenseFromSms(
     // Not income: an FD paying out, or the user's own money arriving from another account.
     try {
       if (parsed.fdEvent === "closure") await resolveFdClosure(userId, expenseId, parsed);
-      else await resolveSelfTransfer(userId, expenseId, "credit", parsed);
+      else if (detectInvestmentWithdrawal(parsed.type, parsed.merchant, rawBody)) {
+        await setMoneyEvent(expenseId, "investment_withdrawal");
+      } else await resolveSelfTransfer(userId, expenseId, "credit", parsed);
     } catch (e) {
       logger.warn("Credit money-event resolution failed (non-fatal):", e);
     }

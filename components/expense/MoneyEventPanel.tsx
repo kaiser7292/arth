@@ -32,6 +32,8 @@ interface MoneyEventPanelProps {
   onPickTransferAccount: () => void;
   /** Open the investment bucket picker. */
   onLinkBucket: () => void;
+  /** Credit: open "Money back from an investment". */
+  onRecordWithdrawal: () => void;
   /** After an action that leaves this screen's data stale. */
   onChanged: () => void;
 }
@@ -39,7 +41,7 @@ interface MoneyEventPanelProps {
 /**
  * The one-tap card for an SMS row that isn't ordinary spending or income
  * (expenses.money_event): an FD deposit, an FD closure, a transfer to/from the
- * user's own account, or a SIP. Shown at the top of the transaction detail
+ * user's own account, a SIP, or money back from an investment. Shown at the top of the transaction detail
  * screen; Catch Up and the review queue send people here.
  */
 export function MoneyEventPanel({
@@ -48,6 +50,7 @@ export function MoneyEventPanel({
   onSetUpFD,
   onPickTransferAccount,
   onLinkBucket,
+  onRecordWithdrawal,
   onChanged,
 }: MoneyEventPanelProps) {
   const theme = useTheme();
@@ -118,6 +121,8 @@ export function MoneyEventPanel({
           : "Sent to your own name, so it's money moving between your accounts. Pick where it went.";
   } else if (event === "sip") {
     detail = "Mutual fund auto-debit. Link it to a bucket and it counts as investing, not spending.";
+  } else if (event === "investment_withdrawal") {
+    detail = "Looks like a redemption or payout. Pick the investment it came from and it stops counting as income.";
   }
 
   const primary = () => {
@@ -128,6 +133,7 @@ export function MoneyEventPanel({
       } else setFdPickerOpen(true);
     } else if (event === "self_transfer") onPickTransferAccount();
     else if (event === "sip") onLinkBucket();
+    else if (event === "investment_withdrawal") onRecordWithdrawal();
   };
 
   const dismiss = () =>

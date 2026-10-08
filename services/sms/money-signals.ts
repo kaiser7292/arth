@@ -169,6 +169,36 @@ export function sipFundLabel(merchant: string | null, body: string): string {
   return merchant?.trim() || "Mutual fund";
 }
 
+// ─── Investment withdrawal ───────────────────────────────────────────────────
+
+/** Words that only show up when money comes back out of an investment. */
+const WITHDRAWAL_PATTERNS: RegExp[] = [
+  /\bredemption\b/i,
+  /\bredeemed\b/i,
+  /\bredeem\s+proceeds\b/i,
+  /\b(?:PPF|NPS|EPF|PF|provident\s+fund)\b[\s\S]{0,30}?\b(?:withdrawal|claim|settlement|settled|exit)\b/i,
+  /\b(?:withdrawal|claim|settlement)\s+(?:of|from|under)\s+(?:PPF|NPS|EPF|PF|provident\s+fund)\b/i,
+  /\bfunds?\s+(?:payout|withdrawal)\b/i,
+  /\bpayout\s+from\s+(?:your\s+)?(?:trading|demat|broking)\b/i,
+];
+
+/** Brokers whose payouts to the bank are withdrawals from the trading account. */
+const BROKER_RX =
+  /\b(?:ZERODHA|UPSTOX|RKSV|ANGEL\s*(?:ONE|BROKING)|GROWW|DHAN|FYERS|5\s*PAISA|ICICI\s*SEC(?:URITIES)?|HDFC\s*SEC(?:URITIES)?|KOTAK\s*SEC(?:URITIES)?|MOTILAL\s*OSWAL\s*FIN|SHAREKHAN|PAYTM\s*MONEY|INDMONEY)\b/i;
+
+/**
+ * Is this credit money coming back from an investment (MF redemption, broker payout,
+ * PPF/NPS/EPF withdrawal)? Dividends and interest are income, so they never count.
+ */
+export function detectInvestmentWithdrawal(type: string, merchant: string | null, body: string): boolean {
+  if (!CREDIT_TYPES.has(type)) return false;
+  const text = `${merchant ?? ""} ${body}`;
+  if (/\bdividend\b|\binterest\b|\bcash\s*back\b|\brefund/i.test(text)) return false;
+  if (WITHDRAWAL_PATTERNS.some((rx) => rx.test(text))) return true;
+  // From a fund house / registrar / broker with no other explanation.
+  return MF_COLLECTORS.some((rx) => rx.test(text)) || AMC_RX.test(text) || BROKER_RX.test(text);
+}
+
 // ─── Credit type ─────────────────────────────────────────────────────────────
 
 /**

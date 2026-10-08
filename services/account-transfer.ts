@@ -262,6 +262,24 @@ export async function updateTransfer(
  * row marked deleted without undoing
  * its snapshot/bucket deltas.
  */
+/**
+ * Partial investment withdrawal (investment-withdrawal.ts): the credit kept only the gain and
+ * points at the transfer with reclassified_as_transfer = 0. Removing the transfer puts the
+ * withdrawn amount back on it. Run inside the caller's transaction, before linked_transfer_id
+ * is cleared.
+ */
+async function restoreGainCreditsInTxn(transferId: string, amount: number, now: string): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE expenses SET amount = ROUND(amount + ?, 2), credit_kind = NULL, updated_at = ?
+      WHERE linked_transfer_id = ? AND nature = 'credit' AND deleted_at IS NULL
+        AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0);`,
+    amount,
+    now,
+    transferId,
+  );
+}
+
 export async function deleteTransfer(id: string): Promise<void> {
   // Resolve the dynamic import OUTSIDE the transaction. Awaiting an import()
   // inside withTransactionAsync can leave the txn open across a microtask
@@ -271,8 +289,8 @@ export async function deleteTransfer(id: string): Promise<void> {
   const db = getDatabase();
 
   // Get the transfer details to check if it has a linked expense
-  const row = await db.getFirstAsync<{ linked_expense_id: string | null }>(
-    "SELECT linked_expense_id FROM account_transfers WHERE id = ?;",
+  const row = await db.getFirstAsync<{ linked_expense_id: string | null; amount: number }>(
+    "SELECT linked_expense_id, amount FROM account_transfers WHERE id = ?;",
     id,
   );
 
@@ -291,6 +309,7 @@ export async function deleteTransfer(id: string): Promise<void> {
 
     // A paired self-transfer flags the credit side too — restore it with the debit.
     if (hasFlag && hasLinked) {
+      if (row) await restoreGainCreditsInTxn(id, row.amount, now);
       await db.runAsync(
         `UPDATE expenses SET reclassified_as_transfer = 0, linked_transfer_id = NULL, updated_at = ? WHERE linked_transfer_id = ?;`,
         now,
@@ -710,6 +729,7 @@ export async function undoTransfer(transferId: string): Promise<void> {
 
     // A paired self-transfer also flags the other side (the credit) — restore it too.
     if (hasFlag && hasLinked) {
+      await restoreGainCreditsInTxn(transferId, transfer.amount, new Date().toISOString());
       await db.runAsync(
         `UPDATE expenses SET reclassified_as_transfer = 0, linked_transfer_id = NULL, updated_at = ? WHERE linked_transfer_id = ?;`,
         new Date().toISOString(),

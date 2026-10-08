@@ -34,4 +34,11 @@ export const MONEY_EVENT_META: Record<
     primaryAction: "Link to bucket",
     dismissAction: "It's not a SIP",
   },
+  investment_withdrawal: {
+    tag: "Money back from an investment",
+    icon: "trending-down-outline",
+    tone: "primary",
+    primaryAction: "Choose the investment",
+    dismissAction: "It's regular income",
+  },
 };

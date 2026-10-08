@@ -3,6 +3,7 @@ import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { AmountInput } from "@/components/expense/AmountInput";
 import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
 import { MarkAsFDSheet } from "@/components/expense/MarkAsFDSheet";
+import { InvestmentWithdrawalSheet } from "@/components/expense/InvestmentWithdrawalSheet";
 import { MoneyEventPanel } from "@/components/expense/MoneyEventPanel";
 import {
   CreditKindChips,
@@ -887,6 +888,7 @@ export default function ExpenseDetailScreen() {
   const [markAsFDVisible, setMarkAsFDVisible] = useState(false);
   // Credit → transfer reclassification (incoming money that was actually a self-transfer or CC bill payment).
   const [creditTransferPickerVisible, setCreditTransferPickerVisible] = useState(false);
+  const [withdrawalSheetVisible, setWithdrawalSheetVisible] = useState(false);
 
   // Pending demat-transfer follow-up: after Mark-as-Transfer lands in a demat
   // account, we stage this and open the DematTransferTargetSheet. If the user
@@ -1676,6 +1678,14 @@ export default function ExpenseDetailScreen() {
       if (expense.nature === "credit") setCreditTransferPickerVisible(true);
       else setTransferPickerVisible(true);
     } else if (expense.money_event === "sip") setInvestmentSheetVisible(true);
+    else if (expense.money_event === "investment_withdrawal" && expense.account_id) setWithdrawalSheetVisible(true);
+  }, [act, loaded, expense]);
+
+  // act=withdraw: Catch Up's "Money back from an investment" on a plain credit.
+  useEffect(() => {
+    if (act !== "withdraw" || moneyActDone.current || !loaded || !expense) return;
+    moneyActDone.current = true;
+    if (expense.nature === "credit" && expense.account_id) setWithdrawalSheetVisible(true);
   }, [act, loaded, expense]);
 
   if (!loaded || !expense) {
@@ -2124,6 +2134,7 @@ export default function ExpenseDetailScreen() {
                     expense.nature === "credit" ? setCreditTransferPickerVisible(true) : setTransferPickerVisible(true)
                   }
                   onLinkBucket={() => setInvestmentSheetVisible(true)}
+                  onRecordWithdrawal={() => setWithdrawalSheetVisible(true)}
                   onChanged={() => {
                     getExpenseById(id).then((e) => e && setExpense(e)).catch(() => {});
                   }}
@@ -2890,6 +2901,30 @@ export default function ExpenseDetailScreen() {
                 </Pressable>
               )}
 
+              {/* 4e-2. Money back from an investment (MF redemption, broker payout, PPF/NPS/EPF
+                   withdrawal) — recorded against the investment instead of as income. */}
+              {!transfer && expense.nature === "credit" && expense.account_id && !linkedSettlement
+                && expenseAccount?.account_type !== "credit_card" && expense.money_event !== "investment_withdrawal"
+                && !expense.split_person_id && !expense.split_mode && !expense.fulfills_rule_id && (
+                <Pressable
+                  onPress={() => setWithdrawalSheetVisible(true)}
+                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
+                  accessibilityRole="button"
+                  accessibilityLabel="Record this as money back from an investment"
+                >
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                    <Ionicons name="trending-down-outline" size={20} color={theme.primary} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-semibold text-foreground">Investment withdrawal</Text>
+                    <Text className="text-xs text-muted-foreground mt-0.5">
+                      This money came out of a fund, stocks, PPF, NPS or similar
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </Pressable>
+              )}
+
               {/* 4f. v15.12.0: Mark as Settlement (credits only, non-CC). For
                    incoming money that was actually a friend/family settling
                    up a hisaab balance. Hidden for credit-card accounts (a CC
@@ -3556,6 +3591,26 @@ export default function ExpenseDetailScreen() {
           suggestedBankName={expense.merchant_name ?? expenseAccount?.bank_name ?? ""}
           onDone={handleFDCreated}
           onClose={() => setMarkAsFDVisible(false)}
+        />
+      )}
+
+      {expense.nature === "credit" && expense.account_id && (
+        <InvestmentWithdrawalSheet
+          visible={withdrawalSheetVisible}
+          creditId={expense.id}
+          amount={expense.amount}
+          suggestedName={expense.merchant_name ?? ""}
+          onDone={(r) => {
+            setWithdrawalSheetVisible(false);
+            toast(
+              r.gain > 0
+                ? `Recorded as a withdrawal, ${formatAmount(r.gain)} as gain`
+                : "Recorded as a withdrawal from your investment",
+              { tone: "success" },
+            );
+            router.back();
+          }}
+          onClose={() => setWithdrawalSheetVisible(false)}
         />
       )}
 

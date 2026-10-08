@@ -662,7 +662,8 @@ export async function deleteInvestmentContribution(
     `UPDATE account_transfers
      SET linked_contribution_id = NULL,
          investment_bucket_id = NULL,
-         demat_target = NULL,
+         -- A withdrawal's fund-snapshot change isn't the contribution's; keep its marker for undo.
+         demat_target = CASE WHEN demat_target = 'withdrawal' THEN demat_target ELSE NULL END,
          updated_at = datetime('now')
      WHERE linked_contribution_id = ?;`,
     id,

@@ -87,9 +87,9 @@ export interface Expense {
   updated_at: string;
 }
 
-export type MoneyEvent = "fd_open" | "fd_closure" | "self_transfer" | "sip";
+export type MoneyEvent = "fd_open" | "fd_closure" | "self_transfer" | "sip" | "investment_withdrawal";
 
-export const CREDIT_KINDS = ["salary", "interest", "refund", "cashback", "reimbursement", "gift", "other"] as const;
+export const CREDIT_KINDS = ["salary", "interest", "refund", "cashback", "reimbursement", "gift", "gain", "other"] as const;
 export type CreditKind = (typeof CREDIT_KINDS)[number];
 
 export const CREDIT_KIND_LABELS: Record<CreditKind, string> = {
@@ -99,6 +99,7 @@ export const CREDIT_KIND_LABELS: Record<CreditKind, string> = {
   cashback: "Cashback",
   reimbursement: "Reimbursement",
   gift: "Gift",
+  gain: "Investment gain",
   other: "Other",
 };
 

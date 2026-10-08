@@ -1,5 +1,6 @@
 import {
   detectFdEvent,
+  detectInvestmentWithdrawal,
   detectSip,
   extractCounterpartyName,
   matchesAnySelfName,
@@ -116,5 +117,30 @@ describe("inferDirection", () => {
   });
   it("is unsure without direction words", () => {
     expect(inferDirection("rs.500 at shop")).toEqual({ type: "debit", confident: false });
+  });
+});
+
+describe("detectInvestmentWithdrawal", () => {
+  it.each([
+    ["credit", null, "Rs 1,50,000 credited to A/c XX12 - ICCL MF REDEMPTION"],
+    ["upi_credit", "ZERODHA BROKING", "Rs 20,000 credited to A/c XX12 from ZERODHA BROKING"],
+    ["credit", null, "INR 80,000 credited - PPF withdrawal from A/c 1234"],
+    ["credit", null, "Amount of Rs 2,40,000 credited towards EPF claim settlement"],
+    ["credit", "PARAG PARIKH MUTUAL FUND", "INR 5,000 credited by PARAG PARIKH MUTUAL FUND"],
+  ])("%s from %s is a withdrawal", (type, merchant, body) => {
+    expect(detectInvestmentWithdrawal(type, merchant, body)).toBe(true);
+  });
+
+  it("dividends, interest and refunds are income, not withdrawals", () => {
+    expect(detectInvestmentWithdrawal("credit", null, "Rs 50 credited ACH*IPL FNLDIV dividend")).toBe(false);
+    expect(detectInvestmentWithdrawal("credit", "ZERODHA", "Interest credited Rs 12")).toBe(false);
+  });
+
+  it("only credits count", () => {
+    expect(detectInvestmentWithdrawal("debit", null, "ICCL MF REDEMPTION")).toBe(false);
+  });
+
+  it("ordinary credits aren't withdrawals", () => {
+    expect(detectInvestmentWithdrawal("credit", "ACME PVT LTD", "Salary for Sep credited")).toBe(false);
   });
 });

@@ -227,10 +227,27 @@ async function reverseDematTransferSideEffectsInTxn(transferId: string): Promise
      FROM account_transfers WHERE id = ?;`,
     transferId,
   );
-  if (!row || !row.demat_target) return;
+  if (!row) return;
+
+  // An investment withdrawal can carry a negative bucket contribution with or without a
+  // snapshot change (investment-withdrawal.ts) — remove it either way.
+  const removeWithdrawalContribution = async () => {
+    if (!row.linked_contribution_id || !row.investment_bucket_id) return;
+    await db.runAsync(
+      `UPDATE account_transfers SET investment_bucket_id = NULL, linked_contribution_id = NULL, updated_at = datetime('now') WHERE id = ?;`,
+      transferId,
+    );
+    await deleteInvestmentContribution(row.linked_contribution_id, row.investment_bucket_id);
+  };
+
+  if (!row.demat_target) {
+    await removeWithdrawalContribution();
+    return;
+  }
 
   // Withdrawal: reverse by adding back the amount to the fund snapshot on from_account_id.
   if (row.demat_target === "withdrawal") {
+    await removeWithdrawalContribution();
     await db.runAsync(
       `UPDATE account_transfers SET demat_target = NULL, updated_at = datetime('now') WHERE id = ?;`,
       transferId,
