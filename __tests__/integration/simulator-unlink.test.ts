@@ -33,7 +33,10 @@ jest.mock("../../utils/uuid", () => ({ generateUUID: () => "unused-in-this-suite
 
 import { unlinkEntryFulfillment } from "../../services/simulator";
 
-const TODAY = new Date().toISOString().slice(0, 10);
+// Local date, like the app's todayIso(). toISOString() is UTC, which in India is still yesterday
+// between midnight and 5:30 AM - the entry then read as past ("stale") and this failed overnight.
+const _now = new Date();
+const TODAY = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, "0")}-${String(_now.getDate()).padStart(2, "0")}`;
 const PAST = "2020-01-01";
 const FUTURE = "2099-01-01";
 
