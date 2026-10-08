@@ -14,7 +14,7 @@
 
 Built with React Native and Expo. Open source. No data leaves your phone.
 
-**Current version: v4.8.0** · [All releases](https://github.com/kaiser7292/arth/releases)
+**Current version: v4.8.1** · [All releases](https://github.com/kaiser7292/arth/releases)
 
 ---
 
@@ -188,7 +188,7 @@ artha/
 
 | Version | Highlights |
 |---------|-----------|
-| **v4.8** | Record money back from any investment (MF, stocks, PPF, NPS, EPF) with gain split, bucket and close; redemption SMS detection; daily demat statement (money in/out and market gain per day); Investments 12-month line chart with % legend; Catch Up merchant and payment mode chips, and card edits carry into Edit |
+| **v4.8** | Record money back from any investment (MF, stocks, PPF, NPS, EPF) with gain split, bucket and close; redemption SMS detection; daily demat statement (money in/out and market gain per day); Investments 12-month stacked chart with % legend and per-account drill-down; broker-synced snapshots stay the truth for their day; Catch Up merchant and payment mode chips, and card edits carry into Edit |
 | **v4.7** | Month-end projection uses the same spending rule as the budget (no transfers or loan payments) and the median month; rebuilt bill-pattern learning; "Monthly bills" check-in |
 | **v4.6** | Smart SMS Templates: flexible matching, Auto money-in/out type, read past unread messages into review, configurable look-back, learn from several examples, grouped Unrecognised list, name and other-account fields |
 | **v4.5** | FD, own-account transfer and SIP detection with one-tap review cards; SBI/HDFC 2026 SMS formats; first-run "Here's your money"; new Spent · Received · Transfer form with credit types; card-bill part payments; Send unrecognised SMS to developer |
