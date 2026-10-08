@@ -51,7 +51,9 @@ import { runMigrations } from "../../database/migrations";
 import { seedDefaultUser } from "../../database/seed";
 import { deleteTransfer, undoTransfer } from "../../services/account-transfer";
 import { computeUnseededBalance, getMonthBalanceSummary } from "../../services/account-balance";
-import { addOrUpdateFundSnapshot, createManualAccount } from "../../services/financial-account";
+import { addOrUpdateFundSnapshot, createManualAccount, saveBrokerSnapshot } from "../../services/financial-account";
+import { createTransfer } from "../../services/account-transfer";
+import { handleDematTransferSideEffects } from "../../services/demat-transfer";
 import { getInvestmentProduct } from "../../services/investment-accounts";
 import { recordInvestmentWithdrawal } from "../../services/investment-withdrawal";
 import { createInvestmentBucket, createYearlyPlan } from "../../services/yearly-plan";
@@ -218,3 +220,69 @@ describe("quick-add", () => {
     expect(closed.closed_at).not.toBeNull();
   });
 });
+
+describe("broker-synced days (migration 082)", () => {
+  const applied = (id: string) =>
+    (mockDb.prepare(`SELECT snapshot_applied FROM account_transfers WHERE id = ?`).get(id) as { snapshot_applied: number | null })
+      .snapshot_applied;
+  const source = (date: string) =>
+    (mockDb.prepare(`SELECT source FROM demat_fund_snapshots WHERE account_id = ? AND snapshot_date = ?`).get(DEMAT, date) as
+      | { source: string | null }
+      | undefined)?.source;
+
+  it("a sync earlier that day already has the withdrawal - the broker figure isn't lowered again", async () => {
+    await saveBrokerSnapshot(DEMAT, 400000, 150000, "2026-09-15");
+    const id = await credit(50000);
+    const r = await recordInvestmentWithdrawal({ creditId: id, investmentAccountId: DEMAT, withdrawnAmount: 50000 });
+    expect(fundOn(DEMAT, "2026-09-15")).toBe(150000);
+    expect(applied(r.transferId)).toBe(0);
+
+    await undoTransfer(r.transferId);
+    expect(fundOn(DEMAT, "2026-09-15")).toBe(150000);
+  });
+
+  it("a sync after the withdrawal replaces the adjusted cash - undo leaves the broker figure alone", async () => {
+    const id = await credit(50000);
+    const r = await recordInvestmentWithdrawal({ creditId: id, investmentAccountId: DEMAT, withdrawnAmount: 50000 });
+    expect(fundOn(DEMAT, "2026-09-15")).toBe(150000);
+    expect(source("2026-09-15")).toBe("auto");
+    expect(applied(r.transferId)).toBe(1);
+
+    await saveBrokerSnapshot(DEMAT, 400000, 148000, "2026-09-15");
+    expect(source("2026-09-15")).toBe("broker");
+
+    await undoTransfer(r.transferId);
+    expect(fundOn(DEMAT, "2026-09-15")).toBe(148000);
+    expect(row(id).reclassified_as_transfer).toBe(0);
+  });
+
+  it("a typed-in snapshot is still adjusted and restored as before", async () => {
+    await addOrUpdateFundSnapshot(DEMAT, "2026-09-15", 120000);
+    const id = await credit(20000);
+    const r = await recordInvestmentWithdrawal({ creditId: id, investmentAccountId: DEMAT, withdrawnAmount: 20000 });
+    expect(fundOn(DEMAT, "2026-09-15")).toBe(100000);
+    expect(source("2026-09-15")).toBe("manual");
+    await undoTransfer(r.transferId);
+    expect(fundOn(DEMAT, "2026-09-15")).toBe(120000);
+  });
+
+  it("money added on a broker-synced day doesn't change the broker figure, and delete doesn't either", async () => {
+    await saveBrokerSnapshot(DEMAT, 400000, 260000, "2026-09-10");
+    const t = await createTransfer({ userId: U, fromAccountId: SBI, toAccountId: DEMAT, amount: 60000, date: "2026-09-10" });
+    await handleDematTransferSideEffects(t, DEMAT, 60000, "2026-09-10", { target: "fund" });
+    expect(fundOn(DEMAT, "2026-09-10")).toBe(260000);
+    expect(applied(t)).toBe(0);
+    await deleteTransfer(t);
+    expect(fundOn(DEMAT, "2026-09-10")).toBe(260000);
+  });
+
+  it("transfers from before migration 082 still reverse on non-broker days", async () => {
+    const id = await credit(10000);
+    const r = await recordInvestmentWithdrawal({ creditId: id, investmentAccountId: DEMAT, withdrawnAmount: 10000 });
+    mockDb.prepare(`UPDATE account_transfers SET snapshot_applied = NULL WHERE id = ?`).run(r.transferId);
+    mockDb.prepare(`UPDATE demat_fund_snapshots SET source = NULL WHERE account_id = ?`).run(DEMAT);
+    await undoTransfer(r.transferId);
+    expect(fundOn(DEMAT, "2026-09-15")).toBe(200000);
+  });
+});
+

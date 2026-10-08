@@ -50,6 +50,86 @@ function resolveTable(target: DematTarget): {
 }
 
 /**
+ * Add `delta` to the account's snapshot on `date`, or start one there from the latest earlier
+ * value. Returns false - and changes nothing - when that day's snapshot came from a broker sync:
+ * the broker's figure is the truth for its day and already includes any money that moved
+ * (migration 082). A new row is marked 'auto'; an existing manual row keeps its source.
+ */
+async function applySnapshotDelta(
+  table: SnapshotTable,
+  column: ValueColumn,
+  accountId: string,
+  date: string,
+  delta: number,
+): Promise<boolean> {
+  const db = getDatabase();
+  const existing = await db.getFirstAsync<{ id: string; value: number; source: string | null }>(
+    `SELECT id, ${column} AS value, source FROM ${table} WHERE account_id = ? AND snapshot_date = ?;`,
+    accountId,
+    date,
+  );
+  if (existing) {
+    if (existing.source === "broker") return false;
+    await db.runAsync(
+      `UPDATE ${table} SET ${column} = ?, updated_at = datetime('now') WHERE id = ?;`,
+      existing.value + delta,
+      existing.id,
+    );
+    return true;
+  }
+  const baselineRow = await db.getFirstAsync<{ value: number }>(
+    `SELECT ${column} AS value FROM ${table}
+     WHERE account_id = ? AND snapshot_date <= ?
+     ORDER BY snapshot_date DESC LIMIT 1;`,
+    accountId,
+    date,
+  );
+  await db.runAsync(
+    `INSERT INTO ${table} (id, account_id, snapshot_date, ${column}, source)
+     VALUES (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-' ||
+             lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' ||
+             lower(hex(randomblob(6))), ?, ?, ?, 'auto');`,
+    accountId,
+    date,
+    (baselineRow?.value ?? 0) + delta,
+  );
+  return true;
+}
+
+/**
+ * Undo applySnapshotDelta. Skipped when the transfer never changed a snapshot (applied = 0), or
+ * when that day's snapshot is now a broker figure - a sync after the transfer replaced the
+ * adjusted value with the real one, so taking the transfer back out would double-count it.
+ * `applied` NULL = a transfer from before migration 082, treated as applied.
+ */
+async function reverseSnapshotDelta(
+  table: SnapshotTable,
+  column: ValueColumn,
+  accountId: string,
+  date: string,
+  delta: number,
+  applied: number | null,
+  dropIfEmpty: boolean,
+): Promise<void> {
+  if (applied === 0) return;
+  const db = getDatabase();
+  const snap = await db.getFirstAsync<{ id: string; value: number; source: string | null }>(
+    `SELECT id, ${column} AS value, source FROM ${table} WHERE account_id = ? AND snapshot_date = ?;`,
+    accountId,
+    date,
+  );
+  if (!snap || snap.source === "broker") return;
+  const next = snap.value - delta;
+  // Clean up phantom-zero snapshots: if taking a deposit back out empties the row, delete it so
+  // history doesn't show a 0-value blip.
+  if (dropIfEmpty && next <= 0.0001) {
+    await db.runAsync(`DELETE FROM ${table} WHERE id = ?;`, snap.id);
+  } else {
+    await db.runAsync(`UPDATE ${table} SET ${column} = ?, updated_at = datetime('now') WHERE id = ?;`, next, snap.id);
+  }
+}
+
+/**
  * Apply the demat side-effects of a transfer that just landed in a demat
  * account. Updates the chosen snapshot table additively on `date` and — if a
  * bucket is provided — also creates an investment_contributions row. Stamps
@@ -71,42 +151,8 @@ export async function handleDematTransferSideEffects(
   const month = date.slice(0, 7); // YYYY-MM
 
   await db.withTransactionAsync(async () => {
-    // 1. Same-date snapshot: additive upsert.
-    //    If a snapshot already exists for this (account, date), add the amount
-    //    to it. Otherwise take the most recent snapshot on-or-before this date
-    //    as the baseline and insert a new row at `baseline + amount`.
-    const existing = await db.getFirstAsync<{ id: string; value: number }>(
-      `SELECT id, ${column} as value FROM ${table}
-       WHERE account_id = ? AND snapshot_date = ?;`,
-      dematAccountId,
-      date,
-    );
-
-    if (existing) {
-      await db.runAsync(
-        `UPDATE ${table} SET ${column} = ?, updated_at = datetime('now') WHERE id = ?;`,
-        existing.value + amount,
-        existing.id,
-      );
-    } else {
-      const baselineRow = await db.getFirstAsync<{ value: number }>(
-        `SELECT ${column} as value FROM ${table}
-         WHERE account_id = ? AND snapshot_date <= ?
-         ORDER BY snapshot_date DESC LIMIT 1;`,
-        dematAccountId,
-        date,
-      );
-      const baseline = baselineRow?.value ?? 0;
-      await db.runAsync(
-        `INSERT INTO ${table} (id, account_id, snapshot_date, ${column})
-         VALUES (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-' ||
-                 lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' ||
-                 lower(hex(randomblob(6))), ?, ?, ?);`,
-        dematAccountId,
-        date,
-        baseline + amount,
-      );
-    }
+    // 1. Same-date snapshot: additive upsert (unless that day is a broker figure).
+    const applied = await applySnapshotDelta(table, column, dematAccountId, date, amount);
 
     // 2. Optional: record an investment_contributions row so the yearly plan +
     //    linked milestone reflect this transfer as progress. createInvestmentContribution
@@ -129,11 +175,12 @@ export async function handleDematTransferSideEffects(
     await db.runAsync(
       `UPDATE account_transfers
        SET demat_target = ?, investment_bucket_id = ?, linked_contribution_id = ?,
-           updated_at = datetime('now')
+           snapshot_applied = ?, updated_at = datetime('now')
        WHERE id = ?;`,
       input.target,
       bucketId,
       contributionId,
+      applied ? 1 : 0,
       transferId,
     );
   });
@@ -144,7 +191,8 @@ export async function handleDematTransferSideEffects(
  * Apply the demat side-effect of a transfer that came FROM a demat account
  * (redemption/withdrawal). Subtracts the transfer amount from the idle fund
  * snapshot on `date` and stamps demat_target = 'withdrawal' so deletion knows
- * to reverse it. Always subtracts from the fund (idle cash), never portfolio.
+ * to reverse it. Always subtracts from the fund (idle cash), never portfolio - except when that
+ * day's figure came from a broker sync, which already reflects the withdrawal.
  */
 export async function handleDematWithdrawalSideEffects(
   transferId: string,
@@ -158,43 +206,12 @@ export async function handleDematWithdrawalSideEffects(
   const db = getDatabase();
 
   await db.withTransactionAsync(async () => {
-    const existing = await db.getFirstAsync<{ id: string; fund_value: number }>(
-      `SELECT id, fund_value FROM demat_fund_snapshots
-       WHERE account_id = ? AND snapshot_date = ?;`,
-      dematAccountId,
-      date,
-    );
-
-    if (existing) {
-      await db.runAsync(
-        `UPDATE demat_fund_snapshots SET fund_value = ?, updated_at = datetime('now') WHERE id = ?;`,
-        existing.fund_value - amount,
-        existing.id,
-      );
-    } else {
-      const baselineRow = await db.getFirstAsync<{ fund_value: number }>(
-        `SELECT fund_value FROM demat_fund_snapshots
-         WHERE account_id = ? AND snapshot_date <= ?
-         ORDER BY snapshot_date DESC LIMIT 1;`,
-        dematAccountId,
-        date,
-      );
-      const baseline = baselineRow?.fund_value ?? 0;
-      await db.runAsync(
-        `INSERT INTO demat_fund_snapshots (id, account_id, snapshot_date, fund_value)
-         VALUES (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-' ||
-                 lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' ||
-                 lower(hex(randomblob(6))), ?, ?, ?);`,
-        dematAccountId,
-        date,
-        baseline - amount,
-      );
-    }
-
+    const applied = await applySnapshotDelta("demat_fund_snapshots", "fund_value", dematAccountId, date, -amount);
     await db.runAsync(
       `UPDATE account_transfers
-       SET demat_target = 'withdrawal', updated_at = datetime('now')
+       SET demat_target = 'withdrawal', snapshot_applied = ?, updated_at = datetime('now')
        WHERE id = ?;`,
+      applied ? 1 : 0,
       transferId,
     );
   });
@@ -222,8 +239,10 @@ async function reverseDematTransferSideEffectsInTxn(transferId: string): Promise
     demat_target: DematTarget | null;
     investment_bucket_id: string | null;
     linked_contribution_id: string | null;
+    snapshot_applied: number | null;
   }>(
-    `SELECT amount, date, from_account_id, to_account_id, demat_target, investment_bucket_id, linked_contribution_id
+    `SELECT amount, date, from_account_id, to_account_id, demat_target, investment_bucket_id, linked_contribution_id,
+            snapshot_applied
      FROM account_transfers WHERE id = ?;`,
     transferId,
   );
@@ -249,22 +268,18 @@ async function reverseDematTransferSideEffectsInTxn(transferId: string): Promise
   if (row.demat_target === "withdrawal") {
     await removeWithdrawalContribution();
     await db.runAsync(
-      `UPDATE account_transfers SET demat_target = NULL, updated_at = datetime('now') WHERE id = ?;`,
+      `UPDATE account_transfers SET demat_target = NULL, snapshot_applied = NULL, updated_at = datetime('now') WHERE id = ?;`,
       transferId,
     );
-    const snap = await db.getFirstAsync<{ id: string; fund_value: number }>(
-      `SELECT id, fund_value FROM demat_fund_snapshots
-       WHERE account_id = ? AND snapshot_date = ?;`,
+    await reverseSnapshotDelta(
+      "demat_fund_snapshots",
+      "fund_value",
       row.from_account_id,
       row.date,
+      -row.amount,
+      row.snapshot_applied,
+      false,
     );
-    if (snap) {
-      await db.runAsync(
-        `UPDATE demat_fund_snapshots SET fund_value = ?, updated_at = datetime('now') WHERE id = ?;`,
-        snap.fund_value + row.amount,
-        snap.id,
-      );
-    }
     return;
   }
 
@@ -310,32 +325,13 @@ async function reverseDematTransferSideEffectsInTxn(transferId: string): Promise
     await db.runAsync(
       `UPDATE account_transfers
        SET demat_target = NULL, investment_bucket_id = NULL, linked_contribution_id = NULL,
-           updated_at = datetime('now')
+           snapshot_applied = NULL, updated_at = datetime('now')
        WHERE id = ?;`,
       transferId,
     );
 
     // 2. Subtract the amount from the snapshot on this date.
-    const snap = await db.getFirstAsync<{ id: string; value: number }>(
-      `SELECT id, ${column} as value FROM ${table}
-       WHERE account_id = ? AND snapshot_date = ?;`,
-      row.to_account_id,
-      row.date,
-    );
-    if (snap) {
-      const next = snap.value - row.amount;
-      // Clean up phantom-zero snapshots: if this subtraction empties the row
-      // to zero or below, delete it so history doesn't show a 0-value blip.
-      if (next <= 0.0001) {
-        await db.runAsync(`DELETE FROM ${table} WHERE id = ?;`, snap.id);
-      } else {
-        await db.runAsync(
-          `UPDATE ${table} SET ${column} = ?, updated_at = datetime('now') WHERE id = ?;`,
-          next,
-          snap.id,
-        );
-      }
-    }
+    await reverseSnapshotDelta(table, column, row.to_account_id, row.date, row.amount, row.snapshot_applied, true);
 
     // 3. Remove the investment_contributions row we created, if any.
     //    Uses the stamped id (migration 011) — O(1) PK lookup, deterministic

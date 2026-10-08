@@ -27,9 +27,9 @@
 |-------|---------|-------------|
 | `financial_accounts` | Bank/CC/wallet/demat/loan accounts | id, account_type, bank_name, account_label, account_identifier, is_active |
 | `account_balance_sms` | SMS-reported balances | id, account_id, balance, date, raw_sms |
-| `account_transfers` | Inter-account transfers | id, from_account_id, to_account_id, amount, date, demat_target, investment_bucket_id |
-| `demat_fund_snapshots` | Demat idle cash snapshots | id, account_id, value, snapshot_date |
-| `demat_portfolio_snapshots` | Demat portfolio value snapshots | id, account_id, value, snapshot_date |
+| `account_transfers` | Inter-account transfers | id, from_account_id, to_account_id, amount, date, demat_target, investment_bucket_id, snapshot_applied (082: did the transfer change a demat snapshot) |
+| `demat_fund_snapshots` | Demat idle cash snapshots | id, account_id, fund_value, snapshot_date, source (082: broker / manual / auto; NULL = manual) |
+| `demat_portfolio_snapshots` | Demat portfolio value snapshots | id, account_id, portfolio_value, snapshot_date, source (082) |
 
 ### Hisaab (Family Ledger)
 | Table | Purpose | Key Columns |
@@ -108,6 +108,7 @@
 | 040 | expense_edit_history | Edit audit trail |
 | 042 | simulator_transfers | Simulator account transfer support |
 | 043 | settings_table | Centralized user settings |
+| 082 | snapshot_source | Snapshot `source` (broker sync is the truth for its day: transfers neither adjust nor un-adjust it) + `account_transfers.snapshot_applied` |
 
 ## Backup & Restore
 

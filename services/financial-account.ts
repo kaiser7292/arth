@@ -56,11 +56,18 @@ export interface FinancialAccount {
   updated_at: string;
 }
 
+/**
+ * Where a snapshot came from (migration 082). A broker figure is the truth for its day, so
+ * transfers neither adjust it nor un-adjust it (services/demat-transfer.ts). NULL = before 082.
+ */
+export type SnapshotSource = "broker" | "manual" | "auto";
+
 export interface PortfolioSnapshot {
   id: string;
   account_id: string;
   snapshot_date: string;
   portfolio_value: number;
+  source?: SnapshotSource | null;
   created_at: string;
   updated_at: string;
 }
@@ -1196,8 +1203,8 @@ export async function saveBrokerSnapshot(
   const fund = toAmount(fundValue);
   const db = getDatabase();
   await db.withTransactionAsync(async () => {
-    await addOrUpdateSnapshot(accountId, date, portfolio);
-    await addOrUpdateFundSnapshot(accountId, date, fund);
+    await addOrUpdateSnapshot(accountId, date, portfolio, "broker");
+    await addOrUpdateFundSnapshot(accountId, date, fund, "broker");
   });
   return { portfolio, fund };
 }
@@ -1210,6 +1217,7 @@ export async function addOrUpdateSnapshot(
   accountId: string,
   date: string,
   value: number,
+  source: SnapshotSource = "manual",
 ): Promise<void> {
   const db = getDatabase();
   const existing = await db.getFirstAsync<{ id: string }>(
@@ -1222,20 +1230,22 @@ export async function addOrUpdateSnapshot(
   if (existing) {
     await db.runAsync(
       `UPDATE demat_portfolio_snapshots
-       SET portfolio_value = ?, updated_at = datetime('now')
+       SET portfolio_value = ?, source = ?, updated_at = datetime('now')
        WHERE id = ?;`,
       value,
+      source,
       existing.id,
     );
   } else {
     const id = generateUUID();
     await db.runAsync(
-      `INSERT INTO demat_portfolio_snapshots (id, account_id, snapshot_date, portfolio_value)
-       VALUES (?, ?, ?, ?);`,
+      `INSERT INTO demat_portfolio_snapshots (id, account_id, snapshot_date, portfolio_value, source)
+       VALUES (?, ?, ?, ?, ?);`,
       id,
       accountId,
       date,
       value,
+      source,
     );
   }
   await bumpDataVersion();
@@ -1360,6 +1370,7 @@ export interface FundSnapshot {
   account_id: string;
   snapshot_date: string;
   fund_value: number;
+  source?: SnapshotSource | null;
   created_at: string;
   updated_at: string;
 }
@@ -1376,6 +1387,7 @@ export async function addOrUpdateFundSnapshot(
   accountId: string,
   date: string,
   value: number,
+  source: SnapshotSource = "manual",
 ): Promise<void> {
   const db = getDatabase();
   const existing = await db.getFirstAsync<{ id: string }>(
@@ -1387,19 +1399,21 @@ export async function addOrUpdateFundSnapshot(
   if (existing) {
     await db.runAsync(
       `UPDATE demat_fund_snapshots
-       SET fund_value = ?, updated_at = datetime('now')
+       SET fund_value = ?, source = ?, updated_at = datetime('now')
        WHERE id = ?;`,
       value,
+      source,
       existing.id,
     );
   } else {
     await db.runAsync(
-      `INSERT INTO demat_fund_snapshots (id, account_id, snapshot_date, fund_value)
-       VALUES (?, ?, ?, ?);`,
+      `INSERT INTO demat_fund_snapshots (id, account_id, snapshot_date, fund_value, source)
+       VALUES (?, ?, ?, ?, ?);`,
       generateUUID(),
       accountId,
       date,
       value,
+      source,
     );
   }
   await bumpDataVersion();

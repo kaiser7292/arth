@@ -419,6 +419,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "linked_contribution_id", // 011
     "raw_source_text", // 023
     "source_sms_address", // 023
+    "snapshot_applied", // 082
   ] as const,
 
   expense_splits: [
@@ -438,6 +439,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "portfolio_value",
     "created_at",
     "updated_at",
+    "source", // 082
   ] as const,
 
   demat_fund_snapshots: [
@@ -447,6 +449,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "fund_value",
     "created_at",
     "updated_at",
+    "source", // 082
   ] as const,
 
   expense_classifications: [
