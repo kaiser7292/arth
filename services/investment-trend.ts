@@ -23,6 +23,8 @@ export type InvestmentGroup = "fd" | "market" | "pension";
 export interface InvestmentTrend {
   months: string[];
   byGroup: Record<InvestmentGroup, MonthlyTotal[]>;
+  /** Each account's value per month (same order as `months`), for the per-category drill-down. */
+  byAccount: Record<string, number[]>;
   total: MonthlyTotal[];
 }
 
@@ -74,6 +76,7 @@ export async function getInvestmentTrend(
     fd: months.map(() => 0),
   };
   const last = months.length - 1;
+  const byAccount: Record<string, number[]> = {};
 
   for (const account of accounts) {
     const product = products.get(account.id) ?? null;
@@ -118,6 +121,7 @@ export async function getInvestmentTrend(
 
     const now = currentValues.get(account.id);
     if (now != null) series[last] = now;
+    byAccount[account.id] = series.map((v) => Math.round(v * 100) / 100);
     series.forEach((v, i) => {
       sums[group][i] += v;
     });
@@ -128,6 +132,7 @@ export async function getInvestmentTrend(
   return {
     months,
     byGroup: { market: toTotals(sums.market), pension: toTotals(sums.pension), fd: toTotals(sums.fd) },
+    byAccount,
     total: toTotals(months.map((_, i) => sums.market[i] + sums.pension[i] + sums.fd[i])),
   };
 }
