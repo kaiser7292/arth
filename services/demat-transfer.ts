@@ -206,16 +206,103 @@ export async function handleDematWithdrawalSideEffects(
   const db = getDatabase();
 
   await db.withTransactionAsync(async () => {
-    const applied = await applySnapshotDelta("demat_fund_snapshots", "fund_value", dematAccountId, date, -amount);
+    // A broker figure for that day already includes the withdrawal (migration 082): leave both alone.
+    const brokerDay = await db.getFirstAsync<{ n: number }>(
+      `SELECT (SELECT COUNT(*) FROM demat_fund_snapshots WHERE account_id = ? AND snapshot_date = ? AND source = 'broker')
+            + (SELECT COUNT(*) FROM demat_portfolio_snapshots WHERE account_id = ? AND snapshot_date = ? AND source = 'broker') AS n;`,
+      dematAccountId,
+      date,
+      dematAccountId,
+      date,
+    );
+    let applied = false;
+    let fromHoldings = 0;
+    if (!brokerDay?.n) {
+      // Idle cash pays first; anything beyond it came from selling holdings. (Taking it all off
+      // cash sent cash negative and later read as a market loss.)
+      const cash = await latestValue("demat_fund_snapshots", "fund_value", dematAccountId, date);
+      const holdings = await latestValue("demat_portfolio_snapshots", "portfolio_value", dematAccountId, date);
+      const fromCash = Math.min(amount, Math.max(cash, 0));
+      fromHoldings = Math.min(amount - fromCash, Math.max(holdings, 0));
+      const cashPart = amount - fromHoldings; // whatever holdings can't cover stays on cash
+      if (cashPart > 0) await applySnapshotDelta("demat_fund_snapshots", "fund_value", dematAccountId, date, -cashPart);
+      if (fromHoldings > 0) await applySnapshotDelta("demat_portfolio_snapshots", "portfolio_value", dematAccountId, date, -fromHoldings);
+      applied = true;
+    }
     await db.runAsync(
       `UPDATE account_transfers
-       SET demat_target = 'withdrawal', snapshot_applied = ?, updated_at = datetime('now')
+       SET demat_target = 'withdrawal', snapshot_applied = ?, portfolio_delta = ?, updated_at = datetime('now')
        WHERE id = ?;`,
       applied ? 1 : 0,
+      applied ? fromHoldings : 0,
       transferId,
     );
   });
   bumpDataVersion();
+}
+
+/** The latest value on or before `date` (0 when there is none). */
+async function latestValue(table: SnapshotTable, column: ValueColumn, accountId: string, date: string): Promise<number> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{ v: number }>(
+    `SELECT ${column} AS v FROM ${table} WHERE account_id = ? AND snapshot_date <= ? ORDER BY snapshot_date DESC LIMIT 1;`,
+    accountId,
+    date,
+  );
+  return row?.v ?? 0;
+}
+
+/**
+ * One-time-per-row repair for withdrawals recorded before migration 083, which took everything
+ * off idle cash: where that left the day's cash below zero, the shortfall really came from
+ * holdings sold, so it moves to the portfolio figure. Idempotent - each repaired (or checked)
+ * transfer gets portfolio_delta set, and only rows with it NULL are looked at. Broker figures are
+ * never touched.
+ */
+export async function repairWithdrawalSplits(userId: string): Promise<number> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{ id: string; from_account_id: string; date: string; snapshot_applied: number | null }>(
+    `SELECT t.id, t.from_account_id, t.date, t.snapshot_applied FROM account_transfers t
+      WHERE t.user_id = ? AND t.demat_target = 'withdrawal' AND t.portfolio_delta IS NULL AND t.deleted_at IS NULL
+      ORDER BY t.date;`,
+    userId,
+  );
+  let fixed = 0;
+  for (const r of rows) {
+    let move = 0;
+    if (r.snapshot_applied !== 0) {
+      const cash = await db.getFirstAsync<{ id: string; v: number; source: string | null }>(
+        `SELECT id, fund_value AS v, source FROM demat_fund_snapshots WHERE account_id = ? AND snapshot_date = ?;`,
+        r.from_account_id,
+        r.date,
+      );
+      if (cash && cash.source !== "broker" && cash.v < 0) {
+        const before = await db.getFirstAsync<{ v: number }>(
+          `SELECT portfolio_value AS v FROM demat_portfolio_snapshots
+            WHERE account_id = ? AND snapshot_date <= ? AND NOT (snapshot_date = ? AND source = 'broker')
+            ORDER BY snapshot_date DESC LIMIT 1;`,
+          r.from_account_id,
+          r.date,
+          r.date,
+        );
+        move = Math.min(-cash.v, Math.max(before?.v ?? 0, 0));
+        if (move > 0) {
+          await db.withTransactionAsync(async () => {
+            await db.runAsync(
+              `UPDATE demat_fund_snapshots SET fund_value = ?, updated_at = datetime('now') WHERE id = ?;`,
+              cash.v + move,
+              cash.id,
+            );
+            await applySnapshotDelta("demat_portfolio_snapshots", "portfolio_value", r.from_account_id, r.date, -move);
+          });
+          fixed++;
+        }
+      }
+    }
+    await db.runAsync(`UPDATE account_transfers SET portfolio_delta = ? WHERE id = ?;`, move, r.id);
+  }
+  if (fixed) bumpDataVersion();
+  return fixed;
 }
 
 /**
@@ -240,9 +327,10 @@ async function reverseDematTransferSideEffectsInTxn(transferId: string): Promise
     investment_bucket_id: string | null;
     linked_contribution_id: string | null;
     snapshot_applied: number | null;
+    portfolio_delta: number | null;
   }>(
     `SELECT amount, date, from_account_id, to_account_id, demat_target, investment_bucket_id, linked_contribution_id,
-            snapshot_applied
+            snapshot_applied, portfolio_delta
      FROM account_transfers WHERE id = ?;`,
     transferId,
   );
@@ -268,18 +356,31 @@ async function reverseDematTransferSideEffectsInTxn(transferId: string): Promise
   if (row.demat_target === "withdrawal") {
     await removeWithdrawalContribution();
     await db.runAsync(
-      `UPDATE account_transfers SET demat_target = NULL, snapshot_applied = NULL, updated_at = datetime('now') WHERE id = ?;`,
+      `UPDATE account_transfers SET demat_target = NULL, snapshot_applied = NULL, portfolio_delta = NULL, updated_at = datetime('now') WHERE id = ?;`,
       transferId,
     );
+    // Put each part back where it came from: holdings (portfolio_delta) and the rest to cash.
+    const fromHoldings = Math.min(Math.max(row.portfolio_delta ?? 0, 0), row.amount);
     await reverseSnapshotDelta(
       "demat_fund_snapshots",
       "fund_value",
       row.from_account_id,
       row.date,
-      -row.amount,
+      -(row.amount - fromHoldings),
       row.snapshot_applied,
       false,
     );
+    if (fromHoldings > 0) {
+      await reverseSnapshotDelta(
+        "demat_portfolio_snapshots",
+        "portfolio_value",
+        row.from_account_id,
+        row.date,
+        -fromHoldings,
+        row.snapshot_applied,
+        false,
+      );
+    }
     return;
   }
 

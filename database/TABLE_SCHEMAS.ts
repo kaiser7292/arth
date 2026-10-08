@@ -420,6 +420,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "raw_source_text", // 023
     "source_sms_address", // 023
     "snapshot_applied", // 082
+    "portfolio_delta", // 083
   ] as const,
 
   expense_splits: [

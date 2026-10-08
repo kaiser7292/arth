@@ -38,7 +38,7 @@ import { todayIso } from "@/utils/date";
 
 // ─── Types ────────────────────────────────────────────────
 
-export type InvestmentInstrument = "equity" | "mutual_fund" | "gold" | "fd" | "bond" | "epf" | "nps" | "ppf" | "other";
+export type InvestmentInstrument = "equity" | "mutual_fund" | "gold" | "fd" | "bond" | "epf" | "nps" | "ppf" | "crypto" | "other";
 export type InvestmentValuation = "market" | "contract" | "contribution";
 export type InvestmentProductStatus = "active" | "matured" | "closed";
 
@@ -52,6 +52,7 @@ export const INSTRUMENT_LABELS: Record<InvestmentInstrument, string> = {
   epf: "EPF",
   nps: "NPS",
   ppf: "PPF",
+  crypto: "Crypto",
   other: "Investment",
 };
 
@@ -818,7 +819,8 @@ export async function migrateLegacyDematPensionAccounts(userId: string): Promise
   for (const row of rows) {
     try {
       if (row.account_type === "demat") {
-        await convertLegacyAccountToInvestment(row.id, "equity", "market");
+        // A demat linked to Zebpay holds crypto, which is taxed differently from equity.
+        await convertLegacyAccountToInvestment(row.id, isZebpayLinked(row.id) ? "crypto" : "equity", "market");
       } else {
         await convertLegacyAccountToInvestment(row.id, "epf", "contribution");
       }
@@ -1473,3 +1475,40 @@ export async function settleMaturedFDs(userId: string): Promise<number> {
   if (closed > 0) bumpDataVersion();
   return closed;
 }
+
+function isZebpayLinked(accountId: string): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getBrokerLinkedAccount } = require("@/services/broker-link") as typeof import("@/services/broker-link");
+    return getBrokerLinkedAccount("zebpay") === accountId;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Mark an account as crypto (when it's linked to Zebpay). Only changes an account still on the
+ * default "equity" type, so a type the user picked themselves is never overridden.
+ */
+export async function markAccountCrypto(accountId: string): Promise<void> {
+  const db = getDatabase();
+  const res = await db.runAsync(
+    `UPDATE investment_products SET instrument = 'crypto', updated_at = datetime('now')
+      WHERE financial_account_id = ? AND instrument = 'equity';`,
+    accountId,
+  );
+  if (res.changes > 0) bumpDataVersion();
+}
+
+/** Set the investment type of a market account (the tax treatment of its gains). */
+export async function setInvestmentInstrument(accountId: string, instrument: InvestmentInstrument): Promise<void> {
+  const db = getDatabase();
+  const res = await db.runAsync(
+    `UPDATE investment_products SET instrument = ?, updated_at = datetime('now') WHERE financial_account_id = ?;`,
+    instrument,
+    accountId,
+  );
+  if (res.changes === 0) await createInvestmentProductForAccount(accountId, instrument, "market");
+  bumpDataVersion();
+}
+

@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { getRealizedGainsForTaxYear, toTaxInputs, type WithdrawalGain } from "@/services/realized-gains";
+import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { View, ScrollView, Pressable, KeyboardAvoidingView, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
@@ -34,6 +36,7 @@ import { getCurrentFY, getFYLabel, getFYRange } from "@/utils/fiscal-year";
 import { todayIso } from "@/utils/date";
 import { getFYStartMonth } from "@/services/settings";
 import { formatAmount } from "@/utils/expense-validation";
+import { formatDate } from "@/utils/date";
 import { Toggle, StatePicker } from "@/components/goals";
 import { SalaryInputForm, type MonthlyOverrides } from "@/components/goals/SalaryInputForm";
 import { OldRegimeDeductions, AnnualDeductions, AdditionalIncome } from "@/components/goals/DeductionsSection";
@@ -419,9 +422,34 @@ export default function SalaryCalculatorScreen() {
     rentalLoanInterest,
   ]);
 
+  // Gains from withdrawals Arth recorded this tax year (services/realized-gains.ts). Added to the
+  // figures typed in above for the calculation only - what's saved stays what was typed.
+  const [autoGains, setAutoGains] = useState<WithdrawalGain[]>([]);
+  useDataRefresh(
+    useCallback(async () => {
+      try {
+        setAutoGains(await getRealizedGainsForTaxYear(DEFAULT_USER_ID, selectedFYNum));
+      } catch {
+        setAutoGains([]);
+      }
+    }, [selectedFYNum]),
+  );
+  const autoTax = useMemo(() => toTaxInputs(autoGains), [autoGains]);
+  const calcNumbers = useMemo(
+    () => ({
+      ...profileNumbers,
+      capital_gains_equity_ltcg: (profileNumbers.capital_gains_equity_ltcg ?? 0) + autoTax.input.equity_ltcg,
+      capital_gains_equity_stcg: (profileNumbers.capital_gains_equity_stcg ?? 0) + autoTax.input.equity_stcg,
+      capital_gains_debt: (profileNumbers.capital_gains_debt ?? 0) + autoTax.input.debt,
+      capital_gains_gold: (profileNumbers.capital_gains_gold ?? 0) + autoTax.input.gold,
+      capital_gains_crypto: autoTax.input.crypto ?? 0,
+    }),
+    [profileNumbers, autoTax],
+  );
+
   const income = useMemo(
-    () => computeIncomeProfile(profileNumbers, selectedFYNum, directAnnual),
-    [profileNumbers, selectedFYNum, directAnnual],
+    () => computeIncomeProfile(calcNumbers, selectedFYNum, directAnnual),
+    [calcNumbers, selectedFYNum, directAnnual],
   );
   const kind: IncomeKind = income.kind;
   const calculation = income.salary;
@@ -472,8 +500,8 @@ export default function SalaryCalculatorScreen() {
 
   const projected = useMemo(() => {
     if (projectedAnnual === null) return null;
-    return computeIncomeProfile({ ...profileNumbers, business_receipts: projectedAnnual }, selectedFYNum, directAnnual);
-  }, [projectedAnnual, profileNumbers, selectedFYNum, directAnnual]);
+    return computeIncomeProfile({ ...calcNumbers, business_receipts: projectedAnnual }, selectedFYNum, directAnnual);
+  }, [projectedAnnual, calcNumbers, selectedFYNum, directAnnual]);
 
   const projectedDueByNow = useMemo(() => {
     const plan = projected?.advanceTax;
@@ -1135,6 +1163,9 @@ export default function SalaryCalculatorScreen() {
                 showBonus={kind !== "business"}
               />
             )}
+            {hasSalaryData && autoGains.length > 0 && (
+              <WithdrawalGainsCard gains={autoGains} cryptoTds={autoTax.cryptoTds} />
+            )}
 
             {/* ════════════════════════════════════════════
                  PAY-DAY — day of month when income is credited
@@ -1179,3 +1210,49 @@ export default function SalaryCalculatorScreen() {
     </ScreenContainer>
   );
 }
+
+/**
+ * Capital gains from withdrawals Arth recorded this tax year - already included in the capital
+ * gains tax above, on top of anything typed in. One row per withdrawal.
+ */
+function WithdrawalGainsCard({ gains, cryptoTds }: { gains: WithdrawalGain[]; cryptoTds: number }) {
+  const theme = useTheme();
+  const CLASS: Record<WithdrawalGain["assetClass"], string> = { equity: "Equity", debt: "Debt", gold: "Gold", crypto: "Crypto" };
+  const total = gains.reduce((sum, g) => sum + g.gain, 0);
+  return (
+    <Card className="mt-3">
+      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">From your withdrawals</Text>
+      <Text className="text-xs text-muted-foreground mt-1 mb-2">
+        Included in the capital gains tax above, on top of anything you typed in.
+      </Text>
+      {gains.map((g) => {
+        const term = g.assetClass === "crypto" || g.assetClass === "debt" ? "" : g.longTerm !== 0 && g.shortTerm !== 0 ? " · part long-term" : g.longTerm !== 0 ? " · long-term" : " · short-term";
+        return (
+          <View key={g.transferId} className="flex-row items-center py-2 border-t border-border">
+            <View className="flex-1 mr-2">
+              <Text className="text-sm text-foreground" numberOfLines={1}>{g.accountName}</Text>
+              <Text className="text-xs text-muted-foreground">
+                {formatDate(g.date)} · {CLASS[g.assetClass]}{term} · took out {formatAmount(g.proceeds)}, cost {formatAmount(g.cost)}
+              </Text>
+            </View>
+            <Text className="text-sm font-semibold" style={{ color: g.gain >= 0 ? theme.success : theme.danger }}>
+              {g.gain >= 0 ? "+" : "−"}{formatAmount(Math.abs(g.gain))}
+            </Text>
+          </View>
+        );
+      })}
+      <View className="flex-row justify-between pt-2 border-t border-border">
+        <Text className="text-sm font-semibold text-foreground">Realised this year</Text>
+        <Text className="text-sm font-bold text-foreground">
+          {total < 0 ? "−" : ""}{formatAmount(Math.abs(total))}
+        </Text>
+      </View>
+      {cryptoTds > 0 && (
+        <Text className="text-xs text-muted-foreground mt-2">
+          {`Crypto exchanges deduct 1% TDS when you sell - about ${formatAmount(cryptoTds)} here. It counts towards your tax: claim it when you file. A crypto loss can't be set off against any gain.`}
+        </Text>
+      )}
+    </Card>
+  );
+}
+

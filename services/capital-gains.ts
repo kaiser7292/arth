@@ -79,6 +79,16 @@ export const CAPITAL_GAINS_RATES: CapitalGainsRate[] = [
       "Fund of funds investing in foreign equities treated as debt funds. No indexation. Taxed at slab rate.",
   },
   {
+    assetClass: "Crypto (virtual digital assets)",
+    icon: "logo-bitcoin",
+    holdingPeriod: "N/A (no LTCG benefit)",
+    ltcgRate: "30%",
+    stcgRate: "30%",
+    exemption: null,
+    notes:
+      "Flat 30% (plus cess) on the gain however long it's held; only the purchase cost is deductible. A loss can't be set off against any income or other crypto gains, or carried forward. Exchanges deduct 1% TDS on each sale, which counts towards your tax.",
+  },
+  {
     assetClass: "NPS (National Pension System)",
     icon: "shield-checkmark-outline",
     holdingPeriod: "Till retirement",

@@ -281,18 +281,12 @@ export default function InvestmentDetailScreen() {
     );
   }
 
-  const remaining = Math.max(
-    bucket.annual_target - bucket.current_contributed,
-    0,
-  );
-  const pct =
-    bucket.annual_target > 0
-      ? Math.min(
-          (bucket.current_contributed / bucket.annual_target) * 100,
-          100,
-        )
-      : 0;
-  const isComplete = bucket.current_contributed >= bucket.annual_target;
+  // Withdrawals take a bucket down by their cost, so it shouldn't go below zero - but older
+  // records (and manual edits) can. Never show negative progress: a negative width drew the bar full.
+  const done = Math.max(bucket.current_contributed, 0);
+  const remaining = Math.max(bucket.annual_target - done, 0);
+  const pct = bucket.annual_target > 0 ? Math.min(Math.max((done / bucket.annual_target) * 100, 0), 100) : 0;
+  const isComplete = done >= bucket.annual_target;
 
   return (
     <ScreenContainer padTop={false}>
@@ -358,7 +352,7 @@ export default function InvestmentDetailScreen() {
                     Done
                   </Text>
                   <Text className="text-base font-bold text-success text-center">
-                    {formatAmount(bucket.current_contributed)}
+                    {formatAmount(done)}
                   </Text>
                 </View>
                 <View className="flex-1">

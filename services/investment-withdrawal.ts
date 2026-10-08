@@ -43,6 +43,8 @@ import { clearMoneyEvent } from "@/services/money-events";
 import { bumpDataVersion } from "@/services/settings";
 import { createInvestmentContribution } from "@/services/yearly-plan";
 import { round2 } from "@/utils/math";
+import { getAccountGains } from "@/services/realized-gains";
+import { updateInvestmentContribution } from "@/services/yearly-plan";
 
 // ─── Which accounts can money come back from ─────────────────────────────────
 
@@ -245,12 +247,14 @@ export async function recordInvestmentWithdrawal(input: RecordWithdrawalInput): 
     await handleDematWithdrawalSideEffects(transferId, investmentAccountId, withdrawn, credit.date);
   }
 
-  // 4. Bucket progress.
+  // 4. Bucket progress: it tracks money put in, so it goes down by the cost of what was taken
+  //    out (services/realized-gains.ts), never by the gain on top - that can't push it negative.
   if (input.bucketId) {
+    const cost = await withdrawalCost(investmentAccountId, transferId, withdrawn);
     const contributionId = await createInvestmentContribution({
       investment_bucket_id: input.bucketId,
       month: credit.date.slice(0, 7),
-      amount: -withdrawn,
+      amount: -cost,
       date: credit.date,
       notes: "Auto from withdrawal",
     });
@@ -269,4 +273,50 @@ export async function recordInvestmentWithdrawal(input: RecordWithdrawalInput): 
 
   bumpDataVersion();
   return { transferId, investmentAccountId, gain };
+}
+
+/** Cost of one withdrawal (what was put in that came out), falling back to the amount itself. */
+async function withdrawalCost(accountId: string, transferId: string, amount: number): Promise<number> {
+  try {
+    const gains = await getAccountGains(accountId);
+    const w = gains.withdrawals.find((x) => x.transferId === transferId);
+    if (w) return w.cost;
+  } catch {
+    // fall through
+  }
+  return amount;
+}
+
+/**
+ * Repair for withdrawals recorded before bucket amounts used cost: a bucket went down by the whole
+ * withdrawal, gain included, and could go negative. Re-sets each "Auto from withdrawal" entry to
+ * minus the withdrawal's cost. Idempotent - only entries that differ are changed.
+ */
+export async function repairWithdrawalBucketAmounts(userId: string): Promise<number> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{
+    transfer_id: string;
+    from_account_id: string;
+    amount: number;
+    contribution_id: string;
+    bucket_id: string;
+    c_amount: number;
+    c_date: string;
+    c_notes: string | null;
+  }>(
+    `SELECT t.id AS transfer_id, t.from_account_id, t.amount, c.id AS contribution_id, c.investment_bucket_id AS bucket_id,
+            c.amount AS c_amount, c.date AS c_date, c.notes AS c_notes
+       FROM account_transfers t
+       JOIN investment_contributions c ON c.id = t.linked_contribution_id
+      WHERE t.user_id = ? AND t.deleted_at IS NULL AND c.notes = 'Auto from withdrawal';`,
+    userId,
+  );
+  let fixed = 0;
+  for (const r of rows) {
+    const cost = await withdrawalCost(r.from_account_id, r.transfer_id, r.amount);
+    if (Math.abs(-cost - r.c_amount) < 0.01) continue;
+    await updateInvestmentContribution(r.contribution_id, r.bucket_id, { amount: -cost, date: r.c_date, notes: r.c_notes ?? undefined });
+    fixed++;
+  }
+  return fixed;
 }

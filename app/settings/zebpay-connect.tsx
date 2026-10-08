@@ -12,6 +12,7 @@ import { logger } from '@/utils/logger';
 import { formatAmount } from '@/utils/format';
 import { saveBrokerSnapshot } from '@/services/financial-account';
 import { getBrokerLinkedAccount, setBrokerLinkedAccount } from '@/services/broker-link';
+import { markAccountCrypto } from '@/services/investment-accounts';
 import { getDematAccountsForPicker } from '@/services/kite-connect';
 import {
   isZebpayConnected,
@@ -109,6 +110,8 @@ export default function ZebpayConnectScreen() {
   const handlePickAccount = (id: string) => {
     setLinkedAccountId(id);
     setBrokerLinkedAccount('zebpay', id);
+    // Crypto gains are taxed differently (flat 30%) - mark the account so withdrawals are taxed right.
+    markAccountCrypto(id).catch(() => {});
     setShowAccountPicker(false);
     handleUpdateSnapshot(id);
   };

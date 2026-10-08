@@ -613,6 +613,8 @@ export interface CapitalGainsTaxInput {
   fd: number; // Fixed deposit interest — taxed at slab rate
   gold: number; // Gold LTCG
   real_estate: number; // Real estate LTCG
+  /** Crypto / virtual digital assets: flat 30%, no exemption, losses offset nothing. */
+  crypto?: number;
 }
 
 export interface CapitalGainsTaxItem {
@@ -725,6 +727,20 @@ export function computeCapitalGainsTax(
       tax,
       net: gains.real_estate - tax,
       rate: "12.5%",
+    });
+  }
+
+  // 7. Crypto (virtual digital assets): flat 30% on the gain whatever the holding period, no
+  //    exemption, and a loss can't be set off against anything - so only gains reach here.
+  if ((gains.crypto ?? 0) > 0) {
+    const crypto = gains.crypto ?? 0;
+    const tax = withCess(crypto * 0.3);
+    items.push({
+      label: "Crypto",
+      gross: crypto,
+      tax,
+      net: crypto - tax,
+      rate: "30%",
     });
   }
 

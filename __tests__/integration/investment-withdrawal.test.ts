@@ -53,9 +53,10 @@ import { deleteTransfer, undoTransfer } from "../../services/account-transfer";
 import { computeUnseededBalance, getMonthBalanceSummary } from "../../services/account-balance";
 import { addOrUpdateFundSnapshot, createManualAccount, saveBrokerSnapshot } from "../../services/financial-account";
 import { createTransfer } from "../../services/account-transfer";
-import { handleDematTransferSideEffects } from "../../services/demat-transfer";
 import { getInvestmentProduct } from "../../services/investment-accounts";
-import { recordInvestmentWithdrawal } from "../../services/investment-withdrawal";
+import { recordInvestmentWithdrawal, repairWithdrawalBucketAmounts } from "../../services/investment-withdrawal";
+import { handleDematTransferSideEffects, repairWithdrawalSplits } from "../../services/demat-transfer";
+import { getAccountGains } from "../../services/realized-gains";
 import { createInvestmentBucket, createYearlyPlan } from "../../services/yearly-plan";
 import { parseSmsBatch } from "../../services/sms/sms-parser";
 import { createExpenseFromSms } from "../../services/sms/sms-to-expense";
@@ -283,6 +284,81 @@ describe("broker-synced days (migration 082)", () => {
     mockDb.prepare(`UPDATE demat_fund_snapshots SET source = NULL WHERE account_id = ?`).run(DEMAT);
     await undoTransfer(r.transferId);
     expect(fundOn(DEMAT, "2026-09-15")).toBe(200000);
+  });
+});
+
+describe("withdrawing more than the idle cash (Zebpay case)", () => {
+  let ZEB = "";
+  let bucket = "";
+  const portfolioOn = (date: string) =>
+    (mockDb.prepare(`SELECT portfolio_value FROM demat_portfolio_snapshots WHERE account_id = ? AND snapshot_date = ?`).get(ZEB, date) as
+      | { portfolio_value: number }
+      | undefined)?.portfolio_value;
+  const cashOn = (date: string) => fundOn(ZEB, date);
+  const contribution = () =>
+    (mockDb.prepare(`SELECT amount FROM investment_contributions WHERE notes = 'Auto from withdrawal'`).get() as { amount: number } | undefined)?.amount;
+
+  beforeEach(async () => {
+    ZEB = await createManualAccount({ userId: U, bankName: "Zebpay", accountType: "demat", accountIdentifier: "ZB01" });
+    const plan = await createYearlyPlan({
+      user_id: U,
+      financial_year: "2026",
+      annual_salary_in_hand: 1200000,
+      total_planned_expenses: 600000,
+      total_planned_investments: 500000,
+      savings_rate_target_pct: 40,
+    });
+    bucket = await createInvestmentBucket({ yearly_plan_id: plan, financial_year: "2026", user_id: U, name: "Crypto", annual_target: 10000 });
+    const t = await createTransfer({ userId: U, fromAccountId: SBI, toAccountId: ZEB, amount: 10000, date: "2026-08-09" });
+    await handleDematTransferSideEffects(t, ZEB, 10000, "2026-08-09", { target: "portfolio", bucketId: bucket });
+    await addOrUpdateFundSnapshot(ZEB, "2026-10-01", 2.2);
+    const { addOrUpdateSnapshot } = await import("../../services/financial-account");
+    await addOrUpdateSnapshot(ZEB, "2026-10-01", 11854.76);
+  });
+
+  it("cash pays first, the rest comes off holdings; the bucket drops by the cost; undo puts both back", async () => {
+    const id = await credit(11717.94, "2026-10-06");
+    const r = await recordInvestmentWithdrawal({ creditId: id, investmentAccountId: ZEB, withdrawnAmount: 11717.94, bucketId: bucket });
+    expect(cashOn("2026-10-06")).toBeCloseTo(0, 2);
+    expect(portfolioOn("2026-10-06")).toBeCloseTo(139.02, 2);
+    expect(contribution()).toBeCloseTo(-9882.75, 2);
+    expect(bucketContributed(bucket)).toBeCloseTo(117.25, 2);
+
+    const gains = await getAccountGains(ZEB);
+    expect(gains.withdrawals[0]).toMatchObject({ assetClass: "equity", cost: 9882.75, gain: 1835.19 });
+    expect(gains.remainingCost).toBeCloseTo(117.25, 2);
+
+    await undoTransfer(r.transferId);
+    expect(cashOn("2026-10-06")).toBeCloseTo(2.2, 2);
+    expect(portfolioOn("2026-10-06")).toBeCloseTo(11854.76, 2);
+    expect(bucketContributed(bucket)).toBe(10000);
+  });
+
+  it("repairs a withdrawal recorded the old way (all off cash, cash negative) and its bucket entry", async () => {
+    const id = await credit(11717.94, "2026-10-06");
+    const r = await recordInvestmentWithdrawal({ creditId: id, investmentAccountId: ZEB, withdrawnAmount: 11717.94, bucketId: bucket });
+    // Rewind to how 4.10.0 left it: everything off cash, no split recorded, bucket down by the whole amount.
+    mockDb.prepare(`UPDATE demat_fund_snapshots SET fund_value = -11715.74 WHERE account_id = ? AND snapshot_date = '2026-10-06'`).run(ZEB);
+    mockDb.prepare(`DELETE FROM demat_portfolio_snapshots WHERE account_id = ? AND snapshot_date = '2026-10-06'`).run(ZEB);
+    mockDb.prepare(`UPDATE account_transfers SET portfolio_delta = NULL WHERE id = ?`).run(r.transferId);
+    mockDb.prepare(`UPDATE investment_contributions SET amount = -11717.94 WHERE notes = 'Auto from withdrawal'`).run();
+
+    expect(await repairWithdrawalSplits(U)).toBe(1);
+    expect(cashOn("2026-10-06")).toBeCloseTo(0, 2);
+    expect(portfolioOn("2026-10-06")).toBeCloseTo(139.02, 2);
+    expect(await repairWithdrawalSplits(U)).toBe(0); // idempotent
+
+    expect(await repairWithdrawalBucketAmounts(U)).toBe(1);
+    expect(contribution()).toBeCloseTo(-9882.75, 2);
+    expect(await repairWithdrawalBucketAmounts(U)).toBe(0);
+  });
+
+  it("migration 083 allows crypto as an investment type", async () => {
+    const { createInvestmentProductForAccount, getInvestmentProduct } = await import("../../services/investment-accounts");
+    await createInvestmentProductForAccount(ZEB, "crypto", "market");
+    expect((await getInvestmentProduct(ZEB))?.instrument).toBe("crypto");
+    const gains = await getAccountGains(ZEB);
+    expect(gains.withdrawals).toEqual([]);
   });
 });
 

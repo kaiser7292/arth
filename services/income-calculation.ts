@@ -69,7 +69,13 @@ export type IncomeProfileNumbers = Pick<
   | "rental_annual_rent"
   | "rental_municipal_tax"
   | "rental_loan_interest"
->;
+> & {
+  /**
+   * Not a saved column: crypto gains come only from withdrawals Arth recorded
+   * (services/realized-gains.ts), added by the caller like the other auto gains.
+   */
+  capital_gains_crypto?: number;
+};
 
 export type IncomeKind = "ctc" | "direct" | "business";
 
@@ -112,6 +118,7 @@ function capitalGainsInput(p: IncomeProfileNumbers): CapitalGainsTaxInput {
     fd: p.capital_gains_fd ?? 0,
     gold: p.capital_gains_gold ?? 0,
     real_estate: p.capital_gains_real_estate ?? 0,
+    crypto: p.capital_gains_crypto ?? 0,
   };
 }
 

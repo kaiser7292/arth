@@ -24,6 +24,9 @@ import {
 import type { FinancialAccount, PortfolioSnapshot, FundSnapshot } from "@/services/financial-account";
 import { useTheme } from "@/hooks/use-theme";
 import { getDematDailyStatement, type DematDay } from "@/services/demat-statement";
+import { getAccountGains, type AccountGains } from "@/services/realized-gains";
+import { getInvestmentProduct, setInvestmentInstrument, type InvestmentInstrument } from "@/services/investment-accounts";
+import { SegmentedControl } from "@/components/motion";
 
 function getCurrentMonth(): string {
   const now = new Date();
@@ -66,6 +69,8 @@ export default function DematSnapshotsScreen() {
   const [totalDeposited, setTotalDeposited] = useState<number>(0);
   const [totalWithdrawn, setTotalWithdrawn] = useState<number>(0);
   const [days, setDays] = useState<DematDay[]>([]);
+  const [gains, setGains] = useState<AccountGains | null>(null);
+  const [taxType, setTaxType] = useState<TaxType>("equity");
 
   // Inline edit state
   const [editingPortfolioId, setEditingPortfolioId] = useState<string | null>(null);
@@ -94,6 +99,9 @@ export default function DematSnapshotsScreen() {
         getDematTransferTotals(id),
         getDematDailyStatement(id, selectedMonth),
       ]);
+      const [g, product] = await Promise.all([getAccountGains(id), getInvestmentProduct(id)]);
+      setGains(g);
+      setTaxType(taxTypeOf(product?.instrument ?? null));
       setAccount(acct);
       setLatestPortfolio(latest?.portfolio_value ?? null);
       setLatestDate(latest?.snapshot_date ?? null);
@@ -210,7 +218,7 @@ export default function DematSnapshotsScreen() {
     : "Demat Account";
 
   const totalLatest = (latestPortfolio ?? 0) + (latestFund ?? 0);
-  const netInvested = totalDeposited - totalWithdrawn;
+  const realised = gains?.realisedGain ?? 0;
 
   return (
     <ScreenContainer padTop={false}>
@@ -284,15 +292,40 @@ export default function DematSnapshotsScreen() {
                       </Text>
                     </View>
                     <View className="flex-1 items-end">
-                      <Text className="text-xs text-muted-foreground mb-0.5">Net Invested</Text>
-                      <Text className="text-sm font-semibold text-foreground">
-                        {formatAmount(netInvested)}
+                      {/* What withdrawals made over what they cost (proportional cost, oldest money
+                          first) - feeds Capital Gains in the Income Calculator. */}
+                      <Text className="text-xs text-muted-foreground mb-0.5">Realised gain</Text>
+                      <Text
+                        className="text-sm font-semibold"
+                        style={{ color: realised > 0 ? theme.success : realised < 0 ? theme.danger : theme.foreground }}
+                      >
+                        {totalWithdrawn > 0 ? `${realised < 0 ? "−" : realised > 0 ? "+" : ""}${formatAmount(Math.abs(realised))}` : "—"}
                       </Text>
                     </View>
                   </View>
+                  {gains && totalWithdrawn > 0 && (
+                    <Text className="text-label text-faint-foreground mt-2">
+                      Still invested (at cost): {formatAmount(gains.remainingCost)}
+                    </Text>
+                  )}
                 </View>
               </>
             )}
+
+            {/* Tax type: how gains on withdrawals from this account are taxed. */}
+            <View className="border-t border-border pt-3 mt-3">
+              <Text className="text-xs text-muted-foreground mb-1">Tax type</Text>
+              <SegmentedControl
+                accessibilityLabel="Tax type"
+                options={TAX_TYPES}
+                value={taxType}
+                onChange={(t) => {
+                  setTaxType(t);
+                  setInvestmentInstrument(id, TAX_TYPE_INSTRUMENT[t]).then(loadData).catch(() => {});
+                }}
+              />
+              <Text className="text-label text-faint-foreground mt-1">{TAX_TYPE_NOTE[taxType]}</Text>
+            </View>
           </Card>
 
           {/* Inline add form — appears above the table when FAB is tapped */}
@@ -569,3 +602,25 @@ function DayActivity({ day }: { day: DematDay }) {
     </View>
   );
 }
+
+type TaxType = "equity" | "debt" | "gold" | "crypto";
+const TAX_TYPES: { value: TaxType; label: string }[] = [
+  { value: "equity", label: "Equity" },
+  { value: "debt", label: "Debt" },
+  { value: "gold", label: "Gold" },
+  { value: "crypto", label: "Crypto" },
+];
+const TAX_TYPE_INSTRUMENT: Record<TaxType, InvestmentInstrument> = { equity: "equity", debt: "bond", gold: "gold", crypto: "crypto" };
+const TAX_TYPE_NOTE: Record<TaxType, string> = {
+  equity: "Short-term 20%, long-term (over 12 months) 12.5% above ₹1.25 lakh a year",
+  debt: "Taxed at your slab rate, however long it's held",
+  gold: "Long-term (over 24 months) 12.5%; short-term at your slab rate",
+  crypto: "Flat 30% on gains; losses can't be set off. Exchanges deduct 1% TDS on sales",
+};
+function taxTypeOf(instrument: string | null): TaxType {
+  if (instrument === "crypto") return "crypto";
+  if (instrument === "gold") return "gold";
+  if (instrument === "bond" || instrument === "other") return "debt";
+  return "equity";
+}
+

@@ -11,6 +11,8 @@ import { getFlag } from "@/services/feature-flags";
 import { preloadHomeData } from "@/services/home-preload";
 import { runDailyNotificationCheck, syncNotifBackgroundTask } from "@/services/notification-scheduler";
 import { materialiseMaturedInvestments, migrateLegacyDematPensionAccounts } from "@/services/investment-accounts";
+import { repairWithdrawalSplits } from "@/services/demat-transfer";
+import { repairWithdrawalBucketAmounts } from "@/services/investment-withdrawal";
 import { migrateInvestmentsHomeCardPreference } from "@/services/home-card-preferences";
 import { runScheduledBackupIfDue, syncBackupBackgroundTask } from "@/services/backup-schedule";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
@@ -252,7 +254,13 @@ export default function RootLayout(): React.JSX.Element {
         // — idempotent, self-heals any 'demat'/'pension' rows a restored backup
         // reintroduces. Runs before the maturity pass, though nothing here
         // depends on ordering.
-        migrateLegacyDematPensionAccounts(DEFAULT_USER_ID).catch((e) => logger.warn("Legacy investment account conversion failed:", e));
+        migrateLegacyDematPensionAccounts(DEFAULT_USER_ID)
+          .catch((e) => logger.warn("Legacy investment account conversion failed:", e))
+          // Withdrawals recorded before 4.10.1: move a cash shortfall to holdings sold, then set
+          // bucket entries to the cost withdrawn rather than the whole amount. Both idempotent.
+          .then(() => repairWithdrawalSplits(DEFAULT_USER_ID))
+          .then(() => repairWithdrawalBucketAmounts(DEFAULT_USER_ID))
+          .catch((e) => logger.warn("Withdrawal repair failed (non-fatal):", e));
         // Item 10 Phase 3 — one-time carry-forward of the old separate demat/
         // pension Home-card hidden preferences onto the new merged card.
         migrateInvestmentsHomeCardPreference();
