@@ -78,6 +78,7 @@ export default function DematSnapshotsScreen() {
   const [addDate, setAddDate] = useState("");
   const [addPortfolio, setAddPortfolio] = useState("");
   const [addFund, setAddFund] = useState("");
+  const [addFundError, setAddFundError] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -113,6 +114,7 @@ export default function DematSnapshotsScreen() {
     setAddDate(getDefaultDate(selectedMonth));
     setAddPortfolio("");
     setAddFund("");
+    setAddFundError(undefined);
     setShowAddForm(true);
   }, [selectedMonth]);
 
@@ -126,6 +128,13 @@ export default function DematSnapshotsScreen() {
   const handleSaveAdd = useCallback(async () => {
     const portVal = parseFloat(addPortfolio.replace(/,/g, ""));
     if (isNaN(portVal) || portVal < 0 || !addDate) return;
+    // A withdrawal can leave idle cash below zero (it's taken off cash even when holdings were
+    // sold). Carrying that forward would read as a loss on this snapshot - ask instead.
+    if (addFund.trim().length === 0 && latestFund != null && latestFund < 0) {
+      setAddFundError("Enter today's idle cash - it went below zero after a withdrawal");
+      return;
+    }
+    setAddFundError(undefined);
     setSaving(true);
     try {
       await addOrUpdateSnapshot(id, addDate, portVal);
@@ -311,10 +320,20 @@ export default function DematSnapshotsScreen() {
               <Input
                 label="Idle Cash / Fund (optional)"
                 value={addFund}
-                onChangeText={setAddFund}
+                onChangeText={(t) => {
+                  setAddFund(t);
+                  setAddFundError(undefined);
+                }}
                 keyboardType="numeric"
                 formula
-                placeholder={latestFund != null ? `Leave blank to carry ₹${latestFund.toLocaleString("en-IN")}` : "e.g. 5,000"}
+                error={addFundError}
+                placeholder={
+                  latestFund != null && latestFund >= 0
+                    ? `Leave blank to carry ₹${latestFund.toLocaleString("en-IN")}`
+                    : latestFund != null
+                      ? "Idle cash today (needed)"
+                      : "e.g. 5,000"
+                }
                 containerClassName="mb-3"
               />
               <View className="flex-row">
@@ -506,7 +525,7 @@ export default function DematSnapshotsScreen() {
 function DayActivity({ day }: { day: DematDay }) {
   const theme = useTheme();
   const showGain = day.hasSnapshot && Math.abs(day.gain) >= 0.01;
-  if (day.entries.length === 0 && !showGain) return null;
+  if (day.entries.length === 0 && !showGain && !day.isStart) return null;
   return (
     <View className="mt-1">
       {day.entries.map((e) => (
@@ -524,6 +543,12 @@ function DayActivity({ day }: { day: DematDay }) {
           </Text>
         </View>
       ))}
+      {day.isStart && (
+        <View className="flex-row items-center mt-0.5">
+          <Ionicons name="flag-outline" size={13} color={theme.mutedForeground} />
+          <Text className="text-xs text-muted-foreground ml-1">Starting value - gains are counted from here</Text>
+        </View>
+      )}
       {showGain && (
         <View className="flex-row items-center mt-0.5">
           <Ionicons
@@ -531,7 +556,10 @@ function DayActivity({ day }: { day: DematDay }) {
             size={13}
             color={day.gain > 0 ? theme.success : theme.danger}
           />
-          <Text className="text-xs text-muted-foreground ml-1 flex-1">{day.gain > 0 ? "Market gain" : "Market loss"}</Text>
+          <Text className="text-xs text-muted-foreground ml-1 flex-1" numberOfLines={1}>
+            {day.gain > 0 ? "Market gain" : "Market loss"}
+            {day.gainSince ? ` since ${formatDay(day.gainSince)}` : ""}
+          </Text>
           <Text className="text-xs font-semibold" style={{ color: day.gain > 0 ? theme.success : theme.danger }}>
             {day.gain > 0 ? "+" : "−"}{formatAmount(Math.abs(day.gain))}
             {day.gainPct != null ? ` (${day.gain > 0 ? "+" : "−"}${Math.abs(day.gainPct).toFixed(1)}%)` : ""}

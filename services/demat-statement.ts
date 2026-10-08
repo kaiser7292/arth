@@ -31,6 +31,13 @@ export interface DematDay {
   gainPct: number | null;
   /** A snapshot was recorded this day (otherwise the value is carried from an earlier one). */
   hasSnapshot: boolean;
+  /** The account's first-ever snapshot: its value is where tracking starts, not a gain. */
+  isStart: boolean;
+  /**
+   * The day the gain is measured from, when that's more than a day before — after a gap of
+   * skipped days the gain covers all of them. Null when it's just the previous day (or no gain).
+   */
+  gainSince: string | null;
   entries: DematDayEntry[];
 }
 
@@ -61,6 +68,11 @@ export function buildDematDays(
 
   const sortedP = [...portfolio].sort((a, b) => a.date.localeCompare(b.date));
   const sortedF = [...fund].sort((a, b) => a.date.localeCompare(b.date));
+  const dayBefore = (d: string) => {
+    const [y, m, dd] = d.split("-").map(Number);
+    const x = new Date(y, m - 1, dd - 1);
+    return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+  };
   const latest = (list: { date: string; value: number }[], day: string) => {
     let v = 0;
     for (const r of list) {
@@ -75,7 +87,12 @@ export function buildDematDays(
   const days = [...new Set([...snapshotDays, ...transfers.map((t) => t.date).filter(inMonth)])].sort();
 
   const rows: DematDay[] = [];
-  let prev = valueAt(`${month}-00`); // end of the previous month: every real date sorts after "-00"
+  const beforeMonth = `${month}-00`; // end of the previous month: every real date sorts after "-00"
+  let prev = valueAt(beforeMonth);
+  // Last day there was a value to compare against, and whether any snapshot exists yet.
+  const earlier = [...sortedP, ...sortedF].filter((r) => r.date <= beforeMonth).map((r) => r.date).sort();
+  let prevDate: string | null = earlier.length > 0 ? earlier[earlier.length - 1] : null;
+  let tracking = prevDate != null;
   for (const date of days) {
     const entries: DematDayEntry[] = transfers
       .filter((t) => t.date === date)
@@ -88,11 +105,15 @@ export function buildDematDays(
     const moneyIn = round2(entries.filter((e) => e.direction === "in").reduce((s, e) => s + e.amount, 0));
     const moneyOut = round2(entries.filter((e) => e.direction === "out").reduce((s, e) => s + e.amount, 0));
     const hasSnapshot = snapshotDays.has(date);
+    // The first snapshot ever is where tracking starts — compared against nothing, its whole
+    // value would read as gain.
+    const isStart = hasSnapshot && !tracking;
     // Without a snapshot that day, the money moved is all that changed — so a deposit isn't
     // later read as market gain when the next snapshot includes it.
     const value = hasSnapshot ? valueAt(date) : prev + moneyIn - moneyOut;
-    const gain = hasSnapshot ? round2(value - prev - moneyIn + moneyOut) : 0;
+    const gain = hasSnapshot && !isStart ? round2(value - prev - moneyIn + moneyOut) : 0;
     const atWork = prev + moneyIn;
+    const gainSince = gain !== 0 && prevDate != null && prevDate < dayBefore(date) ? prevDate : null;
     rows.push({
       date,
       value: round2(value),
@@ -101,9 +122,13 @@ export function buildDematDays(
       gain,
       gainPct: atWork > 0 ? round2((gain / atWork) * 100) : null,
       hasSnapshot,
+      isStart,
+      gainSince,
       entries,
     });
     prev = value;
+    prevDate = date;
+    if (hasSnapshot) tracking = true;
   }
   return rows.reverse();
 }

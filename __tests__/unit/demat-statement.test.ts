@@ -53,4 +53,30 @@ describe("buildDematDays", () => {
     const days = buildDematDays(ACC, "2026-10", [{ date: "2026-10-20", value: 1 }], [], [], "2026-10-08");
     expect(days).toEqual([]);
   });
+
+  it("the first snapshot ever is the starting value, not a gain", () => {
+    const days = buildDematDays(ACC, "2026-09", [{ date: "2026-09-12", value: 500000 }], [], [], "2026-09-30");
+    expect(days).toHaveLength(1);
+    expect(days[0]).toMatchObject({ isStart: true, gain: 0, value: 500000 });
+  });
+
+  it("a gain after skipped days says where it's measured from", () => {
+    const days = buildDematDays(
+      ACC,
+      "2026-09",
+      [
+        { date: "2026-08-20", value: 100000 },
+        { date: "2026-09-03", value: 101000 },
+        { date: "2026-09-04", value: 102000 },
+        { date: "2026-09-17", value: 99000 },
+      ],
+      [],
+      [],
+      "2026-09-30",
+    );
+    const byDate = Object.fromEntries(days.map((d) => [d.date, d]));
+    expect(byDate["2026-09-03"]).toMatchObject({ gain: 1000, gainSince: "2026-08-20", isStart: false });
+    expect(byDate["2026-09-04"]).toMatchObject({ gain: 1000, gainSince: null });
+    expect(byDate["2026-09-17"]).toMatchObject({ gain: -3000, gainSince: "2026-09-04" });
+  });
 });
