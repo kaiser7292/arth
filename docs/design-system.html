@@ -151,6 +151,29 @@ section{padding-block:40px;border-top:1px solid var(--border)}
 .a-toast{display:flex;align-items:center;gap:12px;background:var(--a-foreground);color:var(--a-background);border-radius:14px;padding:12px 14px;font-size:14px}
 .a-toast b{color:var(--a-primary-inv);margin-left:auto;font-weight:600}
 
+.a-fchip{display:inline-flex;align-items:center;gap:6px;min-height:36px;font-size:14px;font-weight:600;border-radius:9999px;padding:0 14px;border:1px solid var(--a-border);color:var(--a-mutedForeground);background:transparent}
+.a-fchip.set{color:var(--a-foreground)}
+.a-fchip.cat{border-color:var(--a-s2);color:var(--a-s2);background:var(--a-s2-08)}
+.lg-row{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px}
+.lg-row i{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.lg-row .amt{margin-left:auto;font-size:13px;color:var(--a-mutedForeground)}
+.lg-row .pc{width:40px;text-align:right;font-weight:600}
+.day{padding:10px 0;border-bottom:1px solid var(--a-border)}
+.day:last-child{border-bottom:none}
+.day-top{display:flex;font-size:13px;gap:8px}
+.day-top span:first-child{flex:1;color:var(--a-mutedForeground)}
+.day-top b{width:84px;text-align:right;font-weight:600}
+.day-sub{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--a-mutedForeground);margin-top:3px}
+.day-sub em{font-style:normal;margin-left:auto;font-weight:600}
+.sheet{background:var(--a-card);border:1px solid var(--a-border);border-radius:20px 20px 0 0;padding:6px 16px 16px}
+.sheet-grab{width:36px;height:4px;border-radius:9999px;background:var(--a-border);margin:4px auto 12px}
+.opt{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--a-border);border-radius:12px;margin-bottom:6px;font-size:14px}
+.opt.on{border-color:var(--a-primary);background:var(--a-primary-10)}
+.tgl{width:36px;height:20px;border-radius:9999px;background:var(--a-border);position:relative;flex-shrink:0}
+.tgl::after{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--a-card)}
+.comp.wide{grid-column:1/-1}
+@media (max-width:760px){.comp.wide{grid-column:auto}}
+
 /* Check-in deck phone */
 .phone{max-width:360px;margin-inline:auto;background:var(--a-background);border:1px solid var(--a-border);border-radius:28px;overflow:hidden;display:flex;flex-direction:column}
 .ph-head{height:52px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:17px;position:relative}
@@ -381,6 +404,88 @@ footer{background:var(--dark-bg);padding-block:24px;margin-top:24px}
             <div class="a-toast">Approved Swiggy <b>Undo</b></div>
             <div class="comp-note">Every action you might regret gets a 6-second Undo instead of an "Are you sure?" dialog.</div>
           </div>
+
+          <div class="comp">
+            <div class="comp-t">Field chips</div>
+            <div class="row" style="justify-content:center">
+              <span class="a-fchip cat">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11h18M5 11V7a7 7 0 0114 0v4M4 11l1.5 9h13L20 11"/></svg>
+                Food &amp; Dining ▾</span>
+              <span class="a-fchip set">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1.5-5h15L21 9M4 9v11h16V9M9 20v-6h6v6"/></svg>
+                Swiggy ▾</span>
+              <span class="a-fchip">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+                Payment mode ▾</span>
+            </div>
+            <div class="comp-note">On a Catch Up card. The category chip takes its colour; merchant and payment mode stay muted until set. Each opens a picker and saves straight away.</div>
+          </div>
+
+          <div class="comp">
+            <div class="comp-t">Money event card</div>
+            <span class="a-pill" style="background:var(--a-primary-10);color:var(--a-primary)">Money back from an investment</span>
+            <div class="a-meta" style="margin-top:10px">Looks like a redemption or payout. Pick the investment it came from and it stops counting as income.</div>
+            <div class="row" style="margin-top:12px">
+              <button class="a-btn primary full">Choose the investment</button>
+            </div>
+            <div class="row" style="margin-top:6px">
+              <button class="a-btn ghost full">It's regular income</button>
+            </div>
+            <div class="comp-note">FD deposits and closures, transfers to your own accounts, SIPs and investment withdrawals all use this one card.</div>
+          </div>
+
+          <div class="comp wide">
+            <div class="comp-t">Stacked area chart</div>
+            <div class="a-lbl">Total value</div>
+            <div class="a-title" style="margin-top:4px">₹6,15,000</div>
+            <div class="a-meta pos" style="margin-top:2px">+₹97,000 in 12 months</div>
+            <div class="row" style="margin-top:12px">
+              <span class="a-chip on">All</span><span class="a-chip">Market</span><span class="a-chip">Pension</span><span class="a-chip">FD</span>
+            </div>
+            <svg id="ds-stack" viewBox="0 0 600 160" width="100%" style="display:block;margin-top:12px" role="img" aria-label="Stacked area chart of investment value by category over 12 months"></svg>
+            <div class="row a-meta" style="justify-content:space-between;margin-top:4px"><span>Nov 25</span><span>May 26</span><span>Oct 26</span></div>
+            <div style="margin-top:8px">
+              <div class="lg-row"><i data-s="0"></i>Pension<span class="amt">₹2,40,000</span><span class="pc">39%</span></div>
+              <div class="lg-row"><i data-s="2"></i>Market (Demat)<span class="amt">₹3,20,000</span><span class="pc">52%</span></div>
+              <div class="lg-row"><i data-s="1"></i>Fixed Deposits<span class="amt">₹55,000</span><span class="pc">9%</span></div>
+            </div>
+            <div class="comp-note">Bands stack, so the top edge is the total and each band's thickness is its share, which keeps small holdings visible next to big ones. Tap a band, chip or legend row to see that category split by account, shaded from the category's colour. Uses the data palette, never interface colours.</div>
+          </div>
+
+          <div class="comp">
+            <div class="comp-t">Daily statement</div>
+            <div class="day">
+              <div class="day-top"><span>17 Sep</span><b>₹2,12,400</b><b>₹8,100</b></div>
+              <div class="day-sub" style="color:var(--a-mutedForeground)">↘ Market loss since 4 Sep<em class="neg">−₹3,050 (−1.4%)</em></div>
+            </div>
+            <div class="day">
+              <div class="day-top"><span>5 Sep</span><b>—</b><b>—</b></div>
+              <div class="day-sub">↑ Withdrawn to HDFC Bank<em class="neg">−₹20,000</em></div>
+            </div>
+            <div class="day">
+              <div class="day-top"><span>4 Sep</span><b>₹2,08,200</b><b>₹35,350</b></div>
+              <div class="day-sub">↓ Added from SBI<em class="pos">+₹10,000</em></div>
+              <div class="day-sub">↗ Market gain<em class="pos">+₹1,820 (+0.8%)</em></div>
+            </div>
+            <div class="comp-note">Demat snapshots (portfolio, idle cash) with the money that moved that day underneath. Gain is the value change minus your own money, so a deposit never reads as profit. After skipped days it says where it's measured from.</div>
+          </div>
+
+          <div class="comp">
+            <div class="comp-t">Investment withdrawal sheet</div>
+            <div class="sheet">
+              <div class="sheet-grab"></div>
+              <div style="font-weight:700;font-size:17px">Money back from an investment</div>
+              <div class="a-meta" style="margin:4px 0 12px">₹1,50,000 came in. It's recorded as coming out of the investment, so it doesn't count as income.</div>
+              <div class="a-lbl" style="margin-bottom:8px">Which investment?</div>
+              <div class="opt on">Parag Parikh Flexi Cap<span class="a-meta" style="margin-left:auto">Mutual fund</span></div>
+              <div class="opt">＋ Not in Arth yet<span class="a-meta" style="margin-left:auto">Add it now</span></div>
+              <label class="a-meta" for="ds-wd" style="display:block;margin:12px 0 6px">Taken out of the investment</label>
+              <input id="ds-wd" class="a-input" value="₹1,00,000">
+              <div class="a-meta" style="margin-top:6px">₹50,000 is recorded as investment gain and counts as income.</div>
+              <div class="row" style="margin-top:12px;flex-wrap:nowrap"><div class="a-grow"><div class="a-body" style="font-weight:600">Fully withdrawn</div><div class="a-meta">Close it. It stops counting in net worth.</div></div><span class="tgl"></span></div>
+            </div>
+            <div class="comp-note">The whole credit is assumed to come out; lowering it splits off the gain. Optional: take it out of a yearly-plan bucket.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -581,6 +686,7 @@ const TOKENS = {"SEMANTIC":{"light":{"background":"247 248 248","card":"255 255 
     vars += "--a-primary-10:" + rgba(S.primary, 0.1) + ";--a-success-12:" + rgba(S.success, 0.12) +
       ";--a-warning-12:" + rgba(S.warning, 0.12) + ";--a-danger-12:" + rgba(S.danger, 0.12) +
       ";--a-primary-inv:" + hex(T.SEMANTIC[scheme === "light" ? "dark" : "light"].primary) + ";";
+    T.DATA.series.forEach(function (ch, i) { vars += "--a-s" + i + ":" + hex(ch) + ";--a-s" + i + "-08:" + rgba(ch, 0.08) + ";"; });
     ["app-comp", "app-deck"].forEach(function (id) { el(id).setAttribute("style", (el(id).getAttribute("data-base") || "") + vars); });
     document.querySelectorAll("[data-theme-btn]").forEach(function (b) {
       b.classList.toggle("on", b.getAttribute("data-theme-btn") === scheme);
@@ -593,6 +699,30 @@ const TOKENS = {"SEMANTIC":{"light":{"background":"247 248 248","card":"255 255 
   });
   var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
   applyAppTheme(prefersDark ? "dark" : "light");
+
+  // Stacked area sample (invented numbers) + legend swatches, in the data palette
+  document.querySelectorAll(".lg-row i[data-s]").forEach(function (i) { i.style.background = "var(--a-s" + i.getAttribute("data-s") + ")"; });
+  (function () {
+    var svg = el("ds-stack"); if (!svg) return;
+    var fd = [0, 0, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55];
+    var mk = [262, 268, 281, 275, 289, 296, 292, 301, 299, 310, 316, 320];
+    var pn = [216, 218, 220, 222, 224, 226, 229, 231, 233, 235, 238, 240];
+    var layers = [[fd, 1], [mk, 2], [pn, 0]], W = 600, H = 160, max = 640, base = fd.map(function () { return 0; });
+    var x = function (i) { return 4 + i * ((W - 8) / 11); };
+    var y = function (v) { return H - 4 - (v / max) * (H - 14); };
+    var out = '<line x1="0" x2="' + W + '" y1="' + y(320) + '" y2="' + y(320) + '" stroke="var(--a-border)" stroke-dasharray="3 4"/>';
+    layers.forEach(function (L) {
+      var top = base.map(function (b, i) { return b + L[0][i]; });
+      var up = top.map(function (v, i) { return x(i) + " " + y(v); });
+      var down = base.map(function (v, i) { return x(i) + " " + y(v); }).reverse();
+      var c = "var(--a-s" + L[1] + ")";
+      out += '<path d="M' + up.join(" L") + " L" + down.join(" L") + ' Z" fill="' + c + '" fill-opacity=".75"/>';
+      out += '<path d="M' + up.join(" L") + '" fill="none" stroke="' + c + '" stroke-width="1.5"/>';
+      base = top;
+    });
+    out += '<line x1="0" x2="' + W + '" y1="' + (H - 4) + '" y2="' + (H - 4) + '" stroke="var(--a-border)"/>';
+    svg.innerHTML = out;
+  })();
 
   // Highlight the section in view in the jump bar
   var links = Array.prototype.slice.call(document.querySelectorAll("#toc a"));
