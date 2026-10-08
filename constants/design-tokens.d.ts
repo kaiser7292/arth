@@ -27,7 +27,17 @@ export declare const SEMANTIC: Record<Scheme, Record<SemanticRole, Channels>>;
 export declare const TYPE: Record<string, [string, Record<string, string>]>;
 export declare const SCALE_OVERRIDES: Record<string, [string, Record<string, string>]>;
 export declare const RADIUS: { control: string; card: string; sheet: string; pill: string };
-export declare const MOTION: { fast: number; base: number; slow: number; easing: string };
+export interface SpringToken { damping: number; stiffness: number; mass: number }
+export declare const MOTION: {
+  fast: number;
+  base: number;
+  slow: number;
+  count: number;
+  stagger: number;
+  pressScale: number;
+  easing: string;
+  spring: { snappy: SpringToken; gentle: SpringToken };
+};
 export declare const DATA: {
   accountType: Record<string, Channels>;
   transfer: Channels;

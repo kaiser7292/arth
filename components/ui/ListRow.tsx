@@ -1,4 +1,6 @@
 import { View, Pressable } from "react-native";
+import Animated from "react-native-reanimated";
+import { usePressScale } from "@/components/motion/motion";
 import { Text } from "./Text";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -24,6 +26,7 @@ export function ListRow({
   onLongPress,
 }: ListRowProps) {
   const { colors } = useColorScheme();
+  const press = usePressScale(!!(onPress || onLongPress));
   const resolvedColor = iconColor ?? colors.textSecondary;
   const content = (
     <View className={COMPONENTS.listRow.base} accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title}>
@@ -52,10 +55,12 @@ export function ListRow({
       <Pressable
         onPress={onPress}
         onLongPress={onLongPress}
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
         accessibilityLabel={title}
         accessibilityRole="button"
       >
-        {content}
+        <Animated.View style={press.style}>{content}</Animated.View>
       </Pressable>
     );
   }

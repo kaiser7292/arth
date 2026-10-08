@@ -115,11 +115,25 @@ const SCALE_OVERRIDES = {};
  */
 const RADIUS = { control: "10px", card: "16px", sheet: "20px", pill: "9999px" };
 
+/**
+ * fast = presses and toggles, base = small state changes, slow = screens and entrances.
+ * `easing` is the one curve everything eases with; `count` is the longest anything runs (number
+ * count-ups, chart draw-ins). `stagger` spaces sibling cards arriving in sequence. Springs are for
+ * things the finger lets go of (press release, cards settling) - never for money, which shouldn't
+ * bounce. See docs/MOTION_SYSTEM_PROPOSAL.md.
+ */
 const MOTION = {
   fast: 140,
   base: 220,
   slow: 320,
+  count: 700,
+  stagger: 60,
+  pressScale: 0.97,
   easing: "cubic-bezier(0.22, 0.61, 0.36, 1)",
+  spring: {
+    snappy: { damping: 18, stiffness: 320, mass: 1 },
+    gentle: { damping: 20, stiffness: 180, mass: 1 },
+  },
 };
 
 /**

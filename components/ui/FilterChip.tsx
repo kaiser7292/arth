@@ -1,4 +1,6 @@
-import { Pressable } from "react-native";
+import { Pressable, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { usePressScale } from "@/components/motion/motion";
 import { Text } from "./Text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -25,10 +27,16 @@ interface FilterChipProps {
 export function FilterChip({ label, active = false, onPress, spacing = "md" }: FilterChipProps) {
   const theme = useTheme();
   const mr = spacing === "sm" ? "mr-1.5" : "mr-2";
+  const press = usePressScale();
+  // Margin on a plain outer View; the press scale on an animated layer with no className.
   return (
+    <View className={mr}>
+    <Animated.View style={press.style}>
     <Pressable
       onPress={onPress}
-      className={`${COMPONENTS.chip.base} ${mr} ${active ? "border" : "bg-card"}`}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      className={`${COMPONENTS.chip.base} ${active ? "border" : "bg-card"}`}
       style={
         active
           ? { backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.primary }
@@ -44,5 +52,7 @@ export function FilterChip({ label, active = false, onPress, spacing = "md" }: F
         {label}
       </Text>
     </Pressable>
+    </Animated.View>
+    </View>
   );
 }

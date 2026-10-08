@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Pressable, ActivityIndicator } from "react-native";
+import { Pressable, ActivityIndicator, View } from "react-native";
+import Animated from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@/hooks/use-theme";
 import { Text } from "./Text";
 import { COMPONENTS } from "@/constants/design-tokens";
+import { splitLayoutClasses, usePressScale } from "@/components/motion/motion";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
 
@@ -42,6 +44,11 @@ export function Button({
   // function-form style prop does not reliably merge with a NativeWind className, which once
   // caused primary buttons to render with no background at all.
   const [isPressed, setIsPressed] = useState(false);
+  // Press feedback: the whole button shrinks slightly while held. The scale lives on an animated
+  // layer with no className; layout classes from the caller (margins, flex-1) go on a plain View
+  // outside it, visual ones stay on the Pressable.
+  const press = usePressScale(!disabled && !loading);
+  const { layout, rest } = splitLayoutClasses(className);
 
   const handlePress = () => {
     if (disabled || loading) return;
@@ -68,17 +75,25 @@ export function Button({
   const containerClass =
     variant === "secondary" ? "bg-card" : variant === "outline" ? "border" : "";
 
-  return (
+  const button = (
+    <Animated.View style={press.style}>
     <Pressable
       onPress={handlePress}
-      onPressIn={() => !disabled && !loading && setIsPressed(true)}
-      onPressOut={() => setIsPressed(false)}
+      onPressIn={() => {
+        if (disabled || loading) return;
+        setIsPressed(true);
+        press.onPressIn();
+      }}
+      onPressOut={() => {
+        setIsPressed(false);
+        press.onPressOut();
+      }}
       disabled={disabled || loading}
       accessibilityLabel={title}
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || loading }}
       style={[container, isPressed && !disabled && !loading ? { opacity: B.pressedOpacity } : null]}
-      className={`${B.base} ${B.pad} ${containerClass} ${disabled ? B.disabled : ""} ${className}`}
+      className={`${B.base} ${B.pad} ${containerClass} ${disabled ? B.disabled : ""} ${rest}`}
     >
       {loading ? (
         <ActivityIndicator
@@ -94,5 +109,7 @@ export function Button({
         </Text>
       )}
     </Pressable>
+    </Animated.View>
   );
+  return layout ? <View className={layout}>{button}</View> : button;
 }

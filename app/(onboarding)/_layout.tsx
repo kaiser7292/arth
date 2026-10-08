@@ -16,7 +16,7 @@ export default function OnboardingLayout() {
       screenOptions={{
         headerShown: false,
         gestureEnabled: false,
-        animation: "slide_from_right",
+        animation: "ios_from_right",
       }}
     />
   );

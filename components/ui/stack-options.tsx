@@ -27,5 +27,9 @@ export function useStackScreenOptions(): NativeStackNavigationOptions {
     headerShadowVisible: false,
     headerTitleAlign: "center",
     headerLeft: () => <HeaderBackHome />,
+    // Drilling in: the new screen slides in from the right while the one underneath shifts
+    // slightly left (Android's iOS-style push). Native, so it runs at full frame rate and turns
+    // off with the phone's "Remove animations" setting.
+    animation: "ios_from_right",
   };
 }

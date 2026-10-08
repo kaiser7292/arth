@@ -441,7 +441,9 @@ export default function RootLayout(): React.JSX.Element {
     <ToastProvider>
     <>
       <StatusBar style="auto" />
-      <Stack>
+      {/* Every screen slides in from the right (see useStackScreenOptions); task screens that
+          open on top - add/edit expense, the AI assistant - rise from the bottom instead. */}
+      <Stack screenOptions={{ animation: "ios_from_right" }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         {/* Was unregistered, so it fell through to expo-router's default chrome. */}
         <Stack.Screen name="transfer" options={{ headerShown: false }} />
@@ -451,7 +453,7 @@ export default function RootLayout(): React.JSX.Element {
         />
         <Stack.Screen
           name="expense"
-          options={{ headerShown: false, presentation: "modal" }}
+          options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }}
         />
         <Stack.Screen
           name="budget"
@@ -501,7 +503,7 @@ export default function RootLayout(): React.JSX.Element {
         />
         <Stack.Screen
           name="(lock)"
-          options={{ headerShown: false, gestureEnabled: false }}
+          options={{ headerShown: false, gestureEnabled: false, animation: "fade" }}
         />
         <Stack.Screen
           name="vault"
@@ -509,7 +511,7 @@ export default function RootLayout(): React.JSX.Element {
         />
         <Stack.Screen
           name="ai-chat"
-          options={{ headerShown: false, presentation: "modal" }}
+          options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }}
         />
       </Stack>
     </>

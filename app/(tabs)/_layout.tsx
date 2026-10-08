@@ -1,6 +1,7 @@
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { Shadows } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import { useTheme } from "@/hooks/use-theme";
 import { setHasLandedOnHome } from "@/services/biometric-lock";
 import { getPendingExpenseCount } from "@/services/expense";
@@ -16,6 +17,7 @@ export default function TabLayout() {
   const { colors } = useColorScheme();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
   const [pendingCount, setPendingCount] = useState(0);
 
   const refreshPending = useCallback(async () => {
@@ -58,6 +60,9 @@ export default function TabLayout() {
           fontWeight: "600",
         },
         headerShown: false,
+        // Switching tabs: a short cross-fade with a slight sideways shift instead of a hard cut.
+        // JS-driven here, so it's switched off explicitly for "Remove animations".
+        animation: reduceMotion ? "none" : "shift",
       }}
     >
       <Tabs.Screen
