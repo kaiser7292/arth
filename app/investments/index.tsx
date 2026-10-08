@@ -3,7 +3,7 @@ import { View, ScrollView, Pressable, type LayoutChangeEvent } from "react-nativ
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, EmptyState, FAB, ScreenContainer, Sheet, Text } from "@/components/ui";
-import { DonutChart } from "@/components/charts/DonutChart";
+import { TrendLineChart, type TrendSeries } from "@/components/charts/TrendLineChart";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -21,10 +21,11 @@ import {
   withoutFinishedInvestments,
 } from "@/services/investment-accounts";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
-import { formatAmount, formatCompact } from "@/utils/format";
+import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
 import { useTheme } from "@/hooks/use-theme";
 import { consumeInvestmentsPreload } from "@/services/home-preload";
+import { getInvestmentTrend, type InvestmentTrend } from "@/services/investment-trend";
 
 const preloaded = consumeInvestmentsPreload();
 
@@ -70,6 +71,7 @@ export default function InvestmentsListScreen() {
   const [maturities, setMaturities] = useState<UpcomingFDMaturity[]>(preloaded?.maturities ?? []);
   const [loaded, setLoaded] = useState(preloaded != null);
   const [breakdownVisible, setBreakdownVisible] = useState(false);
+  const [trend, setTrend] = useState<InvestmentTrend | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const sectionY = useRef<Partial<Record<InvestmentGroup, number>>>({});
 
@@ -90,6 +92,12 @@ export default function InvestmentsListScreen() {
     setRows(buildRows(accounts, products, values));
     setMaturities(upcoming);
     setLoaded(true);
+    // History is the slow part - the list shows first, the chart fills in.
+    try {
+      setTrend(await getInvestmentTrend(accounts, products, values));
+    } catch {
+      setTrend(null);
+    }
   }, []);
 
   useDataRefresh(load);
@@ -104,11 +112,15 @@ export default function InvestmentsListScreen() {
 
   const totalUpcomingInterest = maturities.reduce((sum, m) => sum + m.interestAmount, 0);
 
-  const donutSegments = GROUP_ORDER.map((g) => ({
-    label: GROUP_META[g].label,
-    value: groupTotals[g],
-    color: GROUP_META[g].color,
-  }));
+  // Total first (TrendLineChart draws the first series boldest), then each form that holds money.
+  const trendSeries = useMemo<TrendSeries[]>(() => {
+    if (!trend) return [];
+    const groups = GROUP_ORDER.filter((g) => trend.byGroup[g].some((d) => d.total > 0));
+    const list: TrendSeries[] = groups.map((g) => ({ label: GROUP_META[g].label, data: trend.byGroup[g], color: GROUP_META[g].color }));
+    return groups.length > 1 ? [{ label: "Total", data: trend.total, color: theme.primary }, ...list] : list;
+  }, [trend, theme.primary]);
+
+  const pct = (value: number) => (total > 0 ? Math.round((value / total) * 100) : 0);
 
   const scrollToGroup = useCallback((index: number) => {
     const group = GROUP_ORDER[index];
@@ -118,7 +130,7 @@ export default function InvestmentsListScreen() {
 
   const handlePress = (row: InvestmentRow) => {
     if (row.group === "market") {
-      router.push("/reconciliation/demat-portfolio");
+      router.push({ pathname: "/demat/snapshots/[id]", params: { id: row.account.id } });
     } else if (row.group === "pension") {
       router.push("/reconciliation/pension-accounts");
     } else {
@@ -138,23 +150,48 @@ export default function InvestmentsListScreen() {
           />
         ) : (
           <>
-            {/* Allocation across the three investment forms — tap a slice to
-                jump to that section below. */}
-            <Card className="mx-4 mt-4 items-center">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground self-start mb-1">
+            {/* Value over the last 12 months, and the split across the three investment
+                forms as a legend - tap one to jump to that section below. */}
+            <Card className="mx-4 mt-4">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                 Total value
               </Text>
-              <Text className="text-2xl font-bold text-foreground self-start mb-3">{formatAmount(total)}</Text>
-              <DonutChart
-                segments={donutSegments}
-                centerValue={formatCompact(total)}
-                centerLabel="Total"
-                onSegmentPress={(index) => scrollToGroup(index)}
-                onPress={() => setBreakdownVisible(true)}
-              />
-              <Text className="text-label text-faint-foreground mt-2">
-                Tap the chart for exact amounts
-              </Text>
+              <Pressable onPress={() => setBreakdownVisible(true)} accessibilityRole="button" accessibilityLabel="Show exact amounts">
+                <Text className="text-2xl font-bold text-foreground mb-3">{formatAmount(total)}</Text>
+              </Pressable>
+              {trendSeries.length > 0 ? (
+                <TrendLineChart series={trendSeries} />
+              ) : (
+                <View className="items-center py-6">
+                  <Ionicons name="analytics-outline" size={28} color={colors.textSecondary} />
+                  <Text className="text-xs text-muted-foreground mt-2">{trend ? "No history yet" : "Loading history…"}</Text>
+                </View>
+              )}
+              <View className="mt-3">
+                {GROUP_ORDER.map((g, i) => {
+                  if (groupTotals[g] <= 0) return null;
+                  return (
+                    <Pressable
+                      key={g}
+                      onPress={() => scrollToGroup(i)}
+                      className="flex-row items-center py-2"
+                      accessibilityRole="button"
+                      accessibilityLabel={`${GROUP_META[g].label}, ${pct(groupTotals[g])} percent, ${formatAmount(groupTotals[g])}`}
+                    >
+                      <View className="w-2.5 h-2.5 rounded-full mr-2.5" style={{ backgroundColor: GROUP_META[g].color }} />
+                      <Text className="text-sm text-foreground flex-1">{GROUP_META[g].label}</Text>
+                      <Text className="text-sm font-semibold text-foreground w-12 text-right">{pct(groupTotals[g])}%</Text>
+                      <Text className="text-xs text-muted-foreground w-24 text-right">{formatAmount(groupTotals[g])}</Text>
+                    </Pressable>
+                  );
+                })}
+                {trendSeries.length > 1 && (
+                  <View className="flex-row items-center py-2">
+                    <View className="w-2.5 h-0.5 mr-2.5" style={{ backgroundColor: theme.primary }} />
+                    <Text className="text-xs text-muted-foreground">Total</Text>
+                  </View>
+                )}
+              </View>
             </Card>
 
             {/* Upcoming maturities — the one thing that had no visibility
