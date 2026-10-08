@@ -31,7 +31,9 @@ export function CatchUpDone({ stats, onViewSpending, onClose }: CatchUpDoneProps
     .join(" ");
 
   return (
-    <Appear>
+    // flex: 1 - EmptyState fills the screen to centre itself; without it the wrapper collapsed to
+    // its content and the summary and buttons ended up pushed to the top, partly hidden.
+    <Appear style={{ flex: 1 }}>
     <EmptyState
       icon="checkmark-done-outline"
       title="You're all caught up"
