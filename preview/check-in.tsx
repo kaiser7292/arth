@@ -28,7 +28,9 @@ const credit = {
     "ICICI Bank Account XX322 credited:Rs. 50.00 on 23-Sep-26. Info ACH*IPL FNLDIV 2022 2026*109. Available Balance is Rs. 6,717.29.",
 } as unknown as Expense;
 
-const debit = { ...credit, id: "x2", amount: 1240, merchant_name: "Swiggy", nature: "realized" } as unknown as Expense;
+const debit = { ...credit, id: "x2", amount: 1240, merchant_name: "Swiggy", nature: "realized", payment_mode_id: "upi" } as unknown as Expense;
+
+const paymentModes = new Map([["upi", { id: "upi", name: "UPI", type: "upi" } as never]]);
 
 const noop = () => {};
 
@@ -111,8 +113,12 @@ export default function CheckInPreview() {
               card={catchUpCard(credit)}
               categoryMap={new Map()}
               accountMap={new Map()}
+              paymentModeMap={paymentModes}
               categoryId={null}
               onPickCategory={noop}
+              onPickMerchant={noop}
+              onPickPaymentMode={noop}
+              onDescriptionDraft={noop}
               onOpen={noop}
               onEditDescription={noop}
               editingDescription={false}
@@ -135,8 +141,12 @@ export default function CheckInPreview() {
               card={catchUpCard(debit)}
               categoryMap={new Map([["food", { id: "food", name: "Food & Dining", icon: "fast-food-outline", color: "#F97316" } as never]])}
               accountMap={new Map()}
+              paymentModeMap={paymentModes}
               categoryId="food"
               onPickCategory={noop}
+              onPickMerchant={noop}
+              onPickPaymentMode={noop}
+              onDescriptionDraft={noop}
               onOpen={noop}
               onEditDescription={noop}
               editingDescription={false}

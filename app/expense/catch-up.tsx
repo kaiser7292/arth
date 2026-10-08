@@ -6,11 +6,13 @@ import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { CatchUpCardView } from "@/components/expense/catch-up/CatchUpCardView";
 import { CatchUpDone } from "@/components/expense/catch-up/CatchUpDone";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
+import { MerchantSheet } from "@/components/expense/catch-up/MerchantSheet";
 import { SwipeDeck } from "@/components/expense/catch-up/SwipeDeck";
-import { Button, Card, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
+import { Button, Card, LoadingState, ScreenContainer, SelectSheet, Text, useToast } from "@/components/ui";
 import type { FooterAction } from "@/components/check-in/CheckInDeck";
 import { DeckFooter, DeckProgress } from "@/components/check-in/CheckInDeck";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { TYPE_ICONS } from "@/constants/icons";
 import type { Category } from "@/services/category";
 import { getCategories } from "@/services/category";
 import type { CatchUpCard, CatchUpLogEntry, CatchUpOutcome } from "@/services/catch-up";
@@ -30,6 +32,7 @@ import { dismissDuplicateGroup } from "@/services/duplicate-detection";
 import type { Expense } from "@/services/expense";
 import {
   approveCcRepaymentCredit,
+  bulkAssignCategory,
   getExpenseById,
   rejectExpense,
   rejectExpenses,
@@ -40,6 +43,9 @@ import {
 } from "@/services/expense";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts } from "@/services/financial-account";
+import { getDistinctMerchantNames } from "@/services/merchant-alias";
+import type { PaymentMode } from "@/services/payment-mode";
+import { getPaymentModes } from "@/services/payment-mode";
 import { getReviewQueueSnapshot } from "@/services/review-queue-snapshot";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
 import { reconcilePresentedAlerts } from "@/services/transaction-alerts";
@@ -84,6 +90,8 @@ export default function CatchUpScreen() {
   const [log, setLog] = useState<CatchUpLogEntry[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
+  const [merchantNames, setMerchantNames] = useState<string[]>([]);
 
   // Category per expense: what the smart categorizer suggests, and what the user picked on the card.
   const [suggestions, setSuggestions] = useState<Record<string, string | null>>({});
@@ -92,6 +100,8 @@ export default function CatchUpScreen() {
   const [picker, setPicker] = useState<{ commit: boolean } | null>(null);
   const [ccPickerOpen, setCcPickerOpen] = useState(false);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
+  const [merchantOpen, setMerchantOpen] = useState(false);
+  const [paymentModeOpen, setPaymentModeOpen] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
   const [batchOffer, setBatchOffer] = useState<BatchOffer | null>(null);
 
@@ -107,19 +117,27 @@ export default function CatchUpScreen() {
   const deckRef = useRef<CatchUpCard[]>([]);
   deckRef.current = deck;
   const editingId = useRef<string | null>(null);
+  // Field edits made on the card (description, merchant, payment mode) are written straight away;
+  // this chains them so "Edit or split" can wait for every one before the edit screen reads the row.
+  const fieldWrites = useRef<Promise<void>>(Promise.resolve());
+  const descriptionDraft = useRef<{ id: string; text: string } | null>(null);
 
   // ── Load once ──
   useEffect(() => {
     (async () => {
       try {
-        const [snapshot, cats, accts] = await Promise.all([
+        const [snapshot, cats, accts, modes, merchants] = await Promise.all([
           getReviewQueueSnapshot(DEFAULT_USER_ID),
           getCategories(DEFAULT_USER_ID),
           getActiveAccounts(DEFAULT_USER_ID),
+          getPaymentModes(DEFAULT_USER_ID),
+          getDistinctMerchantNames(DEFAULT_USER_ID).catch(() => [] as string[]),
         ]);
         setDeck(buildCatchUpDeck(snapshot));
         setCategories(cats);
         setAccounts(accts);
+        setPaymentModes(modes);
+        setMerchantNames(merchants);
       } catch (e) {
         logger.error("Catch up: load failed", e);
       } finally {
@@ -142,6 +160,7 @@ export default function CatchUpScreen() {
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const paymentModeMap = useMemo(() => new Map(paymentModes.map((m) => [m.id, m])), [paymentModes]);
 
   const currentIdx = nextLiveIndex(deck, index, resolved);
   const card = currentIdx >= 0 ? deck[currentIdx] : null;
@@ -190,6 +209,8 @@ export default function CatchUpScreen() {
             setDeck((prev) => prev.map((c) => (c === target ? ({ ...c, expense: fresh } as CatchUpCard) : c)));
           }
           setPicked((p) => {
+            // Still the category picked on the card: keep it, so approving still teaches it.
+            if (fresh && p[id] != null && fresh.category_id === p[id]) return p;
             const { [id]: _, ...rest } = p;
             return rest;
           });
@@ -200,6 +221,67 @@ export default function CatchUpScreen() {
         })
         .catch(() => {});
     }, []),
+  );
+
+  const queueWrite = useCallback((write: () => Promise<void>): Promise<void> => {
+    const run = fieldWrites.current.then(write);
+    // The chain itself never rejects, so one failed write doesn't block the next.
+    fieldWrites.current = run.catch(() => {});
+    return run;
+  }, []);
+
+  const patchCardExpense = useCallback((id: string, patch: Partial<Expense>) => {
+    setDeck((prev) =>
+      prev.map((c) =>
+        (c.kind === "pending" || c.kind === "uncategorized") && c.expense.id === id
+          ? ({ ...c, expense: { ...c.expense, ...patch } } as CatchUpCard)
+          : c,
+      ),
+    );
+  }, []);
+
+  // ── Merchant / payment mode, edited in place ──
+  // Written straight away like the description: edits, not decisions.
+  const saveMerchant = useCallback(
+    async (text: string) => {
+      setMerchantOpen(false);
+      if (!cardExpense) return;
+      const id = cardExpense.id;
+      const next = text.trim() || null;
+      if (next === (cardExpense.merchant_name?.trim() || null)) return;
+      try {
+        await queueWrite(() => updateExpense(id, { merchant_name: next }));
+        patchCardExpense(id, { merchant_name: next });
+        if (next && !merchantNames.includes(next)) setMerchantNames((m) => [next, ...m]);
+        // A new merchant may mean a different category - re-suggest unless one was picked by hand.
+        if (picked[id] == null && !cardExpense.category_id) {
+          setSuggestions((s) => {
+            const { [id]: _, ...rest } = s;
+            return rest;
+          });
+        }
+      } catch (e) {
+        logger.error("Catch up: save merchant failed", e);
+        toast("Couldn't save the merchant", { tone: "danger" });
+      }
+    },
+    [cardExpense, queueWrite, patchCardExpense, merchantNames, picked, toast],
+  );
+
+  const savePaymentMode = useCallback(
+    async (modeId: string) => {
+      setPaymentModeOpen(false);
+      if (!cardExpense || modeId === cardExpense.payment_mode_id) return;
+      const id = cardExpense.id;
+      try {
+        await queueWrite(() => updateExpense(id, { payment_mode_id: modeId }));
+        patchCardExpense(id, { payment_mode_id: modeId });
+      } catch (e) {
+        logger.error("Catch up: save payment mode failed", e);
+        toast("Couldn't save the payment mode", { tone: "danger" });
+      }
+    },
+    [cardExpense, queueWrite, patchCardExpense, toast],
   );
 
   // ── Description, edited in place ──
@@ -221,14 +303,9 @@ export default function CatchUpScreen() {
       }
       setSavingDescription(true);
       try {
-        await updateExpense(id, { description: next });
-        setDeck((prev) =>
-          prev.map((c) =>
-            (c.kind === "pending" || c.kind === "uncategorized") && c.expense.id === id
-              ? ({ ...c, expense: { ...c.expense, description: next } } as CatchUpCard)
-              : c,
-          ),
-        );
+        await queueWrite(() => updateExpense(id, { description: next }));
+        if (descriptionDraft.current?.id === id) descriptionDraft.current = null;
+        patchCardExpense(id, { description: next });
         setDescriptionOpen(false);
       } catch (e) {
         logger.error("Catch up: save description failed", e);
@@ -237,7 +314,7 @@ export default function CatchUpScreen() {
         setSavingDescription(false);
       }
     },
-    [deck, toast],
+    [deck, toast, queueWrite, patchCardExpense],
   );
 
   // ── Action plumbing ──
@@ -318,14 +395,41 @@ export default function CatchUpScreen() {
   // ── Card actions ──
 
   const openCard = useCallback(
-    async (id: string, act?: "money") => {
+    async (id: string, act?: "money" | "withdraw") => {
       // The edit screen must see the committed state, not what's held for Undo.
       await deferred.flush();
       undoPoint.current = null;
+      // ...and what the card shows: a description still being typed, and the category on the
+      // chip (picked here or suggested), which otherwise only gets written on approve.
+      const target = deckRef.current.find(
+        (c): c is Extract<CatchUpCard, { kind: "pending" | "uncategorized" }> =>
+          (c.kind === "pending" || c.kind === "uncategorized") && c.expense.id === id,
+      )?.expense;
+      try {
+        const draft = descriptionDraft.current;
+        if (target && draft?.id === id) {
+          const text = draft.text.trim() || null;
+          descriptionDraft.current = null;
+          if (text !== (target.description?.trim() || null)) {
+            await queueWrite(() => updateExpense(id, { description: text }));
+            patchCardExpense(id, { description: text });
+          }
+          setDescriptionOpen(false);
+        }
+        const categoryId = target ? categoryFor(target) : null;
+        if (target && categoryId && categoryId !== target.category_id) {
+          await queueWrite(async () => {
+            await bulkAssignCategory([id], categoryId);
+          });
+        }
+        await fieldWrites.current;
+      } catch (e) {
+        logger.error("Catch up: save before edit failed", e);
+      }
       editingId.current = id;
       router.push(act ? { pathname: "/expense/[id]", params: { id, act } } : `/expense/${id}`);
     },
-    [deferred, router],
+    [deferred, router, queueWrite, patchCardExpense, categoryFor],
   );
 
   // "It's not an FD" / "It's not mine" / "It's not a SIP": drop the hint and approve as usual.
@@ -600,6 +704,16 @@ export default function CatchUpScreen() {
   if (eventMeta) {
     cardActions.push({ label: eventMeta.dismissAction, icon: "checkmark-circle-outline", onPress: dismissMoneyEvent });
   }
+  if (
+    card.kind === "pending" &&
+    card.expense.nature === "credit" &&
+    !card.expense.money_event &&
+    card.expense.account_id &&
+    accountMap.get(card.expense.account_id)?.account_type !== "credit_card"
+  ) {
+    const id = card.expense.id;
+    cardActions.push({ label: "Money back from an investment", icon: "trending-down-outline", onPress: () => void openCard(id, "withdraw") });
+  }
   if (card.kind === "pending") {
     cardActions.push({ label: "Reject", icon: "close-circle-outline", role: "danger", onPress: reject });
   }
@@ -648,20 +762,26 @@ export default function CatchUpScreen() {
           onSwipeLeft={skip}
           rightNeedsInput={needsInput}
           rightLabel={primaryLabel}
-          enabled={!picker && !ccPickerOpen && !descriptionOpen}
+          enabled={!picker && !ccPickerOpen && !descriptionOpen && !merchantOpen && !paymentModeOpen}
           fill
         >
           <CatchUpCardView
             card={card}
             categoryMap={categoryMap}
             accountMap={accountMap}
+            paymentModeMap={paymentModeMap}
             categoryId={cardExpense ? categoryFor(cardExpense) : null}
             onPickCategory={() => setPicker({ commit: false })}
+            onPickMerchant={() => setMerchantOpen(true)}
+            onPickPaymentMode={() => setPaymentModeOpen(true)}
             onOpen={openCard}
             editingDescription={descriptionOpen}
             savingDescription={savingDescription}
             onEditDescription={() => setDescriptionOpen(true)}
             onSaveDescription={(id, text) => void saveDescription(id, text)}
+            onDescriptionDraft={(id, text) => {
+              descriptionDraft.current = { id, text };
+            }}
             actions={cardActions}
           />
         </SwipeDeck>
@@ -680,6 +800,24 @@ export default function CatchUpScreen() {
         selectedId={cardExpense ? categoryFor(cardExpense) : null}
         onSelect={onPickCategory}
         onClose={() => setPicker(null)}
+      />
+
+      <MerchantSheet
+        visible={merchantOpen}
+        title={cardExpense?.nature === "credit" ? "Received from" : "Paid to"}
+        value={cardExpense?.merchant_name ?? null}
+        merchantNames={merchantNames}
+        onSave={(name) => void saveMerchant(name)}
+        onClose={() => setMerchantOpen(false)}
+      />
+
+      <SelectSheet
+        visible={paymentModeOpen}
+        title="Payment mode"
+        options={paymentModes.map((m) => ({ value: m.id, label: m.name, icon: TYPE_ICONS[m.type] }))}
+        value={cardExpense?.payment_mode_id ?? null}
+        onChange={(modeId) => void savePaymentMode(modeId)}
+        onClose={() => setPaymentModeOpen(false)}
       />
 
       <AccountPickerSheet

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
 import { Money, Text } from "@/components/ui";
 import { DeckCard } from "@/components/check-in/DeckParts";
+import { TYPE_ICONS } from "@/constants/icons";
 import type { FooterAction } from "@/components/check-in/DeckParts";
 import { useTheme } from "@/hooks/use-theme";
 import type { Category } from "@/services/category";
@@ -10,6 +11,7 @@ import type { CatchUpCard } from "@/services/catch-up";
 import { splitDuplicateGroup } from "@/services/catch-up";
 import type { Expense } from "@/services/expense";
 import type { FinancialAccount } from "@/services/financial-account";
+import type { PaymentMode } from "@/services/payment-mode";
 import { formatDateForDisplay } from "@/utils/expense-validation";
 import { MONEY_EVENT_META } from "../money-event-meta";
 
@@ -17,15 +19,21 @@ interface CatchUpCardViewProps {
   card: CatchUpCard;
   categoryMap: Map<string, Category>;
   accountMap: Map<string, FinancialAccount>;
+  paymentModeMap: Map<string, PaymentMode>;
   /** Category the card will apply on a right swipe (pending / uncategorized only). */
   categoryId: string | null;
   onPickCategory: () => void;
+  /** Open the merchant / payment mode pickers (pending / uncategorized only). */
+  onPickMerchant: () => void;
+  onPickPaymentMode: () => void;
   onOpen: (expenseId: string) => void;
   /** Add / change the description right on the card (pending / uncategorized only). */
   onEditDescription: () => void;
   editingDescription: boolean;
   savingDescription: boolean;
   onSaveDescription: (expenseId: string, text: string) => void;
+  /** The description being typed, so leaving for the edit screen can save it first. */
+  onDescriptionDraft: (expenseId: string, text: string) => void;
   /** Extra actions (Reject, Already captured, Edit details…) as rows at the bottom of the card. */
   actions: FooterAction[];
 }
@@ -53,13 +61,17 @@ export function CatchUpCardView({
   card,
   categoryMap,
   accountMap,
+  paymentModeMap,
   categoryId,
   onPickCategory,
+  onPickMerchant,
+  onPickPaymentMode,
   onOpen,
   onEditDescription,
   editingDescription,
   savingDescription,
   onSaveDescription,
+  onDescriptionDraft,
   actions,
 }: CatchUpCardViewProps) {
   const theme = useTheme();
@@ -88,13 +100,17 @@ export function CatchUpCardView({
           isCredit={isCredit}
           categoryMap={categoryMap}
           accountMap={accountMap}
+          paymentModeMap={paymentModeMap}
           categoryId={categoryId}
           onPickCategory={onPickCategory}
+          onPickMerchant={onPickMerchant}
+          onPickPaymentMode={onPickPaymentMode}
           onOpen={onOpen}
           onEditDescription={onEditDescription}
           editingDescription={editingDescription}
           savingDescription={savingDescription}
           onSaveDescription={onSaveDescription}
+          onDescriptionDraft={onDescriptionDraft}
         />
       )}
 
@@ -110,25 +126,33 @@ function SingleExpenseBody({
   isCredit,
   categoryMap,
   accountMap,
+  paymentModeMap,
   categoryId,
   onPickCategory,
+  onPickMerchant,
+  onPickPaymentMode,
   onOpen,
   onEditDescription,
   editingDescription,
   savingDescription,
   onSaveDescription,
+  onDescriptionDraft,
 }: {
   expense: Expense;
   isCredit: boolean;
   categoryMap: Map<string, Category>;
   accountMap: Map<string, FinancialAccount>;
+  paymentModeMap: Map<string, PaymentMode>;
   categoryId: string | null;
   onPickCategory: () => void;
+  onPickMerchant: () => void;
+  onPickPaymentMode: () => void;
   onOpen: (id: string) => void;
   onEditDescription: () => void;
   editingDescription: boolean;
   savingDescription: boolean;
   onSaveDescription: (expenseId: string, text: string) => void;
+  onDescriptionDraft: (expenseId: string, text: string) => void;
 }) {
   const theme = useTheme();
   const [showSms, setShowSms] = useState(false);
@@ -138,6 +162,7 @@ function SingleExpenseBody({
     setDraft(expense.description ?? "");
   }, [expense.id, expense.description]);
   const category = categoryId ? categoryMap.get(categoryId) : undefined;
+  const paymentMode = expense.payment_mode_id ? paymentModeMap.get(expense.payment_mode_id) : undefined;
   const account = accountText(accountMap, expense.account_id);
   const description = expense.description?.trim() || null;
   // With no merchant the title already IS the description — don't repeat it below.
@@ -159,9 +184,10 @@ function SingleExpenseBody({
         </Text>
       </Pressable>
 
+      <View className="flex-row flex-wrap justify-center mt-4" style={{ gap: 8 }}>
       <Pressable
         onPress={onPickCategory}
-        className="flex-row items-center self-center mt-4 px-4 rounded-full border"
+        className="flex-row items-center px-4 rounded-full border"
         style={{
           minHeight: 40,
           borderColor: category ? category.color : theme.border,
@@ -184,11 +210,35 @@ function SingleExpenseBody({
         <Ionicons name="chevron-down" size={14} color={category?.color ?? theme.mutedForeground} style={{ marginLeft: 4 }} />
       </Pressable>
 
+      <FieldChip
+        icon="storefront-outline"
+        text={expense.merchant_name?.trim() || (isCredit ? "Add who paid" : "Add merchant")}
+        set={!!expense.merchant_name?.trim()}
+        onPress={onPickMerchant}
+        accessibilityLabel={
+          expense.merchant_name ? `${isCredit ? "Received from" : "Paid to"} ${expense.merchant_name}, tap to change` : "Add merchant"
+        }
+      />
+
+      {!isCredit && (
+        <FieldChip
+          icon={paymentMode ? TYPE_ICONS[paymentMode.type] : "card-outline"}
+          text={paymentMode?.name ?? "Payment mode"}
+          set={!!paymentMode}
+          onPress={onPickPaymentMode}
+          accessibilityLabel={paymentMode ? `Payment mode ${paymentMode.name}, tap to change` : "Choose payment mode"}
+        />
+      )}
+      </View>
+
       {editingDescription ? (
         <View className="flex-row items-center mt-3 rounded-lg border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
           <TextInput
             value={draft}
-            onChangeText={setDraft}
+            onChangeText={(t) => {
+              setDraft(t);
+              onDescriptionDraft(expense.id, t);
+            }}
             placeholder="Dinner with team, Mom's medicines"
             placeholderTextColor={theme.mutedForeground}
             autoFocus
@@ -241,6 +291,39 @@ function SingleExpenseBody({
         </View>
       ) : null}
     </View>
+  );
+}
+
+/** A tappable field on the card (merchant, payment mode): outlined, muted until it has a value. */
+function FieldChip({
+  icon,
+  text,
+  set,
+  onPress,
+  accessibilityLabel,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  text: string;
+  set: boolean;
+  onPress: () => void;
+  accessibilityLabel: string;
+}) {
+  const theme = useTheme();
+  const color = set ? theme.foreground : theme.mutedForeground;
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center px-4 rounded-full border"
+      style={{ minHeight: 40, maxWidth: "100%", borderColor: theme.border }}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+    >
+      <Ionicons name={icon} size={16} color={color} />
+      <Text className="text-sm font-semibold ml-1.5 flex-shrink" style={{ color }} numberOfLines={1}>
+        {text}
+      </Text>
+      <Ionicons name="chevron-down" size={14} color={color} style={{ marginLeft: 4 }} />
+    </Pressable>
   );
 }
 
