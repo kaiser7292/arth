@@ -415,6 +415,15 @@ footer{background:var(--dark-bg);padding-block:24px}
   .btn-inv{width:100%;justify-content:center}
   .trust-i{font-size:.82rem}
 }
+
+/* ── Early access (closed testing on Google Play) ───────── */
+.beta-steps{display:flex;justify-content:center;gap:10px 22px;flex-wrap:wrap;margin:18px auto 22px;padding:0;list-style:none;max-width:640px}
+.beta-steps li{display:flex;align-items:center;gap:8px;font-size:.85rem;color:rgba(255,255,255,.8)}
+.beta-steps b{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;font-size:.75rem}
+.beta-acts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.beta-acts .btn-inv{margin-bottom:0}
+.beta-n{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#134E4A;color:#fff;font-size:.75rem}
+@media(max-width:500px){.beta-acts{flex-direction:column}.beta-acts .btn-inv{width:100%;justify-content:center}}
 </style>
 
 <!-- NAV -->
@@ -430,12 +439,11 @@ footer{background:var(--dark-bg);padding-block:24px}
     <div class="nav-links">
       <a href="#features" class="nav-link">Features</a>
       <a href="/design-system" class="nav-link">Design System</a>
-      <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener" class="nav-link">GitHub</a>
       <a href="/contact" class="nav-link">Contact</a>
     </div>
-    <a href="https://github.com/kaiser7292/artha/releases/latest/download/app-arm64-v8a-release.apk" target="_blank" rel="noopener" class="btn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V8M8 12l4 4 4-4"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
-      Download APK
+    <a href="#early-access" class="btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3.6v16.8a1 1 0 0 0 1.52.85l13.7-8.4a1 1 0 0 0 0-1.7L6.52 2.75A1 1 0 0 0 5 3.6z"/></svg>
+      Get early access
     </a>
   </div>
   <div class="mob-menu" id="mob-menu">
@@ -445,9 +453,6 @@ footer{background:var(--dark-bg);padding-block:24px}
       </a>
       <a href="/design-system" class="mob-link">Design System
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-      </a>
-      <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener" class="mob-link">GitHub
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
       </a>
       <a href="/contact" class="mob-link">Contact
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
@@ -463,13 +468,13 @@ footer{background:var(--dark-bg);padding-block:24px}
       <h1 class="reveal reveal-d1">Every&nbsp;account. Every&nbsp;rupee. <span>One&nbsp;place</span>.</h1>
       <p class="hero-sub reveal reveal-d2">Savings, credit cards, wallets, demat, pension and loans — tracked in one ledger that lives on your phone.</p>
       <div class="hero-acts reveal reveal-d3">
-        <a href="https://github.com/kaiser7292/artha/releases/latest/download/app-arm64-v8a-release.apk" target="_blank" rel="noopener" class="btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V8M8 12l4 4 4-4"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
-          Download for Android (Free)
+        <a href="#early-access" class="btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3.6v16.8a1 1 0 0 0 1.52.85l13.7-8.4a1 1 0 0 0 0-1.7L6.52 2.75A1 1 0 0 0 5 3.6z"/></svg>
+          Get early access on Google Play
         </a>
-        <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener" class="btn-g">
-          View on GitHub
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+        <a href="#features" class="btn-g">
+          See what it does
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
         </a>
       </div>
     </div>
@@ -1258,16 +1263,28 @@ footer{background:var(--dark-bg);padding-block:24px}
   </div>
 </section>
 
-<!-- DOWNLOAD CTA -->
-<section class="cta">
+<!-- EARLY ACCESS (closed testing on Google Play) -->
+<section class="cta" id="early-access">
   <div class="w">
-    <h2 class="reveal">Take back control of your finances.</h2>
-    <p class="reveal reveal-d1">Free, and it works the moment you open it.</p>
-<div class="reveal reveal-d3">
-      <a href="https://github.com/kaiser7292/artha/releases/latest/download/app-arm64-v8a-release.apk" target="_blank" rel="noopener" class="btn-inv">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 16V8M8 12l4 4 4-4"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
-        Download Arth for Android
-      </a>
+    <h2 class="reveal">Get early access on Google Play.</h2>
+    <p class="reveal reveal-d1">Arth is in early testing before its public launch. It's free, and early testers help shape what comes next.</p>
+    <ol class="beta-steps reveal reveal-d2">
+      <li><b>1</b>Join the Arth early access group</li>
+      <li><b>2</b>Tap Become a tester</li>
+      <li><b>3</b>Install Arth from Google Play</li>
+    </ol>
+    <div class="reveal reveal-d3">
+      <div class="beta-acts">
+        <a href="https://groups.google.com/g/arth-early-access" target="_blank" rel="noopener" class="btn-inv">
+          <span class="beta-n">1</span>
+          Join the group
+        </a>
+        <a href="https://play.google.com/apps/testing/com.souravbaid.arth" target="_blank" rel="noopener" class="btn-inv">
+          <span class="beta-n">2</span>
+          Become a tester
+        </a>
+      </div>
+      <span class="cta-note" style="margin-top:14px;margin-bottom:0">Use the same Google account that's signed in to the Play Store on your phone. After step 2, the Install button opens Arth's Play Store page.</span>
     </div>
     <div style="margin-top:12px" class="reveal reveal-d4">
       <div class="ios-note">
@@ -1294,7 +1311,6 @@ footer{background:var(--dark-bg);padding-block:24px}
         <a href="/design-system">Design System</a>
         <a href="/legal#privacy">Privacy Policy</a>
         <a href="/legal#terms">Terms of Use</a>
-        <a href="https://github.com/kaiser7292/artha" target="_blank" rel="noopener">GitHub</a>
         <a href="/contact">Contact</a>
       </div>
     </div>
