@@ -8,6 +8,8 @@ interface PressableScaleProps extends Omit<PressableProps, "style" | "children">
   className?: string;
   /** Style for the Pressable itself. */
   style?: StyleProp<ViewStyle>;
+  /** Stretch to fill the outer View (cards sharing a row at equal height). */
+  fill?: boolean;
   children: ReactNode;
 }
 
@@ -16,14 +18,14 @@ interface PressableScaleProps extends Omit<PressableProps, "style" | "children">
  * for tappable cards and rows. The animated layer carries only a transform; the className goes on
  * a plain View outside it, so NativeWind styles never touch an animated component.
  */
-export function PressableScale({ className, style, onPressIn, onPressOut, disabled, children, ...rest }: PressableScaleProps) {
+export function PressableScale({ className, style, fill, onPressIn, onPressOut, disabled, children, ...rest }: PressableScaleProps) {
   const press = usePressScale(!disabled);
   const inner = (
-    <Animated.View style={press.style}>
+    <Animated.View style={[fill ? { flex: 1 } : null, press.style]}>
       <Pressable
         {...rest}
         disabled={disabled}
-        style={style}
+        style={[fill ? { flex: 1 } : null, style]}
         onPressIn={(e) => {
           press.onPressIn();
           onPressIn?.(e);

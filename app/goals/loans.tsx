@@ -2,7 +2,8 @@ import { useState, useCallback, useRef } from "react";
 import { View, Pressable, ScrollView, RefreshControl } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Card, FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Card, FAB, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { AnimatedNumber, PressableScale } from "@/components/motion";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -260,7 +261,7 @@ function LoanCard({
       ? Math.min(100, ((loan.principal_disbursed - loan.outstanding) / loan.principal_disbursed) * 100)
       : 0;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button">
+    <PressableScale onPress={onPress} accessibilityRole="button" accessibilityLabel={`${loan.bank_name} loan`}>
       <Card className="mb-3">
         <View className="flex-row items-start mb-2">
           <View
@@ -281,32 +282,21 @@ function LoanCard({
             <Text className="text-xs text-muted-foreground">
               Outstanding
             </Text>
-            <Text className="text-sm font-bold text-danger">
-              {loan.currency === "INR" ? formatAmount(loan.outstanding) : `${loan.currency} ${loan.outstanding.toLocaleString()}`}
-            </Text>
+            {loan.currency === "INR" ? (
+              <AnimatedNumber value={loan.outstanding} className="text-sm font-bold text-danger" />
+            ) : (
+              <Text className="text-sm font-bold text-danger">
+                {`${loan.currency} ${loan.outstanding.toLocaleString()}`}
+              </Text>
+            )}
           </View>
         </View>
-        <View
-          style={{
-            height: 4,
-            backgroundColor: colors.border,
-            borderRadius: 2,
-            overflow: "hidden",
-            marginTop: 4,
-          }}
-        >
-          <View
-            style={{
-              height: 4,
-              width: `${progress}%`,
-              backgroundColor: theme.primary,
-            }}
-          />
-        </View>
+        {/* Repaid so far - fills when the card appears. */}
+        <ProgressBar value={progress / 100} color={theme.primary} height={4} delay={200} className="mt-1" />
         <Text className="text-xs text-faint-foreground mt-1">
           {progress.toFixed(0)}% paid{loan.remaining_months != null ? ` · ${loan.remaining_months > 0 ? `${loan.remaining_months}mo remaining` : "Fully paid"}` : ""} · Disbursed {formatDate(loan.disbursement_date)}
         </Text>
       </Card>
-    </Pressable>
+    </PressableScale>
   );
 }

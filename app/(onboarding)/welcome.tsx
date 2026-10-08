@@ -3,6 +3,7 @@ import { View, ScrollView, Pressable } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, ScreenContainer, Text } from "@/components/ui";
+import { Appear, DriftingShapes } from "@/components/motion";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import {
@@ -67,25 +68,29 @@ export default function OnboardingWelcome() {
 
   return (
     <ScreenContainer safe padTop keyboardAware={false}>
+      <DriftingShapes />
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text
-          className="text-3xl font-bold text-foreground mb-2"
-          style={{ color: theme.primary }}
-        >
-          अर्थ
-        </Text>
-        <Text className="text-2xl font-bold text-foreground mb-3">
-          Welcome to Arth
-        </Text>
-        <Text className="text-base text-muted-foreground mb-6 leading-6">
-          A private finance tracker that respects your data and your time.
-        </Text>
+        <Appear index={0}>
+          <Text
+            className="text-3xl font-bold text-foreground mb-2"
+            style={{ color: theme.primary }}
+          >
+            अर्थ
+          </Text>
+          <Text className="text-2xl font-bold text-foreground mb-3">
+            Welcome to Arth
+          </Text>
+          <Text className="text-base text-muted-foreground mb-6 leading-6">
+            A private finance tracker that respects your data and your time.
+          </Text>
+        </Appear>
 
-        {BULLETS.map((b) => (
-          <View key={b.title} className="mb-5 flex-row">
+        {BULLETS.map((b, i) => (
+          <Appear key={b.title} index={i + 1} delay={60}>
+          <View className="mb-5 flex-row">
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3 mt-0.5"
               style={{ backgroundColor: theme.primary + "1F" }}
@@ -105,6 +110,7 @@ export default function OnboardingWelcome() {
               </Text>
             </View>
           </View>
+          </Appear>
         ))}
       </ScrollView>
 

@@ -12,4 +12,6 @@ export { CrossFade } from "./CrossFade";
 export { GrowIn, Nudge, SpinIn, WipeIn } from "./Entrances";
 export { Chevron } from "./Chevron";
 export { Pop } from "./Pop";
+export { ThinkingDots } from "./ThinkingDots";
+export { DriftingShapes } from "./DriftingShapes";
 export { EASE, countValue, enterUp, fadeIn, fadeOut, listLayout, popIn, spring, splitLayoutClasses, staggerDelay, timing, usePressScale } from "./motion";

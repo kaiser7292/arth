@@ -2,6 +2,7 @@ import { useMemo, useLayoutEffect, useCallback } from "react";
 import { ScrollView } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { ScreenContainer, Text } from "@/components/ui";
+import { Appear } from "@/components/motion";
 import { SimpleMarkdown } from "@/components/ui/SimpleMarkdown";
 import { getArticleMeta } from "@/services/docs";
 import { loadArticleBody } from "@/services/docs/articles";
@@ -46,6 +47,7 @@ export default function HelpArticleScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
       >
+        <Appear index={0}>
         <Text className="text-2xl font-bold text-foreground mb-2">
           {meta.title}
         </Text>
@@ -54,7 +56,10 @@ export default function HelpArticleScreen() {
             {meta.summary}
           </Text>
         )}
-        <SimpleMarkdown body={body} onArticlePress={handleArticlePress} />
+        </Appear>
+        <Appear index={1}>
+          <SimpleMarkdown body={body} onArticlePress={handleArticlePress} />
+        </Appear>
       </ScrollView>
     </ScreenContainer>
   );

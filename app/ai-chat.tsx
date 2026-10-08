@@ -25,6 +25,9 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { Appear, ThinkingDots } from "@/components/motion";
+import { enterUp } from "@/components/motion/motion";
 import Constants from "expo-constants";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -452,9 +455,11 @@ export default function AIChatScreen() {
               const userTextColor = theme.primary as string;
 
               return (
-                <View
+                // Each message fades up as it arrives.
+                <Animated.View
                   key={msg.id}
-                  className={`mb-4 max-w-[88%] ${isUser ? "self-end" : "self-start"}`}
+                  entering={enterUp(0)}
+                  style={{ marginBottom: 16, maxWidth: "88%", alignSelf: isUser ? "flex-end" : "flex-start" }}
                 >
                   {/* Bubble */}
                   <View
@@ -474,15 +479,17 @@ export default function AIChatScreen() {
                         {msg.content}
                       </Text>
                     ) : (
-                      <>
-                        <MessageContent
-                          text={msg.content || (msg.streaming ? "" : "")}
-                          textColor={colors.text}
-                        />
-                        {msg.streaming && (
-                          <Text style={{ color: accentColor, fontSize: 14 }}>{"▍"}</Text>
-                        )}
-                      </>
+                      msg.streaming && !msg.content ? (
+                        // Nothing written yet: show it's thinking rather than an empty bubble.
+                        <ThinkingDots color={accentColor} />
+                      ) : (
+                        <>
+                          <MessageContent text={msg.content} textColor={colors.text} />
+                          {msg.streaming && (
+                            <Text style={{ color: accentColor, fontSize: 14 }}>{"▍"}</Text>
+                          )}
+                        </>
+                      )
                     )}
                   </View>
 
@@ -544,7 +551,7 @@ export default function AIChatScreen() {
                       ) : null}
                     </View>
                   )}
-                </View>
+                </Animated.View>
               );
             })}
           </ScrollView>
@@ -557,17 +564,18 @@ export default function AIChatScreen() {
               contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 6, gap: 8 }}
               className="flex-grow-0"
             >
-              {SUGGESTIONS.map((s) => (
-                <Pressable
-                  key={s}
-                  onPress={() => sendMessage(s)}
-                  className="border border-border rounded-full px-3 py-2"
-                  style={{ backgroundColor: colors.surface }}
-                >
-                  <Text className="text-xs text-muted-foreground">
-                    {s}
-                  </Text>
-                </Pressable>
+              {SUGGESTIONS.map((s, i) => (
+                <Appear key={s} index={i} delay={150}>
+                  <Pressable
+                    onPress={() => sendMessage(s)}
+                    className="border border-border rounded-full px-3 py-2"
+                    style={{ backgroundColor: colors.surface }}
+                  >
+                    <Text className="text-xs text-muted-foreground">
+                      {s}
+                    </Text>
+                  </Pressable>
+                </Appear>
               ))}
             </ScrollView>
           )}

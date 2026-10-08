@@ -1,6 +1,6 @@
 # Motion System — Proposal
 
-**Status:** proposal, not built. **Goal:** every screen in Arth moves the same calm, smooth way — screen changes, tabs, lists, sheets, numbers, charts and state changes — instead of content popping in.
+**Status:** built - phase 1 shipped in 4.9.0; phases 2-4 on master (October 2026). **Goal:** every screen in Arth moves the same calm, smooth way — screen changes, tabs, lists, sheets, numbers, charts and state changes — instead of content popping in.
 
 Inspired by [Zajno's AI dashboard shot](https://dribbble.com/shots/23626522-Mobile-app-animation-for-the-AI-powered-marketing-tool-pt-2): numbers that count up, charts that build themselves, cards that arrive in sequence, a selector that glides, choices that fill when picked.
 

@@ -1,4 +1,5 @@
 import { Card, ContextualHeader, DateInput, LearnMoreChip, ScreenContainer, Sheet, Text } from "@/components/ui";
+import { PressableScale } from "@/components/motion";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -114,10 +115,13 @@ function SettingsRow({ icon, label, subtitle, onPress, disabled, iconColor }: Se
   const { colors: themeColors } = useColorScheme();
   const uiTheme = useTheme();
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={disabled}
-      className={`flex-row items-center py-3 border-b border-border ${disabled ? "opacity-40" : ""}`}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      className="border-b border-border"
+      style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12, opacity: disabled ? 0.4 : 1 }}
     >
       <Ionicons name={icon} size={20} color={iconColor ?? themeColors.textSecondary} />
       <View className="flex-1 ml-3">
@@ -129,7 +133,7 @@ function SettingsRow({ icon, label, subtitle, onPress, disabled, iconColor }: Se
         )}
       </View>
       <Ionicons name="chevron-forward" size={18} color={themeColors.textSecondary} />
-    </Pressable>
+    </PressableScale>
   );
 }
 

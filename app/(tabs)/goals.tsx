@@ -1,4 +1,5 @@
 import { Card, ContextualHeader, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { AnimatedNumber, Appear, PressableScale } from "@/components/motion";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -245,9 +246,12 @@ export default function GoalsScreen() {
 
           {/* ── Financial Health card ── */}
           {hasCockpit && cockpitData && (
-            <Pressable
+            <Appear index={0}>
+            <PressableScale
               onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
               className="mb-4"
+              accessibilityRole="button"
+              accessibilityLabel="Financial health, open yearly plan"
             >
               <Card>
                 {/* Header: label + tappable grade pill + chevron */}
@@ -311,12 +315,11 @@ export default function GoalsScreen() {
                         <Text className="text-xs text-muted-foreground mb-0.5">
                           Monthly Headroom
                         </Text>
-                        <Text
+                        <AnimatedNumber
+                          value={hRoom}
                           className="text-xl font-bold text-foreground"
                           style={hColor ? { color: hColor } : undefined}
-                        >
-                          {hNeg ? `−${formatAmount(Math.abs(hRoom))}` : formatAmount(hRoom)}
-                        </Text>
+                        />
                         <Text
                           className="text-xs text-muted-foreground"
                           style={hColor ? { color: hColor } : undefined}
@@ -332,7 +335,7 @@ export default function GoalsScreen() {
                 {cockpitData.savings.targetSavings > 0 && (
                   <ProgressBar value={(Math.min(100, (cockpitData.savings.totalSaved / cockpitData.savings.targetSavings) * 100)) / 100} color={cockpitData.savings.isOnTrack
                           ? theme.success
-                          : theme.warning} height={6} animated={false} />
+                          : theme.warning} height={6} delay={250} />
                 )}
 
                 {/* On-track signal */}
@@ -363,7 +366,8 @@ export default function GoalsScreen() {
                   </View>
                 )}
               </Card>
-            </Pressable>
+            </PressableScale>
+            </Appear>
           )}
 
           {/* ── Advisory strip ── */}
@@ -425,11 +429,15 @@ export default function GoalsScreen() {
           <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
             Plan
           </Text>
+          <Appear index={1}>
           <View className="flex-row gap-3 mb-4">
             {/* Investment */}
-            <Pressable
+            <PressableScale
               className="flex-1"
+              fill
               onPress={() => router.push({ pathname: "/goals/investment-buckets", params: { fy: String(currentFY) } })}
+              accessibilityRole="button"
+              accessibilityLabel="Investment buckets"
             >
               <Card className="flex-1">
                 <View className="flex-row items-center gap-2 mb-3">
@@ -445,18 +453,11 @@ export default function GoalsScreen() {
                 </View>
                 {fyBuckets.length > 0 ? (
                   <>
-                    <Text className="text-base font-bold text-foreground">
-                      {formatAmount(bucketContributed)}
-                    </Text>
+                    <AnimatedNumber value={bucketContributed} className="text-base font-bold text-foreground" />
                     <Text className="text-xs text-muted-foreground mb-2" numberOfLines={1}>
                       of {formatAmount(bucketTotalTarget)} · {fyBuckets.length} buckets
                     </Text>
-                    <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
-                      <View
-                        className="h-full rounded-full"
-                        style={{ width: `${bucketProgressPct}%`, backgroundColor: accentColor }}
-                      />
-                    </View>
+                    <ProgressBar value={bucketProgressPct / 100} color={accentColor} height={4} delay={300} />
                   </>
                 ) : (
                   <Text className="text-sm text-muted-foreground">
@@ -464,12 +465,15 @@ export default function GoalsScreen() {
                   </Text>
                 )}
               </Card>
-            </Pressable>
+            </PressableScale>
 
             {/* Life Milestones */}
-            <Pressable
+            <PressableScale
               className="flex-1"
+              fill
               onPress={() => router.push("/goals/milestones")}
+              accessibilityRole="button"
+              accessibilityLabel="Life milestones"
             >
               <Card className="flex-1">
                 <View className="flex-row items-center gap-2 mb-3">
@@ -485,18 +489,11 @@ export default function GoalsScreen() {
                 </View>
                 {fyMilestones.length > 0 ? (
                   <>
-                    <Text className="text-base font-bold text-foreground">
-                      {formatAmount(milestoneTotalSaved)}
-                    </Text>
+                    <AnimatedNumber value={milestoneTotalSaved} className="text-base font-bold text-foreground" />
                     <Text className="text-xs text-muted-foreground mb-2" numberOfLines={1}>
                       of {formatAmount(milestoneTotalTarget)} · {fyMilestones.length} goals
                     </Text>
-                    <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: colors.border }}>
-                      <View
-                        className="h-full rounded-full"
-                        style={{ width: `${milestoneProgressPct}%`, backgroundColor: "#14B8A6" }}
-                      />
-                    </View>
+                    <ProgressBar value={milestoneProgressPct / 100} color="#14B8A6" height={4} delay={360} />
                   </>
                 ) : (
                   <Text className="text-sm text-muted-foreground">
@@ -504,13 +501,15 @@ export default function GoalsScreen() {
                   </Text>
                 )}
               </Card>
-            </Pressable>
+            </PressableScale>
           </View>
+          </Appear>
 
           {/* ── TRACK section: Loans + Net Worth ── */}
           <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
             Track
           </Text>
+          <Appear index={2}>
           <Card className="mb-4">
             <Pressable
               onPress={() => router.push("/goals/loans")}
@@ -581,11 +580,13 @@ export default function GoalsScreen() {
               <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
             </Pressable>
           </Card>
+          </Appear>
 
           {/* ── ANALYSE section ── */}
           <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
             Analyse
           </Text>
+          <Appear index={3}>
           <Card className="mb-4">
             <Pressable
               onPress={() => router.push("/goals/yoy-comparison")}
@@ -629,6 +630,7 @@ export default function GoalsScreen() {
               <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
             </Pressable>
           </Card>
+          </Appear>
 
         </View>
       </ScrollView>
