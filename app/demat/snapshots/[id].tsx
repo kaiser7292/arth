@@ -23,6 +23,7 @@ import {
 } from "@/services/financial-account";
 import type { FinancialAccount, PortfolioSnapshot, FundSnapshot } from "@/services/financial-account";
 import { useTheme } from "@/hooks/use-theme";
+import { getDematDailyStatement, type DematDay } from "@/services/demat-statement";
 
 function getCurrentMonth(): string {
   const now = new Date();
@@ -64,6 +65,7 @@ export default function DematSnapshotsScreen() {
   const [latestDate, setLatestDate] = useState<string | null>(null);
   const [totalDeposited, setTotalDeposited] = useState<number>(0);
   const [totalWithdrawn, setTotalWithdrawn] = useState<number>(0);
+  const [days, setDays] = useState<DematDay[]>([]);
 
   // Inline edit state
   const [editingPortfolioId, setEditingPortfolioId] = useState<string | null>(null);
@@ -82,13 +84,14 @@ export default function DematSnapshotsScreen() {
   const loadData = useCallback(async () => {
     if (!id) return;
     try {
-      const [acct, latest, latestF, snaps, funds, totals] = await Promise.all([
+      const [acct, latest, latestF, snaps, funds, totals, stmt] = await Promise.all([
         getAccountById(id),
         getLatestSnapshot(id),
         getLatestFundSnapshot(id),
         getPortfolioSnapshotsForMonth(id, selectedMonth),
         getFundSnapshotsForMonth(id, selectedMonth),
         getDematTransferTotals(id),
+        getDematDailyStatement(id, selectedMonth),
       ]);
       setAccount(acct);
       setLatestPortfolio(latest?.portfolio_value ?? null);
@@ -98,6 +101,7 @@ export default function DematSnapshotsScreen() {
       setFundSnapshots(funds);
       setTotalDeposited(totals.totalDeposited);
       setTotalWithdrawn(totals.totalWithdrawn);
+      setDays(stmt);
     } catch {
       // db not ready
     }
@@ -188,12 +192,6 @@ export default function DematSnapshotsScreen() {
       ],
     );
   }, [alert, loadData]);
-
-  // Merged date list (portfolio + fund rows by date, most recent first)
-  const allDates = [...new Set([
-    ...snapshots.map((s) => s.snapshot_date),
-    ...fundSnapshots.map((f) => f.snapshot_date),
-  ])].sort((a, b) => b.localeCompare(a));
 
   const portfolioByDate = new Map(snapshots.map((s) => [s.snapshot_date, s]));
   const fundByDate = new Map(fundSnapshots.map((f) => [f.snapshot_date, f]));
@@ -340,7 +338,8 @@ export default function DematSnapshotsScreen() {
             </Card>
           )}
 
-          {/* Month navigator + table */}
+          {/* Day by day for the month: each snapshot, the money added or withdrawn that day,
+              and the gain or loss the market made (value change minus your own money). */}
           <Card className="mx-4 mb-3">
             <PeriodNavigator
               mode="month"
@@ -368,29 +367,29 @@ export default function DematSnapshotsScreen() {
             </View>
 
             {/* Rows */}
-            {allDates.length === 0 ? (
+            {days.length === 0 ? (
               <View className="items-center py-8">
                 <Ionicons name="calendar-outline" size={28} color={colors.textSecondary} />
                 <Text className="text-sm text-muted-foreground mt-2">
-                  No snapshots for this month
+                  No snapshots or transfers this month
                 </Text>
                 <Text className="text-xs text-faint-foreground mt-1">
                   Tap + to add one
                 </Text>
               </View>
             ) : (
-              allDates.map((date, idx) => {
+              days.map((day, idx) => {
+                const date = day.date;
                 const portSnap = portfolioByDate.get(date);
                 const fundSnap = fundByDate.get(date);
                 const isEditingPort = editingPortfolioId === portSnap?.id;
                 const isEditingFund = editingFundId === fundSnap?.id;
-                const isLast = idx === allDates.length - 1;
+                const isLast = idx === days.length - 1;
+                const hasSnap = portSnap != null || fundSnap != null;
 
                 return (
-                  <View
-                    key={date}
-                    className={`flex-row items-center py-2.5 ${!isLast ? "border-b border-border" : ""}`}
-                  >
+                  <View key={date} className={`py-2.5 ${!isLast ? "border-b border-border" : ""}`}>
+                  <View className="flex-row items-center">
                     {/* Date */}
                     <Text className="flex-1 text-xs text-muted-foreground">
                       {formatDay(date)}
@@ -434,7 +433,7 @@ export default function DematSnapshotsScreen() {
 
                     {/* Actions */}
                     <View className="w-16 flex-row items-center justify-end gap-1">
-                      {(isEditingPort || isEditingFund) ? (
+                      {!hasSnap ? null : (isEditingPort || isEditingFund) ? (
                         <>
                           <Pressable
                             onPress={async () => {
@@ -486,6 +485,8 @@ export default function DematSnapshotsScreen() {
                       )}
                     </View>
                   </View>
+                  <DayActivity day={day} />
+                  </View>
                 );
               })
             )}
@@ -498,5 +499,45 @@ export default function DematSnapshotsScreen() {
         <FAB icon="add" onPress={handleOpenAdd} accessibilityLabel="Add snapshot" />
       )}
     </ScreenContainer>
+  );
+}
+
+/** Under a day's row: money added / withdrawn (with where it came from or went) and the day's gain. */
+function DayActivity({ day }: { day: DematDay }) {
+  const theme = useTheme();
+  const showGain = day.hasSnapshot && Math.abs(day.gain) >= 0.01;
+  if (day.entries.length === 0 && !showGain) return null;
+  return (
+    <View className="mt-1">
+      {day.entries.map((e) => (
+        <View key={e.id} className="flex-row items-center mt-0.5">
+          <Ionicons
+            name={e.direction === "in" ? "arrow-down-circle-outline" : "arrow-up-circle-outline"}
+            size={13}
+            color={e.direction === "in" ? theme.success : theme.danger}
+          />
+          <Text className="text-xs text-muted-foreground ml-1 flex-1" numberOfLines={1}>
+            {e.direction === "in" ? `Added from ${e.counterparty}` : `Withdrawn to ${e.counterparty}`}
+          </Text>
+          <Text className="text-xs font-semibold" style={{ color: e.direction === "in" ? theme.success : theme.danger }}>
+            {e.direction === "in" ? "+" : "−"}{formatAmount(e.amount)}
+          </Text>
+        </View>
+      ))}
+      {showGain && (
+        <View className="flex-row items-center mt-0.5">
+          <Ionicons
+            name={day.gain > 0 ? "trending-up-outline" : "trending-down-outline"}
+            size={13}
+            color={day.gain > 0 ? theme.success : theme.danger}
+          />
+          <Text className="text-xs text-muted-foreground ml-1 flex-1">{day.gain > 0 ? "Market gain" : "Market loss"}</Text>
+          <Text className="text-xs font-semibold" style={{ color: day.gain > 0 ? theme.success : theme.danger }}>
+            {day.gain > 0 ? "+" : "−"}{formatAmount(Math.abs(day.gain))}
+            {day.gainPct != null ? ` (${day.gain > 0 ? "+" : "−"}${Math.abs(day.gainPct).toFixed(1)}%)` : ""}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
