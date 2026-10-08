@@ -36,7 +36,8 @@ import * as Notifications from "expo-notifications";
 import { Stack, useRouter, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as TaskManager from "expo-task-manager";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { AppState, BackHandler, ScrollView, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
@@ -144,6 +145,23 @@ async function cleanupLegacyScheduledScan(): Promise<void> {
 
 export default function RootLayout(): React.JSX.Element {
   const theme = useTheme();
+  // Navigation paints its own background behind every screen. Left unset it used React
+  // Navigation's built-in light theme, which showed through as a white flash while screens
+  // cross-faded (tab switches) or slid (pushes) - most visible in dark mode. Give it Arth's colours.
+  const navigationTheme = useMemo(() => {
+    const base = theme.scheme === "dark" ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        background: theme.background,
+        card: theme.background,
+        text: theme.foreground,
+        border: theme.border,
+        primary: theme.primary,
+      },
+    };
+  }, [theme]);
   const [dbReady, setDbReady] = useState(false);
   const [minSplashDone, setMinSplashDone] = useState(false);
   const [lockEvaluated, setLockEvaluated] = useState(false);
@@ -439,7 +457,7 @@ export default function RootLayout(): React.JSX.Element {
     <AlertProvider>
     <GestureHandlerRootView style={{ flex: 1 }}>
     <ToastProvider>
-    <>
+    <ThemeProvider value={navigationTheme}>
       <StatusBar style="auto" />
       {/* Every screen slides in from the right (see useStackScreenOptions); task screens that
           open on top - add/edit expense, the AI assistant - rise from the bottom instead. */}
@@ -514,7 +532,7 @@ export default function RootLayout(): React.JSX.Element {
           options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }}
         />
       </Stack>
-    </>
+    </ThemeProvider>
     </ToastProvider>
     </GestureHandlerRootView>
     </AlertProvider>

@@ -63,6 +63,8 @@ export default function TabLayout() {
         // Switching tabs: a short cross-fade with a slight sideways shift instead of a hard cut.
         // JS-driven here, so it's switched off explicitly for "Remove animations".
         animation: reduceMotion ? "none" : "shift",
+        // Each tab paints Arth's background itself, so nothing behind it shows through mid-fade.
+        sceneStyle: { backgroundColor: theme.background },
       }}
     >
       <Tabs.Screen
