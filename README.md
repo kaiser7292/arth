@@ -14,7 +14,7 @@
 
 Built with React Native and Expo. Open source. No data leaves your phone.
 
-**Current version: v4.11.0** · [All releases](https://github.com/kaiser7292/arth/releases)
+**Current version: v4.11.1** · [All releases](https://github.com/kaiser7292/arth/releases)
 
 ---
 
@@ -187,7 +187,7 @@ artha/
 
 | Version | Highlights |
 |---------|-----------|
-| **v4.11** | Arth AI assistant removed; app download roughly halved. Leftover AI model files are deleted on update. |
+| **v4.11** | Fixed start-up failure in 4.10.2 and 4.11.0 (R8 removed an Expo class). Arth AI assistant removed; app download roughly halved. Leftover AI model files are deleted on update. |
 | **v4.10** | Smaller, faster app code (R8 shrinking: 36 MB down to 8 MB). Realised capital gains from investment withdrawals flow into the Income Calculator (proportional cost, oldest money first) with crypto taxed at a flat 30%; withdrawals beyond idle cash come off holdings; buckets drop by cost, never below zero; no flash when switching tabs. Motion system, phases 2-4: totals count up, charts draw in, cards arrive in sequence, gliding selectors and filling bars across Home, Investments, Budget, Goals and Loans; Catch Up buttons fling the card, the next rises from behind, Undo slides it back; lists close gaps smoothly; smooth More options and collapsible sections; placeholders fade into content; AI assistant thinking dots; onboarding welcome drift |
 | **v4.9** | Motion system, phase 1: screens slide in from the right and add/edit screens rise from the bottom; tabs cross-fade with a shift; press feedback on buttons, rows and chips; shared motion building blocks (count-ups, staggered cards, gliding selector, collapse, placeholder fades); all off with the phone's Remove animations setting |
 | **v4.8** | Record money back from any investment (MF, stocks, PPF, NPS, EPF) with gain split, bucket and close; redemption SMS detection; daily demat statement (money in/out and market gain per day); Investments 12-month stacked chart with % legend and per-account drill-down; broker-synced snapshots stay the truth for their day; Catch Up merchant and payment mode chips, and card edits carry into Edit |
