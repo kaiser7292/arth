@@ -10,7 +10,7 @@ Arth - Your Finance, Your Way
 
 ## Short description (max 80)
 
-Your financial life in one private app, auto-tracked from your bank SMS.
+Plan, track and grow your money privately. Auto-tracked from bank SMS. No cloud.
 
 ## Full description (max 4,000)
 
@@ -49,9 +49,6 @@ Arth only looks at messages from banks and payment services, so personal chats a
 
 INVESTMENTS (OPTIONAL)
 Connect your own Zerodha Kite, Angel One or Zebpay API key to see holdings alongside everything else. Read-only: Arth never places orders or moves money. Arth is not affiliated with any broker.
-
-ARTH AI (OPTIONAL)
-Ask questions about your money in plain English. The AI model runs entirely on your phone. Built with Llama.
 
 PRIVATE BY DESIGN
 • No sign-up and no Arth servers: your data lives in a database on your phone

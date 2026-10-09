@@ -59,7 +59,6 @@ Not declared, with reasoning (keep in case Google asks):
 - **Voice** — speech is recognised by the phone's system speech service, not by code in Arth;
   Arth only receives text. If Google pushes back, add Audio → Voice or sound recordings
   (collected, ephemeral, optional, app functionality).
-- **AI model download** — a file download; no user data is sent.
 - **Sharing** — sending credentials to a broker because the user asked to connect it is a
   user-initiated transfer, which Play exempts from "sharing".
 
