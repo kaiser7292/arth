@@ -398,6 +398,7 @@ Shows savings rate + saved-this-FY. Guards:
 | `withDisableBackup` | `plugins/withDisableBackup.js` | Disables Android cloud backup |
 | `withLargeHeap` | `plugins/withLargeHeap.js` | `android:largeHeap="true"` |
 | `withReleaseSigning` | `plugins/withReleaseSigning.js` | Release key from `~/.arth/signing.properties`; release build fails without it |
+| `withR8` | `plugins/withR8.js` | R8 minify + `proguard-android-optimize.txt` + keep rules for native libs without their own (llama.rn, SMS, MMKV, AES, widget, PdfBox, WebView, speech). New native library = check it still works in a release build, add a keep rule if not |
 
 All registered in `app.json` under `expo.plugins`. Applied automatically on every `expo prebuild`.
 
