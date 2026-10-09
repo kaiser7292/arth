@@ -97,17 +97,20 @@ All plugins live in `plugins/` and are registered in `app.json` under `expo.plug
 
 ---
 
-## APK Size Breakdown (v2.11.3)
+## APK Size Breakdown (v4.11.0)
 
-| Layer | Size |
+| Layer | Size (uncompressed) |
 |-------|------|
-| `lib/arm64-v8a` (native code) | ~88 MB |
-| `assets` (JS bundle + bundled data) | ~14 MB |
-| `classes*.dex` (Java/Kotlin) | ~34 MB |
-| `res` + `resources.arsc` | ~7 MB |
-| **Total** | **~120 MB** |
+| `lib/arm64-v8a` (native code) | ~20 MB |
+| `assets` (JS bundle ~8.6 MB + PdfBox data) | ~13 MB |
+| `classes*.dex` (Java/Kotlin, after R8) | ~7.6 MB |
+| `res` + `resources.arsc` | ~4.5 MB |
+| **APK total** | **~37 MB** (Play AAB ~28 MB) |
 
-The arm64-v8a native libs are dominated by `llama.rn` (the AI assistant feature), which ships 6 ARM CPU-variant `.so` files (~60 MB) for runtime dispatch. This is unavoidable without removing the AI feature.
+History: ~120 MB until v4.10.1. R8 (`plugins/withR8.js`, v4.10.2) cut the dex from 34 MB to 8 MB.
+v4.11.0 removed the AI assistant (`llama.rn`, ~66 MB of native libs), switched icon imports to
+`@expo/vector-icons/Ionicons` (the package root bundles all 19 icon fonts), dropped unused Expo
+libraries, and excluded BouncyCastle's post-quantum data files.
 
 ---
 

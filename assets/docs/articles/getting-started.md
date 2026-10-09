@@ -39,11 +39,11 @@ Arth is a private finance tracker that runs entirely on your phone. No account, 
 
 Arth has **five bottom tabs**, in this order from left to right. **Swipe left or right** anywhere on screen to move between tabs — or tap them directly.
 
-- **Home** - today's picture. Swipe left/right to move between five pages: **Overview** (Review Queue, Check-ins, Reminders, upcoming dues, your accounts and investments), **Insights** (spending patterns, analytics and reports), **Queue** (full review queue for pending SMS expenses), **Simulator** (cash-flow scenarios), and **Vault** (password and secret vault). Tap the page labels at the top or swipe to switch. The icons in the header open Arth AI, voice entry, **hide amounts** (the eye) and an SMS scan.
+- **Home** - today's picture. Swipe left/right to move between five pages: **Overview** (Review Queue, Check-ins, Reminders, upcoming dues, your accounts and investments), **Insights** (spending patterns, analytics and reports), **Queue** (full review queue for pending SMS expenses), **Simulator** (cash-flow scenarios), and **Vault** (password and secret vault). Tap the page labels at the top or swipe to switch. The icons in the header open voice entry, **hide amounts** (the eye) and an SMS scan.
 - **Transactions** - the full ledger. Swipe between five pages: **All**, **Expenses**, **Committed** (forecast / recurring), **Credits**, and **Transfers**. Search (by typing or voice), filter, sort, and save favourite filter combinations as named views.
 - **Budget** - monthly caps per category with progress bars. Right-spend (unavoidable) vs discretionary split. Month-End Projection widget.
 - **Goals** - Financial Health, yearly plan, investment buckets, life milestones, loans, risk coverage (insurance), net worth, year-over-year comparison and the income calculator.
-- **Settings** - accounts, categories, payment modes, voice input, Arth AI, reminders, smart rules, SMS templates, merchant categories, merchant aliases, audit log, broker integrations (Zerodha, Angel One, Zebpay), backup/restore, SMS detection, region, notifications, calendar sync, home cards, security (app lock), and this help center.
+- **Settings** - accounts, categories, payment modes, voice input, reminders, smart rules, SMS templates, merchant categories, merchant aliases, audit log, broker integrations (Zerodha, Angel One, Zebpay), backup/restore, SMS detection, region, notifications, calendar sync, home cards, security (app lock), and this help center.
 
 > Insights is one of the Home tab's swipe pages — swipe right from Overview or tap the "Insights" label at the top.
 

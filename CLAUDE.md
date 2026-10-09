@@ -398,13 +398,13 @@ Shows savings rate + saved-this-FY. Guards:
 | `withDisableBackup` | `plugins/withDisableBackup.js` | Disables Android cloud backup |
 | `withLargeHeap` | `plugins/withLargeHeap.js` | `android:largeHeap="true"` |
 | `withReleaseSigning` | `plugins/withReleaseSigning.js` | Release key from `~/.arth/signing.properties`; release build fails without it |
-| `withR8` | `plugins/withR8.js` | R8 minify + `proguard-android-optimize.txt` + keep rules for native libs without their own (llama.rn, SMS, MMKV, AES, widget, PdfBox, WebView, speech). New native library = check it still works in a release build, add a keep rule if not |
+| `withR8` | `plugins/withR8.js` | R8 minify + `proguard-android-optimize.txt` + keep rules for native libs without their own (SMS, MMKV, AES, widget, PdfBox, WebView, speech); excludes BouncyCastle post-quantum data files. New native library = check it still works in a release build, add a keep rule if not |
 
 All registered in `app.json` under `expo.plugins`. Applied automatically on every `expo prebuild`.
 
 ### APK size reality
-- `llama.rn` (AI assistant) contributes ~60 MB of arm64 native libs (6 CPU-variant `.so` files for runtime dispatch). Cannot be reduced without removing the AI feature.
-- The remaining ~60 MB is React Native core (`libreactnative.so`, Hermes, etc.) + JS bundle + assets.
+- The on-device AI assistant (`llama.rn`, ~66 MB of native libs) was removed in 4.11.0; `services/ai-removal.ts` deletes the old model file on start.
+- What remains is mostly React Native core (`libreactnative.so`, Hermes, etc.) + JS bundle + assets. Import icons as `@expo/vector-icons/Ionicons`: the package root bundles all 19 icon fonts (~3.5 MB).
 
 ### Bank accounts — transfers display
 `BankBalanceSummary` (home hero card) and `bank-accounts.tsx` both show Transfers Out / Transfers In rows. These come from `getTransfersOutTotal` / `getTransfersInTotal` (month-range aware, in `services/account-transfer.ts`). `getComputedBalanceComponents` already returns `transfersOut`/`transfersIn` for the current month in `BankBalanceSummary`.

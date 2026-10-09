@@ -19,8 +19,6 @@ const { withAppBuildGradle, withDangerousMod, withGradleProperties } = require("
 const KEEP_RULES = `
 # ARTH_R8_KEEP (plugins/withR8.js) - native libraries without their own R8 rules
 -keep class com.souravbaid.arth.** { *; }
-# AI assistant: C++ calls back into these classes by name
--keep class com.rnllama.** { *; }
 # SMS reading
 -keep class com.react.SmsModule { *; }
 -keep class com.react.SmsPackage { *; }
@@ -53,10 +51,26 @@ function withR8(config) {
   });
 
   config = withAppBuildGradle(config, (config) => {
-    config.modResults.contents = config.modResults.contents.replace(
+    let gradle = config.modResults.contents.replace(
       'getDefaultProguardFile("proguard-android.txt")',
       'getDefaultProguardFile("proguard-android-optimize.txt")',
     );
+    // BouncyCastle (pulled in by PdfBox for password-protected PDFs) ships ~7.8 MB of data for
+    // the Picnic and SIKE post-quantum schemes. R8 can't strip resource files; no PDF uses
+    // either scheme (SIKE was broken in 2022), and R8 already removes Picnic's only reader.
+    if (!gradle.includes("ARTH_PQC_EXCLUDES")) {
+      gradle += `
+// ARTH_PQC_EXCLUDES (plugins/withR8.js)
+android {
+    packaging {
+        resources {
+            excludes += ["org/bouncycastle/pqc/crypto/picnic/*.properties", "org/bouncycastle/pqc/crypto/sike/*.properties"]
+        }
+    }
+}
+`;
+    }
+    config.modResults.contents = gradle;
     return config;
   });
 

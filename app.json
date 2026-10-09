@@ -62,7 +62,6 @@
       "./plugins/withLargeHeap",
       "./plugins/withReleaseSigning",
       "./plugins/withR8",
-      "llama.rn",
       [
         "react-native-android-widget",
         {
@@ -101,7 +100,6 @@
           "calendarPermission": "Arth adds your upcoming bills, EMIs and reminders to the calendar you choose."
         }
       ],
-      "@react-native-community/datetimepicker",
       "expo-speech-recognition",
       [
         "expo-font",

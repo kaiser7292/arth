@@ -1,6 +1,4 @@
-jest.mock("../../services/ai-report", () => ({ AI_REPORT_EMAIL: "dev@example.com" }));
-
-import { buildSmsReportMailto, redactSms } from "../../services/sms/sms-redact";
+import { SMS_REPORT_EMAIL, buildSmsReportMailto, redactSms } from "../../services/sms/sms-redact";
 
 const SAMPLES: { body: string; secrets: string[]; keep: string[] }[] = [
   {
@@ -46,7 +44,7 @@ describe("redactSms", () => {
 describe("buildSmsReportMailto", () => {
   it("addresses the developer and carries the redacted text", () => {
     const url = buildSmsReportMailto("Your A/C XXXX Credited INR 5.00", "VM-SBIINB", "4.5.0");
-    expect(url.startsWith("mailto:dev@example.com?subject=")).toBe(true);
+    expect(url.startsWith(`mailto:${SMS_REPORT_EMAIL}?subject=`)).toBe(true);
     expect(decodeURIComponent(url)).toContain("Your A/C XXXX Credited INR 5.00");
     expect(decodeURIComponent(url)).toContain("SBIINB");
   });

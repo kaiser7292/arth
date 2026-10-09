@@ -6,10 +6,8 @@
  * before anything leaves the phone (it goes out from their own email app).
  */
 
-import { AI_REPORT_EMAIL } from "@/services/ai-report";
-
-/** Where SMS reports go — the same inbox as Arth AI reports. */
-export const SMS_REPORT_EMAIL = AI_REPORT_EMAIL;
+/** Where SMS reports go. */
+export const SMS_REPORT_EMAIL = "souravbaid270@gmail.com";
 
 const NAME = "NAME";
 

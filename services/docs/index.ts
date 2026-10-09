@@ -279,7 +279,6 @@ const DOMAIN_GROUPS: Array<{ label: string; slugs: string[] }> = [
       "merchant-aliases",
       "duplicate-detection",
       "voice-input",
-      "ai-assistant",
       "notifications",
     ],
   },

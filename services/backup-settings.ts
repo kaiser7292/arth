@@ -83,14 +83,6 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("sms_start_date", "string"),
   S("sms_end_date", "string"),
   S("sms_scan_account_ids", "string"),
-  S("arth_ai_enabled", "boolean"),
-  S("arth_ai_nl_search_enabled", "boolean"),
-  S("arth_ai_data_expenses", "boolean"),
-  S("arth_ai_data_accounts", "boolean"),
-  S("arth_ai_data_budget", "boolean"),
-  S("arth_ai_data_hisaab", "boolean"),
-  S("arth_ai_data_vault", "boolean"),
-  S("arth_ai_chat_history", "string"),
   // Check-ins, rule suggestions, subscriptions, settle-up, month-end
   P("check_in_snoozed_until__", "number"),
   S("rule_suggestions_dismissed", "string"),
@@ -111,8 +103,6 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   { store: "minBalanceAcks", key: "min_balance_ack_", prefix: true, type: "boolean", backup: true },
 
   // ── Device-only ──
-  S("arth_ai_active_model", "string", DEVICE("the AI model file is downloaded per device")),
-  S("arth_ai_last_init_error", "string", DEVICE("diagnostic for this device")),
   S("biometric_lock_enabled", "boolean", DEVICE("app lock is set up per device; restoring it onto a phone without biometrics could lock you out")),
   S("biometric_lock_timeout_seconds", "number", DEVICE("belongs with the device's app-lock setup")),
   S("biometric_last_unlock_at", "number", PROGRESS),

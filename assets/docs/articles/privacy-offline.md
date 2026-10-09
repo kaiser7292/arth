@@ -37,14 +37,13 @@ Arth is a **local-first** app. There is no Arth server. No account to create. No
 Everything you track works in airplane mode. Arth only goes online for optional extras you switch on yourself:
 
 - **Broker connections** - [Zerodha Kite](kite-connect), [Angel One](angel-one) and [Zebpay](zebpay). Arth talks directly to the broker with your own API key. Nothing goes through an Arth server.
-- **Arth AI model download** - a one-time download of the AI model. After that the [AI assistant](ai-assistant) runs fully on your phone.
 - **Help links** - links to a broker's terms or developer console open in your browser.
 
 And a few things leave the phone only because you send them somewhere:
 
 - **Backups** you save to Drive, email or elsewhere.
 - **Calendar sync** to a Google calendar - Android's own sync uploads the events. Choose "Arth (this phone only)" to keep them local. See [Calendar sync](calendar-sync).
-- **Reports** you share as a PDF, **Settle up** reminders you send, and **Report this answer** emails for AI replies.
+- **Reports** you share as a PDF, **Settle up** reminders you send, and SMS reports you choose to email.
 
 What Arth does **not** have:
 

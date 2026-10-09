@@ -2,7 +2,6 @@ import { restoreExpense } from "@/services/expense-crud";
 import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { isNLSearchEnabled } from "@/services/ai-assistant";
 import { parseNLQuery } from "@/utils/nl-search";
 import {
   ExpoSpeechRecognitionModule,
@@ -12,7 +11,7 @@ import { View, FlatList, Pressable, TextInput, ScrollView, KeyboardAvoidingView,
 import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, Input, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -138,7 +137,6 @@ export default function ExpensesScreen() {
     [datePreset, customStartDate, customEndDate],
   );
 
-  const nlEnabled = isNLSearchEnabled();
 
   // Filters (all multi-select)
   const [search, setSearch] = useState("");
@@ -580,11 +578,11 @@ export default function ExpensesScreen() {
   }, []);
 
   const applyNLSearchWith = useCallback((text: string) => {
-    if (!nlEnabled || !text.trim()) { setSearch(text); return; }
+    if (!text.trim()) { setSearch(text); return; }
     const { textSearch, datePreset: parsedPreset } = parseNLQuery(text);
     setSearch(textSearch);
     if (parsedPreset) setDatePreset(parsedPreset);
-  }, [nlEnabled, setDatePreset]);
+  }, [setDatePreset]);
 
   const applyNLSearch = useCallback(() => {
     applyNLSearchWith(search);
@@ -958,13 +956,13 @@ export default function ExpensesScreen() {
           <TextInput
             value={search}
             onChangeText={handleSearchChange}
-            onSubmitEditing={nlEnabled ? applyNLSearch : undefined}
-            placeholder={nlEnabled ? "Try 'food last month'…" : "Search expenses…"}
+            onSubmitEditing={applyNLSearch}
+            placeholder="Try 'food last month'…"
             placeholderTextColor={colors.tabIconDefault}
             maxLength={100}
             accessibilityLabel="Search expenses"
             className="flex-1 ml-2 text-base text-foreground"
-            returnKeyType={nlEnabled ? "go" : "search"}
+            returnKeyType="go"
             blurOnSubmit={false}
           />
           {search !== "" && (
@@ -973,7 +971,7 @@ export default function ExpensesScreen() {
             </Pressable>
           )}
           {/* Apply button — only shown for typed input; voice auto-applies */}
-          {nlEnabled && search.trim() !== "" && !isVoiceSearching && (
+          {search.trim() !== "" && !isVoiceSearching && (
             <Pressable
               onPress={applyNLSearch}
               accessibilityLabel="Apply smart search"

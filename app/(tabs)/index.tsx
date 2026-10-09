@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { InsightsPage } from "@/components/home/pages/InsightsPage";
@@ -66,7 +66,6 @@ import {
     detectBreaches,
     unacknowledgedBreaches,
 } from "@/services/min-balance";
-import { isArthAIEnabled } from "@/services/ai-assistant";
 import { dismissBackupWarning, getDataVersion, shouldShowBackupWarning } from "@/services/settings";
 import { isAmountsHidden, toggleAmountsHidden } from "@/services/privacy-mode";
 import { findAutoMatches, dismissReminderMatch, clearDismissalsForRule, pruneExpiredDismissals } from "@/services/reminder-matching";
@@ -348,11 +347,6 @@ export default function HomeScreen() {
 
   const smsScanIcon: "sync-outline" | "scan-outline" = smsScanning ? "sync-outline" : "scan-outline";
   const homeHeaderActions = [
-    ...(isArthAIEnabled() ? [{
-      icon: "sparkles-outline" as const,
-      onPress: () => router.push("/ai-chat"),
-      color: colors.tint,
-    }] : []),
     { icon: "mic-outline" as const, onPress: () => setShowVoiceSheet(true) },
     {
       icon: amountsHidden ? "eye-off-outline" as const : "eye-outline" as const,

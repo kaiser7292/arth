@@ -14,6 +14,7 @@ import { materialiseMaturedInvestments, migrateLegacyDematPensionAccounts } from
 import { repairWithdrawalSplits } from "@/services/demat-transfer";
 import { repairWithdrawalBucketAmounts } from "@/services/investment-withdrawal";
 import { migrateInvestmentsHomeCardPreference } from "@/services/home-card-preferences";
+import { removeArthAILeftovers } from "@/services/ai-removal";
 import { runScheduledBackupIfDue, syncBackupBackgroundTask } from "@/services/backup-schedule";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
 // Module scope on purpose: defines the background SMS-scan and notification-button tasks, which
@@ -264,6 +265,8 @@ export default function RootLayout(): React.JSX.Element {
         // Item 10 Phase 3 — one-time carry-forward of the old separate demat/
         // pension Home-card hidden preferences onto the new merged card.
         migrateInvestmentsHomeCardPreference();
+        // Arth AI was removed in 4.11.0: free the downloaded model file (up to 1.9 GB) and its settings.
+        removeArthAILeftovers();
         // Idempotent FD-maturity catch-up pass (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
         // section 8) — must be correct on its own since there is no reliable
         // background trigger (Doze makes BackgroundFetch unreliable).
@@ -534,10 +537,6 @@ export default function RootLayout(): React.JSX.Element {
         <Stack.Screen
           name="vault"
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ai-chat"
-          options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }}
         />
       </Stack>
     </ThemeProvider>

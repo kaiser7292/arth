@@ -39,7 +39,7 @@ Arth is local-only - there is no cloud sync. Moving to a new phone, or protectin
 ## What's in a backup
 
 - **All your data** - every expense, account, investment, category, budget, reminder, smart rule, SMS template, hisaab entry, goal, yearly plan, loan, insurance policy, simulator scenario, Vault entry and tag.
-- **Your settings** - theme and region, sorts and saved filter views, home card choices, notification and SMS settings, Arth AI settings and chat history, check-in decisions, dismissed duplicates and more.
+- **Your settings** - theme and region, sorts and saved filter views, home card choices, notification and SMS settings, check-in decisions, dismissed duplicates and more.
 
 What **stays on each phone** (not in the backup):
 

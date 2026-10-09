@@ -1,7 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
-import { FlatList, Linking, Pressable, View } from "react-native";
-import { Card, Input, ScreenContainer, Text } from "@/components/ui";
+import { FlatList, Pressable, View } from "react-native";
+import { Input, ScreenContainer, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 
 interface LicenseEntry {
@@ -16,7 +16,7 @@ function loadLicenses(): LicenseEntry[] {
   return require("@/assets/data/open-source-licenses.json").packages as LicenseEntry[];
 }
 
-/** Settings → Open-source licences. Llama is pinned: Arth AI downloads it, it isn't an npm package. */
+/** Settings → Open-source licences. */
 export default function LicensesScreen() {
   const theme = useTheme();
   const all = useMemo(loadLicenses, []);
@@ -38,21 +38,6 @@ export default function LicensesScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
         ListHeaderComponent={
           <View className="pt-4">
-            <Card className="mb-4">
-              <Text className="text-sm font-semibold text-foreground">Llama 3.2</Text>
-              <Text className="text-xs text-muted-foreground mt-1 leading-4">
-                Arth AI is built with Llama. Llama 3.2 is licensed under the Llama 3.2 Community
-                License, Copyright © Meta Platforms, Inc. All Rights Reserved.
-              </Text>
-              <View className="flex-row mt-2" style={{ gap: 16 }}>
-                <Pressable onPress={() => Linking.openURL("https://www.llama.com/llama3_2/license/")} hitSlop={8}>
-                  <Text className="text-xs font-semibold text-primary">License</Text>
-                </Pressable>
-                <Pressable onPress={() => Linking.openURL("https://www.llama.com/llama3_2/use-policy/")} hitSlop={8}>
-                  <Text className="text-xs font-semibold text-primary">Acceptable use policy</Text>
-                </Pressable>
-              </View>
-            </Card>
 
             <Text className="text-sm text-muted-foreground mb-3 leading-5">
               Arth is built on {all.length} open-source packages and data sets. Tap one to read its

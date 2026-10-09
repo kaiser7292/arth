@@ -55,7 +55,6 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="reconciliation/manual-link" options={{ title: "Link Transaction" }} />
       <Stack.Screen name="help/index" options={{ title: "Help Center" }} />
       <Stack.Screen name="help/[slug]" options={{ title: "" }} />
-      <Stack.Screen name="ai-assistant" options={{ title: "Arth AI" }} />
       <Stack.Screen name="voice-input" options={{ title: "Voice Input" }} />
     </Stack>
   );

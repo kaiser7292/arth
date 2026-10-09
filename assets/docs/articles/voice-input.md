@@ -40,7 +40,7 @@ Say the word **transfer**, for example "Transfer 5000 from HDFC to ICICI". Arth 
 
 ## Search by voice
 
-On the **Transactions** tab, tap the mic in the search bar and say what you're looking for. With [Natural Language Search](ai-assistant) on, phrases like "coffee last week" work too, and the search runs as soon as you stop speaking.
+On the **Transactions** tab, tap the mic in the search bar and say what you're looking for. Phrases like "coffee last week" work too, and the search runs as soon as you stop speaking.
 
 ## Voice settings
 
@@ -62,4 +62,3 @@ On the **Transactions** tab, tap the mic in the search bar and say what you're l
 - [Transactions tab](transactions)
 - [Recording transfers between accounts](transfers)
 - [Hisaab - shared accounts with people](hisaab)
-- [AI assistant](ai-assistant)

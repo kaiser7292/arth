@@ -42,7 +42,7 @@ import { countUnrecognisedSms } from "@/services/sms/user-sms-templates";
 
 import { formatDisplayDate as formatDateLabel } from "@/utils/date";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Switch, View } from "react-native";
@@ -450,7 +450,6 @@ export default function SettingsScreen() {
 
           <Card title="Automation" className="mb-4">
             <SettingsRow icon="mic-outline" label="Voice Input" subtitle="Voice sound, speak-back questions on or off" onPress={() => router.push("/settings/voice-input")} />
-            <SettingsRow icon="sparkles-outline" label="Arth AI" subtitle="On-device AI assistant and smart search" onPress={() => router.push("/settings/ai-assistant")} />
             <SettingsRow icon="repeat-outline" label="Reminders" subtitle="Rent, subscriptions, anything that repeats" onPress={() => router.push("/settings/recurring-rules")} />
             <SettingsRow icon="flash-outline" label="Smart Rules" subtitle="Auto-categorize expenses by merchant, amount, account" onPress={() => router.push("/settings/smart-rules")} />
             <SettingsRow icon="construct-outline" label="Smart SMS Templates" subtitle="Teach Arth to read SMS from any bank" onPress={() => router.push("/settings/sms-templates")} />

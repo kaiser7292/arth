@@ -56,7 +56,7 @@ You can also add an expense by talking - see [Voice input](voice-input).
 
 Type in the search box to match merchant, description and more. Tap the **mic** to search by voice.
 
-With **Natural Language Search** turned on (Settings tab → Automation → Arth AI), you can type things like "food last month" or "coffee last week". See [AI assistant](ai-assistant).
+You can also type plain phrases like "food last month" or "coffee last week", then tap **Go**: Arth turns the time words into a date filter and searches for the rest.
 
 ## Filter
 

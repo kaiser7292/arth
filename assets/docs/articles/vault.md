@@ -102,4 +102,3 @@ The Vault is included in your **Arth backup file** - encrypted with your backup 
 
 - Set up biometric lock: [Locking the app with Face / Fingerprint](biometric-lock)
 - Back up your data (includes Vault): [Backup and restore](backup-restore)
-- AI data access toggle for Vault: [AI assistant](ai-assistant)
