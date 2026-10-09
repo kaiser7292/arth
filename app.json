@@ -61,6 +61,7 @@
       "./plugins/withAapt2Fix",
       "./plugins/withLargeHeap",
       "./plugins/withReleaseSigning",
+      "./plugins/withR8",
       "llama.rn",
       [
         "react-native-android-widget",
