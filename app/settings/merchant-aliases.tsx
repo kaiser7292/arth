@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { View, FlatList, Pressable, TextInput, KeyboardAvoidingView, Keyboard } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, EmptyState, FAB, LearnMoreChip, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 

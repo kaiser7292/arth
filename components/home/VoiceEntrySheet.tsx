@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Sheet, Text } from "@/components/ui";
 import { Animated, Pressable, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Speech from "expo-speech";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";

@@ -2,7 +2,7 @@ import { memo } from "react";
 import { Text } from "@/components/ui";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
 import type { BreachedAccount } from "@/services/min-balance";

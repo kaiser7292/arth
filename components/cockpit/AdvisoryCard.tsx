@@ -1,7 +1,7 @@
 import { View, Pressable } from "react-native";
 
 import { Text } from "@/components/ui";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Advisory, AdvisorySeverity } from "@/utils/financial-cockpit";
 import { useTheme } from "@/hooks/use-theme";

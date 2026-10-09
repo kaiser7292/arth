@@ -35,7 +35,7 @@ import { reconcilePresentedAlerts } from "@/services/transaction-alerts";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/expense-validation";
 import { logger } from "@/utils/logger";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";

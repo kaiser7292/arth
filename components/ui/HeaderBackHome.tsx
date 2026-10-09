@@ -1,6 +1,6 @@
 import { Pressable, View } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 /**

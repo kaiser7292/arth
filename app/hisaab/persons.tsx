@@ -20,7 +20,7 @@ import {
     updatePerson,
 } from "@/services/hisaab";
 import { formatAmount } from "@/utils/expense-validation";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";

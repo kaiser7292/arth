@@ -10,7 +10,7 @@ import {
     type DocsSearchHit
 } from "@/services/docs";
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView, Pressable, Alert } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { DateInput, Input, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 

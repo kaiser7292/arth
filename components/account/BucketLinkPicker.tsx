@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import { formatAmount } from "@/utils/format";

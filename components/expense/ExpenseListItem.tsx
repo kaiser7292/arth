@@ -9,7 +9,7 @@ import type { FinancialAccount } from "@/services/financial-account";
 import type { PaymentMode } from "@/services/payment-mode";
 
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import React from "react";
 import { Pressable, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { View, ScrollView, Pressable, Alert } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
 import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";

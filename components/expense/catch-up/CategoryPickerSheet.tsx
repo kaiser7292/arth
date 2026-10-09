@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pop } from "@/components/motion/Pop";
 import { FlatList, Pressable, View } from "react-native";
 import { Sheet, Text } from "@/components/ui";

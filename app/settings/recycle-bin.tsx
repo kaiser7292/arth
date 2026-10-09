@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { View, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { ScreenContainer, Text } from "@/components/ui";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
 import { useColorScheme } from "@/hooks/use-color-scheme";

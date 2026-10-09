@@ -10,7 +10,7 @@ import {
     setHasLandedOnHome,
     type UnlockResult
 } from "@/services/biometric-lock";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useEffect, useState } from "react";

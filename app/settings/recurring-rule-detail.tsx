@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";

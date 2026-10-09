@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { View, ScrollView, Pressable } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, ScreenContainer, Text } from "@/components/ui";
 import { Appear, DriftingShapes } from "@/components/motion";
 import { useColorScheme } from "@/hooks/use-color-scheme";

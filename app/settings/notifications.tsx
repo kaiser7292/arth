@@ -8,7 +8,7 @@
 import { useState, useCallback } from "react";
 
 import { View, Switch, ScrollView } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useAlert } from "@/hooks/use-alert";
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";

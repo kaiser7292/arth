@@ -1,6 +1,6 @@
 import { View, Pressable } from "react-native";
 import { Badge, Text } from "@/components/ui";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";

@@ -3,7 +3,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { Text } from "./Text";
 import { getFlag } from "@/services/feature-flags";
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 

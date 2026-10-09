@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { SendSmsToDeveloperSheet } from "@/components/sms/SendSmsToDeveloperSheet";
 import { View, TextInput, FlatList, Pressable, ActivityIndicator, BackHandler } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 

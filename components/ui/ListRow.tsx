@@ -2,7 +2,7 @@ import { View, Pressable } from "react-native";
 import Animated from "react-native-reanimated";
 import { usePressScale } from "@/components/motion/motion";
 import { Text } from "./Text";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { COMPONENTS } from "@/constants/design-tokens";
 

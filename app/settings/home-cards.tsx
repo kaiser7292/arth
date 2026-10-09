@@ -8,7 +8,7 @@ import {
   setHomeCardVisible,
   resetHomeCardPreferences,
 } from "@/services/home-card-preferences";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/hooks/use-theme";
 
 /**

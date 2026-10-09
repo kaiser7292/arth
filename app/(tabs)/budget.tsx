@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useRef } from "react";
 
 import { View, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { ContextualHeader, PeriodNavigator, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text, WidgetCard } from "@/components/ui";
 import { AnimatedNumber, Nudge, PressableScale } from "@/components/motion";
 import { staggerDelay } from "@/components/motion/motion";

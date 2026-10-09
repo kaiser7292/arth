@@ -4,7 +4,7 @@ import { logger } from "@/utils/logger";
 import { View, ScrollView, Pressable, Keyboard, RefreshControl, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, DateInput, Input, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import { BalanceSourceCard } from "@/components/account/BalanceSourceCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";

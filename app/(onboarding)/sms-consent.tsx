@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, ScrollView, Pressable, Platform } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, ScreenContainer, Text } from "@/components/ui";
 import { SmsDisclosure } from "@/components/sms/SmsDisclosure";
 

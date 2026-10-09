@@ -22,7 +22,7 @@ import {
 
 import { formatAmount } from "@/utils/expense-validation";
 import { formatLocalDate } from "@/utils/fiscal-year";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";

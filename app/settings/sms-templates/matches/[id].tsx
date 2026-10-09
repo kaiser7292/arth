@@ -3,7 +3,7 @@ import { View, FlatList, ActivityIndicator } from "react-native";
 import { Stack, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   getUserTemplate,

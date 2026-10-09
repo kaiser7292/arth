@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { View, Pressable, ScrollView, RefreshControl } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { PolicySheet } from "@/components/insurance/PolicySheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";

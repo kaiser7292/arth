@@ -10,7 +10,7 @@ import type { PaymentMode, PaymentModeType } from "@/services/payment-mode";
 import { PAYMENT_MODE_TYPE_LABELS } from "@/services/payment-mode";
 
 import { formatDateForDisplay, formatDateForStorage } from "@/utils/expense-validation";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";

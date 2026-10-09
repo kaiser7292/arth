@@ -19,7 +19,7 @@ import {
 import { computePrepaymentImpact } from "@/services/loan-engine";
 import { formatDate } from "@/utils/date";
 import { formatAmount } from "@/utils/format";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";

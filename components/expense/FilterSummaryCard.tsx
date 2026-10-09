@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 
 import { View, Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, ProgressBar, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 

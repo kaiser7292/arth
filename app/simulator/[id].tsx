@@ -43,7 +43,7 @@ import {
 import { todayIso } from "@/utils/date";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, TextInput, View } from "react-native";

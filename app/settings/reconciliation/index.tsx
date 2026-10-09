@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";

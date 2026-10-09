@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { View, ScrollView, Pressable, Modal } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
 import { Card, EmptyState, LoadingState, ScreenContainer, Sheet, Text } from "@/components/ui";

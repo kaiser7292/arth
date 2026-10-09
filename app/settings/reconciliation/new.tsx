@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";

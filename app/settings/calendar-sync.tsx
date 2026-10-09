@@ -2,7 +2,7 @@
  * Calendar sync settings — see docs/CALENDAR_SYNC_PROPOSAL.md.
  */
 
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import type * as CalendarTypes from "expo-calendar";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, Switch, View } from "react-native";

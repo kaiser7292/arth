@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, ScrollView, FlatList } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Input, Sheet, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";

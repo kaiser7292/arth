@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
 import { Card, ScreenContainer, Text } from "@/components/ui";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Speech from "expo-speech";
 import { VoiceQuality } from "expo-speech";
 import { useColorScheme } from "@/hooks/use-color-scheme";

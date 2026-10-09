@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Text } from "./Text";
 import { View, Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { CalendarModal } from "./CalendarModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 

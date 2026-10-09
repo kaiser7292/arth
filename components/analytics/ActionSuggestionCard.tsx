@@ -2,7 +2,7 @@ import { memo } from "react";
 
 import { Text } from "@/components/ui";
 import { View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { formatAmount } from "@/utils/format";
 
 import { StatusPill } from "@/components/ui/StatusPill";

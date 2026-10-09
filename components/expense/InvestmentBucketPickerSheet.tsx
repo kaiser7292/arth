@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Sheet, Text } from "@/components/ui";
 import { View, Pressable,  ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";

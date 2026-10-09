@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { View, Pressable, ScrollView, RefreshControl } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, FAB, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { AnimatedNumber, PressableScale } from "@/components/motion";
 import { useAlert } from "@/hooks/use-alert";

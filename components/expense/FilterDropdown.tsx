@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Sheet, Text } from "@/components/ui";
 import { View, Pressable, TextInput, ScrollView } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useTheme } from "@/hooks/use-theme";

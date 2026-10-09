@@ -107,7 +107,7 @@ import {
 import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
 import { logger } from "@/utils/logger";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Modal, Pressable, ScrollView, View } from "react-native";

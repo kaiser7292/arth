@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { View, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { ProgressBar } from "@/components/ui/ProgressBar";

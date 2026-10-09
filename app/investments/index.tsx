@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, EmptyState, FAB, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { AnimatedNumber, Appear, PressableScale, SegmentedControl } from "@/components/motion";
 import { StackedAreaChart, type StackedLayer } from "@/components/charts/StackedAreaChart";

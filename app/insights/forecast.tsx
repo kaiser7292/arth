@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
 import { StatusPill } from "@/components/ui/StatusPill";

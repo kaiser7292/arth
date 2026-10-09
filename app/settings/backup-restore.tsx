@@ -3,7 +3,7 @@ import { View, Pressable, ScrollView, Switch, TextInput, Platform } from "react-
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 

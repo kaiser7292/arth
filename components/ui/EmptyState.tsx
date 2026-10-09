@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Text } from "./Text";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 interface EmptyStateProps {

@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { Text } from "./Text";
 import { View, Animated } from "react-native";
 import { Swipeable, RectButton } from "react-native-gesture-handler";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useTheme } from "@/hooks/use-theme";

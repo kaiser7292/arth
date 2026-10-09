@@ -9,7 +9,7 @@ import {
   useFocusEffect,
   useRouter,
 } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, FAB, Input, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import {
   getYearlyPlanByFY,

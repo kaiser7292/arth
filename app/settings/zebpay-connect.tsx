@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { ActivityIndicator, Modal, ScrollView, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Card, ScreenContainer, Text } from '@/components/ui';
 import { useColorScheme } from '@/hooks/use-color-scheme';

@@ -10,7 +10,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { View, Pressable, ActivityIndicator, Platform } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useAlert } from "@/hooks/use-alert";

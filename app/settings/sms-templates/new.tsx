@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { View, TextInput, ScrollView, Pressable } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { ScreenContainer, Text } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";

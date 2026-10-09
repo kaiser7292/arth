@@ -6,7 +6,7 @@
  * Used by onboarding (sms-consent) and Settings (settings/sms-disclosure).
  * Keep the wording in sync with the privacy policy.
  */
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import { Button, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";

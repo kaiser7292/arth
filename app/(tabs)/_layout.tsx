@@ -6,7 +6,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { setHasLandedOnHome } from "@/services/biometric-lock";
 import { getPendingExpenseCount } from "@/services/expense";
 import { subscribeDataVersion } from "@/services/settings";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Tabs } from "expo-router";
 import { useCallback, useEffect, useState } from "react";

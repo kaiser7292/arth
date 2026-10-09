@@ -4,7 +4,7 @@ import type { Expense } from "@/services/expense";
 
 import { formatDisplayDate as formatDate } from "@/utils/date";
 import { formatDateTimeInTimezone } from "@/utils/timezone";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";

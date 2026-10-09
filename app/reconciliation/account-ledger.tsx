@@ -44,7 +44,7 @@ import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatLocalDate } from "@/utils/fiscal-year";
 import { formatAdjustmentDescription, formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";

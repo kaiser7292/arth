@@ -10,7 +10,7 @@ import { Sheet, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, Pressable,  ScrollView, TextInput,  Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { getPersonsWithBalances, createPerson } from "@/services/hisaab";
 import { computeSplitAmounts } from "@/services/expense";

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { View, ScrollView, ActivityIndicator, Pressable } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { ScreenContainer, Text } from "@/components/ui";
 import { DuplicateGroupCard } from "@/components/expense/DuplicateGroupCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";

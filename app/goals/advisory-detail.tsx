@@ -10,7 +10,7 @@ import type {
   MilestoneStatus,
 } from "@/utils/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { ScrollView, View, Pressable } from "react-native";
 import { useTheme } from "@/hooks/use-theme";

@@ -9,7 +9,7 @@ import { getExpensesPaginated } from "@/services/expense";
 import { getCategories } from "@/services/category";
 import { getPaymentModes } from "@/services/payment-mode";
 import { getActiveAccounts } from "@/services/financial-account";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import type { Expense } from "@/services/expense";
 import type { Category } from "@/services/category";
 import type { PaymentMode } from "@/services/payment-mode";

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Linking from 'expo-linking';
 import * as Clipboard from 'expo-clipboard';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';

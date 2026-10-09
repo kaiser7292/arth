@@ -3,7 +3,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { Button, ScreenContainer, Text } from "@/components/ui";

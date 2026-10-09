@@ -15,7 +15,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { Text } from "./Text";
 import { Sheet } from "./Sheet";
 import { View, Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 

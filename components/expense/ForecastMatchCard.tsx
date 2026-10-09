@@ -4,7 +4,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { ForecastMatchPair } from "@/services/expense";
 
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 

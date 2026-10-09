@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {

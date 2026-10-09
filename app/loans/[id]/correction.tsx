@@ -14,7 +14,7 @@ import {
 } from "@/services/loan-accounts";
 import { formatDate } from "@/utils/date";
 import { formatAmount } from "@/utils/format";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";

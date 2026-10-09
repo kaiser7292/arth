@@ -26,7 +26,7 @@ import { clearEmiReminderOnLoan } from "@/services/loan-emi-reminder";
 import { formatDate } from "@/utils/date";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
