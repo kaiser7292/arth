@@ -19,6 +19,9 @@ const { withAppBuildGradle, withDangerousMod, withGradleProperties } = require("
 const KEEP_RULES = `
 # ARTH_R8_KEEP (plugins/withR8.js) - native libraries without their own R8 rules
 -keep class com.souravbaid.arth.** { *; }
+# Expo loads classes by name from manifest meta-data (RNHeadlessAppLoader) and from saved task
+# consumers (expo-task-manager), which R8 can't see. Without this, start-up fails in release.
+-keep class expo.modules.** { *; }
 # SMS reading
 -keep class com.react.SmsModule { *; }
 -keep class com.react.SmsPackage { *; }

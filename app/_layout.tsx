@@ -449,11 +449,10 @@ export default function RootLayout(): React.JSX.Element {
         >
           <Text style={{ color: theme.faintForeground, fontWeight: "600" }}>Close App</Text>
         </TouchableOpacity>
-        {__DEV__ && (
-          <ScrollView style={{ marginTop: 16 }}>
-            <Text style={{ color: "#FFFFFF", fontSize: 12 }}>{initError}</Text>
-          </ScrollView>
-        )}
+        {/* Shown in release too: the logger is silent there, so this is the only way to see why. */}
+        <ScrollView style={{ marginTop: 16 }}>
+          <Text selectable style={{ color: "#9CA3AF", fontSize: 12 }}>{initError}</Text>
+        </ScrollView>
       </View>
     );
   }
