@@ -109,6 +109,8 @@
 
 **What it does:** Spending patterns, lifestyle-creep year-over-year tracking, merchant breakdown, period comparison, forecast, and "insight" cards that surface specific findings (overspend, win, spending leak, etc.) you can drill into.
 
+**Export for AI Insights** (Explore → Export for AI Insights) writes a small JSON file of the user's finances to upload to an AI assistant - `app/insights/export-for-ai.tsx`, `services/ai-export.ts`. Every field is allow-listed; a new database column does not appear in it until added there and to `AI_EXPORT_KEYS`.
+
 **Where:** `app/insights/index.tsx`, `app/insights/compare.tsx`, `app/insights/forecast.tsx`, `app/insights/merchants.tsx`, `app/insights/patterns.tsx`, `app/insights/insight-detail.tsx`, `app/insights/filtered.tsx`
 
 **Technical:** `services/insight-engine.ts` (generates the insight cards), `services/comparison-insights.ts`, `services/spending-insights.ts`, `services/financial-cockpit.ts`, `services/analytics/*` (classifier, pattern-learner, data-layer, lifecycle — the newer analytics engine that insight-engine and forecasting both draw from).

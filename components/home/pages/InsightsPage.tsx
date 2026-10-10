@@ -154,6 +154,7 @@ export function InsightsPage() {
           <QuickAction icon="storefront-outline" label="Merchants" onPress={() => router.push("/insights/merchants")} color={theme.primary} />
           <QuickAction icon="bar-chart-outline" label="Budget" onPress={() => router.push("/insights/budget-vs-actual")} color={theme.primary} />
           <QuickAction icon="document-text-outline" label="Reports" onPress={() => router.push("/insights/reports")} color={theme.primary} />
+          <QuickAction icon="sparkles-outline" label="Export for AI Insights" onPress={() => router.push("/insights/export-for-ai")} color={theme.primary} />
         </View>
       </View>
 

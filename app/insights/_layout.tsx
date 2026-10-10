@@ -17,6 +17,7 @@ export default function InsightsStackLayout() {
       <Stack.Screen name="filtered" options={{ title: "Transactions" }} />
       <Stack.Screen name="budget-vs-actual" options={{ title: "Budget vs Actual" }} />
       <Stack.Screen name="reports" options={{ title: "Reports" }} />
+      <Stack.Screen name="export-for-ai" options={{ title: "Export for AI Insights" }} />
       <Stack.Screen name="report-financial-health" options={{ title: "Financial Health" }} />
       <Stack.Screen name="report-retirement" options={{ title: "Retirement Readiness" }} />
       <Stack.Screen name="report-loan-payoff" options={{ title: "Loan Payoff Strategy" }} />

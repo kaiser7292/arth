@@ -53,7 +53,7 @@ Top to bottom:
 - **Forecast card** - month-end projection with fixed / variable / daily pace / confidence. Same math as the Budget tab's Month-End Projection widget. See [Month-end projection](projection-math).
 - **Insight cards** - up to five severity-ranked findings for the current month. Each is tappable and opens a drill-down breakdown.
 - **Spending Pulse** - this month's total vs last month's total, with an arrow showing the change. Tap **Compare** to open a detailed compare screen.
-- **Explore quick actions** - shortcuts to Compare, Forecast, Patterns, Merchants and **Reports** (four in-depth reports you can save as PDF - see [Reports](reports)).
+- **Explore quick actions** - shortcuts to Compare, Forecast, Patterns, Merchants and **Reports** (four in-depth reports you can save as PDF - see [Reports](reports)), and **Export for AI Insights** (a clean copy of your data to upload to an AI assistant - see [Export for AI Insights](export-for-ai)).
 
 ## The five insight types
 

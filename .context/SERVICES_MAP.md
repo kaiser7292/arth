@@ -68,6 +68,8 @@ All business logic lives in `services/`. UI components call services; services c
 | `forecast-engine.ts` | Legacy (v1) month/year-end forecast engine — superseded by `analytics/forecast-engine-v2.ts` for new code |
 | `spend-classification.ts` | Unified "unavoidable vs discretionary" spend split — single source of truth so Monthly Summary and Spending Split agree |
 | `financial-cockpit.ts` | Financial health dashboard data |
+| `ai-export.ts` | Export for AI Insights: builds the allow-listed, read-only JSON copy of the user's finances (never reads the vault, SMS or credentials). Screen: `app/insights/export-for-ai.tsx` |
+| `ai-export-file.ts` | Writes that export to the cache folder for Save to phone / Share |
 
 ### Hisaab (Family Ledger)
 | File | Purpose |
