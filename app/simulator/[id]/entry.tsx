@@ -4,6 +4,8 @@ import { Button, Input, ScreenContainer, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAccountBalances } from "@/hooks/use-account-balances";
+import { withPickerBalance } from "@/services/account-picker-balance";
 import type { Category } from "@/services/category";
 import type { FinancialAccount } from "@/services/financial-account";
 import type { HisaabPersonWithBalance } from "@/services/hisaab";
@@ -74,6 +76,7 @@ export default function SimulatorEntryForm() {
   const [merchantNames, setMerchantNames] = useState<string[]>([]);
   const [merchantFocused, setMerchantFocused] = useState(false);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const pickerBalances = useAccountBalances(accounts, accountPickerVisible || toAccountPickerVisible);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [accountBalances, setAccountBalances] = useState<Record<string, number>>({});
@@ -515,7 +518,7 @@ export default function SimulatorEntryForm() {
                 items={accounts.map((a) => ({
                   id: a.id,
                   label: a.account_label ?? `${a.bank_name} ••${a.account_identifier}`,
-                  subtitle: `${a.account_type} · ${a.bank_name}`,
+                  subtitle: withPickerBalance(`${a.account_type} · ${a.bank_name}`, pickerBalances[a.id]),
                 }))}
                 selectedId={accountId}
                 onSelect={(id: string | null) => {
@@ -568,7 +571,7 @@ export default function SimulatorEntryForm() {
                     .map((a) => ({
                       id: a.id,
                       label: a.account_label ?? `${a.bank_name} ••${a.account_identifier}`,
-                      subtitle: `${a.account_type} · ${a.bank_name}`,
+                      subtitle: withPickerBalance(`${a.account_type} · ${a.bank_name}`, pickerBalances[a.id]),
                     }))}
                   selectedId={toAccountId}
                   onSelect={(id: string | null) => {

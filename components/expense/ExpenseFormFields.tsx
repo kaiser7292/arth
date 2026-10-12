@@ -4,6 +4,8 @@ import { Pop } from "@/components/motion/Pop";
 import { Text } from "@/components/ui";
 import { TYPE_ICONS } from "@/constants/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAccountBalances } from "@/hooks/use-account-balances";
+import { withPickerBalance } from "@/services/account-picker-balance";
 import type { Category } from "@/services/category";
 import type { FinancialAccount } from "@/services/financial-account";
 import type { PaymentMode, PaymentModeType } from "@/services/payment-mode";
@@ -144,6 +146,7 @@ export function AccountPicker({
     selectedBorder: { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) },
     highlightBg: { backgroundColor: theme.alpha("primary", 0.1) },
   }), [colorScheme]);
+  const balances = useAccountBalances(accounts, showAccounts);
 
   return (
     <View className="mb-4">
@@ -188,7 +191,10 @@ export function AccountPicker({
               items={accounts.map((acct) => ({
                 id: acct.id,
                 label: acct.account_label ?? `${acct.bank_name} ****${acct.account_identifier}`,
-                subtitle: `${acct.account_type === "credit_card" ? "Credit Card" : acct.account_type === "savings" ? "Savings" : acct.account_type === "loan" ? "Loan" : "Wallet"} · ${acct.bank_name}`,
+                subtitle: withPickerBalance(
+                  `${acct.account_type === "credit_card" ? "Credit Card" : acct.account_type === "savings" ? "Savings" : acct.account_type === "loan" ? "Loan" : "Wallet"} · ${acct.bank_name}`,
+                  balances[acct.id],
+                ),
               }))}
               selectedId={accountId}
               onSelect={onSelect}

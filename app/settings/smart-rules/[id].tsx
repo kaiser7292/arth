@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAccountBalances } from "@/hooks/use-account-balances";
+import { withPickerBalance } from "@/services/account-picker-balance";
 import { useAlert } from "@/hooks/use-alert";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
@@ -200,6 +202,7 @@ export default function SmartRuleDetailScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const accountBalances = useAccountBalances(accounts);
   const [investmentProducts, setInvestmentProducts] = useState<Map<string, InvestmentProduct>>(new Map());
   const [tags, setTags] = useState<Tag[]>([]);
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
@@ -822,7 +825,7 @@ export default function SmartRuleDetailScreen() {
                                               {a.account_label || a.bank_name}
                                             </Text>
                                             <Text className="text-xs text-faint-foreground mt-0.5">
-                                              {accountTypeLabel(resolvedAccountType(a, investmentProducts))} · ••••{a.account_identifier}
+                                              {withPickerBalance(`${accountTypeLabel(resolvedAccountType(a, investmentProducts))} · ••••${a.account_identifier}`, accountBalances[a.id])}
                                             </Text>
                                           </View>
                                           {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
@@ -1508,7 +1511,7 @@ export default function SmartRuleDetailScreen() {
                           {a.account_label || a.bank_name}
                         </Text>
                         <Text className="text-xs text-faint-foreground mt-0.5">
-                          {accountTypeLabel(resolvedAccountType(a, investmentProducts))} · ••••{a.account_identifier}
+                          {withPickerBalance(`${accountTypeLabel(resolvedAccountType(a, investmentProducts))} · ••••${a.account_identifier}`, accountBalances[a.id])}
                         </Text>
                       </View>
                       <Ionicons name={isSel ? "checkbox" : "square-outline"} size={20} color={isSel ? accentColor : colors.textSecondary} />

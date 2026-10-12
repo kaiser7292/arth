@@ -6,6 +6,8 @@ import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAccountBalances } from "@/hooks/use-account-balances";
+import { withPickerBalance } from "@/services/account-picker-balance";
 
 import {
   LOGIN_METHOD_LABELS,
@@ -84,6 +86,7 @@ export default function VaultAddScreen() {
   const [showPin, setShowPin] = useState(false);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
+  const accountBalances = useAccountBalances(accounts, accountPickerOpen);
   const [showMore, setShowMore] = useState(false);
 
   // Card-specific custom fields
@@ -429,9 +432,9 @@ export default function VaultAddScreen() {
                         >
                           {acc.account_label || acc.bank_name}
                         </Text>
-                        {acc.account_identifier ? (
+                        {acc.account_identifier || accountBalances[acc.id] != null ? (
                           <Text className="text-xs text-muted-foreground">
-                            ****{acc.account_identifier}
+                            {withPickerBalance(acc.account_identifier ? `****${acc.account_identifier}` : "", accountBalances[acc.id])}
                           </Text>
                         ) : null}
                       </View>

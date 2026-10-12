@@ -8,6 +8,8 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, TextInput, View } from
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAccountBalances } from "@/hooks/use-account-balances";
+import { withPickerBalance } from "@/services/account-picker-balance";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
@@ -57,6 +59,7 @@ export default function NewReconciliationScreen() {
 
   const [step, setStep] = useState<Step>(params.prefill_account_id ? "file" : "account");
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const accountBalances = useAccountBalances(accounts, step === "account");
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     params.prefill_account_id ?? null,
   );
@@ -579,9 +582,9 @@ export default function NewReconciliationScreen() {
                   <Text className="text-sm font-medium text-foreground">
                     {acc.account_label || acc.bank_name}
                   </Text>
-                  {acc.account_identifier && (
+                  {(acc.account_identifier || accountBalances[acc.id] != null) && (
                     <Text className="text-xs text-muted-foreground mt-0.5">
-                      ****{acc.account_identifier}
+                      {withPickerBalance(acc.account_identifier ? `****${acc.account_identifier}` : "", accountBalances[acc.id])}
                     </Text>
                   )}
                 </View>

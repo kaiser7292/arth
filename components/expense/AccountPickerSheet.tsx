@@ -5,14 +5,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { getActiveAccounts } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
-import { getComputedBalances } from "@/services/account-balance";
+import { getPickerBalances, withPickerBalance } from "@/services/account-picker-balance";
 import {
   batchInvestmentProducts,
   isDematLikeAccount,
   isPensionLikeAccount,
   type InvestmentProduct,
 } from "@/services/investment-accounts";
-import { formatAmount } from "@/utils/format";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -67,10 +66,7 @@ export function AccountPickerSheet({
   const { colors } = useColorScheme();
   const theme = useTheme();
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
-  // Computed balances from the ledger (opening - expenses + credits - transfers).
-  // Always preferred over last_known_balance, which reflects only the latest SMS
-  // and ignores subsequent debits, credits, and transfers.
-  const [computedBalances, setComputedBalances] = useState<Record<string, number | null>>({});
+  const [balances, setBalances] = useState<Record<string, number | null>>({});
   const [investmentProducts, setInvestmentProducts] = useState<Map<string, InvestmentProduct>>(new Map());
 
   const loadAccounts = useCallback(async () => {
@@ -83,12 +79,7 @@ export function AccountPickerSheet({
       (!excludeAccountId || a.id !== excludeAccountId),
     );
     setAccounts(filtered);
-    if (filtered.length > 0) {
-      const balances = await getComputedBalances(filtered.map((a) => a.id));
-      setComputedBalances(balances);
-    } else {
-      setComputedBalances({});
-    }
+    setBalances(await getPickerBalances(filtered));
   }, [filterTypes, excludeAccountId]);
 
   useEffect(() => {
@@ -166,17 +157,10 @@ export function AccountPickerSheet({
                   {getLabel(item)}
                 </Text>
                 <Text className="text-xs" style={{ color: colors.textSecondary }}>
-                  {ACCOUNT_TYPE_LABELS[resolvedType(item, investmentProducts)] ?? item.account_type}
-                  {(() => {
-                    // Prefer the ledger-computed balance (accounts for expenses,
-                    // credits, and transfers since the last SMS). Fall back to
-                    // last_known_balance only when the account is unseeded.
-                    const computed = computedBalances[item.id];
-                    const balance = computed ?? item.last_known_balance;
-                    return balance != null
-                      ? ` · Bal: ${formatAmount(balance)}`
-                      : "";
-                  })()}
+                  {withPickerBalance(
+                    ACCOUNT_TYPE_LABELS[resolvedType(item, investmentProducts)] ?? item.account_type,
+                    balances[item.id],
+                  )}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
