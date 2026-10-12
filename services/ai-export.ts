@@ -29,6 +29,12 @@ import { getTransfersInTotal, getTransfersOutTotal } from "@/services/account-tr
 import { getBalanceSheetColumn, type BalanceSheetRow } from "@/services/balance-sheet";
 import { getBudgetVsActual } from "@/services/budget";
 import { getMonthlyExpenseTotals } from "@/services/expense-queries";
+import {
+  AI_REQUESTS,
+  buildReplyInstructions,
+  shortRef,
+  type AiRequestId,
+} from "@/services/ai-reply-format";
 import { getAllAccounts, type FinancialAccount } from "@/services/financial-account";
 import { getEntriesByDateRangeAsc, getPersonsWithBalances } from "@/services/hisaab";
 import { getLifeMilestones } from "@/services/life-milestone";
@@ -41,6 +47,7 @@ import {
   listAllLoansWithBankName,
 } from "@/services/loan-accounts";
 import { getSavingsSnapshot } from "@/services/savings-tracker";
+import { listUnrecognisedSms } from "@/services/sms/user-sms-templates";
 import { getFYStartMonth } from "@/services/settings";
 import { getAllActiveBuckets } from "@/services/yearly-plan";
 import { getMonthDateRange } from "@/utils/budget-helpers";
@@ -71,6 +78,17 @@ export interface AiExportOptions {
   sections: AiExportSections;
   hidePeopleNames: boolean;
   hideMerchantNames: boolean;
+  /**
+   * Ask the assistant for changes, not only answers. Adds the request, the reply format, a
+   * reference on every transaction, and the category and merchant lists the assistant needs.
+   */
+  suggest?: {
+    request: AiRequestId;
+    /** Also include entries still waiting in the review queue (used for first-time setup). */
+    includeUnreviewed?: boolean;
+    /** Also include bank messages Arth could not read, as received, so templates can be suggested. */
+    includeUnreadMessages?: boolean;
+  };
 }
 
 export const DEFAULT_AI_EXPORT_SECTIONS: AiExportSections = {
@@ -109,7 +127,7 @@ export async function resolveAiExportPeriod(
   }
   const row = await getDatabase().getFirstAsync<{ first: string | null }>(
     `SELECT MIN(date) as first FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND deleted_at IS NULL;`,
+     WHERE user_id = ? AND status IN ('approved', 'pending_review') AND deleted_at IS NULL;`,
     userId,
   );
   return { from: row?.first ?? todayIso, to: todayIso };
@@ -148,6 +166,9 @@ export const AI_EXPORT_KEYS = [
   "as_of", "assets", "liabilities", "total_assets", "total_liabilities",
   // hisaab
   "people", "balance", "entries", "person",
+  // only when the user asks for suggestions
+  "request", "reply_instructions", "categories", "merchants", "unread_messages", "ref", "reviewed",
+  "sender", "text", "similar",
 ] as const;
 
 type Json = string | number | boolean | null | Json[] | { [key: string]: Json | undefined };
@@ -155,7 +176,7 @@ type JsonObject = { [key: string]: Json | undefined };
 
 export interface AiExportResult {
   data: JsonObject;
-  counts: { transactions: number; accounts: number; months: number };
+  counts: { transactions: number; accounts: number; months: number; unreadMessages: number };
   /** Sections that were asked for but failed to build, in plain words. The rest is still exported. */
   skipped: string[];
 }
@@ -294,18 +315,23 @@ interface TxnRow {
   split_original_amount: number | null;
   refund_of_expense_id: string | null;
   credit_kind: string | null;
+  status: string;
 }
 
 type TxnKind = "spend" | "investment" | "loan_payment" | "income" | "refund";
 
-/** Approved, not deleted, real money in or out. Transfers between own accounts are separate. */
-async function loadTransactions(userId: string, from: string, to: string) {
+/**
+ * Approved, not deleted, real money in or out. Transfers between own accounts are separate.
+ * `includeUnreviewed` adds entries still in the review queue (first-time setup only).
+ */
+async function loadTransactions(userId: string, from: string, to: string, includeUnreviewed = false) {
   const db = getDatabase();
   const rows = await db.getAllAsync<TxnRow>(
     `SELECT id, date, amount, nature, category_id, payment_mode_id, account_id, merchant_name,
-            description, split_original_amount, refund_of_expense_id, credit_kind
+            description, split_original_amount, refund_of_expense_id, credit_kind, status
      FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND deleted_at IS NULL
+     WHERE user_id = ? AND status IN (${includeUnreviewed ? "'approved', 'pending_review'" : "'approved'"})
+       AND deleted_at IS NULL
        AND nature IN ('realized', 'credit')
        AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
@@ -468,6 +494,66 @@ async function buildHisaab(
   };
 }
 
+// ─── Sections added when the user asks for suggestions ────────────────────────
+
+const MAX_MERCHANTS = 300;
+const MAX_MESSAGE_FORMATS = 40;
+const EXAMPLES_PER_FORMAT = 2;
+const ONE_TIME_CODE = /\b(otp|one[\s-]?time\s+(password|passcode|pin)|verification\s+code|do\s+not\s+share)\b/i;
+
+/** Merchants by number of entries, each with the category most of its entries sit in. */
+function buildMerchants(txns: Awaited<ReturnType<typeof loadTransactions>>): JsonObject[] {
+  const byMerchant = new Map<string, { name: string; entries: number; amount: number; cats: Map<string, number> }>();
+  for (const r of txns.rows) {
+    if (!r.merchant_name || txns.kindOf(r) !== "spend") continue;
+    const key = r.merchant_name.trim().toLowerCase();
+    const m = byMerchant.get(key) ?? { name: r.merchant_name.trim(), entries: 0, amount: 0, cats: new Map() };
+    m.entries += 1;
+    m.amount += r.amount;
+    const cat = (r.category_id && txns.categoryName.get(r.category_id)) || "";
+    m.cats.set(cat, (m.cats.get(cat) ?? 0) + 1);
+    byMerchant.set(key, m);
+  }
+  return [...byMerchant.values()]
+    .sort((a, b) => b.entries - a.entries || b.amount - a.amount)
+    .slice(0, MAX_MERCHANTS)
+    .map((m) => ({
+      merchant: m.name,
+      entries: m.entries,
+      amount: r2(m.amount),
+      category: [...m.cats.entries()].sort((a, b) => b[1] - a[1])[0][0] || null,
+    }));
+}
+
+/**
+ * Bank messages Arth could not read, as received: up to two examples of each format, so an
+ * assistant can tell the fixed wording from the parts that change. One-time codes are left out.
+ * Reads only `pending_sms`; never the scan logs.
+ */
+async function buildUnreadMessages(): Promise<JsonObject[]> {
+  const rows = await listUnrecognisedSms(2000);
+  const formats = new Map<string, typeof rows>();
+  for (const row of rows) {
+    if (!row.body || ONE_TIME_CODE.test(row.body)) continue;
+    const sender = row.address.toUpperCase().match(/[A-Z]{4,}/)?.[0] ?? row.address.toUpperCase();
+    // Same sender and same opening words (numbers aside) = same format.
+    const opening = row.body.replace(/\d+/g, "0").toLowerCase().split(/\s+/).slice(0, 4).join(" ");
+    const key = `${sender}|${opening}`;
+    formats.set(key, [...(formats.get(key) ?? []), row]);
+  }
+  return [...formats.values()]
+    .sort((a, b) => b.length - a.length)
+    .slice(0, MAX_MESSAGE_FORMATS)
+    .flatMap((group) =>
+      group.slice(0, EXAMPLES_PER_FORMAT).map((row) => ({
+        id: shortRef("s", row.id),
+        sender: row.address,
+        text: row.body,
+        similar: group.length,
+      })),
+    );
+}
+
 // ─── Guide (read by the AI, not by the user) ──────────────────────────────────
 
 function buildGuide(has: (key: string) => boolean, fyStartMonth: number): string[] {
@@ -479,7 +565,7 @@ function buildGuide(has: (key: string) => boolean, fyStartMonth: number): string
   ];
   if (has("transactions")) {
     lines.push(
-      "`transactions` holds only approved entries, one per row, every row with the same fields (null means not applicable). `kind` is one of: spend (ordinary spending), investment (money put into an investment, not spending), loan_payment (an EMI or prepayment, not ordinary spending), income (money received; `income_type` says salary, interest and so on when known), refund (money returned for an earlier spend). For a spend shared with someone else, `amount` is the user's own share and `full_amount` is what actually left the account.",
+      "`transactions` holds the user's entries, one per row, every row with the same fields (null means not applicable). `kind` is one of: spend (ordinary spending), investment (money put into an investment, not spending), loan_payment (an EMI or prepayment, not ordinary spending), income (money received; `income_type` says salary, interest and so on when known), refund (money returned for an earlier spend). For a spend shared with someone else, `amount` is the user's own share and `full_amount` is what actually left the account.",
     );
   }
   if (has("monthly_summary")) {
@@ -510,8 +596,21 @@ function buildGuide(has: (key: string) => boolean, fyStartMonth: number): string
       "`hisaab` is money lent to and borrowed from friends and family. A positive `balance` means that person owes the user. Entry type debit raises what they owe; credit and settlement lower it.",
     );
   }
+  if (has("merchants")) {
+    lines.push(
+      "`categories` is the user's full category list. `merchants` lists the merchants they spend at, with the number of entries, the total, and the category most of those entries are in now (null means none).",
+    );
+  }
+  if (has("unread_messages")) {
+    lines.push(
+      "`unread_messages` are bank messages Arth could not read, exactly as received. `similar` is how many messages share that format; up to two examples of each format are given.",
+    );
+  }
+  if (has("request")) {
+    lines.push("`request` is what the user wants from you now. `reply_instructions` is the exact format to answer in.");
+  }
   lines.push(
-    "Anything not in this file (passwords, bank messages, full account numbers, unreviewed or deleted entries) was left out on purpose. If a question needs data that is not here, say so instead of guessing.",
+    "Anything not in this file (passwords, full account numbers, deleted entries) was left out on purpose. If a question needs data that is not here, say so instead of guessing.",
   );
   return lines;
 }
@@ -581,8 +680,11 @@ export async function buildAiExport(
   // Transactions are loaded whenever either section needs them; the summary totals come from them.
   const txns =
     sections.transactions || sections.summary
-      ? await attempt("Transactions", () => loadTransactions(userId, from, to))
+      ? await attempt("Transactions", () =>
+          loadTransactions(userId, from, to, Boolean(options.suggest?.includeUnreviewed)),
+        )
       : undefined;
+  const suggest = options.suggest;
 
   let transactions: JsonObject[] | undefined;
   if (sections.transactions && txns) {
@@ -593,6 +695,8 @@ export async function buildAiExport(
       // Every row carries the same keys (null when there is nothing to say), so the list reads
       // as a table - for an AI reading it directly and for one loading it with code.
       return {
+        ...(suggest ? { ref: shortRef("t", r.id) } : {}),
+        ...(suggest?.includeUnreviewed ? { reviewed: r.status === "approved" } : {}),
         date: r.date,
         amount: r2(r.amount),
         kind,
@@ -615,6 +719,7 @@ export async function buildAiExport(
       const spending = await getMonthlyExpenseTotals(userId, from, to);
       const sums = new Map<string, Record<TxnKind, number>>();
       for (const r of txns?.rows ?? []) {
+        if (r.status !== "approved") continue; // the summary is what the app shows: approved only
         const month = r.date.substring(0, 7);
         const bucket = sums.get(month) ?? { spend: 0, investment: 0, loan_payment: 0, income: 0, refund: 0 };
         bucket[txns!.kindOf(r)] += r.amount;
@@ -724,6 +829,25 @@ export async function buildAiExport(
     });
   }
 
+  // What an assistant needs to suggest changes, on top of the data itself.
+  let categories: string[] | undefined;
+  let merchants: JsonObject[] | undefined;
+  let unreadMessages: JsonObject[] | undefined;
+  if (suggest) {
+    categories = await attempt("Categories", async () =>
+      (
+        await getDatabase().getAllAsync<{ name: string }>(
+          "SELECT name FROM categories WHERE user_id = ? AND is_active = 1 ORDER BY sort_order ASC;",
+          userId,
+        )
+      ).map((c) => c.name),
+    );
+    if (txns && !options.hideMerchantNames) merchants = buildMerchants(txns);
+    if (suggest.includeUnreadMessages) {
+      unreadMessages = await attempt("Unread bank messages", buildUnreadMessages);
+    }
+  }
+
   const body: JsonObject = {
     generated_on: todayIso,
     period: { from, to },
@@ -736,13 +860,26 @@ export async function buildAiExport(
     investments,
     accounts,
     hisaab,
+    categories,
+    merchants,
+    unread_messages: unreadMessages && unreadMessages.length > 0 ? unreadMessages : undefined,
     transfers,
     transactions,
   };
 
   // `guide` goes first so an AI reads it before the data; the ready-made totals come next and
   // the long row lists last, so the figures survive if an assistant only reads part of the file.
-  const data: JsonObject = { guide: buildGuide((key) => body[key] !== undefined, fyStart), ...body };
+  const asked: JsonObject = suggest
+    ? {
+        request: AI_REQUESTS.find((r) => r.id === suggest.request)?.prompt,
+        reply_instructions: buildReplyInstructions({
+          unreadMessages: body.unread_messages !== undefined,
+          unreviewed: Boolean(suggest.includeUnreviewed),
+        }),
+      }
+    : {};
+  const has = (key: string) => body[key] !== undefined || asked[key] !== undefined;
+  const data: JsonObject = { guide: buildGuide(has, fyStart), ...asked, ...body };
 
   return {
     data,
@@ -750,6 +887,7 @@ export async function buildAiExport(
       transactions: transactions?.length ?? 0,
       accounts: accounts?.length ?? 0,
       months: months.length,
+      unreadMessages: unreadMessages?.length ?? 0,
     },
     skipped,
   };

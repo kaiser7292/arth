@@ -69,6 +69,9 @@ All business logic lives in `services/`. UI components call services; services c
 | `spend-classification.ts` | Unified "unavoidable vs discretionary" spend split — single source of truth so Monthly Summary and Spending Split agree |
 | `financial-cockpit.ts` | Financial health dashboard data |
 | `ai-export.ts` | Export for AI Insights: builds the allow-listed, read-only JSON copy of the user's finances (never reads the vault, SMS or credentials). Screen: `app/insights/export-for-ai.tsx` |
+| `ai-reply-format.ts` | The contract with the user's AI assistant: the requests a user can make and the exact reply format written into the export |
+| `ai-suggestions.ts` | Reads an assistant's pasted reply (forgiving parse, strict checks, read-only) and applies the ticked suggestions through the existing services. Screen: `app/insights/ai-suggestions.tsx` |
+| `ai-share.ts` | "Share with AI": build + write + share sheet, the setup options for onboarding, and the `ai_setup_pending` flag behind the Home card |
 | `ai-export-file.ts` | Writes that export to the cache folder for Save to phone / Share |
 
 ### Hisaab (Family Ledger)

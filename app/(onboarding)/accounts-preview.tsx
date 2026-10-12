@@ -1,3 +1,4 @@
+import { AiSetupOffer } from "@/components/onboarding/AiSetupOffer";
 import { useEffect, useState } from "react";
 import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
@@ -162,6 +163,8 @@ export default function OnboardingAccountsPreview() {
             </Text>
           </Pressable>
         )}
+
+        {!loading && accounts.length > 0 && <AiSetupOffer />}
       </ScrollView>
 
       <View className="px-6 pb-6 pt-2">

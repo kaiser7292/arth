@@ -1,3 +1,4 @@
+import { AiSetupCard } from "@/components/home/AiSetupCard";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -449,6 +450,7 @@ export default function HomeScreen() {
         {/* "Is <name> you?" — once, when bank SMS keep showing a name on transfers. Self-loading. */}
         <SelfNamePromptCard />
         <FirstScanSummaryCard />
+        <AiSetupCard />
 
         {/* Check-ins - swipe decks (month-end, settle-up, subscriptions, rules). Self-loading. */}
         {isHomeCardVisible("check_ins") && <Appear index={1}><CheckInsCard /></Appear>}

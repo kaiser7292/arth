@@ -34,6 +34,36 @@ Arth itself never contacts an AI service. It only makes the file; you decide whe
 
 Change any option and Arth throws the old file away, so the file you share always matches what's on screen.
 
+## Let the AI suggest changes
+
+Under **What do you want from the AI?** pick something other than "Just answer my questions" - tidy categories, suggest a budget, find missing payments, or read unread bank messages.
+
+1. Tap **Share with AI** and pick your assistant's app. The file carries your request and tells the assistant exactly how to reply, so there is nothing to type. (Your request is also copied, in case the assistant's message box opens empty: long-press and paste.)
+2. Send it. The assistant replies with a grey code block. Tap **copy** on it.
+3. Back in Arth, tap **Paste AI reply**.
+4. Arth lists what the assistant suggested, ticked. Untick anything you don't want, then tap **Apply**.
+
+Nothing changes until you tap Apply. What Arth accepts is limited on purpose:
+
+| Suggestion | What happens when you apply it |
+|---|---|
+| New category | The category is created |
+| Merchant name | Different spellings of one merchant are merged |
+| Merchant category | That merchant's past and future entries go to the category - the main tool |
+| Single entry | One transaction is re-categorised, as an exception |
+| Rule for exceptions | A Smart Rule, for patterns a merchant category can't express (such as an amount limit) |
+| Budget | Set from this month to the end of the financial year |
+| SMS template | Built on your phone from the parts the assistant pointed out, and tested on your unread messages first. Arth shows how many it reads; one that reads none isn't offered |
+| Missing transaction | Sent to your review queue, never straight into your books |
+
+The assistant cannot delete anything, or change the amount or date of a transaction. Anything Arth can't use is listed under **Why were some left out?** with the reason.
+
+**Unread bank messages** are only shared if you switch that on. They go as received (one-time codes are skipped), because an assistant needs the real wording to work out the format.
+
+## Setting up with AI
+
+When you first set up Arth, the "Your accounts" step offers **Set up faster with AI**. It shares everything found so far, including entries still waiting for review. A **Finish setup with AI** card then waits on Home for the reply.
+
 ## What goes in
 
 | Section | What it holds |
@@ -53,7 +83,7 @@ The numbers are the ones Arth already shows you, so the assistant's answers shou
 ## What never goes in
 
 - The password vault
-- SMS text and scan logs
+- SMS scan logs, and SMS text unless you switch on "Include unread bank messages"
 - Broker and login credentials
 - Full account numbers (only the last 4 digits)
 - Deleted items, and anything still waiting in the review queue
