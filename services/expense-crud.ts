@@ -1024,7 +1024,8 @@ export async function rejectExpense(id: string): Promise<void> {
     await db.runAsync(`DELETE FROM expense_splits WHERE expense_id = ?;`, id);
 
     await db.runAsync(
-      `UPDATE expenses SET split_hisaab_entry_id = NULL, split_person_id = NULL,
+      `UPDATE expenses SET amount = COALESCE(split_original_amount, amount),
+         split_hisaab_entry_id = NULL, split_person_id = NULL,
          split_original_amount = NULL, split_pct = NULL, split_mode = NULL,
          split_exact_amount = NULL, status = 'rejected', updated_at = datetime('now')
        WHERE id = ?;`,
@@ -1154,7 +1155,8 @@ export async function rejectExpenses(ids: string[]): Promise<void> {
     await db.runAsync(`DELETE FROM expense_splits WHERE expense_id IN (${placeholders});`, ...ids);
 
     await db.runAsync(
-      `UPDATE expenses SET split_hisaab_entry_id = NULL, split_person_id = NULL,
+      `UPDATE expenses SET amount = COALESCE(split_original_amount, amount),
+         split_hisaab_entry_id = NULL, split_person_id = NULL,
          split_original_amount = NULL, split_pct = NULL, split_mode = NULL,
          split_exact_amount = NULL, status = 'rejected', updated_at = datetime('now')
        WHERE id IN (${placeholders});`,

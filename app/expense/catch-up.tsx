@@ -25,11 +25,17 @@ import {
   splitDuplicateGroup,
   summarizeLog,
 } from "@/services/catch-up";
-import { approveBatchWithCategory, approveWithCategory, assignCategory } from "@/services/catch-up-actions";
+import {
+  approveBatchWithCategory,
+  approveWithCategory,
+  assignCategory,
+  removeCardSplit,
+  saveCardSplit,
+} from "@/services/catch-up-actions";
 import { clearMoneyEvent } from "@/services/money-events";
 import { MONEY_EVENT_META } from "@/components/expense/money-event-meta";
 import { dismissDuplicateGroup } from "@/services/duplicate-detection";
-import type { Expense } from "@/services/expense";
+import type { Expense, SplitConfig } from "@/services/expense";
 import {
   approveCcRepaymentCredit,
   bulkAssignCategory,
@@ -43,6 +49,8 @@ import {
 } from "@/services/expense";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts } from "@/services/financial-account";
+import type { HisaabPersonWithBalance } from "@/services/hisaab";
+import { createPerson, getPersonsWithBalances } from "@/services/hisaab";
 import { getDistinctMerchantNames } from "@/services/merchant-alias";
 import type { PaymentMode } from "@/services/payment-mode";
 import { getPaymentModes } from "@/services/payment-mode";
@@ -92,6 +100,7 @@ export default function CatchUpScreen() {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [merchantNames, setMerchantNames] = useState<string[]>([]);
+  const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
 
   // Category per expense: what the smart categorizer suggests, and what the user picked on the card.
   const [suggestions, setSuggestions] = useState<Record<string, string | null>>({});
@@ -103,6 +112,8 @@ export default function CatchUpScreen() {
   const [merchantOpen, setMerchantOpen] = useState(false);
   const [paymentModeOpen, setPaymentModeOpen] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
+  const [savingSplit, setSavingSplit] = useState(false);
   const [batchOffer, setBatchOffer] = useState<BatchOffer | null>(null);
 
   const deferred = useRef(
@@ -129,18 +140,20 @@ export default function CatchUpScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const [snapshot, cats, accts, modes, merchants] = await Promise.all([
+        const [snapshot, cats, accts, modes, merchants, people] = await Promise.all([
           getReviewQueueSnapshot(DEFAULT_USER_ID),
           getCategories(DEFAULT_USER_ID),
           getActiveAccounts(DEFAULT_USER_ID),
           getPaymentModes(DEFAULT_USER_ID),
           getDistinctMerchantNames(DEFAULT_USER_ID).catch(() => [] as string[]),
+          getPersonsWithBalances(DEFAULT_USER_ID).catch(() => [] as HisaabPersonWithBalance[]),
         ]);
         setDeck(buildCatchUpDeck(snapshot));
         setCategories(cats);
         setAccounts(accts);
         setPaymentModes(modes);
         setMerchantNames(merchants);
+        setPersons(people);
       } catch (e) {
         logger.error("Catch up: load failed", e);
       } finally {
@@ -168,6 +181,12 @@ export default function CatchUpScreen() {
   const currentIdx = nextLiveIndex(deck, index, resolved);
   const card = currentIdx >= 0 ? deck[currentIdx] : null;
   const cardExpense = card && (card.kind === "pending" || card.kind === "uncategorized") ? card.expense : null;
+
+  // A half-filled split belongs to the card it was opened on.
+  const cardKey = card?.key ?? null;
+  useEffect(() => {
+    setSplitOpen(false);
+  }, [cardKey]);
 
   // Fetch a suggestion for the card on screen (the SMS pipeline may already have set one).
   useEffect(() => {
@@ -318,6 +337,54 @@ export default function CatchUpScreen() {
       }
     },
     [deck, toast, queueWrite, patchCardExpense],
+  );
+
+  // ── Split, set up in place ──
+  // Written straight away too, so it survives a skip. A pending item stays pending; rejecting
+  // it later takes the split (and its Hisaab entry) away again.
+  const writeSplit = useCallback(
+    async (id: string, write: () => Promise<Expense | null>, failure: string) => {
+      setSavingSplit(true);
+      try {
+        const out: { fresh: Expense | null } = { fresh: null };
+        await queueWrite(async () => {
+          out.fresh = await write();
+        });
+        if (out.fresh) patchCardExpense(id, out.fresh);
+        setSplitOpen(false);
+      } catch (e) {
+        logger.error("Catch up: " + failure, e);
+        toast(failure, { tone: "danger" });
+      } finally {
+        setSavingSplit(false);
+      }
+    },
+    [queueWrite, patchCardExpense, toast],
+  );
+
+  const saveSplit = useCallback(
+    (id: string, config: SplitConfig) => writeSplit(id, () => saveCardSplit(id, config), "Couldn't save the split"),
+    [writeSplit],
+  );
+
+  const removeSplitFromCard = useCallback(
+    (id: string) => writeSplit(id, () => removeCardSplit(id), "Couldn't remove the split"),
+    [writeSplit],
+  );
+
+  const addPerson = useCallback(
+    async (name: string): Promise<string | null> => {
+      try {
+        const id = await createPerson({ owner_user_id: DEFAULT_USER_ID, name });
+        setPersons(await getPersonsWithBalances(DEFAULT_USER_ID));
+        return id;
+      } catch (e) {
+        logger.error("Catch up: add person failed", e);
+        toast("Couldn't add that person", { tone: "danger" });
+        return null;
+      }
+    },
+    [toast],
   );
 
   // ── Action plumbing ──
@@ -769,7 +836,7 @@ export default function CatchUpScreen() {
           onSwipeLeft={skip}
           rightNeedsInput={needsInput}
           rightLabel={primaryLabel}
-          enabled={!picker && !ccPickerOpen && !descriptionOpen && !merchantOpen && !paymentModeOpen}
+          enabled={!picker && !ccPickerOpen && !descriptionOpen && !splitOpen && !merchantOpen && !paymentModeOpen}
           fill
         >
           <CatchUpCardView
@@ -789,6 +856,14 @@ export default function CatchUpScreen() {
             onDescriptionDraft={(id, text) => {
               descriptionDraft.current = { id, text };
             }}
+            persons={persons}
+            editingSplit={splitOpen}
+            savingSplit={savingSplit}
+            onEditSplit={() => setSplitOpen(true)}
+            onCancelSplit={() => setSplitOpen(false)}
+            onSaveSplit={(id, config) => void saveSplit(id, config)}
+            onRemoveSplit={(id) => void removeSplitFromCard(id)}
+            onAddPerson={addPerson}
             actions={cardActions}
           />
         </SwipeDeck>

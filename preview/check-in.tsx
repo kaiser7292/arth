@@ -34,6 +34,8 @@ const paymentModes = new Map([["upi", { id: "upi", name: "UPI", type: "upi" } as
 
 const noop = () => {};
 
+const samplePersons = [{ id: "p1", name: "Ravi" }, { id: "p2", name: "Mom" }] as never[];
+
 function Phone({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <View className="mr-6 mb-6">
@@ -72,6 +74,7 @@ function Deck({ title, position, total, card, primaryLabel }: { title: string; p
 }
 
 export default function CheckInPreview() {
+  const [splitOpen, setSplitOpen] = useState(false);
   const { colorScheme, setColorScheme } = useNativeWindColorScheme();
   const catchUpCard = (e: Expense): CatchUpCard => ({ kind: "pending", key: e.id, expense: e });
 
@@ -124,6 +127,14 @@ export default function CheckInPreview() {
               editingDescription={false}
               savingDescription={false}
               onSaveDescription={noop}
+              persons={[]}
+              editingSplit={false}
+              savingSplit={false}
+              onEditSplit={noop}
+              onCancelSplit={noop}
+              onSaveSplit={noop}
+              onRemoveSplit={noop}
+              onAddPerson={async () => null}
               actions={[
                 { label: "Edit or split", icon: "create-outline", onPress: noop },
                 { label: "Reject", icon: "close-circle-outline", role: "danger", onPress: noop },
@@ -152,6 +163,14 @@ export default function CheckInPreview() {
               editingDescription={false}
               savingDescription={false}
               onSaveDescription={noop}
+              persons={samplePersons}
+              editingSplit={splitOpen}
+              savingSplit={false}
+              onEditSplit={() => setSplitOpen(true)}
+              onCancelSplit={() => setSplitOpen(false)}
+              onSaveSplit={() => setSplitOpen(false)}
+              onRemoveSplit={noop}
+              onAddPerson={async () => null}
               actions={[
                 { label: "Edit or split", icon: "create-outline", onPress: noop },
                 { label: "Reject", icon: "close-circle-outline", role: "danger", onPress: noop },

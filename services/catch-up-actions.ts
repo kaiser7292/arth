@@ -3,9 +3,12 @@ import {
   approveExpense,
   approveExpenses,
   bulkAssignCategory,
+  getExpenseById,
+  removeSplit,
+  splitExistingExpense,
 } from "@/services/expense";
 import { recordCategoryCorrection } from "@/services/smart-categorizer";
-import type { Expense } from "@/services/expense";
+import type { Expense, SplitConfig } from "@/services/expense";
 
 /**
  * The writes behind Catch Up's approve / categorize actions. Kept apart from the screen so
@@ -58,4 +61,19 @@ export async function assignCategory(
   if (taught && merchant) {
     await recordCategoryCorrection(DEFAULT_USER_ID, merchant, categoryId);
   }
+}
+
+/**
+ * Split set on the card. Written straight away like the description, but a pending item stays
+ * pending: approving is still the swipe. Returns the row as it now stands (amount = your share).
+ */
+export async function saveCardSplit(expenseId: string, config: SplitConfig): Promise<Expense | null> {
+  await splitExistingExpense(expenseId, config, { skipAutoApprove: true });
+  return getExpenseById(expenseId);
+}
+
+/** Take the card's split off again: the full amount is back in your spending, the Hisaab entry is gone. */
+export async function removeCardSplit(expenseId: string): Promise<Expense | null> {
+  await removeSplit(expenseId);
+  return getExpenseById(expenseId);
 }

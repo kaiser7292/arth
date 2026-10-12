@@ -7,6 +7,9 @@ const mockApproveExpense = jest.fn(async (_id: string) => {});
 const mockApproveExpenses = jest.fn(async (_ids: string[]) => {});
 const mockBulkAssignCategory = jest.fn(async (_ids: string[], _cat: string) => 1);
 const mockRecordCorrection = jest.fn(async (_u: string, _m: string, _c: string) => {});
+const mockSplitExisting = jest.fn(async (_id: string, _c: unknown, _o: unknown) => {});
+const mockRemoveSplit = jest.fn(async (_id: string) => {});
+const mockGetExpenseById = jest.fn(async (id: string) => ({ id, amount: 250 }));
 const calls: string[] = [];
 
 jest.mock("../../constants/app", () => ({ DEFAULT_USER_ID: "user-1" }));
@@ -14,13 +17,22 @@ jest.mock("../../services/expense", () => ({
   approveExpense: (id: string) => { calls.push("approve"); return mockApproveExpense(id); },
   approveExpenses: (ids: string[]) => { calls.push("approveMany"); return mockApproveExpenses(ids); },
   bulkAssignCategory: (ids: string[], c: string) => { calls.push("assign"); return mockBulkAssignCategory(ids, c); },
+  splitExistingExpense: (id: string, c: unknown, o: unknown) => { calls.push("split"); return mockSplitExisting(id, c, o); },
+  removeSplit: (id: string) => { calls.push("unsplit"); return mockRemoveSplit(id); },
+  getExpenseById: (id: string) => { calls.push("read"); return mockGetExpenseById(id); },
 }));
 jest.mock("../../services/smart-categorizer", () => ({
   recordCategoryCorrection: (u: string, m: string, c: string) => mockRecordCorrection(u, m, c),
 }));
 
 import type { Expense } from "../../services/expense";
-import { approveBatchWithCategory, approveWithCategory, assignCategory } from "../../services/catch-up-actions";
+import {
+  approveBatchWithCategory,
+  approveWithCategory,
+  assignCategory,
+  removeCardSplit,
+  saveCardSplit,
+} from "../../services/catch-up-actions";
 
 const e = (id: string, over: Partial<Expense> = {}) =>
   ({ id, merchant_name: "Swiggy", category_id: null, ...over }) as Expense;
@@ -68,5 +80,21 @@ describe("assignCategory", () => {
     await assignCategory([e("1"), e("2")], "food", true);
     expect(mockBulkAssignCategory).toHaveBeenCalledWith(["1", "2"], "food");
     expect(mockRecordCorrection).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("card split", () => {
+  const config = { paidBy: "me", splitMode: "equal", personId: "p1" } as const;
+
+  it("splits without approving, then returns the row as it now stands", async () => {
+    const fresh = await saveCardSplit("1", config);
+    expect(mockSplitExisting).toHaveBeenCalledWith("1", config, { skipAutoApprove: true });
+    expect(calls).toEqual(["split", "read"]);
+    expect(fresh).toEqual({ id: "1", amount: 250 });
+  });
+
+  it("removes the split and returns the restored row", async () => {
+    await removeCardSplit("1");
+    expect(calls).toEqual(["unsplit", "read"]);
   });
 });
