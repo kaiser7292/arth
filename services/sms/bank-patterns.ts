@@ -275,6 +275,7 @@ export function parseDateAny(raw: string): string | null {
     parseDDMMMYYYYSpaced(raw) ??  // 25 Apr 2026
     parseDMYYYY(raw) ??           // 2-4-2026
     parseDDMMYYYY(raw) ??         // 11/04/2026
+    parseDDMMYYSlash(raw) ??      // 11/04/26
     parseDDMMYYYYDot(raw) ??      // 10.04.2026 or 10.04.26
     parseDDMMYY(raw) ??           // 11-04-26
     parseDDMMYYTime(raw) ??       // 09-09-25 02:31:10
