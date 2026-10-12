@@ -950,6 +950,14 @@ function EntryCard({
   const color = isDebit ? theme.danger : theme.success;
   const prefix = isDebit ? "+" : "-";
   const label = isDebit ? "They owe" : isSettlement ? "Settlement" : "They paid";
+  const description = entry.description?.trim() || null;
+  const merchant = entry.merchant_name?.trim() || null;
+  // With no description the merchant is the title — don't repeat it below.
+  const subtitle = [
+    entry.category_id ? categoryMap?.get(entry.category_id) : null,
+    description ? merchant : null,
+    accountMap?.get(entry.id),
+  ].filter(Boolean).join(" · ");
 
   return (
     <Pressable onPress={onPress} onLongPress={onLongPress}>
@@ -969,13 +977,13 @@ function EntryCard({
               className="text-sm font-medium text-foreground"
               numberOfLines={1}
             >
-              {entry.description || label}
+              {description || merchant || label}
             </Text>
-            {(entry.category_id || entry.merchant_name || accountMap?.get(entry.id)) && (
+            {subtitle ? (
               <Text className="text-label text-faint-foreground" numberOfLines={1}>
-                {[entry.category_id ? categoryMap?.get(entry.category_id) : null, entry.merchant_name, accountMap?.get(entry.id)].filter(Boolean).join(" · ")}
+                {subtitle}
               </Text>
-            )}
+            ) : null}
             <View className="flex-row items-center">
               <Text className="text-xs text-muted-foreground">
                 {entry.date}
