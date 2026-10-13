@@ -2,7 +2,8 @@
  * Hisaab Import Service
  *
  * Imports hisaab (family ledger) entries from CSV/Excel files.
- * CSV format: Person, Date, Amount, Type, Description
+ * CSV format: Person, Date, Amount, Type, Description, Category, Merchant
+ * (Category and Merchant are optional; five-column files from before still import.)
  *
  * Types:
  *   debit           — you paid for them (increases balance)
@@ -12,7 +13,8 @@
  */
 
 import { getDatabase } from "@/database";
-import { parseDate } from "@/services/excel-import";
+import { createCategory, getAllCategories } from "@/services/category";
+import { fuzzyFindCategory, parseDate } from "@/services/excel-import";
 import { bumpDataVersion } from "@/services/settings";
 import { generateUUID } from "@/utils/uuid";
 import type * as XLSXType from "xlsx";
@@ -29,12 +31,16 @@ export interface ParsedHisaabRow {
   amount: number;
   type: HisaabEntryType;
   description: string | null;
+  category: string | null;
+  merchant: string | null;
 }
 
 export interface HisaabImportResult {
   totalRows: number;
   entriesImported: number;
   skipped: number;
+  /** Entries left out because the person's ledger already has them. */
+  duplicates: number;
   errors: string[];
   personsCreated: string[];
   personsUpdated: string[];
@@ -66,6 +72,8 @@ export const HISAAB_TEMPLATE_COLUMNS = [
   "Amount",
   "Type",
   "Description",
+  "Category",
+  "Merchant",
 ] as const;
 
 /**
@@ -74,10 +82,11 @@ export const HISAAB_TEMPLATE_COLUMNS = [
 export function generateHisaabTemplateCSV(): string {
   const header = HISAAB_TEMPLATE_COLUMNS.join(",");
   const samples = [
-    'Jane Doe,,5000,initial_balance,"Opening Balance"',
-    'Jane Doe,2025-04-10,2000,credit,"Paid back"',
-    'Jane Doe,2025-04-12,850,debit,"Dinner share"',
-    'John Doe,,-1500,initial_balance,"Opening Balance"',
+    'Jane Doe,,5000,initial_balance,"Opening Balance",,',
+    'Jane Doe,2025-04-10,2000,credit,"Paid back",,',
+    'Jane Doe,2025-04-12,850,debit,"Dinner share",Food,Barbeque Nation',
+    'Jane Doe,2025-04-20,3000,settlement,"Settled by UPI",,',
+    'John Doe,,-1500,initial_balance,"Opening Balance",,',
   ];
   return `${header}\n${samples.join("\n")}\n`;
 }
@@ -94,7 +103,7 @@ function loadXLSX(): typeof XLSXType {
 
 /**
  * Parse hisaab rows from a workbook sheet.
- * Expects columns: Person, Date, Amount, Type, Description
+ * Expects columns: Person, Date, Amount, Type, Description, Category, Merchant
  */
 export function parseHisaabRows(
   workbook: XLSXType.WorkBook,
@@ -111,41 +120,51 @@ export function parseHisaabRows(
   const capped = json.slice(0, 5000);
 
   for (const row of capped) {
-    const r = row as Record<string, unknown>;
+    // Headers are matched loosely: "Person", "person" and "PERSON " are one column.
+    const r: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(row as Record<string, unknown>)) {
+      const key = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+      // Two columns with the same name: the one with a value wins.
+      if (r[key] === undefined || r[key] === null || r[key] === "") r[key] = v;
+    }
 
     // Person (required)
-    const rawPerson = r["Person"] ?? r["person"] ?? r["PERSON"];
+    const rawPerson = r.person;
     if (!rawPerson) continue;
     const person = String(rawPerson).trim().slice(0, 50);
     if (!person) continue;
 
     // Type (required)
-    const rawType = r["Type"] ?? r["type"] ?? r["TYPE"];
+    const rawType = r.type;
     if (!rawType) continue;
-    const typeStr = String(rawType).toLowerCase().trim();
+    // "Initial Balance" / "initial-balance" as well as initial_balance.
+    const typeStr = String(rawType).toLowerCase().trim().replace(/[\s-]+/g, "_");
     if (!validTypes.includes(typeStr)) continue;
     const type = typeStr as HisaabEntryType;
 
     // Amount (required)
-    const rawAmount = r["Amount"] ?? r["amount"] ?? r["AMOUNT"];
+    const rawAmount = r.amount;
     if (rawAmount === null || rawAmount === undefined || rawAmount === "") continue;
     const amount = parseHisaabAmount(rawAmount);
     if (amount === null) continue;
 
     // Date (required for entries, optional for initial_balance)
-    const rawDate = r["Date"] ?? r["date"] ?? r["DATE"];
+    const rawDate = r.date;
     const date = parseDate(rawDate);
     if (type !== "initial_balance" && !date) continue;
 
     // Description (optional)
-    const rawDesc = r["Description"] ?? r["description"] ?? r["DESCRIPTION"];
+    const rawDesc = r.description;
+    const optional = (v: unknown, max: number) => (v ? String(v).trim().slice(0, max) || null : null);
 
     rows.push({
       person,
       date,
       amount,
       type,
-      description: rawDesc ? String(rawDesc).trim().slice(0, 200) || null : null,
+      description: optional(rawDesc, 200),
+      category: optional(r.category, 50),
+      merchant: optional(r.merchant, 100),
     });
   }
 
@@ -247,6 +266,7 @@ export async function importHisaabEntries(
     totalRows: rows.length,
     entriesImported: 0,
     skipped: 0,
+    duplicates: 0,
     errors: [],
     personsCreated: [],
     personsUpdated: [],
@@ -261,6 +281,21 @@ export async function importHisaabEntries(
   for (const p of existingPersons) {
     personMap.set(p.name.toLowerCase(), p.id);
   }
+
+  // Categories: an existing one by name (or a near match), else a new one.
+  const categoryMap = new Map((await getAllCategories(userId)).map((c) => [c.name.toLowerCase(), c.id]));
+  const categoryFor = async (name: string | null): Promise<string | null> => {
+    if (!name) return null;
+    const key = name.toLowerCase();
+    const known = categoryMap.get(key) ?? fuzzyFindCategory(key, categoryMap);
+    if (known) {
+      categoryMap.set(key, known);
+      return known;
+    }
+    const id = await createCategory({ user_id: userId, name });
+    categoryMap.set(key, id);
+    return id;
+  };
 
   // Group rows by person name
   const personGroups = new Map<string, ParsedHisaabRow[]>();
@@ -317,6 +352,19 @@ export async function importHisaabEntries(
       }
     }
 
+    // What this person's ledger already holds, counted: importing the same file twice adds
+    // nothing, but two genuine same-day entries of the same amount both come in.
+    const entryKey = (date: string | null, amount: number, type: string) => `${date}|${amount.toFixed(2)}|${type}`;
+    const existing = new Map<string, number>();
+    const existingRows = await db.getAllAsync<{ date: string; amount: number; type: string }>(
+      `SELECT date, amount, type FROM hisaab_entries WHERE hisaab_person_id = ?;`,
+      personId!,
+    );
+    for (const e of existingRows) {
+      const k = entryKey(e.date, e.amount, e.type);
+      existing.set(k, (existing.get(k) ?? 0) + 1);
+    }
+
     // Import entries in batches
     const BATCH_SIZE = 100;
     for (let i = 0; i < entryRows.length; i += BATCH_SIZE) {
@@ -325,17 +373,26 @@ export async function importHisaabEntries(
       await db.withTransactionAsync(async () => {
         for (const row of batch) {
           try {
+            const key = entryKey(row.date, row.amount, row.type);
+            const have = existing.get(key) ?? 0;
+            if (have > 0) {
+              existing.set(key, have - 1);
+              result.duplicates++;
+              continue;
+            }
             const id = generateUUID();
             const now = new Date().toISOString(); // Local time in ISO format
             await db.runAsync(
-              `INSERT INTO hisaab_entries (id, hisaab_person_id, amount, description, date, type, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?);`,
+              `INSERT INTO hisaab_entries (id, hisaab_person_id, amount, description, date, type, category_id, merchant_name, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
               id,
               personId!,
               row.amount,
               row.description,
               row.date,
               row.type,
+              await categoryFor(row.category),
+              row.merchant,
               now,
             );
             result.entriesImported++;

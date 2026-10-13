@@ -2,7 +2,6 @@ import {
   parseDate,
   parseAmount,
   suggestColumnMappings,
-  getImportPreview,
   parseExpenseRows,
 } from "@/services/excel-import";
 import type { ParsedExpenseRow } from "@/services/excel-import";
@@ -161,77 +160,6 @@ describe("suggestColumnMappings", () => {
     // Only one should be "date"
     const dateMappings = Object.values(mappings).filter((v) => v === "date");
     expect(dateMappings.length).toBe(1);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getImportPreview
-// ---------------------------------------------------------------------------
-
-describe("getImportPreview", () => {
-  const rows: ParsedExpenseRow[] = [
-    {
-      date: "2025-01-15",
-      amount: 500,
-      description: "Lunch",
-      merchantName: null,
-      categoryName: "Food",
-      paymentModeName: "GPay",
-      isRightSpend: 1,
-    },
-    {
-      date: "2025-02-20",
-      amount: 1000,
-      description: "Groceries",
-      merchantName: null,
-      categoryName: "Grocery",
-      paymentModeName: "Cash",
-      isRightSpend: 0,
-    },
-    {
-      date: "2025-01-10",
-      amount: 300,
-      description: "Coffee",
-      merchantName: null,
-      categoryName: "Food",
-      paymentModeName: "GPay",
-      isRightSpend: null,
-    },
-  ];
-
-  it("returns correct count", () => {
-    expect(getImportPreview(rows).count).toBe(3);
-  });
-
-  it("returns correct date range", () => {
-    const preview = getImportPreview(rows);
-    expect(preview.dateRange?.from).toBe("2025-01-10");
-    expect(preview.dateRange?.to).toBe("2025-02-20");
-  });
-
-  it("returns correct total amount", () => {
-    expect(getImportPreview(rows).totalAmount).toBe(1800);
-  });
-
-  it("returns unique categories", () => {
-    const preview = getImportPreview(rows);
-    expect(preview.uniqueCategories).toContain("Food");
-    expect(preview.uniqueCategories).toContain("Grocery");
-    expect(preview.uniqueCategories.length).toBe(2);
-  });
-
-  it("returns unique payment modes", () => {
-    const preview = getImportPreview(rows);
-    expect(preview.uniquePaymentModes).toContain("GPay");
-    expect(preview.uniquePaymentModes).toContain("Cash");
-    expect(preview.uniquePaymentModes.length).toBe(2);
-  });
-
-  it("handles empty rows", () => {
-    const preview = getImportPreview([]);
-    expect(preview.count).toBe(0);
-    expect(preview.dateRange).toBeNull();
-    expect(preview.totalAmount).toBe(0);
   });
 });
 

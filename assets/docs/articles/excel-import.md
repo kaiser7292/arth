@@ -1,7 +1,7 @@
 ﻿---
 title: Importing from Excel
 slug: excel-import
-summary: Bulk-import expenses, credits, and hisaab entries from a spreadsheet using Arth's templates.
+summary: Bulk-import expenses, committed payments, credits, transfers and hisaab entries from a spreadsheet using Arth's templates.
 tags: [excel, import, bulk, spreadsheet, template, csv, migration]
 contextKeys: [settings-import]
 phrasings:
@@ -17,7 +17,7 @@ phrasings:
   - Import income/credits from sheet
 ---
 
-Bulk-load expenses, credits (salary / refunds), or hisaab entries from an Excel or CSV file. Useful when migrating from another tracker or bringing in historical data.
+Bulk-load transactions (expenses, committed payments, credits and transfers) or hisaab entries from an Excel or CSV file. Useful when migrating from another tracker or bringing in historical data.
 
 ## Where to find it
 
@@ -31,57 +31,50 @@ Bulk-load expenses, credits (salary / refunds), or hisaab entries from an Excel 
 
 ## Step 1 - Get the template
 
-On the Import screen, tap **Download Template** and pick one of three:
+At the top of the Import screen choose **Transactions** or **Hisaab Ledger**, then tap **Download CSV Template**. The template has sample rows showing each kind of entry.
 
-- **Expenses**
-- **Credits**
-- **Hisaab**
+## Transactions template - columns
 
-Each template has its own expected columns. Fill in the sheet following the columns below.
+One row per transaction. Only **Date** and **Amount** are required.
 
-## Expenses template - columns
+- **Date** *(required)* - `2026-05-15` or `15/05/2026`.
+- **Type** - `Expense`, `Committed`, `Credit` or `Transfer`, the same four as the Transactions tab. Blank means Expense.
+- **Amount** *(required)* - a positive number. The Type decides the direction, so don't put a minus sign.
+- **Description**, **Merchant** *(optional)* - free text.
+- **Category** *(optional)* - matched to your categories by name. A name Arth doesn't have is created.
+- **Payment Mode** *(optional, spending only)* - matched by name; a new one is created.
+- **Account** *(optional)* - the account the money left, or for a credit, arrived in. Use the account's name or its last 4 digits. Arth never creates accounts from an import: a row naming an account it can't find is left out.
+- **To Account** *(transfers only, required)* - the account the money moved to.
+- **Credit Type** *(credits only, optional)* - Salary, Interest, Refund, Cashback, Reimbursement, Gift, Investment gain or Other.
+- **Linked To** *(committed only, required)* - the loan (for an EMI) or the investment bucket (for a SIP) the payment belongs to, by name.
+- **Right Spend** *(spending only, optional)* - `Yes` or `No`.
 
-- **Date** *(required)* - format must be `YYYY-MM-DD`.
-- **Amount** *(required)* - a positive number. Direction is "expense", so don't put a minus sign.
-- **Merchant** *(recommended)* - free text. Blank is allowed but makes the row hard to identify later.
-- **Description** *(optional)* - free text.
-- **Category** *(required)* - must match an existing category name **exactly** (case-sensitive). Create missing categories first in Settings tab → Data Management → Categories.
-- **Payment Mode** *(optional)* - matches a configured payment mode (e.g. "UPI", "Credit Card", "Cash").
-- **Account** *(optional)* - matches a configured account name (e.g. "HDFC Savings").
-- **Right Spend** *(optional)* - `1` for unavoidable, `0` for discretionary.
+### What "Committed" means
 
-## Credits template - columns
-
-Similar to expenses, but:
-
-- **Type** *(required)* - `salary`, `refund`, or `other`.
-- **Category** - not required.
+Committed is spending that is tied to a loan or an investment bucket, as on the Transactions tab. On import the payment is saved as spending and then linked. An EMI links when the loan has an instalment of about that amount due around that date; a SIP links to the bucket of that financial year. If the link can't be made, the payment is still imported as an expense and the result screen tells you which rows weren't linked.
 
 ## Hisaab template - columns
 
-- **Person** *(required)* - name of the hisaab person.
-- **Date** *(required)* - `YYYY-MM-DD`.
-- **Amount** *(required)* - positive number.
-- **Direction** *(required)* - `they-owe` or `i-owe`.
-- **Description** *(optional)*.
+- **Person** *(required)* - name of the hisaab person. New names are created.
+- **Date** *(required, except for initial_balance)*.
+- **Amount** *(required)*.
+- **Type** *(required)* - `debit` (they owe you more), `credit` (they paid you back), `settlement`, or `initial_balance` (sets the person's opening balance; may be negative).
+- **Description**, **Category**, **Merchant** *(optional)*. Files with only the first five columns still import.
 
-## Step 2 - Fill the sheet
+## Step 2 - Run the import
 
-- Dates must be `YYYY-MM-DD`. Excel often reformats automatically - if in doubt, open the cell and type the date explicitly.
-- Amounts are positive. Direction is inferred from the column semantics, not the sign.
-- Category names must match your existing categories exactly. Create missing ones first, or adjust the sheet to use existing names.
-
-## Step 3 - Run the import
-
-1. Tap **Pick File** → select your Excel / CSV.
+1. Tap **Choose File** and select your Excel / CSV.
 2. If the file has multiple sheets, pick the sheet to import.
-3. The **Preview** page shows: total rows found, accepted, skipped (and why), plus sample rows.
-4. Review. If skipped rows outnumber accepted, fix the sheet and re-pick.
-5. Tap **Import**. Progress is shown. A summary appears when done.
+3. The **Preview** shows how many of each type will be imported with totals, and every row that will be left out with its reason (unreadable date, unknown account, transfer missing an account, and so on).
+4. Fix the sheet and re-pick if needed, then tap **Import**.
+
+## Importing the same file twice
+
+Rows Arth already has are left out, so re-importing a file doesn't double anything. A transaction counts as the same when its type, date, amount and merchant (or description) match; a transfer when its date, amount and two accounts match. Hisaab entries are compared per person by date, amount and type.
 
 ## What happens after import
 
-All imported rows land in your ledger **as approved expenses** - they do **not** go through the Review Queue. They're marked as manually entered so they're distinguishable from SMS-detected expenses.
+All imported rows are saved **as approved transactions** - they do **not** go through the Review Queue. They are saved the same way as ones you add by hand, so account balances update and your smart rules apply. They're marked as manually entered so they're distinguishable from SMS-detected ones.
 
 ## Undo
 
@@ -92,13 +85,13 @@ There's no one-click undo for a bulk import. Your options:
 
 ## Common situations
 
-**Category "Food" doesn't match - my category is "Food & Groceries".** Update the sheet's category column to `Food & Groceries` exactly, OR create a `Food` category first and merge it into `Food & Groceries` later via Settings tab → Data Management → Categories.
+**My sheet says "Food" but my category is "Food & Groceries".** Close names are matched for you: a name contained in an existing category's name (or differing only by a final "s") uses that category. Anything else is created as a new category, which you can merge later via Settings tab → Data Management → Categories.
 
 **I imported from Axio / Walnut / Money Manager.** Export as CSV from the source app, then map columns to Arth's template. A few minutes of spreadsheet work.
 
 **Dates look weird after import.** Almost always an Excel auto-formatting issue. Open the date column in Excel, format as `YYYY-MM-DD`, re-save.
 
-**Can I import 10,000 rows?** Yes, but it'll take a minute or two and use memory. For very large imports, split into chunks of 2,000–3,000 rows.
+**Can I import 10,000 rows?** One sheet is read up to 5,000 rows; split a bigger file into several. Large imports take a minute or two.
 
 ## Related
 

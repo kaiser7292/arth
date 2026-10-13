@@ -16,12 +16,24 @@ import {
   pickExcelFile,
   readWorkbook,
   detectSheets,
-  parseTemplateRows,
-  importExpenses,
-  getImportPreview,
-  generateTemplateCSV,
-  TEMPLATE_COLUMNS,
 } from "@/services/excel-import";
+import {
+  TRANSACTION_REQUIRED_COLUMNS,
+  TRANSACTION_TEMPLATE_COLUMNS,
+  TRANSACTION_TYPES,
+  TRANSACTION_TYPE_LABELS,
+  generateTransactionTemplateCSV,
+  getTransactionImportPreview,
+  importTransactions,
+  loadImportContext,
+  parseTransactionRows,
+  planTransactionImport,
+} from "@/services/transaction-import";
+import type {
+  ImportPlan,
+  ImportPreview,
+  TransactionImportResult,
+} from "@/services/transaction-import";
 import {
   importForecastSheet,
 } from "@/services/estimations-import";
@@ -32,11 +44,7 @@ import {
   generateHisaabTemplateCSV,
   HISAAB_TEMPLATE_COLUMNS,
 } from "@/services/hisaab-import";
-import type {
-  DetectedSheet,
-  ParsedExpenseRow,
-  ImportResult,
-} from "@/services/excel-import";
+import type { DetectedSheet } from "@/services/excel-import";
 import type { ForecastImportResult } from "@/services/estimations-import";
 import type {
   ParsedHisaabRow,
@@ -48,7 +56,10 @@ import { formatAmount } from "@/utils/expense-validation";
 import { useTheme } from "@/hooks/use-theme";
 
 type Step = "pick" | "sheets" | "preview" | "importing" | "done";
-type ImportMode = "expenses" | "hisaab";
+type ImportMode = "transactions" | "hisaab";
+
+/** How many skipped rows to spell out before summarising the rest. */
+const SKIPPED_SHOWN = 8;
 
 export default function ImportExcelScreen() {
   const router = useRouter();
@@ -57,7 +68,7 @@ export default function ImportExcelScreen() {
   const theme = useTheme();
 
   // Shared state
-  const [importMode, setImportMode] = useState<ImportMode>("expenses");
+  const [importMode, setImportMode] = useState<ImportMode>("transactions");
   const [step, setStep] = useState<Step>("pick");
   const [fileName, setFileName] = useState<string>("");
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
@@ -66,9 +77,10 @@ export default function ImportExcelScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Expense-specific state
-  const [parsedRows, setParsedRows] = useState<ParsedExpenseRow[]>([]);
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  // Transaction-specific state
+  const [plan, setPlan] = useState<ImportPlan | null>(null);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [importResult, setImportResult] = useState<TransactionImportResult | null>(null);
   const [forecastResult, setForecastResult] = useState<ForecastImportResult | null>(null);
 
   // Hisaab-specific state
@@ -83,7 +95,8 @@ export default function ImportExcelScreen() {
     setWorkbook(null);
     setSheets([]);
     setSelectedSheet(null);
-    setParsedRows([]);
+    setPlan(null);
+    setPreview(null);
     setParsedHisaabRows([]);
     setImportResult(null);
     setHisaabResult(null);
@@ -94,8 +107,8 @@ export default function ImportExcelScreen() {
   // Download template CSV
   const handleDownloadTemplate = useCallback(async () => {
     try {
-      const csv = importMode === "hisaab" ? generateHisaabTemplateCSV() : generateTemplateCSV();
-      const name = importMode === "hisaab" ? "artha_hisaab_template.csv" : "artha_import_template.csv";
+      const csv = importMode === "hisaab" ? generateHisaabTemplateCSV() : generateTransactionTemplateCSV();
+      const name = importMode === "hisaab" ? "arth_hisaab_template.csv" : "arth_transactions_template.csv";
       const file = new File(Paths.cache, name);
       file.write(csv);
       await Sharing.shareAsync(file.uri, {
@@ -127,7 +140,7 @@ export default function ImportExcelScreen() {
 
       // If single sheet, auto-select and go to preview
       if (detected.length === 1) {
-        handleSelectSheet(detected[0], wb);
+        await handleSelectSheet(detected[0], wb);
       } else {
         setStep("sheets");
       }
@@ -139,7 +152,7 @@ export default function ImportExcelScreen() {
 
   // Select sheet → parse → preview
   const handleSelectSheet = useCallback(
-    (sheet: DetectedSheet, wb?: XLSX.WorkBook) => {
+    async (sheet: DetectedSheet, wb?: XLSX.WorkBook) => {
       const book = wb ?? workbook;
       if (!book) return;
       setSelectedSheet(sheet);
@@ -167,19 +180,31 @@ export default function ImportExcelScreen() {
         return;
       }
 
-      // Expense mode: use expense parser
-      const rows = parseTemplateRows(book, sheet.name);
-      if (rows.length === 0) {
+      // Transactions: read the rows, then work out what would be imported
+      const parsed = parseTransactionRows(book, sheet.name);
+      if (parsed.rows.length === 0) {
         setError(
-          "No valid rows found. Make sure your file has columns: " +
-            TEMPLATE_COLUMNS.join(", ") +
-            "\nDate and Amount are required.",
+          "No rows could be read. Make sure your file has the template's columns: " +
+            TRANSACTION_TEMPLATE_COLUMNS.join(", ") +
+            "\nDate and Amount are required." +
+            (parsed.skipped.length > 0 ? `\nRow ${parsed.skipped[0].rowNumber}: ${parsed.skipped[0].reason}.` : ""),
         );
         setStep("pick");
         return;
       }
-      setParsedRows(rows);
-      setStep("preview");
+      try {
+        const ctx = await loadImportContext(DEFAULT_USER_ID, parsed.rows);
+        const planned = planTransactionImport(parsed.rows, ctx);
+        // Rows the sheet reader couldn't use are listed with the rest.
+        planned.skipped = [...parsed.skipped, ...planned.skipped].sort((a, b) => a.rowNumber - b.rowNumber);
+        setPlan(planned);
+        setPreview(getTransactionImportPreview(planned.ready, { categories: ctx.categories, paymentModes: ctx.paymentModes }));
+        setStep("preview");
+      } catch (e) {
+        logger.error("Import preview failed:", e);
+        setError(`Could not check the file against your data: ${e instanceof Error ? e.message : String(e)}`);
+        setStep("pick");
+      }
     },
     [workbook, importMode],
   );
@@ -208,18 +233,19 @@ export default function ImportExcelScreen() {
     [],
   );
 
-  // Import expenses
+  // Import transactions
   const handleImport = useCallback(async () => {
+    if (!plan) return;
     setStep("importing");
     try {
-      const result = await importExpenses(DEFAULT_USER_ID, parsedRows);
+      const result = await importTransactions(DEFAULT_USER_ID, plan.ready);
       setImportResult(result);
       setStep("done");
     } catch (e) {
       setError(`Import failed: ${e instanceof Error ? e.message : String(e)}`);
       setStep("preview");
     }
-  }, [parsedRows]);
+  }, [plan]);
 
   // Import hisaab entries
   const handleHisaabImport = useCallback(async () => {
@@ -234,10 +260,10 @@ export default function ImportExcelScreen() {
     }
   }, [parsedHisaabRows]);
 
-  const preview = parsedRows.length > 0 ? getImportPreview(parsedRows) : null;
   const hisaabPreview = parsedHisaabRows.length > 0 ? getHisaabImportPreview(parsedHisaabRows) : null;
 
-  const templateColumns = importMode === "hisaab" ? HISAAB_TEMPLATE_COLUMNS : TEMPLATE_COLUMNS;
+  const templateColumns: readonly string[] = importMode === "hisaab" ? HISAAB_TEMPLATE_COLUMNS : TRANSACTION_TEMPLATE_COLUMNS;
+  const importedTotal = importResult ? TRANSACTION_TYPES.reduce((n, t) => n + importResult.imported[t], 0) : 0;
 
   return (
     <ScreenContainer padTop={false}>
@@ -246,13 +272,13 @@ export default function ImportExcelScreen() {
         {/* Import Mode Toggle */}
         <View className="flex-row bg-card rounded-xl p-1 mt-2 mb-4">
           <Pressable
-            onPress={() => handleModeChange("expenses")}
-            className={`flex-1 py-2.5 rounded-lg items-center ${importMode === "expenses" ? "bg-card shadow-sm" : ""}`}
+            onPress={() => handleModeChange("transactions")}
+            className={`flex-1 py-2.5 rounded-lg items-center ${importMode === "transactions" ? "bg-card shadow-sm" : ""}`}
           >
             <Text
-              className={`text-sm font-semibold ${importMode === "expenses" ? "text-foreground" : "text-muted-foreground"}`}
+              className={`text-sm font-semibold ${importMode === "transactions" ? "text-foreground" : "text-muted-foreground"}`}
             >
-              Expenses
+              Transactions
             </Text>
           </Pressable>
           <Pressable
@@ -270,7 +296,7 @@ export default function ImportExcelScreen() {
         <Text className="text-sm text-muted-foreground mb-6">
           {importMode === "hisaab"
             ? "Import hisaab (ledger) entries from a CSV or Excel file."
-            : "Import your expenses from a CSV or Excel file."}
+            : "Import expenses, committed payments, credits and transfers from a CSV or Excel file."}
         </Text>
 
         {error && (
@@ -298,7 +324,7 @@ export default function ImportExcelScreen() {
                   <Text className="text-xs text-muted-foreground">
                     {importMode === "hisaab"
                       ? "Download, fill in your hisaab entries, then upload"
-                      : "Download, fill in your expenses, then upload"}
+                      : "Download, fill in your transactions, then upload"}
                   </Text>
                 </View>
               </View>
@@ -320,10 +346,10 @@ export default function ImportExcelScreen() {
                   Template columns:
                 </Text>
                 <View className="flex-row flex-wrap">
-                  {templateColumns.map((col, i) => {
+                  {templateColumns.map((col) => {
                     const isRequired = importMode === "hisaab"
                       ? col === "Person" || col === "Amount" || col === "Type"
-                      : i < 2;
+                      : TRANSACTION_REQUIRED_COLUMNS.includes(col);
                     return (
                       <View
                         key={col}
@@ -341,8 +367,8 @@ export default function ImportExcelScreen() {
                 </View>
                 <Text className="text-label text-faint-foreground mt-1">
                   {importMode === "hisaab"
-                    ? "* Required. Types: debit, credit, settlement, initial_balance. Date optional for initial_balance."
-                    : "* Required fields. Supports dates like 2025-05-15 or 15/05/2025."}
+                    ? "* Required. Types: debit, credit, settlement, initial_balance. Date optional for initial_balance. Category and Merchant are optional."
+                    : "* Required. Type is Expense, Committed, Credit or Transfer (blank means Expense). A transfer needs Account and To Account; a committed row needs Linked To (a loan or an investment bucket). Accounts match by name or last 4 digits. Dates like 2026-05-15 or 15/05/2026."}
                 </Text>
               </View>
             </View>
@@ -413,23 +439,27 @@ export default function ImportExcelScreen() {
           </View>
         )}
 
-        {/* Step 3: Preview — Expenses */}
-        {step === "preview" && importMode === "expenses" && preview && (
+        {/* Step 3: Preview — Transactions */}
+        {step === "preview" && importMode === "transactions" && plan && preview && (
           <View>
             <Text className="text-base font-semibold text-foreground mb-1">
               {fileName}
             </Text>
             <Text className="text-sm text-muted-foreground mb-4">
-              Ready to import
+              {preview.count > 0 ? "Ready to import" : "Nothing to import"}
             </Text>
 
             <View className="rounded-lg border border-border p-4 mb-4">
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-muted-foreground">Expenses</Text>
-                <Text className="text-base font-bold text-foreground">
-                  {preview.count}
-                </Text>
-              </View>
+              {TRANSACTION_TYPES.filter((t) => preview.byType[t].count > 0).map((t) => (
+                <View key={t} className="flex-row justify-between mb-2">
+                  <Text className="text-sm text-muted-foreground">
+                    {TRANSACTION_TYPE_LABELS[t]} ({preview.byType[t].count})
+                  </Text>
+                  <Text className="text-sm font-semibold text-foreground">
+                    {formatAmount(preview.byType[t].total)}
+                  </Text>
+                </View>
+              ))}
               {preview.dateRange && (
                 <View className="flex-row justify-between mb-2">
                   <Text className="text-sm text-muted-foreground">Date range</Text>
@@ -438,48 +468,57 @@ export default function ImportExcelScreen() {
                   </Text>
                 </View>
               )}
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-muted-foreground">Total amount</Text>
-                <Text className="text-base font-bold text-foreground">
-                  {formatAmount(preview.totalAmount)}
-                </Text>
+              <View className="flex-row justify-between">
+                <Text className="text-sm text-muted-foreground">Will be imported</Text>
+                <Text className="text-base font-bold text-foreground">{preview.count}</Text>
               </View>
-              {preview.uniqueCategories.length > 0 && (
-                <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground">Categories</Text>
-                  <Text className="text-sm text-foreground">
-                    {preview.uniqueCategories.length}
-                  </Text>
-                </View>
-              )}
-              {preview.uniquePaymentModes.length > 0 && (
-                <View className="flex-row justify-between">
-                  <Text className="text-sm text-muted-foreground">Payment modes</Text>
-                  <Text className="text-sm text-foreground">
-                    {preview.uniquePaymentModes.length}
-                  </Text>
-                </View>
-              )}
             </View>
 
+            {plan.skipped.length > 0 && (
+              <View className="rounded-lg p-3 mb-4 bg-warning/8">
+                <Text className="text-sm font-medium mb-1" style={{ color: theme.warning }}>
+                  {plan.skipped.length} row{plan.skipped.length > 1 ? "s" : ""} will be left out
+                  {plan.duplicates > 0 ? ` (${plan.duplicates} already in Arth)` : ""}
+                </Text>
+                {plan.skipped
+                  .filter((r) => r.reason !== "Already in Arth")
+                  .slice(0, SKIPPED_SHOWN)
+                  .map((r) => (
+                    <Text key={r.rowNumber} className="text-xs text-muted-foreground">
+                      Row {r.rowNumber}: {r.reason}
+                    </Text>
+                  ))}
+                {plan.skipped.length - plan.duplicates > SKIPPED_SHOWN && (
+                  <Text className="text-xs text-muted-foreground mt-1">
+                    + {plan.skipped.length - plan.duplicates - SKIPPED_SHOWN} more
+                  </Text>
+                )}
+              </View>
+            )}
+
             {/* Sample rows */}
-            <Text className="text-sm font-medium text-foreground mb-2">
-              Sample rows:
-            </Text>
-            {parsedRows.slice(0, 5).map((row, i) => (
+            {plan.ready.length > 0 && (
+              <Text className="text-sm font-medium text-foreground mb-2">
+                Sample rows:
+              </Text>
+            )}
+            {plan.ready.slice(0, 5).map((row) => (
               <View
-                key={i}
+                key={row.rowNumber}
                 className="flex-row items-center p-3 mb-1 rounded-lg bg-card"
               >
                 <View className="flex-1">
                   <Text className="text-sm text-foreground" numberOfLines={1}>
-                    {row.description ?? row.merchantName ?? "-"}{" "}
+                    {row.description ?? row.merchantName ?? TRANSACTION_TYPE_LABELS[row.type]}{" "}
                     {row.categoryName ? `(${row.categoryName})` : ""}
                   </Text>
-                  <Text className="text-xs text-muted-foreground">
-                    {row.date}
-                    {row.merchantName && row.description ? ` · ${row.merchantName}` : ""}
-                    {row.paymentModeName ? ` · ${row.paymentModeName}` : ""}
+                  <Text className="text-xs text-muted-foreground" numberOfLines={1}>
+                    {[
+                      row.date,
+                      TRANSACTION_TYPE_LABELS[row.type],
+                      row.type === "transfer" ? `${row.accountName} → ${row.toAccountName}` : row.accountName,
+                      row.linkedToName,
+                    ].filter(Boolean).join(" · ")}
                   </Text>
                 </View>
                 <Text className="text-sm font-semibold text-foreground">
@@ -487,27 +526,35 @@ export default function ImportExcelScreen() {
                 </Text>
               </View>
             ))}
-            {parsedRows.length > 5 && (
+            {plan.ready.length > 5 && (
               <Text className="text-xs text-muted-foreground text-center mt-1">
-                + {parsedRows.length - 5} more rows
+                + {plan.ready.length - 5} more rows
               </Text>
             )}
 
-            {(preview.uniqueCategories.length > 0 || preview.uniquePaymentModes.length > 0) && (
+            {(preview.newCategories.length > 0 || preview.newPaymentModes.length > 0) && (
               <View className="mt-4 p-3 rounded-lg bg-warning/8">
                 <Text className="text-sm font-medium mb-1" style={{ color: theme.warning }}>
-                  New items will be auto-created
+                  New items will be created
                 </Text>
-                <Text className="text-xs text-muted-foreground">
-                  Categories and payment modes not in the app will be created automatically.
-                </Text>
+                {preview.newCategories.length > 0 && (
+                  <Text className="text-xs text-muted-foreground">
+                    Categories: {preview.newCategories.join(", ")}
+                  </Text>
+                )}
+                {preview.newPaymentModes.length > 0 && (
+                  <Text className="text-xs text-muted-foreground">
+                    Payment modes: {preview.newPaymentModes.join(", ")}
+                  </Text>
+                )}
               </View>
             )}
 
             <View className="flex-row mt-6 mb-6">
               <Pressable
                 onPress={() => {
-                  setParsedRows([]);
+                  setPlan(null);
+                  setPreview(null);
                   setStep("pick");
                 }}
                 className="flex-1 border border-border rounded-lg py-3 mr-2 items-center"
@@ -516,11 +563,12 @@ export default function ImportExcelScreen() {
               </Pressable>
               <Pressable
                 onPress={handleImport}
+                disabled={preview.count === 0}
                 className="flex-1 rounded-lg py-3 ml-2 items-center"
-                style={{ backgroundColor: theme.success }}
+                style={{ backgroundColor: theme.success, opacity: preview.count === 0 ? 0.4 : 1 }}
               >
                 <Text className="text-white font-bold">
-                  Import {preview.count} Expenses
+                  Import {preview.count} Transaction{preview.count !== 1 ? "s" : ""}
                 </Text>
               </Pressable>
             </View>
@@ -696,7 +744,7 @@ export default function ImportExcelScreen() {
           </View>
         )}
 
-        {/* Step 5: Done — Expenses */}
+        {/* Step 5: Done — Transactions */}
         {step === "done" && importResult && (
           <View className="items-center py-8">
             <View className="w-16 h-16 rounded-full bg-success/8 items-center justify-center mb-4">
@@ -707,19 +755,22 @@ export default function ImportExcelScreen() {
             </Text>
             <View className="w-full rounded-lg border border-border p-4 mt-4">
               <View className="flex-row justify-between mb-2">
-                <Text className="text-sm text-muted-foreground">Total rows</Text>
-                <Text className="text-sm font-semibold text-foreground">
-                  {importResult.totalRows}
-                </Text>
-              </View>
-              <View className="flex-row justify-between mb-2">
                 <Text className="text-sm text-muted-foreground">Imported</Text>
-                <Text className="text-sm font-semibold text-success">{importResult.imported}</Text>
+                <Text className="text-sm font-semibold text-success">{importedTotal}</Text>
               </View>
-              {importResult.skipped > 0 && (
+              {TRANSACTION_TYPES.filter((t) => importResult.imported[t] > 0).map((t) => (
+                <View key={t} className="flex-row justify-between mb-2">
+                  <Text className="text-sm text-muted-foreground">{TRANSACTION_TYPE_LABELS[t]}</Text>
+                  <Text className="text-sm text-foreground">{importResult.imported[t]}</Text>
+                </View>
+              ))}
+              {plan && plan.skipped.length > 0 && (
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground">Skipped</Text>
-                  <Text className="text-sm font-semibold text-danger">{importResult.skipped}</Text>
+                  <Text className="text-sm text-muted-foreground">Left out</Text>
+                  <Text className="text-sm text-foreground">
+                    {plan.skipped.length}
+                    {plan.duplicates > 0 ? ` (${plan.duplicates} already in Arth)` : ""}
+                  </Text>
                 </View>
               )}
               {importResult.categoriesCreated.length > 0 && (
@@ -739,13 +790,23 @@ export default function ImportExcelScreen() {
                 </View>
               )}
             </View>
-            {importResult.errors.length > 0 && (
+            {importResult.notLinked.length > 0 && (
+              <View className="w-full mt-4 p-3 rounded-lg bg-warning/8">
+                <Text className="text-sm font-medium mb-1" style={{ color: theme.warning }}>
+                  {importResult.notLinked.length} imported as spending, but not linked
+                </Text>
+                {importResult.notLinked.slice(0, 5).map((r) => (
+                  <Text key={r.rowNumber} className="text-xs text-muted-foreground">Row {r.rowNumber}: {r.reason}</Text>
+                ))}
+              </View>
+            )}
+            {importResult.failed.length > 0 && (
               <View className="w-full mt-4 p-3 rounded-lg bg-danger/8">
                 <Text className="text-sm font-medium text-danger mb-1">
-                  {importResult.errors.length} error{importResult.errors.length > 1 ? "s" : ""}
+                  {importResult.failed.length} row{importResult.failed.length > 1 ? "s" : ""} could not be saved
                 </Text>
-                {importResult.errors.slice(0, 5).map((err, i) => (
-                  <Text key={i} className="text-xs text-muted-foreground">{err}</Text>
+                {importResult.failed.slice(0, 5).map((r) => (
+                  <Text key={r.rowNumber} className="text-xs text-muted-foreground">Row {r.rowNumber}: {r.reason}</Text>
                 ))}
               </View>
             )}
@@ -787,6 +848,12 @@ export default function ImportExcelScreen() {
                   <Text className="text-sm text-foreground">
                     {hisaabResult.personsUpdated.join(", ")}
                   </Text>
+                </View>
+              )}
+              {hisaabResult.duplicates > 0 && (
+                <View className="flex-row justify-between mb-2">
+                  <Text className="text-sm text-muted-foreground">Already in Hisaab</Text>
+                  <Text className="text-sm text-foreground">{hisaabResult.duplicates}</Text>
                 </View>
               )}
               {hisaabResult.skipped > 0 && (

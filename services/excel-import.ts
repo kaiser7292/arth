@@ -1,13 +1,8 @@
-import { getDatabase } from "@/database";
-import { bumpDataVersion } from "@/services/settings";
 import { toIsoDate as formatDate } from "@/utils/date";
-import { generateUUID } from "@/utils/uuid";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import type * as XLSXType from "xlsx";
-import { createCategory, getAllCategories } from "./category";
 import type { PaymentModeType } from "./payment-mode";
-import { createPaymentMode, getAllPaymentModes } from "./payment-mode";
 
 let _xlsx: typeof XLSXType | null = null;
 function loadXLSX(): typeof XLSXType {
@@ -65,16 +60,6 @@ export interface ParsedExpenseRow {
   categoryName: string | null;
   paymentModeName: string | null;
   isRightSpend: number | null; // 0 or 1
-}
-
-/** Import result summary. */
-export interface ImportResult {
-  totalRows: number;
-  imported: number;
-  skipped: number;
-  errors: string[];
-  categoriesCreated: string[];
-  paymentModesCreated: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -154,80 +139,6 @@ export async function readWorkbook(uri: string): Promise<XLSXType.WorkBook> {
   const base64 = await file.base64();
   // XLSX.read handles both .xlsx and .csv formats automatically
   return XLSX.read(base64, { type: "base64", cellDates: true });
-}
-
-// ---------------------------------------------------------------------------
-// Template columns (fixed schema — no mapping needed)
-// ---------------------------------------------------------------------------
-
-/** The fixed column names used in the import template. */
-export const TEMPLATE_COLUMNS = [
-  "Date",
-  "Amount",
-  "Description",
-  "Merchant",
-  "Category",
-  "Payment Mode",
-  "Right Spend",
-] as const;
-
-/**
- * Generate a CSV template string with the fixed column headers.
- * Includes 2 sample rows to guide the user.
- */
-export function generateTemplateCSV(): string {
-  const header = TEMPLATE_COLUMNS.join(",");
-  const sample1 = "2025-05-15,450,Swiggy order,Swiggy,Food,UPI,Yes";
-  const sample2 = "2025-05-16,1200,Uber ride,Uber,Travel & Going Out,Credit Card,No";
-  return `${header}\n${sample1}\n${sample2}\n`;
-}
-
-/**
- * Parse expense rows from a workbook using the fixed template column names.
- * No user mapping needed — columns must match the template exactly.
- */
-export function parseTemplateRows(
-  workbook: XLSXType.WorkBook,
-  sheetName: string,
-): ParsedExpenseRow[] {
-  const XLSX = loadXLSX();
-  const sheet = workbook.Sheets[sheetName];
-  const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-    defval: null,
-  });
-
-  const rows: ParsedExpenseRow[] = [];
-  const capped = json.slice(0, MAX_IMPORT_ROWS);
-
-  for (const row of capped) {
-    const r = row as Record<string, unknown>;
-
-    // Try exact column names from template
-    const rawDate = r["Date"] ?? r["date"] ?? r["DATE"];
-    const rawAmount = r["Amount"] ?? r["amount"] ?? r["AMOUNT"];
-    const rawDesc = r["Description"] ?? r["description"] ?? r["DESCRIPTION"];
-    const rawMerchant = r["Merchant"] ?? r["merchant"] ?? r["MERCHANT"];
-    const rawCat = r["Category"] ?? r["category"] ?? r["CATEGORY"];
-    const rawPM = r["Payment Mode"] ?? r["payment mode"] ?? r["Payment_Mode"] ?? r["PAYMENT MODE"];
-    const rawRS = r["Right Spend"] ?? r["right spend"] ?? r["Right_Spend"] ?? r["RIGHT SPEND"];
-
-    const date = parseDate(rawDate);
-    const amount = parseAmount(rawAmount);
-
-    if (!date || !amount) continue;
-
-    rows.push({
-      date,
-      amount,
-      description: truncate(rawDesc, MAX_LEN.description),
-      merchantName: truncate(rawMerchant, MAX_LEN.merchant),
-      categoryName: truncate(rawCat, MAX_LEN.category),
-      paymentModeName: truncate(rawPM, MAX_LEN.paymentMode),
-      isRightSpend: parseRightSpend(rawRS),
-    });
-  }
-
-  return rows;
 }
 
 /**
@@ -493,7 +404,7 @@ export function parseAmount(value: unknown): number | null {
 // Right Spend parsing
 // ---------------------------------------------------------------------------
 
-function parseRightSpend(value: unknown): number | null {
+export function parseRightSpend(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   const str = String(value).toLowerCase().trim();
   if (str === "yes" || str === "y" || str === "1" || str === "true") return 1;
@@ -579,123 +490,6 @@ export function parseExpenseRows(
   return rows;
 }
 
-/**
- * Import parsed expense rows into the database.
- * Auto-creates categories and payment modes that don't exist.
- */
-export async function importExpenses(
-  userId: string,
-  rows: ParsedExpenseRow[],
-): Promise<ImportResult> {
-  const db = getDatabase();
-  const result: ImportResult = {
-    totalRows: rows.length,
-    imported: 0,
-    skipped: 0,
-    errors: [],
-    categoriesCreated: [],
-    paymentModesCreated: [],
-  };
-
-  // Build lookup maps for categories and payment modes
-  const categories = await getAllCategories(userId);
-  const categoryMap = new Map<string, string>(); // name (lowercase) → id
-  for (const cat of categories) {
-    categoryMap.set(cat.name.toLowerCase(), cat.id);
-  }
-
-  const paymentModes = await getAllPaymentModes(userId);
-  const pmMap = new Map<string, string>(); // name (lowercase) → id
-  for (const pm of paymentModes) {
-    pmMap.set(pm.name.toLowerCase(), pm.id);
-  }
-
-  // Process in batches of 100 within a single transaction
-  const BATCH_SIZE = 100;
-
-  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    const batch = rows.slice(i, i + BATCH_SIZE);
-
-    await db.withTransactionAsync(async () => {
-      for (const row of batch) {
-        try {
-          // Resolve category (exact match → fuzzy match → auto-create)
-          let categoryId: string | null = null;
-          if (row.categoryName) {
-            const key = row.categoryName.toLowerCase();
-            if (categoryMap.has(key)) {
-              categoryId = categoryMap.get(key)!;
-            } else {
-              // Try fuzzy match
-              const fuzzyMatch = fuzzyFindCategory(key, categoryMap);
-              if (fuzzyMatch) {
-                categoryId = fuzzyMatch;
-                // Cache for future rows
-                categoryMap.set(key, categoryId);
-              } else {
-                // Auto-create category
-                categoryId = await createCategory({
-                  user_id: userId,
-                  name: row.categoryName,
-                });
-                categoryMap.set(key, categoryId);
-                result.categoriesCreated.push(row.categoryName);
-              }
-            }
-          }
-
-          // Resolve payment mode
-          let paymentModeId: string | null = null;
-          if (row.paymentModeName) {
-            const key = row.paymentModeName.toLowerCase();
-            if (pmMap.has(key)) {
-              paymentModeId = pmMap.get(key)!;
-            } else {
-              // Auto-create payment mode with best-guess type
-              const type = guessPaymentModeType(row.paymentModeName);
-              paymentModeId = await createPaymentMode({
-                user_id: userId,
-                name: row.paymentModeName,
-                type,
-              });
-              pmMap.set(key, paymentModeId);
-              result.paymentModesCreated.push(row.paymentModeName);
-            }
-          }
-
-          // Insert expense
-          const id = generateUUID();
-          const now = new Date().toISOString(); // Local time in ISO format
-          await db.runAsync(
-            `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, category_id, payment_mode_id, date, is_right_spend, source, status, created_at)
-             VALUES (?, ?, ?, 'INR', ?, ?, ?, ?, ?, ?, 'manual', 'approved', ?);`,
-            id,
-            userId,
-            row.amount,
-            row.description,
-            row.merchantName,
-            categoryId,
-            paymentModeId,
-            row.date,
-            row.isRightSpend,
-            now,
-          );
-
-          result.imported++;
-        } catch (e) {
-          result.skipped++;
-          result.errors.push(
-            `Row ${i + batch.indexOf(row) + 1}: ${e instanceof Error ? e.message : String(e)}`,
-          );
-        }
-      }
-    });
-  }
-
-  if (result.imported > 0) await bumpDataVersion();
-  return result;
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -704,7 +498,7 @@ export async function importExpenses(
  * Fuzzy match a category name against existing categories.
  * Matches: substring containment, trailing "s" variance, "&" vs "and".
  */
-function fuzzyFindCategory(
+export function fuzzyFindCategory(
   needle: string,
   categoryMap: Map<string, string>,
 ): string | null {
@@ -743,7 +537,7 @@ function fuzzyFindCategory(
 /**
  * Guess payment mode type from the name.
  */
-function guessPaymentModeType(name: string): PaymentModeType {
+export function guessPaymentModeType(name: string): PaymentModeType {
   const lower = name.toLowerCase();
   if (lower.includes("cc") || lower.includes("credit")) return "credit_card";
   if (lower.includes("debit")) return "debit_card";
@@ -762,42 +556,4 @@ function guessPaymentModeType(name: string): PaymentModeType {
   )
     return "wallet";
   return "bank_transfer";
-}
-
-/**
- * Get a quick preview: how many rows, date range, total amount.
- */
-export function getImportPreview(rows: ParsedExpenseRow[]): {
-  count: number;
-  dateRange: { from: string; to: string } | null;
-  totalAmount: number;
-  uniqueCategories: string[];
-  uniquePaymentModes: string[];
-} {
-  if (rows.length === 0) {
-    return {
-      count: 0,
-      dateRange: null,
-      totalAmount: 0,
-      uniqueCategories: [],
-      uniquePaymentModes: [],
-    };
-  }
-
-  const dates = rows.map((r) => r.date).sort();
-  const totalAmount = rows.reduce((sum, r) => sum + r.amount, 0);
-  const categories = [
-    ...new Set(rows.map((r) => r.categoryName).filter(Boolean)),
-  ] as string[];
-  const paymentModes = [
-    ...new Set(rows.map((r) => r.paymentModeName).filter(Boolean)),
-  ] as string[];
-
-  return {
-    count: rows.length,
-    dateRange: { from: dates[0], to: dates[dates.length - 1] },
-    totalAmount,
-    uniqueCategories: categories,
-    uniquePaymentModes: paymentModes,
-  };
 }

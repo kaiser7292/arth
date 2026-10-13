@@ -225,9 +225,10 @@ describe("XLSX lazy loading", () => {
     // The fact that this import succeeds without error means XLSX is not loaded at module scope
     const mod = require("../../services/excel-import");
     expect(typeof mod.readWorkbook).toBe("function");
-    expect(typeof mod.parseTemplateRows).toBe("function");
     expect(typeof mod.detectSheets).toBe("function");
-    expect(typeof mod.TEMPLATE_COLUMNS).toBe("object");
+    const tx = require("../../services/transaction-import");
+    expect(typeof tx.parseTransactionRows).toBe("function");
+    expect(typeof tx.TRANSACTION_TEMPLATE_COLUMNS).toBe("object");
   });
 });
 
