@@ -314,3 +314,27 @@ export async function getPatternsToConfirm(userId: string): Promise<ExpenseClass
     userId,
   );
 }
+
+/** Everything on the Patterns screen: counted bills, paused ones, and merchants you said vary. */
+export async function getPatternLibrary(userId: string): Promise<ExpenseClassificationRow[]> {
+  const db = getDatabase();
+  return db.getAllAsync<ExpenseClassificationRow>(
+    `SELECT * FROM expense_classifications WHERE user_id = ? ORDER BY merchant_normalized ASC;`,
+    userId,
+  );
+}
+
+/**
+ * Take back an answer you gave ("it's a bill" / "it varies" / an edit): the pattern is removed
+ * and learned afresh from your spending, as if you had never answered.
+ */
+export async function forgetPattern(id: string): Promise<void> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{ user_id: string }>(
+    `SELECT user_id FROM expense_classifications WHERE id = ?;`,
+    id,
+  );
+  if (!row) return;
+  await db.runAsync(`DELETE FROM expense_classifications WHERE id = ?;`, id);
+  await rebuildPatterns(row.user_id);
+}

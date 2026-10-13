@@ -5,28 +5,8 @@ import { Money, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import type { ExpenseClassificationRow } from "@/services/analytics/classifier";
 import { confirmPattern, correctPattern, getPatternsToConfirm } from "@/services/analytics/pattern-learner";
+import { EVERY, amountText, dayText } from "@/utils/analytics/pattern-display";
 import { formatDateForDisplay } from "@/utils/expense-validation";
-import { formatAmount } from "@/utils/format";
-
-const EVERY: Record<string, string> = {
-  weekly: "every week",
-  monthly: "every month",
-  quarterly: "every 3 months",
-  yearly: "every year",
-};
-
-function dayText(day: number | null): string {
-  if (!day) return "—";
-  if (day >= 31) return "End of the month";
-  const suffix = day % 10 === 1 && day !== 11 ? "st" : day % 10 === 2 && day !== 12 ? "nd" : day % 10 === 3 && day !== 13 ? "rd" : "th";
-  return `Around the ${day}${suffix}`;
-}
-
-function amountText(c: ExpenseClassificationRow): string {
-  return Math.round(c.amount_range_low) === Math.round(c.amount_range_high)
-    ? formatAmount(c.amount_range_low)
-    : `${formatAmount(c.amount_range_low)}–${formatAmount(c.amount_range_high)}`;
-}
 
 /**
  * "Is this a monthly bill?" — payments Arth sees at a steady rhythm. Yes counts it as an
