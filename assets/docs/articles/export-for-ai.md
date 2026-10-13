@@ -1,5 +1,5 @@
 ---
-title: Export for AI Insights
+title: AI Assisted Setup and Export for AI Insights
 slug: export-for-ai
 summary: Make a clean copy of your finances to upload to an AI assistant like Claude, with no passwords, SMS text or full account numbers in it.
 tags: [AI, export, Claude, ChatGPT, Gemini, insights, analysis, privacy, JSON, share]
@@ -15,6 +15,12 @@ phrasings:
   - Where did the AI assistant go?
   - Analyse my finances with AI
   - Share my transactions with an assistant
+  - AI Assisted Setup
+  - Set up Arth with AI
+  - Let AI set my budget
+  - Let AI set up my income and goals
+  - Paste AI reply
+  - Where is AI Assisted Setup?
 ---
 
 Export for AI Insights makes one small file with your finances in it, written so an AI assistant can read it properly. You upload the file to the assistant (Claude, ChatGPT, Gemini or another) and ask your questions there.
@@ -23,7 +29,8 @@ Arth itself never contacts an AI service. It only makes the file; you decide whe
 
 ## Where to find it
 
-**Home tab → Insights page → Explore → Export for AI Insights.**
+- **Ask questions about your money:** Home tab → Insights page → Explore → Export for AI Insights.
+- **Have the assistant set things up:** Settings → AI Assisted Setup.
 
 ## How to use it
 
@@ -34,9 +41,12 @@ Arth itself never contacts an AI service. It only makes the file; you decide whe
 
 Change any option and Arth throws the old file away, so the file you share always matches what's on screen.
 
-## Let the AI suggest changes
+## AI Assisted Setup
 
-Under **What do you want from the AI?** pick something other than "Just answer my questions" - tidy categories, suggest a budget, find missing payments, or read unread bank messages.
+**Settings → AI Assisted Setup.** Here the assistant doesn't only answer: it suggests changes to your setup, and you approve them.
+
+- **Set up everything** - categories, a category for every merchant, budgets, templates for bank messages Arth couldn't read, and your income, savings target, investment buckets and goals. The assistant asks you a few questions first (is that credit your salary, do you expect a bonus, what are you saving for). Goals and targets come from your answers; the assistant is told not to choose them for you.
+- **Or do one thing** - tidy categories, suggest a budget, find missing payments, or read unread bank messages.
 
 1. Tap **Share with AI** and pick your assistant's app. The file carries your request and tells the assistant exactly how to reply, so there is nothing to type. (Your request is also copied, in case the assistant's message box opens empty: long-press and paste.)
 2. Send it. The assistant replies with a grey code block. Tap **copy** on it.
@@ -53,8 +63,14 @@ Nothing changes until you tap Apply. What Arth accepts is limited on purpose:
 | Single entry | One transaction is re-categorised, as an exception |
 | Rule for exceptions | A Smart Rule, for patterns a merchant category can't express (such as an amount limit) |
 | Budget | Set from this month to the end of the financial year |
+| Income | Your take-home pay for this financial year, the day it arrives, an expected bonus, and any months that differ |
+| Savings target | The share of income you want to save |
+| Investment bucket | A named yearly amount, such as "Mutual funds, ₹1,20,000" |
+| Goal | A life milestone with an amount and a date |
 | SMS template | Built on your phone from the parts the assistant pointed out, and tested on your unread messages first. Arth shows how many it reads; one that reads none isn't offered |
 | Missing transaction | Sent to your review queue, never straight into your books |
+
+Income, savings target, investment buckets and goals start **unticked**: they shape your whole plan, so each one is a deliberate yes. If one is already set, the row shows what it is now.
 
 The assistant cannot delete anything, or change the amount or date of a transaction. Anything Arth can't use is listed under **Why were some left out?** with the reason.
 
@@ -62,7 +78,7 @@ The assistant cannot delete anything, or change the amount or date of a transact
 
 ## Setting up with AI
 
-When you first set up Arth, the "Your accounts" step offers **Set up faster with AI**. It shares everything found so far, including entries still waiting for review. A **Finish setup with AI** card then waits on Home for the reply.
+When you first set up Arth, the "Your accounts" step offers **AI Assisted Setup**. It shares everything found so far, including entries still waiting for review. An **AI Assisted Setup** card then waits on Home for the reply.
 
 ## What goes in
 

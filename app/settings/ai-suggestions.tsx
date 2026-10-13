@@ -13,6 +13,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { setAiSetupPending } from "@/services/ai-share";
 import {
   applySuggestions,
+  DELIBERATE_TYPES,
   readAiReply,
   SUGGESTION_GROUPS,
   type AiReply,
@@ -30,6 +31,10 @@ const APPLIED_WORDS: Record<SuggestionType, [string, string]> = {
   recategorise: ["entry re-categorised", "entries re-categorised"],
   add_rule: ["rule added", "rules added"],
   set_budget: ["budget set", "budgets set"],
+  set_income: ["income set", "income set"],
+  set_savings_target: ["savings target set", "savings target set"],
+  add_investment_bucket: ["investment bucket added", "investment buckets added"],
+  add_milestone: ["goal added", "goals added"],
   sms_template: ["SMS template added", "SMS templates added"],
   add_transaction: ["missing transaction sent to your review queue", "missing transactions sent to your review queue"],
 };
@@ -66,7 +71,8 @@ export default function AiSuggestionsScreen() {
         );
       } else {
         setReply(result);
-        setUnticked(new Set());
+        // Income, savings target, buckets and goals shape the whole plan: a deliberate yes each.
+        setUnticked(new Set(result.accepted.filter((s) => DELIBERATE_TYPES.has(s.type)).map((s) => s.key)));
         setExpanded(new Set());
       }
     } catch {
@@ -224,6 +230,11 @@ export default function AiSuggestionsScreen() {
                         </Text>
                       </Pressable>
                     </View>
+                    {DELIBERATE_TYPES.has(group.type) && (
+                      <Text className="text-xs text-muted-foreground mb-2">
+                        Tick to apply. These change your plan, so they start unticked.
+                      </Text>
+                    )}
                     <Card>
                       {shown.map((s, i) => (
                         <Pressable

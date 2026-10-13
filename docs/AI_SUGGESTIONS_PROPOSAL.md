@@ -8,6 +8,7 @@
 > - **Bank messages go as received**, behind a switch, with one-time codes skipped. No masking. The assistant quotes the text of each part; Arth finds the quotes in the message, builds the template with its own compiler and tests it on the unread messages.
 > - **Tick and apply.** Suggestions live only while the review screen is open (no `ai_suggestions` table, no per-item editing). Paste again to see them again.
 > - **Setup** reuses the same export with unreviewed entries included; there is no separate setup pack.
+> - **v4.15.0:** the feature is named **AI Assisted Setup** and lives in Settings; Insights keeps Export for AI Insights for analysis only. "Set up everything" adds four suggestion types - `set_income`, `set_savings_target`, `add_investment_bucket`, `add_milestone` - which start unticked on the review screen. The file tells the assistant to ask the user a few questions in the chat first, and never to choose goals or targets itself.
 > - **Not built:** sending the request as message text in the same share (needs a native sharing library and a phone to test on), and Arth appearing in the assistant's share menu.
 
 Builds on Export for AI Insights (v4.12.0, `docs/AI_EXPORT_PROPOSAL.md`). No live connector (MCP) in this proposal.

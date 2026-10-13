@@ -42,7 +42,13 @@ jest.mock("../../database", () => ({ getDatabase: () => mockAdapter }));
 import { runMigrations } from "../../database/migrations";
 import { buildAiExport, DEFAULT_AI_EXPORT_SECTIONS } from "../../services/ai-export";
 import { buildReplyInstructions, shortRef } from "../../services/ai-reply-format";
-import { applySuggestions, findSuggestionObjects, readAiReply, SUGGESTION_GROUPS } from "../../services/ai-suggestions";
+import {
+  applySuggestions,
+  DELIBERATE_TYPES,
+  findSuggestionObjects,
+  readAiReply,
+  SUGGESTION_GROUPS,
+} from "../../services/ai-suggestions";
 
 const USER = "default-user";
 const TODAY = new Date(2026, 9, 10);
@@ -187,7 +193,7 @@ describe("the export asks for suggestions", () => {
 
 describe("the instructions given to the assistant", () => {
   it("every example in them is something Arth reads as that kind of change", () => {
-    const lines = buildReplyInstructions({ unreadMessages: true, unreviewed: true });
+    const lines = buildReplyInstructions({ unreadMessages: true, unreviewed: true, fullSetup: true });
     const examples = lines
       .map((line) => /^(\w+) - .*?(\{"type":.*\})$/.exec(line))
       .filter((m): m is RegExpExecArray => m !== null);
@@ -247,6 +253,83 @@ describe("reading a reply", () => {
   it("says so when the text is not a reply at all", async () => {
     const result = await readAiReply(USER, "Your spending looks healthy this month.", TODAY);
     expect(result).toMatchObject({ recognised: false, accepted: [] });
+  });
+});
+
+describe("a full setup: income, savings target, buckets and goals", () => {
+  const full = (request: string) => ({
+    from: "2026-04-01", to: "2026-10-10", sections: DEFAULT_AI_EXPORT_SECTIONS,
+    hidePeopleNames: true, hideMerchantNames: false, suggest: { request } as never,
+  });
+
+  it("the file asks the assistant to ask first, and says what is already set", async () => {
+    const { data } = await buildAiExport(USER, full("everything"), TODAY);
+    const instructions = data.reply_instructions as string[];
+    expect(instructions[0]).toMatch(/^BEFORE YOU REPLY WITH SUGGESTIONS, ASK FIRST/);
+    expect(instructions.join(" ")).toContain('"type":"set_income"');
+    expect(instructions.join(" ")).toContain("Never choose a savings target, an investment or a goal for the user");
+    expect(data.current_setup).toEqual({
+      financial_year: "FY 2026-27", monthly_income: null, pay_day: null, expected_bonus: 0, savings_target_pct: 0,
+    });
+
+    // a single job never asks for, or explains, the plan-level settings
+    const { data: tidy } = await buildAiExport(USER, full("tidy"), TODAY);
+    expect((tidy.reply_instructions as string[]).join(" ")).not.toContain("set_income");
+    expect(tidy.current_setup).toBeUndefined();
+  });
+
+  it("reads and applies them, and refuses what makes no sense", async () => {
+    mockDb.exec("DELETE FROM salary_profiles; DELETE FROM yearly_plans; DELETE FROM investment_buckets; DELETE FROM life_milestones;");
+    const pasted = reply(
+      { type: "set_income", monthly: 142500, pay_day: 1, bonus: "50,000", months: { "2026-12": 200000, "2025-01": 1 }, why: "Salary on the 1st" },
+      { type: "set_savings_target", percent: 30, why: "You said 30 percent" },
+      { type: "set_savings_target", percent: 150, why: "nonsense" },
+      { type: "add_investment_bucket", name: "Mutual funds", annual_target: 120000, why: "10000 a month" },
+      { type: "add_milestone", name: "House down payment", target_amount: 1500000, target_date: "2029-03-31", why: "15 lakh by March 2029" },
+      { type: "add_goal", name: "Old trip", target_amount: 50000, target_date: "2024-01-01", why: "in the past" },
+    );
+    const result = await readAiReply(USER, pasted, TODAY);
+    expect(result.accepted.map((s) => `${s.title} | ${s.detail}`)).toEqual([
+      "Take-home pay · ₹1,42,500 a month | Not set yet · arrives on day 1 · bonus ₹50,000 · 1 month differs",
+      "Save 30% of income | Not set yet",
+      "Mutual funds · ₹1,20,000 this year | About ₹10,000 a month",
+      "House down payment · ₹15,00,000 by 2029-03-31 | About ₹51,724 a month for 29 months",
+    ]);
+    expect(result.rejected.map((r) => r.reason)).toEqual([
+      "The savings target must be between 1 and 90 percent",
+      "The goal needs a date in the future",
+    ]);
+    // every one of these is a deliberate yes
+    expect(result.accepted.every((s) => DELIBERATE_TYPES.has(s.type))).toBe(true);
+
+    const applied = await applySuggestions(USER, result.accepted, TODAY);
+    expect(applied.failed).toEqual([]);
+    expect(applied.applied).toEqual({ set_income: 1, set_savings_target: 1, add_investment_bucket: 1, add_milestone: 1 });
+
+    // 11 months at 142,500 and December at 200,000, stored the way the Income Calculator stores it
+    expect(one("SELECT input_mode, computed_monthly_in_hand, monthly_overrides, expected_bonus, salary_credit_day, financial_year FROM salary_profiles")).toEqual({
+      input_mode: "direct", computed_monthly_in_hand: expect.closeTo(147291.67, 2), monthly_overrides: '{"8":"200000"}',
+      expected_bonus: 50000, salary_credit_day: 1, financial_year: "2026",
+    });
+    expect(one("SELECT savings_rate_target_pct, annual_salary_in_hand, expected_bonus, total_planned_investments FROM yearly_plans WHERE financial_year = '2026'")).toEqual({
+      savings_rate_target_pct: 30, annual_salary_in_hand: expect.closeTo(1767500, 2), expected_bonus: 50000,
+      total_planned_investments: 120000,
+    });
+    expect(one("SELECT name, annual_target, financial_year FROM investment_buckets")).toEqual({
+      name: "Mutual funds", annual_target: 120000, financial_year: "2026",
+    });
+    expect(one("SELECT name, target_amount, target_date, duration_years, duration_months FROM life_milestones")).toEqual({
+      name: "House down payment", target_amount: 1500000, target_date: "2029-03-31", duration_years: 2, duration_months: 5,
+    });
+
+    // the same reply again changes nothing
+    const again = await readAiReply(USER, pasted, TODAY);
+    expect(again.accepted).toEqual([]);
+    expect(again.alreadySet).toBe(4);
+
+    // a raise shows as a change from what is set now
+    const raise = await readAiReply(USER, reply({ type: "set_income", monthly: 150000, pay_day: 1, bonus: 50000, months: {}, why: "x" }), TODAY);
+    expect(raise.accepted[0].detail).toBe("Now ₹1,42,500 a month · arrives on day 1 · bonus ₹50,000");
   });
 });
 

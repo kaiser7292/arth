@@ -56,14 +56,14 @@ export async function buildSetupOptions(userId: string): Promise<AiExportOptions
   const period = await resolveAiExportPeriod("all_time", userId);
   return {
     ...period,
-    sections: { ...DEFAULT_AI_EXPORT_SECTIONS, loans: false, investments: false, netWorth: false },
+    sections: { ...DEFAULT_AI_EXPORT_SECTIONS, netWorth: false },
     hidePeopleNames: true,
     hideMerchantNames: false,
     suggest: { request: "setup", includeUnreviewed: true, includeUnreadMessages: true },
   };
 }
 
-// ─── "Finish setup with AI" card on Home ──────────────────────────────────────
+// ─── "AI Assisted Setup" card on Home ──────────────────────────────────────
 
 const KEY_SETUP_PENDING = "ai_setup_pending";
 

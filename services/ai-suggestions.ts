@@ -34,6 +34,9 @@ import {
   setMerchantRule,
   type MerchantRule,
 } from "@/services/merchant-categories";
+import { createLifeMilestone, getLifeMilestones } from "@/services/life-milestone";
+import { createSalaryProfile, getSalaryProfileByFY, updateSalaryProfile } from "@/services/salary-profile";
+import { deriveDirectBaseMonthly } from "@/services/income-calculation";
 import { getFYStartMonth } from "@/services/settings";
 import { createRule, listRules, type ConditionOperator, type RuleCondition } from "@/services/smart-rules";
 import { applyTemplateToBacklog, findBacklogMatches } from "@/services/sms/template-backlog";
@@ -44,7 +47,14 @@ import {
 } from "@/services/sms/template-compiler";
 import { createUserTemplate, listUnrecognisedSms, type UserTxType } from "@/services/sms/user-sms-templates";
 import { toIsoDate } from "@/utils/date";
-import { monthsToFYEnd } from "@/utils/fiscal-year";
+import { getCurrentFY, getFYRange, monthsToFYEnd } from "@/utils/fiscal-year";
+import {
+  createInvestmentBucket,
+  deriveYearlyPlan,
+  getBucketsByFY,
+  getYearlyPlanByFY,
+  updateYearlyPlan,
+} from "@/services/yearly-plan";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +65,10 @@ export type SuggestionType =
   | "recategorise"
   | "add_rule"
   | "set_budget"
+  | "set_income"
+  | "set_savings_target"
+  | "add_investment_bucket"
+  | "add_milestone"
   | "sms_template"
   | "add_transaction";
 
@@ -77,6 +91,17 @@ export type Suggestion = Base &
     | { type: "recategorise"; expenseId: string; category: string }
     | { type: "add_rule"; name: string; conditions: RuleCondition[]; category: string }
     | { type: "set_budget"; category: string; amount: number }
+    | {
+        type: "set_income";
+        monthly: number;
+        payDay: number | null;
+        bonus: number;
+        /** Months that differ from `monthly`, keyed by fiscal month index 0-11. */
+        months: Record<number, number>;
+      }
+    | { type: "set_savings_target"; percent: number }
+    | { type: "add_investment_bucket"; name: string; annualTarget: number }
+    | { type: "add_milestone"; name: string; targetAmount: number; targetDate: string; monthsAway: number }
     | {
         type: "sms_template";
         smsId: string;
@@ -127,9 +152,24 @@ export const SUGGESTION_GROUPS: { type: SuggestionType; label: string }[] = [
   { type: "recategorise", label: "Single entries" },
   { type: "add_rule", label: "Rules for exceptions" },
   { type: "set_budget", label: "Budgets" },
+  { type: "set_income", label: "Income" },
+  { type: "set_savings_target", label: "Savings target" },
+  { type: "add_investment_bucket", label: "Investment buckets" },
+  { type: "add_milestone", label: "Goals" },
   { type: "sms_template", label: "SMS templates" },
   { type: "add_transaction", label: "Missing transactions" },
 ];
+
+/**
+ * Settings that shape the whole plan. They start unticked on the review screen, so applying one
+ * is a deliberate yes and never part of a bulk approve.
+ */
+export const DELIBERATE_TYPES: ReadonlySet<SuggestionType> = new Set<SuggestionType>([
+  "set_income",
+  "set_savings_target",
+  "add_investment_bucket",
+  "add_milestone",
+]);
 
 const MAX_REPLY_CHARS = 1024 * 1024;
 const MAX_LEN = { name: 50, merchant: 100, why: 160, ruleName: 60 } as const;
@@ -234,6 +274,12 @@ const TYPE_ALIASES: Record<string, SuggestionType> = {
   recategorize: "recategorise",
   add_rule: "add_rule",
   set_budget: "set_budget",
+  set_income: "set_income",
+  set_savings_target: "set_savings_target",
+  add_investment_bucket: "add_investment_bucket",
+  add_bucket: "add_investment_bucket",
+  add_milestone: "add_milestone",
+  add_goal: "add_milestone",
   sms_template: "sms_template",
   add_transaction: "add_transaction",
 };
@@ -266,6 +312,14 @@ interface Context {
   unreadMessages: Map<string, { id: string; address: string; body: string }>;
   today: string;
   month: string;
+  /** Current financial year, and the plan-level settings already in place for it. */
+  fy: number;
+  fyStartMonth: number;
+  /** `monthly` is the usual month; `months` are the ones that differ (fiscal month index -> amount). */
+  income: { monthly: number; payDay: number | null; bonus: number; months: Record<number, number> } | null;
+  savingsTarget: number;
+  bucketNames: Set<string>;
+  milestoneNames: Set<string>;
 }
 
 async function loadContext(userId: string, today: Date): Promise<Context> {
@@ -297,6 +351,14 @@ async function loadContext(userId: string, today: Date): Promise<Context> {
   ]);
   const existing = new Map(categories.map((c) => [c.name.toLowerCase(), c.name]));
   const todayIso = toIsoDate(today);
+  const fyStartMonth = getFYStartMonth();
+  const fy = getCurrentFY(fyStartMonth, today);
+  const [profile, plan, buckets, milestones] = await Promise.all([
+    getSalaryProfileByFY(userId, String(fy)),
+    getYearlyPlanByFY(userId, String(fy)),
+    getBucketsByFY(userId, String(fy)),
+    getLifeMilestones(userId),
+  ]);
   return {
     userId,
     categories: new Map(existing),
@@ -312,6 +374,12 @@ async function loadContext(userId: string, today: Date): Promise<Context> {
     unreadMessages: new Map(unread.map((m) => [shortRef("s", m.id), m])),
     today: todayIso,
     month: todayIso.substring(0, 7),
+    fy,
+    fyStartMonth,
+    income: profile && profile.computed_monthly_in_hand > 0 ? currentIncome(profile) : null,
+    savingsTarget: plan?.savings_rate_target_pct ?? 0,
+    bucketNames: new Set(buckets.map((b) => b.name.toLowerCase())),
+    milestoneNames: new Set(milestones.map((m) => m.name.toLowerCase())),
   };
 }
 
@@ -342,6 +410,29 @@ function entriesItWouldMove(ctx: Context, keyword: string, categoryName: string)
       (targetId === undefined || row.category_id !== targetId) &&
       pickRule(rules, row.merchant_name)?.keyword === keyword,
   ).length;
+}
+
+/** The income already set, split back into the usual month and the months that differ. */
+function currentIncome(profile: {
+  computed_monthly_in_hand: number;
+  monthly_overrides: string | null;
+  salary_credit_day?: number | null;
+  expected_bonus?: number | null;
+}): NonNullable<Context["income"]> {
+  let overrides: Record<number, string> = {};
+  try {
+    overrides = profile.monthly_overrides ? JSON.parse(profile.monthly_overrides) : {};
+  } catch {
+    // Unreadable overrides are treated as none.
+  }
+  const months: Record<number, number> = {};
+  for (const [k, v] of Object.entries(overrides)) months[Number(k)] = parseFloat(v) || 0;
+  return {
+    monthly: Math.round(deriveDirectBaseMonthly(profile.computed_monthly_in_hand, overrides)),
+    payDay: profile.salary_credit_day ?? null,
+    bonus: profile.expected_bonus ?? 0,
+    months,
+  };
 }
 
 function category(ctx: Context, value: unknown): string {
@@ -499,6 +590,103 @@ async function readSetBudget(ctx: Context, raw: Raw): Promise<Draft> {
   };
 }
 
+// ─── Reading: the plan-level settings ─────────────────────────────────────────
+
+function readSetIncome(ctx: Context, raw: Raw): Draft {
+  const monthly = num(raw.monthly);
+  if (monthly === null || monthly <= 0 || monthly > 1e8) throw new Reject("The monthly income is not a sensible number");
+  const day = num(raw.pay_day);
+  const payDay = day !== null && Number.isInteger(day) && day >= 1 && day <= 31 ? day : null;
+  const bonus = Math.max(0, num(raw.bonus) ?? 0);
+
+  // Months that differ, kept only if they fall inside the current financial year.
+  const { start, end } = getFYRange(ctx.fy, ctx.fyStartMonth);
+  const first = toIsoDate(start).substring(0, 7);
+  const last = toIsoDate(end).substring(0, 7);
+  const months: Record<number, number> = {};
+  const given = raw.months && typeof raw.months === "object" ? (raw.months as Raw) : {};
+  for (const [key, value] of Object.entries(given)) {
+    const amount = num(value);
+    if (!/^\d{4}-\d{2}$/.test(key) || key < first || key > last) continue;
+    if (amount === null || amount < 0 || amount > 1e8 || amount === monthly) continue;
+    months[(Number(key.substring(5)) - ctx.fyStartMonth + 12) % 12] = amount;
+  }
+  const differing = Object.keys(months).length;
+
+  const now = ctx.income;
+  const sameMonths =
+    now !== null &&
+    Object.keys(now.months).length === differing &&
+    Object.entries(months).every(([k, v]) => now.months[Number(k)] === v);
+  if (now && sameMonths && now.monthly === Math.round(monthly) && now.bonus === bonus && (payDay === null || now.payDay === payDay)) {
+    throw new AlreadySet();
+  }
+  const extras = [
+    payDay ? `arrives on day ${payDay}` : null,
+    bonus > 0 ? `bonus ${money(bonus)}` : null,
+    differing > 0 ? `${differing} ${differing === 1 ? "month differs" : "months differ"}` : null,
+  ].filter(Boolean);
+  return {
+    type: "set_income",
+    monthly,
+    payDay,
+    bonus,
+    months,
+    title: `Take-home pay · ${money(monthly)} a month`,
+    detail: [now ? `Now ${money(now.monthly)} a month` : "Not set yet", ...extras].join(" · "),
+  };
+}
+
+function readSavingsTarget(ctx: Context, raw: Raw): Draft {
+  const percent = num(raw.percent);
+  if (percent === null || percent < 1 || percent > 90) throw new Reject("The savings target must be between 1 and 90 percent");
+  if (ctx.savingsTarget === percent) throw new AlreadySet();
+  return {
+    type: "set_savings_target",
+    percent,
+    title: `Save ${percent}% of income`,
+    detail: ctx.savingsTarget > 0 ? `Now ${ctx.savingsTarget}%` : "Not set yet",
+  };
+}
+
+function readAddBucket(ctx: Context, raw: Raw): Draft {
+  const name = str(raw.name, MAX_LEN.name);
+  const annualTarget = num(raw.annual_target);
+  if (!name) throw new Reject("The investment bucket has no name");
+  if (annualTarget === null || annualTarget <= 0 || annualTarget > 1e9) throw new Reject("The yearly amount is not a sensible number");
+  if (ctx.bucketNames.has(name.toLowerCase())) throw new AlreadySet();
+  return {
+    type: "add_investment_bucket",
+    name,
+    annualTarget: Math.round(annualTarget),
+    title: `${name} · ${money(annualTarget)} this year`,
+    detail: `About ${money(annualTarget / 12)} a month`,
+  };
+}
+
+function readAddMilestone(ctx: Context, raw: Raw): Draft {
+  const name = str(raw.name, MAX_LEN.name);
+  const targetAmount = num(raw.target_amount);
+  if (!name) throw new Reject("The goal has no name");
+  if (targetAmount === null || targetAmount <= 0 || targetAmount > 1e10) throw new Reject("The goal amount is not a sensible number");
+  if (!isIsoDate(raw.target_date) || raw.target_date <= ctx.today) throw new Reject("The goal needs a date in the future");
+  if (ctx.milestoneNames.has(name.toLowerCase())) throw new AlreadySet();
+  const monthsAway = Math.max(
+    1,
+    (Number(raw.target_date.substring(0, 4)) - Number(ctx.today.substring(0, 4))) * 12 +
+      (Number(raw.target_date.substring(5, 7)) - Number(ctx.today.substring(5, 7))),
+  );
+  return {
+    type: "add_milestone",
+    name,
+    targetAmount: Math.round(targetAmount),
+    targetDate: raw.target_date,
+    monthsAway,
+    title: `${name} · ${money(targetAmount)} by ${raw.target_date}`,
+    detail: `About ${money(targetAmount / monthsAway)} a month for ${monthsAway} ${monthsAway === 1 ? "month" : "months"}`,
+  };
+}
+
 function readAddTransaction(ctx: Context, raw: Raw): Draft {
   if (!isIsoDate(raw.date) || raw.date > ctx.today) throw new Reject("The date is missing, wrong or in the future");
   const amount = num(raw.amount);
@@ -649,6 +837,10 @@ export async function readAiReply(userId: string, pasted: string, today: Date = 
         else if (type === "recategorise") draft = await readRecategorise(ctx, p.raw);
         else if (type === "add_rule") draft = readAddRule(ctx, p.raw);
         else if (type === "set_budget") draft = await readSetBudget(ctx, p.raw);
+        else if (type === "set_income") draft = readSetIncome(ctx, p.raw);
+        else if (type === "set_savings_target") draft = readSavingsTarget(ctx, p.raw);
+        else if (type === "add_investment_bucket") draft = readAddBucket(ctx, p.raw);
+        else if (type === "add_milestone") draft = readAddMilestone(ctx, p.raw);
         else if (type === "sms_template") draft = await readSmsTemplate(ctx, p.raw);
         else draft = readAddTransaction(ctx, p.raw);
 
@@ -707,6 +899,9 @@ export async function applySuggestions(
 ): Promise<ApplyResult> {
   const result: ApplyResult = { applied: {}, entriesMoved: 0, readFromMessages: 0, failed: [] };
   const months = monthsToFYEnd(today, getFYStartMonth());
+  const fyName = String(getCurrentFY(getFYStartMonth(), today));
+  /** Income, buckets or goals changed: the yearly plan is worked out again at the end. */
+  let planChanged = false;
 
   // Set by the merchant_category pass; entries are moved once every category is in place, so
   // "swiggy" never moves Swiggy Instamart only for "swiggy instamart" to move it again.
@@ -746,6 +941,44 @@ export async function applySuggestions(
         } else if (s.type === "set_budget") {
           const id = await categoryId(userId, s.category);
           for (const month of months) await upsertBudget({ user_id: userId, category_id: id, month, amount: s.amount });
+        } else if (s.type === "set_income") {
+          // Same record the Income Calculator saves in "direct" mode: the year's average, plus
+          // the months that differ.
+          const differing = Object.entries(s.months);
+          const total = s.monthly * (12 - differing.length) + differing.reduce((sum, [, v]) => sum + v, 0);
+          const fields = {
+            input_mode: "direct" as const,
+            computed_monthly_in_hand: total / 12, // unrounded, as the Income Calculator stores it
+            monthly_overrides:
+              differing.length > 0 ? JSON.stringify(Object.fromEntries(differing.map(([k, v]) => [k, String(v)]))) : null,
+            expected_bonus: s.bonus,
+            status: "complete" as const,
+            ...(s.payDay ? { salary_credit_day: s.payDay } : {}),
+          };
+          const existing = await getSalaryProfileByFY(userId, fyName);
+          if (existing) await updateSalaryProfile(existing.id, fields);
+          else await createSalaryProfile({ user_id: userId, financial_year: fyName, ...fields });
+          planChanged = true;
+        } else if (s.type === "set_savings_target") {
+          await deriveYearlyPlan(userId, fyName); // makes sure this year's plan exists
+          const plan = await getYearlyPlanByFY(userId, fyName);
+          if (!plan) throw new Error("This year's plan couldn't be created");
+          await updateYearlyPlan(plan.id, { savings_rate_target_pct: s.percent });
+        } else if (s.type === "add_investment_bucket") {
+          await createInvestmentBucket({ user_id: userId, financial_year: fyName, name: s.name, annual_target: s.annualTarget });
+          planChanged = true;
+        } else if (s.type === "add_milestone") {
+          await createLifeMilestone({
+            user_id: userId,
+            name: s.name,
+            target_amount: s.targetAmount,
+            target_date: s.targetDate,
+            start_financial_year: fyName,
+            duration_years: Math.floor(s.monthsAway / 12),
+            duration_months: s.monthsAway % 12,
+            monthly_contribution_planned: Math.round(s.targetAmount / s.monthsAway),
+          });
+          planChanged = true;
         } else if (s.type === "sms_template") {
           const saved = await createUserTemplate({
             bankName: s.bank,
@@ -786,6 +1019,13 @@ export async function applySuggestions(
       } catch (e) {
         result.failed.push(`${s.title}: ${e instanceof Error ? e.message : "couldn't be applied"}`);
       }
+    }
+  }
+  if (planChanged) {
+    try {
+      await deriveYearlyPlan(userId, fyName);
+    } catch {
+      // The plan is worked out again whenever its screen opens.
     }
   }
   return result;

@@ -438,6 +438,10 @@ export default function SettingsScreen() {
       <ContextualHeader title="Settings" />
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 py-4">
+          <Card className="mb-4">
+            <SettingsRow icon="sparkles-outline" label="AI Assisted Setup" subtitle="Let your AI assistant set up categories, budgets, income and goals" onPress={() => router.push("/settings/ai-assisted-setup")} />
+          </Card>
+
           <Card title="Data Management" className="mb-4">
             <SettingsRow icon="grid-outline" label="Categories" subtitle="Manage expense categories" onPress={() => router.push("/settings/categories")} />
             <SettingsRow icon="card-outline" label="Payment Modes" subtitle="Credit cards, UPI, wallets" onPress={() => router.push("/settings/payment-modes")} />

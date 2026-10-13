@@ -7,17 +7,22 @@
  * from a chat app, so anything loose here turns into a failed import there.
  */
 
-export type AiRequestId = "tidy" | "budget" | "missing" | "messages" | "setup";
+export type AiRequestId = "everything" | "setup" | "tidy" | "budget" | "missing" | "messages";
 
 export interface AiRequest {
   id: AiRequestId;
-  /** Chip label on the export screen. */
+  /** Label on the AI Assisted Setup screen. */
   label: string;
   /** What the user is asking the assistant to do. Written into the file and sent with it. */
   prompt: string;
 }
 
+const FULL_SETUP =
+  "add any categories I need, give every merchant a category, suggest monthly budgets, work out the format of each unread bank message, and set up my income, savings target, investment buckets and goals. Ask me what you need to know first.";
+
 export const AI_REQUESTS: AiRequest[] = [
+  { id: "everything", label: "Set up everything", prompt: `Set Arth up properly for me, end to end: ${FULL_SETUP}` },
+  { id: "setup", label: "Set up everything", prompt: `I have just started using Arth. Set it up for me: ${FULL_SETUP}` },
   {
     id: "tidy",
     label: "Tidy my categories",
@@ -40,13 +45,12 @@ export const AI_REQUESTS: AiRequest[] = [
     label: "Read my unread bank messages",
     prompt: "Work out the format of each unread bank message in this file so Arth can read messages like it.",
   },
-  {
-    id: "setup",
-    label: "Set up Arth for me",
-    prompt:
-      "I have just started using Arth. Set it up for me: add any categories I need, give every merchant a category, suggest monthly budgets, and work out the format of each unread bank message.",
-  },
 ];
+
+/** Requests that set up income, savings target, buckets and goals as well as the day-to-day side. */
+export function isFullSetup(id: AiRequestId | undefined): boolean {
+  return id === "everything" || id === "setup";
+}
 
 /** The text sent alongside the file (and copied to the clipboard as a fallback). */
 export function aiShareMessage(request: AiRequest): string {
@@ -75,8 +79,19 @@ export const RULE_OPERATORS = [
  * The "how to reply" section of the export file, one instruction per line. Examples are written
  * out as text (not nested JSON) so the file's own structure stays small and fixed.
  */
-export function buildReplyInstructions(has: { unreadMessages: boolean; unreviewed: boolean }): string[] {
-  const lines = [
+export function buildReplyInstructions(has: {
+  unreadMessages: boolean;
+  unreviewed: boolean;
+  /** Income, savings target, buckets and goals are asked for too. */
+  fullSetup: boolean;
+}): string[] {
+  const lines: string[] = [];
+  if (has.fullSetup) {
+    lines.push(
+      "BEFORE YOU REPLY WITH SUGGESTIONS, ASK FIRST. Some of this setup depends on things only the user knows. Send ONE short message with these questions, numbered, and wait for the answers. Skip any question that `current_setup` or the data already answers clearly. (1) Is the regular credit you can see their salary, is it the same every month, and on which day does it arrive? If it varies, what do they expect each month? (2) Do they expect a bonus this financial year, and roughly how much? (3) What share of their income do they want to save? (4) What do they put money into regularly (for example mutual funds, PPF, NPS) and how much a year? (5) What are they saving for, how much is needed, and by when? If the user says to skip a question or the whole step, leave those suggestion types out. Do everything that needs no answer (categories, merchants, budgets, bank messages) regardless.",
+    );
+  }
+  lines.push(
     "HOW TO REPLY. Arth reads your reply by machine. Follow this exactly.",
     "Reply with ONE fenced json code block. You may write one short sentence before it. Write nothing after it, and no notes or comments inside it.",
     'The block holds one JSON object: {"arth_suggestions":1,"suggestions":[ ... ]}. Put one suggestion object per line. Use straight double quotes, no trailing commas, numbers without quotes or thousands separators.',
@@ -88,10 +103,19 @@ export function buildReplyInstructions(has: { unreadMessages: boolean; unreviewe
     'fix_merchant - one merchant written several ways. One suggestion per wrong spelling, `from` copied exactly: {"type":"fix_merchant","from":"AMZN MKTP IN","to":"Amazon","why":"Same shop as Amazon"}',
     'set_budget - a monthly budget for a category: {"type":"set_budget","category":"Groceries","amount":12000,"why":"Average of the last 4 months is 11300"}',
     'add_transaction - a payment that is clearly missing. `kind` is spend or income. `account` is an account `name` from this file, or null: {"type":"add_transaction","date":"2026-09-05","amount":15000,"kind":"spend","category":"Rent","merchant":"Landlord","account":"HDFC","why":"Paid every month, missing in September"}',
-  ];
+  );
   if (has.unreadMessages) {
     lines.push(
       'sms_template - the format of one message in `unread_messages`. `sms` is that message\'s `id`. `kind` is debit, credit or refund. In `fields`, give each part you can find, copied character for character from the message `text` (no added symbols): amount, account (the digits shown), merchant, date, balance, ref, counterparty (the other person\'s name), other_account. `amount` is required. Skip messages that are not about a real transaction (offers, OTPs, reminders): {"type":"sms_template","sms":"s9f8e7d6","bank":"Kotak","kind":"debit","fields":{"amount":"482.00","account":"4521","merchant":"SWIGGY","date":"14-09-26","balance":"38,214.10","ref":"426718890123"},"why":"Kotak UPI debit alert"}',
+    );
+  }
+  if (has.fullSetup) {
+    lines.push(
+      'set_income - the user\'s take-home pay for the current financial year. `monthly` is the usual amount after tax. `pay_day` is the day of the month it arrives (1 to 31). `bonus` is the bonus expected this financial year, 0 if none. Use `months` only when income varies: give the months that differ from `monthly`, as YYYY-MM inside the current financial year; otherwise leave it empty: {"type":"set_income","monthly":142500,"pay_day":1,"bonus":50000,"months":{"2026-09":146700},"why":"Salary credit of 142500 on the 1st each month"}',
+      'set_savings_target - the share of income the user wants to save, as a percentage: {"type":"set_savings_target","percent":30,"why":"You said you want to save 30 percent"}',
+      'add_investment_bucket - something the user puts money into regularly, with the amount for the whole financial year: {"type":"add_investment_bucket","name":"Mutual funds","annual_target":120000,"why":"You invest 10000 a month in mutual funds"}',
+      'add_milestone - something the user is saving for, with the amount needed and the date: {"type":"add_milestone","name":"House down payment","target_amount":1500000,"target_date":"2029-03-31","why":"You want 15 lakh by March 2029"}',
+      "set_income, set_savings_target, add_investment_bucket and add_milestone must come from the user's own answers, or (income only) from clear evidence in this file. Never choose a savings target, an investment or a goal for the user, and do not recommend what to invest in. If they did not tell you, leave it out.",
     );
   }
   lines.push(

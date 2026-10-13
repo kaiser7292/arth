@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, ScrollView, Switch, View } from "react-native";
+import { Platform, Pressable, ScrollView, Switch, View } from "react-native";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
@@ -15,14 +15,11 @@ import {
   type AiExportSections,
 } from "@/services/ai-export";
 import { AI_EXPORT_MIME_TYPE, deleteAiExportFile } from "@/services/ai-export-file";
-import { AI_REQUESTS, type AiRequestId } from "@/services/ai-reply-format";
 import { createAiFile, shareAiFile, type AiShareResult } from "@/services/ai-share";
 import { saveToPhone } from "@/services/save-to-phone";
 import { toIsoDate } from "@/utils/date";
 
 type Period = AiExportPeriodPreset | "custom";
-/** "answer" = a plain export: the assistant answers questions and suggests nothing back. */
-type Ask = AiRequestId | "answer";
 
 const PERIODS: { id: Period; label: string }[] = [
   { id: "this_fy", label: "This FY" },
@@ -30,11 +27,6 @@ const PERIODS: { id: Period; label: string }[] = [
   { id: "last_12_months", label: "Last 12 months" },
   { id: "all_time", label: "All time" },
   { id: "custom", label: "Custom" },
-];
-
-const ASKS: { id: Ask; label: string }[] = [
-  { id: "answer", label: "Just answer my questions" },
-  ...AI_REQUESTS.filter((r) => r.id !== "setup").map((r) => ({ id: r.id as Ask, label: r.label })),
 ];
 
 const SECTIONS: { id: keyof AiExportSections; label: string; hint?: string }[] = [
@@ -54,12 +46,14 @@ function formatSize(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
+/**
+ * A copy of the user's finances for an AI assistant to answer questions about. Analysis only:
+ * letting the assistant change things lives in Settings → AI Assisted Setup.
+ */
 export default function ExportForAiScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  const [ask, setAsk] = useState<Ask>("answer");
-  const [unreadMessages, setUnreadMessages] = useState(false);
   const [period, setPeriod] = useState<Period>("this_fy");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState(toIsoDate(new Date()));
@@ -81,7 +75,6 @@ export default function ExportForAiScreen() {
   }, []);
   useEffect(() => discardFile, [discardFile]);
 
-  const suggesting = ask !== "answer";
   const anySection = SECTIONS.some((s) => s.id !== "notes" && sections[s.id]);
 
   /** Build the file for the options on screen (or reuse the one already made). */
@@ -91,20 +84,13 @@ export default function ExportForAiScreen() {
     if (period === "custom" && customFrom > customTo) throw new Error("The start date is after the end date.");
     const range =
       period === "custom" ? { from: customFrom, to: customTo } : await resolveAiExportPeriod(period, DEFAULT_USER_ID);
-    const options: AiExportOptions = {
-      ...range,
-      // Suggestions are about transactions and merchants, so those always go along.
-      sections: suggesting ? { ...sections, transactions: true } : sections,
-      hidePeopleNames,
-      hideMerchantNames: suggesting ? false : hideMerchantNames,
-      suggest: suggesting ? { request: ask as AiRequestId, includeUnreadMessages: unreadMessages } : undefined,
-    };
+    const options: AiExportOptions = { ...range, sections, hidePeopleNames, hideMerchantNames };
     const result = await createAiFile(DEFAULT_USER_ID, options);
     filePathRef.current = result.file.filePath;
     const made = { result, options };
     setReady(made);
     return made;
-  }, [ready, period, customFrom, customTo, sections, hidePeopleNames, hideMerchantNames, suggesting, ask, unreadMessages]);
+  }, [ready, period, customFrom, customTo, sections, hidePeopleNames, hideMerchantNames]);
 
   const run = useCallback(
     async (action: (made: { result: AiShareResult; options: AiExportOptions }) => Promise<string | null>) => {
@@ -123,9 +109,7 @@ export default function ExportForAiScreen() {
   const handleShare = () =>
     run(async ({ result, options }) => {
       await shareAiFile(result.file, options);
-      return options.suggest
-        ? "Send it in your assistant. If its message box is empty, long-press and paste: your request is already copied."
-        : null;
+      return null;
     });
 
   const handleSave = () =>
@@ -172,36 +156,8 @@ export default function ExportForAiScreen() {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 pt-2">
           <Text className="text-xs text-muted-foreground leading-5">
-            A clean copy of your finances for an AI assistant like Claude. Ask it questions, or let it suggest changes
-            that you approve back here.
+            A clean copy of your finances for an AI assistant like Claude. Share it, then ask your questions there.
           </Text>
-
-          <Text className={sectionLabel}>What do you want from the AI?</Text>
-          <View className="flex-row flex-wrap gap-y-2">
-            {ASKS.map((a) => (
-              <FilterChip
-                key={a.id}
-                label={a.label}
-                active={ask === a.id}
-                onPress={() => {
-                  discardFile();
-                  setAsk(a.id);
-                  if (a.id === "messages") setUnreadMessages(true);
-                }}
-              />
-            ))}
-          </View>
-          {suggesting && (
-            <Card className="mt-3">
-              {renderRow(
-                "unread",
-                "Include unread bank messages",
-                "As received, so it can work out how to read them",
-                renderSwitch(unreadMessages, setUnreadMessages, "Include unread bank messages"),
-                true,
-              )}
-            </Card>
-          )}
 
           <Text className={sectionLabel}>Period</Text>
           <View className="flex-row flex-wrap gap-y-2">
@@ -223,11 +179,7 @@ export default function ExportForAiScreen() {
                 s.id,
                 s.label,
                 s.hint,
-                renderSwitch(
-                  sections[s.id] || (suggesting && s.id === "transactions"),
-                  (v) => setSections((prev) => ({ ...prev, [s.id]: v })),
-                  s.label,
-                ),
+                renderSwitch(sections[s.id], (v) => setSections((prev) => ({ ...prev, [s.id]: v })), s.label),
                 i === SECTIONS.length - 1,
               ),
             )}
@@ -240,22 +192,22 @@ export default function ExportForAiScreen() {
               "Hide people's names",
               "Hisaab names become Person 1, Person 2",
               renderSwitch(hidePeopleNames, setHidePeopleNames, "Hide people's names"),
-              suggesting,
+              false,
             )}
-            {!suggesting &&
-              renderRow(
-                "merchants",
-                "Hide merchant names",
-                "Keeps the category only",
-                renderSwitch(hideMerchantNames, setHideMerchantNames, "Hide merchant names"),
-                true,
-              )}
+            {renderRow(
+              "merchants",
+              "Hide merchant names",
+              "Keeps the category only",
+              renderSwitch(hideMerchantNames, setHideMerchantNames, "Hide merchant names"),
+              true,
+            )}
           </Card>
 
           <View className="flex-row items-start gap-2 mt-4">
             <Ionicons name="lock-closed" size={14} color={theme.success} style={{ marginTop: 2 }} />
             <Text className="flex-1 text-xs text-muted-foreground leading-5">
-              Never included: your password vault, broker and login credentials, full account numbers, deleted items.
+              Never included: your password vault, SMS text, broker and login credentials, full account numbers,
+              deleted or unreviewed items.
             </Text>
           </View>
           <View className="flex-row items-start gap-2 mt-2">
@@ -265,19 +217,11 @@ export default function ExportForAiScreen() {
             </Text>
           </View>
 
-          <Button
-            title="Share with AI"
-            onPress={handleShare}
-            loading={working}
-            disabled={!anySection && !suggesting}
-            className="mt-5"
-          />
+          <Button title="Share with AI" onPress={handleShare} loading={working} disabled={!anySection} className="mt-5" />
           {ready && (
             <Text className="text-xs text-muted-foreground text-center mt-2">
               {ready.result.counts.transactions.toLocaleString("en-IN")} transactions · {ready.result.counts.accounts}{" "}
-              accounts
-              {ready.result.counts.unreadMessages > 0 ? ` · ${ready.result.counts.unreadMessages} bank messages` : ""} ·{" "}
-              {formatSize(ready.result.file.sizeBytes)}
+              accounts · {formatSize(ready.result.file.sizeBytes)}
             </Text>
           )}
           {ready && ready.result.skipped.length > 0 && (
@@ -290,12 +234,16 @@ export default function ExportForAiScreen() {
             <Button title="Save to phone instead" variant="ghost" onPress={handleSave} disabled={working} className="mt-1" />
           )}
 
-          <Text className={sectionLabel}>Got a reply with suggestions?</Text>
-          <Button
-            title="Paste AI reply"
-            variant="outline"
-            onPress={() => router.push("/insights/ai-suggestions?paste=1")}
-          />
+          <Pressable
+            onPress={() => router.push("/settings/ai-assisted-setup")}
+            className="flex-row items-center justify-center gap-1 mt-5 py-2"
+            accessibilityRole="button"
+          >
+            <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+              Want the AI to set things up for you? AI Assisted Setup
+            </Text>
+            <Ionicons name="chevron-forward" size={12} color={theme.primary} />
+          </Pressable>
         </View>
       </ScrollView>
     </ScreenContainer>

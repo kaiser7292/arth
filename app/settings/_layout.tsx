@@ -14,6 +14,8 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="payment-mode-edit" options={{ title: "Payment Mode" }} />
       <Stack.Screen name="budget-config" options={{ title: "Monthly Budgets" }} />
       <Stack.Screen name="tags" options={{ title: "Tags" }} />
+      <Stack.Screen name="ai-assisted-setup" options={{ title: "AI Assisted Setup" }} />
+      <Stack.Screen name="ai-suggestions" options={{ title: "Review suggestions" }} />
       <Stack.Screen name="import-excel" options={{ title: "Import from Excel" }} />
       <Stack.Screen name="backup-restore" options={{ title: "Backup & Restore" }} />
       <Stack.Screen name="notifications" options={{ title: "Notifications" }} />

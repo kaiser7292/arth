@@ -32,6 +32,7 @@ import { getMonthlyExpenseTotals } from "@/services/expense-queries";
 import {
   AI_REQUESTS,
   buildReplyInstructions,
+  isFullSetup,
   shortRef,
   type AiRequestId,
 } from "@/services/ai-reply-format";
@@ -46,10 +47,11 @@ import {
   getSchedulesByLoanIds,
   listAllLoansWithBankName,
 } from "@/services/loan-accounts";
+import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { getSavingsSnapshot } from "@/services/savings-tracker";
 import { listUnrecognisedSms } from "@/services/sms/user-sms-templates";
 import { getFYStartMonth } from "@/services/settings";
-import { getAllActiveBuckets } from "@/services/yearly-plan";
+import { getAllActiveBuckets, getYearlyPlanByFY } from "@/services/yearly-plan";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { toIsoDate } from "@/utils/date";
 import { getCurrentFY, getFYLabel, getFYRange } from "@/utils/fiscal-year";
@@ -169,6 +171,8 @@ export const AI_EXPORT_KEYS = [
   // only when the user asks for suggestions
   "request", "reply_instructions", "categories", "merchants", "unread_messages", "ref", "reviewed",
   "sender", "text", "similar",
+  // only for a full setup
+  "current_setup", "monthly_income", "pay_day", "expected_bonus", "savings_target_pct",
 ] as const;
 
 type Json = string | number | boolean | null | Json[] | { [key: string]: Json | undefined };
@@ -606,6 +610,11 @@ function buildGuide(has: (key: string) => boolean, fyStartMonth: number): string
       "`unread_messages` are bank messages Arth could not read, exactly as received. `similar` is how many messages share that format; up to two examples of each format are given.",
     );
   }
+  if (has("current_setup")) {
+    lines.push(
+      "`current_setup` is what the user has already set in Arth for the current financial year: take-home income per month, pay day, expected bonus and savings target. null or 0 means not set yet. `investments` lists the investment buckets and goals they already have.",
+    );
+  }
   if (has("request")) {
     lines.push("`request` is what the user wants from you now. `reply_instructions` is the exact format to answer in.");
   }
@@ -848,10 +857,30 @@ export async function buildAiExport(
     }
   }
 
+  // For a full setup: what is already set, so the assistant asks less and changes only what differs.
+  let currentSetup: JsonObject | undefined;
+  if (isFullSetup(suggest?.request)) {
+    currentSetup = await attempt("Current setup", async () => {
+      const fy = getCurrentFY(fyStart, today);
+      const [profile, plan] = await Promise.all([
+        getSalaryProfileByFY(userId, String(fy)),
+        getYearlyPlanByFY(userId, String(fy)),
+      ]);
+      return {
+        financial_year: getFYLabel(fy, fyStart),
+        monthly_income: profile?.computed_monthly_in_hand ? r2(profile.computed_monthly_in_hand) : null,
+        pay_day: profile?.salary_credit_day ?? null,
+        expected_bonus: r2(profile?.expected_bonus),
+        savings_target_pct: r2(plan?.savings_rate_target_pct),
+      };
+    });
+  }
+
   const body: JsonObject = {
     generated_on: todayIso,
     period: { from, to },
     currency: getCurrency(),
+    current_setup: currentSetup,
     monthly_summary: monthlySummary,
     financial_years: financialYears && financialYears.length > 0 ? financialYears : undefined,
     net_worth: netWorth,
@@ -875,6 +904,7 @@ export async function buildAiExport(
         reply_instructions: buildReplyInstructions({
           unreadMessages: body.unread_messages !== undefined,
           unreviewed: Boolean(suggest.includeUnreviewed),
+          fullSetup: isFullSetup(suggest.request),
         }),
       }
     : {};

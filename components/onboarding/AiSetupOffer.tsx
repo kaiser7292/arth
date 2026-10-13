@@ -9,7 +9,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { buildSetupOptions, createAiFile, setAiSetupPending, shareAiFile } from "@/services/ai-share";
 
 /**
- * "Set up faster with AI" during onboarding. One button: it builds the setup file (accounts,
+ * "AI Assisted Setup" during onboarding. One button: it builds the setup file (accounts,
  * every transaction found so far, bank messages Arth couldn't read) and opens the share sheet.
  * Optional and never blocking - the reply is picked up later from the card on Home.
  */
@@ -34,11 +34,12 @@ export function AiSetupOffer() {
     <View className="mt-4 p-4 rounded-xl border bg-card" style={{ borderColor: theme.primary }}>
       <View className="flex-row items-center gap-2 mb-1">
         <Ionicons name="sparkles-outline" size={18} color={theme.primary} />
-        <Text className="text-base font-semibold text-foreground">Set up faster with AI</Text>
+        <Text className="text-base font-semibold text-foreground">AI Assisted Setup</Text>
       </View>
       <Text className="text-xs text-muted-foreground leading-5">
-        Your AI assistant (Claude, ChatGPT, Gemini) suggests categories for your merchants, budgets, and how to read
-        the bank messages Arth could not. You approve everything.
+        Your AI assistant (Claude, ChatGPT, Gemini) suggests categories for your merchants, budgets, how to read the
+        bank messages Arth could not, and your income and goals. It asks you a few questions first. You approve
+        everything.
       </Text>
       <Text className="text-xs text-muted-foreground leading-5 mt-2">
         Shares your accounts, the transactions found so far and unread bank messages with the assistant you pick.
