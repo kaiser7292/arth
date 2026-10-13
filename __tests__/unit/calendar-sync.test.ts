@@ -23,8 +23,13 @@ jest.mock("../../services/expense", () => ({ getForecastExpenses: jest.fn() }));
 jest.mock("../../services/recurring-rules", () => ({ getReminders: jest.fn() }));
 
 import type { CalendarItem, EventMap } from "../../services/calendar-sync";
+import { initDatabase } from "../../database";
+import { getForecastExpenses } from "../../services/expense";
+import { getReminders } from "../../services/recurring-rules";
 import {
+  collectCalendarItems,
   DEFAULT_PREFS,
+  eventDetails,
   eventNotes,
   eventTitle,
   getCalendarPrefs,
@@ -97,6 +102,87 @@ describe("event content", () => {
 
   it("tags notes so Arth can find its own events again", () => {
     expect(eventNotes(item("emi:123", "2026-10-05"))).toContain("[arth:emi:123]");
+  });
+
+  it("describes the entry and links back to the app", () => {
+    const due = item("due:abc", "2026-10-05", {
+      label: "Flat maintenance due",
+      amount: 4500,
+      details: ["Payment due", "Merchant: Greenwood Society", "Category: Rent & Utilities", "Account: HDFC ••4521"],
+      link: "expense/abc",
+    });
+    expect(eventNotes(due, true).split(String.fromCharCode(10))).toEqual([
+      "Payment due",
+      "Merchant: Greenwood Society",
+      "Category: Rent & Utilities",
+      "Account: HDFC ••4521",
+      "Amount: ₹4,500",
+      "",
+      "Open in Arth: artha://expense/abc",
+      "",
+      "Added by Arth. Mark it paid in Arth, not here: Arth rewrites this entry on its next sync.",
+      "[arth:due:abc]",
+    ]);
+    // with amounts hidden, the amount stays out of the description too
+    expect(eventNotes(due, false)).not.toContain("4,500");
+    // a change to the description alone is enough to rewrite the event
+    expect(itemHash(due, true)).not.toBe(itemHash({ ...due, details: ["Payment due"] }, true));
+  });
+
+  it("is an all-day entry that doesn't block time", () => {
+    const d = eventDetails(item("due:a", "2026-10-05"), true);
+    expect(d).toMatchObject({ allDay: true, availability: "free", timeZone: "UTC" });
+    expect((d.startDate as Date).toISOString()).toBe("2026-10-05T00:00:00.000Z");
+    expect((d.endDate as Date).toISOString()).toBe("2026-10-06T00:00:00.000Z");
+    // 9:00 the morning before, and 9:00 on the day
+    expect(d.alarms).toEqual([{ relativeOffset: -900 }, { relativeOffset: 540 }]);
+  });
+});
+
+describe("what goes in the title", () => {
+  const rows: Record<string, unknown[]> = {
+    categories: [{ id: "c1", name: "Rent & Utilities" }],
+    financial_accounts: [{ id: "a1", account_label: null, bank_name: "HDFC", account_identifier: "4521" }],
+  };
+  const only = (kind: "due" | "reminder") => ({ due: false, emi: false, reminder: false, fd: false, [kind]: true });
+
+  beforeEach(() => {
+    (initDatabase as jest.Mock).mockResolvedValue({
+      getAllAsync: async (sql: string) => rows[Object.keys(rows).find((t) => sql.includes(`FROM ${t}`)) ?? ""] ?? [],
+    });
+  });
+
+  it("a due uses its description, and the merchant only when there is none", async () => {
+    (getForecastExpenses as jest.Mock).mockResolvedValue([
+      { id: "d1", due_date: "2026-10-05", amount: 4500, description: "Flat maintenance", merchant_name: "Greenwood Society", category_id: "c1", account_id: "a1" },
+      { id: "d2", due_date: "2026-10-06", amount: 900, description: null, merchant_name: "Airtel" },
+      { id: "d3", due_date: "2026-10-07", amount: 42310, description: "Credit Card Amount Due via HDFC Bank (Amount Due)", merchant_name: "HDFC", forecast_type: "repayment" },
+    ]);
+    const items = await collectCalendarItems("u", only("due"), TODAY);
+    expect(items.map((i) => i.label)).toEqual(["Flat maintenance due", "Airtel due", "HDFC credit card bill"]);
+    expect(items[0]).toMatchObject({
+      details: ["Payment due", "Merchant: Greenwood Society", "Category: Rent & Utilities", "Account: HDFC ••4521"],
+      link: "expense/d1",
+    });
+    // the merchant isn't repeated when the title already names it
+    expect(items[1].details).toEqual(["Payment due"]);
+    expect(items[2].details).toEqual(["Credit card bill to pay"]);
+  });
+
+  it("a reminder uses its description, and the merchant only when there is none", async () => {
+    const rule = (id: string, over: object = {}) => ({ id, next_due_date: "2026-10-05", frequency: "monthly", amount: 1200, notes: null, ...over });
+    (getReminders as jest.Mock).mockResolvedValue([
+      { rule: rule("r1", { notes: "Pay by UPI" }), source: { description: "Maid salary", merchant_name: "Sunita", category_id: "c1" } },
+      { rule: rule("r2", { frequency: "yearly" }), source: { description: "", merchant_name: "LIC" } },
+      { rule: rule("r3"), source: null },
+    ]);
+    const items = await collectCalendarItems("u", only("reminder"), TODAY);
+    expect(items.map((i) => i.label)).toEqual(["Maid salary", "LIC", "Reminder"]);
+    expect(items[0]).toMatchObject({
+      details: ["Reminder, repeats every month", "Merchant: Sunita", "Category: Rent & Utilities", "Note: Pay by UPI"],
+      link: "settings/recurring-rules",
+    });
+    expect(items[1].details).toEqual(["Reminder, repeats every year"]);
   });
 });
 

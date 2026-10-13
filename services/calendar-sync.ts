@@ -19,6 +19,7 @@ import { SEMANTIC } from "@/constants/design-tokens";
 import { initDatabase } from "@/database";
 import { getForecastExpenses } from "@/services/expense";
 import { getReminders } from "@/services/recurring-rules";
+import { cleanDueLabel } from "@/services/sms/due-description";
 import { settingsStorage } from "@/services/storage";
 import { formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
@@ -36,6 +37,10 @@ export interface CalendarItem {
   /** Without amount, e.g. "HDFC card bill". */
   label: string;
   amount: number | null;
+  /** Lines for the calendar description: what this is, merchant, category, account. */
+  details?: string[];
+  /** Screen to open in Arth, as a path after the app's link scheme ("expense/<id>"). */
+  link?: string;
 }
 
 export interface StoredEvent {
@@ -85,10 +90,17 @@ export function idOf(id: string | number): string {
 
 export const HORIZON_DAYS = 90;
 export const AUTO_SYNC_MIN_GAP_MS = 15 * 60 * 1000;
-const EVENT_HOUR = 9;
-const EVENT_MINUTES = 30;
-const ALARM_DAY_BEFORE = -24 * 60;
-const ALARM_ON_THE_DAY = 0;
+/**
+ * Entries are all-day and "free": a chip at the top of the day, like a task, not a block of time
+ * that makes the user look busy. Reminders for an all-day entry count from midnight of its day:
+ * 9:00 the morning before is 15 hours earlier, 9:00 on the day is 9 hours later.
+ */
+const ALARM_DAY_BEFORE = -15 * 60;
+const ALARM_ON_THE_DAY = 9 * 60;
+/** Opens the app. Expo slug/scheme stayed "artha" after the rename to Arth. */
+const APP_LINK = "artha://";
+/** Bump when the shape of an event changes, so every existing event is rewritten once. */
+const EVENT_FORMAT = "v2";
 const TAG_RE = /\[arth:([^\]]+)\]/;
 
 const PREFS_KEY = "calendar_sync_prefs";
@@ -166,25 +178,38 @@ export function eventTitle(item: CalendarItem, showAmounts: boolean): string {
     : `Arth · ${item.label}`;
 }
 
-export function eventNotes(item: CalendarItem): string {
-  return `Added by Arth. Mark it paid in Arth rather than editing here; Arth overwrites changes on its next sync.\n[arth:${item.key}]`;
+const NL = String.fromCharCode(10);
+
+export function eventNotes(item: CalendarItem, showAmounts: boolean = true): string {
+  const lines = [...(item.details ?? [])];
+  if (showAmounts && item.amount != null && item.amount > 0) lines.push(`Amount: ${formatAmount(item.amount)}`);
+  lines.push(
+    "",
+    `Open in Arth: ${APP_LINK}${item.link ?? ""}`,
+    "",
+    item.kind === "fd"
+      ? "Added by Arth. Arth rewrites this entry on its next sync, so change it in Arth, not here."
+      : "Added by Arth. Mark it paid in Arth, not here: Arth rewrites this entry on its next sync.",
+    `[arth:${item.key}]`,
+  );
+  return lines.join(NL);
 }
 
 export function itemHash(item: CalendarItem, showAmounts: boolean): string {
-  return `${item.date}|${eventTitle(item, showAmounts)}`;
+  return `${EVENT_FORMAT}|${item.date}|${eventTitle(item, showAmounts)}|${eventNotes(item, showAmounts)}`;
 }
 
-function eventDetails(item: CalendarItem, showAmounts: boolean): Omit<Partial<Calendar.Event>, "id" | "organizer"> {
+export function eventDetails(item: CalendarItem, showAmounts: boolean): Omit<Partial<Calendar.Event>, "id" | "organizer"> {
   const [y, m, d] = item.date.split("-").map(Number);
-  const start = new Date(y, m - 1, d, EVENT_HOUR, 0, 0);
-  const end = new Date(start.getTime() + EVENT_MINUTES * 60 * 1000);
   return {
     title: eventTitle(item, showAmounts),
-    notes: eventNotes(item),
-    startDate: start,
-    endDate: end,
-    allDay: false,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    notes: eventNotes(item, showAmounts),
+    // Android stores an all-day event as midnight to midnight in UTC, whatever the phone's zone.
+    startDate: new Date(Date.UTC(y, m - 1, d)),
+    endDate: new Date(Date.UTC(y, m - 1, d + 1)),
+    allDay: true,
+    timeZone: "UTC",
+    availability: "free" as Calendar.Availability,
     alarms: [{ relativeOffset: ALARM_DAY_BEFORE }, { relativeOffset: ALARM_ON_THE_DAY }],
   };
 }
@@ -222,6 +247,37 @@ function inWindow(date: string | null | undefined, today: string, until: string)
   return !!date && date >= today && date <= until;
 }
 
+/** "Rent" -> "Rent due"; "HDFC credit card bill" and "Axis EMI" already say what they are. */
+function asDue(text: string): string {
+  return /\b(bill|emi|due)$/i.test(text) ? text : `${text} due`;
+}
+
+const REPEATS: Record<string, string> = {
+  weekly: "every week",
+  monthly: "every month",
+  quarterly: "every 3 months",
+  yearly: "every year",
+  last_day_of_month: "on the last day of every month",
+  nth_weekday: "every month",
+};
+
+/** Detail lines shared by dues and reminders. The merchant only appears when the title doesn't name it. */
+function describe(
+  what: string,
+  title: string,
+  source: { merchant_name?: string | null; category_id?: string | null; account_id?: string | null } | null,
+  names: { category: Map<string, string>; account: Map<string, string> },
+): string[] {
+  const lines = [what];
+  const merchant = source?.merchant_name?.trim();
+  if (merchant && !title.toLowerCase().includes(merchant.toLowerCase())) lines.push(`Merchant: ${merchant}`);
+  const category = source?.category_id ? names.category.get(source.category_id) : undefined;
+  if (category) lines.push(`Category: ${category}`);
+  const account = source?.account_id ? names.account.get(source.account_id) : undefined;
+  if (account) lines.push(`Account: ${account}`);
+  return lines;
+}
+
 export async function collectCalendarItems(
   userId: string,
   kinds: CalendarPrefs["kinds"],
@@ -231,24 +287,58 @@ export async function collectCalendarItems(
   const db = await initDatabase();
   const items: CalendarItem[] = [];
 
+  const names = { category: new Map<string, string>(), account: new Map<string, string>() };
+  if (kinds.due || kinds.reminder) {
+    const [categories, accounts] = await Promise.all([
+      db.getAllAsync<{ id: string; name: string }>("SELECT id, name FROM categories WHERE user_id = ?;", userId),
+      db.getAllAsync<{ id: string; account_label: string | null; bank_name: string; account_identifier: string | null }>(
+        "SELECT id, account_label, bank_name, account_identifier FROM financial_accounts WHERE user_id = ?;",
+        userId,
+      ),
+    ]);
+    for (const c of categories ?? []) names.category.set(c.id, c.name);
+    for (const a of accounts ?? []) {
+      const digits = String(a.account_identifier ?? "").slice(-4);
+      names.account.set(a.id, `${a.account_label || a.bank_name}${digits ? ` ••${digits}` : ""}`);
+    }
+  }
+
   if (kinds.due) {
     const forecasts = await getForecastExpenses(userId);
     for (const f of forecasts) {
       if (!inWindow(f.due_date, today, until)) continue;
-      const name = f.merchant_name || f.description || "Payment";
+      // The description is what the user (or the bank message) called it; the merchant is the fallback.
+      const described = f.description?.trim();
+      const isCardBill = f.forecast_type === "repayment";
+      const label = described
+        ? asDue(cleanDueLabel(described))
+        : isCardBill
+          ? `${f.merchant_name || "Payment"} card bill`
+          : `${f.merchant_name || "Payment"} due`;
       items.push({
         key: `due:${f.id}`,
         kind: "due",
         date: f.due_date,
-        label: f.forecast_type === "repayment" ? `${name} card bill` : `${name} due`,
+        label,
         amount: f.amount,
+        details: describe(isCardBill ? "Credit card bill to pay" : "Payment due", label, f, names),
+        link: `expense/${f.id}`,
       });
     }
   }
 
   if (kinds.emi) {
-    const emis = await db.getAllAsync<{ id: string; due_date: string; emi_amount: number; name: string }>(
-      `SELECT se.id, se.due_date, se.emi_amount, COALESCE(fa.account_label, fa.bank_name, 'Loan') AS name
+    const emis = await db.getAllAsync<{
+      id: string;
+      due_date: string;
+      emi_amount: number;
+      name: string;
+      loan_id: string;
+      installment_num: number | null;
+      tenure_months: number | null;
+    }>(
+      `SELECT se.id, se.due_date, se.emi_amount, COALESCE(fa.account_label, fa.bank_name, 'Loan') AS name,
+              la.id AS loan_id, se.installment_num, la.tenure_months
          FROM loan_schedule_entries se
          JOIN loan_accounts la ON la.id = se.loan_account_id
          JOIN financial_accounts fa ON fa.id = la.financial_account_id
@@ -259,7 +349,19 @@ export async function collectCalendarItems(
       until,
     );
     for (const e of emis) {
-      items.push({ key: `emi:${e.id}`, kind: "emi", date: e.due_date, label: `${e.name} EMI`, amount: e.emi_amount });
+      items.push({
+        key: `emi:${e.id}`,
+        kind: "emi",
+        date: e.due_date,
+        label: `${e.name} EMI`,
+        amount: e.emi_amount,
+        details: [
+          e.installment_num && e.tenure_months
+            ? `Loan EMI, instalment ${e.installment_num} of ${e.tenure_months}`
+            : "Loan EMI",
+        ],
+        link: e.loan_id ? `loans/${e.loan_id}` : undefined,
+      });
     }
   }
 
@@ -267,7 +369,9 @@ export async function collectCalendarItems(
     const reminders = await getReminders(userId);
     for (const r of reminders) {
       if (!inWindow(r.rule.next_due_date, today, until)) continue;
-      const name = r.source?.merchant_name || r.source?.description || "Reminder";
+      const name = r.source?.description?.trim() || r.source?.merchant_name || "Reminder";
+      const details = describe(`Reminder, repeats ${REPEATS[r.rule.frequency] ?? "regularly"}`, name, r.source, names);
+      if (r.rule.notes?.trim()) details.push(`Note: ${r.rule.notes.trim()}`);
       items.push({
         // The date is part of the key: each cycle is its own event, and a fulfilled cycle's
         // event stays behind as history when the rule moves on.
@@ -276,6 +380,8 @@ export async function collectCalendarItems(
         date: r.rule.next_due_date,
         label: name,
         amount: r.rule.amount ?? r.source?.amount ?? null,
+        details,
+        link: "settings/recurring-rules",
       });
     }
   }
@@ -291,7 +397,14 @@ export async function collectCalendarItems(
       until,
     );
     for (const f of fds) {
-      items.push({ key: `fd:${f.id}`, kind: "fd", date: f.maturity_date, label: `${f.name} matures`, amount: null });
+      items.push({
+        key: `fd:${f.id}`,
+        kind: "fd",
+        date: f.maturity_date,
+        label: `${f.name} matures`,
+        amount: null,
+        details: ["Fixed deposit matures"],
+      });
     }
   }
 
@@ -375,7 +488,9 @@ async function adoptTaggedEvents(calendarId: string, map: EventMap, today: strin
       await Calendar.deleteEventAsync(idOf(ev.id)).catch(() => {});
     } else {
       // Unknown hash → the plan will rewrite it with current content.
-      next[key] = { eventId: idOf(ev.id), date: ymd(new Date(ev.startDate)), hash: "" };
+      // An all-day entry starts at midnight UTC, which is the previous evening west of Greenwich.
+      const start = new Date(ev.startDate);
+      next[key] = { eventId: idOf(ev.id), date: ev.allDay ? start.toISOString().slice(0, 10) : ymd(start), hash: "" };
     }
   }
   return next;

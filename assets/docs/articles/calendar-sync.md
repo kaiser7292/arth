@@ -17,7 +17,7 @@ phrasings:
   - Calendar permission
 ---
 
-**Calendar sync** puts your upcoming money dates into a calendar on your phone, so they show up next to everything else in your day. Each event has two alerts: one the day before and one on the day.
+**Calendar sync** puts your upcoming money dates into a calendar on your phone, so they show up next to everything else in your day. Each one is an all-day entry at the top of its day, marked "free", so it reads like a task and doesn't block out time or make you look busy. Each has two alerts, at 9:00 the morning before and 9:00 on the day (how the second one behaves depends on your calendar app).
 
 ## Turn it on
 
@@ -38,7 +38,13 @@ Pick any of these:
 
 Arth adds events for the **next 90 days**. Dues that are already overdue aren't added, because an alert for a past date can't go off.
 
-**Show amounts** - when on, events read like "Arth · HDFC card bill · ₹12,400". Turn it off and they show only the name, e.g. "Arth · HDFC card bill".
+**The name** comes from the description you gave the bill or reminder ("Flat maintenance"). If it has no description, Arth uses the merchant.
+
+**The details** inside each entry say what it is, the merchant (when the name doesn't already say), the category and account where Arth knows them, how often a reminder repeats, and an **Open in Arth** link to the right screen. Some calendar apps don't make that link tappable; in those, open Arth yourself.
+
+**Show amounts** - when on, events read like "Arth · HDFC card bill · ₹12,400" and the details include the amount. Turn it off and neither shows it.
+
+Arth can't add these as Google Tasks: tasks belong to Google's own service, and Arth never signs in to Google or sends it anything.
 
 ## When it syncs
 
