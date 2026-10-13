@@ -19,8 +19,13 @@ export interface StackedLayer {
 }
 
 interface StackedAreaChartProps {
-  /** "YYYY-MM", oldest first. */
+  /** The x positions, oldest first: months ("YYYY-MM") or dates ("YYYY-MM-DD"). */
   months: string[];
+  /**
+   * How a date position is labelled: "day" -> "6 Oct" (daily and weekly points), "month" ->
+   * "Oct 26" (month-end points). Months ("YYYY-MM") always read "Oct 26".
+   */
+  dateLabels?: "day" | "month";
   /** Bottom band first. */
   layers: StackedLayer[];
   /** Tapping a band calls this (drill-down). Without it, a tap shows that month's values. */
@@ -32,8 +37,9 @@ const PAD_TOP = 10;
 const PAD_BOTTOM = 4;
 const PAD_H = 4;
 
-function monthLabel(m: string): string {
-  const [y, mm] = m.split("-").map(Number);
+function monthLabel(m: string, dateLabels: "day" | "month" = "month"): string {
+  const [y, mm, dd] = m.split("-").map(Number);
+  if (dd && dateLabels === "day") return `${dd} ${SHORT_MONTHS[mm - 1]}`;
   return `${SHORT_MONTHS[mm - 1]} ${String(y).slice(2)}`;
 }
 
@@ -71,7 +77,7 @@ export function chartHit(
  * thickness is its share. Tap a band to drill in (onLayerPress), or tap anywhere for that month's
  * numbers when there's nothing to drill into.
  */
-function StackedAreaChartBase({ months, layers, onLayerPress, height = 150 }: StackedAreaChartProps) {
+function StackedAreaChartBase({ months, layers, onLayerPress, height = 150, dateLabels = "month" }: StackedAreaChartProps) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -189,7 +195,7 @@ function StackedAreaChartBase({ months, layers, onLayerPress, height = 150 }: St
       <View className="flex-row justify-between mt-1">
         {labelIdx.map((i) => (
           <Text key={i} className="text-label text-faint-foreground">
-            {monthLabel(months[i])}
+            {monthLabel(months[i], dateLabels)}
           </Text>
         ))}
       </View>
@@ -197,7 +203,7 @@ function StackedAreaChartBase({ months, layers, onLayerPress, height = 150 }: St
       {selected != null && selected < n && (
         <View className="mt-2 rounded-lg px-3 py-2" style={{ backgroundColor: theme.alpha("foreground", 0.05) }}>
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs font-semibold text-foreground">{monthLabel(months[selected])}</Text>
+            <Text className="text-xs font-semibold text-foreground">{monthLabel(months[selected], dateLabels)}</Text>
             <Text className="text-xs font-semibold text-foreground">{formatAmount(totals[selected])}</Text>
           </View>
           {[...bands].reverse().map(({ layer }) => {

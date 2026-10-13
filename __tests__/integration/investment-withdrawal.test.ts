@@ -362,3 +362,23 @@ describe("withdrawing more than the idle cash (Zebpay case)", () => {
   });
 });
 
+describe("market chart over a period", () => {
+  it("values each date from snapshots, ends on today's value, and starts where history starts", async () => {
+    const { getMarketTrend } = await import("../../services/investment-trend");
+    const today = new Date(2026, 9, 13);
+    await addOrUpdateFundSnapshot(DEMAT, "2026-10-10", 180000);
+
+    const d30 = await getMarketTrend([DEMAT], new Map([[DEMAT, 185000]]), "30D", today);
+    expect(d30.points).toHaveLength(31);
+    expect(d30.coversPeriod).toBe(true);
+    expect(d30.byAccount[DEMAT][0]).toBe(200000); // 13 Sep: the 1 Sep snapshot carried forward
+    expect(d30.byAccount[DEMAT][27]).toBe(180000); // 10 Oct
+    expect(d30.byAccount[DEMAT][30]).toBe(185000); // today: the live value
+
+    // Five years back there was nothing: the chart starts at the first month end with a value.
+    const y5 = await getMarketTrend([DEMAT], new Map([[DEMAT, 185000]]), "5Y", today);
+    expect(y5.points).toEqual(["2026-09-30", "2026-10-13"]);
+    expect(y5.coversPeriod).toBe(false);
+  });
+});
+

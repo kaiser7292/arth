@@ -10,6 +10,8 @@
  *     no row carry the last known value forward.
  *   - FD: principal while it was running (start ≤ month end < maturity).
  * The current month is pinned to `currentValues` so the line ends where the header total is.
+ *
+ * Market accounts can also be drawn over a chosen period (5D ... 10Y) - getMarketTrend, below.
  */
 
 import { getDatabase } from "@/database";
@@ -135,4 +137,115 @@ export async function getInvestmentTrend(
     byAccount,
     total: toTotals(months.map((_, i) => sums.market[i] + sums.pension[i] + sums.fd[i])),
   };
+}
+
+// ─── Market accounts over a chosen period ────────────────────────────────────
+
+export type MarketPeriod = "5D" | "30D" | "3M" | "6M" | "YTD" | "5Y" | "10Y";
+export type PeriodUnit = "day" | "week" | "month";
+
+/**
+ * Day periods show each day, month periods each week, year periods each month. `phrase` finishes
+ * "+₹X ..." under the total.
+ */
+export const MARKET_PERIODS: { value: MarketPeriod; label: string; unit: PeriodUnit; phrase: string }[] = [
+  { value: "5D", label: "5D", unit: "day", phrase: "in 5 days" },
+  { value: "30D", label: "30D", unit: "day", phrase: "in 30 days" },
+  { value: "3M", label: "3M", unit: "week", phrase: "in 3 months" },
+  { value: "6M", label: "6M", unit: "week", phrase: "in 6 months" },
+  { value: "YTD", label: "YTD", unit: "month", phrase: "this year" },
+  { value: "5Y", label: "5Y", unit: "month", phrase: "in 5 years" },
+  { value: "10Y", label: "10Y", unit: "month", phrase: "in 10 years" },
+];
+
+const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/**
+ * The dates a period is drawn at, oldest first, always ending today. The first date is the
+ * starting point the change is measured from (so 5D has six points: five days ago to today).
+ *   day   - every day
+ *   week  - every 7 days back from today (13 weeks for 3M, 26 for 6M)
+ *   month - each month end, then today (YTD starts from last 31 December)
+ */
+export function periodPoints(period: MarketPeriod, today = new Date()): string[] {
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const d = today.getDate();
+  const back = (days: number) => iso(new Date(y, m, d - days));
+  if (period === "5D" || period === "30D") {
+    const n = period === "5D" ? 5 : 30;
+    return Array.from({ length: n + 1 }, (_, i) => back(n - i));
+  }
+  if (period === "3M" || period === "6M") {
+    const weeks = period === "3M" ? 13 : 26;
+    return Array.from({ length: weeks + 1 }, (_, i) => back((weeks - i) * 7));
+  }
+  // Month ends: day 0 of the following month. `monthsBack` month ends before this month, then today.
+  const monthsBack = period === "YTD" ? m + 1 : period === "5Y" ? 60 : 120;
+  const ends = Array.from({ length: monthsBack }, (_, i) => iso(new Date(y, m - (monthsBack - 1 - i), 0)));
+  return [...ends, iso(today)];
+}
+
+/** The latest reading on or before each date, carried forward (0 before the first reading). */
+export function valuesAt(readings: { date: string; value: number }[], dates: string[]): number[] {
+  const sorted = [...readings].sort((a, b) => a.date.localeCompare(b.date));
+  let i = 0;
+  let last = 0;
+  return dates.map((date) => {
+    while (i < sorted.length && sorted[i].date <= date) {
+      last = sorted[i].value;
+      i++;
+    }
+    return last;
+  });
+}
+
+export interface MarketTrend {
+  period: MarketPeriod;
+  /** YYYY-MM-DD, oldest first, ending today. Starts where the accounts first have a value. */
+  points: string[];
+  byAccount: Record<string, number[]>;
+  /** False when the accounts' history starts inside the period (the chart starts later). */
+  coversPeriod: boolean;
+}
+
+/**
+ * Each market account's value (portfolio + idle cash snapshots, carried forward) at the period's
+ * dates. Today's point is pinned to `currentValues`, so the chart ends on the header total. Dates
+ * before any account had a value are dropped rather than drawn as a flat zero.
+ */
+export async function getMarketTrend(
+  accountIds: string[],
+  currentValues: Map<string, number>,
+  period: MarketPeriod,
+  today = new Date(),
+): Promise<MarketTrend> {
+  const db = getDatabase();
+  const all = periodPoints(period, today);
+  const last = all.length - 1;
+  const series: Record<string, number[]> = {};
+  for (const id of accountIds) {
+    const [portfolio, fund] = await Promise.all([
+      db.getAllAsync<{ date: string; value: number }>(
+        `SELECT snapshot_date AS date, portfolio_value AS value FROM demat_portfolio_snapshots WHERE account_id = ?;`,
+        id,
+      ),
+      db.getAllAsync<{ date: string; value: number }>(
+        `SELECT snapshot_date AS date, fund_value AS value FROM demat_fund_snapshots WHERE account_id = ?;`,
+        id,
+      ),
+    ]);
+    const p = valuesAt(portfolio, all);
+    const f = valuesAt(fund, all);
+    const values = all.map((_, i) => Math.round((p[i] + f[i]) * 100) / 100);
+    const now = currentValues.get(id);
+    if (now != null) values[last] = now;
+    series[id] = values;
+  }
+  const firstWithValue = all.findIndex((_, i) => accountIds.some((id) => series[id][i] > 0));
+  // Keep at least two points so there is a line to draw.
+  const start = Math.max(0, Math.min(firstWithValue < 0 ? last : firstWithValue, last - 1));
+  const byAccount: Record<string, number[]> = {};
+  for (const id of accountIds) byAccount[id] = series[id].slice(start);
+  return { period, points: all.slice(start), byAccount, coversPeriod: start === 0 };
 }
