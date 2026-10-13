@@ -23,6 +23,7 @@ const KEYS = {
   LAST_AUTO_SCAN_RUN: "last_auto_scan_run_timestamp",
   SMS_START_DATE: "sms_start_date",
   SMS_END_DATE: "sms_end_date",
+  SMS_SCAN_RANGE_DAYS: "sms_scan_range_days",
   SMS_SCAN_ACCOUNT_IDS: "sms_scan_account_ids",
   SMS_DISCLOSURE_ACCEPTED_AT: "sms_disclosure_accepted_at",
 } as const;
@@ -97,6 +98,8 @@ export function setLastAutoScanRun(timestamp: number): void {
  * Defaults to 7 days ago if not set.
  */
 export function getSmsStartDate(): string {
+  const days = getSmsScanPresetDays();
+  if (days != null) return daysAgoISO(days);
   return storage.getString(KEYS.SMS_START_DATE) ?? defaultStartDate();
 }
 
@@ -106,6 +109,7 @@ export function getSmsStartDate(): string {
  */
 export function setSmsStartDate(date: string): void {
   storage.set(KEYS.SMS_START_DATE, date);
+  storage.delete(KEYS.SMS_SCAN_RANGE_DAYS);
 }
 
 // ─── SMS End Date (user-configurable) ───
@@ -116,6 +120,7 @@ export function setSmsStartDate(date: string): void {
  * Defaults to today if not set.
  */
 export function getSmsEndDate(): string {
+  if (getSmsScanPresetDays() != null) return todayISO();
   return storage.getString(KEYS.SMS_END_DATE) ?? todayISO();
 }
 
@@ -125,6 +130,22 @@ export function getSmsEndDate(): string {
  */
 export function setSmsEndDate(date: string): void {
   storage.set(KEYS.SMS_END_DATE, date);
+  storage.delete(KEYS.SMS_SCAN_RANGE_DAYS);
+}
+
+// ─── Rolling preset ("Last 7 days") ───
+// A preset used to be saved as the two dates it meant on the day you picked it, so a week later
+// "Last 7 days" still scanned that old week. Now the preset itself is saved, and the dates are
+// worked out from today each time. Setting an explicit start or end date turns it off.
+
+/** How many days back the chosen preset reaches, or null when a fixed range is set. */
+export function getSmsScanPresetDays(): number | null {
+  const days = storage.getNumber(KEYS.SMS_SCAN_RANGE_DAYS);
+  return days != null && days >= 0 ? days : null;
+}
+
+export function setSmsScanPresetDays(days: number): void {
+  storage.set(KEYS.SMS_SCAN_RANGE_DAYS, days);
 }
 
 /**
@@ -144,11 +165,15 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function daysAgoISO(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /** Default start date: 7 days ago */
 function defaultStartDate(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return daysAgoISO(7);
 }
 
 /**

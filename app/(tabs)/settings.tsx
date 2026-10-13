@@ -36,6 +36,7 @@ import {
   runSmsScan,
   setSmsScanAccountIds as saveSmsScanAccountIds,
   setSmsEndDate,
+  setSmsScanPresetDays,
   setSmsStartDate,
 } from "@/services/sms";
 import { countUnrecognisedSms } from "@/services/sms/user-sms-templates";
@@ -181,6 +182,9 @@ export default function SettingsScreen() {
           /* non-fatal */
         });
       setSmsScanAccountIds(getSmsScanAccountIds());
+      // A rolling preset moves with the calendar.
+      setSmsStartDateStr(getSmsStartDate());
+      setSmsEndDateStr(getSmsEndDate());
       getActiveAccounts(DEFAULT_USER_ID)
         .then((accts) => {
           setAllAccounts(accts);
@@ -293,6 +297,9 @@ export default function SettingsScreen() {
     const from = dateMinusDays(daysBack);
     const to = dateMinusDays(0);
     setSmsStartDate(from); setSmsEndDate(to);
+    // Saved as "last N days", so it still means that next week (after the two fixed dates,
+    // which each switch the preset off).
+    setSmsScanPresetDays(daysBack);
     setSmsStartDateStr(from); setSmsEndDateStr(to);
     setCustomMode(false); setShowDatePicker(false); setSmsScanResult(null);
   }, []);

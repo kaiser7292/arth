@@ -82,6 +82,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("sms_auto_mode_enabled", "boolean"),
   S("sms_start_date", "string"),
   S("sms_end_date", "string"),
+  S("sms_scan_range_days", "number"),
   S("sms_scan_account_ids", "string"),
   // Check-ins, rule suggestions, subscriptions, settle-up, month-end
   P("check_in_snoozed_until__", "number"),

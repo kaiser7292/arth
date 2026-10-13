@@ -176,9 +176,29 @@ async function fetchBankSMSRange(
  * the native module's maxCount cap.
  */
 export async function manualScan(): Promise<FetchSMSResult> {
-  const startTimestamp = getSmsStartTimestamp();
-  const endTimestamp = getSmsEndTimestamp();
+  return readSmsWindow(getSmsStartTimestamp(), getSmsEndTimestamp());
+}
 
+/** With no earlier scan to continue from, "Scan now" looks back this far. */
+const SCAN_NOW_FALLBACK_DAYS = 7;
+
+/** Where a "since the last scan" read starts: the last check, or a week back if there was none. */
+export function sinceLastCheckTimestamp(now: number = Date.now()): number {
+  const lastCheck = getLastSmsCheckTimestamp();
+  return lastCheck > 0 && lastCheck < now ? lastCheck : now - SCAN_NOW_FALLBACK_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * "Scan now" from Home and other quick-scan buttons: everything since the last check, up to
+ * now. Unlike manualScan it ignores the date range in Settings, which is for deliberate
+ * historic scans — following it made the Home button re-scan an old week forever.
+ */
+export async function scanSinceLastCheck(): Promise<FetchSMSResult> {
+  return readSmsWindow(sinceLastCheckTimestamp(), Date.now());
+}
+
+/** Read every bank SMS in a window, paging 500 at a time from the newest backwards. */
+async function readSmsWindow(startTimestamp: number, endTimestamp: number): Promise<FetchSMSResult> {
   const allMessages: RawSMS[] = [];
   let currentEnd = endTimestamp;
   const MAX_BATCHES = 20;

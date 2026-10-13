@@ -12,6 +12,8 @@
 import {
   checkForNewBankSMS,
   manualScan as manualReadSms,
+  scanSinceLastCheck,
+  sinceLastCheckTimestamp,
   parseSmsBatch,
   processParseResults,
   isSmsDetectionEnabled,
@@ -56,13 +58,24 @@ export const SCAN_COOLDOWN_MS = 30 * 60 * 1000;
  *   manualScan), and skips the auto-scan notification.
  * @param options.accountIds - optional list of account IDs to filter SMS scan by.
  *   If provided, only parsed SMS matching these accounts will be processed.
+ * @param options.range - manual scans only. "settings" (default) reads the date range chosen
+ *   in Settings; "since_last" reads everything since the last scan up to now (quick "Scan now"
+ *   buttons).
  */
 export async function runSmsScan(
-  options: { manual?: boolean; accountIds?: string[] } = {},
+  options: { manual?: boolean; accountIds?: string[]; range?: "settings" | "since_last" } = {},
 ): Promise<ScanOutcome> {
   const manual = options.manual ?? false;
   const accountIds = options.accountIds;
+  const sinceLast = manual && options.range === "since_last";
   const startTime = Date.now();
+  // The range this run covers, for the Scan Runs log (automatic scans don't record one).
+  const isoDay = (ms: number) => {
+    const d = new Date(ms);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const rangeStart = !manual ? null : sinceLast ? isoDay(sinceLastCheckTimestamp(startTime)) : getSmsStartDate();
+  const rangeEnd = !manual ? null : sinceLast ? isoDay(startTime) : getSmsEndDate();
 
   if (!isSmsDetectionEnabled()) {
     return { ran: false, created: 0, credits: 0, skipped: 0, totalScanned: 0, reason: "sms_disabled" };
@@ -81,13 +94,17 @@ export async function runSmsScan(
 
   try {
     // Phase 1: Read SMS from device (no account filtering here anymore)
-    const readResult = manual ? await manualReadSms() : await checkForNewBankSMS();
+    const readResult = sinceLast
+      ? await scanSinceLastCheck()
+      : manual
+        ? await manualReadSms()
+        : await checkForNewBankSMS();
     if (readResult.error) {
       const scanRunId = await saveScanRun({
         userId: DEFAULT_USER_ID,
         isManual: manual,
-        startDate: manual ? getSmsStartDate() : null,
-        endDate: manual ? getSmsEndDate() : null,
+        startDate: rangeStart,
+        endDate: rangeEnd,
         accountIds: accountIds ?? null,
         smsReadCount: 0,
         hardcodedMatchCount: 0,
@@ -118,8 +135,8 @@ export async function runSmsScan(
       const scanRunId = await saveScanRun({
         userId: DEFAULT_USER_ID,
         isManual: manual,
-        startDate: manual ? getSmsStartDate() : null,
-        endDate: manual ? getSmsEndDate() : null,
+        startDate: rangeStart,
+        endDate: rangeEnd,
         accountIds: accountIds ?? null,
         smsReadCount: 0,
         hardcodedMatchCount: 0,
@@ -217,8 +234,8 @@ export async function runSmsScan(
     const scanRunId = await saveScanRun({
       userId: DEFAULT_USER_ID,
       isManual: manual,
-      startDate: manual ? getSmsStartDate() : null,
-      endDate: manual ? getSmsEndDate() : null,
+      startDate: rangeStart,
+      endDate: rangeEnd,
       accountIds: accountIds ?? null,
       smsReadCount: readResult.count,
       hardcodedMatchCount: passed.filter(
@@ -250,8 +267,8 @@ export async function runSmsScan(
     await saveScanRun({
       userId: DEFAULT_USER_ID,
       isManual: manual,
-      startDate: manual ? getSmsStartDate() : null,
-      endDate: manual ? getSmsEndDate() : null,
+      startDate: rangeStart,
+      endDate: rangeEnd,
       accountIds: accountIds ?? null,
       smsReadCount: 0,
       hardcodedMatchCount: 0,

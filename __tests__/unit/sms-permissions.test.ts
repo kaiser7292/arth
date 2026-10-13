@@ -40,6 +40,10 @@ import {
   setLastSmsCheckTimestamp,
   getSmsStartDate,
   setSmsStartDate,
+  getSmsEndDate,
+  setSmsEndDate,
+  getSmsScanPresetDays,
+  setSmsScanPresetDays,
   getSmsStartTimestamp,
   hasAcceptedSmsDisclosure,
   acceptSmsDisclosure,
@@ -171,5 +175,37 @@ describe("sms-permissions", () => {
       expect(await requestSmsPermission()).toBe(true);
       expect(PermissionsAndroid.request).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("rolling scan preset", () => {
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const daysAgo = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return iso(d);
+  };
+
+  beforeEach(() => {
+    for (const key in mockStore) delete mockStore[key];
+  });
+
+  it("a preset is worked out from today, not from the day it was picked", () => {
+    // What the old code saved when "Last 7 days" was picked weeks ago.
+    setSmsStartDate("2026-09-24");
+    setSmsEndDate("2026-10-01");
+    setSmsScanPresetDays(7);
+    expect(getSmsStartDate()).toBe(daysAgo(7));
+    expect(getSmsEndDate()).toBe(iso(new Date()));
+  });
+
+  it("choosing explicit dates turns the preset off", () => {
+    setSmsScanPresetDays(30);
+    setSmsStartDate("2026-01-01");
+    setSmsEndDate("2026-01-31");
+    expect(getSmsScanPresetDays()).toBeNull();
+    expect(getSmsStartDate()).toBe("2026-01-01");
+    expect(getSmsEndDate()).toBe("2026-01-31");
   });
 });

@@ -17,6 +17,8 @@ export {
   getSmsStartTimestamp,
   getSmsEndDate,
   setSmsEndDate,
+  getSmsScanPresetDays,
+  setSmsScanPresetDays,
   getSmsEndTimestamp,
   getLastAutoScanRun,
   setLastAutoScanRun,
@@ -26,6 +28,8 @@ export {
 
 export {
   manualScan,
+  scanSinceLastCheck,
+  sinceLastCheckTimestamp,
   checkForNewBankSMS,
   fetchBankSMSForRange,
 } from "./sms-reader";

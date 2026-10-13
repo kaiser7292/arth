@@ -170,7 +170,7 @@ export default function HomeScreen() {
     setSmsScanning(true);
     try {
       const accountIds = getSmsScanAccountIds();
-      await runSmsScan({ manual: true, accountIds });
+      await runSmsScan({ manual: true, accountIds, range: "since_last" });
     } finally {
       setSmsScanning(false);
     }

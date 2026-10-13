@@ -16,7 +16,7 @@ export function useSmsScan() {
     setScanning(true);
     try {
       const accountIds = getSmsScanAccountIds();
-      const outcome = await runSmsScan({ manual: true, accountIds });
+      const outcome = await runSmsScan({ manual: true, accountIds, range: "since_last" });
       setLastOutcome(outcome);
       return outcome;
     } finally {
