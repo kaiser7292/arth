@@ -129,3 +129,75 @@ if (window.IntersectionObserver) {
     if (e.key === 'Escape') close();
   });
 }());
+
+// "What Arth does" showcase (home): one area open at a time, the phone shows its screen.
+// Auto-advances while on screen (unless the visitor prefers reduced motion); hovering or
+// focusing pauses it, and picking an area by hand stops it for good.
+(function(){
+  var sec = document.querySelector('.show');
+  if (!sec) return;
+  var items = sec.querySelectorAll('.show-it');
+  var screens = sec.querySelectorAll('#show-phone .pscr');
+  var n = items.length;
+  if (!n || screens.length !== n) return;
+  var MS = 6500, cur = 0;
+
+  function go(i, animate) {
+    cur = i;
+    for (var k = 0; k < n; k++) {
+      var on = k === i;
+      items[k].classList.toggle('on', on);
+      items[k].querySelector('.show-t').setAttribute('aria-expanded', on ? 'true' : 'false');
+      screens[k].classList.toggle('on', on);
+    }
+    if (animate) {
+      var it = items[i];
+      it.classList.remove('show-li-in'); void it.offsetWidth; it.classList.add('show-li-in');
+    }
+  }
+
+  var auto = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var inView = false, hovered = false, timer = null, remaining = MS, startedAt = 0;
+  sec.style.setProperty('--show-ms', MS + 'ms');
+  if (auto) sec.classList.add('auto', 'paused');
+
+  function running() { return auto && inView && !hovered; }
+  function sync() {
+    clearTimeout(timer);
+    if (!running()) {
+      if (startedAt) { remaining = Math.max(0, remaining - (Date.now() - startedAt)); startedAt = 0; }
+      sec.classList.add('paused');
+      return;
+    }
+    sec.classList.remove('paused');
+    startedAt = Date.now();
+    timer = setTimeout(function () {
+      startedAt = 0; remaining = MS;
+      go((cur + 1) % n, true);
+      sync();
+    }, remaining);
+  }
+  function stop() {
+    auto = false; clearTimeout(timer);
+    sec.classList.remove('auto', 'paused');
+  }
+
+  [].forEach.call(items, function (it, i) {
+    it.querySelector('.show-t').addEventListener('click', function () {
+      stop();
+      if (i !== cur) go(i, true);
+    });
+  });
+  sec.addEventListener('mouseenter', function () { hovered = true; sync(); });
+  sec.addEventListener('mouseleave', function () { hovered = false; sync(); });
+  sec.addEventListener('focusin', function () { hovered = true; sync(); });
+  sec.addEventListener('focusout', function () { hovered = false; sync(); });
+
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (es) {
+      inView = es[0].isIntersecting; sync();
+    }, { threshold: 0.35 }).observe(sec.querySelector('.show-g'));
+  } else {
+    inView = true; sync();
+  }
+}());
