@@ -6,6 +6,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getBalanceSheetColumn } from "@/services/balance-sheet";
+import { getNetWorthHistory } from "@/services/net-worth-history";
 import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
@@ -17,7 +18,7 @@ import { getFYStartMonth } from "@/services/settings";
 import { getBucketsByFY, InvestmentBucket } from "@/services/yearly-plan";
 
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
-import { formatAmount } from "@/utils/format";
+import { formatAmount, formatCompact } from "@/utils/format";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -42,6 +43,7 @@ export default function GoalsScreen() {
   const [activeLoansCount, setActiveLoansCount] = useState(preloaded?.activeLoansCount ?? 0);
   const [totalMonthlyEMI, setTotalMonthlyEMI] = useState(preloaded?.totalMonthlyEMI ?? 0);
   const [netWorth, setNetWorth] = useState<number | null>(null);
+  const [netWorthFYChange, setNetWorthFYChange] = useState<number | null>(null);
   const [insuranceCount, setInsuranceCount] = useState(0);
   const [insuranceAdequacy, setInsuranceAdequacy] = useState<InsuranceAdequacy | null>(null);
   const [cockpitData, setCockpitData] = useState<FinancialCockpitData | null>(preloaded?.cockpit ?? null);
@@ -93,7 +95,22 @@ export default function GoalsScreen() {
     } catch {
       // Balance sheet not available yet
     }
-  }, [currentFY]);
+
+    // Change since the FY started - from the month-end before the FY's first month.
+    try {
+      const { points } = await getNetWorthHistory(DEFAULT_USER_ID);
+      const fyStartKey = `${currentFY}-${String(startMonth).padStart(2, "0")}`;
+      const i = points.findIndex((p) => p.month >= fyStartKey);
+      if (points.length >= 2 && i !== -1) {
+        const base = points[Math.max(0, i - 1)];
+        setNetWorthFYChange(points[points.length - 1].netWorth - base.netWorth);
+      } else {
+        setNetWorthFYChange(null);
+      }
+    } catch {
+      // History is a nice-to-have on this row
+    }
+  }, [currentFY, startMonth]);
 
   useDataRefresh(loadGoals);
 
@@ -575,6 +592,14 @@ export default function GoalsScreen() {
                   {netWorth != null
                     ? formatAmount(netWorth)
                     : "Assets, liabilities & net worth"}
+                  {netWorth != null && netWorthFYChange != null && netWorthFYChange !== 0 && (
+                    <Text
+                      className="text-xs font-medium"
+                      style={{ color: netWorthFYChange > 0 ? theme.success : theme.danger }}
+                    >
+                      {"  "}{netWorthFYChange > 0 ? "▲" : "▼"} {formatCompact(Math.abs(netWorthFYChange))} this FY
+                    </Text>
+                  )}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />

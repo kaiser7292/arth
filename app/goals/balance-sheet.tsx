@@ -16,6 +16,8 @@ import type { BalanceSheetColumn, BalanceSheetRow } from "@/services/balance-she
 import { consumeBalanceSheetPreload } from "@/services/home-preload";
 import { useTheme } from "@/hooks/use-theme";
 import { HisaabNetWorthSheet } from "@/components/goals/HisaabNetWorthSheet";
+import { NetWorthTrendCard } from "@/components/goals/NetWorthTrendCard";
+import { getNetWorthHistory, type NetWorthPoint } from "@/services/net-worth-history";
 
 const preloaded = consumeBalanceSheetPreload();
 
@@ -53,6 +55,8 @@ export default function BalanceSheetScreen() {
   // numbers silently swap in on every data-refresh event.
   const [recomputing, setRecomputing] = useState(false);
   const [hisaabSheetOpen, setHisaabSheetOpen] = useState(false);
+  const [history, setHistory] = useState<NetWorthPoint[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   // Default: previous FY close + Live. User can add more via the + button.
   const buildDefaultSpecs = useCallback((): ColumnSpec[] => {
@@ -89,6 +93,26 @@ export default function BalanceSheetScreen() {
       }
     }, [columnSpecs]),
   );
+
+  // Net worth over time - its own load so a slow history never holds up the table.
+  useDataRefresh(
+    useCallback(async () => {
+      try {
+        const h = await getNetWorthHistory(DEFAULT_USER_ID);
+        setHistory(h.points);
+      } catch (e) {
+        console.warn("[balance-sheet] net worth history failed", e);
+      } finally {
+        setHistoryLoading(false);
+      }
+    }, []),
+  );
+
+  const fyStartMonthKey = useMemo(() => {
+    const startMonth = getFYStartMonth();
+    const start = getFYRange(getCurrentFY(startMonth), startMonth).start;
+    return formatLocalDate(start).slice(0, 7);
+  }, []);
 
   // "Next addable FY" = the most recent FY with data that isn't already a
   // column. Tracked explicitly (rather than derived from earliest-1) so that
@@ -398,6 +422,8 @@ export default function BalanceSheetScreen() {
             </View>
           )}
         </Card>
+
+        <NetWorthTrendCard points={history} fyStartMonth={fyStartMonthKey} loading={historyLoading} />
 
         {/* Column headers + body — horizontal scroll so more columns can fit.
             Plain View (not Card) so the scroller can extend to the table edges
