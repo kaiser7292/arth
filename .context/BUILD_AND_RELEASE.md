@@ -13,7 +13,8 @@
 5. Run Gradle assembleRelease
 6. Create GitHub release and upload APK
 7. MINOR releases (and notable PATCH ones): add an entry at the top of docs/whats-new.html
-   in plain language - the release notes, minus fixes nobody would notice. Pushing docs/
+   in plain language: what the user gains, one or two short lines. No technical
+   details (sizes, setting names, formats) and no worked examples. Pushing docs/
    to master publishes souravbaid.com.
 ```
 
