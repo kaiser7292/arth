@@ -77,6 +77,16 @@ export default function ReportsHubScreen() {
 
         <View className="px-4">
           <ReportCard
+            icon="sparkles-outline"
+            iconColor={theme.primary}
+            iconBg={theme.alpha("primary", 0.08)}
+            title="Year in review"
+            description="Your financial year as a story: spending, savings, net worth, favourite places, and a summary to share"
+            inputsNeeded="No user input needed"
+            onPress={() => router.push("/insights/year-review")}
+          />
+
+          <ReportCard
             icon="heart-outline"
             iconColor={theme.success}
             iconBg={theme.alpha("success", 0.08)}

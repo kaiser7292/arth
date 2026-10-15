@@ -39,6 +39,8 @@ const KEEP_RULES = `
 # WebView (Zerodha login) and voice input
 -keep class com.reactnativecommunity.webview.** { *; }
 -keep class expo.modules.speechrecognition.** { *; }
+# Screen-to-image for sharing (Year in Review)
+-keep class fr.greweb.reactnativeviewshot.** { *; }
 # Keep crash stack traces readable after decoding
 -keepattributes SourceFile,LineNumberTable
 # ARTH_R8_KEEP_END

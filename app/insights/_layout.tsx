@@ -22,6 +22,7 @@ export default function InsightsStackLayout() {
       <Stack.Screen name="report-retirement" options={{ title: "Retirement Readiness" }} />
       <Stack.Screen name="report-loan-payoff" options={{ title: "Loan Payoff Strategy" }} />
       <Stack.Screen name="report-spending-personality" options={{ title: "Spending Personality" }} />
+      <Stack.Screen name="year-review" options={{ title: "Year in Review" }} />
     </Stack>
   );
 }

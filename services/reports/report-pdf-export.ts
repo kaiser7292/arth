@@ -9,6 +9,7 @@ import type { FinancialHealthReport } from "./financial-health-report";
 import type { RetirementReport } from "./retirement-report";
 import type { LoanPayoffReport } from "./loan-payoff-report";
 import type { SpendingPersonalityReport } from "./spending-personality-report";
+import { buildShareLines, monthName, type YearReview } from "./year-review";
 
 // ─── Helpers ───
 
@@ -1016,6 +1017,128 @@ export async function exportSpendingPersonalityPDF(
 
   const html = wrapPage(body, "Spending Personality Report", logoBase64, today);
   return generatePDF(html, `Spending_Personality_${timestamp()}.pdf`);
+}
+
+// ─── Year in Review PDF ───
+
+/**
+ * The whole review on one or two pages. With `hideAmounts` it keeps to the
+ * same no-money-figures rule as the shared image (buildShareLines): the
+ * headline grid comes from buildShareLines, and the tables show shares and
+ * counts instead of rupees.
+ */
+export async function exportYearReviewPDF(review: YearReview, hideAmounts: boolean): Promise<string> {
+  const logoBase64 = await getLogoBase64();
+  const today = todayFormatted();
+  const lines = buildShareLines(review, hideAmounts, fmtAmt);
+
+  const statBoxes = lines
+    .map(
+      (l) => `
+      <div class="stat-box">
+        <div class="stat-label">${htmlEscape(l.label)}</div>
+        <div class="stat-value" style="font-size: 14px;">${htmlEscape(l.value)}</div>
+      </div>`,
+    )
+    .join("");
+
+  const categoryRows = review.categories
+    .map(
+      (c) => `
+      <tr>
+        <td>${htmlEscape(c.name)}</td>
+        ${hideAmounts ? "" : `<td class="amount">${fmtAmt(c.amount)}</td>`}
+        <td class="amount">${fmtPct(Math.round(c.pct))}</td>
+        <td style="width: 30%;">
+          <div class="progress-bar"><div class="progress-fill" style="width: ${Math.min(c.pct, 100)}%; background: ${htmlEscape(c.color)};"></div></div>
+        </td>
+      </tr>`,
+    )
+    .join("");
+
+  const merchantRows = review.merchants.bySpend
+    .map(
+      (m) => `
+      <tr>
+        <td>${htmlEscape(m.name)}</td>
+        ${hideAmounts ? "" : `<td class="amount">${fmtAmt(m.amount)}</td>`}
+        <td class="amount">${m.count}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const maxMonth = Math.max(1, ...review.months.map((m) => m.total));
+  const monthRows = review.months
+    .map(
+      (m) => `
+      <tr>
+        <td>${htmlEscape(monthName(m.month))}</td>
+        ${hideAmounts ? "" : `<td class="amount">${fmtAmt(m.total)}</td>`}
+        <td style="width: 45%;">
+          <div class="progress-bar"><div class="progress-fill" style="width: ${(m.total / maxMonth) * 100}%; background: #0F766E;"></div></div>
+        </td>
+      </tr>`,
+    )
+    .join("");
+
+  const changeRows = (review.vsLastYear?.changes ?? [])
+    .map(
+      (c) => `
+      <tr>
+        <td>${htmlEscape(c.name)}</td>
+        ${hideAmounts ? "" : `<td class="amount">${fmtAmt(c.prev)}</td><td class="amount">${fmtAmt(c.curr)}</td>`}
+        <td class="amount">${c.changePct == null ? "new" : `${c.changePct > 0 ? "+" : ""}${Math.round(c.changePct)}%`}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const period = `${fmtDate(review.startDate)} – ${fmtDate(review.endDate)}`;
+  const body = `
+    <div style="padding: 16px 0;">
+      ${reportHeaderHtml(`${review.fyLabel} in Review`, review.isComplete ? "Your financial year, summed up" : "Your financial year so far", logoBase64, [
+        { label: "Period", value: period },
+        { label: "Transactions", value: String(review.totals.txCount) },
+        { label: "Generated", value: today },
+      ])}
+
+      <div class="stats-grid">${statBoxes}</div>
+
+      ${categoryRows ? `
+        <div class="section-title">Where it went</div>
+        <table class="data-table">
+          <thead><tr><th>Category</th>${hideAmounts ? "" : `<th style="text-align: right;">Spent</th>`}<th style="text-align: right;">Share</th><th></th></tr></thead>
+          <tbody>${categoryRows}</tbody>
+        </table>
+      ` : ""}
+
+      ${merchantRows ? `
+        <div class="section-title">Favourite places</div>
+        <table class="data-table">
+          <thead><tr><th>Merchant</th>${hideAmounts ? "" : `<th style="text-align: right;">Spent</th>`}<th style="text-align: right;">Visits</th></tr></thead>
+          <tbody>${merchantRows}</tbody>
+        </table>
+      ` : ""}
+
+      ${monthRows ? `
+        <div class="section-title">Month by month</div>
+        <table class="data-table">
+          <thead><tr><th>Month</th>${hideAmounts ? "" : `<th style="text-align: right;">Spent</th>`}<th></th></tr></thead>
+          <tbody>${monthRows}</tbody>
+        </table>
+      ` : ""}
+
+      ${changeRows ? `
+        <div class="section-title">Biggest changes vs last year</div>
+        <table class="data-table">
+          <thead><tr><th>Category</th>${hideAmounts ? "" : `<th style="text-align: right;">Last year</th><th style="text-align: right;">This year</th>`}<th style="text-align: right;">Change</th></tr></thead>
+          <tbody>${changeRows}</tbody>
+        </table>
+      ` : ""}
+    </div>
+  `;
+
+  const html = wrapPage(body, `${review.fyLabel} in Review`, logoBase64, today);
+  return generatePDF(html, `Arth_${review.fyLabel.replace(/\s+/g, "_")}_in_Review_${timestamp()}.pdf`);
 }
 
 // ─── Share ───

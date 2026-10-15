@@ -22,6 +22,7 @@ import { LoanSummaryCard } from "@/components/home/LoanSummaryCard";
 import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
 import { SelfNamePromptCard } from "@/components/home/SelfNamePromptCard";
 import { FirstScanSummaryCard } from "@/components/home/FirstScanSummaryCard";
+import { YearReviewReadyCard } from "@/components/home/YearReviewReadyCard";
 import { InvestmentsSummaryCard } from "@/components/home/InvestmentsSummaryCard";
 import { WalletSummary } from "@/components/home/WalletSummary";
 import { Card, ContextualHeader, Money, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text } from "@/components/ui";
@@ -451,6 +452,7 @@ export default function HomeScreen() {
         <SelfNamePromptCard />
         <FirstScanSummaryCard />
         <AiSetupCard />
+        <YearReviewReadyCard />
 
         {/* Check-ins - swipe decks (month-end, settle-up, subscriptions, rules). Self-loading. */}
         {isHomeCardVisible("check_ins") && <Appear index={1}><CheckInsCard /></Appear>}
