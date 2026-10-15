@@ -6,7 +6,7 @@ import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { CatchUpCardView } from "@/components/expense/catch-up/CatchUpCardView";
 import { CatchUpDone } from "@/components/expense/catch-up/CatchUpDone";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
-import { MerchantSheet } from "@/components/expense/catch-up/MerchantSheet";
+import { consumeMerchantPickResult, setMerchantPickRequest } from "@/components/expense/catch-up/merchant-pick";
 import { SwipeDeck, type SwipeDeckHandle } from "@/components/expense/catch-up/SwipeDeck";
 import { Button, Card, LoadingState, ScreenContainer, SelectSheet, Text, useToast } from "@/components/ui";
 import type { FooterAction } from "@/components/check-in/CheckInDeck";
@@ -109,7 +109,6 @@ export default function CatchUpScreen() {
   const [picker, setPicker] = useState<{ commit: boolean } | null>(null);
   const [ccPickerOpen, setCcPickerOpen] = useState(false);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
-  const [merchantOpen, setMerchantOpen] = useState(false);
   const [paymentModeOpen, setPaymentModeOpen] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
@@ -266,7 +265,6 @@ export default function CatchUpScreen() {
   // Written straight away like the description: edits, not decisions.
   const saveMerchant = useCallback(
     async (text: string) => {
-      setMerchantOpen(false);
       if (!cardExpense) return;
       const id = cardExpense.id;
       const next = text.trim() || null;
@@ -288,6 +286,25 @@ export default function CatchUpScreen() {
       }
     },
     [cardExpense, queueWrite, patchCardExpense, merchantNames, picked, toast],
+  );
+
+  const openMerchantPage = useCallback(() => {
+    if (!cardExpense) return;
+    setMerchantPickRequest({
+      expenseId: cardExpense.id,
+      title: cardExpense.nature === "credit" ? "Received from" : "Paid to",
+      value: cardExpense.merchant_name ?? null,
+      merchantNames,
+    });
+    router.push("/expense/catch-up-merchant");
+  }, [cardExpense, merchantNames, router]);
+
+  // Back from the merchant page: save what was picked, if it's still the card on top.
+  useFocusEffect(
+    useCallback(() => {
+      const res = consumeMerchantPickResult();
+      if (res && res.expenseId === cardExpense?.id) void saveMerchant(res.name);
+    }, [cardExpense, saveMerchant]),
   );
 
   const savePaymentMode = useCallback(
@@ -836,7 +853,7 @@ export default function CatchUpScreen() {
           onSwipeLeft={skip}
           rightNeedsInput={needsInput}
           rightLabel={primaryLabel}
-          enabled={!picker && !ccPickerOpen && !descriptionOpen && !splitOpen && !merchantOpen && !paymentModeOpen}
+          enabled={!picker && !ccPickerOpen && !descriptionOpen && !splitOpen && !paymentModeOpen}
           fill
         >
           <CatchUpCardView
@@ -846,7 +863,7 @@ export default function CatchUpScreen() {
             paymentModeMap={paymentModeMap}
             categoryId={cardExpense ? categoryFor(cardExpense) : null}
             onPickCategory={() => setPicker({ commit: false })}
-            onPickMerchant={() => setMerchantOpen(true)}
+            onPickMerchant={openMerchantPage}
             onPickPaymentMode={() => setPaymentModeOpen(true)}
             onOpen={openCard}
             editingDescription={descriptionOpen}
@@ -885,14 +902,6 @@ export default function CatchUpScreen() {
         onClose={() => setPicker(null)}
       />
 
-      <MerchantSheet
-        visible={merchantOpen}
-        title={cardExpense?.nature === "credit" ? "Received from" : "Paid to"}
-        value={cardExpense?.merchant_name ?? null}
-        merchantNames={merchantNames}
-        onSave={(name) => void saveMerchant(name)}
-        onClose={() => setMerchantOpen(false)}
-      />
 
       <SelectSheet
         visible={paymentModeOpen}
