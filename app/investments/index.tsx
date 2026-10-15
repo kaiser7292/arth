@@ -26,14 +26,8 @@ import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
 import { useTheme } from "@/hooks/use-theme";
 import { consumeInvestmentsPreload } from "@/services/home-preload";
-import {
-  getInvestmentTrend,
-  getMarketTrend,
-  MARKET_PERIODS,
-  type InvestmentTrend,
-  type MarketPeriod,
-  type MarketTrend,
-} from "@/services/investment-trend";
+import { Money } from "@/components/ui/Text";
+import { getPeriodTrend, TREND_PERIODS, type PeriodTrend, type TrendPeriod } from "@/services/investment-trend";
 
 const preloaded = consumeInvestmentsPreload();
 
@@ -78,12 +72,13 @@ export default function InvestmentsListScreen() {
   );
   const [maturities, setMaturities] = useState<UpcomingFDMaturity[]>(preloaded?.maturities ?? []);
   const [loaded, setLoaded] = useState(preloaded != null);
-  const [trend, setTrend] = useState<InvestmentTrend | null>(null);
   /** null = all categories stacked; a group = that category's accounts stacked. */
   const [focus, setFocus] = useState<InvestmentGroup | null>(null);
-  /** Market only: the stretch of time the chart covers (days -> daily, months -> weekly, years -> monthly). */
-  const [period, setPeriod] = useState<MarketPeriod>("6M");
-  const [marketTrend, setMarketTrend] = useState<MarketTrend | null>(null);
+  /** How far back the chart looks (days are drawn daily, 6M weekly, years monthly). */
+  const [period, setPeriod] = useState<TrendPeriod>("6M");
+  const [trend, setTrend] = useState<PeriodTrend | null>(null);
+  /** The point under the finger while dragging along the chart; null otherwise. */
+  const [scrub, setScrub] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
@@ -102,12 +97,6 @@ export default function InvestmentsListScreen() {
     setRows(buildRows(accounts, products, values));
     setMaturities(upcoming);
     setLoaded(true);
-    // History is the slow part - the list shows first, the chart fills in.
-    try {
-      setTrend(await getInvestmentTrend(accounts, products, values));
-    } catch {
-      setTrend(null);
-    }
   }, []);
 
   useDataRefresh(load);
@@ -131,66 +120,66 @@ export default function InvestmentsListScreen() {
   );
   const viewTotal = view ? groupTotals[view] : total;
 
-  // Market over the chosen period. Reloads when the period, the accounts or their values change.
-  const marketKey = view === "market" ? viewRows.map((r) => `${r.account.id}:${r.value}`).join("|") : "";
+  // Every account's history over the chosen period - the slow part, so the list shows first and
+  // the chart fills in. Reloads when the period, the accounts or their values change.
+  const rowsKey = rows.map((r) => `${r.account.id}:${r.value}`).join("|");
   useEffect(() => {
-    if (view !== "market") return;
     let live = true;
-    getMarketTrend(
-      viewRows.map((r) => r.account.id),
-      new Map(viewRows.map((r) => [r.account.id, r.value])),
+    getPeriodTrend(
+      rows.map((r) => r.account),
+      new Map(rows.filter((r) => r.product).map((r) => [r.account.id, r.product!])),
+      new Map(rows.map((r) => [r.account.id, r.value])),
       period,
     )
-      .then((t) => live && setMarketTrend(t))
-      .catch(() => live && setMarketTrend(null));
+      .then((t) => live && setTrend(t))
+      .catch(() => live && setTrend(null));
     return () => {
       live = false;
     };
-    // viewRows is captured through marketKey (ids and values), so a re-render with the same rows doesn't refetch.
+    // rows are captured through rowsKey (ids and values), so a re-render with the same rows doesn't refetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, period, marketKey]);
-  const periodMeta = MARKET_PERIODS.find((p) => p.value === period)!;
-  /** The market chart for the selected period, once loaded for it. */
-  const marketChart = view === "market" && marketTrend?.period === period ? marketTrend : null;
+  }, [period, rowsKey]);
+  const periodMeta = TREND_PERIODS.find((p) => p.value === period)!;
+  /** The chart for the selected period, once loaded for it. */
+  const chart = trend?.period === period ? trend : null;
 
-  // Bands, bottom first. All: one per category. A category: one per account, shaded from the
-  // category's colour (biggest account darkest) so it still reads as that category.
+  // Bands, bottom first. All: one per category (its accounts summed). A category: one per
+  // account, shaded from the category's colour (biggest account darkest) so it still reads as it.
   const layers = useMemo<StackedLayer[]>(() => {
-    if (!trend) return [];
+    if (!chart) return [];
+    const zeros = chart.points.map(() => 0);
+    const valuesOf = (id: string) => chart.byAccount[id] ?? zeros;
     if (!view) {
-      return GROUP_ORDER.filter((g) => trend.byGroup[g].some((d) => d.total > 0)).map((g) => ({
-        key: g,
-        label: GROUP_META[g].label,
-        color: GROUP_META[g].color,
-        values: trend.byGroup[g].map((d) => d.total),
-      }));
+      return GROUP_ORDER.map((g) => {
+        const values = zeros.map((_, i) => rows.filter((r) => r.group === g).reduce((sum, r) => sum + valuesOf(r.account.id)[i], 0));
+        return { key: g, label: GROUP_META[g].label, color: GROUP_META[g].color, values };
+      }).filter((l) => l.values.some((v) => v > 0));
     }
     return [...viewRows].reverse().map((r) => ({
       key: r.account.id,
       label: accountName(r.account),
       color: GROUP_META[view].color,
       opacity: shadeFor(viewRows.indexOf(r)),
-      values:
-        view === "market"
-          ? marketChart?.byAccount[r.account.id] ?? []
-          : trend.byAccount[r.account.id] ?? trend.months.map(() => 0),
+      values: valuesOf(r.account.id),
     }));
-  }, [trend, view, viewRows, marketChart]);
+  }, [chart, view, viewRows, rows]);
 
-  const chartPoints = view === "market" ? marketChart?.points ?? null : trend?.months ?? null;
-
-  const change = useMemo(() => {
-    if (!chartPoints || layers.length === 0) return null;
-    const first = layers.reduce((s, l) => s + (l.values[0] ?? 0), 0);
-    return viewTotal - first;
-  }, [chartPoints, layers, viewTotal]);
-  // "in 30 days", or "since 6 Aug" when the accounts' history starts inside the period.
-  const changePhrase =
-    view !== "market"
-      ? "in 12 months"
-      : marketChart && !marketChart.coversPeriod
-        ? `since ${formatDate(marketChart.points[0])}`
-        : periodMeta.phrase;
+  const valueAt = (i: number) => layers.reduce((sum, l) => sum + (l.values[i] ?? 0), 0);
+  const start = chart && layers.length > 0 ? valueAt(0) : null;
+  // While dragging: the value on that date and the change from the period's start to it, like a
+  // stock chart. Otherwise today's value and the change over the period.
+  const scrubbing = scrub != null && chart != null && scrub < chart.points.length;
+  const shownValue = scrubbing ? valueAt(scrub!) : viewTotal;
+  const change = start == null ? null : shownValue - start;
+  const changePct = start != null && start > 0 && change != null ? (change / start) * 100 : null;
+  const pointLabel = (date: string) =>
+    chart?.unit === "month" ? new Date(date).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : formatDate(date);
+  // "past month", "since 9 Aug" when the history starts inside the period, or the dragged-to date.
+  const changePhrase = scrubbing
+    ? pointLabel(chart!.points[scrub!])
+    : chart && !chart.coversPeriod && period !== "Max"
+      ? `since ${formatDate(chart.points[0])}`
+      : periodMeta.phrase;
 
   const pct = (value: number, of: number) => (of > 0 ? Math.round((value / of) * 100) : 0);
 
@@ -216,19 +205,26 @@ export default function InvestmentsListScreen() {
           />
         ) : (
           <>
-            {/* Value over time as stacked bands (12 months; Market has its own period selector) - the top edge is the total, each
-                band's thickness its share. Tap a band, chip or legend row to see that category's
-                accounts; tap an account to open it. */}
+            {/* Value over the chosen period as stacked bands - the top edge is the total, each band's
+                thickness its share. Drag along it to read any date; tap a band, chip or legend row
+                to see that category's accounts; tap an account to open it. */}
             <Appear index={0}>
             <Card className="mx-4 mt-4">
               <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                 {view ? `${GROUP_META[view].label} value` : "Total value"}
               </Text>
-              {/* Counts up when the screen opens, glides to the category's value when you drill in. */}
-              <AnimatedNumber value={viewTotal} className="text-2xl font-bold text-foreground" />
-              {change != null && Math.abs(change) >= 1 ? (
+              {/* Counts up when the screen opens and glides to a category's value; while dragging along
+                  the chart it follows the finger exactly (no glide). */}
+              {scrubbing ? (
+                <Money value={shownValue} className="text-2xl font-bold text-foreground" />
+              ) : (
+                <AnimatedNumber value={viewTotal} className="text-2xl font-bold text-foreground" />
+              )}
+              {change != null && (Math.abs(change) >= 1 || scrubbing) ? (
                 <Text className="text-xs mt-0.5" style={{ color: change >= 0 ? theme.success : theme.danger }}>
-                  {change >= 0 ? "+" : "−"}{formatAmount(Math.abs(change))} {changePhrase}
+                  {change >= 0 ? "+" : "−"}{formatAmount(Math.abs(change))}
+                  {changePct != null ? ` (${change >= 0 ? "+" : "−"}${Math.abs(changePct).toFixed(1)}%)` : ""}
+                  <Text className="text-xs text-muted-foreground"> {changePhrase}</Text>
                 </Text>
               ) : null}
 
@@ -242,25 +238,24 @@ export default function InvestmentsListScreen() {
                 />
               )}
 
-              {/* Market: how far back to look. Days show each day, months each week, years each month. */}
-              {view === "market" && (
-                <SegmentedControl
-                  className="mt-2"
-                  accessibilityLabel="Period"
-                  options={MARKET_PERIODS.map((p) => ({ value: p.value, label: p.label }))}
-                  value={period}
-                  onChange={setPeriod}
-                />
-              )}
+              {/* How far back to look - the same ranges as a stock chart (5D to Max). */}
+              <SegmentedControl
+                className="mt-2"
+                accessibilityLabel="Period"
+                options={TREND_PERIODS.map((p) => ({ value: p.value, label: p.label }))}
+                value={period}
+                onChange={setPeriod}
+              />
 
               <View className="mt-3">
-                {chartPoints ? (
+                {chart ? (
                   <StackedAreaChart
-                    key={view === "market" ? `market-${period}` : view ?? "all"}
-                    months={chartPoints}
-                    dateLabels={view === "market" && periodMeta.unit !== "month" ? "day" : "month"}
+                    key={`${view ?? "all"}-${period}`}
+                    months={chart.points}
+                    dateLabels={chart.unit === "month" ? "month" : "day"}
                     layers={layers}
                     onLayerPress={view ? undefined : (key) => setFocus(key as InvestmentGroup)}
+                    onScrub={setScrub}
                   />
                 ) : (
                   <View className="items-center justify-center" style={{ height: 150 }}>

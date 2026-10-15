@@ -1,63 +1,59 @@
 jest.mock("../../database", () => ({ getDatabase: () => ({}) }));
 
-import { carryForward, lastNMonths, periodPoints, valuesAt } from "../../services/investment-trend";
-
-describe("lastNMonths", () => {
-  it("ends at the current month, oldest first", () => {
-    expect(lastNMonths(3, new Date(2026, 0, 15))).toEqual(["2025-11", "2025-12", "2026-01"]);
-  });
-});
-
-describe("carryForward", () => {
-  const months = ["2026-06", "2026-07", "2026-08", "2026-09"];
-
-  it("takes the latest reading on or before each month end and carries it", () => {
-    const readings = [
-      { date: "2026-07-31", value: 100 },
-      { date: "2026-07-10", value: 80 },
-      { date: "2026-09-02", value: 140 },
-    ];
-    expect(carryForward(readings, months)).toEqual([0, 100, 100, 140]);
-  });
-
-  it("is zero everywhere with no readings", () => {
-    expect(carryForward([], months)).toEqual([0, 0, 0, 0]);
-  });
-});
+import { balancesAt, periodPoints, valuesAt } from "../../services/investment-trend";
 
 describe("periodPoints", () => {
   const today = new Date(2026, 9, 13); // 13 Oct 2026
 
-  it("day periods show each day, starting the period's length ago", () => {
-    expect(periodPoints("5D", today)).toEqual(["2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13"]);
-    const d30 = periodPoints("30D", today);
-    expect(d30).toHaveLength(31);
-    expect(d30[0]).toBe("2026-09-13");
-    expect(d30[30]).toBe("2026-10-13");
+  it("5D and 1M show each day, starting the period's length ago", () => {
+    expect(periodPoints("5D", today)).toEqual({
+      dates: ["2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13"],
+      unit: "day",
+    });
+    const m1 = periodPoints("1M", today);
+    expect(m1.unit).toBe("day");
+    expect(m1.dates).toHaveLength(31);
+    expect(m1.dates[0]).toBe("2026-09-13");
+    expect(m1.dates[30]).toBe("2026-10-13");
   });
 
-  it("month periods show each week, back from today", () => {
-    const m3 = periodPoints("3M", today);
-    expect(m3).toHaveLength(14);
-    expect(m3.slice(-3)).toEqual(["2026-09-29", "2026-10-06", "2026-10-13"]);
-    expect(m3[0]).toBe("2026-07-14");
-    expect(periodPoints("6M", today)).toHaveLength(27);
+  it("6M shows each week, back from today", () => {
+    const m6 = periodPoints("6M", today);
+    expect(m6.unit).toBe("week");
+    expect(m6.dates).toHaveLength(27);
+    expect(m6.dates.slice(-2)).toEqual(["2026-10-06", "2026-10-13"]);
   });
 
   it("year periods show each month end, then today", () => {
-    expect(periodPoints("YTD", today)).toEqual([
-      "2025-12-31", "2026-01-31", "2026-02-28", "2026-03-31", "2026-04-30", "2026-05-31",
-      "2026-06-30", "2026-07-31", "2026-08-31", "2026-09-30", "2026-10-13",
-    ]);
-    const y5 = periodPoints("5Y", today);
+    expect(periodPoints("YTD", today)).toEqual({
+      dates: [
+        "2025-12-31", "2026-01-31", "2026-02-28", "2026-03-31", "2026-04-30", "2026-05-31",
+        "2026-06-30", "2026-07-31", "2026-08-31", "2026-09-30", "2026-10-13",
+      ],
+      unit: "month",
+    });
+    const y1 = periodPoints("1Y", today).dates;
+    expect(y1).toHaveLength(13);
+    expect(y1[0]).toBe("2025-10-31");
+    const y5 = periodPoints("5Y", today).dates;
     expect(y5).toHaveLength(61);
     expect(y5[0]).toBe("2021-10-31");
     expect(y5[59]).toBe("2026-09-30");
-    expect(periodPoints("10Y", today)).toHaveLength(121);
   });
 
   it("YTD in January still has a starting point", () => {
-    expect(periodPoints("YTD", new Date(2027, 0, 5))).toEqual(["2026-12-31", "2027-01-05"]);
+    expect(periodPoints("YTD", new Date(2027, 0, 5)).dates).toEqual(["2026-12-31", "2027-01-05"]);
+  });
+
+  it("Max picks daily, weekly or monthly by how far back the history goes", () => {
+    const short = periodPoints("Max", today, "2026-09-01");
+    expect(short.unit).toBe("day");
+    expect(short.dates[0]).toBe("2026-09-01");
+    expect(periodPoints("Max", today, "2026-03-01").unit).toBe("week");
+    const long = periodPoints("Max", today, "2023-05-10");
+    expect(long.unit).toBe("month");
+    expect(long.dates[0]).toBe("2023-04-30");
+    expect(long.dates[long.dates.length - 1]).toBe("2026-10-13");
   });
 });
 
@@ -72,3 +68,19 @@ describe("valuesAt", () => {
   });
 });
 
+describe("balancesAt", () => {
+  const flows = [
+    { date: "2026-07-15", amount: 1000 },
+    { date: "2026-08-15", amount: 1000 },
+    { date: "2026-09-15", amount: -500 },
+  ];
+
+  it("with no anchors, runs from zero", () => {
+    expect(balancesAt(flows, [], ["2026-07-01", "2026-07-31", "2026-08-31", "2026-09-30"])).toEqual([0, 1000, 2000, 1500]);
+  });
+
+  it("adds flows since an anchor's month began, and works back before the first anchor", () => {
+    const anchors = [{ month: "2026-08", opening: 50000 }];
+    expect(balancesAt(flows, anchors, ["2026-07-10", "2026-07-31", "2026-08-31", "2026-09-30"])).toEqual([49000, 50000, 51000, 50500]);
+  });
+});

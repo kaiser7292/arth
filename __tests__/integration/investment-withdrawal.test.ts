@@ -362,13 +362,14 @@ describe("withdrawing more than the idle cash (Zebpay case)", () => {
   });
 });
 
-describe("market chart over a period", () => {
+describe("investments chart over a period", () => {
   it("values each date from snapshots, ends on today's value, and starts where history starts", async () => {
-    const { getMarketTrend } = await import("../../services/investment-trend");
+    const { getPeriodTrend } = await import("../../services/investment-trend");
+    const accounts = [{ id: DEMAT, account_type: "demat" }];
     const today = new Date(2026, 9, 13);
     await addOrUpdateFundSnapshot(DEMAT, "2026-10-10", 180000);
 
-    const d30 = await getMarketTrend([DEMAT], new Map([[DEMAT, 185000]]), "30D", today);
+    const d30 = await getPeriodTrend(accounts, new Map(), new Map([[DEMAT, 185000]]), "1M", today);
     expect(d30.points).toHaveLength(31);
     expect(d30.coversPeriod).toBe(true);
     expect(d30.byAccount[DEMAT][0]).toBe(200000); // 13 Sep: the 1 Sep snapshot carried forward
@@ -376,9 +377,26 @@ describe("market chart over a period", () => {
     expect(d30.byAccount[DEMAT][30]).toBe(185000); // today: the live value
 
     // Five years back there was nothing: the chart starts at the first month end with a value.
-    const y5 = await getMarketTrend([DEMAT], new Map([[DEMAT, 185000]]), "5Y", today);
+    const y5 = await getPeriodTrend(accounts, new Map(), new Map([[DEMAT, 185000]]), "5Y", today);
     expect(y5.points).toEqual(["2026-09-30", "2026-10-13"]);
     expect(y5.coversPeriod).toBe(false);
+  });
+
+  it("values a pension account from its flows, matching the ledger balance", async () => {
+    const { getPeriodTrend } = await import("../../services/investment-trend");
+    const { addCredit } = await import("../../services/account-credit");
+    const today = new Date(2026, 9, 13);
+    const EPF = await createManualAccount({ userId: U, bankName: "EPFO", accountType: "pension", accountIdentifier: "UAN1" });
+    await createTransfer({ userId: U, fromAccountId: SBI, toAccountId: EPF, amount: 5000, date: "2026-09-20" });
+    await addCredit({ accountId: EPF, userId: U, amount: 1200, description: "Interest", date: "2026-10-05" });
+    const live = await computeUnseededBalance(EPF, "2026-10");
+
+    const m1 = await getPeriodTrend([{ id: EPF, account_type: "pension" }], new Map(), new Map(), "1M", today);
+    expect(m1.points[0]).toBe("2026-09-20"); // starts at the first money in
+    expect(m1.coversPeriod).toBe(false);
+    expect(m1.byAccount[EPF][0]).toBe(5000);
+    expect(m1.byAccount[EPF][m1.points.length - 1]).toBe(6200);
+    expect(live.closing).toBe(6200);
   });
 });
 

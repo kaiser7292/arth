@@ -1,6 +1,8 @@
-import { memo, useState } from "react";
-import { Pressable, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
-import Svg, { G, Line, Path } from "react-native-svg";
+import { memo, useRef, useState } from "react";
+import { View, type LayoutChangeEvent } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import * as Haptics from "expo-haptics";
+import Svg, { Circle, G, Line, Path } from "react-native-svg";
 import { Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import { GrowIn } from "@/components/motion/Entrances";
@@ -30,6 +32,12 @@ interface StackedAreaChartProps {
   layers: StackedLayer[];
   /** Tapping a band calls this (drill-down). Without it, a tap shows that month's values. */
   onLayerPress?: (key: string) => void;
+  /**
+   * Dragging a finger along the chart (like a stock chart) reports the point under it, and null
+   * when the finger lifts - so the screen can show that date's value in its header. Without it,
+   * the values show in a panel under the chart while dragging.
+   */
+  onScrub?: (index: number | null) => void;
   height?: number;
 }
 
@@ -74,13 +82,19 @@ export function chartHit(
 
 /**
  * Stacked area chart: bands sit on top of each other, so the top edge is the total and each band's
- * thickness is its share. Tap a band to drill in (onLayerPress), or tap anywhere for that month's
- * numbers when there's nothing to drill into.
+ * thickness is its share.
+ *
+ * Touch, like a stock chart: drag sideways along it and a line follows the finger, with a dot on
+ * the total and the date at the top, ticking (light haptic) from point to point; lifting the
+ * finger clears it. Vertical drags still scroll the page. A tap drills into a band (onLayerPress),
+ * or shows that point's numbers when there's nothing to drill into.
  */
-function StackedAreaChartBase({ months, layers, onLayerPress, height = 150, dateLabels = "month" }: StackedAreaChartProps) {
+function StackedAreaChartBase({ months, layers, onLayerPress, onScrub, height = 150, dateLabels = "month" }: StackedAreaChartProps) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
+  const [scrub, setScrub] = useState<number | null>(null);
+  const scrubRef = useRef<number | null>(null);
 
   const n = months.length;
   const totals = months.map((_, i) => layers.reduce((s, l) => s + Math.max(l.values[i] ?? 0, 0), 0));
@@ -98,8 +112,8 @@ function StackedAreaChartBase({ months, layers, onLayerPress, height = 150, date
     base = top;
   }
 
-  const onPress = (e: GestureResponderEvent) => {
-    const hit = chartHit(months, layers, width, height, e.nativeEvent.locationX, e.nativeEvent.locationY);
+  const onTap = (px: number, py: number) => {
+    const hit = chartHit(months, layers, width, height, px, py);
     if (!hit) return;
     if (onLayerPress && hit.layerKey) {
       setSelected(null);
@@ -108,6 +122,38 @@ function StackedAreaChartBase({ months, layers, onLayerPress, height = 150, date
     }
     setSelected((prev) => (prev === hit.index ? null : hit.index));
   };
+
+  const scrubTo = (px: number) => {
+    const hit = chartHit(months, layers, width, height, px, 0);
+    if (!hit || hit.index === scrubRef.current) return;
+    scrubRef.current = hit.index;
+    setScrub(hit.index);
+    setSelected(null);
+    onScrub?.(hit.index);
+    Haptics.selectionAsync().catch(() => {});
+  };
+  const endScrub = () => {
+    if (scrubRef.current == null) return;
+    scrubRef.current = null;
+    setScrub(null);
+    onScrub?.(null);
+  };
+
+  // Sideways drag scrubs; a vertical move fails it so the page scrolls; a quick touch is a tap.
+  const pan = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-6, 6])
+    .failOffsetY([-12, 12])
+    .onStart((e) => scrubTo(e.x))
+    .onUpdate((e) => scrubTo(e.x))
+    .onFinalize(endScrub);
+  const tap = Gesture.Tap()
+    .runOnJS(true)
+    .maxDuration(300)
+    .onEnd((e, success) => {
+      if (success) onTap(e.x, e.y);
+    });
+  const gesture = Gesture.Exclusive(pan, tap);
 
   if (n === 0 || max <= 0) {
     return (
@@ -118,12 +164,17 @@ function StackedAreaChartBase({ months, layers, onLayerPress, height = 150, date
   }
 
   const labelIdx = n <= 2 ? months.map((_, i) => i) : [0, Math.round((n - 1) / 2), n - 1];
+  const panel = selected ?? (onScrub ? null : scrub);
 
   return (
     <View>
+      <GestureDetector gesture={gesture}>
       <View
         onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}
         style={{ height }}
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={onLayerPress ? "Chart. Drag across for values, tap a band to see its accounts" : "Chart. Drag across for values"}
       >
         {width > 0 && (
           <>
@@ -166,7 +217,7 @@ function StackedAreaChartBase({ months, layers, onLayerPress, height = 150, date
             })}
             <Svg width={width} height={height} style={{ position: "absolute" }}>
               <Line x1={0} x2={width} y1={height - PAD_BOTTOM} y2={height - PAD_BOTTOM} stroke={theme.border} strokeWidth={1} />
-              {selected != null && (
+              {selected != null && scrub == null && (
                 <Line
                   x1={x(selected)}
                   x2={x(selected)}
@@ -177,20 +228,30 @@ function StackedAreaChartBase({ months, layers, onLayerPress, height = 150, date
                   strokeDasharray="3,3"
                 />
               )}
+              {scrub != null && scrub < n && (
+                <>
+                  <Line x1={x(scrub)} x2={x(scrub)} y1={16} y2={height - PAD_BOTTOM} stroke={theme.foreground} strokeWidth={1} />
+                  <Circle cx={x(scrub)} cy={y(totals[scrub])} r={5} fill={theme.primary} stroke={theme.card} strokeWidth={2} />
+                </>
+              )}
             </Svg>
           </>
         )}
-        <Pressable
-          onPress={onPress}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-          accessibilityRole="button"
-          accessibilityLabel={onLayerPress ? "Chart. Tap a band to see its accounts" : "Chart. Tap for a month's values"}
-        />
         {/* Gridline values, top-left so they don't fight the bands. */}
         <Text className="text-label text-faint-foreground" style={{ position: "absolute", left: 2, top: y(max) - 14 }} pointerEvents="none">
           {formatCompact(max)}
         </Text>
+        {/* While dragging: the date, riding on top of the line (kept inside the chart's edges). */}
+        {scrub != null && scrub < n && width > 0 && (
+          <View
+            pointerEvents="none"
+            style={{ position: "absolute", top: 0, left: Math.max(0, Math.min(x(scrub) - 30, width - 60)), width: 60, alignItems: "center" }}
+          >
+            <Text className="text-label font-semibold text-foreground">{monthLabel(months[scrub], dateLabels)}</Text>
+          </View>
+        )}
       </View>
+      </GestureDetector>
 
       <View className="flex-row justify-between mt-1">
         {labelIdx.map((i) => (
@@ -200,14 +261,14 @@ function StackedAreaChartBase({ months, layers, onLayerPress, height = 150, date
         ))}
       </View>
 
-      {selected != null && selected < n && (
+      {panel != null && panel < n && (
         <View className="mt-2 rounded-lg px-3 py-2" style={{ backgroundColor: theme.alpha("foreground", 0.05) }}>
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs font-semibold text-foreground">{monthLabel(months[selected], dateLabels)}</Text>
-            <Text className="text-xs font-semibold text-foreground">{formatAmount(totals[selected])}</Text>
+            <Text className="text-xs font-semibold text-foreground">{monthLabel(months[panel], dateLabels)}</Text>
+            <Text className="text-xs font-semibold text-foreground">{formatAmount(totals[panel])}</Text>
           </View>
           {[...bands].reverse().map(({ layer }) => {
-            const v = layer.values[selected] ?? 0;
+            const v = layer.values[panel] ?? 0;
             if (v <= 0) return null;
             return (
               <View key={layer.key} className="flex-row items-center mt-0.5">
