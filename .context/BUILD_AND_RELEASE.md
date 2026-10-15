@@ -12,6 +12,9 @@
 4. Run expo prebuild (applies config plugins)
 5. Run Gradle assembleRelease
 6. Create GitHub release and upload APK
+7. MINOR releases (and notable PATCH ones): add an entry at the top of docs/whats-new.html
+   in plain language - the release notes, minus fixes nobody would notice. Pushing docs/
+   to master publishes souravbaid.com.
 ```
 
 ### Version Bump Rules

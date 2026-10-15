@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Legal · Arth</title>
 <link rel="icon" href="/favicon.png" type="image/png">
@@ -6,6 +9,9 @@
 <meta name="description" content="Privacy Policy and Terms of Use for Arth, the private personal finance app for Android.">
 <meta name="robots" content="index, follow">
 
+<link rel="canonical" href="https://souravbaid.com/legal">
+<link rel="stylesheet" href="/site.css">
+<script>document.documentElement.classList.add('js')</script>
 <style>
 :root {
   --brand:       #134E4A;
@@ -82,26 +88,58 @@ footer{background:var(--dark-bg);padding-block:24px}
 .ft-cp{font-size:.75rem;color:var(--dark-muted)}
 
 @media(max-width:500px){.w{padding-inline:18px}}
+/* header and footer keep the site-wide width; only the document column is narrow */
+nav .w,footer .w{max-width:1080px}
 </style>
+</head>
+<body>
 
+<a href="#main" class="skip">Skip to content</a>
 <!-- NAV -->
-<nav>
-  <div class="w" style="max-width:1080px">
-    <div class="nav-r">
-      <a href="/" class="logo">
-        <img src="/favicon.png" alt="Arth" class="logo-m">
-        <span class="logo-n">Arth</span>
+<nav id="main-nav">
+  <div class="w nav-r">
+    <button class="ham-btn" id="ham-btn" aria-label="Open menu" aria-expanded="false" aria-controls="mob-menu">
+      <span class="ham-icon"><span></span><span></span><span></span></span>
+    </button>
+    <a href="/" class="logo" aria-label="Arth home">
+      <img src="/favicon.png" alt="" class="logo-m" width="34" height="34">
+      <span class="logo-n">Arth</span>
+    </a>
+    <div class="nav-links">
+      <a href="/features" class="nav-link">Features</a>
+      <a href="/whats-new" class="nav-link">What's new</a>
+      <a href="/faq" class="nav-link">FAQ</a>
+      <a href="/legal#privacy" class="nav-link" aria-current="page">Privacy</a>
+      <a href="/contact" class="nav-link">Contact</a>
+    </div>
+    <a href="/#early-access" class="btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3.6v16.8a1 1 0 0 0 1.52.85l13.7-8.4a1 1 0 0 0 0-1.7L6.52 2.75A1 1 0 0 0 5 3.6z"/></svg>
+      Get early access
+    </a>
+  </div>
+  <div class="mob-menu" id="mob-menu">
+    <div class="w">
+      <a href="/features" class="mob-link">Features
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
       </a>
-      <a href="/" class="back-link">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        Back to home
+      <a href="/whats-new" class="mob-link">What's new
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+      <a href="/faq" class="mob-link">FAQ
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+      <a href="/legal#privacy" class="mob-link" aria-current="page">Privacy
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+      <a href="/contact" class="mob-link">Contact
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
       </a>
     </div>
   </div>
 </nav>
 
 <!-- PAGE HEADER -->
-<div class="w">
+<div class="w" id="main">
   <div class="page-header">
     <div class="page-lbl">Legal</div>
     <h1 class="page-h">Privacy Policy &amp; Terms of Use</h1>
@@ -210,23 +248,28 @@ footer{background:var(--dark-bg);padding-block:24px}
 
 <!-- FOOTER -->
 <footer>
-  <div class="w" style="max-width:1080px">
+  <div class="w">
     <div class="ft">
       <div class="ft-br">
-        <img src="/favicon.png" alt="Arth" class="logo-m">
+        <img src="/favicon.png" alt="" class="logo-m" width="34" height="34">
         <div>
           <div class="ft-n">Arth</div>
           <div class="ft-t">Your finances. Your way.</div>
         </div>
       </div>
       <div class="ft-lk">
-        <a href="/#features">Features</a>
-        <a href="/design-system">Design System</a>
+        <a href="/features">Features</a>
+        <a href="/whats-new">What's new</a>
+        <a href="/faq">FAQ</a>
         <a href="/legal#privacy">Privacy Policy</a>
         <a href="/legal#terms">Terms of Use</a>
-        <a href="/#contact">Contact</a>
+        <a href="/contact">Contact</a>
+        <a href="/design-system">Design System</a>
       </div>
     </div>
-    <p class="ft-cp">© 2026 Sourav Baid · Arth is a personal project and is not affiliated with any financial institution.</p>
+    <p class="ft-cp">© 2026 Sourav Baid · Arth is a personal project and is not affiliated with any financial institution. App screens show sample data.</p>
   </div>
 </footer>
+<script src="/site.js" defer></script>
+</body>
+</html>

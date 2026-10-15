@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+# Planning notes live in this folder too; keep them out of search results.
+Disallow: /*.md$
+Disallow: /internal/
+Disallow: /audit/
+Disallow: /MVP/
+Disallow: /V*/
+
+Sitemap: https://souravbaid.com/sitemap.xml
