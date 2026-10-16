@@ -221,7 +221,6 @@ function SingleExpenseBody({
   onAddPerson: (name: string) => Promise<string | null>;
 }) {
   const theme = useTheme();
-  const [showSms, setShowSms] = useState(false);
   const [draft, setDraft] = useState(expense.description ?? "");
   // A fresh card starts from its own description.
   useEffect(() => {
@@ -384,26 +383,6 @@ function SingleExpenseBody({
         </Pressable>
       )}
 
-      {expense.raw_source_text ? (
-        <View className="mt-4">
-          <Pressable
-            onPress={() => setShowSms((v) => !v)}
-            className="flex-row items-center"
-            style={{ minHeight: 40 }}
-            accessibilityRole="button"
-          >
-            <Ionicons name={showSms ? "chevron-down" : "chevron-forward"} size={16} color={theme.mutedForeground} />
-            <Text className="text-sm font-medium text-muted-foreground ml-1.5">
-              {showSms ? "Hide original SMS" : "Show original SMS"}
-            </Text>
-          </Pressable>
-          {showSms && (
-            <View className="mt-1 rounded-lg px-3 py-2.5" style={{ backgroundColor: theme.alpha("foreground", 0.04) }}>
-              <Text className="text-xs text-muted-foreground">{expense.raw_source_text}</Text>
-            </View>
-          )}
-        </View>
-      ) : null}
     </View>
   );
 }

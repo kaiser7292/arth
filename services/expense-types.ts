@@ -19,6 +19,8 @@ export interface Expense {
   account_id: string | null;
   refund_of_expense_id: string | null;
   raw_source_text: string | null;
+  /** Who sent the message this came from (migration 048). */
+  source_sms_address?: string | null;
   split_original_amount: number | null;
   split_person_id: string | null;
   split_pct: number | null;

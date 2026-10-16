@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, View } from "react-native";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { CatchUpCardView } from "@/components/expense/catch-up/CatchUpCardView";
+import { formatDateForDisplay } from "@/utils/expense-validation";
 import { CatchUpDone } from "@/components/expense/catch-up/CatchUpDone";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { SwipeDeck, type SwipeDeckHandle } from "@/components/expense/catch-up/SwipeDeck";
-import { Button, Card, LoadingState, ScreenContainer, SelectSheet, Text, useToast } from "@/components/ui";
+import { Button, Card, LoadingState, ScreenContainer, SelectSheet, Sheet, Text, useToast } from "@/components/ui";
 import type { FooterAction } from "@/components/check-in/CheckInDeck";
 import { DeckFooter, DeckProgress } from "@/components/check-in/CheckInDeck";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -109,6 +110,8 @@ export default function CatchUpScreen() {
   const [ccPickerOpen, setCcPickerOpen] = useState(false);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const [merchantOpen, setMerchantOpen] = useState(false);
+  /** The transaction whose original message is showing in the drawer. */
+  const [messageFor, setMessageFor] = useState<Expense | null>(null);
   const [paymentModeOpen, setPaymentModeOpen] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
@@ -775,6 +778,10 @@ export default function CatchUpScreen() {
       onPress: () => void openCard(card.expense.id),
     });
   }
+  if ((card.kind === "pending" || card.kind === "uncategorized") && card.expense.raw_source_text) {
+    const e = card.expense;
+    cardActions.push({ label: "Original message", icon: "chatbubble-ellipses-outline", onPress: () => setMessageFor(e) });
+  }
   if (eventMeta) {
     cardActions.push({ label: eventMeta.dismissAction, icon: "checkmark-circle-outline", onPress: dismissMoneyEvent });
   }
@@ -839,7 +846,7 @@ export default function CatchUpScreen() {
           onSwipeLeft={skip}
           rightNeedsInput={needsInput}
           rightLabel={primaryLabel}
-          enabled={!picker && !ccPickerOpen && !descriptionOpen && !merchantOpen && !splitOpen && !paymentModeOpen}
+          enabled={!picker && !ccPickerOpen && !descriptionOpen && !merchantOpen && !messageFor && !splitOpen && !paymentModeOpen}
           fill
         >
           <CatchUpCardView
@@ -886,6 +893,19 @@ export default function CatchUpScreen() {
         primaryLabel={primaryLabel}
         onPrimary={() => (swipeRef.current ? swipeRef.current.fling("right") : primary())}
       />
+
+      {/* Just the message it came from: who sent it, when, and the text. */}
+      <Sheet visible={messageFor != null} onClose={() => setMessageFor(null)}>
+        {messageFor && (
+          <View className="px-5 pb-6">
+            <Text className="text-base font-semibold text-foreground">{messageFor.source_sms_address || "Message"}</Text>
+            <Text className="text-xs text-muted-foreground mt-0.5">{formatDateForDisplay(messageFor.date)}</Text>
+            <Text className="text-sm text-foreground leading-6 mt-3" selectable>
+              {messageFor.raw_source_text}
+            </Text>
+          </View>
+        )}
+      </Sheet>
 
       <CategoryPickerSheet
         visible={picker != null}
