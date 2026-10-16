@@ -10,7 +10,7 @@ phrasings:
   - Custom SMS parsing
   - Add support for my bank
   - Arth is missing my bank's transactions
-  - Smart SMS Templates
+  - Message templates
   - Bank not supported
   - Tag SMS fields
   - Auto-tag SMS
@@ -34,11 +34,11 @@ Arth ships with parsers for ~30 Indian banks. If your bank isn't in that list - 
 
 ## Where to find it
 
-**Settings tab → Automation → Smart SMS Templates.**
+**Settings tab → Transactions → Transaction Messages → Message templates.**
 
 The list shows any templates you've built. The **Browse unrecognised SMS** row is always at the top - it tells you how many recent SMS Arth couldn't read (or confirms none are pending). Tap it to teach any of them.
 
-Shortcut: the same browser is also reachable from **Settings tab → SMS Detection** when there are unrecognised SMS waiting - a row appears at the bottom of that card.
+Shortcut: the same browser is also reachable from **Settings tab → Transactions → Transaction Messages** when there are unrecognised SMS waiting - a row appears at the bottom of that card.
 
 ## How it works
 
@@ -53,8 +53,8 @@ No code, no cloud, no AI. You tell Arth where the fields live.
 Two ways in:
 
 - **Automatic** - Arth collects SMS it couldn't parse. Tap **Browse unrecognised SMS** from the Smart Templates list. The Unrecognised screen groups messages **by sender** (e.g. `SBIINB · 12 messages`). Tap **Teach this sender** - Arth starts from the newest message and offers the others as extra examples. If you already have a template for that sender, a **Close to your … template - add as an example** link opens it with the new message added. Has a search box (sender + body); untick **Group by sender** to see every message.
-- **How far back** - Smart SMS Templates → **Read past messages from**: last 30 / 90 / 180 days or last year (default 90 days). It sets both the Unrecognised list and how far back a new template reads.
-- **Manual** - copy an SMS from your Messages app, then tap the **+** button on Smart SMS Templates and paste it.
+- **How far back** - Message templates → **Read past messages from**: last 30 / 90 / 180 days or last year (default 90 days). It sets both the Unrecognised list and how far back a new template reads.
+- **Manual** - copy an SMS from your Messages app, then tap the **+** button on Message templates and paste it.
 
 ### Step 2 - Resume or start fresh
 

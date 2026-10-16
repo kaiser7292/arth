@@ -23,7 +23,7 @@ Bank SMS often encode merchant names with payment-processor codes - `PYU*Swiggy 
 
 ## Where to find aliases
 
-- **Settings tab → Automation → Merchant Aliases** - the full list. Search, edit, delete.
+- **Settings tab → Transactions → Merchants** - the full list. Search, edit, delete.
 - On any expense, tap the **Merchant** row to rename that expense's merchant directly.
 
 ## Rename from an expense
@@ -47,7 +47,7 @@ The mapping is saved. Next time the same raw string arrives via SMS, it's rename
 
 ## Manage the alias list
 
-**Settings tab → Automation → Merchant Aliases:**
+**Settings tab → Transactions → Merchants:**
 
 - Search by clean name or raw source.
 - Tap a row to edit the clean name.
@@ -58,7 +58,7 @@ The mapping is saved. Next time the same raw string arrives via SMS, it's rename
 
 **Amazon Pay showing as two separate merchants.** Uber sends both `UBER*rides` and `UBER*food` - these are different *services*, so you usually want them distinct. Rename one to "Uber Rides" and the other to "Uber Eats". Each gets its own clean name + category history.
 
-**Rename didn't apply to my old expenses.** You tapped "No" on the apply-to-past prompt. Go to **Settings tab → Automation → Merchant Aliases → tap the alias → Apply to past** to back-fill now.
+**Rename didn't apply to my old expenses.** You tapped "No" on the apply-to-past prompt. Go to **Settings tab → Transactions → Merchants → tap the alias → Apply to past** to back-fill now.
 
 **Merchant is renamed but the category is still wrong.** Renaming is independent from category. After renaming, correct the category too. After **three** category corrections for the same merchant, Arth learns and auto-categorizes future expenses from that merchant.
 

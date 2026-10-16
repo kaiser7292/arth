@@ -23,7 +23,7 @@ When you turn on SMS detection, Arth reads bank / UPI SMS on your phone and turn
 
 ## Where to find SMS settings
 
-**Settings tab → SMS Detection.**
+**Settings tab → Transactions → Transaction Messages.**
 
 The screen has:
 
@@ -81,23 +81,23 @@ With **New Transactions** turned on in Settings tab → Preferences & Security �
 
 **Some SMS from my bank are never picked up.** A few possible reasons:
 
-1. The sender code might not be in the allowlist. Paste the full SMS header into Settings tab → SMS Detection → Test a Sample to check.
-2. The SMS body format is unusual (template changed). Teach Arth the new format using [Smart SMS Templates](smart-sms-templates), or add a smart rule as a workaround.
+1. The sender code might not be in the allowlist. Paste the full SMS header into Settings tab → Transactions → Transaction Messages → Test a Sample to check.
+2. The SMS body format is unusual (template changed). Teach Arth the new format using [Message templates](smart-sms-templates), or add a smart rule as a workaround.
 3. The SMS date is outside your scanning window (default: last 180 days).
 
 **A parsed SMS got the merchant wrong.** Open the pending expense in Review Queue → tap **Merchant** → rename → Save. Apply to past if you want history cleaned.
 
-**Turn off SMS entirely.** Settings tab → SMS Detection → master toggle off. Everything still works manually. Existing pending SMS stay in Review Queue until you approve or reject.
+**Turn off SMS entirely.** Settings tab → Transactions → Transaction Messages → master toggle off. Everything still works manually. Existing pending SMS stay in Review Queue until you approve or reject.
 
 **My credit card balance is stale even though I made purchases.** The purchase SMS may not have contained a balance. Arth flags the auto-detected balance as "stale" and uses the ledger-computed value instead. The Balance Source Card on the account-detail screen explains which number is in use.
 
-**I want to rescan old SMS after installing.** Settings tab → SMS Detection → **Scan Now**. Scans within the configured date range.
+**I want to rescan old SMS after installing.** Settings tab → Transactions → Transaction Messages → **Scan Now**. Scans within the configured date range.
 
 ## My bank isn't being detected
 
 Arth ships parsers for ~30 Indian banks. If yours isn't on the list - or the format is unusual - you can teach Arth how to read it in a minute. See [Teach Arth to read any bank's SMS](smart-sms-templates).
 
-You can also send the message to the developer so a future update reads it for everyone: **Settings → SMS Scan Runs** (or **Smart SMS Templates → Unrecognised**), tap the message, then **Send to developer**. Names, account numbers, balances and reference numbers are hidden first, you can edit the text, and it goes from your own email app - Arth sends nothing itself.
+You can also send the message to the developer so a future update reads it for everyone: **Settings → Transaction Messages → Scan history** (or **Message templates → Unrecognised**), tap the message, then **Send to developer**. Names, account numbers, balances and reference numbers are hidden first, you can edit the text, and it goes from your own email app - Arth sends nothing itself.
 
 ## Your first scan
 
@@ -110,4 +110,4 @@ When you turn SMS on during setup, Arth asks how far back to read (1, 3 or 6 mon
 - [Fixing merchant names](merchant-aliases)
 - [Privacy and offline-first](privacy-offline)
 - [Auto-categorize with smart rules](smart-rules)
-- [Smart SMS Templates](smart-sms-templates)
+- [Message templates](smart-sms-templates)

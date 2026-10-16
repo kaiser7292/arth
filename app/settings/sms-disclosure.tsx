@@ -6,7 +6,7 @@ import { useAlert } from "@/hooks/use-alert";
 import { acceptSmsDisclosure, enableSmsDetection } from "@/services/sms/sms-permissions";
 import { logger } from "@/utils/logger";
 
-/** Full-screen SMS disclosure opened from the Settings "Read bank SMS" toggle. */
+/** Full-screen SMS disclosure opened from the Transaction Messages "Read transaction messages" switch. */
 export default function SmsDisclosureScreen() {
   const router = useRouter();
   const alert = useAlert();

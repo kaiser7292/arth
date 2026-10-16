@@ -77,10 +77,10 @@ The `.arth` backup file uses **AES-256-GCM** with a key derived from your passwo
 
 ## What you control
 
-- **Turn off SMS** anytime from Settings tab → SMS Detection.
+- **Turn off SMS** anytime from Settings tab → Transactions → Transaction Messages.
 - **Disconnect a broker** from its screen under Settings tab → Integrations.
-- **Delete individual expenses** - from the Transactions tab or the expense screen. They move to the Recycle Bin (Settings tab → Backup & Storage → Recycle Bin).
-- **Delete by time range** - Settings tab → Backup & Storage → Clean Up Data. Pick a scope (Today / This Week / This Month / Quarter / Everything / Custom) and what types of data to remove.
+- **Delete individual expenses** - from the Transactions tab or the expense screen. They move to the Recycle Bin (Settings tab → Backup and Data → Recycle bin).
+- **Delete by time range** - Settings tab → Backup and Data → Permanently delete data. Pick a scope (Today / This Week / This Month / Quarter / Everything / Custom) and what types of data to remove.
 - **Uninstall the app** → everything on the phone goes with it.
 
 ## Related

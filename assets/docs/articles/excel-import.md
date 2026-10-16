@@ -80,7 +80,7 @@ All imported rows are saved **as approved transactions** - they do **not** go th
 
 There's no one-click undo for a bulk import. Your options:
 
-- If the import is wildly wrong, use **Settings tab → Backup & Storage → Clean Up Data → pick a date range** to bulk-delete everything you just imported.
+- If the import is wildly wrong, use **Settings tab → Backup and Data → Permanently delete data → pick a date range** to bulk-delete everything you just imported.
 - For individual rows, standard delete works - they go to the recycle bin for 30 days.
 
 ## Common situations

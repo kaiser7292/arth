@@ -1,5 +1,5 @@
 ---
-title: SMS Scan Runs
+title: Transaction Messages → Scan history
 slug: sms-scan-runs
 summary: Review the history of every SMS scan Arth has run — what was found, what was skipped, and why.
 tags: [SMS scan, scan runs, scan history, bank SMS, template, filtered, unrecognized, skipped, OTP, SMS pipeline, diagnose]
@@ -22,7 +22,7 @@ phrasings:
   - Diagnose missing transaction
 ---
 
-**SMS Scan Runs** (Settings → SMS → Scan Runs) shows a log of every scan Arth has run on your bank SMS messages — what it found, what it created, and why anything was ignored.
+**Transaction Messages → Scan history** (Settings → Transactions → Transaction Messages → Scan history) shows a log of every scan Arth has run on your bank SMS messages — what it found, what it created, and why anything was ignored.
 
 This screen is useful when an expected transaction did not show up after a scan, or when you want to understand exactly how a particular SMS was handled.
 
@@ -38,7 +38,7 @@ Inside a scan run, messages are grouped into five categories:
 
 **Bank Pattern Matches** — messages that were recognised by Arth's built-in bank parsers (covers most major private and public sector banks). These produced an expense or credit in the review queue.
 
-**Template Matches** — messages recognised by one of your custom Smart SMS Templates. These also produced an expense or credit in the review queue.
+**Template Matches** — messages recognised by one of your custom Message templates. These also produced an expense or credit in the review queue.
 
 **Filtered Out** — messages that were matched by a parser or template but excluded because they belong to an account you did not include in this scan (for example, you ran a scan for one specific account and the SMS belonged to a different account).
 
@@ -77,6 +77,6 @@ Inside a scan run, the hardware back button navigates through view levels in ord
 
 ## Related
 
-- Write a parser for an unrecognised bank: [Smart SMS Templates](smart-sms-templates)
+- Write a parser for an unrecognised bank: [Message templates](smart-sms-templates)
 - Manage which accounts are scanned: [Setting up your accounts](accounts)
 - Review and approve detected transactions: [Review queue](review-queue)

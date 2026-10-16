@@ -66,7 +66,7 @@ Settings tab → Data Management → Categories → tap it → **Delete**. If an
 To avoid false learning from one-off merchants, Arth needs three corrections for the same merchant name before learning. Smart rules are the faster path - set an explicit rule once and it applies forever.
 
 **"A merchant has two categories because the name varies (SWIGGY, Swiggy Food, PYU*SWIGGY)."**
-Clean this up with merchant aliases: Settings tab → Automation → Merchant Aliases. Link all variants to one clean name. Then categorization learns against the clean name.
+Clean this up with merchant aliases: Settings tab → Transactions → Merchants. Link all variants to one clean name. Then categorization learns against the clean name.
 
 **"Import wasn't categorized."**
 Excel import doesn't run smart rules by default (adjustable per row). After importing, use the bulk-assign flow in the Review Queue → Uncategorized.

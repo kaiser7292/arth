@@ -180,8 +180,8 @@ export default function SmartSmsTemplatesListScreen() {
                     </Text>
                     <Text className="text-xs text-faint-foreground mt-0.5">
                       {unrecognisedCount > 0
-                        ? `Last ${backlogDays} days of bank SMS that didn't parse. Tap any to teach Arth.`
-                        : `Arth has read every bank SMS from the last ${backlogDays} days.`}
+                        ? `Last ${backlogDays} days of transaction messages Arth couldn't read. Tap any to teach Arth.`
+                        : `Arth has read every transaction message from the last ${backlogDays} days.`}
                     </Text>
                   </View>
                   <Ionicons

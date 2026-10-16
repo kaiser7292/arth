@@ -21,14 +21,17 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
       <Stack.Screen name="calendar-sync" options={{ title: "Calendar sync" }} />
       <Stack.Screen name="home-cards" options={{ title: "Home Cards" }} />
-      <Stack.Screen name="merchant-aliases" options={{ title: "Merchant Aliases" }} />
-      <Stack.Screen name="self-names" options={{ title: "Your Name in Bank SMS" }} />
+      <Stack.Screen name="transaction-messages" options={{ title: "Transaction Messages" }} />
+      <Stack.Screen name="merchants" options={{ title: "Merchants" }} />
+      <Stack.Screen name="merchant-detail" options={{ title: "Merchant" }} />
+      <Stack.Screen name="backup-data" options={{ title: "Backup and Data" }} />
+      <Stack.Screen name="clean-up" options={{ title: "Permanently Delete Data" }} />
       <Stack.Screen name="merchant-categories" options={{ title: "Merchant Categories" }} />
       <Stack.Screen name="account-master" options={{ title: "Accounts" }} />
       <Stack.Screen name="account-detail" options={{ title: "Account" }} />
       <Stack.Screen name="account-add" options={{ title: "Add Account" }} />
       <Stack.Screen name="recycle-bin" options={{ title: "Recycle Bin" }} />
-      <Stack.Screen name="dismissed-duplicates" options={{ title: "Dismissed Duplicates" }} />
+      <Stack.Screen name="dismissed-duplicates" options={{ title: "Duplicates You Kept" }} />
       <Stack.Screen name="recurring-rules" options={{ title: "Reminders" }} />
       <Stack.Screen name="recurring-rule-detail" options={{ title: "Reminder" }} />
       <Stack.Screen name="audit-log" options={{ title: "Audit Log" }} />
@@ -42,14 +45,14 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="zebpay-connect-credentials" options={{ title: "Zebpay Credentials" }} />
       <Stack.Screen name="smart-rules/index" options={{ title: "Smart Rules" }} />
       <Stack.Screen name="smart-rules/[id]" options={{ title: "Rule" }} />
-      <Stack.Screen name="sms-templates/index" options={{ title: "Smart SMS Templates" }} />
+      <Stack.Screen name="sms-templates/index" options={{ title: "Message Templates" }} />
       <Stack.Screen name="sms-templates/new" options={{ title: "Teach Arth" }} />
       <Stack.Screen name="sms-templates/tag" options={{ title: "Tag Fields" }} />
       <Stack.Screen name="sms-templates/[id]" options={{ title: "Template" }} />
-      <Stack.Screen name="sms-templates/unrecognised" options={{ title: "Unrecognised SMS" }} />
+      <Stack.Screen name="sms-templates/unrecognised" options={{ title: "Unread Messages" }} />
       <Stack.Screen name="sms-templates/matches/[id]" options={{ title: "Matched SMS" }} />
-      <Stack.Screen name="sms-scan-runs" options={{ title: "SMS Scan Runs" }} />
-      <Stack.Screen name="sms-disclosure" options={{ title: "Read Bank SMS" }} />
+      <Stack.Screen name="sms-scan-runs" options={{ title: "Scan History" }} />
+      <Stack.Screen name="sms-disclosure" options={{ title: "Read Transaction Messages" }} />
       <Stack.Screen name="licenses" options={{ title: "Open-source Licences" }} />
       <Stack.Screen name="reconciliation/index" options={{ title: "Reconcile Accounts" }} />
       <Stack.Screen name="reconciliation/new" options={{ title: "New Reconciliation" }} />

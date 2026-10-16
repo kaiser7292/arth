@@ -27,7 +27,7 @@ The review queue is the single screen where you clean up anything Arth couldn't 
 
 You can also open it from:
 - **Home** → swipe to the **Queue** page
-- **Settings tab** → "SMS Detection" section → "Review now"
+- **Settings tab** → "Transaction Messages" section → "Review now"
 - **Settings tab** → "Possible Duplicates" panel → opens the queue filtered to Duplicates
 - **Budget tab** → "Uncategorized" card → opens the queue filtered to Uncategorized
 
@@ -84,7 +84,7 @@ Realized, approved expenses that never got a category.
 ## Common situations
 
 **"I approved a wrong SMS by mistake."**
-Open **Settings tab → Backup & Storage → Recycle Bin → Rejected**, find it, tap **Approve** - it returns as a normal expense. If the expense was approved and you want to revert: open it from the Transactions tab and tap **Delete**; it moves to the recycle bin.
+Open **Settings tab → Backup and Data → Recycle bin → Rejected**, find it, tap **Approve** - it returns as a normal expense. If the expense was approved and you want to revert: open it from the Transactions tab and tap **Delete**; it moves to the recycle bin.
 
 **"I want auto-detection but not auto-approval."**
 That's the default. Auto-approval is not offered - every first touch is manual so you catch parser mistakes.

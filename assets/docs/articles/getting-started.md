@@ -33,7 +33,7 @@ Arth is a private finance tracker that runs entirely on your phone. No account, 
 
 1. **Expenses arrive three ways.** Arth reads your bank SMS automatically, you tap the **+** button and log one yourself, or you tap the **mic** and say it.
 2. **You review before anything counts.** Auto-detected transactions land in the **Review Queue** on the Home tab. Nothing enters your budget or account balance until you approve it. **Catch up** lets you swipe through them one at a time.
-3. **Your data is yours.** Any time in **Settings tab → Backup & Storage → Backup & Restore**, you can export an encrypted backup file. Restore it on any device.
+3. **Your data is yours.** Any time in **Settings tab → Backup and Data → Back up or restore**, you can export an encrypted backup file. Restore it on any device.
 
 ## The five tabs
 
@@ -51,10 +51,10 @@ Arth has **five bottom tabs**, in this order from left to right. **Swipe left or
 
 1. **Onboarding** - set your region and financial year (default: April for India), choose your categories, add your monthly take-home pay, allow SMS reading if you want auto-detection, set a few budgets, and turn on app lock and notifications. Every step can be skipped. Moving phones? Tap **Restore from a backup** on the first screen.
 2. **Add your accounts.** Settings tab → Data Management → Accounts → **+**. Add savings, credit cards, wallets, loans, demat, pension - everything your money moves through. Add fixed deposits from the Investments card on Home.
-3. **Turn on SMS detection** (if you skipped it). Settings tab → SMS Detection → **Enable**.
+3. **Turn on SMS detection** (if you skipped it). Settings tab → Transactions → Transaction Messages → **Enable**.
 4. **Open the Review Queue** after a day - approve what Arth auto-captured. This is the main loop of Arth.
 5. **Set one budget.** Budget tab → tap a category → set a monthly cap. Watch it fill up over the month.
-6. **Create your first backup.** Settings tab → Backup & Storage → Backup & Restore → **Create Encrypted Backup**. Save the `.arth` file somewhere safe (Drive, email to yourself, etc.). You can also turn on **Auto backup** on the same screen.
+6. **Create your first backup.** Settings tab → Backup and Data → Back up or restore → **Create Encrypted Backup**. Save the `.arth` file somewhere safe (Drive, email to yourself, etc.). You can also turn on **Auto backup** on the same screen.
 
 ## Common situations
 
@@ -75,5 +75,5 @@ Arth has **five bottom tabs**, in this order from left to right. **Swipe left or
 - [Investments and fixed deposits](investments)
 - [Backup and restore](backup-restore)
 - [How SMS detection works](sms-detection)
-- [Teach Arth a new bank - Smart SMS Templates](smart-sms-templates)
+- [Teach Arth a new bank - Message templates](smart-sms-templates)
 - [Minimum balance alerts](min-balance-alert)

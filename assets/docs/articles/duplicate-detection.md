@@ -22,8 +22,8 @@ Banks often send more than one SMS for the same transaction - one from the card 
 ## Where to find duplicates
 
 - **Home → Review Queue → Duplicates filter chip.**
-- **Settings tab → Duplicate Detection panel** - shows "X groups pending" when there are any.
-- **Settings tab → Backup & Storage → Dismissed Duplicate Groups** - groups you previously marked "Keep both" live here and can be restored.
+- **Settings tab → Transactions → Transaction Messages panel** - shows "X groups pending" when there are any.
+- **Settings tab → Backup and Data → Duplicates you kept** - groups you previously marked "Keep both" live here and can be restored.
 
 ## How Arth detects duplicates
 
@@ -51,8 +51,8 @@ Open **Review Queue → Duplicates**. Each group shows its members with the olde
 
 ## Undo
 
-- "Keep both" mistake → **Settings tab → Backup & Storage → Dismissed Duplicate Groups** → tap a group → **Restore**. It re-enters the duplicates review.
-- Rejected the wrong one → **Settings tab → Backup & Storage → Recycle Bin → Rejected** → tap the expense → **Approve**.
+- "Keep both" mistake → **Settings tab → Backup and Data → Duplicates you kept** → tap a group → **Restore**. It re-enters the duplicates review.
+- Rejected the wrong one → **Settings tab → Backup and Data → Recycle bin → Rejected** → tap the expense → **Approve**.
 
 ## Common situations
 

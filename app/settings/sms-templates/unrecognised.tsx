@@ -131,7 +131,7 @@ export default function UnrecognisedSmsScreen() {
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
           <Text className="text-xs text-faint-foreground">
-            Bank SMS from the last {getBacklogDays()} days that Arth couldn&apos;t read, grouped by sender. Teach a sender once and Arth reads its past and future messages.
+            Transaction messages from the last {getBacklogDays()} days that Arth couldn&apos;t read, grouped by sender. Teach a sender once and Arth reads its past and future messages.
           </Text>
         </View>
 
@@ -274,7 +274,7 @@ export default function UnrecognisedSmsScreen() {
                 subtitle={
                   query
                     ? "Try a different search term, or clear the search."
-                    : `Every bank SMS from the last ${getBacklogDays()} days either became an expense or was intentionally skipped (OTPs, balance enquiries).`
+                    : `Every transaction message from the last ${getBacklogDays()} days either became an expense or was intentionally skipped (OTPs, balance enquiries).`
                 }
               />
             }

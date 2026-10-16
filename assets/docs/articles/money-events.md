@@ -50,7 +50,7 @@ When only one side is there yet, the card says **Your own account**:
 
 ### Your name in bank messages
 
-Banks print your name on transfers to yourself, like "Transferred to Mr. RAHULVERMA". Arth asks once, on Home, when it keeps seeing the same name. You can add or remove names in **Settings → Your Name in Bank SMS**. Shortened spellings ("RAHUL VER", "RAHULVERMA") match too.
+Banks print your name on transfers to yourself, like "Transferred to Mr. RAHULVERMA". Arth asks once, on Home, when it keeps seeing the same name. You can add or remove names in **Settings → Your name in messages**. Shortened spellings ("RAHUL VER", "RAHULVERMA") match too.
 
 ## SIPs
 

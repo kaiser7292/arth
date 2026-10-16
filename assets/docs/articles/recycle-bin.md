@@ -26,7 +26,7 @@ Deleting in Arth is a **two-stage** process. A first delete moves the item to th
 
 ## Where to find it
 
-**Settings tab → Backup & Storage → Recycle Bin.**
+**Settings tab → Backup and Data → Recycle bin.**
 
 ## What shows up here
 

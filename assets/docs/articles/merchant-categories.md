@@ -43,7 +43,7 @@ These are just starting points. If you eat out on Swiggy but buy groceries on it
 
 ## See and change the rules
 
-**Settings → Automation → Merchant Categories** lists every rule:
+**Settings → Transactions → Merchants** lists every rule:
 
 - **Built-in**: shipped with Arth, unchanged.
 - **Edited**: a built-in rule you changed or turned off.

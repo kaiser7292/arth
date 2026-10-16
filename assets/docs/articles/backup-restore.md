@@ -27,7 +27,7 @@ Arth is local-only - there is no cloud sync. Moving to a new phone, or protectin
 
 ## Where to find it
 
-**Settings tab → Backup & Storage → Backup & Restore.**
+**Settings tab → Backup and Data → Back up or restore.**
 
 ## Make an encrypted backup
 
@@ -62,7 +62,7 @@ Turn on **Auto backup** in the Scheduled Backup section and choose how often: ev
 ## Restore
 
 1. Install Arth, open it, complete onboarding (you can skip any step).
-2. **Settings tab → Backup & Storage → Backup & Restore → Select Backup File.**
+2. **Settings tab → Backup and Data → Back up or restore → Select Backup File.**
 3. Pick an `.arth` file (older `.artha` files work too) or an auto-backup `.json` file.
 4. For an `.arth` file, enter its password.
 5. Confirm. Arth **replaces all your current data** with the backup, then restores your settings.

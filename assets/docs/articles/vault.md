@@ -96,7 +96,7 @@ The Vault is included in your **Arth backup file** - encrypted with your backup 
 
 **"Can I use Vault as a full password manager?"** Vault is designed for financial credentials. It stores any text you enter but does not have browser autofill, password generation, or cross-device sync. For a full-featured password manager, use a dedicated app alongside Arth.
 
-**"I deleted an entry by mistake."** Vault entries deleted in Arth go to the recycle bin (Settings → Recycle Bin) and can be restored within 30 days.
+**"I deleted an entry by mistake."** Vault entries deleted in Arth go to the recycle bin (Settings → Backup and Data → Recycle bin) and can be restored within 30 days.
 
 ## Related
 
