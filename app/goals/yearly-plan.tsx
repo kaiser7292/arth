@@ -44,6 +44,22 @@ interface LoanForecastRow {
   currency: string;
 }
 
+interface PlanData {
+  fy: string;
+  derived: DerivedPlanSummary | null;
+  profile: SalaryProfile | null;
+  realityCheck: RealityCheckData | null;
+  savings: SavingsSnapshot | null;
+  loanForecast: LoanForecastRow[];
+}
+
+/**
+ * The last plan worked out, kept across visits with the data version it was worked out at.
+ * Reopening Yearly Plan with nothing written since (salary, milestones, buckets, loans,
+ * transactions all bump the version) shows it at once instead of recalculating.
+ */
+let lastPlan: { stamp: string; data: PlanData } | null = null;
+
 export default function YearlyPlanScreen() {
   const router = useRouter();
   const { colors } = useColorScheme();
@@ -54,16 +70,28 @@ export default function YearlyPlanScreen() {
   const targetFY = fy ?? String(getCurrentFY(startMonth));
   const targetFYNum = parseInt(targetFY, 10);
 
-  const [derived, setDerived] = useState<DerivedPlanSummary | null>(null);
-  const [profile, setProfile] = useState<SalaryProfile | null>(null);
-  const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
-  const [milestones, setMilestones] = useState<LifeMilestone[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const cached = lastPlan?.data.fy === targetFY ? lastPlan.data : null;
+  const [derived, setDerived] = useState<DerivedPlanSummary | null>(cached?.derived ?? null);
+  const [profile, setProfile] = useState<SalaryProfile | null>(cached?.profile ?? null);
+  const [buckets, setBuckets] = useState<InvestmentBucket[]>(cached?.derived?._buckets ?? []);
+  const [milestones, setMilestones] = useState<LifeMilestone[]>(cached?.derived?._milestones ?? []);
+  const [loaded, setLoaded] = useState(cached != null);
 
-  const [realityCheck, setRealityCheck] = useState<RealityCheckData | null>(null);
-  const [savings, setSavings] = useState<SavingsSnapshot | null>(null);
-  const [loanForecast, setLoanForecast] = useState<LoanForecastRow[]>([]);
-  const lastVersionRef = useRef<string | null>(null);
+  const [realityCheck, setRealityCheck] = useState<RealityCheckData | null>(cached?.realityCheck ?? null);
+  const [savings, setSavings] = useState<SavingsSnapshot | null>(cached?.savings ?? null);
+  const [loanForecast, setLoanForecast] = useState<LoanForecastRow[]>(cached?.loanForecast ?? []);
+  const shownStampRef = useRef<string | null>(null);
+
+  const applyPlan = useCallback((d: PlanData) => {
+    setDerived(d.derived);
+    setProfile(d.profile);
+    setBuckets(d.derived?._buckets ?? []);
+    setMilestones(d.derived?._milestones ?? []);
+    setRealityCheck(d.realityCheck);
+    setSavings(d.savings);
+    setLoanForecast(d.loanForecast);
+    setLoaded(true);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -73,8 +101,13 @@ export default function YearlyPlanScreen() {
         // asks "has anything been written?" - and changing the FY writes nothing, so the
         // guard swallowed the reload and left the previous year's plan on screen.
         const stamp = `${getDataVersion()}|${targetFY}`;
-        if (lastVersionRef.current === stamp) return;
-        lastVersionRef.current = stamp;
+        if (shownStampRef.current === stamp) return; // already showing exactly this
+        if (lastPlan?.stamp === stamp) {
+          // Worked out on an earlier visit and nothing has changed since.
+          shownStampRef.current = stamp;
+          applyPlan(lastPlan.data);
+          return;
+        }
         try {
           // Use preloaded data on first open (current FY only).
           const preload = consumeYearlyPlanPreload();
@@ -139,21 +172,19 @@ export default function YearlyPlanScreen() {
             };
           });
 
-          // Set everything at once — screen renders with complete data on first paint
-          setDerived(derivedResult);
-          setProfile(profileResult);
-          setBuckets(derivedResult?._buckets ?? []);
-          setMilestones(derivedResult?._milestones ?? []);
-          setRealityCheck(rc);
-          setSavings(snap);
-          setLoanForecast(loanRows);
-          setLoaded(true);
+          // Set everything at once — screen renders with complete data on first paint.
+          // The stamp is recorded only now: a load cut short by leaving the screen must run
+          // again on return (recording it up front left the loader up for good).
+          const data: PlanData = { fy: targetFY, derived: derivedResult, profile: profileResult, realityCheck: rc, savings: snap, loanForecast: loanRows };
+          lastPlan = { stamp, data };
+          shownStampRef.current = stamp;
+          applyPlan(data);
         } catch {
-          setLoaded(true);
+          if (!cancelled) setLoaded(true);
         }
       })();
       return () => { cancelled = true; };
-    }, [targetFY]),
+    }, [targetFY, applyPlan]),
   );
 
   // FY navigation

@@ -112,7 +112,9 @@ export default function GoalsScreen() {
     }
   }, [currentFY, startMonth]);
 
-  useDataRefresh(loadGoals);
+  // Reload only when something was written (data version), the FY or the day changed - switching back to
+  // this tab with nothing changed keeps what's on screen.
+  useDataRefresh(loadGoals, { skipKey: `${currentFY}|${new Date().toDateString()}` });
 
   const hasFYBuckets = fyBuckets.length > 0;
   const hasMilestones = fyMilestones.length > 0;
