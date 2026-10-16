@@ -120,6 +120,10 @@ export default function CheckInPreview() {
               categoryId={null}
               onPickCategory={noop}
               onPickMerchant={noop}
+              editingMerchant={false}
+              merchantNames={[]}
+              onSaveMerchant={noop}
+              onCancelMerchant={noop}
               onPickPaymentMode={noop}
               onDescriptionDraft={noop}
               onOpen={noop}
@@ -156,6 +160,10 @@ export default function CheckInPreview() {
               categoryId="food"
               onPickCategory={noop}
               onPickMerchant={noop}
+              editingMerchant={false}
+              merchantNames={[]}
+              onSaveMerchant={noop}
+              onCancelMerchant={noop}
               onPickPaymentMode={noop}
               onDescriptionDraft={noop}
               onOpen={noop}

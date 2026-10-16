@@ -26,8 +26,13 @@ interface CatchUpCardViewProps {
   /** Category the card will apply on a right swipe (pending / uncategorized only). */
   categoryId: string | null;
   onPickCategory: () => void;
-  /** Open the merchant / payment mode pickers (pending / uncategorized only). */
+  /** Edit the merchant right on the card; open the payment mode picker (pending / uncategorized only). */
   onPickMerchant: () => void;
+  editingMerchant: boolean;
+  /** Merchants used before, for suggestions while typing. */
+  merchantNames: string[];
+  onSaveMerchant: (name: string) => void;
+  onCancelMerchant: () => void;
   onPickPaymentMode: () => void;
   onOpen: (expenseId: string) => void;
   /** Add / change the description right on the card (pending / uncategorized only). */
@@ -78,6 +83,10 @@ export function CatchUpCardView({
   categoryId,
   onPickCategory,
   onPickMerchant,
+  editingMerchant,
+  merchantNames,
+  onSaveMerchant,
+  onCancelMerchant,
   onPickPaymentMode,
   onOpen,
   onEditDescription,
@@ -125,6 +134,10 @@ export function CatchUpCardView({
           categoryId={categoryId}
           onPickCategory={onPickCategory}
           onPickMerchant={onPickMerchant}
+          editingMerchant={editingMerchant}
+          merchantNames={merchantNames}
+          onSaveMerchant={onSaveMerchant}
+          onCancelMerchant={onCancelMerchant}
           onPickPaymentMode={onPickPaymentMode}
           onOpen={onOpen}
           onEditDescription={onEditDescription}
@@ -159,6 +172,10 @@ function SingleExpenseBody({
   categoryId,
   onPickCategory,
   onPickMerchant,
+  editingMerchant,
+  merchantNames,
+  onSaveMerchant,
+  onCancelMerchant,
   onPickPaymentMode,
   onOpen,
   onEditDescription,
@@ -183,6 +200,10 @@ function SingleExpenseBody({
   categoryId: string | null;
   onPickCategory: () => void;
   onPickMerchant: () => void;
+  editingMerchant: boolean;
+  merchantNames: string[];
+  onSaveMerchant: (name: string) => void;
+  onCancelMerchant: () => void;
   onPickPaymentMode: () => void;
   onOpen: (id: string) => void;
   onEditDescription: () => void;
@@ -300,6 +321,16 @@ function SingleExpenseBody({
         />
       )}
       </View>
+
+      {editingMerchant && (
+        <MerchantField
+          title={isCredit ? "Received from" : "Paid to"}
+          initial={expense.merchant_name ?? ""}
+          names={merchantNames}
+          onSave={onSaveMerchant}
+          onCancel={onCancelMerchant}
+        />
+      )}
 
       {canSplit && splitOnCard && editingSplit && (
         <SplitPanel
@@ -664,6 +695,81 @@ function DuplicateBody({
       {reject.map((e) => (
         <MiniRow key={e.id} expense={e} label="Reject" labelColor={theme.danger} accountMap={accountMap} />
       ))}
+    </View>
+  );
+}
+
+/**
+ * The merchant, edited right on the card: a text field with up to three merchants you've used
+ * before as chips underneath. A chip or Done saves; the cross puts it back as it was.
+ */
+function MerchantField({
+  title,
+  initial,
+  names,
+  onSave,
+  onCancel,
+}: {
+  title: string;
+  initial: string;
+  names: string[];
+  onSave: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const theme = useTheme();
+  const [text, setText] = useState(initial);
+  const q = text.trim().toLowerCase();
+  const matches = (q ? names.filter((n) => n.toLowerCase().includes(q) && n.toLowerCase() !== q) : names)
+    // Names that start with what's typed first.
+    .sort((a, b) => Number(!a.toLowerCase().startsWith(q)) - Number(!b.toLowerCase().startsWith(q)))
+    .slice(0, 3);
+  const exact = names.some((n) => n.toLowerCase() === q);
+
+  return (
+    <View className="mt-3">
+      <Text className="text-xs text-muted-foreground mb-1">{title}</Text>
+      <View className="flex-row items-center rounded-lg border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
+        <Ionicons name="storefront-outline" size={16} color={theme.mutedForeground} />
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          placeholder="Swiggy, rent, Mom"
+          placeholderTextColor={theme.mutedForeground}
+          autoFocus
+          maxLength={100}
+          returnKeyType="done"
+          onSubmitEditing={() => onSave(text)}
+          className="flex-1 text-sm text-foreground py-2 ml-2"
+          accessibilityLabel={title}
+        />
+        <Pressable onPress={onCancel} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel">
+          <Ionicons name="close" size={18} color={theme.mutedForeground} />
+        </Pressable>
+        <Pressable onPress={() => onSave(text)} hitSlop={8} style={{ marginLeft: 10 }} accessibilityRole="button" accessibilityLabel="Save merchant">
+          <Ionicons name="checkmark" size={20} color={theme.primary} />
+        </Pressable>
+      </View>
+      {(matches.length > 0 || (q.length > 0 && !exact)) && (
+        <View className="flex-row flex-wrap mt-2" style={{ gap: 6 }}>
+          {matches.map((m) => (
+            <Pressable
+              key={m}
+              onPress={() => onSave(m)}
+              className="flex-row items-center rounded-full border border-border px-3 py-1.5"
+              accessibilityRole="button"
+              accessibilityLabel={`Use ${m}`}
+            >
+              <Ionicons name="time-outline" size={12} color={theme.mutedForeground} />
+              <Text className="text-xs text-foreground ml-1" numberOfLines={1}>{m}</Text>
+            </Pressable>
+          ))}
+          {q.length > 0 && !exact && (
+            <Pressable onPress={() => onSave(text)} className="rounded-full px-3 py-1.5" accessibilityRole="button">
+              <Text className="text-xs font-medium" style={{ color: theme.primary }}>Use "{text.trim()}"</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
     </View>
   );
 }
