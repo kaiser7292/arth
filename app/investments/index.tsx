@@ -182,6 +182,8 @@ export default function InvestmentsListScreen() {
       : periodMeta.phrase;
 
   const pct = (value: number, of: number) => (of > 0 ? Math.round((value / of) * 100) : 0);
+  /** A band's value at the dragged-to point, so the breakdown below follows the finger too. */
+  const layerAt = (key: string) => (scrubbing ? layers.find((l) => l.key === key)?.values[scrub!] ?? 0 : 0);
 
   const handlePress = (row: InvestmentRow) => {
     if (row.group === "market") {
@@ -272,8 +274,8 @@ export default function InvestmentsListScreen() {
                         key={g}
                         color={GROUP_META[g].color}
                         label={GROUP_META[g].label}
-                        amount={groupTotals[g]}
-                        percent={pct(groupTotals[g], total)}
+                        amount={scrubbing ? layerAt(g) : groupTotals[g]}
+                        percent={scrubbing ? pct(layerAt(g), shownValue) : pct(groupTotals[g], total)}
                         onPress={() => setFocus(g)}
                         hint={`Show ${GROUP_META[g].label} accounts`}
                       />
@@ -284,8 +286,8 @@ export default function InvestmentsListScreen() {
                         color={GROUP_META[view].color}
                         opacity={shadeFor(i)}
                         label={accountName(r.account)}
-                        amount={r.value}
-                        percent={pct(r.value, viewTotal)}
+                        amount={scrubbing ? layerAt(r.account.id) : r.value}
+                        percent={scrubbing ? pct(layerAt(r.account.id), shownValue) : pct(r.value, viewTotal)}
                         onPress={() => handlePress(r)}
                         hint={`Open ${accountName(r.account)}`}
                       />
