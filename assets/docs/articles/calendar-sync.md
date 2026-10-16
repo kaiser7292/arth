@@ -40,7 +40,7 @@ Arth adds events for the **next 90 days**. Dues that are already overdue aren't 
 
 **The name** comes from the description you gave the bill or reminder ("Flat maintenance"). If it has no description, Arth uses the merchant.
 
-**The details** inside each entry say what it is, the merchant (when the name doesn't already say), the category and account where Arth knows them, how often a reminder repeats, and the amount (unless you've hidden amounts). Nothing else: no links or notes from Arth. Mark things paid in Arth; the entry updates on the next sync.
+**The details** inside each entry say what it is, the merchant (when the name doesn't already say), the category and account where Arth knows them, how often a reminder repeats, and the amount (unless you've hidden amounts). The last line is a short reference like [arth:due:…]: it's how Arth recognises its own entries, so leave it in. Mark things paid in Arth; the entry updates on the next sync.
 
 **Show amounts** - when on, events read like "Arth · HDFC card bill · ₹12,400" and the details include the amount. Turn it off and neither shows it.
 

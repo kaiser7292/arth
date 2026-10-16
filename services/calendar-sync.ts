@@ -99,7 +99,7 @@ const ALARM_DAY_BEFORE = -15 * 60;
 const ALARM_ON_THE_DAY = 9 * 60;
 /** Bump when the shape of an event changes, so every existing event is rewritten once. */
 const EVENT_FORMAT = "v3";
-/** Entries written before v3 carried this tag in their notes; still read so they're recognised and rewritten. */
+/** The tag at the end of every entry's notes, so Arth can recognise its own entries. */
 const TAG_RE = /\[arth:([^\]]+)\]/;
 
 const PREFS_KEY = "calendar_sync_prefs";
@@ -180,13 +180,14 @@ export function eventTitle(item: CalendarItem, showAmounts: boolean): string {
 const NL = String.fromCharCode(10);
 
 /**
- * Just what the entry is: the details and the amount. No link, footer or tag - the owner
- * didn't want Arth's plumbing in their calendar. Arth recognises its own entries by the event
- * ids it stores, and by title and date if those are lost (see adoptExistingEvents).
+ * What the entry is - the details and the amount - and, last, the [arth:key] tag. No link or
+ * footer (the owner didn't want them). The tag stays: it's how Arth recognises its own entries
+ * when its stored map is lost (restore, reinstall); see adoptExistingEvents.
  */
 export function eventNotes(item: CalendarItem, showAmounts: boolean = true): string {
   const lines = [...(item.details ?? [])];
   if (showAmounts && item.amount != null && item.amount > 0) lines.push(`Amount: ${formatAmount(item.amount)}`);
+  lines.push("", `[arth:${item.key}]`);
   return lines.join(NL);
 }
 
@@ -472,8 +473,8 @@ async function ensureShown(c: Calendar.Calendar): Promise<void> {
 /**
  * Finds Arth's entries in the calendar that the stored map doesn't know about - after a restore,
  * a reinstall, or a cleared map - so they're updated instead of duplicated.
- *  - Entries written before v3 carry an [arth:key] tag in their notes.
- *  - Newer ones are matched by date and title ("Arth · <label>", with or without the amount).
+ *  - By the [arth:key] tag at the end of the notes.
+ *  - Failing that (the tag was edited out), by date and title ("Arth · <label>", with or without the amount).
  */
 async function adoptExistingEvents(
   calendarId: string,
