@@ -130,6 +130,8 @@ describe("computeNetWorthHistory", () => {
     expect(at("2026-02").change.marketGains).toBe(5000); // 75000 − 50000 − 20000 moved in
     expect(at("2026-02").change.saved).toBe(0); // savings −20000, +20000 moved into investments
     expect(at("2026-04").market).toBe(75000); // carried forward, no snapshot in April
+    expect(at("2026-04").investments).toBe(75000);
+    expect(at("2026-04").liquidCash).toBe(80000);
     expect(at("2026-04").estimated).toBe(true);
 
     const total = changeBetween(points, 0, points.length - 1);
@@ -151,6 +153,10 @@ describe("computeNetWorthHistory", () => {
     expect(at("2026-01").cards).toBe(12000);
     expect(at("2026-01").hisaab).toBe(3000);
     expect(at("2026-01").netWorth).toBe(91000);
+    // The Balance Sheet's sections.
+    expect(at("2026-01").liquidCash).toBe(100000);
+    expect(at("2026-01").receivables).toBe(3000);
+    expect(at("2026-01").payables).toBe(0);
   });
 
   it("returns no points when there is no data", async () => {

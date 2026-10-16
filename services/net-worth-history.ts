@@ -64,6 +64,15 @@ export interface NetWorthPoint {
   loans: number;
   /** Hisaab: people owe me − I owe. */
   hisaab: number;
+  /**
+   * The Balance Sheet's sections, so the chart groups things the same way:
+   * Liquid Cash (bank, wallet, FDs), Investments (market + pension), Receivables (people owe
+   * you) | Credit (= cards), Debt (= loans), Payables (you owe people).
+   */
+  liquidCash: number;
+  investments: number;
+  receivables: number;
+  payables: number;
   netWorth: number;
   /** True when part of the value is a carried-forward or best-guess figure. */
   estimated: boolean;
@@ -491,6 +500,7 @@ export async function computeNetWorthHistory(
     let estimated = false;
 
     let savings = 0;
+    let pension = 0;
     let cards = 0;
     for (const a of chainAccounts) {
       if (!counts(a.id, asOf)) continue;
@@ -499,7 +509,10 @@ export async function computeNetWorthHistory(
       if (v == null) continue;
       if (chain.estimated.has(m)) estimated = true;
       if (a.account_type === "credit_card") cards += Math.max(0, v);
-      else savings += v;
+      else {
+        savings += v;
+        if (isPensionLikeAccount(a, products.get(a.id))) pension += v;
+      }
     }
 
     let market = 0;
@@ -579,6 +592,10 @@ export async function computeNetWorthHistory(
       cards: round2(cards),
       loans: round2(loans),
       hisaab: round2(hisaab),
+      liquidCash: round2(savings - pension),
+      investments: round2(market + pension),
+      receivables: round2(owed),
+      payables: round2(owe),
       netWorth,
       estimated,
       change,
@@ -587,7 +604,7 @@ export async function computeNetWorthHistory(
   }
 
   // Drop leading all-zero months.
-  const firstReal = points.findIndex((p) => p.savings || p.market || p.cards || p.loans || p.hisaab);
+  const firstReal = points.findIndex((p) => p.savings || p.market || p.cards || p.loans || p.receivables || p.payables);
   if (firstReal === -1) return { points: [] };
   const trimmed = points.slice(firstReal);
   trimmed[0] = { ...trimmed[0], change: { saved: 0, marketGains: 0, loansPaidDown: 0, other: 0 } };
