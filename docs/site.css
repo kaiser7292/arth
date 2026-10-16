@@ -426,6 +426,9 @@ footer{background:var(--dark-bg);padding-block:24px}
 .page-hero p{font-size:1rem;color:var(--muted);max-width:56ch;line-height:1.75}
 .page-hero .hero-glow{right:-160px;top:-200px}
 
+/* "NEW" tag next to a feature name */
+.badge-new{display:inline-flex;align-items:center;background:var(--accent-bg);color:var(--accent);border-radius:999px;padding:1px 7px;font-family:'DM Sans',system-ui,sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.06em;line-height:1.5;margin-left:6px;vertical-align:2px;white-space:nowrap}
+
 /* "What Arth does" showcase (home): accordion of the five areas + one phone that follows it */
 .show{position:relative;overflow:hidden}
 .show-g{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:64px;align-items:center}
