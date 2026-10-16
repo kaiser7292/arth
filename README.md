@@ -14,7 +14,7 @@
 
 Built with React Native and Expo. Open source. No data leaves your phone.
 
-**Current version: v4.18.0** · [All releases](https://github.com/kaiser7292/arth/releases)
+**Current version: v4.18.1** · [All releases](https://github.com/kaiser7292/arth/releases)
 
 ---
 
@@ -187,7 +187,7 @@ artha/
 
 | Version | Highlights |
 |---------|-----------|
-| **v4.18** | Year over Year rebuilt from real data (any two FYs, same-months comparison, cumulative chart, biggest movers) with live Analyse tiles on Goals; Settings reworked: Transaction Messages, Merchants and Backup and Data screens; net worth chart works like the Investments chart in Balance Sheet sections; calendar entries without the link and footer |
+| **v4.18** | Year over Year rebuilt from real data (any two FYs, same-months comparison, cumulative chart, biggest movers) with live Analyse tiles on Goals; Settings reworked: Transaction Messages, Merchants and Backup and Data screens; net worth chart works like the Investments chart in Balance Sheet sections; calendar entries without the link and footer. 4.18.1: Catch Up edits the merchant on the card; original message opens from an action row |
 | **v4.17** | Net worth over time on the Balance Sheet (month-by-month chart, change split into saved, market gains and loans paid down); Year in Review story for any financial year, shareable as an image or PDF with amounts hidden, and a Home card for 30 days after a new FY starts; drag across the Investments chart to read any date. 4.17.1: Catch Up merchant picker is a full page. 4.17.2: drag to read the net worth chart; chart breakdowns follow the finger. 4.17.3: Balance Sheet, Yearly Plan (incl. Reality Check) and Goals recalculate only when data changed; no endless loading |
 | **v4.11** | Fixed start-up failure in 4.10.2 and 4.11.0 (R8 removed an Expo class). Arth AI assistant removed; app download roughly halved. Leftover AI model files are deleted on update. |
 | **v4.10** | Smaller, faster app code (R8 shrinking: 36 MB down to 8 MB). Realised capital gains from investment withdrawals flow into the Income Calculator (proportional cost, oldest money first) with crypto taxed at a flat 30%; withdrawals beyond idle cash come off holdings; buckets drop by cost, never below zero; no flash when switching tabs. Motion system, phases 2-4: totals count up, charts draw in, cards arrive in sequence, gliding selectors and filling bars across Home, Investments, Budget, Goals and Loans; Catch Up buttons fling the card, the next rises from behind, Undo slides it back; lists close gaps smoothly; smooth More options and collapsible sections; placeholders fade into content; AI assistant thinking dots; onboarding welcome drift |
