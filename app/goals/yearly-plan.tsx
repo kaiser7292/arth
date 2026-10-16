@@ -100,7 +100,8 @@ export default function YearlyPlanScreen() {
         // Stamp includes the FY being viewed, not just the data version. Version alone
         // asks "has anything been written?" - and changing the FY writes nothing, so the
         // guard swallowed the reload and left the previous year's plan on screen.
-        const stamp = `${getDataVersion()}|${targetFY}`;
+        // The day is in it too: Reality Check's year-to-date targets move with the date, not just with writes.
+        const stamp = `${getDataVersion()}|${targetFY}|${new Date().toDateString()}`;
         if (shownStampRef.current === stamp) return; // already showing exactly this
         if (lastPlan?.stamp === stamp) {
           // Worked out on an earlier visit and nothing has changed since.
