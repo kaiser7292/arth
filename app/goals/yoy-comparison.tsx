@@ -1,430 +1,289 @@
-import { useState, useCallback, useRef } from "react";
-import { View, ScrollView } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
+import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
-import { getYearlyPlans, getBucketsByFY } from "@/services/yearly-plan";
-import { getExpenseTotal } from "@/services/expense";
-import { getSavingsSnapshot } from "@/services/savings-tracker";
-import {
-  getLifeMilestones,
-  getCombinedMilestoneContributionsForFY,
-  getTotalPlannedMilestonesForFY,
-} from "@/services/life-milestone";
-import { listAllLoans, getSchedule, getPrepayments } from "@/services/loan-accounts";
-import { getCurrentFY, getFYRange, getFYLabel } from "@/utils/fiscal-year";
-import { getDataVersion } from "@/services/settings";
-import { toIsoDate as formatDate } from "@/utils/date";
-import { getFYStartMonth } from "@/services/settings";
-import { formatAmount, formatCompact } from "@/utils/format";
-import { calculateYoYComparison } from "@/utils/yoy-comparison";
-import type { YoYComparison, YoYCategory, FYData } from "@/utils/yoy-comparison";
+import { Button, Card, LoadingState, ScreenContainer, SelectSheet, Text } from "@/components/ui";
+import { SegmentedControl } from "@/components/motion";
+import { YoYCumulativeChart } from "@/components/goals/YoYCumulativeChart";
 import { DEFAULT_USER_ID } from "@/constants/app";
-
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
+import { getReviewableFYs } from "@/services/reports/year-review";
+import { getYoY, type YoYComparison, type YoYMode } from "@/services/reports/yoy";
+import { getFYStartMonth } from "@/services/settings";
+import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
+import { formatAmount, formatCompact } from "@/utils/format";
 
+/**
+ * Two financial years side by side, from real data (a yearly plan only adds "plan" figures).
+ * A year in progress is compared with the same months of the other year by default.
+ * Recomputes only after a write (data version) - see services/reports/yoy.ts.
+ */
 export default function YoYComparisonScreen() {
-  const { colorScheme, colors } = useColorScheme();
+  const router = useRouter();
   const theme = useTheme();
-  const [comparison, setComparison] = useState<YoYComparison | null>(null);
-  const [previousFYLabel, setPreviousFYLabel] = useState("");
-  const [currentFYLabel, setCurrentFYLabel] = useState("");
-  const [noData, setNoData] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const lastVersionRef = useRef<string | null>(null);
+  const startMonth = getFYStartMonth();
+  const currentFY = getCurrentFY(startMonth);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, []),
-  );
+  const [fys, setFys] = useState<number[]>([currentFY, currentFY - 1]);
+  const [fy, setFy] = useState(currentFY);
+  const [baseFy, setBaseFy] = useState(currentFY - 1);
+  const [mode, setMode] = useState<YoYMode>("same-period");
+  const [data, setData] = useState<YoYComparison | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [basePicker, setBasePicker] = useState(false);
+  const [fyPicker, setFyPicker] = useState(false);
+  const loadSeq = useRef(0);
 
-  async function loadData() {
-    // Stamp includes what is being VIEWED, not just the data version. Version alone asks
-    // "has anything been written?" - and changing the period writes nothing, so the guard
-    // swallowed the reload and left the previous period's figures on screen.
-    const stamp = `${getDataVersion()}`;
-    if (lastVersionRef.current === stamp) return;
-    lastVersionRef.current = stamp;
-    setLoading(true);
+  const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     try {
-      const startMonth = getFYStartMonth();
-      const currentFY = getCurrentFY(startMonth);
-      const previousFY = currentFY - 1;
-
-      const plans = await getYearlyPlans(DEFAULT_USER_ID);
-      const matchFY = (fy: string, year: number) =>
-        fy === String(year) || fy.startsWith(`${year}-`);
-      const currentPlan = plans.find((p) => matchFY(p.financial_year, currentFY));
-      const previousPlan = plans.find((p) => matchFY(p.financial_year, previousFY));
-
-      if (!currentPlan || !previousPlan) {
-        setNoData(true);
-        return;
-      }
-
-      setPreviousFYLabel(getFYLabel(previousFY, startMonth));
-      setCurrentFYLabel(getFYLabel(currentFY, startMonth));
-
-      const prevRange = getFYRange(previousFY, startMonth);
-      const currRange = getFYRange(currentFY, startMonth);
-
-      const [
-        prevExpenses,
-        currExpenses,
-        prevSnap,
-        currSnap,
-        prevBuckets,
-        currBuckets,
-        prevMilestonePlanned,
-        currMilestonePlanned,
-        allMilestones,
-      ] = await Promise.all([
-        getExpenseTotal(DEFAULT_USER_ID, formatDate(prevRange.start), formatDate(prevRange.end)),
-        getExpenseTotal(DEFAULT_USER_ID, formatDate(currRange.start), formatDate(currRange.end)),
-        getSavingsSnapshot(DEFAULT_USER_ID, previousFY),
-        getSavingsSnapshot(DEFAULT_USER_ID, currentFY),
-        getBucketsByFY(DEFAULT_USER_ID, String(previousFY)),
-        getBucketsByFY(DEFAULT_USER_ID, String(currentFY)),
-        getTotalPlannedMilestonesForFY(DEFAULT_USER_ID, String(previousFY)),
-        getTotalPlannedMilestonesForFY(DEFAULT_USER_ID, String(currentFY)),
-        getLifeMilestones(DEFAULT_USER_ID),
-      ]);
-
-      // Actuals: sum of ALL contributions dated within each FY across every
-      // milestone (completed milestones count — their historical contributions
-      // still happened during that FY).
-      const allMilestoneIds = allMilestones.map((m) => m.id);
-      const [prevMilestoneActual, currMilestoneActual] = await Promise.all([
-        getCombinedMilestoneContributionsForFY(
-          allMilestoneIds,
-          formatDate(prevRange.start),
-          formatDate(prevRange.end),
-        ),
-        getCombinedMilestoneContributionsForFY(
-          allMilestoneIds,
-          formatDate(currRange.start),
-          formatDate(currRange.end),
-        ),
-      ]);
-
-      // v17.5.1 — Loans & Debts: per-FY planned (scheduled EMIs) vs actual
-      // (paid EMIs + recorded prepayments). INR-only to keep one currency in the chart.
-      const allLoans = await listAllLoans(DEFAULT_USER_ID);
-      const inrLoans = allLoans.filter((l) => l.currency === "INR");
-      const prevStartStr = formatDate(prevRange.start);
-      const prevEndStr = formatDate(prevRange.end);
-      const currStartStr = formatDate(currRange.start);
-      const currEndStr = formatDate(currRange.end);
-
-      // Fetch all schedules and prepayments in parallel instead of serially per loan.
-      const loanData = await Promise.all(
-        inrLoans.map((loan) =>
-          Promise.all([getSchedule(loan.id), getPrepayments(loan.id)])
-        )
-      );
-
-      let prevPlannedLoan = 0,
-        prevActualLoan = 0,
-        currPlannedLoan = 0,
-        currActualLoan = 0;
-      for (const [schedule, prepayments] of loanData) {
-        for (const e of schedule) {
-          if (e.due_date >= prevStartStr && e.due_date <= prevEndStr) {
-            prevPlannedLoan += e.emi_amount;
-            if (e.status === "paid" || e.status === "prepaid") prevActualLoan += e.emi_amount;
-          }
-          if (e.due_date >= currStartStr && e.due_date <= currEndStr) {
-            currPlannedLoan += e.emi_amount;
-            if (e.status === "paid" || e.status === "prepaid") currActualLoan += e.emi_amount;
-          }
-        }
-        for (const p of prepayments) {
-          if (p.prepayment_date >= prevStartStr && p.prepayment_date <= prevEndStr) {
-            prevPlannedLoan += p.amount;
-            prevActualLoan += p.amount;
-          }
-          if (p.prepayment_date >= currStartStr && p.prepayment_date <= currEndStr) {
-            currPlannedLoan += p.amount;
-            currActualLoan += p.amount;
-          }
-        }
-      }
-
-      const prevData: FYData = {
-        financialYear: String(previousFY),
-        annualIncome: previousPlan.annual_salary_in_hand + previousPlan.expected_bonus,
-        totalPlannedExpenses: previousPlan.total_planned_expenses,
-        totalActualExpenses: prevExpenses,
-        actualSavingsRatePct: prevSnap?.actualSavingsRatePct ?? 0,
-        totalPlannedInvestments: previousPlan.total_planned_investments,
-        totalActualInvestments: prevBuckets.reduce((s, b) => s + b.current_contributed, 0),
-        totalPlannedMilestones: prevMilestonePlanned,
-        totalActualMilestones: prevMilestoneActual,
-        totalPlannedLoanOutflow: prevPlannedLoan,
-        totalActualLoanOutflow: prevActualLoan,
-      };
-
-      const currData: FYData = {
-        financialYear: String(currentFY),
-        annualIncome: currentPlan.annual_salary_in_hand + currentPlan.expected_bonus,
-        totalPlannedExpenses: currentPlan.total_planned_expenses,
-        totalActualExpenses: currExpenses,
-        actualSavingsRatePct: currSnap?.actualSavingsRatePct ?? 0,
-        totalPlannedInvestments: currentPlan.total_planned_investments,
-        totalActualInvestments: currBuckets.reduce((s, b) => s + b.current_contributed, 0),
-        totalPlannedMilestones: currMilestonePlanned,
-        totalActualMilestones: currMilestoneActual,
-        totalPlannedLoanOutflow: currPlannedLoan,
-        totalActualLoanOutflow: currActualLoan,
-      };
-
-      setComparison(calculateYoYComparison(prevData, currData));
-      setNoData(false);
+      const [list, result] = await Promise.all([getReviewableFYs(DEFAULT_USER_ID), getYoY(DEFAULT_USER_ID, fy, baseFy, mode)]);
+      if (seq !== loadSeq.current) return; // a newer choice is already loading
+      setFys(list.length >= 2 ? list : [currentFY, currentFY - 1]);
+      setData(result);
+      setFailed(false);
     } catch {
-      setNoData(true);
-    } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setFailed(true);
     }
-  }
+  }, [fy, baseFy, mode, currentFY]);
 
-  if (loading) {
+  // Cached by data version inside getYoY, so a focus with nothing written is instant.
+  useDataRefresh(load);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const inProgress = fy === currentFY;
+  const fyLabel = (y: number) => getFYLabel(y, startMonth);
+
+  const tiles = useMemo(() => {
+    if (!data) return [];
+    const c = data.current;
+    const b = data.base;
+    const amt = (curr: number, prev: number, lowerIsBetter = false) => {
+      const diff = curr - prev;
+      const pct = prev > 0 ? Math.round((diff / prev) * 100) : null;
+      const good = lowerIsBetter ? diff <= 0 : diff >= 0;
+      return {
+        change: Math.abs(diff) < 1 ? "Same as" : `${diff > 0 ? "▲" : "▼"} ${pct != null ? `${Math.abs(pct)}%` : formatCompact(Math.abs(diff))}`,
+        good: Math.abs(diff) < 1 ? null : good,
+        from: `from ${formatCompact(prev)}`,
+      };
+    };
+    const savedPts = c.savedPct != null && b.savedPct != null ? Math.round(c.savedPct - b.savedPct) : null;
+    return [
+      { label: "Money in", value: formatCompact(c.moneyIn), ...amt(c.moneyIn, b.moneyIn), plan: null as string | null },
+      {
+        label: "Spent",
+        value: formatCompact(c.spent),
+        ...amt(c.spent, b.spent, true),
+        plan: c.planSpent != null ? `plan ${formatCompact(c.planSpent)}` : null,
+      },
+      {
+        label: "Saved",
+        value: c.savedPct != null ? `${Math.round(c.savedPct)}%` : "—",
+        change: savedPts == null || savedPts === 0 ? "Same as" : `${savedPts > 0 ? "▲" : "▼"} ${Math.abs(savedPts)} pts`,
+        good: savedPts == null || savedPts === 0 ? null : savedPts > 0,
+        from: b.savedPct != null ? `from ${Math.round(b.savedPct)}%` : "",
+        plan: null,
+      },
+      {
+        label: "Invested",
+        value: formatCompact(c.invested),
+        ...amt(c.invested, b.invested),
+        plan: c.planInvested != null ? `plan ${formatCompact(c.planInvested)}` : null,
+      },
+      { label: "Loans repaid", value: formatCompact(c.loansRepaid), ...amt(c.loansRepaid, b.loansRepaid), plan: null },
+      {
+        label: "Net worth",
+        value: c.netWorthChange != null ? `${c.netWorthChange >= 0 ? "+" : "−"}${formatCompact(Math.abs(c.netWorthChange))}` : "—",
+        ...(c.netWorthChange != null && b.netWorthChange != null
+          ? amt(c.netWorthChange, b.netWorthChange)
+          : { change: "", good: null, from: "" }),
+        from: b.netWorthChange != null ? `vs ${b.netWorthChange >= 0 ? "+" : "−"}${formatCompact(Math.abs(b.netWorthChange))}` : "no history",
+        plan: null,
+      },
+    ];
+  }, [data]);
+
+  if (!data && !failed) {
     return (
       <ScreenContainer padTop={false}>
-        <LoadingState icon="git-compare-outline" message="Loading comparison…" />
+        <LoadingState icon="git-compare-outline" message="Lining up the two years…" />
+      </ScreenContainer>
+    );
+  }
+  if (!data) {
+    return (
+      <ScreenContainer padTop={false}>
+        <View className="flex-1 items-center justify-center px-8">
+          <Ionicons name="alert-circle-outline" size={32} color={theme.danger} />
+          <Text className="text-base font-semibold text-foreground mt-3 text-center">Couldn't compare the years</Text>
+          <View className="mt-4 w-40">
+            <Button title="Try again" onPress={() => void load()} />
+          </View>
+        </View>
       </ScreenContainer>
     );
   }
 
+  const baseOptions = fys.filter((y) => y !== fy).map((y) => ({ value: String(y), label: fyLabel(y) }));
+  const fyOptions = fys.map((y) => ({ value: String(y), label: y === currentFY ? `${fyLabel(y)} so far` : fyLabel(y) }));
+  const nothing = data.current.spent === 0 && data.base.spent === 0 && data.current.moneyIn === 0 && data.base.moneyIn === 0;
+
   return (
     <ScreenContainer padTop={false}>
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
-        {noData ? (
-          <View className="flex-1 items-center justify-center py-20">
-            <Ionicons name="git-compare-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-foreground mt-4">
-              Not enough data
-            </Text>
-            <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
-              Year-over-year comparison requires plans for at least 2 financial years.
-            </Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Which two years */}
+        <View className="flex-row items-center flex-wrap px-4 pt-3" style={{ gap: 8 }}>
+          <YearPill label={inProgress ? `${fyLabel(fy)} so far` : fyLabel(fy)} onPress={() => setFyPicker(true)} />
+          <Text className="text-xs text-muted-foreground">vs</Text>
+          <YearPill label={data.partial ? `${fyLabel(baseFy)}, same months` : fyLabel(baseFy)} onPress={() => setBasePicker(true)} />
+        </View>
+        {inProgress && (
+          <View className="px-4 mt-3">
+            <SegmentedControl
+              accessibilityLabel="Compare"
+              options={[
+                { value: "same-period", label: "Same months" },
+                { value: "full", label: "Full years" },
+              ]}
+              value={mode}
+              onChange={(v) => setMode(v as YoYMode)}
+            />
           </View>
-        ) : comparison ? (
-          <View className="px-4 py-3">
-            {/* Overall trend header */}
-            <View
-              className="mb-4 p-4 rounded-xl"
-              style={{
-                backgroundColor:
-                  comparison.overallTrend === "improved"
-                    ? theme.alpha("success", 0.08)
-                    : comparison.overallTrend === "declined"
-                      ? theme.alpha("danger", 0.08)
-                      : theme.alpha("warning", 0.08),
-              }}
-            >
-              <View className="flex-row items-center">
-                <Ionicons
-                  name={
-                    comparison.overallTrend === "improved"
-                      ? "trending-up"
-                      : comparison.overallTrend === "declined"
-                        ? "trending-down"
-                        : "swap-horizontal"
-                  }
-                  size={24}
-                  color={
-                    comparison.overallTrend === "improved"
-                      ? theme.success
-                      : comparison.overallTrend === "declined"
-                        ? theme.danger
-                        : theme.warning
-                  }
-                />
-                <View className="ml-3">
-                  <Text className="text-lg font-bold text-foreground">
-                    {comparison.overallTrend === "improved"
-                      ? "Financial Progress"
-                      : comparison.overallTrend === "declined"
-                        ? "Areas Need Attention"
-                        : "Mixed Results"}
-                  </Text>
-                  <Text className="text-xs text-muted-foreground">
-                    {previousFYLabel} vs {currentFYLabel}
+        )}
+
+        {nothing ? (
+          <Card className="mx-4 mt-3">
+            <Text className="text-sm text-muted-foreground">
+              No spending or money in recorded for these years yet. Pick other years, or come back once there's some history.
+            </Text>
+          </Card>
+        ) : (
+          <>
+            <Card className="mx-4 mt-3">
+              <Text className="text-base font-semibold text-foreground leading-6">{data.summary}</Text>
+            </Card>
+
+            <View className="flex-row flex-wrap px-4 mt-2" style={{ gap: 8 }}>
+              {tiles.map((t) => (
+                <View key={t.label} className="bg-card rounded-xl border border-border px-3 py-2.5" style={{ width: "48.5%" }}>
+                  <Text className="text-xs text-muted-foreground">{t.label}</Text>
+                  <Text className="text-lg font-bold text-foreground mt-0.5">{t.value}</Text>
+                  <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
+                    {t.change ? (
+                      <Text
+                        className="text-label font-semibold"
+                        style={{ color: t.good == null ? theme.mutedForeground : t.good ? theme.success : theme.danger }}
+                      >
+                        {t.change}
+                      </Text>
+                    ) : null}
+                    {t.change ? " " : ""}
+                    {t.plan ?? t.from}
                   </Text>
                 </View>
-              </View>
+              ))}
             </View>
 
-            {/* Category comparison cards */}
-            {comparison.categories.map((cat) => (
-              <CategoryCard
-                key={cat.label}
-                category={cat}
-                prevLabel={previousFYLabel}
-                currLabel={currentFYLabel}
+            <Card className="mx-4 mt-3">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Spending through the year
+              </Text>
+              <YoYCumulativeChart
+                monthLabels={data.monthLabels}
+                current={data.current.cumulative}
+                base={data.base.cumulative}
+                currentLabel={data.current.label}
+                baseLabel={data.base.label}
               />
-            ))}
-          </View>
-        ) : null}
+            </Card>
+
+            {data.movers.length > 0 && (
+              <Card className="mx-4 mt-3">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Biggest movers</Text>
+                {data.movers.map((m, i) => {
+                  const up = m.curr > m.prev;
+                  const diff = Math.abs(m.curr - m.prev);
+                  return (
+                    <Pressable
+                      key={`${m.categoryId ?? "none"}-${i}`}
+                      onPress={
+                        m.expenseIds.length > 0
+                          ? () =>
+                              router.push({
+                                pathname: "/insights/filtered",
+                                params: { expenseIds: m.expenseIds.join(","), title: `${m.name} · ${data.current.label}` },
+                              })
+                          : undefined
+                      }
+                      className="flex-row items-center py-2.5"
+                      style={i > 0 ? { borderTopWidth: 1, borderTopColor: theme.border } : undefined}
+                      accessibilityRole={m.expenseIds.length > 0 ? "button" : undefined}
+                    >
+                      <View className="flex-1">
+                        <Text className="text-sm text-foreground" numberOfLines={1}>{m.name}</Text>
+                        <Text className="text-label text-muted-foreground">
+                          {formatAmount(m.prev)} → {formatAmount(m.curr)}
+                        </Text>
+                      </View>
+                      <Text className="text-sm font-semibold" style={{ color: up ? theme.danger : theme.success }}>
+                        {up ? "▲" : "▼"} {m.changePct != null ? `${Math.abs(Math.round(m.changePct))}%` : "new"}
+                        <Text className="text-xs text-muted-foreground"> {up ? "+" : "−"}{formatCompact(diff)}</Text>
+                      </Text>
+                      {m.expenseIds.length > 0 && <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />}
+                    </Pressable>
+                  );
+                })}
+              </Card>
+            )}
+
+            <Text className="text-label text-faint-foreground px-4 mt-3">
+              From your transactions: spending follows your budget's rules (no transfers, loan payments or investments).
+              {data.current.planSpent != null || data.current.planInvested != null ? " Plan figures come from your yearly plan, scaled to these months." : ""}
+            </Text>
+          </>
+        )}
       </ScrollView>
+
+      <SelectSheet
+        visible={fyPicker}
+        title="Compare"
+        options={fyOptions}
+        value={String(fy)}
+        onChange={(v) => {
+          const next = Number(v);
+          setFy(next);
+          if (next === baseFy) setBaseFy(next - 1);
+        }}
+        onClose={() => setFyPicker(false)}
+      />
+      <SelectSheet
+        visible={basePicker}
+        title="Against"
+        options={baseOptions}
+        value={String(baseFy)}
+        onChange={(v) => setBaseFy(Number(v))}
+        onClose={() => setBasePicker(false)}
+      />
     </ScreenContainer>
   );
 }
 
-function CategoryCard({
-  category,
-  prevLabel,
-  currLabel,
-}: {
-  category: YoYCategory;
-  prevLabel: string;
-  currLabel: string;
-}) {
-  const { colorScheme } = useColorScheme();
+function YearPill({ label, onPress }: { label: string; onPress: () => void }) {
   const theme = useTheme();
-  const c = category;
-
-  const fmt = (v: number) =>
-    c.isAmount ? formatAmount(Math.round(v)) : `${v.toFixed(1)}%`;
-
-  const plannedChange = c.currPlanned - c.prevPlanned;
-  const actualChange = c.currActual - c.prevActual;
-
-  const plannedChangePct = c.prevPlanned !== 0
-    ? Math.round((plannedChange / c.prevPlanned) * 1000) / 10
-    : 0;
-  const actualChangePct = c.prevActual !== 0
-    ? Math.round((actualChange / c.prevActual) * 1000) / 10
-    : 0;
-
-  const actualVsPlan = (actual: number, planned: number) => {
-    if (planned === 0) return null;
-    const diff = actual - planned;
-    // v17.5.2 — gap direction can differ from row direction (Loans & Debts).
-    const gapHigherIsBetter = c.gapActualHigherIsBetter ?? !c.lowerIsBetter;
-    const isGood = gapHigherIsBetter ? diff >= 0 : diff <= 0;
-    return { diff, isGood, pct: Math.round((diff / planned) * 1000) / 10 };
-  };
-
-  const prevGap = actualVsPlan(c.prevActual, c.prevPlanned);
-  const currGap = actualVsPlan(c.currActual, c.currPlanned);
-
-  const icon: keyof typeof Ionicons.glyphMap =
-    c.label === "Income" ? "wallet-outline"
-      : c.label === "Expenses" ? "cart-outline"
-        : c.label === "Investments" ? "trending-up-outline"
-          : c.label === "Milestones" ? "flag-outline"
-            : c.label === "Loans & Debts" ? "card-outline"
-              : "stats-chart-outline";
-
   return (
-    <Card className="mb-3">
-      {/* Category header */}
-      <View className="flex-row items-center mb-3">
-        <Ionicons name={icon} size={16} color={theme.faintForeground} style={{ marginRight: 6 }} />
-        <Text className="text-sm font-bold text-foreground">
-          {c.label}
-        </Text>
-      </View>
-
-      {/* Column headers */}
-      <View className="flex-row mb-1.5">
-        <View className="flex-1" />
-        <Text className="w-20 text-label font-semibold text-faint-foreground text-right">
-          {prevLabel}
-        </Text>
-        <Text className="w-20 ml-2 text-label font-semibold text-faint-foreground text-right">
-          {currLabel}
-        </Text>
-        <Text className="w-16 ml-2 text-label font-semibold text-faint-foreground text-right">
-          Change
-        </Text>
-      </View>
-
-      {/* Planned row */}
-      <View className="flex-row items-center py-1.5 border-b border-border">
-        <Text className="flex-1 text-xs text-muted-foreground">
-          Planned
-        </Text>
-        <Text className="w-20 text-xs text-muted-foreground text-right">
-          {fmt(c.prevPlanned)}
-        </Text>
-        <Text className="w-20 ml-2 text-xs font-medium text-foreground text-right">
-          {fmt(c.currPlanned)}
-        </Text>
-        <ChangeBadge value={plannedChangePct} lowerIsBetter={c.lowerIsBetter} />
-      </View>
-
-      {/* Actual row */}
-      <View className="flex-row items-center py-1.5">
-        <Text className="flex-1 text-xs font-medium text-foreground">
-          Actual
-        </Text>
-        <Text className="w-20 text-xs text-muted-foreground text-right">
-          {fmt(c.prevActual)}
-        </Text>
-        <Text className="w-20 ml-2 text-xs font-bold text-foreground text-right">
-          {fmt(c.currActual)}
-        </Text>
-        <ChangeBadge value={actualChangePct} lowerIsBetter={c.lowerIsBetter} />
-      </View>
-
-      {/* Plan vs Actual gap */}
-      {currGap && c.label !== "Income" && (
-        <View
-          className="mt-2 px-3 py-1.5 rounded-lg flex-row items-center justify-between"
-          style={{
-            backgroundColor: currGap.isGood
-              ? theme.alpha("success", 0.08)
-              : theme.alpha("danger", 0.08),
-          }}
-        >
-          <Text className="text-label text-muted-foreground">
-            Plan vs Actual ({currLabel})
-          </Text>
-          <Text
-            className="text-label font-bold"
-            style={{
-              color: currGap.isGood
-                ? theme.success
-                : theme.danger,
-            }}
-          >
-            {currGap.diff > 0 ? "+" : ""}{c.isAmount ? formatCompact(currGap.diff) : `${currGap.diff.toFixed(1)}pp`}
-            {" "}({currGap.pct > 0 ? "+" : ""}{currGap.pct}%)
-          </Text>
-        </View>
-      )}
-    </Card>
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center rounded-lg border px-3 py-1.5 bg-card"
+      style={{ borderColor: theme.border }}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, change year`}
+    >
+      <Text className="text-xs font-medium text-foreground">{label}</Text>
+      <Ionicons name="chevron-down" size={12} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
+    </Pressable>
   );
 }
-
-function ChangeBadge({ value, lowerIsBetter }: { value: number; lowerIsBetter: boolean }) {
-  const { colorScheme } = useColorScheme();
-  const theme = useTheme();
-  if (value === 0) return <View className="w-16 ml-2" />;
-
-  const isGood = lowerIsBetter ? value < 0 : value > 0;
-  const color = isGood ? theme.success : theme.danger;
-
-  return (
-    <View className="w-16 ml-2 flex-row items-center justify-end">
-      <View
-        className="flex-row items-center px-1.5 py-0.5 rounded-full"
-        style={{ backgroundColor: color + "14" }}
-      >
-        <Ionicons name={value > 0 ? "arrow-up" : "arrow-down"} size={8} color={color} />
-        <Text className="text-label font-medium ml-0.5" style={{ color }}>
-          {Math.abs(value)}%
-        </Text>
-      </View>
-    </View>
-  );
-}
-

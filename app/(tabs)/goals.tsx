@@ -7,6 +7,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getBalanceSheetColumn } from "@/services/balance-sheet";
 import { getNetWorthHistory } from "@/services/net-worth-history";
+import { getReadyReviewFY } from "@/services/reports/year-review";
+import { getYoY } from "@/services/reports/yoy";
 import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
@@ -44,6 +46,9 @@ export default function GoalsScreen() {
   const [totalMonthlyEMI, setTotalMonthlyEMI] = useState(preloaded?.totalMonthlyEMI ?? 0);
   const [netWorth, setNetWorth] = useState<number | null>(null);
   const [netWorthFYChange, setNetWorthFYChange] = useState<number | null>(null);
+  /** Analyse tiles: this year vs the same months last year, and monthly take-home. */
+  const [yoyTile, setYoyTile] = useState<{ spentPct: number | null; savedPts: number | null } | null>(null);
+  const [takeHome, setTakeHome] = useState(0);
   const [insuranceCount, setInsuranceCount] = useState(0);
   const [insuranceAdequacy, setInsuranceAdequacy] = useState<InsuranceAdequacy | null>(null);
   const [cockpitData, setCockpitData] = useState<FinancialCockpitData | null>(preloaded?.cockpit ?? null);
@@ -64,6 +69,7 @@ export default function GoalsScreen() {
         getCurrentEMIsByLoanId(DEFAULT_USER_ID, today),
       ]);
       setHasSalaryProfile(salary != null && salary.computed_monthly_in_hand > 0);
+      setTakeHome(salary?.computed_monthly_in_hand || salary?.manual_monthly_in_hand || 0);
       setFyBuckets(fetchedBuckets);
       setFyMilestones(fetchedMilestones);
       setActiveLoansCount(activeLoans.length);
@@ -109,6 +115,23 @@ export default function GoalsScreen() {
       }
     } catch {
       // History is a nice-to-have on this row
+    }
+
+    // Analyse: Year over Year headline (cached by data version, so cheap on a repeat visit).
+    try {
+      const y = await getYoY(DEFAULT_USER_ID, currentFY, currentFY - 1, "same-period");
+      const c = y.current;
+      const b = y.base;
+      setYoyTile(
+        c.spent === 0 && b.spent === 0
+          ? null
+          : {
+              spentPct: b.spent > 0 ? Math.round(((c.spent - b.spent) / b.spent) * 100) : null,
+              savedPts: c.savedPct != null && b.savedPct != null ? Math.round(c.savedPct - b.savedPct) : null,
+            },
+      );
+    } catch {
+      setYoyTile(null);
     }
   }, [currentFY, startMonth]);
 
@@ -614,53 +637,90 @@ export default function GoalsScreen() {
             Analyse
           </Text>
           <Appear index={3}>
-          <Card className="mb-4">
-            <Pressable
+          <View className="mb-4" style={{ gap: 8 }}>
+            <AnalyseTile
+              icon="git-compare-outline"
+              color={theme.warning}
+              title="Year over Year"
               onPress={() => router.push("/goals/yoy-comparison")}
-              className="flex-row items-center py-3 border-b border-border"
             >
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: "#F59E0B14" }}
-              >
-                <Ionicons name="git-compare-outline" size={18} color={theme.warning} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground">
-                  Year-over-Year
-                </Text>
+              {yoyTile && (yoyTile.spentPct != null || yoyTile.savedPts != null) ? (
                 <Text className="text-xs text-muted-foreground">
-                  Compare FY performance
+                  {yoyTile.spentPct != null && (
+                    <Text className="text-xs font-semibold" style={{ color: yoyTile.spentPct <= 0 ? theme.success : theme.danger }}>
+                      Spending {yoyTile.spentPct <= 0 ? "▼" : "▲"} {Math.abs(yoyTile.spentPct)}%
+                    </Text>
+                  )}
+                  {yoyTile.spentPct != null && yoyTile.savedPts != null && yoyTile.savedPts !== 0 ? " · " : ""}
+                  {yoyTile.savedPts != null && yoyTile.savedPts !== 0
+                    ? `saving ${yoyTile.savedPts > 0 ? "▲" : "▼"} ${Math.abs(yoyTile.savedPts)} pts`
+                    : ""}
+                  {" vs this time last year"}
                 </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
-
-            <Pressable
+              ) : (
+                <Text className="text-xs text-muted-foreground">Any two financial years, side by side</Text>
+              )}
+            </AnalyseTile>
+            <AnalyseTile
+              icon="sparkles-outline"
+              color={theme.primary}
+              title="Year in Review"
+              onPress={() => router.push({ pathname: "/insights/year-review", params: { fy: String(getReadyReviewFY() ?? currentFY) } })}
+            >
+              <Text className="text-xs text-muted-foreground">
+                {getReadyReviewFY() != null
+                  ? `${getFYLabel(getReadyReviewFY()!, startMonth)} is ready to swipe through`
+                  : `${fyLabel} so far, as a story`}
+              </Text>
+            </AnalyseTile>
+            <AnalyseTile
+              icon="calculator-outline"
+              color={theme.success}
+              title="Income Calculator"
               onPress={() => router.push("/goals/salary-calculator")}
-              className="flex-row items-center py-3"
             >
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: theme.alpha("success", 0.08) }}
-              >
-                <Ionicons name="calculator-outline" size={18} color={theme.success} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground">
-                  Income Calculator
-                </Text>
-                <Text className="text-xs text-muted-foreground">
-                  CTC, tax & capital gains
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
-          </Card>
+              <Text className="text-xs text-muted-foreground">
+                {takeHome > 0 ? `Take-home ${formatAmount(takeHome)} a month` : "CTC, tax and capital gains"}
+              </Text>
+            </AnalyseTile>
+          </View>
           </Appear>
 
         </View>
       </ScrollView>
     </ScreenContainer>
+  );
+}
+
+/** One row of the Analyse section: an icon tile, a title and a live line underneath. */
+function AnalyseTile({
+  icon,
+  color,
+  title,
+  onPress,
+  children,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  title: string;
+  onPress: () => void;
+  children: React.ReactNode;
+}) {
+  const { colors } = useColorScheme();
+  return (
+    <PressableScale onPress={onPress} accessibilityRole="button" accessibilityLabel={title}>
+      <Card>
+        <View className="flex-row items-center">
+          <View className="w-10 h-10 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: color + "1A" }}>
+            <Ionicons name={icon} size={19} color={color} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-sm font-semibold text-foreground">{title}</Text>
+            {children}
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+        </View>
+      </Card>
+    </PressableScale>
   );
 }

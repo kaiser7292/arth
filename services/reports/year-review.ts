@@ -109,7 +109,7 @@ export function getReadyReviewFY(today: Date = new Date()): number | null {
   return days >= 0 && days < 30 ? current - 1 : null;
 }
 
-async function categoryNames(userId: string): Promise<Map<string, { name: string; color: string | null }>> {
+export async function categoryNames(userId: string): Promise<Map<string, { name: string; color: string | null }>> {
   const db = getDatabase();
   const rows = await db.getAllAsync<{ id: string; name: string; color: string | null }>(
     `SELECT id, name, color FROM categories WHERE user_id = ?;`,
@@ -119,7 +119,7 @@ async function categoryNames(userId: string): Promise<Map<string, { name: string
 }
 
 /** Credits that are real money in: not refunds, not your own transfers, not credit-card payments. */
-async function moneyIn(userId: string, startDate: string, endDate: string): Promise<number> {
+export async function moneyIn(userId: string, startDate: string, endDate: string): Promise<number> {
   const db = getDatabase();
   const row = await db.getFirstAsync<{ total: number | null }>(
     `SELECT COALESCE(SUM(e.amount), 0) AS total
@@ -137,7 +137,7 @@ async function moneyIn(userId: string, startDate: string, endDate: string): Prom
   return row?.total ?? 0;
 }
 
-async function invested(userId: string, startDate: string, endDate: string): Promise<{ amount: number; fdsOpened: number }> {
+export async function invested(userId: string, startDate: string, endDate: string): Promise<{ amount: number; fdsOpened: number }> {
   const db = getDatabase();
   const [links, transfers, fds] = await Promise.all([
     db.getFirstAsync<{ total: number | null }>(
@@ -182,18 +182,20 @@ async function hisaabSettlements(userId: string, startDate: string, endDate: str
   return { peopleSettled: row?.people ?? 0, settledAmount: row?.total ?? 0 };
 }
 
-interface SpendSummary {
+export interface SpendSummary {
   total: number;
   count: number;
   smsCount: number;
   byCategory: Map<string, number>;
+  /** Expense ids per category, so a category can open its transactions. */
+  idsByCategory: Map<string, string[]>;
   byMerchant: Map<string, { name: string; amount: number; count: number }>;
   byMonth: Map<string, number>;
 }
 
-async function summariseSpending(userId: string, startDate: string, endDate: string): Promise<SpendSummary> {
+export async function summariseSpending(userId: string, startDate: string, endDate: string): Promise<SpendSummary> {
   const rows = await getSpendingRows(userId, startDate, endDate);
-  const s: SpendSummary = { total: 0, count: 0, smsCount: 0, byCategory: new Map(), byMerchant: new Map(), byMonth: new Map() };
+  const s: SpendSummary = { total: 0, count: 0, smsCount: 0, byCategory: new Map(), idsByCategory: new Map(), byMerchant: new Map(), byMonth: new Map() };
   for (const r of rows) {
     const amt = r.amount;
     s.total += amt;
@@ -201,6 +203,9 @@ async function summariseSpending(userId: string, startDate: string, endDate: str
     if (r.source === "sms_auto") s.smsCount += 1;
     const cat = r.category_id ?? "";
     s.byCategory.set(cat, (s.byCategory.get(cat) ?? 0) + amt);
+    const ids = s.idsByCategory.get(cat);
+    if (ids) ids.push(r.id);
+    else s.idsByCategory.set(cat, [r.id]);
     const m = r.date.slice(0, 7);
     s.byMonth.set(m, (s.byMonth.get(m) ?? 0) + amt);
     const name = (r.merchant_name ?? r.raw_merchant_name ?? "").trim();

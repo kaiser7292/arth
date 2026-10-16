@@ -1903,3 +1903,33 @@ export function loanToParams(loan: LoanAccount): LoanParams {
   };
 }
 
+
+/**
+ * Money paid towards INR loans between two dates (inclusive): EMIs marked paid / prepaid that
+ * fell due in the range, plus prepayments made in it. Year over Year's "Loans repaid".
+ */
+export async function getLoanPaymentsBetween(userId: string, startDate: string, endDate: string): Promise<number> {
+  const db = getDatabase();
+  const [emis, prepays] = await Promise.all([
+    db.getFirstAsync<{ total: number | null }>(
+      `SELECT COALESCE(SUM(COALESCE(se.paid_amount, se.emi_amount)), 0) AS total
+       FROM loan_schedule_entries se
+       JOIN loan_accounts la ON la.id = se.loan_account_id
+       JOIN financial_accounts fa ON fa.id = la.financial_account_id
+       WHERE fa.user_id = ? AND la.currency = 'INR'
+         AND se.status IN ('paid', 'prepaid')
+         AND se.due_date >= ? AND se.due_date <= ?;`,
+      userId, startDate, endDate,
+    ),
+    db.getFirstAsync<{ total: number | null }>(
+      `SELECT COALESCE(SUM(p.amount), 0) AS total
+       FROM loan_prepayments p
+       JOIN loan_accounts la ON la.id = p.loan_account_id
+       JOIN financial_accounts fa ON fa.id = la.financial_account_id
+       WHERE fa.user_id = ? AND la.currency = 'INR'
+         AND p.prepayment_date >= ? AND p.prepayment_date <= ?;`,
+      userId, startDate, endDate,
+    ),
+  ]);
+  return (emis?.total ?? 0) + (prepays?.total ?? 0);
+}
