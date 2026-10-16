@@ -14,7 +14,7 @@
 
 Built with React Native and Expo. Open source. No data leaves your phone.
 
-**Current version: v4.17.2** · [All releases](https://github.com/kaiser7292/arth/releases)
+**Current version: v4.17.3** · [All releases](https://github.com/kaiser7292/arth/releases)
 
 ---
 
@@ -187,7 +187,7 @@ artha/
 
 | Version | Highlights |
 |---------|-----------|
-| **v4.17** | Net worth over time on the Balance Sheet (month-by-month chart, change split into saved, market gains and loans paid down); Year in Review story for any financial year, shareable as an image or PDF with amounts hidden, and a Home card for 30 days after a new FY starts; drag across the Investments chart to read any date. 4.17.1: Catch Up merchant picker is a full page. 4.17.2: drag to read the net worth chart; chart breakdowns follow the finger |
+| **v4.17** | Net worth over time on the Balance Sheet (month-by-month chart, change split into saved, market gains and loans paid down); Year in Review story for any financial year, shareable as an image or PDF with amounts hidden, and a Home card for 30 days after a new FY starts; drag across the Investments chart to read any date. 4.17.1: Catch Up merchant picker is a full page. 4.17.2: drag to read the net worth chart; chart breakdowns follow the finger. 4.17.3: net worth recalculates only when data changed; no endless loading |
 | **v4.11** | Fixed start-up failure in 4.10.2 and 4.11.0 (R8 removed an Expo class). Arth AI assistant removed; app download roughly halved. Leftover AI model files are deleted on update. |
 | **v4.10** | Smaller, faster app code (R8 shrinking: 36 MB down to 8 MB). Realised capital gains from investment withdrawals flow into the Income Calculator (proportional cost, oldest money first) with crypto taxed at a flat 30%; withdrawals beyond idle cash come off holdings; buckets drop by cost, never below zero; no flash when switching tabs. Motion system, phases 2-4: totals count up, charts draw in, cards arrive in sequence, gliding selectors and filling bars across Home, Investments, Budget, Goals and Loans; Catch Up buttons fling the card, the next rises from behind, Undo slides it back; lists close gaps smoothly; smooth More options and collapsible sections; placeholders fade into content; AI assistant thinking dots; onboarding welcome drift |
 | **v4.9** | Motion system, phase 1: screens slide in from the right and add/edit screens rise from the bottom; tabs cross-fade with a shift; press feedback on buttons, rows and chips; shared motion building blocks (count-ups, staggered cards, gliding selector, collapse, placeholder fades); all off with the phone's Remove animations setting |
