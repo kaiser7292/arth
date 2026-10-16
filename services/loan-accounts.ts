@@ -660,6 +660,18 @@ export async function getLoanOutstandingsByFA(
   userId: string,
   asOfDate: string,
 ): Promise<Map<string, number>> {
+  return (await getLoanOutstandingsByFAForDates(userId, [asOfDate])).get(asOfDate) ?? new Map();
+}
+
+/**
+ * getLoanOutstandingsByFA for several dates from one read of the schedules - the net worth
+ * history asks for every month-end, and reading them once per month made it slow.
+ */
+export async function getLoanOutstandingsByFAForDates(
+  userId: string,
+  asOfDates: string[],
+): Promise<Map<string, Map<string, number>>> {
+  const byDate = new Map<string, Map<string, number>>();
   const db = getDatabase();
   const rows = await db.getAllAsync<{
     financial_account_id: string;
@@ -674,7 +686,7 @@ export async function getLoanOutstandingsByFA(
      WHERE fa.user_id = ?;`,
     userId,
   );
-  if (rows.length === 0) return new Map();
+  if (rows.length === 0) return byDate;
 
   // v17.5.2 — batch schedule+prepayment reads via IN-clause (was N+1).
   const ids = rows.map((r) => r.id);
@@ -719,28 +731,31 @@ export async function getLoanOutstandingsByFA(
     correctionsByLoan.set(c.loan_account_id, arr);
   }
 
-  const map = new Map<string, number>();
-  for (const row of rows) {
-    const outstanding = computeOutstandingAt(
-      toScheduleEngineType(schedByLoan.get(row.id) ?? []),
-      toPrepaymentEngineType(prepayByLoan.get(row.id) ?? []),
-      asOfDate,
-      row.principal_disbursed,
-      toCorrectionEngineType(correctionsByLoan.get(row.id) ?? []),
-    );
-    // v17.3.0 — convert to INR if currency isn't INR and a fx_rate is set.
-    // Balance Sheet is INR-total only; non-INR loans without a rate stay
-    // visible on the account detail (native currency) but don't contribute
-    // to the Balance Sheet total.
-    const outstandingInr =
-      row.currency === "INR"
-        ? outstanding
-        : row.fx_rate && row.fx_rate > 0
-          ? outstanding * row.fx_rate
-          : 0;
-    map.set(row.financial_account_id, outstandingInr);
+  for (const asOfDate of asOfDates) {
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      const outstanding = computeOutstandingAt(
+        toScheduleEngineType(schedByLoan.get(row.id) ?? []),
+        toPrepaymentEngineType(prepayByLoan.get(row.id) ?? []),
+        asOfDate,
+        row.principal_disbursed,
+        toCorrectionEngineType(correctionsByLoan.get(row.id) ?? []),
+      );
+      // v17.3.0 — convert to INR if currency isn't INR and a fx_rate is set.
+      // Balance Sheet is INR-total only; non-INR loans without a rate stay
+      // visible on the account detail (native currency) but don't contribute
+      // to the Balance Sheet total.
+      const outstandingInr =
+        row.currency === "INR"
+          ? outstanding
+          : row.fx_rate && row.fx_rate > 0
+            ? outstanding * row.fx_rate
+            : 0;
+      map.set(row.financial_account_id, outstandingInr);
+    }
+    byDate.set(asOfDate, map);
   }
-  return map;
+  return byDate;
 }
 
 export interface LoansSummary {

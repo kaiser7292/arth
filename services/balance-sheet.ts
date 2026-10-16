@@ -22,6 +22,7 @@ import { getDatabase } from "@/database";
 import { computeClosing, computeUnseededBalance } from "@/services/account-balance";
 import { V15_FLAGS } from "@/services/feature-flags";
 import { getLoanOutstandingsByFA } from "@/services/loan-accounts";
+import { getDataVersion } from "@/services/settings";
 import {
   batchInvestmentProducts,
   INSTRUMENT_LABELS,
@@ -393,7 +394,30 @@ export interface ColumnRequest {
  *    No snapshot in that FY → row omitted → UI renders "—".
  *  - Live column: latest snapshot on-or-before today.
  */
-export async function getBalanceSheetColumn(
+export function getBalanceSheetColumn(
+  userId: string,
+  asOfDate: string,
+  label: string,
+  isLive: boolean,
+  minDate: string | null,
+): Promise<BalanceSheetColumn> {
+  // Only recompute after something was written (the data version moves on every write). Asking
+  // again with nothing changed - reopening Balance Sheet, coming back to Goals - reuses the answer.
+  const version = getDataVersion();
+  if (columnCache.version !== version) columnCache = { version, entries: new Map() };
+  const key = `${userId}|${asOfDate}|${label}|${isLive}|${minDate ?? ""}`;
+  const hit = columnCache.entries.get(key);
+  if (hit) return hit;
+  const value = computeBalanceSheetColumn(userId, asOfDate, label, isLive, minDate);
+  const entries = columnCache.entries;
+  entries.set(key, value);
+  value.catch(() => entries.delete(key)); // a failure is retried next time, not remembered
+  return value;
+}
+
+let columnCache: { version: number; entries: Map<string, Promise<BalanceSheetColumn>> } = { version: -1, entries: new Map() };
+
+async function computeBalanceSheetColumn(
   userId: string,
   asOfDate: string,
   label: string,

@@ -27,7 +27,7 @@
 import { getDatabase } from "@/database";
 import { computeClosing } from "@/services/account-balance";
 import { V15_FLAGS } from "@/services/feature-flags";
-import { getLoanOutstandingsByFA } from "@/services/loan-accounts";
+import { getLoanOutstandingsByFAForDates } from "@/services/loan-accounts";
 import {
   batchInvestmentProducts,
   isDematLikeAccount,
@@ -476,10 +476,9 @@ export async function computeNetWorthHistory(
 
   const loanByMonth = new Map<string, Map<string, number>>();
   if (loanAccounts.length > 0 && V15_FLAGS.v17_loans_v1) {
-    const results = await Promise.all(
-      months.map((m) => getLoanOutstandingsByFA(userId, m === currentMonth ? today : monthEnd(m))),
-    );
-    months.forEach((m, i) => loanByMonth.set(m, results[i]));
+    const dates = months.map((m) => (m === currentMonth ? today : monthEnd(m)));
+    const results = await getLoanOutstandingsByFAForDates(userId, dates);
+    months.forEach((m, i) => loanByMonth.set(m, results.get(dates[i]) ?? new Map()));
   }
 
   // ── Assemble ──
@@ -616,6 +615,12 @@ export function changeBetween(points: NetWorthPoint[], fromIndex: number, toInde
 // ── Cache: recompute only after data changes or the day rolls over ──
 
 let cache: { key: string; value: Promise<NetWorthHistory> } | null = null;
+/** The last history that finished computing, for screens to show at once while a newer one loads. */
+let lastResolved: NetWorthHistory | null = null;
+
+export function peekNetWorthHistory(): NetWorthHistory | null {
+  return lastResolved;
+}
 
 export function getNetWorthHistory(userId: string): Promise<NetWorthHistory> {
   const today = formatLocalDate(new Date());
@@ -623,6 +628,9 @@ export function getNetWorthHistory(userId: string): Promise<NetWorthHistory> {
   if (cache?.key === key) return cache.value;
   const value = computeNetWorthHistory(userId, today);
   cache = { key, value };
+  value.then((h) => {
+    lastResolved = h;
+  }, () => {});
   value.catch(() => {
     if (cache?.value === value) cache = null;
   });

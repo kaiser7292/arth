@@ -23,6 +23,10 @@ const mockAdapter = {
 };
 
 jest.mock("../../database", () => ({ getDatabase: () => mockAdapter }));
+// These tests write straight to the database, which app code never does without bumping the data
+// version - so give every call a new version and the column cache never answers from memory.
+let mockVersion = 0;
+jest.mock("../../services/settings", () => ({ getDataVersion: () => ++mockVersion }));
 // Skip the loan-outstanding path entirely — no loan_accounts table in this
 // fixture, and this test isn't about loans.
 jest.mock("../../services/feature-flags", () => ({
@@ -167,5 +171,26 @@ describe("getBalanceSheetColumn — Hisaab people left out of net worth", () => 
 
     const past = await getBalanceSheetColumn("u1", "2026-05-31", "FY", false, null);
     expect(past.assets.find((r) => r.group === "hisaab_owed")?.amount ?? 0).toBe(2000);
+  });
+});
+
+describe("getBalanceSheetColumn - cache", () => {
+  it("answers from memory while the data version hasn't moved, and recomputes once it has", async () => {
+    seed();
+    const settings = jest.requireMock("../../services/settings") as { getDataVersion: () => number };
+    const real = settings.getDataVersion;
+    settings.getDataVersion = () => 1000;
+    try {
+      const first = await getBalanceSheetColumn("u1", "2026-05-20", "Today", true, null);
+      mockSqlite.prepare("UPDATE account_month_balances SET opening_balance = 1 WHERE account_id = 'savings-1';").run();
+      const same = await getBalanceSheetColumn("u1", "2026-05-20", "Today", true, null);
+      expect(same).toBe(first); // nothing was bumped: no recompute
+
+      settings.getDataVersion = () => 1001; // a write happened
+      const fresh = await getBalanceSheetColumn("u1", "2026-05-20", "Today", true, null);
+      expect(fresh.totalAssets).not.toBe(first.totalAssets);
+    } finally {
+      settings.getDataVersion = real;
+    }
   });
 });

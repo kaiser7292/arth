@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
@@ -17,9 +17,18 @@ import { consumeBalanceSheetPreload } from "@/services/home-preload";
 import { useTheme } from "@/hooks/use-theme";
 import { HisaabNetWorthSheet } from "@/components/goals/HisaabNetWorthSheet";
 import { NetWorthTrendCard } from "@/components/goals/NetWorthTrendCard";
-import { getNetWorthHistory, type NetWorthPoint } from "@/services/net-worth-history";
+import { getNetWorthHistory, peekNetWorthHistory, type NetWorthPoint } from "@/services/net-worth-history";
+import { getDataVersion } from "@/services/settings";
 
 const preloaded = consumeBalanceSheetPreload();
+
+/**
+ * The last table this screen computed, kept across visits. Opening the screen again shows it at
+ * once, and it's only recomputed when something was written since (data version), the day
+ * rolled over, or the columns differ - before this, every visit recomputed everything behind a
+ * full-screen loader.
+ */
+let lastTable: { key: string; columns: BalanceSheetColumn[] } | null = null;
 
 interface ColumnSpec {
   asOfDate: string;
@@ -38,8 +47,9 @@ export default function BalanceSheetScreen() {
   const { colors } = useColorScheme();
   const theme = useTheme();
   const [columns, setColumns] = useState<BalanceSheetColumn[]>(
-    preloaded ? [preloaded.liveColumn] : [],
+    preloaded ? [preloaded.liveColumn] : lastTable?.columns ?? [],
   );
+  const [loadFailed, setLoadFailed] = useState(false);
   const [columnSpecs, setColumnSpecs] = useState<ColumnSpec[]>([]);
   const [showAssets, setShowAssets] = useState(true);
   const [showLiabilities, setShowLiabilities] = useState(true);
@@ -55,8 +65,8 @@ export default function BalanceSheetScreen() {
   // numbers silently swap in on every data-refresh event.
   const [recomputing, setRecomputing] = useState(false);
   const [hisaabSheetOpen, setHisaabSheetOpen] = useState(false);
-  const [history, setHistory] = useState<NetWorthPoint[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(true);
+  const [history, setHistory] = useState<NetWorthPoint[]>(() => peekNetWorthHistory()?.points ?? []);
+  const [historyLoading, setHistoryLoading] = useState(() => peekNetWorthHistory() == null);
 
   // Default: previous FY close + Live. User can add more via the + button.
   const buildDefaultSpecs = useCallback((): ColumnSpec[] => {
@@ -81,32 +91,43 @@ export default function BalanceSheetScreen() {
     setColumnSpecs(buildDefaultSpecs());
   }, [buildDefaultSpecs]);
 
-  useDataRefresh(
-    useCallback(async () => {
-      if (columnSpecs.length === 0) return;
+  // Net worth over time - loaded after the table so the two don't compete for the database, and
+  // its own try so a slow or failed history never holds up the table.
+  const loadHistory = useCallback(async () => {
+    try {
+      const h = await getNetWorthHistory(DEFAULT_USER_ID);
+      setHistory(h.points);
+    } catch (e) {
+      console.warn("[balance-sheet] net worth history failed", e);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  const loadTable = useCallback(async () => {
+    if (columnSpecs.length === 0) return;
+    const key = `${getDataVersion()}|${formatLocalDate(new Date())}|${columnSpecs.map((c) => c.asOfDate).join(",")}`;
+    if (lastTable?.key === key) {
+      // Nothing has changed since the last time this was worked out.
+      setColumns(lastTable.columns);
+      setLoadFailed(false);
+    } else {
       setRecomputing(true);
       try {
         const data = await getBalanceSheet(DEFAULT_USER_ID, columnSpecs);
+        lastTable = { key, columns: data };
         setColumns(data);
+        setLoadFailed(false);
+      } catch (e) {
+        console.warn("[balance-sheet] load failed", e);
+        setLoadFailed(true);
       } finally {
         setRecomputing(false);
       }
-    }, [columnSpecs]),
-  );
-
-  // Net worth over time - its own load so a slow history never holds up the table.
-  useDataRefresh(
-    useCallback(async () => {
-      try {
-        const h = await getNetWorthHistory(DEFAULT_USER_ID);
-        setHistory(h.points);
-      } catch (e) {
-        console.warn("[balance-sheet] net worth history failed", e);
-      } finally {
-        setHistoryLoading(false);
-      }
-    }, []),
-  );
+    }
+    await loadHistory();
+  }, [columnSpecs, loadHistory]);
+  useDataRefresh(loadTable);
 
   const fyStartMonthKey = useMemo(() => {
     const startMonth = getFYStartMonth();
@@ -361,7 +382,18 @@ export default function BalanceSheetScreen() {
   if (columns.length === 0) {
     return (
       <ScreenContainer padTop={false}>
-        <LoadingState message="Loading net worth..." icon="scale-outline" />
+        {loadFailed ? (
+          <View className="flex-1 items-center justify-center px-8">
+            <Ionicons name="alert-circle-outline" size={32} color={theme.danger} />
+            <Text className="text-base font-semibold text-foreground mt-3 text-center">Couldn't work out your net worth</Text>
+            <Text className="text-sm text-muted-foreground mt-1 text-center">Something went wrong reading your accounts. Try again.</Text>
+            <View className="mt-4 w-40">
+              <Button title="Try again" onPress={() => void loadTable()} />
+            </View>
+          </View>
+        ) : (
+          <LoadingState message="Loading net worth..." icon="scale-outline" />
+        )}
       </ScreenContainer>
     );
   }
