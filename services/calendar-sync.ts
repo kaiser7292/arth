@@ -97,10 +97,9 @@ export const AUTO_SYNC_MIN_GAP_MS = 15 * 60 * 1000;
  */
 const ALARM_DAY_BEFORE = -15 * 60;
 const ALARM_ON_THE_DAY = 9 * 60;
-/** Opens the app. Expo slug/scheme stayed "artha" after the rename to Arth. */
-const APP_LINK = "artha://";
 /** Bump when the shape of an event changes, so every existing event is rewritten once. */
-const EVENT_FORMAT = "v2";
+const EVENT_FORMAT = "v3";
+/** Entries written before v3 carried this tag in their notes; still read so they're recognised and rewritten. */
 const TAG_RE = /\[arth:([^\]]+)\]/;
 
 const PREFS_KEY = "calendar_sync_prefs";
@@ -180,18 +179,14 @@ export function eventTitle(item: CalendarItem, showAmounts: boolean): string {
 
 const NL = String.fromCharCode(10);
 
+/**
+ * Just what the entry is: the details and the amount. No link, footer or tag - the owner
+ * didn't want Arth's plumbing in their calendar. Arth recognises its own entries by the event
+ * ids it stores, and by title and date if those are lost (see adoptExistingEvents).
+ */
 export function eventNotes(item: CalendarItem, showAmounts: boolean = true): string {
   const lines = [...(item.details ?? [])];
   if (showAmounts && item.amount != null && item.amount > 0) lines.push(`Amount: ${formatAmount(item.amount)}`);
-  lines.push(
-    "",
-    `Open in Arth: ${APP_LINK}${item.link ?? ""}`,
-    "",
-    item.kind === "fd"
-      ? "Added by Arth. Arth rewrites this entry on its next sync, so change it in Arth, not here."
-      : "Added by Arth. Mark it paid in Arth, not here: Arth rewrites this entry on its next sync.",
-    `[arth:${item.key}]`,
-  );
   return lines.join(NL);
 }
 
@@ -474,23 +469,45 @@ async function ensureShown(c: Calendar.Calendar): Promise<void> {
 // ─── Apply ───
 
 /** Rebuild the map from tagged events in the calendar (after a reinstall or restore). */
-async function adoptTaggedEvents(calendarId: string, map: EventMap, today: string): Promise<EventMap> {
+/**
+ * Finds Arth's entries in the calendar that the stored map doesn't know about - after a restore,
+ * a reinstall, or a cleared map - so they're updated instead of duplicated.
+ *  - Entries written before v3 carry an [arth:key] tag in their notes.
+ *  - Newer ones are matched by date and title ("Arth · <label>", with or without the amount).
+ */
+async function adoptExistingEvents(
+  calendarId: string,
+  map: EventMap,
+  today: string,
+  desired: CalendarItem[],
+): Promise<EventMap> {
   const start = new Date(`${today}T00:00:00`);
   const end = new Date(`${addDays(today, HORIZON_DAYS + 1)}T00:00:00`);
   const events = await Calendar.getEventsAsync([calendarId], start, end);
   const known = new Set(Object.values(map).map((e) => idOf(e.eventId)));
   const next = { ...map };
+  const dateOf = (ev: Calendar.Event) => {
+    // An all-day entry starts at midnight UTC, which is the previous evening west of Greenwich.
+    const s = new Date(ev.startDate);
+    return ev.allDay ? s.toISOString().slice(0, 10) : ymd(s);
+  };
+  const untracked = new Map<string, CalendarItem>(); // "date|Arth · label" -> item
+  for (const item of desired) if (!next[item.key]) untracked.set(`${item.date}|${eventTitle(item, false)}`, item);
+
   for (const ev of events) {
-    const key = ev.notes?.match(TAG_RE)?.[1];
-    if (!key || known.has(idOf(ev.id))) continue;
+    if (known.has(idOf(ev.id))) continue;
+    const tagged = ev.notes?.match(TAG_RE)?.[1];
+    const title = ev.title ?? "";
+    const byTitle = untracked.get(`${dateOf(ev)}|${title}`) ?? untracked.get(`${dateOf(ev)}|${title.replace(/ · [^·]*$/, "")}`);
+    const key = tagged ?? byTitle?.key;
+    if (!key) continue;
     if (next[key]) {
       // Two events for one item: keep the tracked one, drop the stray.
       await Calendar.deleteEventAsync(idOf(ev.id)).catch(() => {});
     } else {
       // Unknown hash → the plan will rewrite it with current content.
-      // An all-day entry starts at midnight UTC, which is the previous evening west of Greenwich.
-      const start = new Date(ev.startDate);
-      next[key] = { eventId: idOf(ev.id), date: ev.allDay ? start.toISOString().slice(0, 10) : ymd(start), hash: "" };
+      next[key] = { eventId: idOf(ev.id), date: dateOf(ev), hash: "" };
+      if (byTitle) untracked.delete(`${byTitle.date}|${eventTitle(byTitle, false)}`);
     }
   }
   return next;
@@ -529,7 +546,7 @@ async function doSync(userId: string): Promise<SyncResult> {
     const today = ymd(new Date());
     const desired = await collectCalendarItems(userId, prefs.kinds, today);
     const overdueDues = prefs.kinds.due ? await countOverdueDues(userId, today) : 0;
-    let map = await adoptTaggedEvents(calendarId, getEventMap(), today);
+    let map = await adoptExistingEvents(calendarId, getEventMap(), today, desired);
     const plan = planSync(desired, map, today, prefs.showAmounts);
     map = { ...map };
 

@@ -100,11 +100,7 @@ describe("event content", () => {
     expect(eventTitle(item("fd:x", "2026-10-05", { label: "SBI FD matures", amount: null }), true)).toBe("Arth · SBI FD matures");
   });
 
-  it("tags notes so Arth can find its own events again", () => {
-    expect(eventNotes(item("emi:123", "2026-10-05"))).toContain("[arth:emi:123]");
-  });
-
-  it("describes the entry and links back to the app", () => {
+  it("describes the entry with no link, footer or tag", () => {
     const due = item("due:abc", "2026-10-05", {
       label: "Flat maintenance due",
       amount: 4500,
@@ -117,12 +113,8 @@ describe("event content", () => {
       "Category: Rent & Utilities",
       "Account: HDFC ••4521",
       "Amount: ₹4,500",
-      "",
-      "Open in Arth: artha://expense/abc",
-      "",
-      "Added by Arth. Mark it paid in Arth, not here: Arth rewrites this entry on its next sync.",
-      "[arth:due:abc]",
     ]);
+    expect(eventNotes(due, true)).not.toMatch(/Open in Arth|Added by Arth|\[arth:/);
     // with amounts hidden, the amount stays out of the description too
     expect(eventNotes(due, false)).not.toContain("4,500");
     // a change to the description alone is enough to rewrite the event
