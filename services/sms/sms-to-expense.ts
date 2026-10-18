@@ -143,6 +143,21 @@ export async function createExpenseFromSms(
     );
     // Best-effort link to an existing account (no creation).
     await linkExpenseToAccount(userId, expenseId, parsed.cardLast4, parsed.bank, parsed.accountNickname);
+    // The template's default payment mode applies to money in too (it used to reach only
+    // spending). Applied before Smart Rules, so a rule can still override it.
+    if (parsed._matchedTemplateId) {
+      try {
+        const row = await db.getFirstAsync<{ default_payment_mode_id: string | null }>(
+          `SELECT default_payment_mode_id FROM sms_template_patterns WHERE id = ?;`,
+          parsed._matchedTemplateId,
+        );
+        if (row?.default_payment_mode_id) {
+          await db.runAsync(`UPDATE expenses SET payment_mode_id = ? WHERE id = ? AND payment_mode_id IS NULL;`, row.default_payment_mode_id, expenseId);
+        }
+      } catch {
+        // Non-fatal - payment mode is optional
+      }
+    }
     const appliedRuleIds = await applyRulesToSmsCredit(expenseId, rawBody, { allowAutoApprove: true });
 
     // Not income: an FD paying out, or the user's own money arriving from another account.
