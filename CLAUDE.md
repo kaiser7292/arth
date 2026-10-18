@@ -150,10 +150,11 @@ npx expo prebuild --platform android
 cd android; .\gradlew assembleRelease bundleRelease; cd ..
 powershell -ExecutionPolicy Bypass -File scripts\verify-release.ps1
 
-# 4. Release to GitHub (APK only; the AAB goes to Play Console)
-gh release create vX.Y.Z "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" --title "vX.Y.Z" --notes "..."
+# 4. Release to GitHub (APK only, named Arth-X.Y.Z.apk; the AAB goes to Play Console)
+Copy-Item "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" "android/app/build/outputs/apk/release/Arth-X.Y.Z.apk"
+gh release create vX.Y.Z "android/app/build/outputs/apk/release/Arth-X.Y.Z.apk" --title "vX.Y.Z" --notes "..."
 ```
-Output APK is `app-arm64-v8a-release.apk` (~120 MB); AAB is `android/app/build/outputs/bundle/release/app-release.aab`. See `.context/BUILD_AND_RELEASE.md` for full details.
+Gradle's output APK is `app-arm64-v8a-release.apk`, released on GitHub as `Arth-X.Y.Z.apk` (the website's download button finds the newest `.apk` asset through the GitHub API); AAB is `android/app/build/outputs/bundle/release/app-release.aab`. See `.context/BUILD_AND_RELEASE.md` for full details.
 GitHub Actions auto-builds on push to staging/main (not master).
 
 ### Git Convention

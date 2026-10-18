@@ -66,7 +66,7 @@ Build takes 3–8 minutes. Outputs:
 - APK (GitHub): `android/app/build/outputs/apk/release/app-arm64-v8a-release.apk`
 - AAB (Play Store): `android/app/build/outputs/bundle/release/app-release.aab`
 
-> **Note:** Both contain arm64-v8a code only. `withArmOnly` pins `reactNativeArchitectures=arm64-v8a` in `gradle.properties`; the React Native gradle plugin turns that into `ndk.abiFilters`, which filters prebuilt libraries (Hermes, libreactnative…) as well as compiled ones, for APK and AAB. This cuts the APK from ~210 MB to ~120 MB. 32-bit-only phones show "not compatible" on Play. The plugin also names the APK `app-arm64-v8a-release.apk`, because the website download buttons link to that release asset name.
+> **Note:** Both contain arm64-v8a code only. `withArmOnly` pins `reactNativeArchitectures=arm64-v8a` in `gradle.properties`; the React Native gradle plugin turns that into `ndk.abiFilters`, which filters prebuilt libraries (Hermes, libreactnative…) as well as compiled ones, for APK and AAB. This cuts the APK from ~210 MB to ~120 MB. 32-bit-only phones show "not compatible" on Play. The plugin also names the Gradle output `app-arm64-v8a-release.apk`; it's copied to `Arth-X.Y.Z.apk` for the GitHub release (Step 4).
 
 ### Step 3b — Verify before publishing
 ```powershell
@@ -76,8 +76,12 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-release.ps1
 Checks both files are signed with the Arth release key (see Signing), prints version and size, confirms arm64-only, and checks every native library is 16 KB page aligned (Play rejects uploads that aren't). Don't publish if it fails.
 
 ### Step 4 — Create GitHub release
+The APK goes up as `Arth-X.Y.Z.apk` (every release since v1.0.0 uses that name). The website's
+download button looks up the newest release's `.apk` asset through the GitHub API, so any
+`.apk` name works for it, but keep to `Arth-X.Y.Z.apk`.
 ```powershell
-gh release create vX.Y.Z "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" --title "vX.Y.Z" --notes "## What's new
+Copy-Item "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" "android/app/build/outputs/apk/release/Arth-X.Y.Z.apk"
+gh release create vX.Y.Z "android/app/build/outputs/apk/release/Arth-X.Y.Z.apk" --title "vX.Y.Z" --notes "## What's new
 
 - Bullet point"
 ```
