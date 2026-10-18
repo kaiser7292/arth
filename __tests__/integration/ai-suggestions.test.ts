@@ -268,14 +268,17 @@ describe("a full setup: income, savings target, buckets and goals", () => {
     expect(instructions[0]).toMatch(/^BEFORE YOU REPLY WITH SUGGESTIONS, ASK FIRST/);
     expect(instructions.join(" ")).toContain('"type":"set_income"');
     expect(instructions.join(" ")).toContain("Never choose a savings target, an investment or a goal for the user");
-    expect(data.current_setup).toEqual({
+    expect(data.current_setup).toMatchObject({
       financial_year: "FY 2026-27", monthly_income: null, pay_day: null, expected_bonus: 0, savings_target_pct: 0,
+      monthly_budgets: [], investment_buckets: [], goals: [], merchant_rules: [], smart_rules: [], message_templates: [],
+      accounts_set_up: [{ bank: "HDFC", type: "savings", last4: "4521" }],
     });
+    expect((data.guide as string[]).join(" ")).toContain("do not suggest anything that already exists");
 
-    // a single job never asks for, or explains, the plan-level settings
+    // a single job doesn't ask for the plan-level settings, but still sees what's already set up
     const { data: tidy } = await buildAiExport(USER, full("tidy"), TODAY);
     expect((tidy.reply_instructions as string[]).join(" ")).not.toContain("set_income");
-    expect(tidy.current_setup).toBeUndefined();
+    expect(tidy.current_setup).toMatchObject({ accounts_set_up: [{ bank: "HDFC" }] });
   });
 
   it("reads and applies them, and refuses what makes no sense", async () => {

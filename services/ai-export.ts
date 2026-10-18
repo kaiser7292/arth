@@ -49,7 +49,9 @@ import {
 } from "@/services/loan-accounts";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { getSavingsSnapshot } from "@/services/savings-tracker";
-import { listUnrecognisedSms } from "@/services/sms/user-sms-templates";
+import { listUnrecognisedSms, listUserTemplates } from "@/services/sms/user-sms-templates";
+import { listMerchantRules } from "@/services/merchant-categories";
+import { listRules } from "@/services/smart-rules";
 import { getFYStartMonth } from "@/services/settings";
 import { getAllActiveBuckets, getYearlyPlanByFY } from "@/services/yearly-plan";
 import { getMonthDateRange } from "@/utils/budget-helpers";
@@ -171,8 +173,10 @@ export const AI_EXPORT_KEYS = [
   // only when the user asks for suggestions
   "request", "reply_instructions", "categories", "merchants", "unread_messages", "ref", "reviewed",
   "sender", "text", "similar",
-  // only for a full setup
+  // what's already set up (sent with every suggestion request)
   "current_setup", "monthly_income", "pay_day", "expected_bonus", "savings_target_pct",
+  "monthly_budgets", "investment_buckets", "merchant_rules", "smart_rules", "message_templates",
+  "accounts_set_up", "active",
 ] as const;
 
 type Json = string | number | boolean | null | Json[] | { [key: string]: Json | undefined };
@@ -612,7 +616,7 @@ function buildGuide(has: (key: string) => boolean, fyStartMonth: number): string
   }
   if (has("current_setup")) {
     lines.push(
-      "`current_setup` is what the user has already set in Arth for the current financial year: take-home income per month, pay day, expected bonus and savings target. null or 0 means not set yet. `investments` lists the investment buckets and goals they already have.",
+      "`current_setup` is what the user has ALREADY set up in Arth: take-home income per month, pay day, expected bonus and savings target for the current financial year (null or 0 means not set yet), this month's budgets per category, investment buckets, goals, merchant rules they made (merchant -> category), Smart Rules, message templates (by sender) and their accounts. Build on it: do not suggest anything that already exists, keep their category names and structure, and only suggest a change to something already set when the data shows it is wrong or out of date - say why when you do.",
     );
   }
   if (has("request")) {
@@ -857,14 +861,30 @@ export async function buildAiExport(
     }
   }
 
-  // For a full setup: what is already set, so the assistant asks less and changes only what differs.
+  // What is already set up in Arth - sent with EVERY suggestion request, so the assistant builds
+  // on the user's setup instead of suggesting from scratch: income and plan, budgets, buckets,
+  // goals, merchant rules the user made, Smart Rules, message templates, and accounts.
   let currentSetup: JsonObject | undefined;
-  if (isFullSetup(suggest?.request)) {
+  if (suggest) {
     currentSetup = await attempt("Current setup", async () => {
+      const db = getDatabase();
       const fy = getCurrentFY(fyStart, today);
-      const [profile, plan] = await Promise.all([
+      const month = todayIso.slice(0, 7);
+      const [profile, plan, budgetRows, buckets, milestones, ruleRows, smartRules, templates, accts] = await Promise.all([
         getSalaryProfileByFY(userId, String(fy)),
         getYearlyPlanByFY(userId, String(fy)),
+        db.getAllAsync<{ category: string; amount: number }>(
+          `SELECT c.name AS category, b.amount FROM budgets b JOIN categories c ON c.id = b.category_id
+           WHERE b.user_id = ? AND b.month = ? AND b.amount > 0 ORDER BY b.amount DESC;`,
+          userId,
+          month,
+        ),
+        getAllActiveBuckets(userId),
+        getLifeMilestones(userId),
+        listMerchantRules(userId),
+        listRules(),
+        listUserTemplates(),
+        getAllAccounts(userId),
       ]);
       return {
         financial_year: getFYLabel(fy, fyStart),
@@ -872,6 +892,24 @@ export async function buildAiExport(
         pay_day: profile?.salary_credit_day ?? null,
         expected_bonus: r2(profile?.expected_bonus),
         savings_target_pct: r2(plan?.savings_rate_target_pct),
+        monthly_budgets: budgetRows.map((b) => ({ category: b.category, budget: r2(b.amount) })),
+        investment_buckets: buckets.map((bk) => ({
+          name: bk.name,
+          annual_target: r2(bk.annual_target),
+          contributed: r2(bk.current_contributed),
+        })),
+        goals: milestones
+          .filter((m) => !m.is_completed)
+          .map((m) => ({ name: m.name, target_amount: r2(m.target_amount), target_date: m.target_date ?? null })),
+        // Only the rules the user made or changed - the built-in list is large and generic.
+        merchant_rules: ruleRows
+          .filter((mr) => mr.source !== "builtin" && mr.isActive)
+          .map((mr) => ({ merchant: mr.keyword, category: mr.categoryName })),
+        smart_rules: smartRules.map((sr) => ({ name: sr.name, active: sr.is_active === 1 })),
+        message_templates: templates.map((t) => ({ sender: t.sender_pattern ?? t.bank_name, type: t.tx_type })),
+        accounts_set_up: accts
+          .filter((ac) => !ac.closed_at && ac.is_active === 1)
+          .map((ac) => ({ bank: ac.account_label || ac.bank_name, type: ac.account_type, last4: ac.account_identifier ? String(ac.account_identifier).slice(-4) : null })),
       };
     });
   }
