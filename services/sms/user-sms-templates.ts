@@ -17,6 +17,7 @@
 import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
 import { bumpDataVersion } from "@/services/settings";
+import { getSenderScopedUserRows, invalidateTemplateCache } from "@/services/public-data/sms-template-matcher";
 import { logger } from "@/utils/logger";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { compileTemplate, type MatchStyle, type TaggedSpan, type WordRules } from "./template-compiler";
@@ -314,6 +315,7 @@ export async function createUserTemplate(
     }
   }
 
+  invalidateTemplateCache();
   await bumpDataVersion();
 
   const row = await getUserTemplate(id);
@@ -426,6 +428,7 @@ export async function updateUserTemplate(
     samples,
     id,
   );
+  invalidateTemplateCache();
   await bumpDataVersion();
 
   const row = await getUserTemplate(id);
@@ -440,7 +443,8 @@ export async function deleteUserTemplate(id: string): Promise<void> {
       `UPDATE sms_template_patterns SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND source = 'user';`,
       id,
     );
-    await bumpDataVersion();
+    invalidateTemplateCache();
+  await bumpDataVersion();
   } catch (e) {
     logger.warn(`deleteUserTemplate(${id}) failed:`, e);
     throw e;
@@ -453,6 +457,7 @@ export async function restoreUserTemplate(id: string): Promise<void> {
     `UPDATE sms_template_patterns SET deleted_at = NULL, updated_at = datetime('now') WHERE id = ?;`,
     id,
   );
+  invalidateTemplateCache();
   await bumpDataVersion();
 }
 
@@ -462,6 +467,7 @@ export async function restoreAllUserTemplates(): Promise<void> {
     `UPDATE sms_template_patterns SET deleted_at = NULL, updated_at = datetime('now') WHERE source = 'user' AND user_id = ? AND deleted_at IS NOT NULL;`,
     DEFAULT_USER_ID,
   );
+  invalidateTemplateCache();
   await bumpDataVersion();
 }
 
@@ -471,6 +477,7 @@ export async function hardDeleteUserTemplate(id: string): Promise<void> {
     `DELETE FROM sms_template_patterns WHERE id = ? AND source = 'user';`,
     id,
   );
+  invalidateTemplateCache();
   await bumpDataVersion();
 }
 
@@ -480,6 +487,7 @@ export async function purgeDeletedUserTemplates(): Promise<void> {
     `DELETE FROM sms_template_patterns WHERE source = 'user' AND user_id = ? AND deleted_at IS NOT NULL;`,
     DEFAULT_USER_ID,
   );
+  invalidateTemplateCache();
   await bumpDataVersion();
 }
 
@@ -668,18 +676,10 @@ export interface UserSenderClaim {
 }
 
 export async function loadUserSenderClaims(): Promise<UserSenderClaim[]> {
-  const db = getDatabase();
   try {
-    const rows = await db.getAllAsync<{
-      sender_match_mode: string | null;
-      sender_pattern: string | null;
-    }>(
-      `SELECT sender_match_mode, sender_pattern
-         FROM sms_template_patterns
-        WHERE source = 'user' AND deleted_at IS NULL
-          AND sender_pattern IS NOT NULL
-          AND sender_match_mode IS NOT NULL;`,
-    );
+    // Read once until a template changes (see invalidateTemplateCache) - this runs for every
+    // message in a scan.
+    const rows = await getSenderScopedUserRows();
     const out: UserSenderClaim[] = [];
     for (const r of rows) {
       if (!r.sender_match_mode || !r.sender_pattern) continue;

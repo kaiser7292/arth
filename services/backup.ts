@@ -2,6 +2,7 @@ import { exportSettings, importSettings, type SettingValue } from "@/services/ba
 import { getDatabase } from "@/database";
 import { TABLE_SCHEMAS } from "@/database/TABLE_SCHEMAS";
 import { bumpDataVersion, setLastBackupAt } from "@/services/settings";
+import { invalidateTemplateCache } from "@/services/public-data/sms-template-matcher";
 import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
@@ -703,6 +704,7 @@ export async function restoreFromData(
     console.warn("[backup] restore: built-in merchant rules could not be topped up", e);
   }
 
+  invalidateTemplateCache(); // restored templates replace the cached ones
   await bumpDataVersion();
   return { success: true, tablesRestored, totalRows, failedRows, error: null };
 }

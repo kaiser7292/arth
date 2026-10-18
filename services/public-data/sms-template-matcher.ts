@@ -84,7 +84,8 @@ const TX_TYPE_ALIASES: Record<string, TransactionType> = {
 };
 
 function parseAmount(raw: string): number {
-  const cleaned = raw.replace(/,/g, "").trim();
+  // Commas and any padding a sender puts inside the number ("1, 234 . 50").
+  const cleaned = raw.replace(/[,\s]/g, "").trim();
   const n = parseFloat(cleaned);
   return Number.isFinite(n) ? n : 0;
 }
@@ -96,7 +97,66 @@ function normaliseMerchant(raw: string | undefined): string | null {
   return trimmed;
 }
 
-export async function resolveSenderBank(senderAddress: string): Promise<string | null> {
+// ── Caches for scanning ──
+// A scan runs every message through every candidate template. Fetching the template rows,
+// resolving the sender's bank and compiling each pattern used to happen once per MESSAGE; with
+// many user templates that made scans noticeably slower. All three are cached here and cleared by
+// invalidateTemplateCache() - called on every template write, after built-in templates are
+// seeded, and after a backup restore. (Not keyed on the data version: a scan bumps that itself
+// every time it adds a transaction, which would empty the cache mid-scan.)
+const rowsByBank = new Map<string, Promise<TemplateRow[]>>();
+const bankBySender = new Map<string, Promise<string | null>>();
+const compiled = new Map<string, RegExp | null>();
+let senderScopedRows: Promise<{ sender_match_mode: string | null; sender_pattern: string | null }[]> | null = null;
+
+export function invalidateTemplateCache(): void {
+  rowsByBank.clear();
+  bankBySender.clear();
+  compiled.clear();
+  senderScopedRows = null;
+}
+
+function compile(pattern: string): RegExp | null {
+  if (compiled.has(pattern)) return compiled.get(pattern)!;
+  let re: RegExp | null;
+  try {
+    re = new RegExp(pattern, "i");
+  } catch {
+    re = null;
+  }
+  compiled.set(pattern, re);
+  return re;
+}
+
+/** The user's sender-scoped template rows, read once until a template changes. */
+export function getSenderScopedUserRows(): Promise<{ sender_match_mode: string | null; sender_pattern: string | null }[]> {
+  if (!senderScopedRows) {
+    senderScopedRows = getDatabase()
+      .getAllAsync<{ sender_match_mode: string | null; sender_pattern: string | null }>(
+        `SELECT sender_match_mode, sender_pattern
+           FROM sms_template_patterns
+          WHERE source = 'user' AND deleted_at IS NULL
+            AND sender_pattern IS NOT NULL
+            AND sender_match_mode IS NOT NULL;`,
+      )
+      .catch((e) => {
+        senderScopedRows = null;
+        throw e;
+      });
+  }
+  return senderScopedRows;
+}
+
+export function resolveSenderBank(senderAddress: string): Promise<string | null> {
+  let hit = bankBySender.get(senderAddress);
+  if (!hit) {
+    hit = resolveSenderBankUncached(senderAddress);
+    bankBySender.set(senderAddress, hit);
+  }
+  return hit;
+}
+
+async function resolveSenderBankUncached(senderAddress: string): Promise<string | null> {
   const hardcoded = identifyBank(senderAddress);
   if (hardcoded) return hardcoded.bank;
   const codeMatch = senderAddress.toUpperCase().match(/[A-Z]{4,}/);
@@ -127,27 +187,31 @@ export async function tryTemplateMatch(
 
   let rows: TemplateRow[];
   try {
-    // v15.11.0: widen the fetch — a user template may match by sender
-    // pattern without matching `bank_name` at all (e.g. wallets where the
-    // app doesn't know the brand). Fetch:
-    //   - any row where bank_name matches the resolved bank OR __generic__
-    //   - plus any user row with a non-null sender_pattern (we'll filter
-    //     by sender in JS below)
-    // Ordering: system first, then user; bank-scoped ahead of __generic__.
-    rows = await db.getAllAsync<TemplateRow>(
-      `SELECT id, bank_name, template_id, pattern_regex, tx_type, priority, source,
-              sender_match_mode, sender_pattern
-       FROM sms_template_patterns
-       WHERE (bank_name = ? OR bank_name = '__generic__'
-          OR (sender_pattern IS NOT NULL AND source = 'user'))
-         AND (deleted_at IS NULL)
-       ORDER BY
-         CASE WHEN sender_pattern IS NOT NULL THEN 0 ELSE 1 END,
-         CASE WHEN bank_name = '__generic__' THEN 1 ELSE 0 END,
-         CASE WHEN COALESCE(source, 'system') = 'system' THEN 0 ELSE 1 END,
-         priority ASC;`,
-      bank ?? "",
-    );
+    const key = bank ?? "";
+    let pending = rowsByBank.get(key);
+    if (!pending) {
+      // v15.11.0: widen the fetch — a user template may match by sender pattern without matching
+      // `bank_name` at all (e.g. wallets where the app doesn't know the brand). Fetch any row for
+      // the resolved bank or __generic__, plus any user row with a sender pattern (filtered by
+      // sender in JS below). Ordering: system first, then user; bank-scoped ahead of __generic__.
+      pending = db.getAllAsync<TemplateRow>(
+        `SELECT id, bank_name, template_id, pattern_regex, tx_type, priority, source,
+                sender_match_mode, sender_pattern
+         FROM sms_template_patterns
+         WHERE (bank_name = ? OR bank_name = '__generic__'
+            OR (sender_pattern IS NOT NULL AND source = 'user'))
+           AND (deleted_at IS NULL)
+         ORDER BY
+           CASE WHEN sender_pattern IS NOT NULL THEN 0 ELSE 1 END,
+           CASE WHEN bank_name = '__generic__' THEN 1 ELSE 0 END,
+           CASE WHEN COALESCE(source, 'system') = 'system' THEN 0 ELSE 1 END,
+           priority ASC;`,
+        key,
+      );
+      rowsByBank.set(key, pending);
+      pending.catch(() => rowsByBank.delete(key));
+    }
+    rows = await pending;
   } catch (e) {
     logger.warn("Template match: DB fetch failed (non-fatal):", e);
     return null;
@@ -174,12 +238,8 @@ export async function tryTemplateMatch(
  * Shared by the live matcher and by reading the Unrecognised backlog with a new template.
  */
 export function matchTemplateRow(row: TemplateRow, normalizedBody: string, bank: string | null): ParsedSMS | null {
-  let regex: RegExp;
-  try {
-    regex = new RegExp(row.pattern_regex, "i");
-  } catch {
-    return null;
-  }
+  const regex = compile(row.pattern_regex);
+  if (!regex) return null;
 
   const match = regex.exec(normalizedBody);
   if (!match) return null;
@@ -209,7 +269,8 @@ export function matchTemplateRow(row: TemplateRow, normalizedBody: string, bank:
   const cardLast4 = isAllDigits ? accountRaw.slice(-4) : null;
   const accountNickname = !isAllDigits && accountRaw ? accountRaw.trim() : null;
 
-  const parsedDate = groups["date"] ? parseDateAny(groups["date"]) : null;
+  // "17 - 10 - 26" -> "17-10-26": drop padding around separators before reading the date.
+  const parsedDate = groups["date"] ? parseDateAny(groups["date"].trim().replace(/\s*([-/.:])\s*/g, "$1")) : null;
 
   // Name / other account tagged on the template feed own-account transfer detection.
   const counterpartyName = groups["counterparty"] ? cleanCounterpartyName(groups["counterparty"]) : null;

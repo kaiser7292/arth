@@ -13,6 +13,7 @@ import {
     type SmsSenderEntry,
     type SmsTemplateEntry,
 } from "./bundle-loader";
+import { invalidateTemplateCache } from "./sms-template-matcher";
 
 const BUNDLE_NAMES = {
   ifsc: "ifsc-prefixes",
@@ -111,6 +112,8 @@ export async function seedPublicData(): Promise<void> {
       },
     ),
   ]);
+  // New built-in templates or senders may have landed; the scan caches must see them.
+  invalidateTemplateCache();
 }
 
 type BundleEntry = IfscPrefixEntry | SmsSenderEntry | SmsTemplateEntry | MccCodeEntry | MerchantBrandEntry;
