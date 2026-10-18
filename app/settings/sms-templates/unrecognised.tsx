@@ -18,6 +18,7 @@ const senderCode = (address: string): string => address.toUpperCase().match(/[A-
 import { useTheme } from "@/hooks/use-theme";
 import { SendSmsToDeveloperSheet } from "@/components/sms/SendSmsToDeveloperSheet";
 import { getBacklogDays } from "@/services/sms/backlog-days";
+import { formatKey } from "@/services/sms/template-guess";
 
 /**
  * v15.6.0 — Browser for pending_sms rows that never became expenses.
@@ -74,16 +75,11 @@ export default function UnrecognisedSmsScreen() {
     }, [load]),
   );
 
+  // Teaching starts from Arth's guess (confirmation first); the full tag screen is behind
+  // "Something's off" there.
   const handleTeach = useCallback(
     (row: UnrecognisedSmsRow) => {
-      router.push({
-        pathname: "/settings/sms-templates/new",
-        params: {
-          prefilledBody: row.body,
-          smsId: row.id,
-          senderAddress: row.address,
-        },
-      });
+      router.push({ pathname: "/settings/sms-templates/confirm", params: { key: formatKey(row.address, row.body), smsId: row.id } });
     },
     [router],
   );
@@ -109,9 +105,9 @@ export default function UnrecognisedSmsScreen() {
     }
     const groups = new Map<string, { row: UnrecognisedSmsRow; count: number }>();
     for (const r of filtered) {
-      // One card per sender: teaching it uses the newest message, and the tag screen offers the
-      // others as extra examples.
-      const key = senderCode(r.address);
+      // One card per format (same sender, same opening words): a sender often sends several
+      // formats - money in, money out, card - and each is taught on its own.
+      const key = formatKey(r.address, r.body);
       const existing = groups.get(key);
       if (existing) {
         existing.count++;
@@ -131,7 +127,7 @@ export default function UnrecognisedSmsScreen() {
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
           <Text className="text-xs text-faint-foreground">
-            Transaction messages from the last {getBacklogDays()} days that Arth couldn&apos;t read, grouped by sender. Teach a sender once and Arth reads its past and future messages.
+            Transaction messages from the last {getBacklogDays()} days that Arth couldn&apos;t read, grouped by format. Teach a format once and Arth reads its past and future messages.
           </Text>
         </View>
 
@@ -178,7 +174,7 @@ export default function UnrecognisedSmsScreen() {
               className="text-xs ml-1.5"
               style={{ color: grouped ? accentColor : colors.textSecondary }}
             >
-              Group by sender
+              Group similar messages
             </Text>
           </Pressable>
         </View>
@@ -235,7 +231,7 @@ export default function UnrecognisedSmsScreen() {
                     style={{ color: accentColor }}
                   >
                     {item.count > 1
-                      ? `Teach this sender (${item.count} messages)`
+                      ? `Teach this format (${item.count} messages)`
                       : "Teach Arth to read this"}
                   </Text>
                 </Pressable>
