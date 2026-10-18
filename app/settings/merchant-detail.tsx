@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, LoadingState, ScreenContainer, SelectSheet, Text, useToast } from "@/components/ui";
+import { Button, Card, LoadingState, ScreenContainer, SelectSheet, Text, UndoBar } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useAlert } from "@/hooks/use-alert";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -16,18 +16,24 @@ import {
   resetOrRemoveMerchantRule,
   setMerchantRule,
 } from "@/services/merchant-categories";
+import { dismissMerchantUndo, undoMerchantChange, usePendingMerchantUndo, withMerchantUndo } from "@/services/merchant-undo";
 import { listMerchants, type MerchantSummary } from "@/services/merchants-overview";
 
+const s = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 /**
- * One merchant: the name it shows as, every name it has in transaction messages (merge / unmerge), and
- * the category its new transactions go to, with an offer to fix older ones.
+ * One merchant: the name it shows as, every name it has in transaction messages (merge / separate),
+ * and the category its new transactions go to, with an offer to fix older ones.
+ *
+ * Every change can be undone from the bar at the bottom, which stays until it's closed
+ * (services/merchant-undo.ts). Buttons are full size and the "reset" actions sit apart from the
+ * rest, so a slip of the finger doesn't change anything by accident.
  */
 export default function MerchantDetailScreen() {
-  const router = useRouter();
   const theme = useTheme();
   const alert = useAlert();
-  const toast = useToast();
   const params = useLocalSearchParams<{ name: string }>();
+  // Kept in state (not the route params) so renaming never touches navigation.
   const [name, setName] = useState(params.name ?? "");
   const [all, setAll] = useState<MerchantSummary[] | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -36,6 +42,7 @@ export default function MerchantDetailScreen() {
   const [draft, setDraft] = useState("");
   const [catPicker, setCatPicker] = useState(false);
   const [mergePicker, setMergePicker] = useState(false);
+  const pendingUndo = usePendingMerchantUndo();
 
   const merchant = useMemo(() => all?.find((m) => m.name.toLowerCase() === name.toLowerCase()) ?? null, [all, name]);
 
@@ -48,55 +55,87 @@ export default function MerchantDetailScreen() {
   }, [name]);
   useDataRefresh(load);
 
-  const rename = async () => {
-    const next = draft.trim();
-    setEditing(false);
-    if (!merchant || !next || next === merchant.name) return;
-    await renameCanonical(DEFAULT_USER_ID, merchant.name, next);
-    // Names with no alias row yet get one, so their future messages show under the new name too.
-    for (const n of merchant.names) if (!n.aliasId) await learnMerchantAlias(DEFAULT_USER_ID, n.smsName, next);
-    const moved = await propagateMerchantRename(DEFAULT_USER_ID, merchant.name, next);
-    setName(next);
-    router.setParams({ name: next });
-    toast(moved > 0 ? `Renamed on ${moved} transaction${moved === 1 ? "" : "s"}` : "Renamed");
-  };
-
-  const mergeIn = async (otherName: string) => {
-    if (!merchant) return;
-    const other = all?.find((m) => m.name === otherName);
-    if (!other) return;
-    await renameCanonical(DEFAULT_USER_ID, other.name, merchant.name);
-    for (const n of other.names) if (!n.aliasId) await learnMerchantAlias(DEFAULT_USER_ID, n.smsName, merchant.name);
-    const moved = await propagateMerchantRename(DEFAULT_USER_ID, other.name, merchant.name);
-    toast(`${other.name} now shows as ${merchant.name}${moved > 0 ? ` (${moved} transaction${moved === 1 ? "" : "s"})` : ""}`);
-  };
-
-  const unmerge = (aliasId: string, smsName: string) =>
-    alert("Separate this name?", `"${smsName}" becomes its own merchant, and its transactions are renamed back.`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Separate",
-        onPress: async () => {
-          await unmergeMerchantAlias(aliasId, DEFAULT_USER_ID);
-        },
-      },
-    ]);
-
-  const setCategory = async (categoryName: string) => {
-    if (!merchant) return;
+  const run = async (change: () => Promise<string>) => {
     try {
-      await setMerchantRule(merchant.name, categoryName);
-      toast(`New ${merchant.name} transactions go to ${categoryName}`);
+      await withMerchantUndo(change, (msg) => msg);
     } catch (e) {
-      alert("Couldn't set the category", e instanceof Error ? e.message : String(e));
+      alert("Couldn't make that change", e instanceof Error ? e.message : String(e));
     }
   };
 
-  const applyPast = async () => {
-    if (!merchant?.rule) return;
-    const n = await applyRuleToPastTransactions(merchant.rule.keyword, merchant.rule.categoryName);
-    toast(`Moved ${n} transaction${n === 1 ? "" : "s"} to ${merchant.rule.categoryName}`);
+  const rename = () => {
+    const next = draft.trim();
+    setEditing(false);
+    if (!merchant || !next || next === merchant.name) return;
+    const from = merchant.name;
+    void run(async () => {
+      await renameCanonical(DEFAULT_USER_ID, from, next);
+      // Names with no alias row yet get one, so their future messages show under the new name too.
+      for (const n of merchant.names) if (!n.aliasId) await learnMerchantAlias(DEFAULT_USER_ID, n.smsName, next);
+      const moved = await propagateMerchantRename(DEFAULT_USER_ID, from, next);
+      setName(next);
+      return `Renamed ${from} to ${next}${moved > 0 ? ` on ${s(moved, "transaction")}` : ""}`;
+    });
   };
+
+  const mergeIn = (otherName: string) => {
+    if (!merchant) return;
+    const other = all?.find((m) => m.name === otherName);
+    if (!other) return;
+    void run(async () => {
+      await renameCanonical(DEFAULT_USER_ID, other.name, merchant.name);
+      for (const n of other.names) if (!n.aliasId) await learnMerchantAlias(DEFAULT_USER_ID, n.smsName, merchant.name);
+      const moved = await propagateMerchantRename(DEFAULT_USER_ID, other.name, merchant.name);
+      return `${other.name} now shows as ${merchant.name}${moved > 0 ? ` (${s(moved, "transaction")})` : ""}`;
+    });
+  };
+
+  const separate = (aliasId: string, smsName: string) =>
+    void run(async () => {
+      const r = await unmergeMerchantAlias(aliasId, DEFAULT_USER_ID);
+      return `"${smsName}" is its own merchant again${r && r.expensesUpdated > 0 ? ` (${s(r.expensesUpdated, "transaction")})` : ""}`;
+    });
+
+  const setCategory = (categoryName: string) => {
+    if (!merchant) return;
+    void run(async () => {
+      await setMerchantRule(merchant.name, categoryName);
+      return `New ${merchant.name} transactions go to ${categoryName}`;
+    });
+  };
+
+  const applyPast = () => {
+    const rule = merchant?.rule;
+    if (!rule) return;
+    void run(async () => {
+      const n = await applyRuleToPastTransactions(rule.keyword, rule.categoryName);
+      return `Moved ${s(n, "transaction")} to ${rule.categoryName}`;
+    });
+  };
+
+  const resetRule = () => {
+    const rule = merchant?.rule;
+    if (!rule) return;
+    void run(async () => {
+      await resetOrRemoveMerchantRule(rule.keyword);
+      return rule.builtInCategory ? `Back to Arth's choice (${rule.builtInCategory})` : `${merchant!.name} isn't filed automatically any more`;
+    });
+  };
+
+  const forget = () => {
+    const learned = merchant?.learned;
+    if (!learned) return;
+    void run(async () => {
+      await forgetLearnedMerchant(learned.id);
+      return `Arth forgot what it learned about ${merchant!.name}`;
+    });
+  };
+
+  const undoBar = pendingUndo && (
+    <UndoBar message={pendingUndo.message} onUndo={async () => {
+      await undoMerchantChange();
+    }} onClose={dismissMerchantUndo} />
+  );
 
   if (!all) {
     return (
@@ -110,124 +149,134 @@ export default function MerchantDetailScreen() {
     return (
       <ScreenContainer padTop={false}>
         <Stack.Screen options={{ title: name || "Merchant" }} />
-        <Text className="text-sm text-muted-foreground text-center px-8 mt-10">This merchant no longer exists. It may have been merged into another.</Text>
+        <Text className="text-sm text-muted-foreground text-center px-8 mt-10">
+          This merchant no longer exists. It may have been merged into another{pendingUndo ? " - you can undo that below." : "."}
+        </Text>
+        {undoBar}
       </ScreenContainer>
     );
   }
 
   const others = all.filter((m) => m.name.toLowerCase() !== merchant.name.toLowerCase());
   const rule = merchant.rule;
+  const canReset = rule && rule.source !== "builtin";
+  const canForget = merchant.categorySource === "learned" && merchant.learned;
 
   return (
     <ScreenContainer padTop={false}>
       <Stack.Screen options={{ title: merchant.name }} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ paddingBottom: pendingUndo ? 120 : 40 }} keyboardShouldPersistTaps="handled">
+        {/* Name */}
         <Card className="mx-4 mt-3">
           <Text className="text-xs text-muted-foreground">Shown as</Text>
           {editing ? (
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              autoFocus
-              onSubmitEditing={() => void rename()}
-              onBlur={() => void rename()}
-              returnKeyType="done"
-              maxLength={100}
-              className="text-lg font-semibold text-foreground py-1 border-b"
-              style={{ borderColor: theme.primary }}
-              accessibilityLabel="Merchant name"
-            />
+            <>
+              <TextInput
+                value={draft}
+                onChangeText={setDraft}
+                autoFocus
+                onSubmitEditing={rename}
+                returnKeyType="done"
+                maxLength={100}
+                className="text-lg font-semibold text-foreground py-2 border-b-2"
+                style={{ borderColor: theme.primary }}
+                accessibilityLabel="Merchant name"
+              />
+              <View className="flex-row mt-3" style={{ gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Button title="Cancel" variant="outline" onPress={() => setEditing(false)} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button title="Save" onPress={rename} />
+                </View>
+              </View>
+            </>
           ) : (
-            <Pressable
-              onPress={() => {
-                setDraft(merchant.name);
-                setEditing(true);
-              }}
-              className="flex-row items-center"
-              accessibilityRole="button"
-              accessibilityLabel={`Rename ${merchant.name}`}
-            >
-              <Text className="text-lg font-semibold text-foreground">{merchant.name}</Text>
-              <Ionicons name="pencil-outline" size={14} color={theme.mutedForeground} style={{ marginLeft: 6 }} />
-            </Pressable>
+            <View className="flex-row items-center mt-1">
+              <View className="flex-1 mr-3">
+                <Text className="text-lg font-semibold text-foreground">{merchant.name}</Text>
+                <Text className="text-xs text-muted-foreground mt-0.5">{s(merchant.txCount, "transaction")}</Text>
+              </View>
+              <BigAction
+                icon="pencil-outline"
+                label="Rename"
+                onPress={() => {
+                  setDraft(merchant.name);
+                  setEditing(true);
+                }}
+              />
+            </View>
           )}
-          <Text className="text-xs text-muted-foreground mt-1">
-            {merchant.txCount} transaction{merchant.txCount === 1 ? "" : "s"}
-          </Text>
         </Card>
 
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-5 mb-2">Names in transaction messages</Text>
+        {/* Names in messages */}
+        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-6 mb-2">Names in transaction messages</Text>
         <Card className="mx-4">
           {merchant.names.map((n, i) => {
             const canSeparate = n.aliasId != null && n.smsName.toLowerCase() !== merchant.name.toLowerCase();
             return (
-              <View key={`${n.smsName}-${i}`} className="flex-row items-center py-2.5" style={i > 0 ? { borderTopWidth: 1, borderTopColor: theme.border } : undefined}>
-                <Text className="text-sm text-foreground flex-1" numberOfLines={1}>{n.smsName}</Text>
-                {canSeparate && (
-                  <Pressable onPress={() => unmerge(n.aliasId!, n.smsName)} hitSlop={8} accessibilityRole="button">
-                    <Text className="text-xs font-medium" style={{ color: theme.primary }}>Separate</Text>
-                  </Pressable>
-                )}
+              <View
+                key={`${n.smsName}-${i}`}
+                className="flex-row items-center"
+                style={[{ minHeight: 56, paddingVertical: 8 }, i > 0 ? { borderTopWidth: 1, borderTopColor: theme.border } : undefined]}
+              >
+                <Text className="text-sm text-foreground flex-1 mr-3" numberOfLines={2}>{n.smsName}</Text>
+                {canSeparate && <BigAction icon="git-branch-outline" label="Separate" onPress={() => separate(n.aliasId!, n.smsName)} />}
               </View>
             );
           })}
           {others.length > 0 && (
-            <Pressable onPress={() => setMergePicker(true)} className="flex-row items-center pt-2.5 mt-1" style={{ borderTopWidth: 1, borderTopColor: theme.border }} accessibilityRole="button">
-              <Ionicons name="git-merge-outline" size={15} color={theme.primary} />
-              <Text className="text-sm ml-1.5" style={{ color: theme.primary }}>Merge another merchant into {merchant.name}</Text>
-            </Pressable>
+            <View className="pt-3 mt-1" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
+              <Button title={`Merge another merchant into ${merchant.name}`} variant="outline" onPress={() => setMergePicker(true)} />
+            </View>
           )}
         </Card>
 
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-5 mb-2">Category</Text>
+        {/* Category */}
+        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-6 mb-2">Category</Text>
         <Card className="mx-4">
-          <Pressable onPress={() => setCatPicker(true)} className="flex-row items-center py-1" accessibilityRole="button">
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-foreground">{merchant.category ?? "Not set"}</Text>
+          <View className="flex-row items-center" style={{ minHeight: 56 }}>
+            <View className="flex-1 mr-3">
+              <Text className="text-base font-semibold text-foreground">{merchant.category ?? "Not set"}</Text>
               <Text className="text-xs text-muted-foreground mt-0.5">
                 {merchant.categorySource === "rule"
                   ? rule?.source === "builtin"
                     ? "Arth's built-in choice for new transactions"
                     : "Always, for new transactions"
                   : merchant.categorySource === "learned"
-                    ? `Learned from ${merchant.learned?.count ?? 0} of your corrections`
+                    ? `Learned from ${s(merchant.learned?.count ?? 0, "correction")} you made`
                     : "New transactions aren't filed automatically"}
               </Text>
             </View>
-            <Text className="text-xs font-medium" style={{ color: theme.primary }}>{merchant.category ? "Change" : "Set"}</Text>
-          </Pressable>
+            <BigAction icon="swap-horizontal-outline" label={merchant.category ? "Change" : "Set"} onPress={() => setCatPicker(true)} />
+          </View>
           {rule && past > 0 && (
-            <Pressable onPress={() => void applyPast()} className="flex-row items-center py-2.5 mt-2" style={{ borderTopWidth: 1, borderTopColor: theme.border }} accessibilityRole="button">
-              <View className="flex-1">
-                <Text className="text-sm text-foreground">Apply to past transactions</Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">{past} older one{past === 1 ? " is" : "s are"} in a different category</Text>
-              </View>
-              <Text className="text-xs font-medium" style={{ color: theme.primary }}>Apply</Text>
-            </Pressable>
-          )}
-          {rule && rule.source !== "builtin" && (
-            <Pressable
-              onPress={() => void resetOrRemoveMerchantRule(rule.keyword)}
-              className="py-2.5 mt-2"
-              style={{ borderTopWidth: 1, borderTopColor: theme.border }}
-              accessibilityRole="button"
-            >
-              <Text className="text-sm" style={{ color: theme.danger }}>
-                {rule.builtInCategory ? `Back to Arth's choice (${rule.builtInCategory})` : "Stop filing automatically"}
+            <View className="pt-3 mt-2" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
+              <Text className="text-xs text-muted-foreground mb-2">
+                {past} older transaction{past === 1 ? " is" : "s are"} in a different category.
               </Text>
-            </Pressable>
-          )}
-          {merchant.categorySource === "learned" && merchant.learned && (
-            <Pressable
-              onPress={() => void forgetLearnedMerchant(merchant.learned!.id)}
-              className="py-2.5 mt-2"
-              style={{ borderTopWidth: 1, borderTopColor: theme.border }}
-              accessibilityRole="button"
-            >
-              <Text className="text-sm" style={{ color: theme.danger }}>Forget what Arth learned</Text>
-            </Pressable>
+              <Button title={`Move ${past === 1 ? "it" : `all ${past}`} to ${rule.categoryName}`} variant="secondary" onPress={applyPast} />
+            </View>
           )}
         </Card>
+
+        {/* Resets, kept apart from everything else. */}
+        {(canReset || canForget) && (
+          <>
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-8 mb-2">Reset</Text>
+            <Card className="mx-4">
+              <View style={{ gap: 10 }}>
+              {canReset && (
+                <DangerButton
+                  label={rule!.builtInCategory ? `Back to Arth's choice (${rule!.builtInCategory})` : "Stop filing automatically"}
+                  onPress={resetRule}
+                />
+              )}
+              {canForget && <DangerButton label="Forget what Arth learned" onPress={forget} />}
+              </View>
+            </Card>
+          </>
+        )}
       </ScrollView>
 
       <SelectSheet
@@ -235,7 +284,7 @@ export default function MerchantDetailScreen() {
         title={`File ${merchant.name} under`}
         options={categories.map((c) => ({ value: c.name, label: c.name }))}
         value={merchant.category}
-        onChange={(v) => void setCategory(v)}
+        onChange={setCategory}
         onClose={() => setCatPicker(false)}
       />
       <SelectSheet
@@ -243,9 +292,44 @@ export default function MerchantDetailScreen() {
         title={`Show as ${merchant.name}`}
         options={others.map((m) => ({ value: m.name, label: m.name }))}
         value={null}
-        onChange={(v) => void mergeIn(v)}
+        onChange={mergeIn}
         onClose={() => setMergePicker(false)}
       />
+      {undoBar}
     </ScreenContainer>
+  );
+}
+
+/** A pill-shaped button big enough to hit without aiming: 44 high, icon and word. */
+function BigAction({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center rounded-full px-4"
+      // Plain style objects: a style function on Pressable can be dropped on device.
+      android_ripple={{ color: theme.alpha("primary", 0.25), borderless: false }}
+      style={{ height: 44, backgroundColor: theme.alpha("primary", 0.1), overflow: "hidden" }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={16} color={theme.primary} />
+      <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.primary }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function DangerButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      className="items-center justify-center rounded-xl px-4"
+      android_ripple={{ color: theme.alpha("danger", 0.15) }}
+      style={{ minHeight: 48, borderWidth: 1.5, borderColor: theme.alpha("danger", 0.5), overflow: "hidden" }}
+      accessibilityRole="button"
+    >
+      <Text className="text-sm font-semibold text-center" style={{ color: theme.danger }}>{label}</Text>
+    </Pressable>
   );
 }

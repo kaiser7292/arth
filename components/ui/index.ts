@@ -37,3 +37,4 @@ export { Sheet, BottomSheet } from "./Sheet";
 export type { SheetProps } from "./Sheet";
 export { Skeleton, SkeletonList } from "./Skeleton";
 export { ToastProvider, useToast } from "./Toast";
+export { UndoBar } from "./UndoBar";

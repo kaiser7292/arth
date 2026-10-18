@@ -2,10 +2,11 @@ import { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { FilterChip, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { FilterChip, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
+import { dismissMerchantUndo, undoMerchantChange, usePendingMerchantUndo } from "@/services/merchant-undo";
 import { listMerchants, type MerchantSummary } from "@/services/merchants-overview";
 
 type Filter = "all" | "uncategorised" | "several";
@@ -21,6 +22,8 @@ export default function MerchantsScreen() {
   const [merchants, setMerchants] = useState<MerchantSummary[] | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  // A change made on a merchant's page can still be undone from here.
+  const pendingUndo = usePendingMerchantUndo();
 
   useDataRefresh(
     useCallback(async () => {
@@ -65,7 +68,7 @@ export default function MerchantsScreen() {
         data={shown}
         keyExtractor={(m) => m.name.toLowerCase()}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: pendingUndo ? 120 : 40 }}
         ListHeaderComponent={
           <View className="px-4 pt-3 pb-1">
             <View className="flex-row items-center rounded-lg border border-border bg-card px-3" style={{ minHeight: 42 }}>
@@ -99,12 +102,13 @@ export default function MerchantsScreen() {
         renderItem={({ item: m }) => (
           <Pressable
             onPress={() => router.push({ pathname: "/settings/merchant-detail", params: { name: m.name } })}
-            className="flex-row items-center mx-4 px-3 py-3 border-b border-border"
+            className="flex-row items-center mx-4 px-3 border-b border-border"
+            style={{ minHeight: 64, paddingVertical: 10 }}
             accessibilityRole="button"
             accessibilityLabel={`${m.name}, ${m.category ?? "no category"}`}
           >
             <View className="flex-1 mr-2">
-              <Text className="text-sm font-medium text-foreground" numberOfLines={1}>{m.name}</Text>
+              <Text className="text-base font-medium text-foreground" numberOfLines={1}>{m.name}</Text>
               <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
                 {m.names.length > 1 ? `${m.names.length} names in messages` : "1 name"}
                 {" · "}
@@ -113,15 +117,15 @@ export default function MerchantsScreen() {
               </Text>
             </View>
             {m.category ? (
-              <View className="rounded-md px-2 py-0.5" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                <Text className="text-label font-semibold" style={{ color: theme.primary }} numberOfLines={1}>{m.category}</Text>
+              <View className="rounded-full px-3 py-1" style={{ backgroundColor: theme.alpha("primary", 0.1), maxWidth: 140 }}>
+                <Text className="text-xs font-semibold" style={{ color: theme.primary }} numberOfLines={1}>{m.category}</Text>
               </View>
             ) : (
-              <View className="rounded-md px-2 py-0.5" style={{ backgroundColor: theme.alpha("warning", 0.14) }}>
-                <Text className="text-label font-semibold" style={{ color: theme.warning }}>Set category</Text>
+              <View className="rounded-full px-3 py-1" style={{ backgroundColor: theme.alpha("warning", 0.14) }}>
+                <Text className="text-xs font-semibold" style={{ color: theme.warning }}>Set category</Text>
               </View>
             )}
-            <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 6 }} />
+            <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: 8 }} />
           </Pressable>
         )}
         ListFooterComponent={
@@ -139,6 +143,7 @@ export default function MerchantsScreen() {
           </Pressable>
         }
       />
+      {pendingUndo && <UndoBar message={pendingUndo.message} onUndo={() => undoMerchantChange()} onClose={dismissMerchantUndo} />}
     </ScreenContainer>
   );
 }
