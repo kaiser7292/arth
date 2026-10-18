@@ -409,6 +409,13 @@ footer{background:var(--dark-bg);padding-block:24px}
 .beta-steps b{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;font-size:.75rem}
 .beta-acts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .beta-acts .btn-inv{margin-bottom:0}
+.direct{margin-top:28px}
+.direct-or{display:flex;align-items:center;gap:12px;max-width:340px;margin:0 auto 16px;color:rgba(255,255,255,.55);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}
+.direct-or::before,.direct-or::after{content:"";flex:1;height:1px;background:rgba(255,255,255,.2)}
+.btn-ghost-inv{display:inline-flex;align-items:center;gap:8px;border:1.5px solid rgba(255,255,255,.7);color:#fff;border-radius:8px;padding:12px 28px;font-family:'Outfit',sans-serif;font-size:1rem;font-weight:700;text-decoration:none;transition:background .15s,transform .15s}
+.btn-ghost-inv:hover{background:rgba(255,255,255,.12);transform:translateY(-2px);text-decoration:none}
+.direct .cta-note a{color:rgba(255,255,255,.8);text-decoration:underline}
+@media(max-width:500px){.btn-ghost-inv{width:100%;justify-content:center}}
 .beta-n{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#134E4A;color:#fff;font-size:.75rem}
 @media(max-width:500px){.beta-acts{flex-direction:column}.beta-acts .btn-inv{width:100%;justify-content:center}}
 
