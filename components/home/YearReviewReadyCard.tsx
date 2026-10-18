@@ -38,7 +38,7 @@ export function YearReviewReadyCard() {
       </View>
       <Text className="text-base font-semibold text-foreground">Your {label} in review is ready</Text>
       <Text className="text-xs text-muted-foreground mt-1">
-        Spending, savings, net worth and your favourite places, in one swipe-through.
+        Spending, savings, net worth and your favourite merchants, told as a story with music.
       </Text>
       <View className="flex-row gap-3 mt-3">
         <View className="flex-1">

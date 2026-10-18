@@ -81,7 +81,7 @@ export default function ReportsHubScreen() {
             iconColor={theme.primary}
             iconBg={theme.alpha("primary", 0.08)}
             title="Year in review"
-            description="Your financial year as a story: spending, savings, net worth, favourite places, and a summary to share"
+            description="Your financial year as a story: spending, savings, net worth, favourite merchants, and a summary to share"
             inputsNeeded="No user input needed"
             onPress={() => router.push("/insights/year-review")}
           />

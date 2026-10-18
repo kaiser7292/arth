@@ -1112,7 +1112,7 @@ export async function exportYearReviewPDF(review: YearReview, hideAmounts: boole
       ` : ""}
 
       ${merchantRows ? `
-        <div class="section-title">Favourite places</div>
+        <div class="section-title">Favourite merchants</div>
         <table class="data-table">
           <thead><tr><th>Merchant</th>${hideAmounts ? "" : `<th style="text-align: right;">Spent</th>`}<th style="text-align: right;">Visits</th></tr></thead>
           <tbody>${merchantRows}</tbody>
