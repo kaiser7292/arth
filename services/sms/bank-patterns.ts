@@ -280,8 +280,21 @@ export function parseDateAny(raw: string): string | null {
     parseDDMMYY(raw) ??           // 11-04-26
     parseDDMMYYTime(raw) ??       // 09-09-25 02:31:10
     parseMonthYear(raw) ??        // JAN 2026 / JAN-26
+    parseLooseDMY(raw) ??         // 3-11-26, 3/1/2026 (one-digit day or month)
     null
   );
+}
+
+/** Day-month-year with one- or two-digit day and month and any of - / . between: "3-11-26" → "2026-11-03". */
+function parseLooseDMY(raw: string): string | null {
+  const m = raw.trim().match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2}|\d{4})$/);
+  if (!m) return null;
+  const day = parseInt(m[1], 10);
+  const month = parseInt(m[2], 10);
+  if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+  const y = parseInt(m[3], 10);
+  const year = y < 100 ? (y < 50 ? 2000 + y : 1900 + y) : y;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 /** Parse "21/APR/2026" (DD/MMM/YYYY) → "2026-04-21" */

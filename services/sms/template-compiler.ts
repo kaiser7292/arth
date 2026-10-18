@@ -144,7 +144,8 @@ export type CompileResult = CompileSuccess | CompileError;
 // lookahead for the next anchor character so the merchant capture stops
 // correctly even when the surrounding anchor is short.
 const FIELD_REGEX: Record<TaggedField, string> = {
-  amount: "[\\d,]+(?:\\.\\d{1,2})?",
+  // Padding a sender puts inside the number is tolerated: "1, 234 . 50".
+  amount: "\\d[\\d,]*(?:\\s*,\\s*\\d+)*(?:\\s*\\.\\s*\\d{1,2})?",
   // v15.10.0: account accepts either last 3-6 digits of a card/savings
   // (existing behavior) OR a multi-word nickname for a wallet-style account
   // (e.g. "Amazon Pay Wallet", "TataNeu Coins"). The digit alternation is
@@ -161,8 +162,10 @@ const FIELD_REGEX: Record<TaggedField, string> = {
   //   DDth/st/nd/rd MMM YYYY (ordinal suffix, e.g. 10th Apr 2026)
   //   DD MMM YYYY (space-separated, e.g. 25 Apr 2026)
   //   MMM[-/ ]YYYY or MMM-YY (month-year only, e.g. JAN 2026)
-  date: "(?:\\d{4}-\\d{2}-\\d{2}(?:[T: ]\\d{2}:\\d{2}(?::\\d{2})?)?|\\d{1,2}[-/.](?:[A-Za-z]{3}|\\d{2})[-/.]\\d{2,4}(?:\\s+\\d{2}:\\d{2}(?::\\d{2})?)?|\\d{1,2}[A-Za-z]{3}\\d{2,4}|\\d{1,2}(?:st|nd|rd|th)\\s+[A-Za-z]{3}\\s+\\d{4}|\\d{1,2}\\s+[A-Za-z]{3}\\s+\\d{4}|[A-Za-z]{3}(?:[-/\\s]\\d{2,4}))",
-  balance: "[\\d,]+(?:\\.\\d{1,2})?",
+  // Spaces are allowed around every separator ("17 - 10 - 26", "17 / Oct / 2026",
+  // "2026 - 10 - 17"), and day and month may be one or two digits.
+  date: "(?:\\d{4}\\s*-\\s*\\d{1,2}\\s*-\\s*\\d{1,2}(?:[T: ]\\s*\\d{2}\\s*:\\s*\\d{2}(?:\\s*:\\s*\\d{2})?)?|\\d{1,2}\\s*[-/.]\\s*(?:[A-Za-z]{3}|\\d{1,2})\\s*[-/.]\\s*\\d{2,4}(?:\\s+\\d{2}\\s*:\\s*\\d{2}(?:\\s*:\\s*\\d{2})?)?|\\d{1,2}[A-Za-z]{3}\\d{2,4}|\\d{1,2}(?:st|nd|rd|th)\\s+[A-Za-z]{3}\\s+\\d{4}|\\d{1,2}\\s+[A-Za-z]{3}\\s+\\d{4}|[A-Za-z]{3}(?:\\s*[-/\\s]\\s*\\d{2,4}))",
+  balance: "\\d[\\d,]*(?:\\s*,\\s*\\d+)*(?:\\s*\\.\\s*\\d{1,2})?",
   // ref is the free-text "remarks / description" field — may be a UPI/NEFT
   // id, a multi-word remark, or a slash-separated payload. Non-greedy so
   // trailing anchor text can terminate it; same last-field-greedy fallback
@@ -174,7 +177,7 @@ const FIELD_REGEX: Record<TaggedField, string> = {
   // Person / business name. Non-greedy so the word after it ends the capture.
   counterparty: "[A-Za-z][A-Za-z .]{1,40}?",
   // Masked other account: "xxxxxxxxxx0006", "**1234", "1234".
-  other_account: "[Xx*]{0,12}\\d{3,6}",
+  other_account: "[Xx*]{0,12}\\s*\\d{3,6}",
 };
 
 /** Fields that capture free text and stop at the next anchor (non-greedy). */

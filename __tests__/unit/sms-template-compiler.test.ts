@@ -421,3 +421,25 @@ describe("escapeLiteral (pure helper)", () => {
     expect(escapeLiteral("HDFC")).toBe("HDFC");
   });
 });
+
+describe("compileTemplate - padding inside fields", () => {
+  it("tags a date with spaces around the separators and still matches the next message", () => {
+    const body = "Rs 486.00 debited from A/c XX4821 on 17 - 10 - 26 at SWIGGY";
+    const result = compileTemplate({
+      smsBody: body,
+      spans: [span(body, "amount", "486.00"), span(body, "account", "4821"), span(body, "date", "17 - 10 - 26")],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.extracted.date).toBe("17 - 10 - 26");
+    const next = testTemplate(result.patternRegex, "Rs 92.50 debited from A/c XX4821 on 3 - 11 - 26 at SWIGGY");
+    expect(next?.date).toBe("3 - 11 - 26");
+    expect(next?.amount).toBe("92.50");
+  });
+
+  it("tags an amount padded around the decimal point", () => {
+    const body = "INR 1234 . 50 spent on card XX9876";
+    const result = compileTemplate({ smsBody: body, spans: [span(body, "amount", "1234 . 50"), span(body, "account", "9876")] });
+    expect(result.ok).toBe(true);
+  });
+});
