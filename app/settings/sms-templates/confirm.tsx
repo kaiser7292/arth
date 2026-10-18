@@ -63,7 +63,7 @@ function trimSpan(body: string, start: number, end: number): { start: number; en
 /**
  * Teaching Arth a message format, confirmation first: Arth guesses the fields from every message
  * in the group (services/sms/template-guess.ts), you check them, fix any one by tapping the right
- * words, and save. Saving reads the group's other messages straight away. "Something's off"
+ * words, and save. Saving reads the group's other messages straight away. "Needs change"
  * opens the full tag screen with the guess filled in.
  */
 export default function ConfirmTemplateScreen() {
@@ -475,9 +475,9 @@ export default function ConfirmTemplateScreen() {
 
         <View className="flex-row mt-4" style={{ gap: 8 }}>
           <View style={{ flex: 1 }}>
-            <Button title="Something's off" variant="outline" onPress={fullEditor} />
+            <Button title="Needs change" variant="outline" onPress={fullEditor} />
           </View>
-          <View style={{ flex: 1.4 }}>
+          <View style={{ flex: 1 }}>
             {saving ? (
               <View className="items-center justify-center py-3"><ActivityIndicator color={theme.primary} /></View>
             ) : (

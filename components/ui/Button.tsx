@@ -104,6 +104,10 @@ export function Button({
         <Text
           className={`text-body ${variant === "ghost" ? "font-medium" : "font-semibold"}`}
           style={label}
+          // A button label is one line; long ones shrink a little rather than wrap.
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
         >
           {title}
         </Text>

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { View, Pressable, SectionList, ActivityIndicator } from "react-native";
+import { View, Pressable, FlatList, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { EmptyState, FAB, LoadingState, ScreenContainer, SelectSheet, Text } from "@/components/ui";
@@ -18,6 +18,7 @@ import { clearUnrecognisedSms } from "@/services/sms/sms-parser";
 import { BACKLOG_DAY_OPTIONS, getBacklogDays, setBacklogDays } from "@/services/sms/template-backlog";
 
 import { useTheme } from "@/hooks/use-theme";
+import { bankKey } from "@/services/account-duplicates";
 
 /**
  * v15.7.0 — Smart SMS Templates list.
@@ -38,8 +39,8 @@ export default function SmartSmsTemplatesListScreen() {
   const accentColor = theme.primary;
 
   const [templates, setTemplates] = useState<UserSmsTemplate[]>([]);
-  /** Banks whose templates are folded away. */
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  /** Banks whose card is open - all closed to start with. */
+  const [open, setOpen] = useState<Set<string>>(new Set());
   const [matchCounts, setMatchCounts] = useState<Record<string, number>>({});
   const [unrecognisedCount, setUnrecognisedCount] = useState(0);
   const [backlogDays, setBacklogDaysState] = useState(getBacklogDays());
@@ -140,16 +141,26 @@ export default function SmartSmsTemplatesListScreen() {
     [alert],
   );
 
-  const sections = useMemo(() => {
-    const byBank = new Map<string, UserSmsTemplate[]>();
+  // One card per bank or wallet, names compared loosely so "AXISBK", "Axis Bank" and
+  // "AXISBK CC PAYMENT" land together. The card's title is the tidiest name used for it.
+  const groups = useMemo(() => {
+    const out: { key: string; title: string; list: UserSmsTemplate[] }[] = [];
     for (const t of templates) {
-      const key = t.bank_name?.trim() || "Other";
-      byBank.set(key, [...(byBank.get(key) ?? []), t]);
+      const name = t.bank_name?.trim() || "Other";
+      const k = bankKey(name) || name.toLowerCase();
+      const g = out.find((x) => x.key === k || k.startsWith(x.key) || x.key.startsWith(k));
+      if (g) {
+        g.list.push(t);
+        // Prefer a name with spaces and lower-case letters ("Axis Bank" over "AXISBK").
+        const tidy = (n: string) => (/\s/.test(n) ? 2 : 0) + (/[a-z]/.test(n) ? 1 : 0) - n.length / 100;
+        if (tidy(name) > tidy(g.title)) g.title = name;
+        if (k.length < g.key.length) g.key = k;
+      } else {
+        out.push({ key: k, title: name, list: [t] });
+      }
     }
-    return [...byBank.entries()]
-      .sort((x, y) => x[0].localeCompare(y[0], "en", { sensitivity: "base" }))
-      .map(([title, list]) => ({ title, count: list.length, data: collapsed.has(title) ? [] : list }));
-  }, [templates, collapsed]);
+    return out.sort((x, y) => x.title.localeCompare(y.title, "en", { sensitivity: "base" }));
+  }, [templates]);
 
   return (
     <ScreenContainer padTop={false}>
@@ -163,35 +174,10 @@ export default function SmartSmsTemplatesListScreen() {
         {loading ? (
           <LoadingState />
         ) : (
-          <SectionList
+          <FlatList
             initialNumToRender={12}
-            maxToRenderPerBatch={10}
-            windowSize={7}
-            // One section per bank or wallet - a bank sends many formats (money in, money out,
-            // card, UPI...), so its templates sit together. Tap a heading to fold it.
-            sections={sections}
-            keyExtractor={(t) => t.id}
-            stickySectionHeadersEnabled={false}
-            renderSectionHeader={({ section }) => (
-              <Pressable
-                onPress={() =>
-                  setCollapsed((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(section.title)) next.delete(section.title);
-                    else next.add(section.title);
-                    return next;
-                  })
-                }
-                className="flex-row items-center mt-2 mb-2"
-                accessibilityRole="button"
-                accessibilityLabel={`${section.title}, ${section.count} templates`}
-              >
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">
-                  {section.title} · {section.count}
-                </Text>
-                <Ionicons name={collapsed.has(section.title) ? "chevron-down" : "chevron-up"} size={14} color={colors.textSecondary} />
-              </Pressable>
-            )}
+            data={groups}
+            keyExtractor={(g) => g.key}
             ListHeaderComponent={
               // v15.11.1: wrap in <Card> to match the template cards below —
               // pre-fix used a bespoke surface-alt box that broke the design
@@ -269,88 +255,79 @@ export default function SmartSmsTemplatesListScreen() {
               </Card>
             }
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
-            renderItem={({ item }) => {
-              const matchCount = matchCounts[item.id] ?? 0;
+            renderItem={({ item: g }) => {
+              const isOpen = open.has(g.key);
+              const matched = g.list.reduce((n, t) => n + (matchCounts[t.id] ?? 0), 0);
               return (
                 <Card className="mb-3">
+                  {/* A bank or wallet: closed until tapped. */}
                   <Pressable
                     onPress={() =>
-                      router.push(`/settings/sms-templates/${item.id}`)
+                      setOpen((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(g.key)) next.delete(g.key);
+                        else next.add(g.key);
+                        return next;
+                      })
                     }
+                    className="flex-row items-center"
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: isOpen }}
+                    accessibilityLabel={`${g.title}, ${g.list.length} templates`}
                   >
-                    <View className="flex-row items-center mb-1">
-                      <Text className="text-base font-semibold text-foreground flex-1">
-                        {item.template_id ?? `${item.bank_name} template`}
-                      </Text>
-                      <View className="px-2 py-0.5 bg-card rounded">
-                        <Text className="text-xs text-faint-foreground capitalize">
-                          {item.tx_type}
-                        </Text>
-                      </View>
+                    <View className="w-9 h-9 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                      <Ionicons name="business-outline" size={17} color={accentColor} />
                     </View>
-                    <Text className="text-xs text-faint-foreground mb-2">
-                      {item.bank_name}
-                    </Text>
-                    {item.sample_sms && (
-                      <Text
-                        className="text-xs text-muted-foreground"
-                        numberOfLines={2}
-                      >
-                        {item.sample_sms}
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-foreground">{g.title}</Text>
+                      <Text className="text-xs text-muted-foreground mt-0.5">
+                        {g.list.length} template{g.list.length === 1 ? "" : "s"} · {matched} message{matched === 1 ? "" : "s"} read
                       </Text>
-                    )}
+                    </View>
+                    <Ionicons name={isOpen ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
                   </Pressable>
-                  <View className="flex-row mt-3 pt-3 border-t border-border">
-                    <Pressable
-                      onPress={() => router.push(`/settings/sms-templates/${item.id}`)}
-                      hitSlop={4}
-                      className="flex-1 items-center py-1"
-                    >
-                      <Ionicons name="create-outline" size={16} color={accentColor} />
-                      <Text className="text-xs mt-0.5" style={{ color: accentColor }}>Edit</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => router.push(`/settings/sms-templates/matches/${item.id}`)}
-                      hitSlop={4}
-                      className="flex-1 items-center py-1"
-                      disabled={matchCount === 0}
-                    >
-                      <Ionicons
-                        name="document-text-outline"
-                        size={16}
-                        color={matchCount > 0 ? accentColor : colors.textSecondary}
-                      />
-                      <Text
-                        className="text-xs mt-0.5"
-                        style={{ color: matchCount > 0 ? accentColor : colors.textSecondary }}
-                      >
-                        Matched {matchCount}
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => handleDiagnose(item)}
-                      hitSlop={4}
-                      className="flex-1 items-center py-1"
-                      disabled={diagnosingId === item.id}
-                    >
-                      <Ionicons
-                        name="pulse-outline"
-                        size={16}
-                        color={diagnosingId === item.id ? colors.textSecondary : colors.textSecondary}
-                      />
-                      <Text className="text-xs mt-0.5 text-faint-foreground">
-                        {diagnosingId === item.id ? "Scanning…" : "Diagnose"}
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => confirmDelete(item)}
-                      hitSlop={4}
-                      className="flex-1 items-center py-1"
-                    >
-                      <Ionicons name="trash-outline" size={16} color={theme.danger} />
-                      <Text className="text-xs mt-0.5" style={{ color: theme.danger }}>Delete</Text>
-                    </Pressable>
-                  </View>
+
+                  {isOpen &&
+                    g.list.map((item) => {
+                      const matchCount = matchCounts[item.id] ?? 0;
+                      return (
+                        <View key={item.id} className="mt-3 pt-3 border-t border-border">
+                          <Pressable onPress={() => router.push(`/settings/sms-templates/${item.id}`)} accessibilityRole="button">
+                            <View className="flex-row items-center mb-1">
+                              <Text className="text-sm font-medium text-foreground flex-1" numberOfLines={1}>
+                                {item.template_id ?? `${item.bank_name} template`}
+                              </Text>
+                              <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.alpha("foreground", 0.06) }}>
+                                <Text className="text-label text-muted-foreground">
+                                  {item.tx_type === "credit" ? "Money in" : item.tx_type === "debit" ? "Money out" : item.tx_type === "refund" ? "Refund" : "Auto"}
+                                </Text>
+                              </View>
+                            </View>
+                            {item.sample_sms && (
+                              <Text className="text-xs text-muted-foreground" numberOfLines={2}>
+                                {item.sample_sms}
+                              </Text>
+                            )}
+                          </Pressable>
+                          <View className="flex-row mt-2" style={{ gap: 16 }}>
+                            <Pressable onPress={() => router.push(`/settings/sms-templates/${item.id}`)} hitSlop={6}>
+                              <Text className="text-xs font-medium" style={{ color: accentColor }}>Edit</Text>
+                            </Pressable>
+                            <Pressable onPress={() => router.push(`/settings/sms-templates/matches/${item.id}`)} hitSlop={6} disabled={matchCount === 0}>
+                              <Text className="text-xs font-medium" style={{ color: matchCount > 0 ? accentColor : colors.textSecondary }}>
+                                Read {matchCount}
+                              </Text>
+                            </Pressable>
+                            <Pressable onPress={() => handleDiagnose(item)} hitSlop={6} disabled={diagnosingId === item.id}>
+                              <Text className="text-xs font-medium text-muted-foreground">{diagnosingId === item.id ? "Checking…" : "Diagnose"}</Text>
+                            </Pressable>
+                            <Pressable onPress={() => confirmDelete(item)} hitSlop={6} style={{ marginLeft: "auto" }}>
+                              <Text className="text-xs font-medium" style={{ color: theme.danger }}>Delete</Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      );
+                    })}
                 </Card>
               );
             }}
