@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { View, Pressable, FlatList, ActivityIndicator } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { View, Pressable, SectionList, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { EmptyState, FAB, LoadingState, ScreenContainer, SelectSheet, Text } from "@/components/ui";
@@ -38,6 +38,8 @@ export default function SmartSmsTemplatesListScreen() {
   const accentColor = theme.primary;
 
   const [templates, setTemplates] = useState<UserSmsTemplate[]>([]);
+  /** Banks whose templates are folded away. */
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [matchCounts, setMatchCounts] = useState<Record<string, number>>({});
   const [unrecognisedCount, setUnrecognisedCount] = useState(0);
   const [backlogDays, setBacklogDaysState] = useState(getBacklogDays());
@@ -138,24 +140,58 @@ export default function SmartSmsTemplatesListScreen() {
     [alert],
   );
 
+  const sections = useMemo(() => {
+    const byBank = new Map<string, UserSmsTemplate[]>();
+    for (const t of templates) {
+      const key = t.bank_name?.trim() || "Other";
+      byBank.set(key, [...(byBank.get(key) ?? []), t]);
+    }
+    return [...byBank.entries()]
+      .sort((x, y) => x[0].localeCompare(y[0], "en", { sensitivity: "base" }))
+      .map(([title, list]) => ({ title, count: list.length, data: collapsed.has(title) ? [] : list }));
+  }, [templates, collapsed]);
+
   return (
     <ScreenContainer padTop={false}>
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
           <Text className="text-xs text-faint-foreground">
-            Teach Arth to read SMS from any bank by pasting a sample and tapping the amount, merchant, and card number. Your templates are device-local.
+            Teach Arth to read a transaction message it doesn't know yet. Your templates are grouped by bank or wallet and stay on this phone.
           </Text>
         </View>
 
         {loading ? (
           <LoadingState />
         ) : (
-          <FlatList
+          <SectionList
             initialNumToRender={12}
             maxToRenderPerBatch={10}
             windowSize={7}
-            data={templates}
+            // One section per bank or wallet - a bank sends many formats (money in, money out,
+            // card, UPI...), so its templates sit together. Tap a heading to fold it.
+            sections={sections}
             keyExtractor={(t) => t.id}
+            stickySectionHeadersEnabled={false}
+            renderSectionHeader={({ section }) => (
+              <Pressable
+                onPress={() =>
+                  setCollapsed((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(section.title)) next.delete(section.title);
+                    else next.add(section.title);
+                    return next;
+                  })
+                }
+                className="flex-row items-center mt-2 mb-2"
+                accessibilityRole="button"
+                accessibilityLabel={`${section.title}, ${section.count} templates`}
+              >
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">
+                  {section.title} · {section.count}
+                </Text>
+                <Ionicons name={collapsed.has(section.title) ? "chevron-down" : "chevron-up"} size={14} color={colors.textSecondary} />
+              </Pressable>
+            )}
             ListHeaderComponent={
               // v15.11.1: wrap in <Card> to match the template cards below —
               // pre-fix used a bespoke surface-alt box that broke the design
