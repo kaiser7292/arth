@@ -218,6 +218,19 @@ export default function AccountMasterScreen() {
                 {subtitleParts.join(" · ")}
               </Text>
             </View>
+            {/* Open or closed at a glance. */}
+            <View
+              className="px-2 py-0.5 rounded-full mr-2"
+              style={{ backgroundColor: theme.alpha(account.closed_at ? "mutedForeground" : "success", 0.14) }}
+              accessibilityLabel={account.closed_at ? "Closed" : "Open"}
+            >
+              <Text
+                className="text-label font-semibold"
+                style={{ color: account.closed_at ? theme.mutedForeground : theme.success }}
+              >
+                {account.closed_at ? "Closed" : "Open"}
+              </Text>
+            </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
           </View>
         </Card>
