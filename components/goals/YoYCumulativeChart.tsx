@@ -53,11 +53,24 @@ export function YoYCumulativeChart({ monthLabels, current, base, currentLabel, b
     scrubRef.current = null;
     setScrub(null);
   };
-  // Sideways drag reads the chart; a vertical move fails it so the page still scrolls.
-  const gesture = Gesture.Race(
-    Gesture.Pan().runOnJS(true).activeOffsetX([-6, 6]).failOffsetY([-12, 12]).onStart((e) => scrubTo(e.x)).onUpdate((e) => scrubTo(e.x)).onFinalize(endScrub),
-    Gesture.LongPress().runOnJS(true).minDuration(120).onStart((e) => scrubTo(e.x)).onFinalize(endScrub),
-  );
+  // Sideways drag reads the chart; a vertical move fails it so the page still scrolls. Press and
+  // hold also starts a drag (a pan that activates on the hold), so the finger can then slide
+  // across the months in any direction. A plain long-press used to win here and stop following
+  // the finger as soon as it moved.
+  const drag = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-6, 6])
+    .failOffsetY([-12, 12])
+    .onStart((e) => scrubTo(e.x))
+    .onUpdate((e) => scrubTo(e.x))
+    .onFinalize(endScrub);
+  const holdThenDrag = Gesture.Pan()
+    .runOnJS(true)
+    .activateAfterLongPress(150)
+    .onStart((e) => scrubTo(e.x))
+    .onUpdate((e) => scrubTo(e.x))
+    .onFinalize(endScrub);
+  const gesture = Gesture.Race(drag, holdThenDrag);
 
   const scrubbing = scrub != null;
   // The month the rows show: under the finger, else the latest month of this year.
