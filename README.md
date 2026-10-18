@@ -14,7 +14,7 @@
 
 Built with React Native and Expo. Open source. No data leaves your phone.
 
-**Current version: v4.19.0** · [All releases](https://github.com/kaiser7292/arth/releases)
+**Current version: v4.20.0** · [All releases](https://github.com/kaiser7292/arth/releases)
 
 ---
 
@@ -187,6 +187,7 @@ artha/
 
 | Version | Highlights |
 |---------|-----------|
+| **v4.20** | Year in Review as an animated story with music (favourite merchants podium, bubbles, rising bars, confetti); message templates grouped in closed bank cards; card "Avl limit" read as the balance; dates tagged without the time work; open / closed status on account cards; smoother Year over Year chart drag |
 | **v4.19** | Teach a message by confirming Arth's guess (grouped by format, learns from your templates, compares similar messages); templates grouped by bank; fields with spaces (17 - 10 - 26); default payment mode fixed; savings accounts no longer turn into credit cards, and duplicate accounts can be merged; AI suggestions build on your existing setup; faster SMS scans; Year in Review no longer stuck loading; Year over Year chart drag |
 | **v4.18** | Year over Year rebuilt from real data (any two FYs, same-months comparison, cumulative chart, biggest movers) with live Analyse tiles on Goals; Settings reworked: Transaction Messages, Merchants and Backup and Data screens; net worth chart works like the Investments chart in Balance Sheet sections; calendar entries without the link and footer. 4.18.1: Catch Up edits the merchant on the card; original message opens from an action row |
 | **v4.17** | Net worth over time on the Balance Sheet (month-by-month chart, change split into saved, market gains and loans paid down); Year in Review story for any financial year, shareable as an image or PDF with amounts hidden, and a Home card for 30 days after a new FY starts; drag across the Investments chart to read any date. 4.17.1: Catch Up merchant picker is a full page. 4.17.2: drag to read the net worth chart; chart breakdowns follow the finger. 4.17.3: Balance Sheet, Yearly Plan (incl. Reality Check) and Goals recalculate only when data changed; no endless loading |
