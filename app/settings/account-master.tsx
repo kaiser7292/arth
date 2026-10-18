@@ -10,6 +10,7 @@ import type { AccountWithModes } from "@/services/account-master";
 import { getDematAccountsWithSummary } from "@/services/financial-account";
 import type { DematAccountSummary } from "@/services/financial-account";
 import { consumeAccountsPreload } from "@/services/home-preload";
+import { findDuplicateAccounts } from "@/services/account-duplicates";
 import {
   batchInvestmentProducts,
   isDematLikeAccount,
@@ -106,9 +107,14 @@ export default function AccountMasterScreen() {
     }
   }, []);
 
+  // Same card or A/c recorded twice - offered for merging at the top of the list.
+  const [duplicateGroups, setDuplicateGroups] = useState(0);
   useFocusEffect(
     useCallback(() => {
       loadData();
+      findDuplicateAccounts()
+        .then((g) => setDuplicateGroups(g.length))
+        .catch(() => setDuplicateGroups(0));
     }, [loadData]),
   );
 
@@ -224,6 +230,23 @@ export default function AccountMasterScreen() {
   return (
     <ScreenContainer padTop={false}>
       <View className="px-4 flex-1">
+      {duplicateGroups > 0 && (
+        <Pressable onPress={() => router.push("/settings/duplicate-accounts")} accessibilityRole="button" className="mb-3">
+          <Card>
+            <View className="flex-row items-center">
+              <Ionicons name="copy-outline" size={18} color={theme.warning} />
+              <View className="flex-1 ml-2">
+                <Text className="text-sm font-semibold text-foreground">
+                  {duplicateGroups} account{duplicateGroups === 1 ? " looks" : "s look"} recorded twice
+                </Text>
+                <Text className="text-xs text-muted-foreground mt-0.5">Same bank and same last digits. Review and merge them.</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </View>
+          </Card>
+        </Pressable>
+      )}
+
       {/* Info card */}
       <Card className="mb-3">
         <View className="flex-row items-center">

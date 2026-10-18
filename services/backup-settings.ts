@@ -100,6 +100,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("kite_login_vault_entry_id", "string"),
   P("broker_vault_entry__", "string"),
   S("year_review_card_dismissed_fy", "number"),
+  S("duplicate_accounts_dismissed", "string"),
   // Other stores
   { store: "duplicateDismissals", key: "dismissed_groups", type: "string", backup: true },
   { store: "minBalanceAcks", key: "min_balance_ack_", prefix: true, type: "boolean", backup: true },
