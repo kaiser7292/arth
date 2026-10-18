@@ -201,3 +201,23 @@ if (window.IntersectionObserver) {
     inView = true; sync();
   }
 }());
+
+/* Direct download: point the button at the newest release's APK (each release names its own,
+   e.g. Arth-4.20.0.apk). Without JavaScript, or if GitHub can't be reached, the link opens the
+   latest release page instead. */
+(function () {
+  var links = document.querySelectorAll('[data-latest-apk]');
+  if (!links.length || !window.fetch) return;
+  fetch('https://api.github.com/repos/kaiser7292/arth/releases/latest')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (rel) {
+      var apk = rel && (rel.assets || []).filter(function (a) { return /\.apk$/i.test(a.name); })[0];
+      if (!apk) return;
+      links.forEach(function (l) {
+        l.href = apk.browser_download_url;
+        l.setAttribute('download', apk.name);
+        l.setAttribute('aria-label', 'Download ' + apk.name);
+      });
+    })
+    .catch(function () {});
+}());
