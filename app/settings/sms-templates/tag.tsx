@@ -41,7 +41,7 @@ import {
 import {
   createUserTemplate,
   updateUserTemplate,
-  findDuplicateUserTemplate,
+  findTemplateThatReads,
   listUnrecognisedSms,
   type UserTxType,
   type SenderMatchMode,
@@ -350,20 +350,18 @@ export default function TagSmsTemplateScreen() {
     return explainCompileError(compiled);
   }, [compiled]);
 
-  // Duplicate detection — runs whenever bank name + tx type change.
+  // Duplicate check: only when one of your templates ALREADY READS this message. The same bank
+  // sends many formats (money in, money out, card, UPI...), so another template for the same
+  // bank and type isn't a duplicate - that used to warn on every second format of a bank.
   useEffect(() => {
-    if (!bankName.trim()) {
+    if (!smsBody.trim()) {
       setDuplicateFound(null);
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const dup = await findDuplicateUserTemplate(
-          bankName.trim(),
-          txType,
-          draft?.editingId ?? undefined,
-        );
+        const dup = await findTemplateThatReads(smsBody, draft?.editingId ?? undefined);
         if (!cancelled) {
           setDuplicateFound(dup ? { id: dup.id, label: dup.template_id ?? dup.bank_name } : null);
         }
@@ -374,7 +372,7 @@ export default function TagSmsTemplateScreen() {
     return () => {
       cancelled = true;
     };
-  }, [bankName, txType, draft?.editingId]);
+  }, [smsBody, draft?.editingId]);
 
   // Load all active payment modes once on mount.
   useEffect(() => {
@@ -562,8 +560,8 @@ export default function TagSmsTemplateScreen() {
     if (saving) return;
     if (duplicateFound) {
       alert(
-        "You already have a template for this",
-        `"${duplicateFound.label}" already handles ${bankName.trim()} ${txType} SMS. If you save a second one, both will be tried - which may slow matching. Consider editing the existing template instead.`,
+        "A template already reads this message",
+        `Your "${duplicateFound.label}" template already reads this exact message. Saving another one for the same format usually isn't needed - edit that one instead if it gets something wrong.`,
         [
           { text: "Save Anyway", onPress: () => void doSave() },
           {
@@ -1025,7 +1023,10 @@ export default function TagSmsTemplateScreen() {
             </View>
           )}
 
-          <Text className="text-xs text-faint-foreground mb-1.5">Bank or Wallet Name</Text>
+          <Text className="text-xs text-faint-foreground mb-0.5">Bank or wallet</Text>
+          <Text className="text-label text-faint-foreground mb-1.5">
+            Links these transactions to the right account. Filled in from the sender when Arth knows it.
+          </Text>
           <Input
             value={bankName}
             onChangeText={(v) => {
@@ -1077,17 +1078,17 @@ export default function TagSmsTemplateScreen() {
             >
               <Ionicons name="information-circle-outline" size={14} color={theme.warning} style={{ marginTop: 2 }} />
               <Text className="text-xs ml-2 flex-1" style={{ color: colors.text }}>
-                You already have a "{duplicateFound.label}" template for this bank + type. Tap Save to add this as a second format, or tap the template in the list to edit it.
+                Your "{duplicateFound.label}" template already reads this exact message. Edit that one instead if it gets something wrong.
               </Text>
             </View>
           )}
 
           <Input
             containerClassName="mt-3"
-            label="Label (optional)"
+            label="Template name"
             value={label}
             onChangeText={setLabel}
-            placeholder="e.g. Kotak UPI Debit"
+            placeholder="Kotak UPI money out"
           />
 
           <Text className="text-xs text-faint-foreground mt-3 mb-1.5">Default payment mode (optional)</Text>

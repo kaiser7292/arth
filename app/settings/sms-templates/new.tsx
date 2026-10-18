@@ -12,7 +12,7 @@ import {
   getDraft,
   clearDraft,
 } from "@/services/sms/template-draft-store";
-import { resolveBankFromSender } from "@/services/public-data/lookup";
+import { resolveSenderBank } from "@/services/public-data/sms-template-matcher";
 
 /**
  * v15.6.0 — "Paste SMS" screen.
@@ -75,7 +75,8 @@ export default function PasteSmsScreen() {
       if (senderAddress) {
         (async () => {
           try {
-            const bank = await resolveBankFromSender(senderAddress);
+            // The full address ("VM-HDFCBK-S"): this reads the code out of it first.
+            const bank = await resolveSenderBank(senderAddress);
             if (bank) updateDraft({ bankName: bank });
           } catch {
             // Silent — bank resolution is a hint, not required.

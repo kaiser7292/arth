@@ -316,6 +316,7 @@ export async function createUserTemplate(
   }
 
   invalidateTemplateCache();
+  await applyTemplatePaymentModeToPending(id);
   await bumpDataVersion();
 
   const row = await getUserTemplate(id);
@@ -429,11 +430,62 @@ export async function updateUserTemplate(
     id,
   );
   invalidateTemplateCache();
+  await applyTemplatePaymentModeToPending(id);
   await bumpDataVersion();
 
   const row = await getUserTemplate(id);
   if (!row) throw new Error("Failed to read back updated template");
   return row;
+}
+
+/**
+ * Give a template's default payment mode to the transactions it already created that are still
+ * waiting for review and have none. Without this, setting or changing the default only affected
+ * messages arriving afterwards - which made it look like it never worked. Matches by the
+ * template's sender and pattern against the message each transaction came from.
+ */
+export async function applyTemplatePaymentModeToPending(templateId: string): Promise<number> {
+  const db = getDatabase();
+  try {
+    const t = await db.getFirstAsync<{ pattern_regex: string; default_payment_mode_id: string | null; sender_match_mode: string | null; sender_pattern: string | null }>(
+      `SELECT pattern_regex, default_payment_mode_id, sender_match_mode, sender_pattern FROM sms_template_patterns WHERE id = ?;`,
+      templateId,
+    );
+    if (!t?.default_payment_mode_id) return 0;
+    let re: RegExp;
+    try {
+      re = new RegExp(t.pattern_regex, "i");
+    } catch {
+      return 0;
+    }
+    const rows = await db.getAllAsync<{ id: string; raw_source_text: string; source_sms_address: string | null }>(
+      `SELECT id, raw_source_text, source_sms_address FROM expenses
+       WHERE status = 'pending_review' AND deleted_at IS NULL AND payment_mode_id IS NULL
+         AND source = 'sms_auto' AND raw_source_text IS NOT NULL;`,
+    );
+    const pattern = t.sender_pattern?.toUpperCase() ?? null;
+    const fromSender = (address: string | null) => {
+      if (!pattern || !t.sender_match_mode) return true;
+      if (!address) return true; // older rows didn't keep the sender; the pattern still has to match
+      const up = address.toUpperCase();
+      if (t.sender_match_mode === "exact") return up === pattern;
+      if (t.sender_match_mode === "contains") return up.includes(pattern);
+      return (up.match(/[A-Z]{4,}/)?.[0] ?? null) === pattern;
+    };
+    const ids = rows.filter((r) => fromSender(r.source_sms_address) && re.test(normalizeSms(r.raw_source_text).text)).map((r) => r.id);
+    for (let i = 0; i < ids.length; i += 500) {
+      const chunk = ids.slice(i, i + 500);
+      await db.runAsync(
+        `UPDATE expenses SET payment_mode_id = ?, updated_at = datetime('now') WHERE id IN (${chunk.map(() => "?").join(",")});`,
+        t.default_payment_mode_id,
+        ...chunk,
+      );
+    }
+    return ids.length;
+  } catch (e) {
+    logger.warn("Applying a template's payment mode to pending transactions failed (non-fatal):", e);
+    return 0;
+  }
 }
 
 export async function deleteUserTemplate(id: string): Promise<void> {
@@ -498,6 +550,23 @@ export async function purgeDeletedUserTemplates(): Promise<void> {
  * Used to show a duplicate warning in the tag screen before save.
  * Returns the first matching template or null.
  */
+/**
+ * Which of your templates already reads this exact message, if any - the real duplicate. (A
+ * template for the same bank and type is not one: banks send many formats.)
+ */
+export async function findTemplateThatReads(smsBody: string, excludeId?: string): Promise<UserSmsTemplate | null> {
+  const text = normalizeSms(smsBody).text;
+  for (const t of await listUserTemplates()) {
+    if (t.id === excludeId) continue;
+    try {
+      if (new RegExp(t.pattern_regex, "i").test(text)) return t;
+    } catch {
+      // A broken pattern can't read anything.
+    }
+  }
+  return null;
+}
+
 export async function findDuplicateUserTemplate(
   bankName: string,
   txType: UserTxType,
