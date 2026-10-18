@@ -66,13 +66,18 @@ export function enrichParsedSms(parsed: ParsedSMS, body: string): ParsedSMS {
   // this covers DB-template parses too.
   annotateMoneySignals(parsed, body);
 
-  // Enrich account type with keyword-based detection from raw SMS body
-  // This overrides the pattern's accountType if keywords give a more specific answer
-  if (!parsed.accountType || parsed.accountType === "savings") {
-    const keywordType = inferAccountTypeFromKeywords(body);
-    if (keywordType) {
-      parsed.accountType = keywordType;
-    }
+  // Account type from the words. A pattern that set no type gets the keyword answer. A pattern
+  // that said "savings" is only overridden by what the account digits are attached to ("Credit
+  // Card XX1234") or a credit limit - not by "credit card" appearing anywhere, which used to turn
+  // a savings A/c paying a card bill into a new credit-card account.
+  const keywordType = inferAccountTypeFromKeywords(body, parsed.cardLast4);
+  if (!parsed.accountType) {
+    if (keywordType) parsed.accountType = keywordType;
+  } else if (parsed.accountType === "savings" && keywordType && keywordType !== "savings") {
+    const strong = keywordType === "credit_card"
+      ? parsed.creditLimit != null || parsed.availableCreditLimit != null || /CREDIT\s*CARD[^0-9]{0,25}(?:X|\*|ENDING|NO)/i.test(body)
+      : true;
+    if (strong) parsed.accountType = keywordType;
   }
 
   // Detect UPI P2M/P2A subtype from raw SMS body

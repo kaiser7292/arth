@@ -95,3 +95,24 @@ describe("inferAccountTypeFromKeywords", () => {
     expect(inferAccountTypeFromKeywords("LOAN A/C 12345")).toBe("loan");
   });
 });
+
+describe("inferAccountTypeFromKeywords - what the account digits are attached to", () => {
+  it("a savings A/c paying a card bill stays savings", () => {
+    expect(
+      inferAccountTypeFromKeywords("Rs 5,000.00 debited from A/c XX1234 towards your HDFC Credit Card bill. Avl Bal Rs 10,000", "1234"),
+    ).toBe("savings");
+  });
+
+  it("a spend on a credit card is a card", () => {
+    expect(inferAccountTypeFromKeywords("Rs 450 spent on your ICICI Credit Card XX9876 at AMAZON", "9876")).toBe("credit_card");
+  });
+
+  it("a debit card spend is savings", () => {
+    expect(inferAccountTypeFromKeywords("Rs 200 spent using Debit Card XX5555 at DMART", "5555")).toBe("savings");
+  });
+
+  it("a bare 'card' falls back to the rest of the message", () => {
+    expect(inferAccountTypeFromKeywords("Rs 99 spent on Card XX1111. Avl Bal Rs 500", "1111")).toBe("savings");
+    expect(inferAccountTypeFromKeywords("Rs 99 spent on Card XX1111. Available credit limit Rs 50,000", "1111")).toBe("credit_card");
+  });
+});

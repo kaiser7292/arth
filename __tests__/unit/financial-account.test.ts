@@ -93,7 +93,7 @@ describe("discoverOrUpdateAccount", () => {
 
   it("creates a new account when none exists", async () => {
     // No existing account found
-    mockDb.getFirstAsync.mockResolvedValueOnce(null);
+    mockDb.getAllAsync.mockResolvedValueOnce([]);
 
     const id = await discoverOrUpdateAccount("user-1", makeParsed());
 
@@ -111,7 +111,7 @@ describe("discoverOrUpdateAccount", () => {
   });
 
   it("returns existing account ID and updates when account already exists", async () => {
-    mockDb.getFirstAsync.mockResolvedValueOnce({ id: "existing-acct-1" });
+    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "existing-acct-1", is_active: 1, bank_name: "ICICI Bank", account_type: "savings" }]);
 
     const id = await discoverOrUpdateAccount("user-1", makeParsed());
 
@@ -122,8 +122,28 @@ describe("discoverOrUpdateAccount", () => {
     expect(insert).toBeUndefined();
   });
 
+  it("reuses your account when only the bank's spelling or the guessed type differs", async () => {
+    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "my-hdfc", is_active: 1, bank_name: "HDFC", account_type: "savings" }]);
+    const id = await discoverOrUpdateAccount("user-1", makeParsed({ bank: "HDFC Bank", accountType: "credit_card" }));
+    expect(id).toBe("my-hdfc");
+    expect(executedRuns.find((r) => r.sql.includes("INSERT INTO financial_accounts"))).toBeUndefined();
+  });
+
+  it("still creates a card when the message proves it is one (a credit limit)", async () => {
+    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "my-hdfc", is_active: 1, bank_name: "HDFC Bank", account_type: "savings" }]);
+    await discoverOrUpdateAccount("user-1", makeParsed({ bank: "HDFC Bank", accountType: "credit_card", creditLimit: 100000 }));
+    const insert = executedRuns.find((r) => r.sql.includes("INSERT INTO financial_accounts"));
+    expect(insert!.params[4]).toBe("credit_card");
+  });
+
+  it("doesn't reuse another bank's account with the same digits", async () => {
+    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "sbi", is_active: 1, bank_name: "SBI", account_type: "savings" }]);
+    await discoverOrUpdateAccount("user-1", makeParsed({ bank: "ICICI Bank" }));
+    expect(executedRuns.find((r) => r.sql.includes("INSERT INTO financial_accounts"))).toBeDefined();
+  });
+
   it("infers credit_card type when creditLimit is present", async () => {
-    mockDb.getFirstAsync.mockResolvedValueOnce(null);
+    mockDb.getAllAsync.mockResolvedValueOnce([]);
 
     await discoverOrUpdateAccount(
       "user-1",
@@ -135,7 +155,7 @@ describe("discoverOrUpdateAccount", () => {
   });
 
   it("infers credit_card type when availableCreditLimit is present", async () => {
-    mockDb.getFirstAsync.mockResolvedValueOnce(null);
+    mockDb.getAllAsync.mockResolvedValueOnce([]);
 
     await discoverOrUpdateAccount(
       "user-1",
@@ -147,7 +167,7 @@ describe("discoverOrUpdateAccount", () => {
   });
 
   it("uses explicit accountType when provided", async () => {
-    mockDb.getFirstAsync.mockResolvedValueOnce(null);
+    mockDb.getAllAsync.mockResolvedValueOnce([]);
 
     await discoverOrUpdateAccount(
       "user-1",
@@ -159,7 +179,7 @@ describe("discoverOrUpdateAccount", () => {
   });
 
   it("infers wallet type for Paytm without card info", async () => {
-    mockDb.getFirstAsync.mockResolvedValueOnce(null);
+    mockDb.getAllAsync.mockResolvedValueOnce([]);
 
     await discoverOrUpdateAccount(
       "user-1",

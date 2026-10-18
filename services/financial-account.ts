@@ -104,31 +104,66 @@ function inferAccountType(parsed: ParsedSMS): "savings" | "credit_card" | "loan"
 }
 
 /**
- * Infer account type from raw SMS body keywords.
- * Called when the bank pattern doesn't explicitly set accountType.
- * Returns null if the type cannot be determined (user classifies in review).
+ * Infer the account type from an SMS's words. Called when the pattern didn't set one.
+ *
+ * Decided first by what the account digits are attached to: the nearest of "credit card",
+ * "debit card", "A/c" / "account", "loan" or "wallet" just before them. "Rs 5,000 debited from
+ * A/c XX1234 towards your Credit Card bill" is a SAVINGS message - the digits follow "A/c" - even
+ * though it says "credit card". Deciding on "credit card anywhere in the text" (the old rule)
+ * turned savings accounts that pay a card bill into new credit-card accounts.
+ *
+ * Without digits to anchor on, falls back to whole-message signals (credit limit = card,
+ * available balance = savings). Returns null if the type can't be told.
  */
 export function inferAccountTypeFromKeywords(
   smsBody: string,
+  last4?: string | null,
 ): "savings" | "credit_card" | "loan" | "wallet" | null {
   const body = smsBody.toUpperCase();
 
-  // Credit card keywords
-  if (/CREDIT\s*CARD|CC\s*NO|CARD\s+NO\.?\s*XX/i.test(body)) return "credit_card";
-  if (/AVAIL\s*CR\s*LIMIT|AVAILABLE\s*CREDIT|CREDIT\s*LIMIT/i.test(body)) return "credit_card";
-  if (/YOUR\s+.*CARD\s+(ENDING|XX)/i.test(body) && !/DEBIT/i.test(body)) return "credit_card";
+  const fromDigits = last4 ? typeBeforeDigits(body, last4) : null;
+  if (fromDigits) return fromDigits;
 
-  // Loan keywords
-  if (/LOAN\s*A\/C|LOAN\s*ACCOUNT|EMI\s+FOR\s+LOAN|HOME\s+LOAN|PERSONAL\s+LOAN|CAR\s+LOAN/i.test(body)) return "loan";
-
-  // Savings/current account keywords
-  if (/A\/C\s*NO|ACC\s*(NO)?\.?\s*\d|AVL\s*BAL|AVAILABLE\s*BAL|AVAIL\s*BAL/i.test(body)) return "savings";
-  if (/SAVINGS\s*A\/C|CURRENT\s*A\/C|SB\s*A\/C/i.test(body)) return "savings";
-
-  // Wallet keywords
-  if (/WALLET|PAYTM\s*BALANCE|FREECHARGE/i.test(body)) return "wallet";
-
+  // Whole-message signals.
+  if (/AVAIL(?:ABLE)?\.?\s*CR(?:EDIT)?\.?\s*LIMIT|AVAILABLE\s*CREDIT|CREDIT\s*LIMIT/.test(body)) return "credit_card";
+  if (/DEBIT\s*CARD/.test(body)) return "savings";
+  if (/LOAN\s*A\/C|LOAN\s*ACCOUNT|EMI\s+FOR\s+LOAN|HOME\s+LOAN|PERSONAL\s+LOAN|CAR\s+LOAN/.test(body)) return "loan";
+  const savingsSignal = /\bA\/C\b|\bA\/C\s*NO|ACC(?:OUN)?T\s*(?:NO)?\.?\s*[X*\d]|AVL\.?\s*BAL|AVAIL(?:ABLE)?\s*BAL|SAVINGS\s*A\/C|CURRENT\s*A\/C|SB\s*A\/C/.test(body);
+  // A card mentioned as where the money WENT ("to / towards your credit card", "card bill payment")
+  // says nothing about the account the message is about.
+  const cardAsDestination = /(?:TO|TOWARDS|FOR)\s+(?:YOUR\s+)?(?:[A-Z]+\s+){0,3}CREDIT\s*CARD|CREDIT\s*CARD\s*(?:BILL|PAYMENT|DUES?|OUTSTANDING)|\bCC\s*(?:BILL|PAYMENT)/.test(body);
+  if (/CREDIT\s*CARD|\bCC\s*NO\b/.test(body) && !cardAsDestination && !savingsSignal) return "credit_card";
+  if (/YOUR\s+.*CARD\s+(?:ENDING|XX)/.test(body) && !/DEBIT/.test(body) && !savingsSignal) return "credit_card";
+  if (savingsSignal) return "savings";
+  if (/WALLET|PAYTM\s*BALANCE|FREECHARGE/.test(body)) return "wallet";
   return null;
+}
+
+/** The account kind named nearest before the digits ("A/c XX1234", "Credit Card ending 1234"). */
+function typeBeforeDigits(body: string, last4: string): "savings" | "credit_card" | "loan" | "wallet" | null {
+  const digits = last4.replace(/\D/g, "");
+  if (digits.length < 3) return null;
+  const at = body.search(new RegExp(`[X*.\\s-]*${digits}(?!\\d)`));
+  if (at < 0) return null;
+  const before = body.slice(Math.max(0, at - 45), at + 1);
+  const kinds: [RegExp, "savings" | "credit_card" | "loan" | "wallet" | "card"][] = [
+    [/CREDIT\s*CARD|\bCC\b/g, "credit_card"],
+    [/DEBIT\s*CARD/g, "savings"],
+    [/\bA\/?C\b|ACCT|ACCOUNT|\bSB\b/g, "savings"],
+    [/LOAN/g, "loan"],
+    [/WALLET/g, "wallet"],
+    [/\bCARD\b/g, "card"],
+  ];
+  let best: { end: number; kind: (typeof kinds)[number][1] } | null = null;
+  for (const [re, kind] of kinds) {
+    for (let m = re.exec(before); m; m = re.exec(before)) {
+      const end = m.index + m[0].length;
+      // "DEBIT CARD" also contains "CARD"; the longer, more specific match wins at the same spot.
+      if (!best || end > best.end || (end === best.end && kind !== "card")) best = { end, kind };
+    }
+  }
+  if (!best || best.kind === "card") return null; // a bare "card" could be either - decide elsewhere
+  return best.kind;
 }
 
 /**
@@ -194,15 +229,34 @@ export async function discoverOrUpdateAccount(
   const isPension = inferredType === "pension";
   const accountType = isPension ? "investment" : inferredType;
 
-  // Check if account already exists (including deactivated ones)
-  const existing = await db.getFirstAsync<{ id: string; is_active: number }>(
-    `SELECT id, is_active FROM financial_accounts
-     WHERE user_id = ? AND account_identifier = ? AND bank_name = ? AND account_type = ?;`,
+  // Find the account this message is about before creating one. Same digits AND same bank,
+  // with the bank compared loosely ("HDFC" from a template = "HDFC Bank" from a built-in pattern),
+  // so naming differences don't make a second account for the same card or A/c.
+  //   1. that account with the same type - the normal case;
+  //   2. otherwise that account with another type: reuse it, unless this message carries a
+  //      credit limit (proof it's a card) and that one isn't a card. A wrongly guessed type no
+  //      longer creates a duplicate - e.g. a savings A/c turning up again as a "credit card".
+  const candidates = await db.getAllAsync<{ id: string; is_active: number; bank_name: string; account_type: string }>(
+    `SELECT id, is_active, bank_name, account_type FROM financial_accounts
+     WHERE user_id = ? AND account_identifier = ? AND closed_at IS NULL
+     ORDER BY is_active DESC, created_at ASC;`,
     userId,
     parsed.cardLast4,
-    parsed.bank,
-    accountType,
   );
+  const bankKey = (name: string | null | undefined) =>
+    (name ?? "").toLowerCase().replace(/\b(bank|ltd|limited|of|india|the)\b/g, "").replace(/[^a-z0-9]/g, "");
+  const sameBank = (name: string) => {
+    const x = bankKey(name);
+    const y = bankKey(parsed.bank);
+    return x.length > 0 && y.length > 0 && (x === y || x.startsWith(y) || y.startsWith(x));
+  };
+  const provesCard = parsed.creditLimit != null || parsed.availableCreditLimit != null;
+  const existing =
+    candidates.find((c) => sameBank(c.bank_name) && c.account_type === accountType) ??
+    candidates.find(
+      (c) => sameBank(c.bank_name) && !(provesCard && c.account_type !== "credit_card") && !(isPension && c.account_type !== "investment"),
+    ) ??
+    null;
 
   if (existing) {
     // Reactivate if previously deactivated
