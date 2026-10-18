@@ -22,7 +22,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { exportYearReviewPDF, sharePDF } from "@/services/reports/report-pdf-export";
-import { buildShareLines, buildYearReview, getReviewableFYs, type YearReview } from "@/services/reports/year-review";
+import { buildShareLines, getReviewableFYs, getYearReview, type YearReview } from "@/services/reports/year-review";
 import { getFYStartMonth } from "@/services/settings";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { formatAmount } from "@/utils/format";
@@ -39,6 +39,8 @@ export default function YearReviewScreen() {
   const [fys, setFys] = useState<number[]>([]);
   const [review, setReview] = useState<YearReview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const loadSeq = useRef(0);
   const [page, setPage] = useState(0);
   const [pageWidth, setPageWidth] = useState(0);
   const [hideAmounts, setHideAmounts] = useState(true);
@@ -46,18 +48,23 @@ export default function YearReviewScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const shareRef = useRef<View>(null);
 
-  useDataRefresh(
-    useCallback(async () => {
-      setLoading(true);
-      try {
-        const [list, r] = await Promise.all([getReviewableFYs(DEFAULT_USER_ID), buildYearReview(DEFAULT_USER_ID, fy)]);
-        setFys(list.includes(fy) ? list : [fy, ...list].sort((a, b) => b - a));
-        setReview(r);
-      } finally {
-        setLoading(false);
-      }
-    }, [fy]),
-  );
+  const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
+    setLoading(true);
+    setFailed(false);
+    try {
+      const [list, r] = await Promise.all([getReviewableFYs(DEFAULT_USER_ID), getYearReview(DEFAULT_USER_ID, fy)]);
+      if (seq !== loadSeq.current) return; // a newer year is already loading
+      setFys(list.includes(fy) ? list : [fy, ...list].sort((a, b) => b - a));
+      setReview(r);
+    } catch {
+      if (seq === loadSeq.current) setFailed(true);
+    } finally {
+      if (seq === loadSeq.current) setLoading(false);
+    }
+  }, [fy]);
+  // Cached by data version inside getYearReview, so coming back with nothing changed is instant.
+  useDataRefresh(load);
 
   // Pages with nothing to say are left out (no loans → no loans page).
   const pages = useMemo(() => {
@@ -140,6 +147,19 @@ export default function YearReviewScreen() {
       ))}
     </ScrollView>
   );
+
+  if (failed && !review) {
+    return (
+      <ScreenContainer padTop={false}>
+        <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-base font-semibold text-foreground text-center">Couldn't put your year together</Text>
+          <View className="mt-4 w-40">
+            <Button title="Try again" onPress={() => void load()} />
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   if (loading && !review) {
     return (

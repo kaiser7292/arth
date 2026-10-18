@@ -4,15 +4,15 @@
  *
  * Built only from existing data: spending uses the Budget tab's rule
  * (getSpendingRows), savings rate comes from the yearly plan when there is
- * one (getFinancialCockpit), net worth / debt / Hisaab at year end come from
+ * one (getSavingsSnapshot), net worth / debt / Hisaab at year end come from
  * services/net-worth-history.ts. docs/NET_WORTH_AND_YEAR_REVIEW_PROPOSAL.md, Part B.
  */
 
 import { getDatabase } from "@/database";
 import { getSpendingRows } from "@/services/analytics/spending-rows";
-import { getFinancialCockpit } from "@/services/financial-cockpit";
+import { getSavingsSnapshot } from "@/services/savings-tracker";
 import { getNetWorthHistory, prevMonth, type NetWorthPoint } from "@/services/net-worth-history";
-import { bumpDataVersion, getFYStartMonth } from "@/services/settings";
+import { bumpDataVersion, getDataVersion, getFYStartMonth } from "@/services/settings";
 import { settingsStorage } from "@/services/storage";
 import { formatLocalDate, getCurrentFY, getFYLabel, getFYRange } from "@/utils/fiscal-year";
 
@@ -251,16 +251,16 @@ export async function buildYearReview(
   // ── Savings rate ──
   let savings: YearReview["savings"] = null;
   try {
-    const [cockpit, prevCockpit] = await Promise.all([
-      getFinancialCockpit(userId, String(fyYear)),
-      getFinancialCockpit(userId, String(fyYear - 1)),
-    ]);
-    if (cockpit && cockpit.waterfall.incomeReceivedYTD > 0) {
+    // The yearly plan's savings figures, read directly. (This used to run the whole Goals cockpit
+    // - plan, forecasts, pattern learning - twice, which could leave Year in Review loading for
+    // minutes on a phone with a lot of history.)
+    const [snap, prevSnap] = await Promise.all([getSavingsSnapshot(userId, fyYear), getSavingsSnapshot(userId, fyYear - 1)]);
+    if (snap && snap.incomeReceived > 0) {
       savings = {
-        ratePct: round2(cockpit.savings.actualRatePct),
-        targetPct: cockpit.savings.targetRatePct > 0 ? cockpit.savings.targetRatePct : null,
-        saved: cockpit.savings.totalSaved,
-        prevRatePct: prevCockpit && prevCockpit.waterfall.incomeReceivedYTD > 0 ? round2(prevCockpit.savings.actualRatePct) : null,
+        ratePct: round2(snap.actualSavingsRatePct),
+        targetPct: snap.targetSavingsRatePct > 0 ? snap.targetSavingsRatePct : null,
+        saved: snap.actualSaved,
+        prevRatePct: prevSnap && prevSnap.incomeReceived > 0 ? round2(prevSnap.actualSavingsRatePct) : null,
         source: "plan",
       };
     }
@@ -389,6 +389,27 @@ export async function buildYearReview(
     hisaab,
     vsLastYear,
   };
+}
+
+// ── Cache: rebuilt only after a write (data version) or a new day ──
+
+const reviewCache = new Map<string, Promise<YearReview>>();
+let reviewCacheVersion = -1;
+
+export function getYearReview(userId: string, fyYear: number): Promise<YearReview> {
+  const version = getDataVersion();
+  if (version !== reviewCacheVersion) {
+    reviewCache.clear();
+    reviewCacheVersion = version;
+  }
+  const today = formatLocalDate(new Date());
+  const key = `${userId}|${fyYear}|${today}`;
+  const hit = reviewCache.get(key);
+  if (hit) return hit;
+  const value = buildYearReview(userId, fyYear, today);
+  reviewCache.set(key, value);
+  value.catch(() => reviewCache.delete(key));
+  return value;
 }
 
 // ── Sharing ──
