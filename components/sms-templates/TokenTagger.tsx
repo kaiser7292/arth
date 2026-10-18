@@ -309,22 +309,20 @@ export function TokenTagger({
               onLongPress={() => handleLongPress(tok)}
               delayLongPress={350}
               hitSlop={4}
-              style={({ pressed }) => ({
+              // A plain style object: a style function here can be dropped on device, which
+              // loses each chip's padding and spacing so the words run together.
+              android_ripple={{ color: colors.border }}
+              style={{
                 marginRight: 6,
                 marginBottom: 6,
                 paddingHorizontal: 8,
                 paddingVertical: 5,
                 borderRadius: 6,
-                backgroundColor: palette
-                  ? palette.bg
-                  : pressed
-                  ? colors.border
-                  : colors.surface,
+                backgroundColor: palette ? palette.bg : colors.surface,
                 borderWidth: palette ? 0 : ws?.state === "required" ? 2 : 1,
                 borderColor: ws && kept ? colors.text : colors.border,
                 borderStyle: ws && !kept ? "dashed" : "solid",
-                opacity: pressed && !palette ? 0.7 : 1,
-              })}
+              }}
               accessibilityRole="button"
               accessibilityLabel={
                 field

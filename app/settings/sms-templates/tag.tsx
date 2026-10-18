@@ -31,6 +31,8 @@ import {
   getBacklogDays,
   type BacklogMatch,
 } from "@/services/sms/template-backlog";
+import { guessSpans } from "@/services/sms/template-guess";
+import { listUserTemplates, type UserSmsTemplate } from "@/services/sms/user-sms-templates";
 import { TemplatePreviewSheet } from "@/components/sms-templates/TemplatePreviewSheet";
 import { ExamplePickerSheet } from "@/components/sms-templates/ExamplePickerSheet";
 import {
@@ -157,6 +159,11 @@ export default function TagSmsTemplateScreen() {
   const draft = getDraft();
 
   const [spans, setSpans] = useState<TaggedSpan[]>(draft?.spans ?? []);
+  /** Saved templates - the guess learns the words the user tagged before. */
+  const [guessTemplates, setGuessTemplates] = useState<UserSmsTemplate[]>([]);
+  useEffect(() => {
+    listUserTemplates().then(setGuessTemplates).catch(() => {});
+  }, []);
   const [activeField, setActiveField] = useState<TaggedField | null>(null);
   const [bankName, setBankName] = useState<string>(draft?.bankName ?? "");
   const [txType, setTxType] = useState<UserTxType>(draft?.txType ?? "debit");
@@ -470,7 +477,9 @@ export default function TagSmsTemplateScreen() {
   };
 
   const handleAutoTag = useCallback(() => {
-    const guessed = autoTag(smsBody);
+    // Same guess as the confirmation screen: it won't take "INR 749" for a date, and it finds a
+    // card's "Avl limit" as the balance.
+    const guessed = guessSpans(smsBody, [], guessTemplates);
     if (guessed.length === 0) {
       alert(
         "Nothing to auto-tag",
@@ -486,7 +495,7 @@ export default function TagSmsTemplateScreen() {
       return;
     }
     setSpans([...spans, ...additions]);
-  }, [smsBody, spans, alert]);
+  }, [smsBody, spans, alert, guessTemplates]);
 
   const handleTest = useCallback(() => {
     if (!compiled || !compiled.ok) {

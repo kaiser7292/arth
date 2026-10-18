@@ -20,6 +20,14 @@ describe("guessSpans", () => {
     expect(v.merchant).toBe("AMAZON");
   });
 
+  it("doesn't take a web address for a date", () => {
+    const body = "Payment of Rs. 9.32 from Zomato Money Balance is successful. Updated balance: Rs. 0.00. Contact zomatomoneysupport@zomato.com for queries. -ZOMATO";
+    const v = values(body, guessSpans(body));
+    expect(v.date).toBeUndefined();
+    expect(v.amount).toBe("9.32");
+    expect(v.balance).toBe("0.00");
+  });
+
   it("handles a date with spaces around the separators", () => {
     const body = "INR 1,200.00 spent on card XX9876 on 17 - 10 - 26 at BIGBASKET";
     expect(values(body, guessSpans(body)).date).toBe("17 - 10 - 26");

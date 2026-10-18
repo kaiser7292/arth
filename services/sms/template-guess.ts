@@ -4,7 +4,8 @@
  * Three sources, strongest first:
  *  1. What the user taught before: in their saved templates, the words right before each field
  *     ("avl bal" -> balance, "info: upi/" -> merchant). Reused on new senders.
- *  2. Shape rules: amounts next to money words (not the balance), balances after "Bal", masked
+ *  2. Shape rules: amounts next to money words (not the balance), balances after "Bal" (or a
+ *     card's "Avl limit"), masked
  *     account digits, dates (spaces allowed), merchants after at / to / towards / Info / VPA,
  *     references, the other account, the other party's name.
  *  3. Other messages in the same format: parts that change between them are fields. Used to find
@@ -238,10 +239,13 @@ export function guessSpans(body: string, others: string[] = [], templates: UserS
   for (const s of fromHints(body, learnHints(templates), new Set())) add(s);
   // 2. Shapes.
   add(guessAmount(body));
-  add(spanOf(body, "balance", new RegExp(String.raw`(?:avl\.?\s*bal|available\s*bal(?:ance)?|\bbal(?:ance)?)\b[^0-9]{0,12}(${NUM})`, "i")));
+  add(spanOf(body, "balance", new RegExp(String.raw`(?:avl\.?\s*bal|available\s*bal(?:ance)?|\bbal(?:ance)?|\b(?:avl|avail(?:able)?)\.?\s*(?:limit|lmt))\b[^0-9]{0,12}(${NUM})`, "i")));
   add(spanOf(body, "date", new RegExp(String.raw`\b(${DATE})`, "i")));
   add(guessMerchant(body));
-  for (const s of autoTag(body)) add(s); // account, ref, other account, counterparty (and anything still missing)
+  // The older helper only for the fields the rules above don't cover. Its date rule took any three
+  // letters - "com" in "zomato.com" became a date - and its amount / balance rules are weaker.
+  const FROM_AUTOTAG = new Set<TaggedField>(["account", "ref", "other_account", "counterparty"]);
+  for (const s of autoTag(body)) if (FROM_AUTOTAG.has(s.field)) add(s);
   // 3. Parts that change between messages of the same format.
   if (!have.has("merchant") && !have.has("counterparty")) add(merchantFromChanges(body, others, out));
 

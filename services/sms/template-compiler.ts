@@ -180,6 +180,20 @@ const FIELD_REGEX: Record<TaggedField, string> = {
   other_account: "[Xx*]{0,12}\\s*\\d{3,6}",
 };
 
+/**
+ * The capture regex for a field, given the text the user tagged. A date tagged without its time
+ * ("17-10-26" out of "17-10-26 10:04:39") must not reach for the time, or the pattern reads a
+ * different value than the one tagged.
+ */
+function fieldRegexFor(field: TaggedField, tagged: string): string {
+  if (field === "date" && !tagged.includes(":")) return DATE_NO_TIME;
+  return FIELD_REGEX[field];
+}
+
+const DATE_NO_TIME = FIELD_REGEX.date
+  .replace("(?:[T: ]\\s*\\d{2}\\s*:\\s*\\d{2}(?:\\s*:\\s*\\d{2})?)?", "")
+  .replace("(?:\\s+\\d{2}\\s*:\\s*\\d{2}(?:\\s*:\\s*\\d{2})?)?", "");
+
 /** Fields that capture free text and stop at the next anchor (non-greedy). */
 const LAZY_FIELDS = new Set<TaggedField>(["merchant", "ref", "counterparty"]);
 
@@ -518,7 +532,8 @@ function buildFlexible(
         out += escapeLiteral(first.normBody.slice(cursor, to));
       }
       const field = first.normSpans[k].field;
-      pattern += out + `(?<${field}>${FIELD_REGEX[field]})`;
+      const tagged = first.normBody.slice(first.normSpans[k].start, first.normSpans[k].end);
+      pattern += out + `(?<${field}>${fieldRegexFor(field, tagged)})`;
     } else {
       pattern += out;
     }
@@ -627,7 +642,7 @@ export function compileTemplate(input: CompileInput): CompileResult {
     // capture. But if THIS is the last span AND there's no trailing tail
     // text to stop on, `+?` collapses to 1 character — wrong. Switch to
     // greedy so the field grabs everything to end of string.
-    let fieldRegex = FIELD_REGEX[s.field];
+    let fieldRegex = fieldRegexFor(s.field, normBody.slice(s.start, s.end));
     if (LAZY_FIELDS.has(s.field)) {
       const isLast = idx === normSpans.length - 1;
       const hasTail = normBody.slice(s.end).trim().length > 0;

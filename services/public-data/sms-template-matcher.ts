@@ -301,6 +301,16 @@ export function matchTemplateRow(row: TemplateRow, normalizedBody: string, bank:
     };
   }
 
+  // A card message's "Avl limit" tagged as the balance is the card's available limit, not a bank
+  // balance - reported as such so the account is treated as a card.
+  const balanceRaw = groups["balance"];
+  let isCardLimit = false;
+  if (balanceRaw) {
+    const at = normalizedBody.indexOf(balanceRaw, match.index);
+    const before = normalizedBody.slice(Math.max(0, at - 24), Math.max(0, at)).toLowerCase();
+    isCardLimit = /(?:limit|lmt)/.test(before) && !/bal/.test(before);
+  }
+
   // Balance-only / merchant-only patterns that never carry an amount are
   // not expenses on their own — skip so they don't land in pending_sms as
   // a 0-rupee transaction.
@@ -321,7 +331,8 @@ export function matchTemplateRow(row: TemplateRow, normalizedBody: string, bank:
     dueDate: null,
     isForecast: false,
     upiRef: groups["ref"] ?? null,
-    availableBalance: groups["balance"] ? parseAmount(groups["balance"]) : null,
+    availableBalance: balanceRaw && !isCardLimit ? parseAmount(balanceRaw) : null,
+    ...(balanceRaw && isCardLimit ? { availableCreditLimit: parseAmount(balanceRaw) } : {}),
     counterpartyName,
     counterpartyAcctLast4,
     _matchSource: "template" as const,
