@@ -157,11 +157,11 @@ nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:var(
 .int-b{display:inline-flex;margin-top:11px;background:var(--brand-ghost);color:var(--brand);border-radius:5px;padding:3px 9px;font-size:.7rem;font-weight:600;letter-spacing:.03em}
 
 /* ── Download CTA ─────────────────────────────────────── */
-.cta{background:var(--brand);padding-block:52px;text-align:center;position:relative;overflow:hidden}
+.cta{background:#134E4A;padding-block:52px;text-align:center;position:relative;overflow:hidden}
 .cta h2{color:#fff;font-size:clamp(1.7rem,3.2vw,2.5rem);font-weight:700;letter-spacing:-.025em;margin-bottom:10px}
 .cta p{color:rgba(255,255,255,.72);font-size:.975rem;margin-bottom:6px;max-width:46ch;margin-inline:auto;line-height:1.75}
 .cta-note{font-size:.8rem;color:rgba(255,255,255,.45);margin-bottom:24px;display:block;max-width:46ch;margin-inline:auto}
-.btn-inv{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--brand);border-radius:8px;padding:13px 30px;font-family:'Outfit',sans-serif;font-size:1rem;font-weight:700;text-decoration:none;margin-bottom:14px}
+.btn-inv{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#134E4A;border-radius:8px;padding:13px 30px;font-family:'Outfit',sans-serif;font-size:1rem;font-weight:700;text-decoration:none;margin-bottom:14px}
 .btn-inv:hover{text-decoration:none}
 .ios-note{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:7px 16px;font-size:.8rem;color:rgba(255,255,255,.65);margin-top:4px}
 
