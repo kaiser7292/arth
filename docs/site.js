@@ -215,7 +215,6 @@ if (window.IntersectionObserver) {
       if (!apk) return;
       links.forEach(function (l) {
         l.href = apk.browser_download_url;
-        l.setAttribute('download', apk.name);
         l.setAttribute('aria-label', 'Download ' + apk.name);
       });
     })
