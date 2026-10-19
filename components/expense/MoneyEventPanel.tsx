@@ -36,6 +36,10 @@ interface MoneyEventPanelProps {
   onRecordWithdrawal: () => void;
   /** After an action that leaves this screen's data stale. */
   onChanged: () => void;
+  /** The user just said this credit is an FD closing: go straight to "Which FD closed?". */
+  openFdPicker?: boolean;
+  /** Called once the picker has been opened (or there was nothing to pick). */
+  onFdPickerOpened?: () => void;
 }
 
 /**
@@ -52,6 +56,8 @@ export function MoneyEventPanel({
   onLinkBucket,
   onRecordWithdrawal,
   onChanged,
+  openFdPicker,
+  onFdPickerOpened,
 }: MoneyEventPanelProps) {
   const theme = useTheme();
   const alert = useAlert();
@@ -63,6 +69,7 @@ export function MoneyEventPanel({
   const [deposit, setDeposit] = useState<DepositDebit | null>(null);
   const [recordFdOpen, setRecordFdOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [fdsLoaded, setFdsLoaded] = useState(false);
 
   useEffect(() => {
     if (event !== "fd_closure") return;
@@ -75,11 +82,23 @@ export function MoneyEventPanel({
       if (!live) return;
       setFds(list);
       setDeposit(dep);
+      setFdsLoaded(true);
     })().catch(() => {});
     return () => {
       live = false;
     };
   }, [event, expense.id, expense.date]);
+
+  // Marked by hand ("FD matured or closed"): open the picker as soon as the open FDs are known.
+  useEffect(() => {
+    if (!openFdPicker || !fdsLoaded || event !== "fd_closure") return;
+    onFdPickerOpened?.();
+    if (fds.length > 0) setFdPickerOpen(true);
+    else if (!deposit) {
+      alert("No open FDs", "Arth doesn't have an open fixed deposit to close. Add the FD under Investments first, then pick it here.");
+    }
+    // With a likely deposit found, the card's "Record this FD" button is the next step.
+  }, [openFdPicker, fdsLoaded, event, fds.length, deposit, alert, onFdPickerOpened]);
 
   const run = useCallback(
     async (label: string, fn: () => Promise<void>) => {

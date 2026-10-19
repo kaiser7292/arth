@@ -889,6 +889,8 @@ export default function ExpenseDetailScreen() {
   // Credit → transfer reclassification (incoming money that was actually a self-transfer or CC bill payment).
   const [creditTransferPickerVisible, setCreditTransferPickerVisible] = useState(false);
   const [withdrawalSheetVisible, setWithdrawalSheetVisible] = useState(false);
+  /** "FD matured or closed" was tapped: the money-event card opens "Which FD closed?" straight away. */
+  const [openFdPicker, setOpenFdPicker] = useState(false);
 
   // Pending demat-transfer follow-up: after Mark-as-Transfer lands in a demat
   // account, we stage this and open the DematTransferTargetSheet. If the user
@@ -2138,6 +2140,8 @@ export default function ExpenseDetailScreen() {
                   onChanged={() => {
                     getExpenseById(id).then((e) => e && setExpense(e)).catch(() => {});
                   }}
+                  openFdPicker={openFdPicker}
+                  onFdPickerOpened={() => setOpenFdPicker(false)}
                 />
               )}
 
@@ -2895,6 +2899,42 @@ export default function ExpenseDetailScreen() {
                       {expenseAccount?.account_type === "credit_card"
                         ? "This was your bill paid from another account"
                         : "This money came from another account of yours"}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </Pressable>
+              )}
+
+              {/* 4e-1. FD matured or closed - for a closing Arth didn't spot in the message. Flags
+                   the credit as 'fd_closure' so the money-event card at the top takes over (pick the
+                   FD, or record it), the same as when Arth flags it itself. */}
+              {!transfer && expense.nature === "credit" && expense.account_id && !linkedSettlement
+                && expenseAccount?.account_type !== "credit_card" && !expense.money_event
+                && expense.reclassified_as_transfer !== 1
+                && !expense.split_person_id && !expense.split_mode && !expense.fulfills_rule_id && (
+                <Pressable
+                  onPress={async () => {
+                    try {
+                      const { setMoneyEvent } = await import("@/services/money-events");
+                      await setMoneyEvent(expense.id, "fd_closure");
+                      const fresh = await getExpenseById(id);
+                      if (fresh) setExpense(fresh);
+                      setOpenFdPicker(true);
+                    } catch (e) {
+                      alert("Couldn't do that", e instanceof Error ? e.message : String(e));
+                    }
+                  }}
+                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
+                  accessibilityRole="button"
+                  accessibilityLabel="Record this as money from a fixed deposit that matured or was closed"
+                >
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                    <Ionicons name="lock-open-outline" size={20} color={theme.primary} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-semibold text-foreground">FD matured or closed</Text>
+                    <Text className="text-xs text-muted-foreground mt-0.5">
+                      This money came back from a fixed deposit
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
