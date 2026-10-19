@@ -2,7 +2,9 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, LoadingState, ScreenContainer, SelectSheet, Text, UndoBar } from "@/components/ui";
+import { Button, Card, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
+import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
+import { MerchantMergeSheet } from "@/components/merchants/MerchantMergeSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useAlert } from "@/hooks/use-alert";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -279,20 +281,22 @@ export default function MerchantDetailScreen() {
         )}
       </ScrollView>
 
-      <SelectSheet
+      <CategoryPickerSheet
         visible={catPicker}
-        title={`File ${merchant.name} under`}
-        options={categories.map((c) => ({ value: c.name, label: c.name }))}
-        value={merchant.category}
-        onChange={setCategory}
+        categories={categories}
+        selectedId={categories.find((c) => c.name === merchant.category)?.id ?? null}
+        onSelect={(id) => {
+          setCatPicker(false);
+          const c = categories.find((x) => x.id === id);
+          if (c) setCategory(c.name);
+        }}
         onClose={() => setCatPicker(false)}
       />
-      <SelectSheet
+      <MerchantMergeSheet
         visible={mergePicker}
-        title={`Show as ${merchant.name}`}
-        options={others.map((m) => ({ value: m.name, label: m.name }))}
-        value={null}
-        onChange={mergeIn}
+        target={merchant.name}
+        merchants={others}
+        onMerge={mergeIn}
         onClose={() => setMergePicker(false)}
       />
       {undoBar}
