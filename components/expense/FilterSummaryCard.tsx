@@ -18,7 +18,7 @@ interface FilterSummaryCardProps {
   /** Total for the previous same-length period. When provided, renders a trend % delta. */
   previousTotal?: number | null;
   /** 'realized' = expenses (default), 'credit' = incoming money. Changes row labels and trend color semantics (more credit = better). */
-  natureKind?: "realized" | "credit";
+  natureKind?: "realized" | "credit" | "all";
   /** Which groupBy options to offer. Defaults to all four. Credits mode typically omits 'category' since credits rarely carry a category. */
   availableGroupBys?: ReadonlyArray<"category" | "account" | "payment_mode" | "merchant">;
 }
@@ -48,7 +48,9 @@ export function FilterSummaryCard({
   const isCredit = natureKind === "credit";
   const itemLabel = isCredit
     ? summary.count === 1 ? "credit" : "credits"
-    : summary.count === 1 ? "expense" : "expenses";
+    : natureKind === "all"
+      ? summary.count === 1 ? "transaction" : "transactions"
+      : summary.count === 1 ? "expense" : "expenses";
 
   return (
     <View className="px-4 pt-2 pb-1">

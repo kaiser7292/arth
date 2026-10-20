@@ -43,7 +43,7 @@ import {
 import type { AccountTransfer } from "@/services/account-transfer";
 import type { FilteredSummary } from "@/services/expense";
 import { FilterSummaryCard } from "@/components/expense/FilterSummaryCard";
-import { getCategories } from "@/services/category";
+import { getAllCategories, getCategories } from "@/services/category";
 import { getPaymentModes } from "@/services/payment-mode";
 import { getActiveAccounts } from "@/services/financial-account";
 import { getTags, getTagsForExpenses } from "@/services/tags";
@@ -209,6 +209,13 @@ export default function ExpensesScreen() {
   }, [presetParam]);
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  /** Hidden categories too, so the summary names them ("Pets (hidden)") instead of "Unknown". */
+  const [hiddenCategoryNames, setHiddenCategoryNames] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    getAllCategories(DEFAULT_USER_ID)
+      .then((all) => setHiddenCategoryNames(new Map(all.filter((c) => !c.is_active).map((c) => [c.id, c.name]))))
+      .catch(() => {});
+  }, [categories]);
   const paymentModeMap = useMemo(() => new Map(paymentModes.map((p) => [p.id, p])), [paymentModes]);
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
 
@@ -1376,7 +1383,10 @@ export default function ExpensesScreen() {
                         }
                         resolveGroupLabel={(key) => {
                           if (!key) return summaryGroupBy === "merchant" ? "No merchant" : "Uncategorized";
-                          if (summaryGroupBy === "category") return categoryMap.get(key)?.name ?? "Unknown";
+                          if (summaryGroupBy === "category") {
+                            const hidden = hiddenCategoryNames.get(key);
+                            return categoryMap.get(key)?.name ?? (hidden ? `${hidden} (hidden)` : "Unknown");
+                          }
                           if (summaryGroupBy === "payment_mode") return paymentModeMap.get(key)?.name ?? "Unknown";
                           if (summaryGroupBy === "merchant") return key;
                           const acct = accountMap.get(key);
@@ -1387,7 +1397,7 @@ export default function ExpensesScreen() {
                         allowGroupByChange
                         onChangeGroupBy={setSummaryGroupBy}
                         previousTotal={previousTotal}
-                        natureKind={filterNature === "credit" ? "credit" : "realized" as const}
+                        natureKind={filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : ("realized" as const)}
                         availableGroupBys={
                           filterNature === "credit"
                             ? (["account", "payment_mode", "merchant"] as const)
