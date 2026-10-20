@@ -33,6 +33,7 @@ import { seedPublicData } from "@/services/public-data";
 import { getOnboardingCompletedVersion } from "@/services/settings";
 import { runSmsScan } from "@/services/sms";
 import { settingsStorage } from "@/services/storage";
+import { hasIncomingFile, onIncomingFile, restoreHrefFor, takeIncomingFile } from "@/services/incoming-file";
 import { logger } from "@/utils/logger";
 import * as BackgroundFetch from "expo-background-fetch";
 import * as Notifications from "expo-notifications";
@@ -375,6 +376,29 @@ export default function RootLayout(): React.JSX.Element {
     });
     return () => sub.remove();
   }, [dbReady, minSplashDone, lockEvaluated, lockEvaluationInProgress]);
+
+  // A backup opened with Arth (parked by app/+native-intent.tsx): open Restore with it once the
+  // app is ready - after the splash, and after the lock screen when that's showing (the lock screen
+  // opens it itself on unlock). Also catches a file opened while Arth is already running.
+  useEffect(() => {
+    if (!dbReady || !minSplashDone || !lockEvaluated) return;
+    const open = () => {
+      if (!hasIncomingFile() || !routerRef.current) return;
+      if (getFlag("v15_biometric_lock") && shouldShowLock()) {
+        routerRef.current.replace("/(lock)/lock");
+        return;
+      }
+      const uri = takeIncomingFile();
+      if (uri) routerRef.current.push(restoreHrefFor(uri) as Href);
+    };
+    // After the first screen has settled.
+    const t = setTimeout(open, 300);
+    const off = onIncomingFile(() => setTimeout(open, 300));
+    return () => {
+      clearTimeout(t);
+      off();
+    };
+  }, [dbReady, minSplashDone, lockEvaluated]);
 
   // Handle notification tap → deep-link to the target screen
   // Whitelist of valid deep-link screens to prevent arbitrary navigation

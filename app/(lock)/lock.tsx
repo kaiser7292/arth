@@ -12,6 +12,7 @@ import {
 } from "@/services/biometric-lock";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
+import { restoreHrefFor, takeIncomingFile } from "@/services/incoming-file";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
@@ -55,6 +56,13 @@ export default function LockScreen() {
       clearAppStartTime();
       setHasLandedOnHome(false);
       const pendingScreen = consumePendingDeepLink();
+      // A backup opened with Arth while locked: Home first (so Back has somewhere to go), then Restore.
+      const incoming = takeIncomingFile();
+      if (incoming) {
+        router.replace("/(tabs)");
+        setTimeout(() => router.push(restoreHrefFor(incoming) as Href), 250);
+        return;
+      }
       // Arrives from a deep link at runtime, so nothing static can describe it.
       router.replace((pendingScreen ?? "/(tabs)") as Href);
       return;
