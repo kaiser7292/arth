@@ -801,8 +801,49 @@ async function readSmsTemplate(ctx: Context, raw: Raw): Promise<Draft> {
 // ─── Reading: the whole reply ─────────────────────────────────────────────────
 
 /** Read a pasted reply. Looks things up; changes nothing. */
-/** Progress for long reads and applies: how far through, and what's happening now in plain words. */
-export type AiProgress = (done: number, total: number, doing: string) => void;
+/**
+ * Progress for long reads and applies: how far through, what's happening now in plain words, and
+ * (once per suggestion) the one just handled - its kind, its title, and whether it went through.
+ */
+export interface AiProgressEvent {
+  done: number;
+  total: number;
+  doing: string;
+  item?: { type: SuggestionType; title: string; ok: boolean };
+  /** Applying only: older transactions moved, and transactions read from unread messages, so far. */
+  moved?: number;
+  readFromMessages?: number;
+}
+export type AiProgress = (e: AiProgressEvent) => void;
+
+/** What a pasted reply holds, worked out without touching the database: shown before reading. */
+export interface AiReplyPreview {
+  recognised: boolean;
+  cutOff: boolean;
+  /** Suggestions by kind, in display order. */
+  byType: { type: SuggestionType; label: string; count: number }[];
+  total: number;
+  /** Things that look like suggestions but aren't a kind Arth takes, or don't parse. */
+  unreadable: number;
+}
+
+export function previewAiReply(pasted: string): AiReplyPreview {
+  const { objects, recognised, cutOff } = findSuggestionObjects(pasted);
+  const counts = new Map<SuggestionType, number>();
+  let unreadable = 0;
+  for (const text of objects.slice(0, MAX_SUGGESTIONS)) {
+    try {
+      const raw = parseLoose(text) as Raw;
+      const type = TYPE_ALIASES[String(raw?.type ?? "").toLowerCase().trim()];
+      if (type) counts.set(type, (counts.get(type) ?? 0) + 1);
+      else unreadable++;
+    } catch {
+      unreadable++;
+    }
+  }
+  const byType = SUGGESTION_GROUPS.filter((g) => counts.has(g.type)).map((g) => ({ type: g.type, label: g.label, count: counts.get(g.type)! }));
+  return { recognised, cutOff, byType, total: byType.reduce((n, b) => n + b.count, 0), unreadable };
+}
 
 /** Let the screen draw between steps, so a progress bar actually moves. */
 const breathe = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -864,14 +905,12 @@ export async function readAiReply(userId: string, pasted: string, today: Date = 
   const seen = new Set<string>();
   const total = parsed.filter((p) => p.type !== null).length;
   let done = 0;
-  onProgress?.(0, total, "Reading your data");
+  onProgress?.({ done: 0, total, doing: "Reading your data" });
   for (const type of SUGGESTION_GROUPS.map((g) => g.type)) {
     for (const p of parsed.filter((x) => x.type === type)) {
-      if (onProgress && (done % 5 === 0 || type === "sms_template")) {
-        onProgress(done, total, DOING[type] ?? "Checking");
-        await breathe();
-      }
+      if (onProgress && (done % 4 === 0 || type === "sms_template")) await breathe();
       done++;
+      const tell = (title: string, ok: boolean) => onProgress?.({ done, total, doing: DOING[type] ?? "Checking", item: { type, title, ok } });
       try {
         let draft: Draft;
         if (type === "add_category") draft = readAddCategory(ctx, p.raw);
@@ -894,17 +933,19 @@ export async function readAiReply(userId: string, pasted: string, today: Date = 
         if (seen.has(identity)) continue;
         seen.add(identity);
         reply.accepted.push({ ...draft, key: reply.accepted.length, why: str(p.raw.why, MAX_LEN.why) } as Suggestion);
+        tell(draft.title, true);
       } catch (e) {
         if (e instanceof AlreadySet) reply.alreadySet++;
         else if (e instanceof Reject) reply.rejected.push({ reason: e.message, text: p.text });
         else reply.rejected.push({ reason: "Couldn't be checked", text: p.text });
+        tell(e instanceof AlreadySet ? `Already set: ${p.text}` : p.text, false);
       }
     }
   }
   for (const p of parsed.filter((x) => x.type === null)) {
     reply.rejected.push({ reason: "Is not a kind of change Arth accepts", text: p.text });
   }
-  onProgress?.(total, total, "Done");
+  onProgress?.({ done: total, total, doing: "Done" });
   return reply;
 }
 
@@ -969,11 +1010,12 @@ export async function applySuggestions(
   const moveEntries = async () => {
     const list = merchantCategories.splice(0);
     if (list.length === 0) return;
-    onProgress?.(done, total, "Moving older transactions to their categories");
+    onProgress?.({ done, total, doing: "Moving older transactions to their categories" });
     await breathe();
     try {
       // One pass for every merchant, not one per merchant.
       result.entriesMoved += await applyRulesToPastTransactions(list, userId);
+      onProgress?.({ done, total, doing: "Moving older transactions to their categories", moved: result.entriesMoved, readFromMessages: result.readFromMessages });
     } catch (e) {
       result.failed.push(`Older transactions: ${e instanceof Error ? e.message : "couldn't be moved"}`);
     }
@@ -987,7 +1029,7 @@ export async function applySuggestions(
     if (type === "recategorise") await moveEntries();
     for (const s of suggestions.filter((x) => x.type === type)) {
       if (onProgress && (done % 3 === 0 || type === "sms_template")) {
-        onProgress(done, total, APPLYING[type] ?? "Applying");
+        onProgress({ done, total, doing: APPLYING[type] ?? "Applying" });
         await breathe();
       }
       done++;
@@ -1087,6 +1129,14 @@ export async function applySuggestions(
           );
         }
         result.applied[s.type] = (result.applied[s.type] ?? 0) + 1;
+        onProgress?.({
+          done,
+          total,
+          doing: APPLYING[type] ?? "Applying",
+          item: { type, title: s.title, ok: true },
+          moved: result.entriesMoved,
+          readFromMessages: result.readFromMessages,
+        });
       } catch (e) {
         result.failed.push(`${s.title}: ${e instanceof Error ? e.message : "couldn't be applied"}`);
       }

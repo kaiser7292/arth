@@ -7,6 +7,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
+import { RunProgress, type FeedItem } from "@/components/ai/RunProgress";
 import { Button, Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
@@ -14,7 +15,10 @@ import { setAiSetupPending } from "@/services/ai-share";
 import {
   applySuggestions,
   DELIBERATE_TYPES,
+  previewAiReply,
   readAiReply,
+  type AiProgressEvent,
+  type AiReplyPreview,
   SUGGESTION_GROUPS,
   type AiReply,
   type ApplyResult,
@@ -41,6 +45,31 @@ const APPLIED_WORDS: Record<SuggestionType, [string, string]> = {
 
 const plural = (n: number, [one, many]: [string, string]) => `${n} ${n === 1 ? one : many}`;
 
+/** Short names for the running counters while a reply is checked. */
+const COUNTER_LABEL: Record<SuggestionType, string> = {
+  add_category: "New categories",
+  fix_merchant: "Merchant names",
+  merchant_category: "Merchants filed",
+  recategorise: "Transactions fixed",
+  add_rule: "Rules",
+  set_budget: "Budgets",
+  set_income: "Income",
+  set_savings_target: "Savings target",
+  add_investment_bucket: "Investments",
+  add_milestone: "Goals",
+  sms_template: "Message formats",
+  add_transaction: "Missing transactions",
+};
+
+interface Run {
+  title: string;
+  done: number;
+  total: number;
+  doing: string;
+  counters: { label: string; value: number }[];
+  feed: FeedItem[];
+}
+
 export default function AiSuggestionsScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -53,33 +82,63 @@ export default function AiSuggestionsScreen() {
   const [expanded, setExpanded] = useState<Set<SuggestionType>>(new Set());
   const [showLeftOut, setShowLeftOut] = useState(false);
   const [done, setDone] = useState<ApplyResult | null>(null);
+  /** Pasted and counted, not read yet: "here's what you pasted". */
+  const [pasted, setPasted] = useState<{ text: string; info: AiReplyPreview } | null>(null);
+  const [run, setRun] = useState<Run | null>(null);
 
+  /** Show what was pasted, counted, before anything is read. */
   const read = useCallback(async (text: string) => {
     setMessage(null);
     setDone(null);
+    setReply(null);
     if (!text.trim()) {
       setMessage("There's nothing copied yet. Copy your assistant's reply, then tap Paste AI reply.");
       return;
     }
-    setBusy("Reading the reply...");
+    const info = previewAiReply(text);
+    if (!info.recognised || info.total === 0) {
+      setPasted(null);
+      setMessage(
+        "That doesn't look like a reply for Arth. Copy the assistant's whole reply, including the grey code block, and try again.",
+      );
+      return;
+    }
+    setPasted({ text, info });
+  }, []);
+
+  /** Check every suggestion against your data, with progress. */
+  const check = useCallback(async () => {
+    if (!pasted) return;
+    const kinds = [...pasted.info.byType].sort((x, y) => y.count - x.count).slice(0, 4).map((k) => k.type);
+    const counts = new Map<SuggestionType, number>();
+    let feedId = 0;
+    const counters = () => kinds.map((k) => ({ label: COUNTER_LABEL[k], value: counts.get(k) ?? 0 }));
+    setRun({ title: "Checking the reply", done: 0, total: pasted.info.total, doing: "Reading your data", counters: counters(), feed: [] });
+    const onProgress = (e: AiProgressEvent) => {
+      if (e.item?.ok) counts.set(e.item.type, (counts.get(e.item.type) ?? 0) + 1);
+      setRun((prev) =>
+        prev && {
+          ...prev,
+          done: e.done,
+          total: e.total || prev.total,
+          doing: e.doing,
+          counters: counters(),
+          feed: e.item ? [{ id: ++feedId, text: e.item.title, ok: e.item.ok }, ...prev.feed].slice(0, 8) : prev.feed,
+        },
+      );
+    };
     try {
-      const result = await readAiReply(DEFAULT_USER_ID, text);
-      if (!result.recognised) {
-        setReply(null);
-        setMessage(
-          "That doesn't look like a reply for Arth. Copy the assistant's whole reply, including the grey code block, and try again.",
-        );
-      } else {
-        setReply(result);
-        // Income, savings target, buckets and goals shape the whole plan: a deliberate yes each.
-        setUnticked(new Set(result.accepted.filter((s) => DELIBERATE_TYPES.has(s.type)).map((s) => s.key)));
-        setExpanded(new Set());
-      }
+      const result = await readAiReply(DEFAULT_USER_ID, pasted.text, undefined, onProgress);
+      setReply(result);
+      // Income, savings target, buckets and goals shape the whole plan: a deliberate yes each.
+      setUnticked(new Set(result.accepted.filter((x) => DELIBERATE_TYPES.has(x.type)).map((x) => x.key)));
+      setExpanded(new Set());
+      setPasted(null);
     } catch {
       setMessage("Couldn't read that. Try copying the reply again.");
     }
-    setBusy(null);
-  }, []);
+    setRun(null);
+  }, [pasted]);
 
   const pasteFromClipboard = useCallback(async () => read(await Clipboard.getStringAsync()), [read]);
 
@@ -102,15 +161,36 @@ export default function AiSuggestionsScreen() {
   const ticked = useMemo(() => reply?.accepted.filter((s) => !unticked.has(s.key)) ?? [], [reply, unticked]);
 
   const apply = useCallback(async () => {
-    setBusy("Applying...");
+    let feedId = 0;
+    let made = 0;
+    const total = ticked.length;
+    const counters = (moved: number, readN: number, doneN: number) => [
+      { label: "Changes made", value: made },
+      { label: "Older transactions moved", value: moved },
+      { label: "Read from your messages", value: readN },
+      { label: "Still to go", value: Math.max(0, total - doneN) },
+    ];
+    setRun({ title: "Applying", done: 0, total, doing: "Getting started", counters: counters(0, 0, 0), feed: [] });
+    const onProgress = (e: AiProgressEvent) => {
+      if (e.item?.ok) made++;
+      setRun((prev) =>
+        prev && {
+          ...prev,
+          done: e.done,
+          doing: e.doing,
+          counters: counters(e.moved ?? prev.counters[1].value, e.readFromMessages ?? prev.counters[2].value, e.done),
+          feed: e.item ? [{ id: ++feedId, text: e.item.title, ok: e.item.ok }, ...prev.feed].slice(0, 8) : prev.feed,
+        },
+      );
+    };
     try {
-      setDone(await applySuggestions(DEFAULT_USER_ID, ticked));
+      setDone(await applySuggestions(DEFAULT_USER_ID, ticked, undefined, onProgress));
       setReply(null);
       setAiSetupPending(false);
     } catch {
       setMessage("Something went wrong while applying. Nothing else was changed.");
     }
-    setBusy(null);
+    setRun(null);
   }, [ticked]);
 
   const toggle = (key: number) =>
@@ -131,6 +211,7 @@ export default function AiSuggestionsScreen() {
       return next;
     });
 
+  if (run) return <RunProgress {...run} />;
   if (busy) return <LoadingState message={busy} />;
 
   const sectionLabel = "text-xs font-semibold uppercase tracking-wider text-muted-foreground";
@@ -143,9 +224,16 @@ export default function AiSuggestionsScreen() {
             <>
               <View className="items-center py-6">
                 <Ionicons name="checkmark-circle" size={48} color={theme.success} />
-                <Text className="text-lg font-medium text-foreground mt-3">
-                  {Object.keys(done.applied).length > 0 ? "Changes applied" : "Nothing was applied"}
-                </Text>
+                {Object.keys(done.applied).length > 0 ? (
+                  <>
+                    <Text style={{ fontSize: 44, fontWeight: "800", color: theme.primary, marginTop: 8 }}>
+                      {Object.values(done.applied).reduce((n, v) => n + (v ?? 0), 0)}
+                    </Text>
+                    <Text className="text-lg font-medium text-foreground">changes made</Text>
+                  </>
+                ) : (
+                  <Text className="text-lg font-medium text-foreground mt-3">Nothing was applied</Text>
+                )}
               </View>
               <Card>
                 {SUGGESTION_GROUPS.filter((g) => done.applied[g.type]).map((g) => (
@@ -181,6 +269,38 @@ export default function AiSuggestionsScreen() {
                 <Button title="Go to review queue" onPress={() => router.push("/expense/review-queue")} className="mt-4" />
               )}
               <Button title="Done" variant="outline" onPress={() => router.back()} className="mt-2" />
+            </>
+          ) : pasted ? (
+            <>
+              <Card>
+                <Text className="text-xs text-muted-foreground">What you pasted</Text>
+                <Text className="text-xs text-foreground mt-2" style={{ fontFamily: "monospace" }} numberOfLines={6}>
+                  {pasted.text.trim().slice(0, 400)}
+                </Text>
+                <Text className="text-xs mt-2" style={{ color: pasted.info.cutOff ? theme.warning : theme.mutedForeground }}>
+                  {pasted.text.length.toLocaleString("en-IN")} characters ·{" "}
+                  {pasted.info.cutOff ? "it stops part way, so the end is missing" : "ends cleanly ✓"}
+                </Text>
+              </Card>
+              <Card className="mt-3">
+                <Text className="text-lg font-bold text-foreground">{plural(pasted.info.total, ["suggestion", "suggestions"])} found</Text>
+                <View className="flex-row flex-wrap mt-2" style={{ gap: 6 }}>
+                  {pasted.info.byType.map((k) => (
+                    <View key={k.type} className="rounded-full px-3 py-1" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                      <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+                        {k.label} {k.count}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+                {pasted.info.unreadable > 0 && (
+                  <Text className="text-xs text-muted-foreground mt-2">
+                    {plural(pasted.info.unreadable, ["more isn't", "more aren't"])} in a form Arth can use and will be left out.
+                  </Text>
+                )}
+              </Card>
+              <Button title="Check them" onPress={() => void check()} className="mt-4" />
+              <Button title="Not this one · paste again" variant="outline" onPress={pasteFromClipboard} className="mt-2" />
             </>
           ) : reply ? (
             <>
