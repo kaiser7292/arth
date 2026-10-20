@@ -14,7 +14,7 @@
 
 Built with React Native and Expo. Open source. No data leaves your phone.
 
-**Current version: v4.20.2** · [All releases](https://github.com/kaiser7292/arth/releases)
+**Current version: v4.21.0** · [All releases](https://github.com/kaiser7292/arth/releases)
 
 ---
 
@@ -187,6 +187,7 @@ artha/
 
 | Version | Highlights |
 |---------|-----------|
+| **v4.21** | Payments between your own accounts and card bill payments become real transfers from either side, with a review for past ones; Add account arrives filled in; AI setup shows what you pasted and its progress (and is much faster), and never asks questions first; onboarding shows progress while reading messages, lets you ignore found accounts and see where they came from; new categories get fitting icons; Loan A/c no longer saved as savings; brokers can create their account from the link picker |
 | **v4.20** | Year in Review as an animated story with music (favourite merchants podium, bubbles, rising bars, confetti); message templates grouped in closed bank cards; card "Avl limit" read as the balance; dates tagged without the time work; open / closed status on account cards; smoother Year over Year chart drag |
 | **v4.19** | Teach a message by confirming Arth's guess (grouped by format, learns from your templates, compares similar messages); templates grouped by bank; fields with spaces (17 - 10 - 26); default payment mode fixed; savings accounts no longer turn into credit cards, and duplicate accounts can be merged; AI suggestions build on your existing setup; faster SMS scans; Year in Review no longer stuck loading; Year over Year chart drag |
 | **v4.18** | Year over Year rebuilt from real data (any two FYs, same-months comparison, cumulative chart, biggest movers) with live Analyse tiles on Goals; Settings reworked: Transaction Messages, Merchants and Backup and Data screens; net worth chart works like the Investments chart in Balance Sheet sections; calendar entries without the link and footer. 4.18.1: Catch Up edits the merchant on the card; original message opens from an action row |
