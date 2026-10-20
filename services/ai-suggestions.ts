@@ -27,7 +27,7 @@ import { createCategory } from "@/services/category";
 import { createExpense, updateExpense } from "@/services/expense-crud";
 import { learnMerchantAlias, propagateMerchantRename } from "@/services/merchant-alias";
 import {
-  applyRuleToPastTransactions,
+  applyRulesToPastTransactions,
   listMerchantRules,
   normalizeKeyword,
   pickRule,
@@ -39,7 +39,7 @@ import { createSalaryProfile, getSalaryProfileByFY, updateSalaryProfile } from "
 import { deriveDirectBaseMonthly } from "@/services/income-calculation";
 import { getFYStartMonth } from "@/services/settings";
 import { createRule, listRules, type ConditionOperator, type RuleCondition } from "@/services/smart-rules";
-import { applyTemplateToBacklog, findBacklogMatches } from "@/services/sms/template-backlog";
+import { applyTemplateToBacklog, findBacklogMatches, newBacklogScan, type BacklogScan } from "@/services/sms/template-backlog";
 import {
   compileTemplate,
   type TaggedField,
@@ -320,6 +320,10 @@ interface Context {
   savingsTarget: number;
   bucketNames: Set<string>;
   milestoneNames: Set<string>;
+  /** Transactions by reference (first 8 hex of the id), read once on first use. */
+  byRef?: Map<string, { id: string; date: string; amount: number; merchant_name: string | null; category_id: string | null }[]>;
+  /** Unread messages, read and normalised once for every message format in the reply. */
+  backlog: BacklogScan;
 }
 
 async function loadContext(userId: string, today: Date): Promise<Context> {
@@ -380,6 +384,7 @@ async function loadContext(userId: string, today: Date): Promise<Context> {
     savingsTarget: plan?.savings_rate_target_pct ?? 0,
     bucketNames: new Set(buckets.map((b) => b.name.toLowerCase())),
     milestoneNames: new Set(milestones.map((m) => m.name.toLowerCase())),
+    backlog: newBacklogScan(),
   };
 }
 
@@ -497,18 +502,23 @@ async function readRecategorise(ctx: Context, raw: Raw): Promise<Draft> {
   if (!/^t[0-9a-z]{8}$/.test(ref)) throw new Reject("Has no valid transaction reference");
   const categoryName = category(ctx, raw.category);
   const amount = num(raw.amount);
-  const rows = await getDatabase().getAllAsync<{
-    id: string;
-    date: string;
-    amount: number;
-    merchant_name: string | null;
-    category_id: string | null;
-  }>(
-    `SELECT id, date, amount, merchant_name, category_id FROM expenses
-     WHERE user_id = ? AND deleted_at IS NULL AND LOWER(REPLACE(id, '-', '')) LIKE ?;`,
-    ctx.userId,
-    `${ref.slice(1)}%`,
-  );
+  // Every transaction read once, by reference. Looking each one up with LIKE on a rewritten id
+  // read the whole table per suggestion: minutes, for a reply with hundreds of them.
+  if (!ctx.byRef) {
+    const all = await getDatabase().getAllAsync<{
+      id: string;
+      date: string;
+      amount: number;
+      merchant_name: string | null;
+      category_id: string | null;
+    }>(`SELECT id, date, amount, merchant_name, category_id FROM expenses WHERE user_id = ? AND deleted_at IS NULL;`, ctx.userId);
+    ctx.byRef = new Map();
+    for (const r of all) {
+      const k = r.id.replace(/-/g, "").toLowerCase().slice(0, 8);
+      ctx.byRef.set(k, [...(ctx.byRef.get(k) ?? []), r]);
+    }
+  }
+  const rows = ctx.byRef.get(ref.slice(1)) ?? [];
   // The reference alone is not enough: the reply must also repeat the row's date and amount.
   const row = rows.find((r) => r.date === raw.date && amount !== null && Math.abs(r.amount - amount) < 0.01);
   if (!row) throw new Reject("Names a transaction that doesn't match any of yours");
@@ -760,13 +770,17 @@ async function readSmsTemplate(ctx: Context, raw: Raw): Promise<Draft> {
   const kind: UserTxType = raw.kind === "credit" || raw.kind === "refund" || raw.kind === "debit" ? raw.kind : "auto";
   const senderPattern = sms.address.toUpperCase().match(/[A-Z]{4,}/)?.[0] ?? sms.address.toUpperCase();
   const bank = str(raw.bank, MAX_LEN.name) ?? senderPattern;
-  const { total, matches } = await findBacklogMatches({
-    patternRegex: compiled.patternRegex,
-    txType: kind,
-    bankName: bank,
-    senderMatchMode: "code",
-    senderPattern,
-  });
+  const { total, matches } = await findBacklogMatches(
+    {
+      patternRegex: compiled.patternRegex,
+      txType: kind,
+      bankName: bank,
+      senderMatchMode: "code",
+      senderPattern,
+    },
+    undefined,
+    ctx.backlog,
+  );
   if (matches.length === 0) throw new Reject("Was tried on your unread messages and read none of them");
 
   return {
@@ -787,7 +801,28 @@ async function readSmsTemplate(ctx: Context, raw: Raw): Promise<Draft> {
 // ─── Reading: the whole reply ─────────────────────────────────────────────────
 
 /** Read a pasted reply. Looks things up; changes nothing. */
-export async function readAiReply(userId: string, pasted: string, today: Date = new Date()): Promise<AiReply> {
+/** Progress for long reads and applies: how far through, and what's happening now in plain words. */
+export type AiProgress = (done: number, total: number, doing: string) => void;
+
+/** Let the screen draw between steps, so a progress bar actually moves. */
+const breathe = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+const DOING: Record<string, string> = {
+  add_category: "Checking new categories",
+  fix_merchant: "Checking merchant names",
+  merchant_category: "Checking merchant categories",
+  recategorise: "Checking single transactions",
+  add_rule: "Checking rules",
+  set_budget: "Checking budgets",
+  set_income: "Checking your income",
+  set_savings_target: "Checking your savings target",
+  add_investment_bucket: "Checking investments",
+  add_milestone: "Checking goals",
+  sms_template: "Trying message formats on your unread messages",
+  add_transaction: "Checking missing transactions",
+};
+
+export async function readAiReply(userId: string, pasted: string, today: Date = new Date(), onProgress?: AiProgress): Promise<AiReply> {
   const { objects, recognised, cutOff } = findSuggestionObjects(pasted);
   const reply: AiReply = { recognised, cutOff, accepted: [], rejected: [], alreadySet: 0 };
   if (!recognised) return reply;
@@ -827,8 +862,16 @@ export async function readAiReply(userId: string, pasted: string, today: Date = 
     .map((p) => normalizeKeyword(str(p.raw.to, MAX_LEN.merchant) ?? ""));
 
   const seen = new Set<string>();
+  const total = parsed.filter((p) => p.type !== null).length;
+  let done = 0;
+  onProgress?.(0, total, "Reading your data");
   for (const type of SUGGESTION_GROUPS.map((g) => g.type)) {
     for (const p of parsed.filter((x) => x.type === type)) {
+      if (onProgress && (done % 5 === 0 || type === "sms_template")) {
+        onProgress(done, total, DOING[type] ?? "Checking");
+        await breathe();
+      }
+      done++;
       try {
         let draft: Draft;
         if (type === "add_category") draft = readAddCategory(ctx, p.raw);
@@ -861,6 +904,7 @@ export async function readAiReply(userId: string, pasted: string, today: Date = 
   for (const p of parsed.filter((x) => x.type === null)) {
     reply.rejected.push({ reason: "Is not a kind of change Arth accepts", text: p.text });
   }
+  onProgress?.(total, total, "Done");
   return reply;
 }
 
@@ -892,10 +936,26 @@ async function categoryId(userId: string, name: string): Promise<string> {
  * name them), merchant names before merchant categories (so the category catches the new
  * name), single entries after merchant categories (so the exception wins).
  */
+const APPLYING: Record<string, string> = {
+  add_category: "Adding categories",
+  fix_merchant: "Renaming merchants",
+  merchant_category: "Filing merchants",
+  recategorise: "Moving single transactions",
+  add_rule: "Adding rules",
+  set_budget: "Setting budgets",
+  set_income: "Setting your income",
+  set_savings_target: "Setting your savings target",
+  add_investment_bucket: "Adding investments",
+  add_milestone: "Adding goals",
+  sms_template: "Reading your unread messages with the new formats",
+  add_transaction: "Adding missing transactions",
+};
+
 export async function applySuggestions(
   userId: string,
   suggestions: Suggestion[],
   today: Date = new Date(),
+  onProgress?: AiProgress,
 ): Promise<ApplyResult> {
   const result: ApplyResult = { applied: {}, entriesMoved: 0, readFromMessages: 0, failed: [] };
   const months = monthsToFYEnd(today, getFYStartMonth());
@@ -907,19 +967,30 @@ export async function applySuggestions(
   // "swiggy" never moves Swiggy Instamart only for "swiggy instamart" to move it again.
   const merchantCategories: { keyword: string; category: string }[] = [];
   const moveEntries = async () => {
-    for (const m of merchantCategories.splice(0)) {
-      try {
-        result.entriesMoved += await applyRuleToPastTransactions(m.keyword, m.category, userId);
-      } catch (e) {
-        result.failed.push(`${m.keyword}: ${e instanceof Error ? e.message : "past entries couldn't be moved"}`);
-      }
+    const list = merchantCategories.splice(0);
+    if (list.length === 0) return;
+    onProgress?.(done, total, "Moving older transactions to their categories");
+    await breathe();
+    try {
+      // One pass for every merchant, not one per merchant.
+      result.entriesMoved += await applyRulesToPastTransactions(list, userId);
+    } catch (e) {
+      result.failed.push(`Older transactions: ${e instanceof Error ? e.message : "couldn't be moved"}`);
     }
   };
+  const total = suggestions.length;
+  let done = 0;
+  const scan = newBacklogScan();
 
   for (const type of SUGGESTION_GROUPS.map((g) => g.type)) {
     // Single-entry exceptions come right after merchant categories and must win over them.
     if (type === "recategorise") await moveEntries();
     for (const s of suggestions.filter((x) => x.type === type)) {
+      if (onProgress && (done % 3 === 0 || type === "sms_template")) {
+        onProgress(done, total, APPLYING[type] ?? "Applying");
+        await breathe();
+      }
+      done++;
       try {
         if (s.type === "add_category") {
           await createCategory({ user_id: userId, name: s.name });
@@ -997,7 +1068,7 @@ export async function applySuggestions(
             bankName: saved.bank_name,
             senderMatchMode: saved.sender_match_mode,
             senderPattern: saved.sender_pattern,
-          });
+          }, [], undefined, scan);
         } else {
           const id = await createExpense({
             user_id: userId,

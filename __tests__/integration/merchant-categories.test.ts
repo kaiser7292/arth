@@ -33,7 +33,7 @@ import { seedDefaultUser } from "../../database/seed";
 import { DEFAULT_USER_ID } from "../../constants/app";
 import { createCategory, getCategories, seedDefaultCategories, updateCategory } from "../../services/category";
 import {
-  applyRuleToPastTransactions, countMerchantRulesForCategory, countPastTransactionsForRule, findRuleForMerchant,
+  applyRuleToPastTransactions, applyRulesToPastTransactions, countMerchantRulesForCategory, countPastTransactionsForRule, findRuleForMerchant,
   forgetLearnedMerchant, keywordForAlwaysFile, keywordFromMerchant, listLearnedMerchants,
   listMerchantRules, moveMerchantRules, resetOrRemoveMerchantRule, setMerchantRule, setMerchantRuleActive,
 } from "../../services/merchant-categories";
@@ -120,6 +120,31 @@ describe("merchant categories", () => {
     expect(cat("e4")).toBe(food);
     expect(cat("e5")).toBe(food);
     expect(await countPastTransactionsForRule("swiggy", "Dining")).toBe(0);
+  });
+
+  it("moves past transactions for many rules in one pass, the same as one rule at a time", async () => {
+    const food = await catId("Food");
+    addSpend("e1", "SWIGGY BANGALORE", food);
+    addSpend("e2", "SWIGGY INSTAMART", food);
+    addSpend("e3", "SWIGGY", food, "smart-rule-1"); // a Smart Rule filed it
+    addSpend("e4", "ZOMATO", food);
+    addSpend("e5", "UBER", food); // no rule in the list
+    await setMerchantRule("swiggy", "Dining");
+    await setMerchantRule("swiggy instamart", "Grocery & Supplies");
+    await setMerchantRule("zomato", "Dining");
+    expect(
+      await applyRulesToPastTransactions([
+        { keyword: "swiggy", category: "Dining" },
+        { keyword: "swiggy instamart", category: "Grocery & Supplies" },
+        { keyword: "zomato", category: "Dining" },
+      ]),
+    ).toBe(3);
+    const cat = (id: string) => (mockDb.prepare("SELECT category_id c FROM expenses WHERE id = ?").get(id) as { c: string }).c;
+    expect(cat("e1")).toBe(await catId("Dining"));
+    expect(cat("e2")).toBe(await catId("Grocery & Supplies")); // the longer rule wins
+    expect(cat("e3")).toBe(food);
+    expect(cat("e4")).toBe(await catId("Dining"));
+    expect(cat("e5")).toBe(food);
   });
 
   it("knows Indian store brands from OpenStreetMap, matched as whole words", async () => {

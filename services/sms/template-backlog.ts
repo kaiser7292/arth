@@ -43,7 +43,7 @@ export interface TemplateUnderTest {
   senderPattern: string | null;
 }
 
-interface BacklogRow {
+export interface BacklogRow {
   id: string;
   body: string;
   address: string;
@@ -91,9 +91,24 @@ function fromTemplateSender(row: TemplateRow, address: string): boolean {
  * Which backlog messages from the template's sender it reads, and how. `total` is how many
  * unread messages that sender has in the window — for "Reads 11 of 12".
  */
+/**
+ * Shared between many findBacklogMatches calls in a row (an AI reply can hold dozens of message
+ * formats): the backlog read once, each message normalised once, each sender's bank resolved once.
+ */
+export interface BacklogScan {
+  rows?: BacklogRow[];
+  normalised: Map<string, string>;
+  banks: Map<string, string | null>;
+}
+
+export function newBacklogScan(): BacklogScan {
+  return { normalised: new Map(), banks: new Map() };
+}
+
 export async function findBacklogMatches(
   template: TemplateUnderTest,
   days: number = getBacklogDays(),
+  scan: BacklogScan = newBacklogScan(),
 ): Promise<{ total: number; matches: BacklogMatch[] }> {
   const row = asRow(template);
   try {
@@ -101,12 +116,17 @@ export async function findBacklogMatches(
   } catch {
     return { total: 0, matches: [] };
   }
-  const rows = (await backlogRows(days)).filter((r) => fromTemplateSender(row, r.address));
-  const bankCache = new Map<string, string | null>();
+  if (!scan.rows) scan.rows = await backlogRows(days);
+  const rows = scan.rows.filter((r) => fromTemplateSender(row, r.address));
   const matches: BacklogMatch[] = [];
   for (const r of rows) {
-    if (!bankCache.has(r.address)) bankCache.set(r.address, await resolveSenderBank(r.address).catch(() => null));
-    const parsed = matchTemplateRow(row, normalizeSms(r.body).text, bankCache.get(r.address) ?? null);
+    if (!scan.banks.has(r.address)) scan.banks.set(r.address, await resolveSenderBank(r.address).catch(() => null));
+    let text = scan.normalised.get(r.id);
+    if (text === undefined) {
+      text = normalizeSms(r.body).text;
+      scan.normalised.set(r.id, text);
+    }
+    const parsed = matchTemplateRow(row, text, scan.banks.get(r.address) ?? null);
     if (!parsed || parsed.skip) continue;
     enrichParsedSms(parsed, r.body);
     matches.push({ id: r.id, body: r.body, address: r.address, smsDate: r.sms_date, parsed });
@@ -122,9 +142,15 @@ export async function applyTemplateToBacklog(
   template: TemplateUnderTest & { id: string },
   excludedSmsIds: readonly string[] = [],
   onProgress?: (done: number, total: number) => void,
+  scan?: BacklogScan,
 ): Promise<number> {
   const db = getDatabase();
-  const { matches } = await findBacklogMatches(template);
+  const { matches } = await findBacklogMatches(template, undefined, scan);
+  // A shared scan must not offer these messages to the next template: they're read now.
+  if (scan?.rows) {
+    const used = new Set(matches.map((m) => m.id));
+    scan.rows = scan.rows.filter((r) => !used.has(r.id));
+  }
   const todo = matches.filter((m) => !excludedSmsIds.includes(m.id));
   let created = 0;
   for (const [i, m] of todo.entries()) {

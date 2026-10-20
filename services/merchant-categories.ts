@@ -229,6 +229,55 @@ export async function countPastTransactionsForRule(keyword: string, categoryName
   return (await pastRowsForRule(userId, keyword, categoryName)).ids.length;
 }
 
+/**
+ * applyRuleToPastTransactions for many rules at once: transactions and rules read once, each
+ * transaction matched once. Same result as calling it per rule after all the rules are saved
+ * (each transaction goes to the category of the longest rule covering it, if that rule is in
+ * `list`), but one pass instead of one per rule - an AI reply can set a hundred merchants.
+ */
+export async function applyRulesToPastTransactions(
+  list: { keyword: string; category: string }[],
+  userId: string = DEFAULT_USER_ID,
+): Promise<number> {
+  if (list.length === 0) return 0;
+  const db = getDatabase();
+  const wanted = new Map(list.map((x) => [x.keyword, x.category]));
+  const cats = await db.getAllAsync<{ id: string; name: string }>(
+    "SELECT id, name FROM categories WHERE user_id = ? AND is_active = 1;",
+    userId,
+  );
+  const catId = new Map(cats.map((c) => [c.name, c.id]));
+  const rules = (await listMerchantRules(userId)).filter((r) => r.isActive || wanted.has(r.keyword));
+  const rows = await db.getAllAsync<PastRow>(
+    `SELECT id, merchant_name, category_id FROM expenses
+     WHERE user_id = ? AND deleted_at IS NULL AND nature = 'realized' AND merchant_name IS NOT NULL
+       AND applied_rule_id IS NULL;`,
+    userId,
+  );
+  const moves = new Map<string, string[]>();
+  for (const r of rows) {
+    const k = pickRule(rules, r.merchant_name)?.keyword;
+    if (!k || !wanted.has(k)) continue;
+    const target = catId.get(wanted.get(k)!);
+    if (!target || r.category_id === target) continue;
+    moves.set(target, [...(moves.get(target) ?? []), r.id]);
+  }
+  let moved = 0;
+  for (const [target, ids] of moves) {
+    for (let i = 0; i < ids.length; i += 500) {
+      const chunk = ids.slice(i, i + 500);
+      await db.runAsync(
+        `UPDATE expenses SET category_id = ?, updated_at = datetime('now') WHERE id IN (${chunk.map(() => "?").join(",")});`,
+        target,
+        ...chunk,
+      );
+    }
+    moved += ids.length;
+  }
+  if (moved > 0) bumpDataVersion();
+  return moved;
+}
+
 /** Move earlier transactions this rule covers into its category. Returns how many moved. */
 export async function applyRuleToPastTransactions(keyword: string, categoryName: string, userId: string = DEFAULT_USER_ID): Promise<number> {
   const { ids, categoryId } = await pastRowsForRule(userId, keyword, categoryName);
