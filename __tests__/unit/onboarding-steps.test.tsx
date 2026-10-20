@@ -3,7 +3,7 @@ import { fireEvent, render, waitFor } from "@testing-library/react-native";
 
 jest.mock("nativewind", () => ({ useColorScheme: () => ({ colorScheme: "light", setColorScheme: jest.fn() }) }));
 const mockPush = jest.fn();
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush, replace: jest.fn() }) }));
+jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush, replace: jest.fn() }), useLocalSearchParams: () => ({}) }));
 jest.mock("../../hooks/use-alert", () => ({ useAlert: () => jest.fn() }));
 jest.mock("../../services/settings", () => ({
   ...jest.requireActual("../../services/settings"),
@@ -41,7 +41,7 @@ describe("onboarding income step", () => {
     fireEvent.changeText(s.getByPlaceholderText("e.g. 85000"), "85,000");
     fireEvent.changeText(s.getByPlaceholderText("1 to 31"), "7");
     fireEvent.press(s.getByText("Continue"));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/(onboarding)/sms-consent"));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/(onboarding)/budget"));
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({ input_mode: "direct", computed_monthly_in_hand: 85000, salary_credit_day: 7, status: "complete" }),
     );
@@ -59,7 +59,7 @@ describe("onboarding income step", () => {
   it("skipping saves nothing", async () => {
     const s = render(<OnboardingIncome />);
     fireEvent.press(s.getByText("Skip this step"));
-    expect(mockPush).toHaveBeenCalledWith("/(onboarding)/sms-consent");
+    expect(mockPush).toHaveBeenCalledWith("/(onboarding)/budget");
     expect(mockCreate).not.toHaveBeenCalled();
   });
 });

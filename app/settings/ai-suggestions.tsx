@@ -12,6 +12,7 @@ import { Button, Card, LoadingState, ScreenContainer, Text } from "@/components/
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import { setAiSetupPending } from "@/services/ai-share";
+import { continueAfterAi } from "@/services/onboarding-flow";
 import {
   applySuggestions,
   DELIBERATE_TYPES,
@@ -77,7 +78,8 @@ interface Run {
 export default function AiSuggestionsScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ paste?: string }>();
+  const params = useLocalSearchParams<{ paste?: string; onboarding?: string }>();
+  const inOnboarding = params.onboarding === "1";
 
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -277,7 +279,11 @@ export default function AiSuggestionsScreen() {
               {(done.readFromMessages > 0 || done.applied.add_transaction) && (
                 <Button title="Go to review queue" onPress={() => router.push("/expense/review-queue")} className="mt-4" />
               )}
-              <Button title="Done" variant="outline" onPress={() => router.back()} className="mt-2" />
+              {inOnboarding ? (
+                <Button title="Continue setup" onPress={() => continueAfterAi(router, done.applied)} className="mt-2" />
+              ) : (
+                <Button title="Done" variant="outline" onPress={() => router.back()} className="mt-2" />
+              )}
             </>
           ) : pasted ? (
             <>

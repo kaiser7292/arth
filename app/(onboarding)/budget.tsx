@@ -1,4 +1,5 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { goNextStep } from "@/services/onboarding-flow";
 import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { OnboardingStep } from "@/components/onboarding/OnboardingStep";
@@ -19,6 +20,7 @@ const SUGGESTED = ["Food", "Grocery & Supplies", "Travel & Going Out", "Shopping
 /** Onboarding: quick monthly budgets for the main categories. Optional. */
 export default function OnboardingBudget() {
   const router = useRouter();
+  const { rest } = useLocalSearchParams<{ rest?: string }>();
   const alert = useAlert();
   const [categories, setCategories] = useState<Category[]>([]);
   const [amounts, setAmounts] = useState<Record<string, string>>({});
@@ -36,7 +38,7 @@ export default function OnboardingBudget() {
 
   const parse = (v: string | undefined) => Number((v ?? "").replace(/[,\s₹]/g, "")) || 0;
   const total = useMemo(() => categories.reduce((s, c) => s + parse(amounts[c.id]), 0), [categories, amounts]);
-  const next = () => router.push("/(onboarding)/protect");
+  const next = () => goNextStep(router, rest, "protect");
 
   const save = async () => {
     setSaving(true);

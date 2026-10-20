@@ -1,4 +1,5 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { goNextStep } from "@/services/onboarding-flow";
 import { useState } from "react";
 import { View } from "react-native";
 import { OnboardingStep } from "@/components/onboarding/OnboardingStep";
@@ -17,6 +18,7 @@ import { getCurrentFY } from "@/utils/fiscal-year";
  */
 export default function OnboardingIncome() {
   const router = useRouter();
+  const { rest } = useLocalSearchParams<{ rest?: string }>();
   const alert = useAlert();
   const [monthly, setMonthly] = useState("");
   const [payDay, setPayDay] = useState("1");
@@ -25,7 +27,7 @@ export default function OnboardingIncome() {
   const amount = Number(monthly.replace(/[,\s₹]/g, ""));
   const day = Number(payDay);
   const valid = amount > 0 && Number.isInteger(day) && day >= 1 && day <= 31;
-  const next = () => router.push("/(onboarding)/sms-consent");
+  const next = () => goNextStep(router, rest, "budget");
 
   const save = async () => {
     if (!valid) return;

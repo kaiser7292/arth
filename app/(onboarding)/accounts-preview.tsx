@@ -1,4 +1,3 @@
-import { AiSetupOffer } from "@/components/onboarding/AiSetupOffer";
 import { useCallback, useState } from "react";
 import { View, ScrollView, Pressable, ActivityIndicator, Switch } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -134,7 +133,7 @@ export default function OnboardingAccountsPreview() {
   };
 
   const handleContinue = () => {
-    router.push("/(onboarding)/budget");
+    router.push("/(onboarding)/setup-choice");
   };
 
   const handleSkip = () => {
@@ -305,7 +304,6 @@ export default function OnboardingAccountsPreview() {
           </Pressable>
         )}
 
-        {!loading && accounts.length > 0 && <AiSetupOffer />}
       </ScrollView>
 
       <View className="px-6 pb-6 pt-2">
