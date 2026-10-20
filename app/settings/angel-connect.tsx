@@ -11,7 +11,7 @@ import { useAlert } from '@/hooks/use-alert';
 import { logger } from '@/utils/logger';
 import { formatAmount } from '@/utils/format';
 import { saveBrokerSnapshot } from '@/services/financial-account';
-import { getBrokerLinkedAccount, setBrokerLinkedAccount } from '@/services/broker-link';
+import { createBrokerAccount, getBrokerLinkedAccount, setBrokerLinkedAccount } from '@/services/broker-link';
 import { getDematAccountsForPicker } from '@/services/kite-connect';
 import {
   isAngelConnected,
@@ -122,11 +122,8 @@ export default function AngelConnectScreen() {
   const handleUpdateSnapshot = async (accountIdOverride?: string) => {
     const accountId = accountIdOverride ?? linkedAccountId;
     if (!accountId) {
+      // No accounts yet still opens the picker: it offers to create one.
       const accounts = await getDematAccountsForPicker().catch(() => []);
-      if (accounts.length === 0) {
-        alert('No Demat Account', 'Add a demat/investment account in Accounts first, then link it here.');
-        return;
-      }
       setPickerAccounts(accounts);
       setShowAccountPicker(true);
       return;
@@ -142,6 +139,16 @@ export default function AngelConnectScreen() {
       alert('Error', err.message || 'Failed to save snapshot');
     } finally {
       setSavingSnapshot(false);
+    }
+  };
+
+  // Make an "Angel One" account numbered with the client ID, link it, and save the snapshot.
+  const handleCreateAccount = async () => {
+    try {
+      const id = await createBrokerAccount("angel", await getAngelClientId());
+      handlePickAccount(id);
+    } catch (e) {
+      alert("Couldn't create the account", e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -331,9 +338,20 @@ export default function AngelConnectScreen() {
           ))}
           {pickerAccounts.length === 0 && (
             <Text className="text-sm text-muted-foreground text-center py-4">
-              No demat/investment accounts found. Add one in Accounts first.
+              You don't have a demat account in Arth yet.
             </Text>
           )}
+          <Pressable
+            onPress={() => void handleCreateAccount()}
+            className="mt-3 py-3 rounded-lg flex-row items-center justify-center"
+            style={{ borderWidth: 1.5, borderColor: theme.primary }}
+            accessibilityRole="button"
+          >
+            <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
+            <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
+              Create a Angel One account and link it
+            </Text>
+          </Pressable>
           <Pressable
             onPress={() => setShowAccountPicker(false)}
             className="mt-4 py-3 rounded-lg items-center"

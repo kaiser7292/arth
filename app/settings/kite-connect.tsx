@@ -10,6 +10,7 @@ import { Card, ScreenContainer, Text } from '@/components/ui';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAlert } from '@/hooks/use-alert';
 import { useTheme } from '@/hooks/use-theme';
+import { createBrokerAccount } from '@/services/broker-link';
 import { formatAmount } from '@/utils/format';
 import { generateTOTP, totpSecondsRemaining } from '@/utils/totp';
 import { logger } from '@/utils/logger';
@@ -401,6 +402,18 @@ export default function KiteConnectScreen() {
 
   // ── Account picker ────────────────────────────────────────────────────────
 
+  // No account to pick (or none of them is it): make one named Zerodha, numbered with the Kite user
+  // ID so future syncs find it by themselves, and link it.
+  const handleCreateAccount = async () => {
+    try {
+      const creds = await getKiteCredentials();
+      const id = await createBrokerAccount("kite", creds?.userId ?? null);
+      await handlePickAccount(id);
+    } catch (e) {
+      alert("Couldn't create the account", e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const handlePickAccount = async (id: string) => {
     setLinkedAccountId(id);
     setLinkedAccountIdState(id);
@@ -657,11 +670,22 @@ export default function KiteConnectScreen() {
                 </Pressable>
               ))}
               {pickerAccounts.length === 0 && (
-                <Text className="text-sm text-muted-foreground text-center py-6">
-                  No demat accounts found. Add one from Account Master first.
+                <Text className="text-sm text-muted-foreground text-center py-4">
+                  You don't have a demat account in Arth yet.
                 </Text>
               )}
             </ScrollView>
+          <Pressable
+            onPress={() => void handleCreateAccount()}
+            className="mt-3 py-3 rounded-lg flex-row items-center justify-center"
+            style={{ borderWidth: 1.5, borderColor: theme.primary }}
+            accessibilityRole="button"
+          >
+            <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
+            <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
+              Create a Zerodha account and link it
+            </Text>
+          </Pressable>
             <Pressable
               onPress={() => setShowAccountPicker(false)}
               className="mt-4 py-3 items-center"
