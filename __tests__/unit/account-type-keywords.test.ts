@@ -115,4 +115,13 @@ describe("inferAccountTypeFromKeywords - what the account digits are attached to
     expect(inferAccountTypeFromKeywords("Rs 99 spent on Card XX1111. Avl Bal Rs 500", "1111")).toBe("savings");
     expect(inferAccountTypeFromKeywords("Rs 99 spent on Card XX1111. Available credit limit Rs 50,000", "1111")).toBe("credit_card");
   });
+
+  it("a Loan A/c is a loan, not a savings account", () => {
+    const axis =
+      "Your payment of INR 14.00 has been adjusted in Axis Bank Loan A/c no. XX0799 along with part payment charges of INR 0.00 (Incl.Tax). Your revised balance tenure is 29 months.";
+    expect(inferAccountTypeFromKeywords(axis, "0799")).toBe("loan");
+    expect(inferAccountTypeFromKeywords("EMI of Rs 12,000 debited for Loan Account XX5512", "5512")).toBe("loan");
+    // The savings account the EMI came from is still savings.
+    expect(inferAccountTypeFromKeywords("Rs 12,000 debited from A/c XX0221 for Loan Account XX5512", "0221")).toBe("savings");
+  });
 });

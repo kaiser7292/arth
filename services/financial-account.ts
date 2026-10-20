@@ -147,6 +147,8 @@ function typeBeforeDigits(body: string, last4: string): "savings" | "credit_card
   if (at < 0) return null;
   const before = body.slice(Math.max(0, at - 45), at + 1);
   const kinds: [RegExp, "savings" | "credit_card" | "loan" | "wallet" | "card"][] = [
+    // "Loan A/c", "Loan Account": the A/c belongs to the loan, not a savings account.
+    [/LOAN\s*(?:ACCOUNT|ACCT|A\/?C\b)/g, "loan"],
     [/CREDIT\s*CARD|\bCC\b/g, "credit_card"],
     [/DEBIT\s*CARD/g, "savings"],
     [/\bA\/?C\b|ACCT|ACCOUNT|\bSB\b/g, "savings"],
@@ -154,12 +156,16 @@ function typeBeforeDigits(body: string, last4: string): "savings" | "credit_card
     [/WALLET/g, "wallet"],
     [/\bCARD\b/g, "card"],
   ];
-  let best: { end: number; kind: (typeof kinds)[number][1] } | null = null;
+  let best: { end: number; start: number; kind: (typeof kinds)[number][1] } | null = null;
   for (const [re, kind] of kinds) {
     for (let m = re.exec(before); m; m = re.exec(before)) {
       const end = m.index + m[0].length;
-      // "DEBIT CARD" also contains "CARD"; the longer, more specific match wins at the same spot.
-      if (!best || end > best.end || (end === best.end && kind !== "card")) best = { end, kind };
+      // At the same spot the longer, more specific phrase wins: "DEBIT CARD" over "CARD",
+      // "LOAN A/C" over "A/C".
+      const longer = best !== null && end === best.end && m.index < best.start;
+      if (!best || end > best.end || longer || (end === best.end && m.index === best.start && kind !== "card")) {
+        best = { end, start: m.index, kind };
+      }
     }
   }
   if (!best || best.kind === "card") return null; // a bare "card" could be either - decide elsewhere
