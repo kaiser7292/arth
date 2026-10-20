@@ -61,6 +61,10 @@ const COUNTER_LABEL: Record<SuggestionType, string> = {
   add_transaction: "Missing transactions",
 };
 
+/** A run that finished in a blink stays on 100% for a moment, so it doesn't just flash past. */
+const holdIfQuick = (started: number) =>
+  Date.now() - started < 1500 ? new Promise<void>((resolve) => setTimeout(resolve, 700)) : Promise.resolve();
+
 interface Run {
   title: string;
   done: number;
@@ -128,7 +132,9 @@ export default function AiSuggestionsScreen() {
       );
     };
     try {
+      const started = Date.now();
       const result = await readAiReply(DEFAULT_USER_ID, pasted.text, undefined, onProgress);
+      await holdIfQuick(started);
       setReply(result);
       // Income, savings target, buckets and goals shape the whole plan: a deliberate yes each.
       setUnticked(new Set(result.accepted.filter((x) => DELIBERATE_TYPES.has(x.type)).map((x) => x.key)));
@@ -184,7 +190,10 @@ export default function AiSuggestionsScreen() {
       );
     };
     try {
-      setDone(await applySuggestions(DEFAULT_USER_ID, ticked, undefined, onProgress));
+      const started = Date.now();
+      const result = await applySuggestions(DEFAULT_USER_ID, ticked, undefined, onProgress);
+      await holdIfQuick(started);
+      setDone(result);
       setReply(null);
       setAiSetupPending(false);
     } catch {

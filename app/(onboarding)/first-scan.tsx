@@ -112,8 +112,8 @@ export default function OnboardingFirstScan() {
         counters={[
           { label: "Messages read", value: p?.messagesRead ?? 0 },
           { label: "Transactions found", value: p?.transactionsAdded ?? 0 },
-          { label: "Money out", value: `₹${formatCompact(Math.round(p?.moneyOut ?? 0))}` },
-          { label: "Money in", value: `₹${formatCompact(Math.round(p?.moneyIn ?? 0))}` },
+          { label: "Money out", value: p?.moneyOut ?? 0, format: (n) => `₹${formatCompact(Math.round(n))}` },
+          { label: "Money in", value: p?.moneyIn ?? 0, format: (n) => `₹${formatCompact(Math.round(n))}` },
         ]}
         feed={feed}
         footer={
