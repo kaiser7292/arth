@@ -10,6 +10,7 @@
  */
 
 import { logger } from "@/utils/logger";
+import { isIgnoredAccount } from "@/services/account-ignore";
 import {
   checkForNewBankSMS,
   manualScan as manualReadSms,
@@ -388,11 +389,25 @@ interface FilterResult {
 }
 
 async function filterByAccount(
-  items: ParsedItem[],
+  allItems: ParsedItem[],
   accountIds?: string[],
 ): Promise<FilterResult> {
+  // Accounts the user chose to ignore: their messages never become transactions.
+  const ignored: ParsedItem[] = [];
+  const items = allItems.filter((item) => {
+    if (!isIgnoredAccount(item.parsed.bank, item.parsed.cardLast4)) return true;
+    ignored.push(item);
+    return false;
+  });
+  const ignoredDetails: FilterResult["filterDetails"] = ignored.map((item) => ({
+    pendingSmsId: item.pendingSmsId,
+    rawBody: item.rawBody,
+    smsDate: item.smsDate,
+    reason: "ignored_account",
+    parsed: item.parsed,
+  }));
   if (!accountIds || accountIds.length === 0) {
-    return { passed: items, filtered: [], filterDetails: [] };
+    return { passed: items, filtered: ignored, filterDetails: ignoredDetails };
   }
 
   const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
@@ -472,5 +487,5 @@ async function filterByAccount(
     }
   }
 
-  return { passed, filtered, filterDetails };
+  return { passed, filtered: [...ignored, ...filtered], filterDetails: [...ignoredDetails, ...filterDetails] };
 }
