@@ -1,6 +1,7 @@
 import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
 import { DEFAULT_CATEGORIES } from "@/database/defaults/categories";
+import { iconForCategoryName } from "@/constants/category-icons";
 import { bumpDataVersion } from "@/services/settings";
 import { renameCategoryInMerchantRules } from "@/services/merchant-categories";
 
@@ -87,8 +88,9 @@ export async function createCategory(
     id,
     input.user_id,
     input.name,
-    input.icon ?? "ellipsis-horizontal-circle-outline",
-    input.color ?? "#6B7280",
+    // No icon given (AI setup, import, quick add): one that fits the name, not the generic "…".
+    input.icon ?? iconForCategoryName(input.name)?.icon ?? "ellipsis-horizontal-circle-outline",
+    input.color ?? iconForCategoryName(input.name)?.color ?? "#6B7280",
     sortOrder,
     input.is_unavoidable ?? 0,
   );
