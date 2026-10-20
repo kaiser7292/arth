@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { RunProgress, type FeedItem } from "@/components/ai/RunProgress";
@@ -11,7 +12,6 @@ import { useTheme } from "@/hooks/use-theme";
 import {
   buildFirstScanSummary,
   DEFAULT_LOOKBACK,
-  finishFirstScanInBackground,
   FIRST_SCAN_WAIT_MS,
   lookbackStartDate,
   startFirstScan,
@@ -33,8 +33,9 @@ type Phase = "choose" | "scanning" | "summary";
 /**
  * Onboarding, right after SMS permission: how far back to read, then "Here's your money".
  * While it reads, the screen shows how far it's got - a percentage, running counts and the
- * transactions as they're found - since months of messages can take minutes. After 45 s a
- * "Continue in the background" button appears; the summary then shows on Home when it's done.
+ * transactions as they're found - since months of messages can take minutes. It runs to the end
+ * before onboarding moves on: the accounts step lists what the scan found, so leaving early would
+ * show half of them. The screen is kept awake meanwhile.
  */
 export default function OnboardingFirstScan() {
   const router = useRouter();
@@ -44,14 +45,18 @@ export default function OnboardingFirstScan() {
   const [summary, setSummary] = useState<FirstScanSummary | null>(null);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [feed, setFeed] = useState<FeedItem[]>([]);
-  const [canLeave, setCanLeave] = useState(false);
-  const work = useRef<{ since: string; promise: Promise<void> } | null>(null);
-  const left = useRef(false);
+  /** Taking a while: say so, so it doesn't look stuck. */
+  const [isLong, setIsLong] = useState(false);
 
   useEffect(() => {
     if (phase !== "scanning") return;
-    const t = setTimeout(() => setCanLeave(true), FIRST_SCAN_WAIT_MS);
-    return () => clearTimeout(t);
+    // A locked screen can pause the scan; keep it on until the scan is done.
+    activateKeepAwakeAsync("first-scan").catch(() => {});
+    const t = setTimeout(() => setIsLong(true), FIRST_SCAN_WAIT_MS);
+    return () => {
+      clearTimeout(t);
+      deactivateKeepAwake("first-scan");
+    };
   }, [phase]);
 
   const next = () => router.replace("/(onboarding)/accounts-preview");
@@ -73,9 +78,7 @@ export default function OnboardingFirstScan() {
         },
       }),
     );
-    work.current = { since, promise };
     await promise;
-    if (left.current) return;
     try {
       setSummary(await buildFirstScanSummary(DEFAULT_USER_ID, since));
       setPhase("summary");
@@ -83,12 +86,6 @@ export default function OnboardingFirstScan() {
       logger.warn("First scan summary failed:", e);
       next();
     }
-  };
-
-  const continueInBackground = () => {
-    if (work.current) finishFirstScanInBackground(work.current.since, work.current.promise);
-    left.current = true;
-    next();
   };
 
   if (phase === "scanning") {
@@ -117,12 +114,11 @@ export default function OnboardingFirstScan() {
         ]}
         feed={feed}
         footer={
-          canLeave ? (
+          isLong ? (
             <View className="pb-6 pt-2">
-              <Text className="text-xs text-muted-foreground text-center mb-2">
-                Lots of history. You can keep watching, or carry on and see the summary on Home when it's done.
+              <Text className="text-xs text-muted-foreground text-center">
+                Lots of history, so this can take a few minutes. Keep Arth open; your accounts show up once it's done.
               </Text>
-              <Button title="Continue in the background" variant="outline" onPress={continueInBackground} />
             </View>
           ) : null
         }
