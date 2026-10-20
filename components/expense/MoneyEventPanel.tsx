@@ -16,7 +16,7 @@ import {
   type FdCandidate,
 } from "@/services/money-events";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { parseBankSMS } from "@/services/sms/bank-patterns";
+import { isCardBillText, otherAccountDigits } from "@/services/transfer-detect";
 import { formatError } from "@/utils/error-message";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import { MarkAsFDSheet } from "./MarkAsFDSheet";
@@ -131,7 +131,7 @@ export function MoneyEventPanel({
         )} looks like interest.`
       : "Money back from a fixed deposit, not income. Pick the FD it came from.";
   } else if (event === "self_transfer") {
-    otherAcctLast4 = expense.raw_source_text ? parseBankSMS(expense.raw_source_text)?.counterpartyAcctLast4 ?? null : null;
+    otherAcctLast4 = otherAccountDigits(expense.merchant_name ?? null, expense.raw_source_text ?? null);
     detail =
       expense.nature === "credit"
         ? "This came from your own name, so it's money moving between your accounts. Pick where it came from."
@@ -183,7 +183,19 @@ export function MoneyEventPanel({
           <Button
             title={`Add account ··${otherAcctLast4}`}
             variant="outline"
-            onPress={() => router.push({ pathname: "/settings/account-add", params: { presetType: "savings" } })}
+            onPress={() => {
+              const card = isCardBillText(`${expense.merchant_name ?? ""} ${expense.raw_source_text ?? ""}`);
+              router.push({
+                pathname: "/settings/account-add",
+                params: {
+                  presetType: card ? "credit_card" : "savings",
+                  presetDigits: otherAcctLast4!,
+                  // A card bill is usually the same bank's card; an IMPS often isn't, so that's left to fill in.
+                  ...(card && bankName ? { presetBank: bankName } : {}),
+                  transferExpenseId: expense.id,
+                },
+              });
+            }}
           />
         </View>
       )}

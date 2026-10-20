@@ -38,7 +38,14 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 export default function AccountAddScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { presetType } = useLocalSearchParams<{ presetType?: string }>();
+  // Opened from a transaction ("Add account ··0006"): the form arrives filled in, and saving
+  // makes that transaction a transfer to the new account.
+  const { presetType, presetBank, presetDigits, transferExpenseId } = useLocalSearchParams<{
+    presetType?: string;
+    presetBank?: string;
+    presetDigits?: string;
+    transferExpenseId?: string;
+  }>();
 
   const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
@@ -47,12 +54,12 @@ export default function AccountAddScreen() {
   // matching chip below (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 5) —
   // this screen still shows every type so a misrouted tap isn't a dead end.
   const [accountType, setAccountType] = useState<AccountType>(
-    presetType === "demat" || presetType === "pension" ? presetType : "savings",
+    presetType === "demat" || presetType === "pension" || presetType === "credit_card" ? presetType : "savings",
   );
 
   // Bank account fields (savings, credit_card, loan)
-  const [bankName, setBankName] = useState("");
-  const [identifier, setIdentifier] = useState("");
+  const [bankName, setBankName] = useState(presetBank ?? "");
+  const [identifier, setIdentifier] = useState(presetDigits ?? "");
   const [label, setLabel] = useState("");
 
   // Demat account fields
@@ -138,6 +145,17 @@ export default function AccountAddScreen() {
         });
         if (isPension) {
           await createInvestmentProductForAccount(newId, "epf", "contribution");
+        }
+
+        if (transferExpenseId) {
+          try {
+            const { convertDebitToTransfer } = await import("@/services/transfer-detect");
+            await convertDebitToTransfer(DEFAULT_USER_ID, transferExpenseId, newId);
+          } catch (e) {
+            alert("Account added", `The payment couldn't be made a transfer: ${e instanceof Error ? e.message : String(e)}`);
+          }
+          router.back();
+          return;
         }
 
         // Offer to add credentials for banking accounts

@@ -66,6 +66,22 @@ function endsWithDigits(identifier: string | null, d: string): boolean {
   return n >= 3 && id.slice(-n) === d.slice(-n);
 }
 
+/** Is this a credit card bill payment, going by its words? */
+export function isCardBillText(text: string): boolean {
+  return CARD_BILL.test(text);
+}
+
+/**
+ * The other account's digits as the user sees them: from the merchant name ("IMPS to A/c XX0006")
+ * first, then from the message. Both the transaction and its "Add account" button use this, so
+ * they can't disagree.
+ */
+export function otherAccountDigits(merchant: string | null, raw: string | null): string | null {
+  const fromMerchant = digitsIn(merchant ?? "")[0];
+  if (fromMerchant) return fromMerchant;
+  return raw ? parseBankSMS(raw)?.counterpartyAcctLast4 ?? null : null;
+}
+
 export interface Destination {
   accountId: string;
   /** "card" for a card bill payment, "account" for an account-to-account transfer. */
