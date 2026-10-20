@@ -57,6 +57,15 @@ export async function createExpenseFromSms(
   rawBody: string,
   smsDate?: number,
 ): Promise<SmsExpenseResult> {
+  // A message about an account the user chose to ignore is dropped here, whatever route it came by.
+  {
+    const { isIgnoredAccount } = await import("@/services/account-ignore");
+    if (isIgnoredAccount(parsed.bank, parsed.cardLast4)) {
+      await markSmsIgnored(pendingSmsId);
+      return { success: true, expenseId: null, isCredit: false, error: null };
+    }
+  }
+
   // Don't create expenses for skipped SMS or balance inquiries.
   // For balance_inquiry, still update the account's last_known_balance /
   // credit_limit so the app reflects the most recent bank-reported balance

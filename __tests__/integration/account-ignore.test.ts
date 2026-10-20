@@ -43,6 +43,8 @@ jest.mock("../../database", () => ({ getDatabase: () => mockAdapter }));
 
 import { runMigrations } from "../../database/migrations";
 import { getAccountOrigin, ignoreAccount, isIgnoredAccount, keepAccount } from "../../services/account-ignore";
+import { discoverOrUpdateAccount } from "../../services/financial-account";
+import { findDuplicateAccounts } from "../../services/account-duplicates";
 
 const U = "default-user";
 const one = (sql: string) => mockDb.prepare(sql).get() as Record<string, unknown>;
@@ -80,4 +82,31 @@ it("says where an account came from", async () => {
   const o = await getAccountOrigin("old", U);
   expect(o.messages).toBe(1);
   expect(o.sample).toContain("XX4421");
+});
+
+it("XX304 and XX9304 at the same bank are one account, not two", async () => {
+  mockDb.exec(`INSERT INTO financial_accounts (id, user_id, account_identifier, bank_name, account_type)
+    VALUES ('icici', '${U}', '304', 'ICICI Bank', 'savings');`);
+  const id = await discoverOrUpdateAccount(U, { cardLast4: "9304", bank: "ICICI Bank", type: "debit", amount: 10 } as never);
+  expect(id).toBe("icici");
+  expect(one("SELECT account_identifier i FROM financial_accounts WHERE id = 'icici'").i).toBe("9304"); // the longer form kept
+  expect(one("SELECT COUNT(*) n FROM financial_accounts WHERE bank_name LIKE 'ICICI%'").n).toBe(2); // + the 4421 card
+});
+
+it("an ignored account is never brought back, and ignoring covers its twin", async () => {
+  mockDb.exec(`INSERT INTO financial_accounts (id, user_id, account_identifier, bank_name, account_type)
+    VALUES ('a', '${U}', '304', 'ICICI Bank', 'savings'), ('b', '${U}', '9304', 'ICICI', 'savings');`);
+  await ignoreAccount("b");
+  expect(one("SELECT is_active x FROM financial_accounts WHERE id = 'a'").x).toBe(0); // the twin too
+  expect(await discoverOrUpdateAccount(U, { cardLast4: "304", bank: "ICICI Bank", type: "debit", amount: 5 } as never)).toBeNull();
+  expect(one("SELECT is_active x FROM financial_accounts WHERE id = 'b'").x).toBe(0);
+  await keepAccount("b");
+  expect(one("SELECT is_active x FROM financial_accounts WHERE id = 'a'").x).toBe(1);
+});
+
+it("Recorded twice finds XX304 and XX9304", async () => {
+  mockDb.exec(`INSERT INTO financial_accounts (id, user_id, account_identifier, bank_name, account_type)
+    VALUES ('a', '${U}', '304', 'ICICI Bank', 'savings'), ('b', '${U}', '9304', 'ICICI', 'savings');`);
+  const groups = await findDuplicateAccounts(U);
+  expect(groups.some((g) => g.accounts.map((x) => x.id).sort().join() === "a,b")).toBe(true);
 });

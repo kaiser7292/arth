@@ -100,12 +100,19 @@ export async function findDuplicateAccounts(userId: string = DEFAULT_USER_ID): P
     userId,
   );
 
-  // Same digits first, then the same bank (loosely) within those.
+  // Same last 3 digits first (so XX304 and XX9304 meet), then the same bank (loosely) and digits
+  // that agree on the last 3 or 4 within those.
   const byDigits = new Map<string, typeof rows>();
   for (const r of rows) {
-    const k = r.account_identifier.trim();
+    const k = r.account_identifier.replace(/\D/g, "").slice(-3) || r.account_identifier.trim();
     byDigits.set(k, [...(byDigits.get(k) ?? []), r]);
   }
+  const digitsAgree = (a: string, b: string) => {
+    const x = a.replace(/\D/g, "");
+    const y = b.replace(/\D/g, "");
+    const n = Math.min(4, x.length, y.length);
+    return n >= 3 && x.slice(-n) === y.slice(-n);
+  };
   const skip = dismissed();
   const groups: DuplicateGroup[] = [];
   for (const same of byDigits.values()) {
@@ -113,7 +120,9 @@ export async function findDuplicateAccounts(userId: string = DEFAULT_USER_ID): P
     const used = new Set<string>();
     for (const r of same) {
       if (used.has(r.id)) continue;
-      const members = same.filter((o) => !used.has(o.id) && sameBank(o.bank_name, r.bank_name));
+      const members = same.filter(
+        (o) => !used.has(o.id) && sameBank(o.bank_name, r.bank_name) && digitsAgree(o.account_identifier, r.account_identifier),
+      );
       if (members.length < 2) continue;
       members.forEach((m) => used.add(m.id));
       const key = groupKey(members.map((m) => m.id));

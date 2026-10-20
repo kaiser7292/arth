@@ -223,6 +223,10 @@ export async function discoverOrUpdateAccount(
   pendingSmsId?: string,
 ): Promise<string | null> {
   if (!parsed.cardLast4) return null;
+  // An account the user chose to ignore is never created, matched or brought back, whichever
+  // route the message took (scan, approval, a balance message).
+  const { isIgnoredAccount } = await import("@/services/account-ignore");
+  if (isIgnoredAccount(parsed.bank, parsed.cardLast4)) return null;
 
   const db = getDatabase();
   const inferredType = inferAccountType(parsed);
@@ -242,13 +246,24 @@ export async function discoverOrUpdateAccount(
   //   2. otherwise that account with another type: reuse it, unless this message carries a
   //      credit limit (proof it's a card) and that one isn't a card. A wrongly guessed type no
   //      longer creates a duplicate - e.g. a savings A/c turning up again as a "credit card".
-  const candidates = await db.getAllAsync<{ id: string; is_active: number; bank_name: string; account_type: string }>(
-    `SELECT id, is_active, bank_name, account_type FROM financial_accounts
-     WHERE user_id = ? AND account_identifier = ? AND closed_at IS NULL
+  // Digits match on the last 3 or 4: one ICICI message says XX304, another XX9304, for the same
+  // account. Exact matches come first.
+  const want = parsed.cardLast4.replace(/\D/g, "");
+  const all = await db.getAllAsync<{ id: string; is_active: number; bank_name: string; account_type: string; account_identifier: string }>(
+    `SELECT id, is_active, bank_name, account_type, account_identifier FROM financial_accounts
+     WHERE user_id = ? AND closed_at IS NULL AND account_identifier IS NOT NULL
      ORDER BY is_active DESC, created_at ASC;`,
     userId,
-    parsed.cardLast4,
   );
+  const digitsMatch = (id: string) => {
+    const have = (id ?? "").replace(/\D/g, "");
+    const n = Math.min(4, have.length, want.length);
+    return n >= 3 && have.slice(-n) === want.slice(-n);
+  };
+  const candidates = [
+    ...all.filter((a) => a.account_identifier === parsed.cardLast4),
+    ...all.filter((a) => a.account_identifier !== parsed.cardLast4 && digitsMatch(a.account_identifier)),
+  ];
   const bankKey = (name: string | null | undefined) =>
     (name ?? "").toLowerCase().replace(/\b(bank|ltd|limited|of|india|the)\b/g, "").replace(/[^a-z0-9]/g, "");
   const sameBank = (name: string) => {
@@ -265,6 +280,15 @@ export async function discoverOrUpdateAccount(
     null;
 
   if (existing) {
+    // Keep the longer form of the number ("9304" over "304"): it tells similar accounts apart.
+    const known = candidates.find((c) => c.id === existing.id)?.account_identifier ?? "";
+    if (want.length > known.replace(/\D/g, "").length && want.length <= 6) {
+      await db.runAsync(
+        "UPDATE financial_accounts SET account_identifier = ?, updated_at = datetime('now') WHERE id = ?;",
+        want,
+        existing.id,
+      );
+    }
     // Reactivate if previously deactivated
     if (!existing.is_active) {
       await db.runAsync(

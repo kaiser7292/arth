@@ -64,6 +64,7 @@ beforeEach(() => {
 
 // ─── Helper: build a minimal ParsedSMS ───
 
+const LAST4 = "3001";
 function makeParsed(overrides: Partial<ParsedSMS> = {}): ParsedSMS {
   return {
     bank: "ICICI Bank",
@@ -111,7 +112,7 @@ describe("discoverOrUpdateAccount", () => {
   });
 
   it("returns existing account ID and updates when account already exists", async () => {
-    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "existing-acct-1", is_active: 1, bank_name: "ICICI Bank", account_type: "savings" }]);
+    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "existing-acct-1", is_active: 1, bank_name: "ICICI Bank", account_type: "savings", account_identifier: LAST4 }]);
 
     const id = await discoverOrUpdateAccount("user-1", makeParsed());
 
@@ -123,21 +124,21 @@ describe("discoverOrUpdateAccount", () => {
   });
 
   it("reuses your account when only the bank's spelling or the guessed type differs", async () => {
-    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "my-hdfc", is_active: 1, bank_name: "HDFC", account_type: "savings" }]);
+    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "my-hdfc", is_active: 1, bank_name: "HDFC", account_type: "savings", account_identifier: LAST4 }]);
     const id = await discoverOrUpdateAccount("user-1", makeParsed({ bank: "HDFC Bank", accountType: "credit_card" }));
     expect(id).toBe("my-hdfc");
     expect(executedRuns.find((r) => r.sql.includes("INSERT INTO financial_accounts"))).toBeUndefined();
   });
 
   it("still creates a card when the message proves it is one (a credit limit)", async () => {
-    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "my-hdfc", is_active: 1, bank_name: "HDFC Bank", account_type: "savings" }]);
+    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "my-hdfc", is_active: 1, bank_name: "HDFC Bank", account_type: "savings", account_identifier: LAST4 }]);
     await discoverOrUpdateAccount("user-1", makeParsed({ bank: "HDFC Bank", accountType: "credit_card", creditLimit: 100000 }));
     const insert = executedRuns.find((r) => r.sql.includes("INSERT INTO financial_accounts"));
     expect(insert!.params[4]).toBe("credit_card");
   });
 
   it("doesn't reuse another bank's account with the same digits", async () => {
-    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "sbi", is_active: 1, bank_name: "SBI", account_type: "savings" }]);
+    mockDb.getAllAsync.mockResolvedValueOnce([{ id: "sbi", is_active: 1, bank_name: "SBI", account_type: "savings", account_identifier: LAST4 }]);
     await discoverOrUpdateAccount("user-1", makeParsed({ bank: "ICICI Bank" }));
     expect(executedRuns.find((r) => r.sql.includes("INSERT INTO financial_accounts"))).toBeDefined();
   });

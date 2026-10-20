@@ -22,6 +22,8 @@ interface Ignored {
   digits: string;
   /** When it was ignored; the transactions it hid carry this deleted_at, so Keep restores exactly those. */
   at: string;
+  /** Twin accounts (same bank, same last digits) ignored along with it. */
+  twins?: string[];
 }
 
 function read(): Ignored[] {
@@ -56,23 +58,44 @@ export function getIgnoredAccountIds(): Set<string> {
   return new Set(read().map((i) => i.accountId));
 }
 
-export async function ignoreAccount(accountId: string): Promise<void> {
+/** The account and any twin of it: same bank (loosely), same last 3-4 digits (XX304 = XX9304). */
+async function accountAndTwins(accountId: string): Promise<{ ids: string[]; bank: string; digits: string } | null> {
   const db = getDatabase();
-  const acc = await db.getFirstAsync<{ bank_name: string; account_identifier: string | null }>(
-    `SELECT bank_name, account_identifier FROM financial_accounts WHERE id = ?;`,
+  const acc = await db.getFirstAsync<{ user_id: string; bank_name: string; account_identifier: string | null }>(
+    `SELECT user_id, bank_name, account_identifier FROM financial_accounts WHERE id = ?;`,
     accountId,
   );
-  if (!acc?.account_identifier) return;
+  if (!acc?.account_identifier) return null;
+  const others = await db.getAllAsync<{ id: string; bank_name: string; account_identifier: string | null }>(
+    `SELECT id, bank_name, account_identifier FROM financial_accounts WHERE user_id = ? AND id != ? AND account_identifier IS NOT NULL;`,
+    acc.user_id,
+    accountId,
+  );
+  const k = bankKey(acc.bank_name);
+  const twins = others.filter((o) => {
+    const ok = bankKey(o.bank_name);
+    return sameDigits(o.account_identifier ?? "", acc.account_identifier!) && (!k || !ok || ok === k || ok.startsWith(k) || k.startsWith(ok));
+  });
+  return { ids: [accountId, ...twins.map((t) => t.id)], bank: acc.bank_name, digits: acc.account_identifier };
+}
+
+export async function ignoreAccount(accountId: string): Promise<void> {
+  const db = getDatabase();
+  const found = await accountAndTwins(accountId);
+  if (!found) return;
   const at = new Date().toISOString();
   await db.withTransactionAsync(async () => {
-    await db.runAsync(`UPDATE financial_accounts SET is_active = 0, updated_at = datetime('now') WHERE id = ?;`, accountId);
-    await db.runAsync(
-      `UPDATE expenses SET deleted_at = ? WHERE account_id = ? AND source = 'sms_auto' AND deleted_at IS NULL;`,
-      at,
-      accountId,
-    );
+    for (const id of found.ids) {
+      await db.runAsync(`UPDATE financial_accounts SET is_active = 0, updated_at = datetime('now') WHERE id = ?;`, id);
+      await db.runAsync(
+        `UPDATE expenses SET deleted_at = ? WHERE account_id = ? AND source = 'sms_auto' AND deleted_at IS NULL;`,
+        at,
+        id,
+      );
+    }
   });
-  write([...read().filter((i) => i.accountId !== accountId), { accountId, bank: acc.bank_name, digits: acc.account_identifier, at }]);
+  const acc = { bank_name: found.bank, account_identifier: found.digits };
+  write([...read().filter((i) => i.accountId !== accountId), { accountId, bank: acc.bank_name, digits: acc.account_identifier, at, twins: found.ids.slice(1) }]);
   bumpDataVersion();
 }
 
@@ -80,9 +103,9 @@ export async function ignoreAccount(accountId: string): Promise<void> {
 export async function keepAccount(accountId: string): Promise<void> {
   const entry = read().find((i) => i.accountId === accountId);
   const db = getDatabase();
-  await db.runAsync(`UPDATE financial_accounts SET is_active = 1, updated_at = datetime('now') WHERE id = ?;`, accountId);
-  if (entry) {
-    await db.runAsync(`UPDATE expenses SET deleted_at = NULL WHERE account_id = ? AND deleted_at = ?;`, accountId, entry.at);
+  for (const id of [accountId, ...(entry?.twins ?? [])]) {
+    await db.runAsync(`UPDATE financial_accounts SET is_active = 1, updated_at = datetime('now') WHERE id = ?;`, id);
+    if (entry) await db.runAsync(`UPDATE expenses SET deleted_at = NULL WHERE account_id = ? AND deleted_at = ?;`, id, entry.at);
   }
   write(read().filter((i) => i.accountId !== accountId));
   bumpDataVersion();
