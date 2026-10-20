@@ -17,7 +17,7 @@ const JOBS = AI_REQUESTS.filter((r) => r.id !== "everything" && r.id !== "setup"
 const EVERYTHING = [
   "Categories, and a category for every merchant",
   "Budgets from what you really spend",
-  "Templates for bank messages Arth couldn't read",
+  "Templates for transaction messages Arth couldn't read",
   "Your income, savings target, investment buckets and goals",
 ];
 
@@ -45,7 +45,7 @@ export default function AiAssistedSetupScreen() {
       setAiSetupPending(true);
       setMessage(
         `Shared ${counts.transactions.toLocaleString("en-IN")} transactions${
-          counts.unreadMessages > 0 ? ` and ${counts.unreadMessages} bank messages` : ""
+          counts.unreadMessages > 0 ? ` and ${counts.unreadMessages} transaction messages` : ""
         } (${formatSize(file.sizeBytes)}). Send it in your assistant; if its message box is empty, long-press and paste - your request is already copied.${
           which === "everything" ? " It will ask you a few questions first." : ""
         }`,
@@ -125,7 +125,7 @@ export default function AiAssistedSetupScreen() {
           <Card className="mt-3">
             <View className="flex-row items-center justify-between py-1">
               <View className="flex-1 mr-3">
-                <Text className="text-sm text-foreground">Include unread bank messages</Text>
+                <Text className="text-sm text-foreground">Include unread transaction messages</Text>
                 <Text className="text-xs text-muted-foreground mt-0.5">
                   As received, so it can work out how to read them
                 </Text>
@@ -135,7 +135,7 @@ export default function AiAssistedSetupScreen() {
                 onValueChange={setUnreadMessages}
                 trackColor={{ false: theme.border, true: theme.primary }}
                 thumbColor="#FFFFFF"
-                accessibilityLabel="Include unread bank messages"
+                accessibilityLabel="Include unread transaction messages"
               />
             </View>
           </Card>

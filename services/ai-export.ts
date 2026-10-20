@@ -611,7 +611,7 @@ function buildGuide(has: (key: string) => boolean, fyStartMonth: number): string
   }
   if (has("unread_messages")) {
     lines.push(
-      "`unread_messages` are bank messages Arth could not read, exactly as received. `similar` is how many messages share that format; up to two examples of each format are given.",
+      "`unread_messages` are transaction messages Arth could not read, exactly as received. `similar` is how many messages share that format; up to two examples of each format are given.",
     );
   }
   if (has("current_setup")) {

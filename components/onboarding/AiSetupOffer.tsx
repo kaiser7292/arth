@@ -38,11 +38,10 @@ export function AiSetupOffer() {
       </View>
       <Text className="text-xs text-muted-foreground leading-5">
         Your AI assistant (Claude, ChatGPT, Gemini) suggests categories for your merchants, budgets, how to read the
-        bank messages Arth could not, and your income and goals. It asks you a few questions first. You approve
-        everything.
+        transaction messages Arth could not, and your income and goals. You approve everything.
       </Text>
       <Text className="text-xs text-muted-foreground leading-5 mt-2">
-        Shares your accounts, the transactions found so far and unread bank messages with the assistant you pick.
+        Shares your accounts, the transactions found so far and unread transaction messages with the assistant you pick.
         Never your password vault or login credentials.
       </Text>
       {state === "shared" ? (

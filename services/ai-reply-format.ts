@@ -18,7 +18,7 @@ export interface AiRequest {
 }
 
 const FULL_SETUP =
-  "add any categories I need, give every merchant a category, suggest monthly budgets, work out the format of each unread bank message, and set up my income, savings target, investment buckets and goals. Ask me what you need to know first.";
+  "add any categories I need, give every merchant a category, suggest monthly budgets, work out the format of each unread transaction message, and set up my income, savings target, investment buckets and goals. Don't ask me anything first: reply with the whole setup straight away.";
 
 export const AI_REQUESTS: AiRequest[] = [
   { id: "everything", label: "Set up everything", prompt: `Set Arth up properly for me, end to end: ${FULL_SETUP}` },
@@ -42,8 +42,8 @@ export const AI_REQUESTS: AiRequest[] = [
   },
   {
     id: "messages",
-    label: "Read my unread bank messages",
-    prompt: "Work out the format of each unread bank message in this file so Arth can read messages like it.",
+    label: "Read my unread transaction messages",
+    prompt: "Work out the format of each unread transaction message in this file so Arth can read messages like it.",
   },
 ];
 
@@ -88,7 +88,7 @@ export function buildReplyInstructions(has: {
   const lines: string[] = [];
   if (has.fullSetup) {
     lines.push(
-      "BEFORE YOU REPLY WITH SUGGESTIONS, ASK FIRST. Some of this setup depends on things only the user knows. Send ONE short message with these questions, numbered, and wait for the answers. Skip any question that `current_setup` or the data already answers clearly. (1) Is the regular credit you can see their salary, is it the same every month, and on which day does it arrive? If it varies, what do they expect each month? (2) Do they expect a bonus this financial year, and roughly how much? (3) What share of their income do they want to save? (4) What do they put money into regularly (for example mutual funds, PPF, NPS) and how much a year? (5) What are they saving for, how much is needed, and by when? If the user says to skip a question or the whole step, leave those suggestion types out. Do everything that needs no answer (categories, merchants, budgets, bank messages) regardless.",
+      "DO NOT ASK QUESTIONS. Reply straight away with every suggestion in the format below, in this one message: the user is in the middle of setting up and wants it done in one go. Work everything out from `current_setup` and the data. Income: keep what `current_setup` has; if there is none, use the regular credit you can see (its usual amount and day). Bonus, savings target, regular investments and goals: suggest them only when `current_setup` or the data clearly shows them (for example a yearly credit that looks like a bonus, or monthly SIP debits); otherwise leave those suggestion types out, as the user can add them in Arth later. Never invent goals. Do everything else (categories, merchants, budgets, transaction messages) in full.",
     );
   }
   lines.push(
@@ -115,7 +115,7 @@ export function buildReplyInstructions(has: {
       'set_savings_target - the share of income the user wants to save, as a percentage: {"type":"set_savings_target","percent":30,"why":"You said you want to save 30 percent"}',
       'add_investment_bucket - something the user puts money into regularly, with the amount for the whole financial year: {"type":"add_investment_bucket","name":"Mutual funds","annual_target":120000,"why":"You invest 10000 a month in mutual funds"}',
       'add_milestone - something the user is saving for, with the amount needed and the date: {"type":"add_milestone","name":"House down payment","target_amount":1500000,"target_date":"2029-03-31","why":"You want 15 lakh by March 2029"}',
-      "set_income, set_savings_target, add_investment_bucket and add_milestone must come from the user's own answers, or (income only) from clear evidence in this file. Never choose a savings target, an investment or a goal for the user, and do not recommend what to invest in. If they did not tell you, leave it out.",
+      "set_income, set_savings_target, add_investment_bucket and add_milestone must come from `current_setup` or from clear evidence in this file (a regular salary credit, monthly SIP debits, a yearly bonus). Never choose a savings target, an investment or a goal for the user, and do not recommend what to invest in. If the file does not show it, leave it out.",
     );
   }
   lines.push(
@@ -125,7 +125,7 @@ export function buildReplyInstructions(has: {
   );
   if (has.unreviewed) {
     lines.push(
-      "Transactions with `reviewed` false were read from bank messages and are still waiting for the user to check them. Treat them as real when choosing merchant categories. `monthly_summary` and `budgets` count reviewed entries only, so work out budgets from `merchants` and `transactions` instead.",
+      "Transactions with `reviewed` false were read from transaction messages and are still waiting for the user to check them. Treat them as real when choosing merchant categories. `monthly_summary` and `budgets` count reviewed entries only, so work out budgets from `merchants` and `transactions` instead.",
     );
   }
   return lines;

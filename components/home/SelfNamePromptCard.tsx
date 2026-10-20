@@ -56,7 +56,7 @@ export function SelfNamePromptCard() {
         <View className="flex-1 ml-2.5">
           <Text className="text-sm font-semibold text-foreground">Is {suggestion.name} you?</Text>
           <Text className="text-xs text-muted-foreground mt-1">
-            This name appears in {suggestion.count} of your bank messages on transfers. If it’s you, money sent to or
+            This name appears in {suggestion.count} of your transaction messages on transfers. If it’s you, money sent to or
             from it counts as moving between your own accounts, not spending or income.
           </Text>
         </View>

@@ -262,10 +262,10 @@ describe("a full setup: income, savings target, buckets and goals", () => {
     hidePeopleNames: true, hideMerchantNames: false, suggest: { request } as never,
   });
 
-  it("the file asks the assistant to ask first, and says what is already set", async () => {
+  it("the file tells the assistant not to ask questions, and says what is already set", async () => {
     const { data } = await buildAiExport(USER, full("everything"), TODAY);
     const instructions = data.reply_instructions as string[];
-    expect(instructions[0]).toMatch(/^BEFORE YOU REPLY WITH SUGGESTIONS, ASK FIRST/);
+    expect(instructions[0]).toMatch(/^DO NOT ASK QUESTIONS/);
     expect(instructions.join(" ")).toContain('"type":"set_income"');
     expect(instructions.join(" ")).toContain("Never choose a savings target, an investment or a goal for the user");
     expect(data.current_setup).toMatchObject({

@@ -67,7 +67,7 @@ export default function OnboardingFirstScan() {
             <Ionicons name="hourglass-outline" size={36} color={theme.primary} />
           )}
           <Text className="text-lg font-semibold text-foreground mt-5 text-center">
-            {phase === "scanning" ? "Reading your bank messages…" : "Still reading"}
+            {phase === "scanning" ? "Reading your transaction messages…" : "Still reading"}
           </Text>
           <Text className="text-sm text-muted-foreground mt-2 text-center leading-5">
             {phase === "scanning"
@@ -89,7 +89,7 @@ export default function OnboardingFirstScan() {
       <ScreenContainer safe padTop>
         <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}>
           <Text className="text-2xl font-bold text-foreground mb-2">Here’s your money</Text>
-          <Text className="text-sm text-muted-foreground mb-5">From your bank messages since {summary.since}.</Text>
+          <Text className="text-sm text-muted-foreground mb-5">From your transaction messages since {summary.since}.</Text>
           <Card>
             <FirstScanSummaryView summary={summary} />
           </Card>
