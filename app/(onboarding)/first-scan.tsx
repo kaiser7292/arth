@@ -1,8 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
 
+import { RunProgress, type FeedItem } from "@/components/ai/RunProgress";
 import { FirstScanSummaryView } from "@/components/onboarding/FirstScanSummaryView";
 import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -10,12 +11,15 @@ import { useTheme } from "@/hooks/use-theme";
 import {
   buildFirstScanSummary,
   DEFAULT_LOOKBACK,
+  finishFirstScanInBackground,
+  FIRST_SCAN_WAIT_MS,
   lookbackStartDate,
-  runFirstScan,
+  startFirstScan,
   type FirstScanSummary,
   type LookbackMonths,
 } from "@/services/first-scan";
-import { runSmsScan } from "@/services/sms/sms-orchestrator";
+import { runSmsScan, type ScanProgress } from "@/services/sms/sms-orchestrator";
+import { formatCompact } from "@/utils/format";
 import { logger } from "@/utils/logger";
 
 const OPTIONS: { months: LookbackMonths; label: string; note?: string }[] = [
@@ -24,12 +28,13 @@ const OPTIONS: { months: LookbackMonths; label: string; note?: string }[] = [
   { months: 6, label: "Last 6 months" },
 ];
 
-type Phase = "choose" | "scanning" | "summary" | "background";
+type Phase = "choose" | "scanning" | "summary";
 
 /**
  * Onboarding, right after SMS permission: how far back to read, then "Here's your money".
- * Scans in the foreground for up to 45 s; past that the scan carries on and the summary shows
- * on Home when it's done.
+ * While it reads, the screen shows how far it's got - a percentage, running counts and the
+ * transactions as they're found - since months of messages can take minutes. After 45 s a
+ * "Continue in the background" button appears; the summary then shows on Home when it's done.
  */
 export default function OnboardingFirstScan() {
   const router = useRouter();
@@ -37,18 +42,41 @@ export default function OnboardingFirstScan() {
   const [months, setMonths] = useState<LookbackMonths>(DEFAULT_LOOKBACK);
   const [phase, setPhase] = useState<Phase>("choose");
   const [summary, setSummary] = useState<FirstScanSummary | null>(null);
+  const [progress, setProgress] = useState<ScanProgress | null>(null);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [canLeave, setCanLeave] = useState(false);
+  const work = useRef<{ since: string; promise: Promise<void> } | null>(null);
+  const left = useRef(false);
+
+  useEffect(() => {
+    if (phase !== "scanning") return;
+    const t = setTimeout(() => setCanLeave(true), FIRST_SCAN_WAIT_MS);
+    return () => clearTimeout(t);
+  }, [phase]);
 
   const next = () => router.replace("/(onboarding)/accounts-preview");
 
   const start = async () => {
     setPhase("scanning");
     const since = lookbackStartDate(months);
+    let feedId = 0;
+    const promise = startFirstScan(since, () =>
+      runSmsScan({
+        manual: true,
+        onProgress: (p) => {
+          setProgress(p);
+          if (p.latest) {
+            const it = p.latest;
+            const text = `${it.merchant || (it.credit ? "Money in" : "Payment")}${it.amount ? ` · ₹${Math.round(it.amount).toLocaleString("en-IN")}` : ""}`;
+            setFeed((f) => [{ id: ++feedId, text, ok: true }, ...f].slice(0, 8));
+          }
+        },
+      }),
+    );
+    work.current = { since, promise };
+    await promise;
+    if (left.current) return;
     try {
-      const outcome = await runFirstScan(since, () => runSmsScan({ manual: true }));
-      if (outcome === "background") {
-        setPhase("background");
-        return;
-      }
       setSummary(await buildFirstScanSummary(DEFAULT_USER_ID, since));
       setPhase("summary");
     } catch (e) {
@@ -57,30 +85,48 @@ export default function OnboardingFirstScan() {
     }
   };
 
-  if (phase === "scanning" || phase === "background") {
+  const continueInBackground = () => {
+    if (work.current) finishFirstScanInBackground(work.current.since, work.current.promise);
+    left.current = true;
+    next();
+  };
+
+  if (phase === "scanning") {
+    const p = progress;
+    const doing =
+      !p || p.stage === "inbox"
+        ? "Opening your messages"
+        : p.stage === "reading"
+          ? `Reading ${p.messagesRead.toLocaleString("en-IN")} messages`
+          : p.stage === "adding"
+            ? "Adding your transactions"
+            : "Almost done";
     return (
-      <ScreenContainer safe padTop>
-        <View className="flex-1 items-center justify-center px-8">
-          {phase === "scanning" ? (
-            <ActivityIndicator size="large" color={theme.primary} />
-          ) : (
-            <Ionicons name="hourglass-outline" size={36} color={theme.primary} />
-          )}
-          <Text className="text-lg font-semibold text-foreground mt-5 text-center">
-            {phase === "scanning" ? "Reading your transaction messages…" : "Still reading"}
-          </Text>
-          <Text className="text-sm text-muted-foreground mt-2 text-center leading-5">
-            {phase === "scanning"
-              ? "Everything stays on this phone."
-              : "You have a lot of history. Arth will keep going and show your summary on Home when it's done."}
-          </Text>
-        </View>
-        {phase === "background" && (
-          <View className="px-6 pb-6">
-            <Button title="Continue" onPress={next} />
-          </View>
-        )}
-      </ScreenContainer>
+      <RunProgress
+        standalone
+        title="Reading your transaction messages · everything stays on this phone"
+        done={p?.transactionsAdded ?? 0}
+        total={0}
+        fraction={p?.fraction ?? 0.02}
+        doing={doing}
+        counters={[
+          { label: "Messages read", value: p?.messagesRead ?? 0 },
+          { label: "Transactions found", value: p?.transactionsAdded ?? 0 },
+          { label: "Money out", value: `₹${formatCompact(Math.round(p?.moneyOut ?? 0))}` },
+          { label: "Money in", value: `₹${formatCompact(Math.round(p?.moneyIn ?? 0))}` },
+        ]}
+        feed={feed}
+        footer={
+          canLeave ? (
+            <View className="pb-6 pt-2">
+              <Text className="text-xs text-muted-foreground text-center mb-2">
+                Lots of history. You can keep watching, or carry on and see the summary on Home when it's done.
+              </Text>
+              <Button title="Continue in the background" variant="outline" onPress={continueInBackground} />
+            </View>
+          ) : null
+        }
+      />
     );
   }
 

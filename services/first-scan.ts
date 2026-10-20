@@ -134,6 +134,25 @@ export async function runFirstScan(
   return outcome;
 }
 
+/**
+ * Start the first scan and hand back the running work, so the screen can show its progress for as
+ * long as the person wants to watch, and send it to the background when they'd rather move on.
+ */
+export function startFirstScan(since: string, scan: () => Promise<unknown>): Promise<void> {
+  setSmsStartDate(since);
+  return scan()
+    .then(() => undefined)
+    .catch((e) => logger.warn("First scan failed (non-fatal):", e));
+}
+
+/** The person moved on mid-scan: when it finishes, the summary shows once on Home. */
+export function finishFirstScanInBackground(since: string, work: Promise<void>): void {
+  void work.then(() => {
+    settingsStorage.set(FIRST_SCAN_SUMMARY_PENDING_KEY, since);
+    bumpDataVersion();
+  });
+}
+
 export function getPendingFirstScanSince(): string | null {
   return settingsStorage.getString(FIRST_SCAN_SUMMARY_PENDING_KEY) ?? null;
 }

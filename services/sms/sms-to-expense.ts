@@ -843,6 +843,12 @@ export async function processParseResults(
     rawBody: string;
     smsDate?: number;
   }>,
+  /** Called after each message: how many done, and the one just handled (merchant, amount, money in?). */
+  onProgress?: (
+    done: number,
+    total: number,
+    item: { merchant: string | null; amount: number | null; credit: boolean; added: boolean },
+  ) => Promise<void> | void,
 ): Promise<{
   created: number;
   credits: number;
@@ -856,6 +862,7 @@ export async function processParseResults(
   const errors: string[] = [];
   const itemResults: Array<{ pendingSmsId: string; appliedRuleIds: string[] | null }> = [];
 
+  let handled = 0;
   for (const item of items) {
     const result = await createExpenseFromSms(
       userId,
@@ -864,6 +871,13 @@ export async function processParseResults(
       item.rawBody,
       item.smsDate,
     );
+    handled++;
+    await onProgress?.(handled, items.length, {
+      merchant: item.parsed.merchant ?? null,
+      amount: item.parsed.amount ?? null,
+      credit: result.isCredit === true || item.parsed.type === "credit",
+      added: !result.error && (!!result.expenseId || result.isCredit === true),
+    });
 
     itemResults.push({ pendingSmsId: item.pendingSmsId, appliedRuleIds: result.appliedRuleIds ?? null });
 

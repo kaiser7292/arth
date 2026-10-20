@@ -62,9 +62,36 @@ export const SCAN_COOLDOWN_MS = 30 * 60 * 1000;
  *   in Settings; "since_last" reads everything since the last scan up to now (quick "Scan now"
  *   buttons).
  */
+/**
+ * Where a scan has got to, for a progress screen. Reading the inbox gives no count until it's done;
+ * then every message is understood ("reading"), and the transactions among them are added
+ * ("adding") - the slow part, so it carries the most weight in `fraction`.
+ */
+export interface ScanProgress {
+  stage: "inbox" | "reading" | "adding" | "finishing";
+  /** 0..1 across the whole scan. */
+  fraction: number;
+  messagesRead: number;
+  transactionsAdded: number;
+  moneyIn: number;
+  moneyOut: number;
+  /** The transaction just added, for the live list. */
+  latest?: { merchant: string | null; amount: number | null; credit: boolean };
+}
+
+const breathe = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
 export async function runSmsScan(
-  options: { manual?: boolean; accountIds?: string[]; range?: "settings" | "since_last" } = {},
+  options: {
+    manual?: boolean;
+    accountIds?: string[];
+    range?: "settings" | "since_last";
+    onProgress?: (p: ScanProgress) => void;
+  } = {},
 ): Promise<ScanOutcome> {
+  const onProgress = options.onProgress;
+  const live: ScanProgress = { stage: "inbox", fraction: 0.02, messagesRead: 0, transactionsAdded: 0, moneyIn: 0, moneyOut: 0 };
+  onProgress?.({ ...live });
   const manual = options.manual ?? false;
   const accountIds = options.accountIds;
   const sinceLast = manual && options.range === "since_last";
@@ -153,7 +180,25 @@ export async function runSmsScan(
     }
 
     // Phase 2: Parse SMS (hardcoded + template matching)
-    const parseResult = await parseSmsBatch(DEFAULT_USER_ID, readResult.messages);
+    const parseResult = await parseSmsBatch(
+      DEFAULT_USER_ID,
+      readResult.messages,
+      onProgress
+        ? async (done, total) => {
+            live.stage = "reading";
+            live.messagesRead = done;
+            live.fraction = 0.05 + 0.2 * (total > 0 ? done / total : 1);
+            onProgress({ ...live, latest: undefined });
+            await breathe();
+          }
+        : undefined,
+    );
+    if (onProgress) {
+      live.messagesRead = readResult.messages.length;
+      live.stage = "adding";
+      live.fraction = 0.25;
+      onProgress({ ...live });
+    }
 
     // Phase 3: Account filtering (post-parse, so templates had their chance)
     const { passed, filtered, filterDetails } = await filterByAccount(
@@ -172,7 +217,26 @@ export async function runSmsScan(
           rawBody: item.rawBody,
           smsDate: item.smsDate,
         })),
+        onProgress
+          ? async (done, total, item) => {
+              if (item.added) {
+                live.transactionsAdded++;
+                if (item.amount) {
+                  if (item.credit) live.moneyIn += item.amount;
+                  else live.moneyOut += item.amount;
+                }
+              }
+              live.fraction = 0.25 + 0.7 * (total > 0 ? done / total : 1);
+              onProgress({ ...live, latest: item.added ? item : undefined });
+              if (done % 3 === 0) await breathe();
+            }
+          : undefined,
       );
+      if (onProgress) {
+        live.stage = "finishing";
+        live.fraction = 0.96;
+        onProgress({ ...live });
+      }
     }
 
     // Phase 5: Build scan details for logging

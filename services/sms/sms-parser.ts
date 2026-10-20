@@ -111,6 +111,8 @@ export function enrichParsedSms(parsed: ParsedSMS, body: string): ParsedSMS {
 export async function parseSmsBatch(
   userId: string,
   messages: RawSMS[],
+  /** Called every few messages: how many have been looked at. */
+  onProgress?: (done: number, total: number) => Promise<void> | void,
 ): Promise<ParseResult> {
   const db = getDatabase();
   const result: ParseResult = {
@@ -124,7 +126,10 @@ export async function parseSmsBatch(
     skippedSms: [],
   };
 
+  let looked = 0;
   for (const sms of messages) {
+    if (onProgress && looked % 25 === 0) await onProgress(looked, messages.length);
+    looked++;
     try {
       // Check if already processed (by Android SMS _id)
       const existing = await db.getFirstAsync<{ id: string }>(
