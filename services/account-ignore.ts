@@ -148,3 +148,20 @@ export async function getAccountOrigin(accountId: string, userId: string = DEFAU
     sample: sample?.raw_source_text ?? null,
   };
 }
+
+export interface IgnoredAccount {
+  id: string;
+  name: string;
+  digits: string;
+}
+
+/** Accounts the user is ignoring, for the Accounts list's Ignored section. */
+export async function listIgnoredAccounts(): Promise<IgnoredAccount[]> {
+  const list = read();
+  if (list.length === 0) return [];
+  const rows = await getDatabase().getAllAsync<{ id: string; bank_name: string; account_label: string | null; account_identifier: string | null }>(
+    `SELECT id, bank_name, account_label, account_identifier FROM financial_accounts WHERE id IN (${list.map(() => "?").join(",")});`,
+    ...list.map((i) => i.accountId),
+  );
+  return rows.map((r) => ({ id: r.id, name: r.account_label || r.bank_name, digits: r.account_identifier ?? "" }));
+}

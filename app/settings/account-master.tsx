@@ -11,6 +11,7 @@ import { getDematAccountsWithSummary } from "@/services/financial-account";
 import type { DematAccountSummary } from "@/services/financial-account";
 import { consumeAccountsPreload } from "@/services/home-preload";
 import { findTransferCandidates } from "@/services/transfer-detect";
+import { keepAccount, listIgnoredAccounts, type IgnoredAccount } from "@/services/account-ignore";
 import { findDuplicateAccounts } from "@/services/account-duplicates";
 import {
   batchInvestmentProducts,
@@ -112,12 +113,16 @@ export default function AccountMasterScreen() {
   const [duplicateGroups, setDuplicateGroups] = useState(0);
   // Payments counted as spending that went to one of your own accounts or cards.
   const [transferFixes, setTransferFixes] = useState(0);
+  const [ignoredAccounts, setIgnoredAccounts] = useState<IgnoredAccount[]>([]);
   useFocusEffect(
     useCallback(() => {
       loadData();
       findDuplicateAccounts()
         .then((g) => setDuplicateGroups(g.length))
         .catch(() => setDuplicateGroups(0));
+      listIgnoredAccounts()
+        .then(setIgnoredAccounts)
+        .catch(() => setIgnoredAccounts([]));
       findTransferCandidates(DEFAULT_USER_ID)
         .then((c) => setTransferFixes(c.length))
         .catch(() => setTransferFixes(0));
@@ -360,6 +365,36 @@ export default function AccountMasterScreen() {
           contentContainerStyle={{ paddingBottom: 80 }}
         >
           {filteredAccounts.map((item) => renderAccount(item))}
+          {ignoredAccounts.length > 0 && (
+            <View className="mt-4">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
+                Ignored · {ignoredAccounts.length}
+              </Text>
+              <Card>
+                {ignoredAccounts.map((a, i) => (
+                  <View key={a.id} className={`flex-row items-center py-2.5 ${i > 0 ? "border-t border-border" : ""}`}>
+                    <Ionicons name="eye-off-outline" size={18} color={colors.textSecondary} />
+                    <View className="flex-1 ml-3">
+                      <Text className="text-sm font-medium text-foreground">{a.name} ····{a.digits.slice(-4)}</Text>
+                      <Text className="text-xs text-muted-foreground mt-0.5">Its messages are skipped</Text>
+                    </View>
+                    <Pressable
+                      onPress={async () => {
+                        await keepAccount(a.id);
+                        setIgnoredAccounts((list) => list.filter((x) => x.id !== a.id));
+                        loadData();
+                      }}
+                      className="rounded-full px-4 items-center justify-center"
+                      style={{ height: 40, backgroundColor: theme.alpha("primary", 0.1) }}
+                      accessibilityRole="button"
+                    >
+                      <Text className="text-sm font-semibold" style={{ color: theme.primary }}>Track again</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </Card>
+            </View>
+          )}
         </ScrollView>
       )}
       </View>

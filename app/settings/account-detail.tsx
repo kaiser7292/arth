@@ -372,6 +372,28 @@ export default function AccountDetailScreen() {
     );
   }, [account, router, alert]);
 
+  // Stop reading this account's messages - the ones found so far and any that arrive later.
+  const handleIgnore = useCallback(() => {
+    if (!account) return;
+    const displayName = account.account_label ?? `${account.bank_name} ****${account.account_identifier}`;
+    alert(
+      "Ignore this account's messages?",
+      `Arth stops reading messages about ${displayName} (and any other ${account.bank_name} account ending in the same digits). The transactions it found from them go to the recycle bin, and new ones are skipped. Transactions you added yourself stay. You can track it again from Accounts → Ignored.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Ignore",
+          style: "destructive",
+          onPress: async () => {
+            const { ignoreAccount } = await import("@/services/account-ignore");
+            await ignoreAccount(account.id);
+            router.back();
+          },
+        },
+      ],
+    );
+  }, [account, router, alert]);
+
   const handleReopen = useCallback(async () => {
     if (!account) return;
     await reopenAccount(account.id);
@@ -1072,6 +1094,14 @@ export default function AccountDetailScreen() {
                 <Ionicons name="lock-closed-outline" size={18} color={theme.danger} />
                 <Text className="text-sm font-medium ml-2" style={{ color: theme.danger }}>Close account</Text>
               </Pressable>
+            )}
+            {!account.closed_at && account.account_identifier && (
+              <View className="border-t border-border mt-3 pt-3">
+                <Pressable onPress={handleIgnore} className="flex-row items-center justify-center py-1">
+                  <Ionicons name="eye-off-outline" size={18} color={theme.warning} />
+                  <Text className="text-sm font-medium ml-2" style={{ color: theme.warning }}>Ignore this account's messages</Text>
+                </Pressable>
+              </View>
             )}
             <View className="border-t border-border mt-3 pt-3">
               <Pressable onPress={handleDelete} className="flex-row items-center justify-center py-1">
