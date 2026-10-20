@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { View, Pressable, ScrollView, Switch, TextInput, Platform } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -13,6 +13,7 @@ import {
   saveBackupToStorage,
   cleanupBackupFile,
   pickAndValidateBackupFile,
+  importIncomingBackup,
   restoreBackup,
   MIN_PASSWORD_LENGTH,
 } from "@/services/backup";
@@ -69,6 +70,18 @@ export default function BackupRestoreScreen() {
   const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null);
   const [pickedFile, setPickedFile] = useState<PickedBackupFile | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+
+  // Opened with a backup file from another app ("Open with Arth", via app/+native-intent.tsx):
+  // check it and have it ready to restore. Nothing is restored until the password and Restore.
+  const { incoming } = useLocalSearchParams<{ incoming?: string }>();
+  useEffect(() => {
+    if (!incoming) return;
+    setMode("restore");
+    setFileError(null);
+    importIncomingBackup(incoming)
+      .then(setPickedFile)
+      .catch((e) => setFileError(e instanceof Error ? e.message : String(e)));
+  }, [incoming]);
 
   // Scheduled backup state
   const [schedSettings, setSchedSettings] = useState<BackupScheduleSettings>(() => getBackupScheduleSettings());

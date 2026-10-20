@@ -47,6 +47,57 @@
             "BROWSABLE",
             "DEFAULT"
           ]
+        },
+        {
+          "action": "VIEW",
+          "category": [
+            "DEFAULT",
+            "BROWSABLE"
+          ],
+          "data": [
+            {
+              "scheme": "content"
+            },
+            {
+              "scheme": "file"
+            },
+            {
+              "host": "*"
+            },
+            {
+              "mimeType": "*/*"
+            },
+            {
+              "pathPattern": ".*\\\\.arth"
+            },
+            {
+              "pathPattern": ".*\\\\..*\\\\.arth"
+            },
+            {
+              "pathPattern": ".*\\\\..*\\\\..*\\\\.arth"
+            },
+            {
+              "pathPattern": ".*\\\\..*\\\\..*\\\\..*\\\\.arth"
+            },
+            {
+              "pathPattern": ".*\\\\..*\\\\..*\\\\..*\\\\..*\\\\.arth"
+            },
+            {
+              "pathPattern": ".*\\\\.artha"
+            },
+            {
+              "pathPattern": ".*\\\\..*\\\\.artha"
+            },
+            {
+              "pathPattern": ".*\\\\..*\\\\..*\\\\.artha"
+            },
+            {
+              "pathPattern": ".*\\\\..*\\\\..*\\\\..*\\\\.artha"
+            },
+            {
+              "pathPattern": ".*\\\\..*\\\\..*\\\\..*\\\\..*\\\\.artha"
+            }
+          ]
         }
       ]
     },

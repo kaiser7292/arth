@@ -478,6 +478,40 @@ export async function pickAndValidateBackupFile(): Promise<PickedBackupFile | nu
   if (ext !== ".arth" && ext !== ".artha" && ext !== ".json") {
     throw new Error(`Unsupported file type "${ext}". Select a .arth or .json Arth backup file.`);
   }
+  return validateBackupAt(asset.uri, asset.name, asset.size ?? null, ext === ".json");
+}
+
+/**
+ * A backup opened from another app ("Open with Arth"). Android hands over a content:// or
+ * file:// address, often without the file's name, so it's copied into Arth's cache and checked by
+ * what's inside rather than its name: an encrypted backup's header, else a plain auto-backup.
+ */
+export async function importIncomingBackup(incomingUri: string): Promise<PickedBackupFile> {
+  const { cacheDirectory, copyAsync } = await import("expo-file-system/legacy");
+  const dest = `${cacheDirectory}incoming-backup-${Date.now()}`;
+  try {
+    await copyAsync({ from: incomingUri, to: dest });
+  } catch {
+    throw new Error("Couldn't open that file. Save it to your phone first, then choose it from Restore.");
+  }
+  const name = decodeURIComponent(incomingUri.split("/").pop() ?? "").split("?")[0] || "Backup file";
+  const size = new File(dest).size ?? null;
+  try {
+    return await validateBackupAt(dest, name, size, false);
+  } catch (e) {
+    // Not an encrypted backup: it may be a plain auto-backup (.json).
+    try {
+      return await validateBackupAt(dest, name, size, true);
+    } catch {
+      throw e;
+    }
+  }
+}
+
+/** Checks shared by a picked file and an incoming one: size, then what's inside. */
+async function validateBackupAt(uri: string, name: string, size: number | null, isJson: boolean): Promise<PickedBackupFile> {
+  const asset = { uri, name, size };
+  const ext = isJson ? ".json" : ".arth";
 
   // Validate file size
   if (asset.size && asset.size > MAX_BACKUP_FILE_SIZE) {
