@@ -14,7 +14,7 @@
 
 Built with React Native and Expo. Open source. No data leaves your phone.
 
-**Current version: v4.21.1** · [All releases](https://github.com/kaiser7292/arth/releases)
+**Current version: v4.22.0** · [All releases](https://github.com/kaiser7292/arth/releases)
 
 ---
 
@@ -187,6 +187,7 @@ artha/
 
 | Version | Highlights |
 |---------|-----------|
+| **v4.22** | Onboarding asks AI assisted or manual setup and shows only that route's steps; calm, even motion on the progress screens; ignore any account's messages (and track it again); XX304 / XX9304 recognised as one account |
 | **v4.21** | Payments between your own accounts and card bill payments become real transfers from either side, with a review for past ones; Add account arrives filled in; AI setup shows what you pasted and its progress (and is much faster), and never asks questions first; onboarding shows progress while reading messages, lets you ignore found accounts and see where they came from; new categories get fitting icons; Loan A/c no longer saved as savings; brokers can create their account from the link picker |
 | **v4.20** | Year in Review as an animated story with music (favourite merchants podium, bubbles, rising bars, confetti); message templates grouped in closed bank cards; card "Avl limit" read as the balance; dates tagged without the time work; open / closed status on account cards; smoother Year over Year chart drag |
 | **v4.19** | Teach a message by confirming Arth's guess (grouped by format, learns from your templates, compares similar messages); templates grouped by bank; fields with spaces (17 - 10 - 26); default payment mode fixed; savings accounts no longer turn into credit cards, and duplicate accounts can be merged; AI suggestions build on your existing setup; faster SMS scans; Year in Review no longer stuck loading; Year over Year chart drag |
