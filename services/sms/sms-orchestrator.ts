@@ -9,6 +9,7 @@
  * logged with per-SMS detail for the Scan Runs UI.
  */
 
+import { logger } from "@/utils/logger";
 import {
   checkForNewBankSMS,
   manualScan as manualReadSms,
@@ -292,6 +293,20 @@ export async function runSmsScan(
         smsAddress: sms.address,
         category: "skipped",
       });
+    }
+
+    // Transfers between the user's own accounts, now that both halves of each are in: the order
+    // the messages were read in no longer decides whether a payment counts as spending.
+    if (passed.length > 0) {
+      try {
+        const oldest = Math.min(...passed.map((p) => p.smsDate ?? Date.now()));
+        const d = new Date(oldest - 4 * 86400000);
+        const since = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const { settleTransfersAfterScan } = await import("@/services/transfer-detect");
+        await settleTransfersAfterScan(DEFAULT_USER_ID, since);
+      } catch (e) {
+        logger.warn("Settling transfers after the scan failed (non-fatal):", e);
+      }
     }
 
     const durationMs = Date.now() - startTime;

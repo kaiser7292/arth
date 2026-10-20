@@ -217,6 +217,28 @@ export async function resolveSelfTransfer(
     }
   }
 
+  // The other half isn't here. A debit that clearly names one of the user's accounts or cards
+  // becomes the transfer now (its credit joins it when that arrives); a credit joins a transfer
+  // already waiting for it.
+  try {
+    const { attachCreditToWaitingTransfer, convertDebitToTransfer, destinationForDebit } = await import("@/services/transfer-detect");
+    if (side === "debit") {
+      const full = await db.getFirstAsync<{ merchant_name: string | null; raw_source_text: string | null }>(
+        `SELECT merchant_name, raw_source_text FROM expenses WHERE id = ?;`,
+        row.id,
+      );
+      const dest = await destinationForDebit(userId, { account_id: row.account_id, merchant_name: full?.merchant_name ?? null, raw_source_text: full?.raw_source_text ?? null });
+      if (dest) {
+        await convertDebitToTransfer(userId, row.id, dest.accountId);
+        return "paired";
+      }
+    } else if (await attachCreditToWaitingTransfer(userId, row.id)) {
+      return "paired";
+    }
+  } catch (e) {
+    logger.warn("Transfer from one side failed (non-fatal):", e);
+  }
+
   if (strong(signals)) {
     await setMoneyEvent(row.id, "self_transfer");
     return "flagged";

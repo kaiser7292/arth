@@ -345,6 +345,13 @@ export async function createExpenseFromSms(
     // No auto-approve here: approving a forecast-linked CC payment needs the
     // source-account picker in the review queue.
     const appliedRuleIds = await applyRulesToSmsCredit(expenseId, rawBody, { allowAutoApprove: false });
+    // The bank's side of this payment may already be a transfer to this card: join it.
+    try {
+      const { attachCreditToWaitingTransfer } = await import("@/services/transfer-detect");
+      await attachCreditToWaitingTransfer(userId, expenseId);
+    } catch (e) {
+      logger.warn("Card payment to transfer failed (non-fatal):", e);
+    }
 
     await markSmsProcessed(pendingSmsId, expenseId);
     await bumpDataVersion();

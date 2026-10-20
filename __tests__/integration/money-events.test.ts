@@ -100,7 +100,8 @@ beforeEach(async () => {
 describe("self-transfer pairing", () => {
   it("debit first, then credit → one transfer, both rows reclassified", async () => {
     const debitId = (await receive("VM-HDFCBK", HDFC_IMPS_30K))!;
-    expect(row(debitId).money_event).toBe("self_transfer"); // names an own account, other side not in yet
+    // Names one of your accounts: a transfer straight away, before the other side is in.
+    expect(row(debitId).reclassified_as_transfer).toBe(1);
     const creditId = (await receive("VM-SBIINB", SBI_CREDIT_30K))!;
 
     const t = transfers();
