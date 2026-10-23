@@ -3,10 +3,7 @@ import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { parseNLQuery } from "@/utils/nl-search";
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from "expo-speech-recognition";
+import { isSpeechRecognitionAvailable, SpeechRecognition, useSpeechRecognitionEvent } from "@/services/speech-recognition";
 import { View, FlatList, Pressable, TextInput, ScrollView } from "react-native";
 import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
@@ -589,17 +586,17 @@ export default function ExpensesScreen() {
   });
 
   const startVoiceSearch = useCallback(async () => {
-    const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    const { granted } = await SpeechRecognition.requestPermissionsAsync();
     if (!granted) {
       toast("Voice search needs the microphone. You can allow it in the phone's settings.");
       return;
     }
     setIsVoiceSearching(true);
-    ExpoSpeechRecognitionModule.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
+    SpeechRecognition.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
   }, [toast]);
 
   const cancelVoiceSearch = useCallback(() => {
-    ExpoSpeechRecognitionModule.abort();
+    SpeechRecognition.abort();
     setIsVoiceSearching(false);
   }, []);
 
@@ -883,19 +880,21 @@ export default function ExpensesScreen() {
               <Text className="text-xs font-semibold text-primary-foreground">Apply</Text>
             </Pressable>
           )}
-          {/* Voice search mic */}
-          <Pressable
-            onPress={isVoiceSearching ? cancelVoiceSearch : startVoiceSearch}
-            accessibilityLabel={isVoiceSearching ? "Cancel voice search" : "Voice search"}
-            accessibilityRole="button"
-            className="ml-2 p-1"
-          >
-            <Ionicons
-              name={isVoiceSearching ? "radio-button-on" : "mic-outline"}
-              size={18}
-              color={isVoiceSearching ? theme.danger : colors.textSecondary}
-            />
-          </Pressable>
+          {/* Voice search mic (only when the build has speech recognition) */}
+          {isSpeechRecognitionAvailable && (
+            <Pressable
+              onPress={isVoiceSearching ? cancelVoiceSearch : startVoiceSearch}
+              accessibilityLabel={isVoiceSearching ? "Cancel voice search" : "Voice search"}
+              accessibilityRole="button"
+              className="ml-2 p-1"
+            >
+              <Ionicons
+                name={isVoiceSearching ? "radio-button-on" : "mic-outline"}
+                size={18}
+                color={isVoiceSearching ? theme.danger : colors.textSecondary}
+              />
+            </Pressable>
+          )}
           <Pressable
             onPress={() => setShowFilters(!showFilters)}
             accessibilityLabel={showFilters ? "Hide filters" : "Show filters"}

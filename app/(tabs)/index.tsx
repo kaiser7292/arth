@@ -18,6 +18,7 @@ import { formatError } from "@/utils/error-message";
 import { BankBalanceSummary } from "@/components/home/BankBalanceSummary";
 import { CreditCardDashboard } from "@/components/home/CreditCardDashboard";
 import { VoiceEntrySheet } from "@/components/home/VoiceEntrySheet";
+import { isSpeechRecognitionAvailable } from "@/services/speech-recognition";
 import { LoanSummaryCard } from "@/components/home/LoanSummaryCard";
 import { MinBalanceAlert } from "@/components/home/MinBalanceAlert";
 import { SelfNamePromptCard } from "@/components/home/SelfNamePromptCard";
@@ -349,7 +350,7 @@ export default function HomeScreen() {
 
   const smsScanIcon: "sync-outline" | "scan-outline" = smsScanning ? "sync-outline" : "scan-outline";
   const homeHeaderActions = [
-    { icon: "mic-outline" as const, onPress: () => setShowVoiceSheet(true) },
+    ...(isSpeechRecognitionAvailable ? [{ icon: "mic-outline" as const, onPress: () => setShowVoiceSheet(true) }] : []),
     {
       icon: amountsHidden ? "eye-off-outline" as const : "eye-outline" as const,
       onPress: handleToggleAmountsHidden,

@@ -7,10 +7,7 @@ import * as Speech from "expo-speech";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from "expo-speech-recognition";
+import { SpeechRecognition, useSpeechRecognitionEvent } from "@/services/speech-recognition";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { parseVoiceInput } from "@/utils/voice-parser";
 import type { Category } from "@/services/category";
@@ -275,7 +272,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
 
   const doStartListening = () => {
     setVoiceState("listening");
-    ExpoSpeechRecognitionModule.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
+    SpeechRecognition.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
   };
 
   const doAsk = (question: string, field: PendingField) => {
@@ -408,14 +405,14 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
       resetRefs();
       setVoiceState("idle");
       const timer = setTimeout(async () => {
-        const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+        const { granted } = await SpeechRecognition.requestPermissionsAsync();
         if (!granted) { onClose(); return; }
         doStartListening();
       }, 400);
       return () => clearTimeout(timer);
     } else {
       Speech.stop();
-      ExpoSpeechRecognitionModule.abort();
+      SpeechRecognition.abort();
       setVoiceState("idle");
       setCurrentQuestion("");
       currentQuestionRef.current = "";
@@ -562,7 +559,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
 
   const handleCancel = () => {
     Speech.stop();
-    ExpoSpeechRecognitionModule.abort();
+    SpeechRecognition.abort();
     setVoiceState("idle");
     setCurrentQuestion("");
     currentQuestionRef.current = "";
@@ -571,7 +568,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
 
   const handleDoneSoFar = () => {
     Speech.stop();
-    ExpoSpeechRecognitionModule.abort();
+    SpeechRecognition.abort();
     setCurrentQuestion("");
     currentQuestionRef.current = "";
     if (session.sessionType === "transfer") {
