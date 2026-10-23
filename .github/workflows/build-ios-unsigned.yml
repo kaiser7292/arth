@@ -1,0 +1,62 @@
+name: Build iOS (unsigned, for sideloading)
+
+# An unsigned iPhone build (.ipa) for testing on a real iPhone without a paid Apple Developer
+# account: Sideloadly (Windows) signs it with a free Apple ID and installs it over USB. Free Apple
+# ID installs stop opening after 7 days; run this again (or just reinstall) to refresh.
+# Started by hand only (Actions > Build iOS > Run workflow, or `gh workflow run build-ios-unsigned.yml`).
+# GitHub's macOS runners are free for public repositories.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies (applies patches/ on postinstall)
+        run: npm ci
+
+      - name: Generate the iOS project
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Install pods
+        working-directory: ios
+        run: pod install
+
+      - name: Build (no code signing)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace ios/Arth.xcworkspace \
+            -scheme Arth \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Arth.xcarchive" \
+            archive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            | tail -n 80
+
+      - name: Package as .ipa
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          BUILD=$(node -p "require('./app.json').expo.ios.buildNumber || '1'")
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$RUNNER_TEMP/Arth.xcarchive/Products/Applications/Arth.app" "$RUNNER_TEMP/ipa/Payload/"
+          echo "Extensions:"; ls "$RUNNER_TEMP/ipa/Payload/Arth.app/PlugIns" 2>/dev/null || echo "(none)"
+          (cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/Arth-$VERSION-$BUILD-unsigned.ipa" Payload)
+          ls -la "$GITHUB_WORKSPACE"/*.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Arth-ios-unsigned
+          path: "*.ipa"
+          retention-days: 14
