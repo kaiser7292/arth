@@ -1,14 +1,21 @@
 /**
  * What a payment screenshot says, from its recognised text: an expense, money received, a
  * transfer between your own accounts, or a committed payment (EMI, SIP, autopay) - with the
- * amount, date, who was paid or who paid, the account, the reference and the app it came from.
+ * amount, date, who was paid or who paid, their UPI address, the account, the reference and the app.
  *
- * Pure: takes the lines the phone's text recognition returned (expo-text-extractor: ML Kit on
- * Android, Vision on iPhone) and guesses. Payment screens label their fields ("Paid to", "Paid
- * from", "UPI transaction ID"), so most of this is "the line after the label". Recognition often
- * reads ₹ as 7, %, Z or F; amounts allow for that. Everything is a suggestion the user confirms on
- * the Add screen.
+ * Pure. Input is what the phone's text recognition returned (modules/arth-text-reader: ML Kit on
+ * Android, Vision on iPhone) - lines with their position and size on screen - or plain lines.
+ *
+ * Label first (the approach that holds up across layouts, after vetrisuriya/ledgerlens): payment
+ * receipts print headings ("Paid to", "Debited from", "UPI transaction ID") and the value sits beside
+ * or beneath. Lessons from expenseMonster's parser tests: the status bar clock is not the payment
+ * time; Google Pay's "From NAME" at the top is money received; a payee's @paytm address doesn't make
+ * the screenshot Paytm; PhonePe puts the amount between "Paid to" and the name; recognition reads ₹
+ * as 7, %, Z or F. A field that can't be read with confidence is left empty, never guessed - the
+ * Add screen shows what was read and the user confirms everything.
  */
+
+import type { TextLine } from "../../modules/arth-text-reader";
 
 export type ReceiptKind = "expense" | "credit" | "transfer" | "committed";
 
@@ -21,15 +28,19 @@ export interface ReceiptGuess {
   time: string | null;
   /** Who was paid (expense, committed) or who paid you (credit). */
   party: string | null;
+  /** The other side's UPI address, when shown ("ramesh.k@okaxis"). */
+  vpa: string | null;
   /** The account the money left (expense, transfer) or arrived in (credit). */
   account: AccountHint | null;
   /** Transfers: the other account. */
   toAccount: AccountHint | null;
   ref: string | null;
-  /** Google Pay, PhonePe, Paytm, Amazon Pay, CRED, a bank's app... */
+  /** Google Pay, PhonePe, Paytm, Amazon Pay, CRED, BHIM, a bank's app... */
   app: string | null;
   /** True when the screenshot says the payment failed or is pending. */
   notCompleted: boolean;
+  /** Everything that was read, in reading order - for "Show what was read". */
+  text: string;
 }
 
 export interface AccountHint {
@@ -40,44 +51,80 @@ export interface AccountHint {
   wallet: boolean;
 }
 
+/** A line of the screenshot; position and size are fractions of the image (0..1), when known. */
+interface Line {
+  text: string;
+  y: number;
+  height: number;
+}
+
 const MONTHS: Record<string, number> = {
   jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12,
 };
 
 const APPS: [RegExp, string][] = [
-  [/\bg\s?pay\b|google\s*pay/i, "Google Pay"],
-  [/phone\s*pe/i, "PhonePe"],
-  [/\bpaytm\b/i, "Paytm"],
+  [/\bg\s?pay\b|google\s*pay|google\s*transaction\s*id/i, "Google Pay"],
+  [/phone\s*pe|transfer\s*details|transaction\s*id\s*:?\s*T\d{18,}/i, "PhonePe"],
   [/amazon\s*pay/i, "Amazon Pay"],
+  [/\bpaytm\b/i, "Paytm"],
   [/\bcred\b/i, "CRED"],
   [/\bbhim\b/i, "BHIM"],
   [/mobikwik/i, "MobiKwik"],
-  [/\bslice\b/i, "slice"],
   [/whatsapp\s*pay/i, "WhatsApp Pay"],
+  [/\bslice\b/i, "slice"],
+  [/\bnavi\b/i, "Navi"],
+  [/super\.?money/i, "super.money"],
 ];
 
-const BANKS = /\b(hdfc|icici|sbi|state bank|axis|kotak|yes bank|indusind|idfc|federal|rbl|au small finance|bank of baroda|canara|pnb|punjab national|union bank|indian bank|bandhan|dbs|hsbc|citi|standard chartered|airtel payments|paytm payments|fino|jupiter|fi\b|niyo)[a-z ]*?(?:bank)?\b/i;
+const BANKS =
+  /\b(?:hdfc|icici|sbi|state bank(?: of india)?|axis|kotak(?: mahindra)?|yes bank|indusind|idfc(?: first)?|federal|rbl|au small finance|bank of baroda|canara|pnb|punjab national|union bank|indian bank|bandhan|dbs|hsbc|citi|standard chartered|airtel payments|paytm payments|fino|jupiter|niyo|equitas|ujjivan)(?:\s*bank)?\b/i;
 
-/** Labels whose value is on the next line (or after a colon on the same line). */
-const LABEL = {
-  party: /^(?:paid to|sent to|payment to|paying|to|payee|merchant|paid successfully to|transferred to|received from|from|sender|money received from)\s*:?$/i,
-  partyInline: /^(?:paid to|sent to|payment to|to|payee|merchant|transferred to|received from|money received from)\s*:?\s+(.+)$/i,
-  account: /^(?:paid from|debited from|from account|from|pay(?:ment)? (?:using|via|from)|source|bank account|account|credited to|deposited to|to account|received in)\s*:?$/i,
-  accountInline: /^(?:paid from|debited from|from account|pay(?:ment)? (?:using|via|from)|credited to|deposited to|received in)\s*:?\s+(.+)$/i,
-  ref: /(?:upi\s*(?:transaction\s*|txn\s*|ref(?:erence)?\s*)?(?:id|no\.?|number)|utr(?:\s*no\.?)?|transaction\s*id|txn\s*id|order\s*id|reference\s*(?:id|no\.?|number)|ref\.?\s*no\.?|google\s*transaction\s*id)\s*:?\s*([A-Za-z0-9-]{6,})?/i,
-};
+const VPA = /\b([a-z0-9][a-z0-9._-]{1,60}@[a-z][a-z0-9.]{1,30})\b/i;
 
-const isAmountish = (l: string) => /^[₹%7zZfF*]?\s*(?:rs\.?|inr)?\s*[\d,]+(?:\.\d{1,2})?$/i.test(l.trim());
-const isDateish = (l: string) => parseDate(l) != null || /\b\d{1,2}:\d{2}\s*(?:am|pm)?\b/i.test(l);
+/** Label lines whose value follows on the next line, or after the label on the same line. */
+const PARTY_LABEL = /^(?:paid to|sent to|payment to|paying|to|payee|merchant|paid successfully to|transferred to|received from|from|sender|money received from)\s*:?$/i;
+const PARTY_INLINE = /^(?:paid to|sent to|payment to|to|payee|merchant|transferred to|received from|money received from|from)\s*:?\s+(.+)$/i;
+const ACCOUNT_LABEL = /^(?:paid from|debited from|from account|pay(?:ment)? (?:using|via|from)|source|bank account|credited to|deposited to|to account|received in|paid using)\s*:?$/i;
+const ACCOUNT_INLINE = /^(?:paid from|debited from|from account|pay(?:ment)? (?:using|via|from)|credited to|deposited to|received in|paid using)\s*:?\s+(.+)$/i;
+const REF =
+  /(?:upi\s*(?:transaction\s*|txn\s*|ref(?:erence)?\s*)?(?:id|no\.?|number)|utr(?:\s*no\.?)?|transaction\s*id|txn\s*id|order\s*id|reference\s*(?:id|no\.?|number)|ref\.?\s*no\.?)\s*:?\s*([A-Za-z0-9-]{6,})?/i;
+
+const AMOUNTISH = /^(?:[₹%zZfF*]|rs\.?|inr)?\s*[\d,]+(?:\.\d{1,2})?$/i;
+const isAmountish = (l: string) => AMOUNTISH.test(l.trim());
 const isStatus = (l: string) =>
-  /^(?:paid|payment|transaction|money|amount)?\s*(?:successful(?:ly)?|success|completed|done|received|sent|paid|failed|pending|processing|declined)\b/i.test(l) ||
-  /^(?:paid|sent|received)\s+successfully$/i.test(l);
+  /^(?:payment|transaction|money|amount|transfer|autopay)?\s*(?:successful(?:ly)?|success|completed|done|received|sent|paid|failed|pending|processing|declined)\b/i.test(l) ||
+  /^(?:paid|sent|received)\s+successfully$/i.test(l) ||
+  /^(?:transaction|payment)\s+(?:successful|failed|pending)/i.test(l);
+const isLabel = (l: string) => PARTY_LABEL.test(l) || ACCOUNT_LABEL.test(l) || /^(?:upi\s*transaction\s*id|transaction\s*id|utr|order\s*id|date|time|date and time|note|message)\s*:?$/i.test(l);
 
-function clean(lines: string[]): string[] {
-  return lines
-    .flatMap((l) => l.split(/\r?\n/))
-    .map((l) => l.replace(/\s+/g, " ").trim())
-    .filter((l) => l.length > 0);
+/** Status bar bits at the very top of a screenshot: the clock, network, battery. */
+const STATUS_BAR = /^(?:\d{1,2}:\d{2}|vo\s*lte|lte|5g|4g|\d{1,3}%?|[\s|•·⋅*]+|wi-?fi)$/i;
+
+function toLines(input: (string | TextLine)[]): Line[] {
+  if (input.length === 0) return [];
+  if (typeof input[0] === "string") {
+    return (input as string[])
+      .flatMap((l) => l.split(/\r?\n/))
+      .map((l) => l.replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .map((text, i) => ({ text, y: i / 1000, height: 0 }));
+  }
+  const raw = (input as TextLine[]).filter((l) => l.text.trim()).map((l) => ({ ...l, text: l.text.replace(/\s+/g, " ").trim() }));
+  // The status bar: short clock / signal / battery bits in the top 4%.
+  const body = raw.filter((l) => !(l.y < 0.04 && STATUS_BAR.test(l.text)));
+  // Join text on the same row, left to right ("Order ID" .... "P04-266…").
+  body.sort((a, b) => a.y - b.y || a.x - b.x);
+  const rows: { parts: TextLine[] }[] = [];
+  for (const l of body) {
+    const row = rows[rows.length - 1];
+    const ref = row?.parts[0];
+    if (ref && Math.abs(l.y - ref.y) < Math.max(ref.height, l.height) * 0.5) row.parts.push(l);
+    else rows.push({ parts: [l] });
+  }
+  return rows.map((r) => {
+    const parts = r.parts.sort((a, b) => a.x - b.x);
+    return { text: parts.map((p) => p.text).join(" "), y: parts[0].y, height: Math.max(...parts.map((p) => p.height)) };
+  });
 }
 
 function money(raw: string): number | null {
@@ -85,33 +132,39 @@ function money(raw: string): number | null {
   return Number.isFinite(n) && n > 0 && n < 1e9 ? n : null;
 }
 
-/** The transaction amount: after ₹ / Rs / INR, or a line that's only an amount - not a balance or cashback. */
-function findAmount(lines: string[]): number | null {
-  const skip = /balance|bal\b|cashback|reward|limit|coins?|points?|saved|discount|fee waived/i;
-  const candidates: { value: number; at: number; strong: boolean }[] = [];
+/** The payment amount: after ₹/Rs/INR or a line that's only an amount; biggest on screen first; never a balance or cashback. */
+function findAmount(lines: Line[]): number | null {
+  const skip = /balance|bal\b|cashback|reward|limit|coins?|points?|saved|discount|fee waived|scratch/i;
+  const found: { value: number; at: number; strong: boolean; height: number }[] = [];
   lines.forEach((l, i) => {
-    if (skip.test(l) || skip.test(lines[i - 1] ?? "")) return;
+    if (skip.test(l.text) || skip.test(lines[i - 1]?.text ?? "")) return;
     const re = /(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d{1,2})?)/gi;
-    for (let m = re.exec(l); m; m = re.exec(l)) {
+    for (let m = re.exec(l.text); m; m = re.exec(l.text)) {
       const v = money(m[1]);
-      if (v) candidates.push({ value: v, at: i, strong: true });
+      if (v) found.push({ value: v, at: i, strong: true, height: l.height });
     }
-    // A line that's just the amount, possibly with ₹ misread as 7 % Z F *.
-    // Without a symbol it needs a comma or decimal point: bare digit runs are ids and phone numbers.
-    const only = l.match(/^([₹%zZfF*]|7(?=\s?[\d,]+\.\d{2}$))?\s*([\d,]+(?:\.\d{1,2})?)$/);
+    // Just an amount, possibly with ₹ misread as 7 % Z F *. Without a symbol it needs a comma or
+    // decimal point: bare digit runs are ids and phone numbers.
+    const only = l.text.match(/^([₹%zZfF*]|7(?=\s?[\d,]+\.\d{2}$))?\s*([\d,]+(?:\.\d{1,2})?)$/);
     if (only && (only[1] || /[,.]/.test(only[2]))) {
       const v = money(only[2]);
-      if (v) candidates.push({ value: v, at: i, strong: !!only[1] });
+      if (v) found.push({ value: v, at: i, strong: !!only[1], height: l.height });
     }
   });
-  if (candidates.length === 0) return null;
-  // Near the status line ("Paid successfully") first, then the first strong one.
-  const statusAt = lines.findIndex(isStatus);
+  if (found.length === 0) return null;
+  // With sizes: the tallest amount is the headline.
+  const tallest = Math.max(...found.map((f) => f.height));
+  if (tallest > 0) {
+    const big = found.filter((f) => f.height >= tallest * 0.85);
+    if (big.length) return big[0].value;
+  }
+  // Without: the one nearest the status line ("Paid successfully"), else the first with a ₹.
+  const statusAt = lines.findIndex((l) => isStatus(l.text));
   if (statusAt >= 0) {
-    const near = candidates.filter((c) => Math.abs(c.at - statusAt) <= 2).sort((a, b) => Math.abs(a.at - statusAt) - Math.abs(b.at - statusAt));
+    const near = found.filter((f) => Math.abs(f.at - statusAt) <= 2).sort((a, b) => Math.abs(a.at - statusAt) - Math.abs(b.at - statusAt));
     if (near.length) return near[0].value;
   }
-  return (candidates.find((c) => c.strong) ?? candidates[0]).value;
+  return (found.find((f) => f.strong) ?? found[0]).value;
 }
 
 export function parseDate(text: string, today: Date = new Date()): string | null {
@@ -149,105 +202,166 @@ function parseTime(text: string): string | null {
 function accountFrom(text: string): AccountHint | null {
   const t = text.trim();
   if (!t) return null;
-  const digits = t.match(/(?:[x*•·]{2,}\s*|ending\s*(?:with\s*)?|a\/c\s*(?:no\.?\s*)?|\s)(\d{4})\b/i)?.[1] ?? null;
-  const wallet = /gift\s*card|wallet|upi\s*lite|balance|pay\s*later|cash/i.test(t);
+  const digits =
+    t.match(/(?:[x*•·]{2,}\s*|ending\s*(?:with\s*)?|a\/c\s*(?:no\.?\s*)?)(\d{4})\b/i)?.[1] ??
+    t.match(/\b(?:bank|card)\s+(\d{4})\b/i)?.[1] ??
+    null;
+  const wallet = /gift\s*card|wallet|upi\s*lite|pay\s*later|\bcash\b/i.test(t);
   const bank = t.match(BANKS)?.[0]?.trim();
-  const label = (bank ?? t.replace(/[x*•·]{2,}\s*\d{4}/i, "").replace(/\s+/g, " ").trim()) || t;
   if (!digits && !wallet && !bank) return null;
+  const label = (bank ?? t.replace(/[x*•·]{2,}\s*\d{4}/i, "").replace(/\s+/g, " ").trim()) || t;
   return { label: label.slice(0, 40), last4: digits, wallet };
 }
 
-/** The value on the line after a label line, skipping amounts, dates and status lines. */
-function after(lines: string[], i: number): string | null {
-  for (let j = i + 1; j < Math.min(lines.length, i + 3); j++) {
-    const v = lines[j];
-    if (!isAmountish(v) && !isDateish(v) && !isStatus(v) && !Object.values(LABEL).some((re) => re.test(v) && re !== LABEL.ref)) return v;
+/** The value on the line after a label, skipping amounts, dates, statuses, addresses and other labels. */
+function after(lines: Line[], i: number, allowAccount = false): string | null {
+  for (let j = i + 1; j < Math.min(lines.length, i + 4); j++) {
+    const v = lines[j].text;
+    if (isAmountish(v) || isStatus(v) || isLabel(v) || parseDate(v) || /^\+?\d[\d\s-]{8,}$/.test(v) && !allowAccount) continue;
+    if (VPA.test(v) && v.match(VPA)![0].length >= v.length - 2) continue;
+    return v;
   }
   return null;
 }
 
-export function readReceipt(rawLines: string[], today: Date = new Date()): ReceiptGuess {
-  const lines = clean(rawLines);
-  const all = lines.join("\n");
+/** "SHREE GANESH MEDICALS" -> "Shree Ganesh Medicals"; mixed case is left alone. */
+function tidyName(name: string): string {
+  const n = name.replace(/\s*[x*•·]{2,}\s*\d{4}$/, "").replace(/\s*\((?:[^)]*bank[^)]*)\)\s*$/i, "").trim();
+  if (n !== n.toUpperCase() || !/[A-Z]/.test(n)) return n;
+  return n.toLowerCase().replace(/\b([a-z])/g, (c) => c.toUpperCase());
+}
 
-  // Kind, from the strongest wording.
+export function readReceipt(input: (string | TextLine)[], today: Date = new Date()): ReceiptGuess {
+  const lines = toLines(input);
+  const text = lines.map((l) => l.text).join("\n");
+  // App and kind are read without UPI addresses ("chaipoint@paytm" isn't a Paytm screenshot).
+  const words = text.replace(new RegExp(VPA.source, "gi"), " ");
+
+  // Kind, from the strongest wording; then Google Pay's "To NAME" / "From NAME" headline.
   let kind: ReceiptKind = "expense";
-  if (/self\s*transfer|to\s*self\b|own\s*account|between\s*your\s*accounts|transferred\s*to\s*your\s*(?:own\s*)?(?:account|a\/c)/i.test(all)) kind = "transfer";
-  else if (/\bemi\b|auto\s*-?\s*pay|auto\s*-?\s*debit|e?-?mandate|\bsip\b|systematic\s*investment|mutual\s*fund|loan\s*(?:repayment|instal)|instal+ment/i.test(all)) kind = "committed";
-  else if (/received\s*from|money\s*received|you\s*received|credited\s*(?:to|in)|refund(?:ed)?\s*(?:of|to|credited)|cashback\s*(?:of|received)|payment\s*received/i.test(all)) kind = "credit";
+  const top = lines.slice(0, Math.max(4, Math.ceil(lines.length * 0.35)));
+  if (/self\s*transfer|to\s*self\b|own\s*account|between\s*your\s*accounts|transferred\s*to\s*your\s*(?:own\s*)?(?:account|a\/c)/i.test(words)) kind = "transfer";
+  else if (/\bemi\b|auto\s*-?\s*pay|auto\s*-?\s*debit|e?-?mandate|\bsip\b|systematic\s*investment|mutual\s*fund|loan\s*(?:repayment|instal)|instal+ment/i.test(words)) kind = "committed";
+  else if (/received\s*(?:from|successfully)|money\s*received|you\s*received|credited\s*(?:to|in)|refund(?:ed)?\s*(?:of|to|credited)|cashback\s*(?:of|received)|payment\s*received/i.test(words)) kind = "credit";
+  else if (top.some((l) => /^from\s+\S/i.test(l.text)) && !top.some((l) => /^(?:to|paid to)\s+\S/i.test(l.text))) kind = "credit";
 
-  const notCompleted = /\b(?:failed|declined|pending|processing|unsuccessful|cancelled|canceled)\b/i.test(all) && !/\bsuccess(?:ful(?:ly)?)?\b/i.test(all);
+  const notCompleted = /\b(?:failed|declined|pending|processing|unsuccessful|cancelled|canceled)\b/i.test(words) && !/\bsuccess(?:ful(?:ly)?)?\b|completed/i.test(words);
 
-  // Party, account, other account.
+  // Who: for money received the payer ("from"), otherwise the payee ("to").
+  const wantFrom = kind === "credit";
   let party: string | null = null;
   const accounts: AccountHint[] = [];
   lines.forEach((l, i) => {
-    const pin = l.match(LABEL.partyInline);
-    if (!party && pin && !LABEL.account.test(l)) {
-      const v = pin[1].replace(/^:\s*/, "");
-      if (!isAmountish(v)) {
-        const acct = accountFrom(v);
-        if (kind === "transfer" && acct) accounts.push(acct);
-        else party = v;
-      }
-    } else if (!party && LABEL.party.test(l)) {
+    const t = l.text;
+    const inline = t.match(PARTY_INLINE);
+    const isFrom = /^(?:from|received from|money received from|sender)\b/i.test(t);
+    const sideOk = kind === "transfer" || isFrom === wantFrom;
+    if (inline && !ACCOUNT_INLINE.test(t)) {
+      const v = inline[1].replace(/^:\s*/, "").trim();
+      const acct = accountFrom(v);
+      if (kind === "transfer" && acct) accounts.push(acct);
+      else if (!party && sideOk && !isAmountish(v)) party = v;
+      else if (acct && (acct.last4 || acct.wallet) && !sideOk) accounts.push(acct);
+    } else if (PARTY_LABEL.test(t)) {
       const v = after(lines, i);
       if (v) {
         const acct = accountFrom(v);
-        if ((kind === "transfer" || /^from$/i.test(l)) && acct && (acct.last4 || acct.wallet)) accounts.push(acct);
-        else party = v;
+        if (kind === "transfer" && acct) accounts.push(acct);
+        else if (!party && sideOk) party = v;
+        else if (acct && (acct.last4 || acct.wallet)) accounts.push(acct);
       }
     }
-    const ain = l.match(LABEL.accountInline);
+    const ain = t.match(ACCOUNT_INLINE);
     if (ain) {
       const a = accountFrom(ain[1]);
       if (a) accounts.push(a);
-    } else if (LABEL.account.test(l)) {
-      const v = after(lines, i);
+    } else if (ACCOUNT_LABEL.test(t)) {
+      const v = after(lines, i, true);
       const a = v ? accountFrom(v) : null;
       if (a) accounts.push(a);
     }
   });
-  // Masked digits anywhere ("HDFC Bank •••• 0221") when no label gave an account.
+  // Masked digits anywhere ("HDFC Bank •••• 0221", "XXXXXXXX1234") when no label gave an account.
   if (accounts.length === 0) {
     for (const l of lines) {
-      if (/[x*•·]{2,}\s*\d{4}\b/i.test(l)) {
-        const a = accountFrom(l);
+      if (/[x*•·]{2,}\s*\d{4}\b|\b(?:bank|card)\s+\d{4}\b/i.test(l.text)) {
+        const a = accountFrom(l.text);
         if (a) accounts.push(a);
       }
     }
   }
-  const uniq = accounts.filter((a, i) => accounts.findIndex((b) => b.label === a.label && b.last4 === a.last4) === i);
+  // A bank named without digits ("From: PRANAV N (HDFC Bank)") takes them from a line naming the
+  // same bank with them ("HDFC Bank 1234").
+  for (const acct of accounts) {
+    if (acct.last4 || acct.wallet) continue;
+    const bank = acct.label.match(BANKS)?.[0]?.toLowerCase();
+    if (!bank) continue;
+    for (const l of lines) {
+      if (!l.text.toLowerCase().includes(bank.split(" ")[0])) continue;
+      const d = accountFrom(l.text)?.last4;
+      if (d) {
+        acct.last4 = d;
+        break;
+      }
+    }
+  }
+  const distinct = accounts.filter((a, i) => accounts.findIndex((b) => b.label === a.label && b.last4 === a.last4) === i);
+  // One with digits (or a wallet) beats a bank name alone - except for transfers, where order is from, then to.
+  const uniq = kind === "transfer" ? distinct : [...distinct].sort((a, b) => Number(!!b.last4 || b.wallet) - Number(!!a.last4 || a.wallet));
 
-  // Reference.
-  let ref: string | null = null;
-  for (let i = 0; i < lines.length && !ref; i++) {
-    const m = lines[i].match(LABEL.ref);
+  // Their UPI address: the first one that doesn't sit under the other side's "To:" / "From:" line
+  // (Google Pay shows both people's addresses).
+  let vpa: string | null = null;
+  for (let i = 0; i < lines.length && !vpa; i++) {
+    const m = lines[i].text.match(VPA);
     if (!m) continue;
-    ref = m[1] && /\d/.test(m[1]) ? m[1] : (lines[i + 1]?.match(/^[A-Za-z0-9-]{6,}$/)?.[0] ?? null);
+    const owner = [lines[i], lines[i - 1], lines[i - 2]].find((x) => x && /^(?:to|from|paid to|received from)\b/i.test(x.text));
+    const ownerIsFrom = owner ? /^(?:from|received from)\b/i.test(owner.text) : null;
+    if (kind === "transfer" || ownerIsFrom === null || ownerIsFrom === wantFrom) vpa = m[1].toLowerCase();
   }
 
-  // Date and time: the first line that has them.
+  // Reference: the UTR / UPI reference first (what a bank can trace), else any transaction / order id.
+  let ref: string | null = null;
+  for (let i = 0; i < lines.length && !ref; i++) {
+    const m = lines[i].text.match(REF);
+    if (!m) continue;
+    ref = m[1] && /\d/.test(m[1]) ? m[1] : (lines[i + 1]?.text.match(/^[A-Za-z0-9-]{6,}$/)?.[0] ?? null);
+  }
+
+  // Date, and the time from the same line when it has one (never the status bar clock).
   let date: string | null = null;
   let time: string | null = null;
   for (const l of lines) {
-    date ??= parseDate(l, today);
-    time ??= parseTime(l);
-    if (date && time) break;
+    const d = parseDate(l.text, today);
+    if (d) {
+      date = d;
+      time = parseTime(l.text);
+      break;
+    }
+  }
+  if (date && !time) {
+    for (const l of lines) {
+      if (/\b(?:am|pm)\b|\d{1,2}:\d{2}:\d{2}/i.test(l.text)) {
+        time = parseTime(l.text);
+        if (time) break;
+      }
+    }
   }
 
-  const app = APPS.find(([re]) => re.test(all))?.[1] ?? null;
+  const app = APPS.find(([re]) => re.test(words))?.[1] ?? null;
 
   return {
     kind,
     amount: findAmount(lines),
     date,
     time,
-    party: party ? party.replace(/\s*[x*•·]{2,}\s*\d{4}$/, "").slice(0, 60) : null,
+    party: party ? tidyName(party).slice(0, 60) : null,
+    vpa,
     account: uniq[0] ?? null,
-    toAccount: kind === "transfer" ? uniq[1] ?? null : null,
+    toAccount: kind === "transfer" ? (uniq[1] ?? null) : null,
     ref,
     app,
     notCompleted,
+    text,
   };
 }

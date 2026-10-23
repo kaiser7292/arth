@@ -1,0 +1,5 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": { "modules": ["ArthTextReaderModule"] },
+  "android": { "modules": ["expo.modules.arthtextreader.ArthTextReaderModule"] }
+}

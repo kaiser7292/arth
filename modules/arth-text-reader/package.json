@@ -1,0 +1,8 @@
+{
+  "name": "arth-text-reader",
+  "version": "1.0.0",
+  "description": "On-device text recognition with line positions, for reading payment screenshots (ML Kit on Android, Vision on iOS).",
+  "main": "index.ts",
+  "license": "UNLICENSED",
+  "private": true
+}
