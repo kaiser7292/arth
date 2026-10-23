@@ -64,3 +64,4 @@ modules/*/android/.cxx/
 
 # iPhone simulator builds downloaded from EAS for Appetize
 /ios-sim
+/ios-device
