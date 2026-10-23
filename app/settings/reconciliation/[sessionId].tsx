@@ -34,6 +34,7 @@ import {
 } from "@/services/reconciliation/reconciliation-crud";
 import { generateReconciliationPdf } from "@/services/reconciliation/reconciliation-export-pdf";
 import { useTheme } from "@/hooks/use-theme";
+import { shareFile } from "@/services/share-file";
 
 type Tab = "matched" | "missing" | "extra" | "excluded";
 
@@ -309,10 +310,7 @@ export default function ReconciliationSessionScreen() {
         arthBalance,
       );
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: "application/pdf",
-          dialogTitle: "Reconciliation Report",
-        });
+        await shareFile(uri, { mimeType: "application/pdf", dialogTitle: "Reconciliation Report" });
       }
     } catch {
       // Non-fatal — share sheet cancelled or generation failed

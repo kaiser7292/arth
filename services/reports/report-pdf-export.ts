@@ -10,6 +10,7 @@ import type { RetirementReport } from "./retirement-report";
 import type { LoanPayoffReport } from "./loan-payoff-report";
 import type { SpendingPersonalityReport } from "./spending-personality-report";
 import { buildShareLines, monthName, type YearReview } from "./year-review";
+import { shareFile } from "@/services/share-file";
 
 // ─── Helpers ───
 
@@ -1145,9 +1146,6 @@ export async function exportYearReviewPDF(review: YearReview, hideAmounts: boole
 
 export async function sharePDF(fileUri: string): Promise<void> {
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(fileUri, {
-      mimeType: "application/pdf",
-      UTI: "com.adobe.pdf",
-    });
+    await shareFile(fileUri, { mimeType: "application/pdf" });
   }
 }

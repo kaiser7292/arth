@@ -10,6 +10,7 @@ import { exportSettings, type SettingValue } from "@/services/backup-settings";
 import type { RestoreResult } from "@/services/backup";
 import { getDatabase } from "@/database";
 import { logger } from "@/utils/logger";
+import { shareFile } from "@/services/share-file";
 
 const BACKUP_TASK = "ARTHA_SCHEDULED_BACKUP";
 
@@ -228,10 +229,7 @@ export function deleteScheduledBackup(filePath: string): void {
 
 export async function shareScheduledBackup(filePath: string): Promise<void> {
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(filePath, {
-      mimeType: "application/json",
-      dialogTitle: "Save Arth Auto-Backup",
-    });
+    await shareFile(filePath, { mimeType: "application/json", dialogTitle: "Save Arth Auto-Backup" });
   }
 }
 

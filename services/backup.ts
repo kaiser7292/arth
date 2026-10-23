@@ -9,6 +9,7 @@ import { File, Paths } from "expo-file-system";
 import * as SecureStore from "expo-secure-store";
 import * as Sharing from "expo-sharing";
 import Aes from "react-native-aes-crypto";
+import { shareFile } from "@/services/share-file";
 
 // Must match the constant in services/vault.ts
 const VAULT_KEY_STORE = "arth_vault_master_key";
@@ -383,10 +384,8 @@ export async function createBackup(password: string): Promise<BackupResult> {
  */
 export async function shareBackup(filePath: string): Promise<void> {
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(filePath, {
-      mimeType: "application/octet-stream",
-      dialogTitle: "Save Artha Backup",
-    });
+    // The backup's own file type (declared in app.json), so on iPhone "Open with Arth" offers it.
+    await shareFile(filePath, { mimeType: "application/octet-stream", uti: "com.souravbaid.arth.backup", dialogTitle: "Save Arth backup" });
   }
 }
 

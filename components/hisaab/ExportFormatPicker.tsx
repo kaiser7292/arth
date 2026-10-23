@@ -16,11 +16,11 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { DateInput, Sheet, Text } from "@/components/ui";
 
-import * as Sharing from "expo-sharing";
 import { generatePersonPDF } from "@/services/hisaab-export-pdf";
 import { generatePersonExcel } from "@/services/hisaab-export-excel";
 import { saveToPhone } from "@/services/save-to-phone";
 import { useTheme } from "@/hooks/use-theme";
+import { shareFile } from "@/services/share-file";
 
 export type ExportTarget =
   | { type: "person"; personId: string; userId: string };
@@ -227,13 +227,14 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
             {
               text: "Share...",
               onPress: async () => {
-                await Sharing.shareAsync(shareUri, { mimeType });
+                await shareFile(shareUri, { mimeType });
               },
             },
           ],
         );
       } else {
-        await Sharing.shareAsync(shareUri, { mimeType });
+        // iPhone: the share sheet is also where it's saved (Save to Files) or sent (WhatsApp).
+        await shareFile(shareUri, { mimeType });
       }
     } catch (e) {
       alert("Export Failed", e instanceof Error ? e.message : String(e));

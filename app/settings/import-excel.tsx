@@ -5,7 +5,6 @@ import { useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { File, Paths } from "expo-file-system";
-import * as Sharing from "expo-sharing";
 import { Button, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -54,6 +53,7 @@ import type {
 import type * as XLSX from "xlsx";
 import { formatAmount } from "@/utils/expense-validation";
 import { useTheme } from "@/hooks/use-theme";
+import { shareFile } from "@/services/share-file";
 
 type Step = "pick" | "sheets" | "preview" | "importing" | "done";
 type ImportMode = "transactions" | "hisaab";
@@ -111,11 +111,7 @@ export default function ImportExcelScreen() {
       const name = importMode === "hisaab" ? "arth_hisaab_template.csv" : "arth_transactions_template.csv";
       const file = new File(Paths.cache, name);
       file.write(csv);
-      await Sharing.shareAsync(file.uri, {
-        mimeType: "text/csv",
-        dialogTitle: "Save import template",
-        UTI: "public.comma-separated-values-text",
-      });
+      await shareFile(file.uri, { mimeType: "text/csv", dialogTitle: "Save import template" });
     } catch (e) {
       logger.error("Generate template failed:", e);
       alert("Error", formatError("Generate template", e));

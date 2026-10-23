@@ -1,14 +1,21 @@
-import { TextInput, View } from "react-native";
+import { Platform, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { fadeIn } from "@/components/motion/motion";
 
 import { Text } from "./Text";
-import type { TextInputProps } from "react-native";
+import type { KeyboardTypeOptions, TextInputProps } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 import { COMPONENTS } from "@/constants/design-tokens";
+
+/**
+ * The keyboard for amounts that can be formulas (=5000+2500*2): the full keyboard, which on iPhone
+ * opens on its number-and-symbols page (digits, + - / ( ) and %), letters a tap away. Android's
+ * full keyboard has a number row already.
+ */
+export const FORMULA_KEYBOARD: KeyboardTypeOptions = Platform.OS === "ios" ? "numbers-and-punctuation" : "default";
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -62,7 +69,7 @@ export function Input({
         value={value}
         onChangeText={onChangeText}
         onBlur={handleBlur}
-        keyboardType={formula ? "default" : keyboardType}
+        keyboardType={formula ? FORMULA_KEYBOARD : keyboardType}
         accessibilityLabel={label || props.placeholder}
         className={`${COMPONENTS.input.base} ${
           error

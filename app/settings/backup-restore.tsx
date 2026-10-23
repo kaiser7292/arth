@@ -136,7 +136,8 @@ export default function BackupRestoreScreen() {
         ...(Platform.OS === "android"
           ? [{ text: "Save to phone", onPress: () => doSaveToPhone(result.filePath!) }]
           : []),
-        { text: "Share", onPress: () => shareBackup(result.filePath!) },
+        // iPhone has no folder picker: its share sheet saves to Files as well as sending (WhatsApp...).
+        { text: Platform.OS === "ios" ? "Save or share" : "Share", onPress: () => shareBackup(result.filePath!) },
       ];
       alert("Backup Created", "Where would you like to save it?", buttons);
     }
@@ -551,7 +552,7 @@ export default function BackupRestoreScreen() {
               )}
               {backupResult.success && backupResult.filePath && (
                 <Button
-                  title="Share"
+                  title={Platform.OS === "ios" ? "Save or share" : "Share"}
                   onPress={() => shareBackup(backupResult.filePath!)}
                   variant={Platform.OS === "android" ? "outline" : undefined}
                 />

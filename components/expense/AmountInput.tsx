@@ -2,7 +2,7 @@ import { useCallback } from "react";
 
 import { View } from "react-native";
 import type { TextInputProps } from "react-native";
-import { Input, Text } from "@/components/ui";
+import { FORMULA_KEYBOARD, Input, Text } from "@/components/ui";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";
 import { formatAmount } from "@/utils/format";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -93,7 +93,9 @@ export function AmountInput({
           onBlur={handleBlur}
           onSubmitEditing={evaluateAndCommit}
           placeholder={inFormula ? "expression…" : "0"}
-          keyboardType="default"
+          // The full keyboard, so formulas (=5000+2500*2) can be typed; on iPhone it opens on its
+          // number-and-symbols page.
+          keyboardType={FORMULA_KEYBOARD}
           maxLength={inFormula ? 80 : 15}
           error={inFormula ? undefined : error}
           className={`text-3xl font-bold text-center border-0 bg-transparent px-0 py-0 ${

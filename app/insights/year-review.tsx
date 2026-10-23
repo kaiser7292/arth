@@ -36,6 +36,7 @@ import { settingsStorage } from "@/services/storage";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
+import { shareFile } from "@/services/share-file";
 
 /** How long each slide plays before moving on. */
 const SLIDE_MS = 7000;
@@ -201,7 +202,7 @@ export default function YearReviewScreen() {
     try {
       const uri = await captureRef(shareRef, { format: "png", quality: 1, result: "tmpfile" });
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Share your year" });
+        await shareFile(uri, { mimeType: "image/png", dialogTitle: "Share your year" });
       }
     } catch (e) {
       logger.warn("Year review image share failed:", e);

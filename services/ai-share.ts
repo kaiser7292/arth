@@ -22,6 +22,7 @@ import { AI_REQUESTS, aiShareMessage } from "@/services/ai-reply-format";
 import { bumpDataVersion } from "@/services/settings";
 import { settingsStorage as storage } from "@/services/storage";
 import { toIsoDate } from "@/utils/date";
+import { shareFile } from "@/services/share-file";
 
 export interface AiShareResult {
   file: AiExportFile;
@@ -47,7 +48,7 @@ export async function shareAiFile(file: AiExportFile, options: AiExportOptions):
     }
   }
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(file.filePath, { mimeType: AI_EXPORT_MIME_TYPE, dialogTitle: "Share with your AI assistant" });
+    await shareFile(file.filePath, { mimeType: AI_EXPORT_MIME_TYPE, dialogTitle: "Share with your AI assistant" });
   }
 }
 
