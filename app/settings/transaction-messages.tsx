@@ -357,6 +357,12 @@ export default function TransactionMessagesScreen() {
               first
             />
           )}
+          <Row
+            title="Picture templates"
+            subtitle="Payment picture layouts you taught Arth"
+            onPress={() => router.push("/settings/image-templates")}
+            first={!isAndroid}
+          />
           {isAndroid && (
             <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
               <Text className="text-sm font-medium text-foreground">Your name in messages</Text>

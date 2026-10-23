@@ -202,6 +202,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "min_balance", // 019 (savings min-balance alert threshold)
     "closed_at", // 064 (account closure — IS NOT NULL means closed, still active for history)
     "closed_note", // 064 (optional closure note)
+    "upi_ids", // 084 (JSON array of the user's own UPI IDs on this account)
   ] as const,
 
   salary_profiles: [
@@ -627,6 +628,20 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "match_style",
     "word_rules",
     "samples",
+  ] as const,
+
+  // migration 084 — picture layouts the user taught Arth (services/receipt/image-templates.ts)
+  image_templates: [
+    "id",
+    "user_id",
+    "name",
+    "kind",
+    "anchors",
+    "fields",
+    "sample_text",
+    "use_count",
+    "created_at",
+    "updated_at",
   ] as const,
 
   // v16.0.0 — cash-flow simulator (migration 025)

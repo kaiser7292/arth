@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 
 import { logger } from "@/utils/logger";
-import { View, ScrollView, Pressable, Keyboard, RefreshControl, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable, Keyboard, RefreshControl, ActivityIndicator, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -48,6 +48,7 @@ import type { MonthBalanceSummary } from "@/services/account-balance";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
+import { addUpiId, parseUpiIds, removeUpiId } from "@/services/account-upi";
 
 const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   savings: "wallet-outline",
@@ -148,6 +149,10 @@ export default function AccountDetailScreen() {
   const [dematLatestFund, setDematLatestFund] = useState<number | null>(null);
   const [dematLatestDate, setDematLatestDate] = useState<string | null>(null);
   const [dematSnapshotCount, setDematSnapshotCount] = useState(0);
+
+  // UPI IDs that pay from / receive into this account (picks it for payment pictures)
+  const [addingUpi, setAddingUpi] = useState(false);
+  const [newUpi, setNewUpi] = useState("");
 
   const loadData = useCallback(async () => {
     if (!accountId) return;
@@ -349,6 +354,19 @@ export default function AccountDetailScreen() {
       ],
     );
   }, [accountId, loadData, alert]);
+
+  const saveUpi = useCallback(async () => {
+    const v = newUpi.trim();
+    setAddingUpi(false);
+    setNewUpi("");
+    if (!v || !accountId) return;
+    try {
+      await addUpiId(accountId, v);
+      loadData();
+    } catch (e) {
+      alert("Couldn't add it", e instanceof Error ? e.message : String(e));
+    }
+  }, [newUpi, accountId, loadData, alert]);
 
   const handleClose = useCallback(() => {
     if (!account) return;
@@ -1034,6 +1052,62 @@ export default function AccountDetailScreen() {
               isShared={siblingCards.length > 0}
               accountType={account.account_type}
             />
+          )}
+
+          {/* UPI IDs — a payment picture showing one of these picks this account. */}
+          {(accountType === "savings" || accountType === "credit_card" || accountType === "wallet") && !isDematAccount && !isFDAccount && (
+            <Card className="mb-3" title="UPI IDs">
+              <Text className="text-xs text-muted-foreground mb-2">
+                Your UPI IDs on this account. A payment picture showing one of them picks this account by itself.
+              </Text>
+              <View className="flex-row flex-wrap" style={{ gap: 6 }}>
+                {parseUpiIds(account.upi_ids).map((id) => (
+                  <Pressable
+                    key={id}
+                    onPress={() =>
+                      alert("Remove this UPI ID?", `${id} won't pick this account any more.`, [
+                        { text: "Cancel", style: "cancel" },
+                        { text: "Remove", style: "destructive", onPress: async () => { await removeUpiId(account.id, id); loadData(); } },
+                      ])
+                    }
+                    className="flex-row items-center rounded-md px-2 py-1"
+                    style={{ backgroundColor: theme.alpha("primary", 0.1) }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${id}`}
+                  >
+                    <Text className="text-xs font-medium" style={{ color: theme.primary }}>{id}</Text>
+                    <Ionicons name="close" size={12} color={theme.primary} style={{ marginLeft: 4 }} />
+                  </Pressable>
+                ))}
+                {addingUpi ? (
+                  <TextInput
+                    value={newUpi}
+                    onChangeText={setNewUpi}
+                    autoFocus
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    placeholder="name@okicici"
+                    placeholderTextColor={theme.mutedForeground}
+                    onSubmitEditing={() => void saveUpi()}
+                    onBlur={() => void saveUpi()}
+                    returnKeyType="done"
+                    className="text-xs text-foreground rounded-md px-2 py-1 border"
+                    style={{ borderColor: theme.primary, minWidth: 150 }}
+                    accessibilityLabel="UPI ID"
+                  />
+                ) : (
+                  <Pressable
+                    onPress={() => setAddingUpi(true)}
+                    className="rounded-md px-2 py-1 border border-dashed"
+                    style={{ borderColor: theme.border }}
+                    accessibilityRole="button"
+                  >
+                    <Text className="text-xs text-muted-foreground">+ Add a UPI ID</Text>
+                  </Pressable>
+                )}
+              </View>
+            </Card>
           )}
 
           {/* Payment Modes — hidden for loans (loans aren't payment instruments)

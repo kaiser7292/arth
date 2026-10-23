@@ -1455,7 +1455,7 @@ export default function ExpensesScreen() {
           },
           {
             icon: "image-outline",
-            label: "From a Screenshot",
+            label: "From a Picture",
             color: theme.primary,
             onPress: () => router.push("/expense/from-screenshot"),
           },

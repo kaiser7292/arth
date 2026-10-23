@@ -52,6 +52,8 @@ export interface FinancialAccount {
    * this field (enforced by detectBreaches in services/min-balance.ts).
    */
   min_balance: number;
+  /** 084: the user's own UPI IDs on this account, a JSON array (services/account-upi.ts). */
+  upi_ids?: string | null;
   created_at: string;
   updated_at: string;
 }

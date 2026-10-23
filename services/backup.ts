@@ -118,6 +118,8 @@ export const BACKUP_TABLES = [
   "reminder_suggestions",
   // v15.2 — user-authored smart rules (independent table, no FK refs)
   "smart_rules",
+  // migration 084 — picture templates (independent table)
+  "image_templates",
   // v16.0.0 — cash-flow simulator. scenarios first (parent), entries after
   // (child FK scenario_id → scenarios.id ON DELETE CASCADE).
   "simulation_scenarios",

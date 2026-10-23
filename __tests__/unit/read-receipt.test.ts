@@ -155,6 +155,55 @@ describe("readReceipt - real-world shapes (after expenseMonster's parser tests)"
     expect(g.time).toBe("09:12");
     expect(g.text).not.toContain("10:42");
   });
+
+  it("a bank's own app (ICICI iMobile layout): note, both UPI IDs, '26 year, Tr. ID", () => {
+    const g = readReceipt(
+      [
+        "ICICI Bank",
+        "Paid successfully!",
+        "₹ 4,200",
+        "School Fees",
+        "To RAVI  KUMAR",
+        "9000011111@ybl",
+        "From ASHA MEHTA",
+        "asha.m@icici",
+        "Paid at 11:20AM, 12 Oct '26 IST",
+        "Tr. ID: 220011223344",
+        "POWERED BY UPI",
+      ],
+      TODAY,
+    );
+    expect(g).toMatchObject({
+      kind: "expense",
+      amount: 4200,
+      party: "Ravi Kumar",
+      vpa: "9000011111@ybl",
+      ownVpa: "asha.m@icici",
+      note: "School Fees",
+      date: "2026-10-12",
+      time: "11:20",
+      ref: "220011223344",
+      app: "ICICI Bank",
+    });
+    expect(g.account).toMatchObject({ label: "ICICI Bank", last4: null, wallet: false });
+  });
+
+  it("Google Pay: the user's own UPI ID is the one under From", () => {
+    const g = readReceipt(
+      ["To SWIGGY", "swiggy.upi@axisbank", "₹450", "Completed", "21 Oct 2026, 8:42 pm", "To: SWIGGY", "Google Pay • swiggy.upi@axisbank", "From: ASHA (HDFC Bank)", "Google Pay • asha@okhdfcbank"],
+      TODAY,
+    );
+    expect(g.vpa).toBe("swiggy.upi@axisbank");
+    expect(g.ownVpa).toBe("asha@okhdfcbank");
+    expect(g.note).toBeNull();
+  });
+
+  it("money received: the user's UPI ID is the one it went to", () => {
+    const g = readReceipt(["Received from", "RAHUL SHARMA", "₹2,500", "9876543210@ybl", "To: ASHA MEHTA", "asha.m@okaxis", "23 Oct 2026"], TODAY);
+    expect(g.kind).toBe("credit");
+    expect(g.vpa).toBe("9876543210@ybl");
+    expect(g.ownVpa).toBe("asha.m@okaxis");
+  });
 });
 
 describe("parseDate", () => {
@@ -163,6 +212,7 @@ describe("parseDate", () => {
     ["Oct 18, 2026", "2026-10-18"],
     ["18/10/2026", "2026-10-18"],
     ["18-10-26", "2026-10-18"],
+    ["Paid at 03:45PM, 18 Oct '26 IST", "2026-10-18"],
     ["Today, 9:10 am", "2026-10-23"],
     ["Yesterday", "2026-10-22"],
   ])("%s", (text, want) => expect(parseDate(text, TODAY)).toBe(want));

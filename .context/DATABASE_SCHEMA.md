@@ -25,7 +25,7 @@
 ### Accounts & Reconciliation
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
-| `financial_accounts` | Bank/CC/wallet/demat/loan accounts | id, account_type, bank_name, account_label, account_identifier, is_active |
+| `financial_accounts` | Bank/CC/wallet/demat/loan accounts | id, account_type, bank_name, account_label, account_identifier, is_active, upi_ids (084: JSON array of the user's own UPI IDs; picks the account for payment pictures) |
 | `account_balance_sms` | SMS-reported balances | id, account_id, balance, date, raw_sms |
 | `account_transfers` | Inter-account transfers | id, from_account_id, to_account_id, amount, date, demat_target, investment_bucket_id, snapshot_applied (082: did the transfer change a demat snapshot) |
 | `demat_fund_snapshots` | Demat idle cash snapshots | id, account_id, fund_value, snapshot_date, source (082: broker / manual / auto; NULL = manual) |
@@ -67,6 +67,7 @@
 |-------|---------|-------------|
 | `pending_sms` | Unprocessed SMS messages | id, address, body, date_received |
 | `sms_template_patterns` | SMS parsing templates (system + user) | id, bank_name, pattern, source, sender_pattern, sender_match_mode |
+| `image_templates` | Payment picture layouts the user taught (084) | id, name, kind, anchors (JSON fixed text), fields (JSON per-field rules), use_count |
 | `sms_sender_registry` | Sender code → bank mapping | sender_code, bank_name |
 
 ### Simulator
@@ -109,6 +110,7 @@
 | 042 | simulator_transfers | Simulator account transfer support |
 | 043 | settings_table | Centralized user settings |
 | 082 | snapshot_source | Snapshot `source` (broker sync is the truth for its day: transfers neither adjust nor un-adjust it) + `account_transfers.snapshot_applied` |
+| 084 | upi_ids_and_image_templates | `financial_accounts.upi_ids` + `image_templates` (Smart image templates) |
 
 ## Backup & Restore
 

@@ -14,6 +14,7 @@
 import { getDatabase } from "@/database";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { bumpDataVersion } from "@/services/settings";
+import { mergeUpiIds } from "@/services/account-upi";
 import { settingsStorage } from "@/services/storage";
 import { getSmsScanAccountIds, setSmsScanAccountIds } from "@/services/sms/sms-permissions";
 
@@ -181,6 +182,14 @@ export async function mergeAccounts(keepId: string, dropId: string): Promise<voi
     await move("investment_products", "source_account_id");
     await move("loan_accounts", "financial_account_id");
     await move("investment_products", "financial_account_id");
+
+    // UPI IDs: the kept account takes both lists.
+    const upi = await db.getAllAsync<{ id: string; upi_ids: string | null }>(
+      `SELECT id, upi_ids FROM financial_accounts WHERE id IN (?, ?);`,
+      keepId, dropId,
+    );
+    const merged = mergeUpiIds(upi.find((r) => r.id === keepId)?.upi_ids, upi.find((r) => r.id === dropId)?.upi_ids);
+    await db.runAsync(`UPDATE financial_accounts SET upi_ids = ? WHERE id = ?;`, merged, keepId);
 
     // Transfers: between the two they become money moving within one account - remove those.
     await db.runAsync(

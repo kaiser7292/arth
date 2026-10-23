@@ -20,14 +20,17 @@
       "permissions": [
         "android.permission.READ_SMS",
         "android.permission.POST_NOTIFICATIONS",
-        "android.permission.SCHEDULE_EXACT_ALARM"
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.CAMERA"
       ],
       "blockedPermissions": [
         "android.permission.USE_EXACT_ALARM",
         "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE",
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ],
       "allowBackup": false,
       "softwareKeyboardLayoutMode": "resize",
@@ -226,7 +229,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Arth reads a payment screenshot you choose, on this phone, to fill in a transaction.",
-          "cameraPermission": false,
+          "cameraPermission": "Arth uses the camera only when you take a photo of a payment or receipt, to read it on this phone.",
           "microphonePermission": false
         }
       ]

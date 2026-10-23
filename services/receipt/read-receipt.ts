@@ -30,6 +30,10 @@ export interface ReceiptGuess {
   party: string | null;
   /** The other side's UPI address, when shown ("ramesh.k@okaxis"). */
   vpa: string | null;
+  /** The user's own UPI address, when shown (under "From" on a payment) - picks the account. */
+  ownVpa: string | null;
+  /** The payment's note, when it has one ("Crunch Daycare" under the amount). */
+  note: string | null;
   /** The account the money left (expense, transfer) or arrived in (credit). */
   account: AccountHint | null;
   /** Transfers: the other account. */
@@ -79,7 +83,7 @@ const APPS: [RegExp, string][] = [
 const BANKS =
   /\b(?:hdfc|icici|sbi|state bank(?: of india)?|axis|kotak(?: mahindra)?|yes bank|indusind|idfc(?: first)?|federal|rbl|au small finance|bank of baroda|canara|pnb|punjab national|union bank|indian bank|bandhan|dbs|hsbc|citi|standard chartered|airtel payments|paytm payments|fino|jupiter|niyo|equitas|ujjivan)(?:\s*bank)?\b/i;
 
-const VPA = /\b([a-z0-9][a-z0-9._-]{1,60}@[a-z][a-z0-9.]{1,30})\b/i;
+export const VPA = /\b([a-z0-9][a-z0-9._-]{1,60}@[a-z][a-z0-9.]{1,30})\b/i;
 
 /** Label lines whose value follows on the next line, or after the label on the same line. */
 const PARTY_LABEL = /^(?:paid to|sent to|payment to|paying|to|payee|merchant|paid successfully to|transferred to|received from|from|sender|money received from)\s*:?$/i;
@@ -87,7 +91,7 @@ const PARTY_INLINE = /^(?:paid to|sent to|payment to|to|payee|merchant|transferr
 const ACCOUNT_LABEL = /^(?:paid from|debited from|from account|pay(?:ment)? (?:using|via|from)|source|bank account|credited to|deposited to|to account|received in|paid using)\s*:?$/i;
 const ACCOUNT_INLINE = /^(?:paid from|debited from|from account|pay(?:ment)? (?:using|via|from)|credited to|deposited to|received in|paid using)\s*:?\s+(.+)$/i;
 const REF =
-  /(?:upi\s*(?:transaction\s*|txn\s*|ref(?:erence)?\s*)?(?:id|no\.?|number)|utr(?:\s*no\.?)?|transaction\s*id|txn\s*id|order\s*id|reference\s*(?:id|no\.?|number)|ref\.?\s*no\.?)\s*:?\s*([A-Za-z0-9-]{6,})?/i;
+  /(?:upi\s*(?:transaction\s*|txn\s*|ref(?:erence)?\s*)?(?:id|no\.?|number)|utr(?:\s*no\.?)?|transaction\s*id|txn\s*id|tr\.?\s*id|order\s*id|reference\s*(?:id|no\.?|number)|ref\.?\s*no\.?)\s*:?\s*([A-Za-z0-9-]{6,})?/i;
 
 const AMOUNTISH = /^(?:[₹%zZfF*]|rs\.?|inr)?\s*[\d,]+(?:\.\d{1,2})?$/i;
 const isAmountish = (l: string) => AMOUNTISH.test(l.trim());
@@ -109,25 +113,33 @@ function toLines(input: (string | TextLine)[]): Line[] {
       .filter(Boolean)
       .map((text, i) => ({ text, y: i / 1000, height: 0 }));
   }
-  const raw = (input as TextLine[]).filter((l) => l.text.trim()).map((l) => ({ ...l, text: l.text.replace(/\s+/g, " ").trim() }));
-  // The status bar: short clock / signal / battery bits in the top 4%.
-  const body = raw.filter((l) => !(l.y < 0.04 && STATUS_BAR.test(l.text)));
   // Join text on the same row, left to right ("Order ID" .... "P04-266…").
-  body.sort((a, b) => a.y - b.y || a.x - b.x);
-  const rows: { parts: TextLine[] }[] = [];
-  for (const l of body) {
-    const row = rows[rows.length - 1];
-    const ref = row?.parts[0];
-    if (ref && Math.abs(l.y - ref.y) < Math.max(ref.height, l.height) * 0.5) row.parts.push(l);
-    else rows.push({ parts: [l] });
-  }
-  return rows.map((r) => {
-    const parts = r.parts.sort((a, b) => a.x - b.x);
-    return { text: parts.map((p) => p.text).join(" "), y: parts[0].y, height: Math.max(...parts.map((p) => p.height)) };
-  });
+  return pictureRows(input as TextLine[]).map((parts) => ({
+    text: parts.map((p) => p.text).join(" "),
+    y: parts[0].y,
+    height: Math.max(...parts.map((p) => p.height)),
+  }));
 }
 
-function money(raw: string): number | null {
+/**
+ * The picture's text in reading order, as rows of pieces left to right, without the status bar
+ * (short clock / signal / battery bits in the top 4%). Shared with image templates.
+ */
+export function pictureRows(input: TextLine[]): TextLine[][] {
+  const raw = input.filter((l) => l.text.trim()).map((l) => ({ ...l, text: l.text.replace(/\s+/g, " ").trim() }));
+  const body = raw.filter((l) => !(l.y < 0.04 && STATUS_BAR.test(l.text)));
+  body.sort((a, b) => a.y - b.y || a.x - b.x);
+  const rows: TextLine[][] = [];
+  for (const l of body) {
+    const row = rows[rows.length - 1];
+    const ref = row?.[0];
+    if (ref && Math.abs(l.y - ref.y) < Math.max(ref.height, l.height) * 0.5) row.push(l);
+    else rows.push([l]);
+  }
+  return rows.map((r) => r.sort((a, b) => a.x - b.x));
+}
+
+export function money(raw: string): number | null {
   const n = Number(raw.replace(/[,\s]/g, ""));
   return Number.isFinite(n) && n > 0 && n < 1e9 ? n : null;
 }
@@ -172,9 +184,10 @@ export function parseDate(text: string, today: Date = new Date()): string | null
   const iso = (y: number, m: number, d: number) =>
     m >= 1 && m <= 12 && d >= 1 && d <= 31 ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
   const year = (y: string) => (y.length === 2 ? 2000 + Number(y) : Number(y));
-  let m = t.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,4})[a-z]*,?\s+(\d{2,4})\b/);
+  // "18 Oct 2026", "18th October, 26", "18 Oct '26" (ICICI iMobile).
+  let m = t.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,4})[a-z]*,?\s+['’]?(\d{2,4})\b/);
   if (m && MONTHS[m[2]]) return iso(year(m[3]), MONTHS[m[2]], Number(m[1]));
-  m = t.match(/\b([a-z]{3,4})[a-z]*\s+(\d{1,2}),?\s+(\d{4})\b/);
+  m = t.match(/\b([a-z]{3,4})[a-z]*\s+(\d{1,2}),?\s+['’]?(\d{4})\b/);
   if (m && MONTHS[m[1]]) return iso(Number(m[3]), MONTHS[m[1]], Number(m[2]));
   m = t.match(/\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b/);
   if (m) return iso(year(m[3]), Number(m[2]), Number(m[1]));
@@ -189,7 +202,7 @@ export function parseDate(text: string, today: Date = new Date()): string | null
   return null;
 }
 
-function parseTime(text: string): string | null {
+export function parseTime(text: string): string | null {
   const m = text.match(/\b(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)?\b/i);
   if (!m) return null;
   let h = Number(m[1]);
@@ -199,7 +212,7 @@ function parseTime(text: string): string | null {
   return h < 24 ? `${String(h).padStart(2, "0")}:${m[2]}` : null;
 }
 
-function accountFrom(text: string): AccountHint | null {
+export function accountFrom(text: string): AccountHint | null {
   const t = text.trim();
   if (!t) return null;
   const digits =
@@ -225,7 +238,7 @@ function after(lines: Line[], i: number, allowAccount = false): string | null {
 }
 
 /** "SHREE GANESH MEDICALS" -> "Shree Ganesh Medicals"; mixed case is left alone. */
-function tidyName(name: string): string {
+export function tidyName(name: string): string {
   const n = name.replace(/\s*[x*•·]{2,}\s*\d{4}$/, "").replace(/\s*\((?:[^)]*bank[^)]*)\)\s*$/i, "").trim();
   if (n !== n.toUpperCase() || !/[A-Z]/.test(n)) return n;
   return n.toLowerCase().replace(/\b([a-z])/g, (c) => c.toUpperCase());
@@ -309,15 +322,46 @@ export function readReceipt(input: (string | TextLine)[], today: Date = new Date
   // One with digits (or a wallet) beats a bank name alone - except for transfers, where order is from, then to.
   const uniq = kind === "transfer" ? distinct : [...distinct].sort((a, b) => Number(!!b.last4 || b.wallet) - Number(!!a.last4 || a.wallet));
 
-  // Their UPI address: the first one that doesn't sit under the other side's "To:" / "From:" line
-  // (Google Pay shows both people's addresses).
+  // UPI addresses, by whose they are: the nearest "To" / "From" line at or above says. Theirs is the
+  // first that doesn't sit under the user's side; the user's own is the one that does (Google Pay and
+  // bank apps show both). For a transfer both are the user's: from, then to.
   let vpa: string | null = null;
-  for (let i = 0; i < lines.length && !vpa; i++) {
+  let ownVpa: string | null = null;
+  for (let i = 0; i < lines.length; i++) {
     const m = lines[i].text.match(VPA);
     if (!m) continue;
-    const owner = [lines[i], lines[i - 1], lines[i - 2]].find((x) => x && /^(?:to|from|paid to|received from)\b/i.test(x.text));
-    const ownerIsFrom = owner ? /^(?:from|received from)\b/i.test(owner.text) : null;
-    if (kind === "transfer" || ownerIsFrom === null || ownerIsFrom === wantFrom) vpa = m[1].toLowerCase();
+    const id = m[1].toLowerCase();
+    const owner = [lines[i], lines[i - 1], lines[i - 2]].find((x) => x && /^(?:to|from|paid to|paid from|received from|credited to|debited from)\b/i.test(x.text));
+    const ownerIsFrom = owner ? /^(?:from|paid from|received from|debited from)\b/i.test(owner.text) : null;
+    if (kind === "transfer") {
+      if (!ownVpa && ownerIsFrom !== false) ownVpa = id;
+      else if (!vpa && id !== ownVpa) vpa = id;
+    } else if (ownerIsFrom !== null && ownerIsFrom !== wantFrom) {
+      if (!ownVpa) ownVpa = id;
+    } else if (!vpa) {
+      vpa = id;
+    }
+  }
+
+  // The payment's note: a short line right under the amount that isn't a status, label, name line,
+  // address, date or number ("Crunch Daycare").
+  let note: string | null = null;
+  const amountAt = lines.findIndex((l) => /(?:₹|rs\.?|inr)\s*[\d,]+/i.test(l.text) || isAmountish(l.text));
+  const next = amountAt >= 0 ? lines[amountAt + 1]?.text : undefined;
+  if (
+    next &&
+    next.length <= 30 &&
+    next.split(" ").length <= 4 &&
+    /[a-z]/i.test(next) &&
+    !isStatus(next) &&
+    !isLabel(next) &&
+    !isAmountish(next) &&
+    !VPA.test(next) &&
+    !parseDate(next, today) &&
+    !/^(?:to|from|paid|sent|received|you|please|via|on|at)\b/i.test(next) &&
+    !/\d{4,}/.test(next)
+  ) {
+    note = next;
   }
 
   // Reference: the UTR / UPI reference first (what a bank can trace), else any transaction / order id.
@@ -348,7 +392,21 @@ export function readReceipt(input: (string | TextLine)[], today: Date = new Date
     }
   }
 
-  const app = APPS.find(([re]) => re.test(words))?.[1] ?? null;
+  let app = APPS.find(([re]) => re.test(words))?.[1] ?? null;
+  // A bank's own app (ICICI iMobile, HDFC, SBI YONO...): its name heads the screen and no payment
+  // app is named. The money left (or arrived in) an account at that bank.
+  const headBank = lines.slice(0, 4).map((l) => l.text.match(BANKS)?.[0]).find(Boolean);
+  if (!app && headBank) {
+    const name = headBank
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)
+      .map((w) => (/^(?:hdfc|icici|sbi|idfc|rbl|pnb|dbs|hsbc|au)$/.test(w) ? w.toUpperCase() : w === "of" ? w : w[0].toUpperCase() + w.slice(1)))
+      .join(" ");
+    const bankName = /\bbank\b/i.test(name) ? name : `${name} Bank`;
+    app = bankName;
+    if (uniq.length === 0 && kind !== "transfer") uniq.push({ label: bankName, last4: null, wallet: false });
+  }
 
   return {
     kind,
@@ -357,6 +415,8 @@ export function readReceipt(input: (string | TextLine)[], today: Date = new Date
     time,
     party: party ? tidyName(party).slice(0, 60) : null,
     vpa,
+    ownVpa,
+    note,
     account: uniq[0] ?? null,
     toAccount: kind === "transfer" ? (uniq[1] ?? null) : null,
     ref,

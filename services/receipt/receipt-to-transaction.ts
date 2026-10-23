@@ -6,6 +6,7 @@
 import { getDatabase } from "@/database";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import type { AccountHint, ReceiptGuess } from "@/services/receipt/read-receipt";
+import { parseUpiIds } from "@/services/account-upi";
 
 export interface OwnAccount {
   id: string;
@@ -13,6 +14,8 @@ export interface OwnAccount {
   account_label: string | null;
   account_identifier: string | null;
   account_type: string;
+  /** The user's UPI IDs linked to this account (lowercase). */
+  upi_ids: string[];
 }
 
 const bankKey = (name: string | null | undefined) =>
@@ -27,11 +30,16 @@ function sameDigits(a: string | null, b: string | null): boolean {
 }
 
 /**
- * The user's account a hint names: digits first (with the bank when given), then a wallet by the
+ * The user's account a hint names. A UPI ID the user linked to an account decides it outright; then
+ * digits first (with the bank when given), then a wallet by the
  * app's name ("Gift Cards" in Amazon Pay -> the Amazon Pay wallet), then a bank with only one
  * account. Null when it isn't clear - never a guess between two.
  */
-export function matchAccount(hint: AccountHint | null, accounts: OwnAccount[], app: string | null): OwnAccount | null {
+export function matchAccount(hint: AccountHint | null, accounts: OwnAccount[], app: string | null, upiId: string | null = null): OwnAccount | null {
+  if (upiId) {
+    const byUpi = accounts.find((a) => a.upi_ids.includes(upiId.toLowerCase()));
+    if (byUpi) return byUpi;
+  }
   if (!hint) return null;
   const hintBank = bankKey(hint.label);
   const bankOk = (a: OwnAccount) => {
@@ -60,11 +68,13 @@ export function matchAccount(hint: AccountHint | null, accounts: OwnAccount[], a
 }
 
 export async function getOwnAccounts(userId: string = DEFAULT_USER_ID): Promise<OwnAccount[]> {
-  return getDatabase().getAllAsync<OwnAccount>(
-    `SELECT id, bank_name, account_label, account_identifier, account_type FROM financial_accounts
-      WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL;`,
+  const rows = await getDatabase().getAllAsync<Omit<OwnAccount, "upi_ids"> & { upi_ids: string | null }>(
+    `SELECT id, bank_name, account_label, account_identifier, account_type, upi_ids FROM financial_accounts
+      WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL
+      ORDER BY bank_name, account_label;`,
     userId,
   );
+  return rows.map((r) => ({ ...r, upi_ids: parseUpiIds(r.upi_ids) }));
 }
 
 export interface PossibleDuplicate {
