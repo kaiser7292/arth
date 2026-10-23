@@ -26,6 +26,7 @@ import {
   picturePieces,
   saveImageTemplate,
   TEMPLATE_FIELDS,
+  valuesFromPicks,
   withTemplate,
   type ImageTemplate,
   type TemplateField,
@@ -85,7 +86,9 @@ export default function FromScreenshotScreen() {
   const theme = useTheme();
   const toast = useToast();
   const stackOptions = useStackScreenOptions();
-  const params = useLocalSearchParams<{ uri?: string; text?: string }>();
+  // teach=1: from Settings > Picture templates - pick a picture, then go straight to linking its text;
+  // with templateId, that template is re-taught (updated) rather than a new one saved.
+  const params = useLocalSearchParams<{ uri?: string; text?: string; teach?: string; templateId?: string }>();
   const [uri, setUri] = useState<string | null>(params.uri ?? null);
   const [phase, setPhase] = useState<Phase>(params.uri || params.text ? "reading" : "pick");
   const [error, setError] = useState<string | null>(null);
@@ -112,9 +115,12 @@ export default function FromScreenshotScreen() {
   const [picks, setPicks] = useState<Partial<Record<TemplateField, number>>>({});
   const [tapped, setTapped] = useState<number | null>(null);
   const [templateName, setTemplateName] = useState("");
+  const [saveAsTemplate, setSaveAsTemplate] = useState(true);
   const [width, setWidth] = useState(0);
   const [saving, setSaving] = useState(false);
 
+  const teachFirst = params.teach === "1" || !!params.templateId;
+  const reteachId = params.templateId ?? null;
   const read = useCallback(async (source: { uri?: string; text?: string }) => {
     setPhase("reading");
     setError(null);
@@ -123,37 +129,49 @@ export default function FromScreenshotScreen() {
     setFromId(null);
     setToId(null);
     setTemplate(null);
+    let result: Awaited<ReturnType<typeof readTextInImage>> | null = null;
     try {
-      const [result, own, templates] = await Promise.all([
-        source.uri ? readTextInImage(source.uri) : Promise.resolve(null),
-        getOwnAccounts(),
-        listImageTemplates().catch(() => [] as ImageTemplate[]),
-      ]);
-      let g: ReceiptGuess;
-      if (result) {
-        const p = picturePieces(result.lines);
-        setPieces(p);
-        setAspect(result.imageHeight / Math.max(1, result.imageWidth));
-        g = readReceipt(result.lines);
-        const t = matchTemplate(p, templates);
-        if (t) {
-          g = withTemplate(g, t.kind, applyTemplate(p, t.fields));
-          setTemplate(t);
-          void markImageTemplateUsed(t.id).catch(() => {});
-        }
-      } else {
-        setPieces(null);
-        g = readReceipt(source.text!.split(/\r?\n/));
-      }
-      setAccounts(own);
-      setGuess(g);
-      setKind(g.kind);
-      setPhase("read");
+      result = source.uri ? await readTextInImage(source.uri) : null;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setPhase("failed");
+      return;
     }
-  }, []);
+    // After the picture is read, not alongside it: on a Pixel 9 the account lookup failed
+    // ("NativeDatabase.prepareAsync ... NullPointerException") while the text reader was running.
+    // The accounts and templates only improve the result: if they can't be loaded, the picture is
+    // still shown as read (the account is then picked on the Add screen).
+    const own = await getOwnAccounts().catch(() => [] as OwnAccount[]);
+    const templates = await listImageTemplates().catch(() => [] as ImageTemplate[]);
+    let g: ReceiptGuess;
+    let p: TextLine[] | null = null;
+    if (result) {
+      p = picturePieces(result.lines);
+      setPieces(p);
+      setAspect(result.imageHeight / Math.max(1, result.imageWidth));
+      g = readReceipt(result.lines);
+      const t = reteachId ? (templates.find((x) => x.id === reteachId) ?? null) : matchTemplate(p, templates);
+      if (t) {
+        g = withTemplate(g, t.kind, applyTemplate(p, t.fields));
+        setTemplate(t);
+        if (!reteachId) void markImageTemplateUsed(t.id).catch(() => {});
+      }
+    } else {
+      setPieces(null);
+      g = readReceipt(source.text!.split(/\r?\n/));
+    }
+    setAccounts(own);
+    setGuess(g);
+    setKind(g.kind);
+    setPhase("read");
+    if (teachFirst && p && p.length) {
+      setPicks(findPicks(p, g));
+      setTapped(null);
+      setTemplateName((reteachId ? templates.find((x) => x.id === reteachId)?.name : null) ?? g.app ?? "");
+      setSaveAsTemplate(true);
+      setTeaching(true);
+    }
+  }, [teachFirst, reteachId]);
 
   useEffect(() => {
     if (params.uri) void read({ uri: params.uri });
@@ -254,6 +272,7 @@ export default function FromScreenshotScreen() {
     setPicks(findPicks(pieces, guess));
     setTapped(null);
     setTemplateName(template?.name ?? guess.app ?? "");
+    setSaveAsTemplate(true);
     setTeaching(true);
   };
 
@@ -268,32 +287,39 @@ export default function FromScreenshotScreen() {
     setTapped(null);
   };
 
-  const saveTemplate = async () => {
+  /** Use the linked text as the transaction's details, and save the layout as a template if asked. */
+  const applyLinks = async () => {
     if (!pieces || !guess) return;
     if (Object.keys(picks).length === 0) {
-      toast("Tap at least one value on the picture first");
+      toast("Tap a value on the picture first");
+      return;
+    }
+    const g = withTemplate(guess, kind, valuesFromPicks(pieces, picks));
+    setGuess(g);
+    if (!saveAsTemplate) {
+      setTeaching(false);
       return;
     }
     setSaving(true);
     try {
       const learned = buildTemplate(pieces, picks);
+      const name = templateName.trim() || guess.app || "Picture template";
       const id = await saveImageTemplate({
         id: template?.id,
-        name: templateName || guess.app || "Picture template",
+        name,
         kind,
         anchors: learned.anchors,
         fields: learned.fields,
         sampleText: guess.text,
+        sample: { pieces, picks },
       });
-      const g = withTemplate(guess, kind, applyTemplate(pieces, learned.fields));
-      setGuess(g);
-      setTemplate({ id, name: templateName || guess.app || "Picture template", kind, anchors: learned.anchors, fields: learned.fields, sampleText: guess.text, useCount: 0, updatedAt: "" });
-      setTeaching(false);
-      toast("Saved. Pictures like this will be read this way.");
+      setTemplate({ id, name, kind, anchors: learned.anchors, fields: learned.fields, sampleText: guess.text, sample: { pieces, picks }, useCount: 0, updatedAt: "" });
+      toast(`Saved as "${name}". Pictures like this will be read this way.`);
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Couldn't save the template");
+      toast(e instanceof Error ? `Couldn't save the template: ${e.message}` : "Couldn't save the template");
     } finally {
       setSaving(false);
+      setTeaching(false);
     }
   };
 
@@ -346,10 +372,10 @@ export default function FromScreenshotScreen() {
     const height = width * aspect;
     return (
       <ScreenContainer padTop={false}>
-        <Stack.Screen options={{ ...stackOptions, headerShown: true, title: "Teach this layout" }} />
+        <Stack.Screen options={{ ...stackOptions, headerShown: true, title: "Link text to fields" }} />
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 200 }}>
           <Text className="text-sm text-muted-foreground mb-3 leading-5">
-            Tap a value on the picture, then say what it is. Arth remembers this layout and reads the next picture like it the same way.
+            Tap a value on the picture, then pick which field it is. What Arth already found is marked; tap it to change.
           </Text>
           <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ width: "100%" }}>
             {width > 0 && (
@@ -397,16 +423,29 @@ export default function FromScreenshotScreen() {
                 <Text className="text-sm text-foreground flex-1" numberOfLines={1}>{pieces[picks[d.field]!]?.text}</Text>
               </View>
             ))}
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-1">Name</Text>
-            <TextInput
-              value={templateName}
-              onChangeText={setTemplateName}
-              placeholder="e.g. ICICI Bank payment"
-              placeholderTextColor={theme.mutedForeground}
-              className="text-sm text-foreground rounded-lg px-3 py-2 border border-border"
-              accessibilityLabel="Template name"
-            />
-            <Button title={template ? "Update template" : "Save template"} onPress={() => void saveTemplate()} loading={saving} className="mt-4" />
+            <Pressable
+              onPress={() => setSaveAsTemplate((v) => !v)}
+              className="flex-row items-start mt-4"
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: saveAsTemplate }}
+            >
+              <Ionicons name={saveAsTemplate ? "checkbox" : "square-outline"} size={20} color={saveAsTemplate ? theme.primary : theme.faintForeground} />
+              <Text className="text-sm text-foreground ml-2 flex-1 leading-5">
+                {template ? `Update the template "${template.name}"` : "Save as a template"}
+                <Text className="text-xs text-muted-foreground">{"\n"}The next picture like this is read the same way, by itself.</Text>
+              </Text>
+            </Pressable>
+            {saveAsTemplate && (
+              <TextInput
+                value={templateName}
+                onChangeText={setTemplateName}
+                placeholder="Template name, e.g. ICICI Bank payment"
+                placeholderTextColor={theme.mutedForeground}
+                className="text-sm text-foreground rounded-lg px-3 py-2 border border-border mt-2"
+                accessibilityLabel="Template name"
+              />
+            )}
+            <Button title="Use these" onPress={() => void applyLinks()} loading={saving} className="mt-4" />
             <Button title="Cancel" variant="ghost" onPress={() => setTeaching(false)} className="mt-1" />
           </Card>
         </ScrollView>
@@ -457,17 +496,18 @@ export default function FromScreenshotScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {!isTextReaderAvailable && (
           <Card className="mb-3">
-            <Text className="text-sm text-foreground">Reading pictures needs the full app build; it isn't available here.</Text>
+            <Text className="text-sm text-foreground">{"Reading pictures needs the full app build; it isn't available here."}</Text>
           </Card>
         )}
 
         {phase === "pick" && (
           <View className="items-center py-8">
             <Ionicons name="image-outline" size={48} color={theme.primary} />
-            <Text className="text-lg font-semibold text-foreground mt-3">Add from a payment picture</Text>
+            <Text className="text-lg font-semibold text-foreground mt-3">{teachFirst ? "Teach Arth a picture layout" : "Add from a payment picture"}</Text>
             <Text className="text-sm text-muted-foreground text-center mt-1 leading-5 px-4">
-              A payment's success screen from Google Pay, PhonePe, Paytm, Amazon Pay, BHIM, CRED or a bank app, or a photo of a
-              receipt. It's read on this phone. Tip: share a screenshot straight to Arth to skip this step.
+              {teachFirst
+                ? "Pick a payment picture, then tap its values and say what each one is. Pictures like it are then read the same way."
+                : "A payment's success screen from Google Pay, PhonePe, Paytm, Amazon Pay, BHIM, CRED or a bank app, or a photo of a receipt. It's read on this phone. Tip: share a screenshot straight to Arth to skip this step."}
             </Text>
             <Button title="Choose from gallery" onPress={() => void pick("gallery")} className="mt-5 self-stretch mx-6" />
             <Button title="Take a photo" variant="outline" onPress={() => void pick("camera")} className="mt-2 self-stretch mx-6" />
@@ -487,7 +527,7 @@ export default function FromScreenshotScreen() {
 
         {phase === "failed" && (
           <Card className="mt-3">
-            <Text className="text-base font-semibold text-foreground">Couldn't read that image</Text>
+            <Text className="text-base font-semibold text-foreground">{"Couldn't read that image"}</Text>
             <Text className="text-sm text-muted-foreground mt-1">{error}</Text>
             <Button title="Choose another" variant="outline" onPress={() => void pick("gallery")} className="mt-3" />
             <Button title="Add by hand" variant="ghost" onPress={() => router.replace("/expense/add")} className="mt-1" />
@@ -506,7 +546,7 @@ export default function FromScreenshotScreen() {
             {template && (
               <View className="flex-row items-center mt-3">
                 <Ionicons name="sparkles-outline" size={14} color={theme.primary} />
-                <Text className="text-xs ml-1.5" style={{ color: theme.primary }}>Read with your template "{template.name}"</Text>
+                <Text className="text-xs ml-1.5" style={{ color: theme.primary }}>{`Read with your template "${template.name}"`}</Text>
               </View>
             )}
 
@@ -591,7 +631,10 @@ export default function FromScreenshotScreen() {
               </Text>
             )}
 
-            <Button title={duplicate || duplicateTransfer ? "Add anyway" : "Continue"} onPress={() => void proceed()} className="mt-4" />
+            {pieces && uri && (!guess.amount || (kind !== "transfer" && !guess.party) || !guess.date) && (
+              <Button title="Link the text to fields" variant="outline" onPress={startTeaching} className="mt-4" />
+            )}
+            <Button title={duplicate || duplicateTransfer ? "Add anyway" : "Continue"} onPress={() => void proceed()} className="mt-3" />
             <Text className="text-xs text-muted-foreground text-center mt-2">You can change anything on the next screen before saving.</Text>
 
             {pieces && uri && (
@@ -599,7 +642,7 @@ export default function FromScreenshotScreen() {
                 <Ionicons name="hand-left-outline" size={18} color={theme.primary} />
                 <View className="ml-2.5 flex-1">
                   <Text className="text-sm font-semibold" style={{ color: theme.primary }}>{template ? "Fix the template" : "Something missing or wrong?"}</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">Tap the values on the picture and Arth learns this layout.</Text>
+                  <Text className="text-xs text-muted-foreground mt-0.5">Link the text on the picture to the fields, and save it as a template.</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={theme.primary} />
               </Pressable>

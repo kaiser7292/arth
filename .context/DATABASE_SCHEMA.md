@@ -67,7 +67,7 @@
 |-------|---------|-------------|
 | `pending_sms` | Unprocessed SMS messages | id, address, body, date_received |
 | `sms_template_patterns` | SMS parsing templates (system + user) | id, bank_name, pattern, source, sender_pattern, sender_match_mode |
-| `image_templates` | Payment picture layouts the user taught (084) | id, name, kind, anchors (JSON fixed text), fields (JSON per-field rules), use_count |
+| `image_templates` | Payment picture layouts the user taught (084) | id, name, kind, anchors (JSON fixed text), fields (JSON per-field rules), use_count, sample_lines (085: JSON sample text pieces + picks, for editing) |
 | `sms_sender_registry` | Sender code → bank mapping | sender_code, bank_name |
 
 ### Simulator
@@ -111,6 +111,7 @@
 | 043 | settings_table | Centralized user settings |
 | 082 | snapshot_source | Snapshot `source` (broker sync is the truth for its day: transfers neither adjust nor un-adjust it) + `account_transfers.snapshot_applied` |
 | 084 | upi_ids_and_image_templates | `financial_accounts.upi_ids` + `image_templates` (Smart image templates) |
+| 085 | image_template_sample | `image_templates.sample_lines` (edit a picture template) |
 
 ## Backup & Restore
 

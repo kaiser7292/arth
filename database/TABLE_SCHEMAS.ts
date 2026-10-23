@@ -642,6 +642,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "use_count",
     "created_at",
     "updated_at",
+    "sample_lines", // 085 (the sample picture's text + which piece each field is, for editing)
   ] as const,
 
   // v16.0.0 — cash-flow simulator (migration 025)

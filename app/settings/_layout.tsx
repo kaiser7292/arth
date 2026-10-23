@@ -49,6 +49,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="smart-rules/[id]" options={{ title: "Rule" }} />
       <Stack.Screen name="sms-templates/index" options={{ title: "Message Templates" }} />
       <Stack.Screen name="image-templates" options={{ title: "Picture Templates" }} />
+      <Stack.Screen name="image-template" options={{ title: "Picture Template" }} />
       <Stack.Screen name="sms-templates/new" options={{ title: "Teach Arth" }} />
       <Stack.Screen name="sms-templates/confirm" options={{ title: "Teach Arth" }} />
       <Stack.Screen name="sms-templates/tag" options={{ title: "Tag Fields" }} />

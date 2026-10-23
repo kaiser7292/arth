@@ -6,6 +6,7 @@ import {
   extractField,
   matchTemplate,
   picturePieces,
+  valuesFromPicks,
   withTemplate,
 } from "../../services/receipt/image-templates";
 import { readReceipt } from "../../services/receipt/read-receipt";
@@ -80,6 +81,14 @@ describe("smart image templates", () => {
     expect(merged.amount).toBe(15000.5);
     expect(merged.party).toBe("Crunch Daycare Llp");
     expect(merged.text).toBe(g.text);
+  });
+
+  it("linking text to fields gives their values straight away", () => {
+    expect(valuesFromPicks(pieces, { amount: at("4200.00"), party: at("RAVI KUMAR"), ref: at("Ref# 220011223344") })).toEqual({
+      amount: 4200,
+      party: "Ravi Kumar",
+      ref: "220011223344",
+    });
   });
 
   it("takes values out of labelled text", () => {

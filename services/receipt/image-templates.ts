@@ -65,8 +65,16 @@ export interface ImageTemplate {
   anchors: string[];
   fields: Partial<Record<TemplateField, FieldRule>>;
   sampleText: string | null;
+  /** What it was taught on, for editing (085); null for templates saved before that. */
+  sample: TemplateSample | null;
   useCount: number;
   updatedAt: string;
+}
+
+/** The sample picture's text pieces (not the picture) and which piece is each field. */
+export interface TemplateSample {
+  pieces: TextLine[];
+  picks: Partial<Record<TemplateField, number>>;
 }
 
 /** What a template read off a picture. */
@@ -243,6 +251,22 @@ export function applyTemplate(pieces: TextLine[], fields: Partial<Record<Templat
   return out;
 }
 
+/** The values of the pieces the user tapped (field -> index into picturePieces()). */
+export function valuesFromPicks(pieces: TextLine[], picks: Partial<Record<TemplateField, number>>): TemplateValues {
+  const out: TemplateValues = {};
+  for (const [field, i] of Object.entries(picks) as [TemplateField, number][]) {
+    const hit = pieces[i] ? extractField(field, pieces[i].text) : null;
+    if (!hit) continue;
+    if (field === "amount") out.amount = hit.value as number;
+    else if (field === "date") {
+      out.date = hit.value as string;
+      out.time = hit.time ?? null;
+    } else if (field === "account") out.account = hit.value as AccountHint;
+    else out[field] = hit.value as string;
+  }
+  return out;
+}
+
 /** The general reader's guess with the template's values on top. */
 export function withTemplate(guess: ReceiptGuess, kind: ReceiptKind, v: TemplateValues): ReceiptGuess {
   return {
@@ -269,9 +293,32 @@ interface Row {
   anchors: string;
   fields: string;
   sample_text: string | null;
+  sample_lines: string | null;
   use_count: number;
   updated_at: string;
 }
+
+function parseSample(raw: string | null): TemplateSample | null {
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw);
+    if (!Array.isArray(v?.pieces) || typeof v?.picks !== "object" || !v.picks) return null;
+    const pieces = v.pieces.filter(
+      (p: unknown): p is TextLine =>
+        !!p && typeof (p as TextLine).text === "string" && ["x", "y", "width", "height"].every((k) => typeof (p as Record<string, unknown>)[k] === "number"),
+    );
+    return pieces.length === v.pieces.length ? { pieces, picks: v.picks } : null;
+  } catch {
+    return null;
+  }
+}
+
+const round = (n: number) => Math.round(n * 10000) / 10000;
+const sampleJson = (s: TemplateSample) =>
+  JSON.stringify({
+    pieces: s.pieces.map((p) => ({ text: p.text.slice(0, 120), x: round(p.x), y: round(p.y), width: round(p.width), height: round(p.height) })),
+    picks: s.picks,
+  });
 
 const KINDS: ReceiptKind[] = ["expense", "credit", "transfer", "committed"];
 
@@ -287,6 +334,7 @@ function fromRow(r: Row): ImageTemplate | null {
       anchors: anchors.filter((a: unknown) => typeof a === "string"),
       fields,
       sampleText: r.sample_text,
+      sample: parseSample(r.sample_lines),
       useCount: r.use_count,
       updatedAt: r.updated_at,
     };
@@ -297,24 +345,41 @@ function fromRow(r: Row): ImageTemplate | null {
 
 export async function listImageTemplates(userId: string = DEFAULT_USER_ID): Promise<ImageTemplate[]> {
   const rows = await getDatabase().getAllAsync<Row>(
-    `SELECT id, name, kind, anchors, fields, sample_text, use_count, updated_at FROM image_templates
+    `SELECT id, name, kind, anchors, fields, sample_text, sample_lines, use_count, updated_at FROM image_templates
       WHERE user_id = ? ORDER BY updated_at DESC;`,
     userId,
   );
   return rows.map(fromRow).filter((t): t is ImageTemplate => !!t);
 }
 
+export async function getImageTemplate(id: string): Promise<ImageTemplate | null> {
+  const row = await getDatabase().getFirstAsync<Row>(
+    `SELECT id, name, kind, anchors, fields, sample_text, sample_lines, use_count, updated_at FROM image_templates WHERE id = ?;`,
+    id,
+  );
+  return row ? fromRow(row) : null;
+}
+
 /** Save a new template, or replace the one given (re-teaching the same layout). */
 export async function saveImageTemplate(
-  t: { id?: string; name: string; kind: ReceiptKind; anchors: string[]; fields: Partial<Record<TemplateField, FieldRule>>; sampleText: string },
+  t: {
+    id?: string;
+    name: string;
+    kind: ReceiptKind;
+    anchors: string[];
+    fields: Partial<Record<TemplateField, FieldRule>>;
+    sampleText: string;
+    sample?: TemplateSample | null;
+  },
   userId: string = DEFAULT_USER_ID,
 ): Promise<string> {
   const id = t.id ?? generateUUID();
   await getDatabase().runAsync(
-    `INSERT INTO image_templates (id, user_id, name, kind, anchors, fields, sample_text, use_count, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, datetime('now'), datetime('now'))
+    `INSERT INTO image_templates (id, user_id, name, kind, anchors, fields, sample_text, sample_lines, use_count, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, datetime('now'), datetime('now'))
      ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, anchors = excluded.anchors,
-       fields = excluded.fields, sample_text = excluded.sample_text, updated_at = datetime('now');`,
+       fields = excluded.fields, sample_text = excluded.sample_text, sample_lines = excluded.sample_lines,
+       updated_at = datetime('now');`,
     id,
     userId,
     t.name.trim().slice(0, 60) || "Picture template",
@@ -322,9 +387,46 @@ export async function saveImageTemplate(
     JSON.stringify(t.anchors),
     JSON.stringify(t.fields),
     t.sampleText.slice(0, 2000),
+    t.sample ? sampleJson(t.sample) : null,
   );
   await bumpDataVersion();
   return id;
+}
+
+/**
+ * Edit a saved template: its name and kind, and - when it kept its sample - which piece of the
+ * sample is each field (re-learned from the sample). Without a sample, a field can only be removed.
+ */
+export async function updateImageTemplate(
+  t: ImageTemplate,
+  change: { name?: string; kind?: ReceiptKind; picks?: Partial<Record<TemplateField, number>>; removeField?: TemplateField },
+): Promise<void> {
+  let anchors = t.anchors;
+  let fields = { ...t.fields };
+  let sample = t.sample;
+  if (change.picks && sample) {
+    const learned = buildTemplate(sample.pieces, change.picks);
+    anchors = learned.anchors;
+    fields = learned.fields;
+    sample = { pieces: sample.pieces, picks: change.picks };
+  } else if (change.removeField) {
+    delete fields[change.removeField];
+    if (sample) {
+      const picks = { ...sample.picks };
+      delete picks[change.removeField];
+      sample = { pieces: sample.pieces, picks };
+    }
+  }
+  await getDatabase().runAsync(
+    `UPDATE image_templates SET name = ?, kind = ?, anchors = ?, fields = ?, sample_lines = ?, updated_at = datetime('now') WHERE id = ?;`,
+    (change.name ?? t.name).trim().slice(0, 60) || t.name,
+    change.kind ?? t.kind,
+    JSON.stringify(anchors),
+    JSON.stringify(fields),
+    sample ? sampleJson(sample) : null,
+    t.id,
+  );
+  await bumpDataVersion();
 }
 
 export async function markImageTemplateUsed(id: string): Promise<void> {
