@@ -7,7 +7,7 @@ import { Button, Card, ScreenContainer, Text, useToast } from "@/components/ui";
 import { useStackScreenOptions } from "@/components/ui/stack-options";
 import { useTheme } from "@/hooks/use-theme";
 import { isTextReaderAvailable, readTextInImage, type TextLine } from "../../modules/arth-text-reader";
-import { readReceipt, type ReceiptGuess, type ReceiptKind } from "@/services/receipt/read-receipt";
+import { accountFrom, money, parseDate, parseTime, readReceipt, type ReceiptGuess, type ReceiptKind } from "@/services/receipt/read-receipt";
 import {
   findPossibleDuplicate,
   findPossibleDuplicateTransfer,
@@ -25,11 +25,16 @@ import {
   matchTemplate,
   picturePieces,
   saveImageTemplate,
+  pickBox,
+  pickText,
   TEMPLATE_FIELDS,
   valuesFromPicks,
   withTemplate,
+  wordsOf,
   type ImageTemplate,
   type TemplateField,
+  type TemplateValues,
+  type TextPick,
 } from "@/services/receipt/image-templates";
 import { addUpiId } from "@/services/account-upi";
 import { formatAmount } from "@/utils/format";
@@ -44,9 +49,9 @@ const KINDS: { kind: ReceiptKind; label: string; icon: keyof typeof Ionicons.gly
 
 type Phase = "pick" | "reading" | "read" | "failed";
 
-/** The piece of text a field's value came from, so teaching starts from what was already found. */
-function findPicks(pieces: TextLine[], g: ReceiptGuess): Partial<Record<TemplateField, number>> {
-  const picks: Partial<Record<TemplateField, number>> = {};
+/** The text a field's value came from (a piece, or a word of it), so linking starts from what was found. */
+function findPicks(pieces: TextLine[], g: ReceiptGuess): Partial<Record<TemplateField, TextPick>> {
+  const picks: Partial<Record<TemplateField, TextPick>> = {};
   const want: Partial<Record<TemplateField, unknown>> = {
     amount: g.amount,
     party: g.party,
@@ -56,20 +61,57 @@ function findPicks(pieces: TextLine[], g: ReceiptGuess): Partial<Record<Template
     ownVpa: g.ownVpa,
     note: g.note,
   };
-  const used = new Set<number>();
+  const used = new Set<string>();
   for (const [field, value] of Object.entries(want) as [TemplateField, unknown][]) {
     if (value == null) continue;
-    const i = pieces.findIndex((p, idx) => !used.has(idx) && extractField(field, p.text)?.value === value);
+    const i = pieces.findIndex((p, idx) => !used.has(`${idx}`) && extractField(field, p.text)?.value === value);
     if (i >= 0) {
-      picks[field] = i;
-      used.add(i);
+      picks[field] = { i };
+      used.add(`${i}`);
+      continue;
+    }
+    for (let idx = 0; idx < pieces.length && !picks[field]; idx++) {
+      if (used.has(`${idx}`)) continue;
+      const words = wordsOf(pieces[idx]);
+      if (words.length < 2) continue;
+      const j = words.findIndex((w, k) => !used.has(`${idx}:${k}`) && extractField(field, w.text)?.value === value);
+      if (j >= 0) {
+        picks[field] = { i: idx, from: j, to: j };
+        used.add(`${idx}:${j}`);
+      }
     }
   }
   if (g.account?.last4) {
-    const i = pieces.findIndex((p, idx) => !used.has(idx) && p.text.includes(g.account!.last4!));
-    if (i >= 0) picks.account = i;
+    const i = pieces.findIndex((p, idx) => !used.has(`${idx}`) && p.text.includes(g.account!.last4!));
+    if (i >= 0) picks.account = { i };
   }
   return picks;
+}
+
+/** Word span of a pick on a piece of n words (the whole piece when none). */
+const spanOf = (pk: TextPick, n: number): [number, number] => (pk.from == null || pk.to == null ? [0, n - 1] : [pk.from, pk.to]);
+
+/** A value the user typed over what was read: parsed into what the field holds. */
+function parseEdit(field: TemplateField, text: string): Partial<TemplateValues> {
+  const t = text.trim();
+  if (!t) return {};
+  switch (field) {
+    case "amount": {
+      const v = money(t.replace(/[^\d.,]/g, ""));
+      return v ? { amount: v } : {};
+    }
+    case "date": {
+      const d = parseDate(t);
+      return d ? { date: d, time: parseTime(t) } : {};
+    }
+    case "account":
+      return { account: accountFrom(t) ?? { label: t.slice(0, 40), last4: t.match(/(\d{3,4})\D*$/)?.[1] ?? null, wallet: false } };
+    case "vpa":
+    case "ownVpa":
+      return { [field]: t.toLowerCase() };
+    default:
+      return { [field]: t };
+  }
 }
 
 /**
@@ -112,8 +154,12 @@ export default function FromScreenshotScreen() {
 
   // Teaching a template: which piece is which field.
   const [teaching, setTeaching] = useState(false);
-  const [picks, setPicks] = useState<Partial<Record<TemplateField, number>>>({});
+  const [picks, setPicks] = useState<Partial<Record<TemplateField, TextPick>>>({});
   const [tapped, setTapped] = useState<number | null>(null);
+  // Words chosen on the tapped piece (inclusive); null = the whole piece.
+  const [sel, setSel] = useState<{ from: number; to: number } | null>(null);
+  // Values typed over what was read, for this transaction only (the template keeps the links).
+  const [edits, setEdits] = useState<Partial<Record<TemplateField, string>>>({});
   const [templateName, setTemplateName] = useState("");
   const [saveAsTemplate, setSaveAsTemplate] = useState(true);
   const [width, setWidth] = useState(0);
@@ -167,6 +213,7 @@ export default function FromScreenshotScreen() {
     if (teachFirst && p && p.length) {
       setPicks(findPicks(p, g));
       setTapped(null);
+      setEdits({});
       setTemplateName((reteachId ? templates.find((x) => x.id === reteachId)?.name : null) ?? g.app ?? "");
       setSaveAsTemplate(true);
       setTeaching(true);
@@ -271,20 +318,71 @@ export default function FromScreenshotScreen() {
     if (!pieces || !guess) return;
     setPicks(findPicks(pieces, guess));
     setTapped(null);
+    setEdits({});
     setTemplateName(template?.name ?? guess.app ?? "");
     setSaveAsTemplate(true);
     setTeaching(true);
   };
 
+  /** Open a piece: its words start as already linked, else the whole piece. */
+  const openPiece = (i: number) => {
+    const linked = (Object.values(picks) as TextPick[]).find((pk) => pk.i === i && pk.from != null);
+    setTapped(i);
+    setSel(linked && linked.from != null && linked.to != null ? { from: linked.from, to: linked.to } : null);
+  };
+
+  /** A word chip: one word, then a second makes the range between; tapping the one word again, the whole piece. */
+  const tapWord = (j: number) =>
+    setSel((prev) => {
+      if (!prev) return { from: j, to: j };
+      if (prev.from === prev.to) {
+        if (prev.from === j) return null;
+        return { from: Math.min(prev.from, j), to: Math.max(prev.from, j) };
+      }
+      return { from: j, to: j };
+    });
+
+  const selectedText = () => {
+    if (tapped == null || !pieces) return "";
+    return pickText(pieces, sel ? { i: tapped, ...sel } : { i: tapped }) ?? "";
+  };
+
   const assign = (field: TemplateField | null) => {
-    if (tapped == null) return;
+    if (tapped == null || !pieces) return;
+    const n = wordsOf(pieces[tapped]).length;
+    const pick: TextPick = sel && !(sel.from === 0 && sel.to === n - 1) ? { i: tapped, ...sel } : { i: tapped };
+    const [a, b] = spanOf(pick, n);
     setPicks((prev) => {
       const next = { ...prev };
-      for (const f of Object.keys(next) as TemplateField[]) if (next[f] === tapped) delete next[f];
-      if (field) next[field] = tapped;
+      // A word is one field: anything overlapping these words on this piece lets go.
+      for (const f of Object.keys(next) as TemplateField[]) {
+        const pk = next[f]!;
+        if (pk.i !== tapped) continue;
+        const [c, d] = spanOf(pk, n);
+        if (c <= b && a <= d) delete next[f];
+      }
+      if (field) next[field] = pick;
       return next;
     });
+    if (field) setEdits((e) => ({ ...e, [field]: undefined }));
     setTapped(null);
+    setSel(null);
+  };
+
+  /** What each linked field reads as, for the review list. */
+  const linkedValues = pieces ? valuesFromPicks(pieces, picks) : {};
+  const shown = (f: TemplateField): string => {
+    const v = linkedValues;
+    switch (f) {
+      case "amount":
+        return v.amount != null ? formatAmount(v.amount) : "";
+      case "date":
+        return v.date ? `${formatDisplayDate(v.date)}${v.time ? `, ${v.time}` : ""}` : "";
+      case "account":
+        return v.account ? `${v.account.label}${v.account.last4 ? ` ··${v.account.last4}` : ""}` : "";
+      default:
+        return (v[f] as string | undefined) ?? "";
+    }
   };
 
   /** Use the linked text as the transaction's details, and save the layout as a template if asked. */
@@ -294,7 +392,11 @@ export default function FromScreenshotScreen() {
       toast("Tap a value on the picture first");
       return;
     }
-    const g = withTemplate(guess, kind, valuesFromPicks(pieces, picks));
+    let values: TemplateValues = valuesFromPicks(pieces, picks);
+    for (const [f, text] of Object.entries(edits) as [TemplateField, string | undefined][]) {
+      if (text != null && text !== shown(f)) values = { ...values, ...parseEdit(f, text) };
+    }
+    const g = withTemplate(guess, kind, values);
     setGuess(g);
     if (!saveAsTemplate) {
       setTeaching(false);
@@ -365,7 +467,7 @@ export default function FromScreenshotScreen() {
     const d = TEMPLATE_FIELDS.find((x) => x.field === f)!;
     return kind === "credit" && d.creditLabel ? d.creditLabel : d.label;
   };
-  const pickedField = (i: number) => (Object.keys(picks) as TemplateField[]).find((f) => picks[f] === i) ?? null;
+  const fieldsOn = (i: number) => (Object.keys(picks) as TemplateField[]).filter((f) => picks[f]!.i === i);
 
   // ─── Teaching: the picture with every piece of text tappable ───
   if (teaching && pieces && uri) {
@@ -381,13 +483,14 @@ export default function FromScreenshotScreen() {
             {width > 0 && (
               <View style={{ width, height }}>
                 <Image source={{ uri }} style={{ width, height, borderRadius: 8 }} resizeMode="stretch" />
+                {/* Every piece of text is a tap target. */}
                 {pieces.map((p, i) => {
-                  const f = pickedField(i);
+                  const linked = fieldsOn(i).length > 0;
                   const on = tapped === i;
                   return (
                     <Pressable
                       key={i}
-                      onPress={() => setTapped(i)}
+                      onPress={() => openPiece(i)}
                       style={{
                         position: "absolute",
                         left: p.x * width - 3,
@@ -395,19 +498,61 @@ export default function FromScreenshotScreen() {
                         width: p.width * width + 6,
                         height: Math.max(p.height * height + 6, 22),
                         borderRadius: 4,
-                        borderWidth: on ? 2 : 1.5,
-                        borderColor: on ? theme.warning : f ? theme.primary : theme.alpha("primary", 0.35),
-                        backgroundColor: f ? theme.alpha("primary", 0.18) : on ? theme.alpha("warning", 0.15) : undefined,
+                        borderWidth: on ? 2 : 1,
+                        borderColor: on ? theme.warning : linked ? theme.alpha("primary", 0.6) : theme.alpha("primary", 0.35),
+                        backgroundColor: on ? theme.alpha("warning", 0.12) : undefined,
                       }}
                       accessibilityRole="button"
-                      accessibilityLabel={`${p.text}${f ? `, ${fieldLabel(f)}` : ""}`}
+                      accessibilityLabel={`${p.text}${linked ? `, ${fieldsOn(i).map(fieldLabel).join(", ")}` : ""}`}
+                    />
+                  );
+                })}
+                {/* What's linked: a box round exactly that text (a whole line or some words). */}
+                {(Object.keys(picks) as TemplateField[]).map((f) => {
+                  const b = pickBox(pieces, picks[f]!);
+                  if (!b) return null;
+                  return (
+                    <View
+                      key={`box-${f}`}
+                      pointerEvents="none"
+                      style={{
+                        position: "absolute",
+                        left: b.x * width - 3,
+                        top: b.y * height - 3,
+                        width: b.width * width + 6,
+                        height: Math.max(b.height * height + 6, 22),
+                        borderRadius: 4,
+                        borderWidth: 2,
+                        borderColor: theme.primary,
+                        backgroundColor: theme.alpha("primary", 0.15),
+                      }}
+                    />
+                  );
+                })}
+                {/* Their tags sit above the box, on one line, never over the text. */}
+                {(Object.keys(picks) as TemplateField[]).map((f) => {
+                  const b = pickBox(pieces, picks[f]!);
+                  if (!b) return null;
+                  const label = fieldLabel(f);
+                  const tagW = label.length * 6.4 + 10;
+                  return (
+                    <View
+                      key={`tag-${f}`}
+                      pointerEvents="none"
+                      style={{
+                        position: "absolute",
+                        left: Math.max(0, Math.min(b.x * width - 3, width - tagW)),
+                        top: Math.max(0, b.y * height - 21),
+                        width: tagW,
+                        height: 17,
+                        borderRadius: 4,
+                        backgroundColor: theme.primary,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
                     >
-                      {f && (
-                        <View style={{ position: "absolute", top: -16, left: 0, backgroundColor: theme.primary, borderRadius: 3, paddingHorizontal: 4 }}>
-                          <Text style={{ color: theme.primaryForeground, fontSize: 10, fontWeight: "700" }}>{fieldLabel(f)}</Text>
-                        </View>
-                      )}
-                    </Pressable>
+                      <Text numberOfLines={1} style={{ color: theme.primaryForeground, fontSize: 11, fontWeight: "700" }}>{label}</Text>
+                    </View>
                   );
                 })}
               </View>
@@ -415,12 +560,25 @@ export default function FromScreenshotScreen() {
           </View>
 
           <Card className="mt-4">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">What it found</Text>
-            {(Object.keys(picks) as TemplateField[]).length === 0 && <Text className="text-sm text-muted-foreground">Nothing yet - tap a value on the picture.</Text>}
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">What it found</Text>
+            {(Object.keys(picks) as TemplateField[]).length === 0 ? (
+              <Text className="text-sm text-muted-foreground">Nothing yet - tap a value on the picture.</Text>
+            ) : (
+              <Text className="text-xs text-muted-foreground mb-1">Tap a value to correct it. A correction is for this transaction only.</Text>
+            )}
             {TEMPLATE_FIELDS.filter((d) => picks[d.field] != null).map((d) => (
-              <View key={d.field} className="flex-row py-1.5">
-                <Text className="text-sm text-muted-foreground" style={{ width: 130 }}>{fieldLabel(d.field)}</Text>
-                <Text className="text-sm text-foreground flex-1" numberOfLines={1}>{pieces[picks[d.field]!]?.text}</Text>
+              <View key={d.field} className="flex-row items-center py-1.5 border-b border-border">
+                <Text className="text-sm text-muted-foreground" style={{ width: 120 }}>{fieldLabel(d.field)}</Text>
+                <TextInput
+                  value={edits[d.field] ?? shown(d.field)}
+                  onChangeText={(t) => setEdits((e) => ({ ...e, [d.field]: t }))}
+                  placeholder="Not read - type it"
+                  placeholderTextColor={theme.mutedForeground}
+                  keyboardType={d.field === "amount" ? "decimal-pad" : "default"}
+                  autoCapitalize={d.field === "vpa" || d.field === "ownVpa" ? "none" : "sentences"}
+                  className="text-sm text-foreground flex-1 rounded-md px-2 py-1 border border-border"
+                  accessibilityLabel={fieldLabel(d.field)}
+                />
               </View>
             ))}
             <Pressable
@@ -450,42 +608,74 @@ export default function FromScreenshotScreen() {
           </Card>
         </ScrollView>
 
-        {tapped != null && (
-          <View
-            className="absolute left-0 right-0 bottom-0 px-4 pt-3 pb-6 border-t border-border"
-            style={{ backgroundColor: theme.card }}
-          >
-            <Text className="text-xs text-muted-foreground">What is this?</Text>
-            <Text className="text-sm font-semibold text-foreground mt-0.5" numberOfLines={2}>{pieces[tapped]?.text}</Text>
-            <View className="flex-row flex-wrap mt-2" style={{ gap: 6 }}>
-              {TEMPLATE_FIELDS.map((d) => {
-                const on = picks[d.field] === tapped;
-                const ok = extractField(d.field, pieces[tapped]?.text ?? "") != null;
-                return (
-                  <Pressable
-                    key={d.field}
-                    onPress={() => ok && assign(d.field)}
-                    disabled={!ok}
-                    className="rounded-full px-3 py-1.5"
-                    style={{ borderWidth: 1, borderColor: on ? theme.primary : theme.border, backgroundColor: on ? theme.alpha("primary", 0.1) : undefined, opacity: ok ? 1 : 0.35 }}
-                    accessibilityRole="button"
-                    accessibilityState={{ disabled: !ok, selected: on }}
-                  >
-                    <Text className="text-xs font-medium" style={{ color: on ? theme.primary : theme.foreground }}>{fieldLabel(d.field)}</Text>
-                  </Pressable>
-                );
-              })}
-              {pickedField(tapped) && (
-                <Pressable onPress={() => assign(null)} className="rounded-full px-3 py-1.5" style={{ borderWidth: 1, borderColor: theme.border }} accessibilityRole="button">
-                  <Text className="text-xs font-medium text-muted-foreground">Not this</Text>
-                </Pressable>
+        {tapped != null && pieces[tapped] && (() => {
+          const words = wordsOf(pieces[tapped]);
+          const text = selectedText();
+          return (
+            <View className="absolute left-0 right-0 bottom-0 px-4 pt-3 pb-6 border-t border-border" style={{ backgroundColor: theme.card }}>
+              {words.length > 1 ? (
+                <>
+                  <Text className="text-xs text-muted-foreground">
+                    {`This line has ${words.length} parts. Tap the words that make the field.`}
+                  </Text>
+                  <View className="flex-row flex-wrap mt-1.5" style={{ gap: 6 }}>
+                    {words.map((w, j) => {
+                      const on = sel ? j >= sel.from && j <= sel.to : true;
+                      return (
+                        <Pressable
+                          key={j}
+                          onPress={() => tapWord(j)}
+                          className="rounded-md px-2.5 py-1.5"
+                          style={{ borderWidth: on && sel ? 1.5 : 1, borderColor: on && sel ? theme.primary : theme.border, backgroundColor: on && sel ? theme.alpha("primary", 0.1) : undefined }}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: on && !!sel }}
+                        >
+                          <Text className="text-xs" style={{ color: on && sel ? theme.primary : theme.foreground }}>{w.text}</Text>
+                        </Pressable>
+                      );
+                    })}
+                    {sel && (
+                      <Pressable onPress={() => setSel(null)} className="rounded-md px-2.5 py-1.5" accessibilityRole="button">
+                        <Text className="text-xs text-muted-foreground">Whole line</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </>
+              ) : (
+                <Text className="text-sm font-semibold text-foreground" numberOfLines={2}>{text}</Text>
               )}
-              <Pressable onPress={() => setTapped(null)} className="rounded-full px-3 py-1.5" accessibilityRole="button">
-                <Text className="text-xs font-medium text-muted-foreground">Close</Text>
-              </Pressable>
+              <Text className="text-xs text-muted-foreground mt-3">This is the</Text>
+              <View className="flex-row flex-wrap mt-1.5" style={{ gap: 6 }}>
+                {TEMPLATE_FIELDS.map((d) => {
+                  const pk = picks[d.field];
+                  const on = !!pk && pk.i === tapped && (sel ? pk.from === sel.from && pk.to === sel.to : pk.from == null);
+                  const ok = extractField(d.field, text) != null;
+                  return (
+                    <Pressable
+                      key={d.field}
+                      onPress={() => ok && assign(d.field)}
+                      disabled={!ok}
+                      className="rounded-full px-3 py-1.5"
+                      style={{ borderWidth: 1, borderColor: on ? theme.primary : theme.border, backgroundColor: on ? theme.primary : undefined, opacity: ok ? 1 : 0.35 }}
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: !ok, selected: on }}
+                    >
+                      <Text className="text-xs font-medium" style={{ color: on ? theme.primaryForeground : theme.foreground }}>{fieldLabel(d.field)}</Text>
+                    </Pressable>
+                  );
+                })}
+                {fieldsOn(tapped).length > 0 && (
+                  <Pressable onPress={() => assign(null)} className="rounded-full px-3 py-1.5" style={{ borderWidth: 1, borderColor: theme.border }} accessibilityRole="button">
+                    <Text className="text-xs font-medium text-muted-foreground">Not this</Text>
+                  </Pressable>
+                )}
+                <Pressable onPress={() => { setTapped(null); setSel(null); }} className="rounded-full px-3 py-1.5" accessibilityRole="button">
+                  <Text className="text-xs font-medium text-muted-foreground">Close</Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
-        )}
+          );
+        })()}
       </ScreenContainer>
     );
   }

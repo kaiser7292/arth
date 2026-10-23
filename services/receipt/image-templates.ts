@@ -16,7 +16,7 @@
  * (migration 084).
  */
 
-import type { TextLine } from "../../modules/arth-text-reader";
+import type { TextBox, TextLine } from "../../modules/arth-text-reader";
 import { getDatabase } from "@/database";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { bumpDataVersion } from "@/services/settings";
@@ -56,6 +56,25 @@ export interface FieldRule {
   /** Where the value sat on the picture (fractions, 0..1). */
   x: number;
   y: number;
+  /**
+   * Only some words of the piece ("Fresh_Mart_RD_12 ₹345": the name is all but the last word, the
+   * amount the last). Each end counts from the piece's start or end, whichever it was nearest, so
+   * a longer or shorter name next time still splits the same way. Absent: the whole piece.
+   */
+  words?: { start: WordEnd; stop: WordEnd };
+}
+
+/** A word position counted from the start of the piece, or back from its end. */
+export interface WordEnd {
+  fromEnd: boolean;
+  k: number;
+}
+
+/** What the user linked to a field: a piece of text, or some of its words (inclusive). */
+export interface TextPick {
+  i: number;
+  from?: number;
+  to?: number;
 }
 
 export interface ImageTemplate {
@@ -74,7 +93,7 @@ export interface ImageTemplate {
 /** The sample picture's text pieces (not the picture) and which piece is each field. */
 export interface TemplateSample {
   pieces: TextLine[];
-  picks: Partial<Record<TemplateField, number>>;
+  picks: Partial<Record<TemplateField, TextPick>>;
 }
 
 /** What a template read off a picture. */
@@ -93,6 +112,84 @@ export interface TemplateValues {
 /** The picture's pieces of text in reading order (what the user taps, what templates index). */
 export function picturePieces(lines: TextLine[]): TextLine[] {
   return pictureRows(lines).flat();
+}
+
+/**
+ * A piece's words with their boxes: as the reader gave them, or - when it didn't (iPhone, older
+ * samples) - split on spaces with each word's share of the width by its length.
+ */
+export function wordsOf(piece: TextLine): TextBox[] {
+  if (piece.words?.length) return piece.words;
+  const parts = piece.text.split(/\s+/).filter(Boolean);
+  const total = parts.reduce((n, w) => n + w.length, 0) + Math.max(0, parts.length - 1);
+  let at = 0;
+  return parts.map((w) => {
+    const box = {
+      text: w,
+      x: piece.x + (piece.width * at) / Math.max(1, total),
+      y: piece.y,
+      width: (piece.width * w.length) / Math.max(1, total),
+      height: piece.height,
+    };
+    at += w.length + 1;
+    return box;
+  });
+}
+
+/** Old samples stored a piece's index; now a pick. */
+export function toPick(v: TextPick | number | undefined | null): TextPick | null {
+  if (v == null) return null;
+  return typeof v === "number" ? { i: v } : v;
+}
+
+/** The text of a pick: the whole piece, or the chosen words. */
+export function pickText(pieces: TextLine[], pick: TextPick): string | null {
+  const p = pieces[pick.i];
+  if (!p) return null;
+  if (pick.from == null || pick.to == null) return p.text;
+  const words = wordsOf(p);
+  const chosen = words.slice(Math.max(0, pick.from), Math.min(words.length, pick.to + 1));
+  return chosen.length ? chosen.map((w) => w.text).join(" ") : null;
+}
+
+/** The box around a pick (the chosen words, or the whole piece). */
+export function pickBox(pieces: TextLine[], pick: TextPick): TextBox | null {
+  const p = pieces[pick.i];
+  if (!p) return null;
+  if (pick.from == null || pick.to == null) return p;
+  const chosen = wordsOf(p).slice(pick.from, pick.to + 1);
+  if (!chosen.length) return p;
+  const x = Math.min(...chosen.map((w) => w.x));
+  const y = Math.min(...chosen.map((w) => w.y));
+  return {
+    text: chosen.map((w) => w.text).join(" "),
+    x,
+    y,
+    width: Math.max(...chosen.map((w) => w.x + w.width)) - x,
+    height: Math.max(...chosen.map((w) => w.y + w.height)) - y,
+  };
+}
+
+/** Words from..to of n, as positions from whichever end each is nearer to. */
+function wordRule(from: number, to: number, n: number): FieldRule["words"] {
+  if (from <= 0 && to >= n - 1) return undefined;
+  const end = (k: number): WordEnd => (k > n - 1 - k ? { fromEnd: true, k: n - 1 - k } : { fromEnd: false, k });
+  // Touching an end ties that side to it: "all but the last" stays so for any number of words.
+  const start = from === 0 ? { fromEnd: false, k: 0 } : to === n - 1 ? { fromEnd: true, k: n - 1 - from } : end(from);
+  const stop = to === n - 1 ? { fromEnd: true, k: 0 } : from === 0 ? { fromEnd: true, k: n - 1 - to } : end(to);
+  return { start, stop };
+}
+
+/** The words a rule picks from a piece; null when the piece hasn't that many. */
+function applyWordRule(piece: TextLine, rule: FieldRule["words"]): string | null {
+  if (!rule) return piece.text;
+  const words = wordsOf(piece);
+  const n = words.length;
+  const at = (e: WordEnd) => (e.fromEnd ? n - 1 - e.k : e.k);
+  const from = at(rule.start);
+  const to = at(rule.stop);
+  if (from < 0 || to >= n || from > to) return null;
+  return words.slice(from, to + 1).map((w) => w.text).join(" ");
 }
 
 const norm = (t: string) =>
@@ -156,20 +253,32 @@ export function extractField(field: TemplateField, text: string): { value: strin
   }
 }
 
-/** Learn a layout from the pieces the user tapped: field -> index into picturePieces(). */
+/** Learn a layout from what the user linked: field -> a piece of picturePieces(), or its words. */
 export function buildTemplate(
   pieces: TextLine[],
-  picks: Partial<Record<TemplateField, number>>,
+  rawPicks: Partial<Record<TemplateField, TextPick | number>>,
 ): { anchors: string[]; fields: Partial<Record<TemplateField, FieldRule>> } {
-  const picked = new Set(Object.values(picks));
+  const picks = Object.entries(rawPicks)
+    .map(([f, v]) => [f, toPick(v)] as const)
+    .filter((e): e is readonly [string, TextPick] => !!e[1]) as [TemplateField, TextPick][];
+  const picked = new Set(picks.map(([, pk]) => pk.i));
   const fixedAt = pieces.map((p, i) => !picked.has(i) && isFixed(p.text));
   const anchors = [...new Set(pieces.filter((_, i) => fixedAt[i]).map((p) => norm(p.text)))].slice(0, 20);
   const fields: Partial<Record<TemplateField, FieldRule>> = {};
-  for (const [field, i] of Object.entries(picks) as [TemplateField, number][]) {
+  for (const [field, pick] of picks) {
+    const i = pick.i;
     const p = pieces[i];
     if (!p) continue;
-    const found = extractField(field, p.text);
-    const before = found ? norm(p.text.slice(0, found.start)) : "";
+    const n = wordsOf(p).length;
+    const words = pick.from != null && pick.to != null ? wordRule(pick.from, pick.to, n) : undefined;
+    // The label before the value: before the chosen words, or before the value in the whole piece.
+    let before = "";
+    if (words && pick.from != null) {
+      before = norm(wordsOf(p).slice(0, pick.from).map((w) => w.text).join(" "));
+    } else {
+      const found = extractField(field, p.text);
+      before = found ? norm(p.text.slice(0, found.start)) : "";
+    }
     let anchorAt = -1;
     for (let j = i - 1; j >= 0; j--) {
       if (fixedAt[j]) {
@@ -183,6 +292,7 @@ export function buildTemplate(
       offset: anchorAt >= 0 ? i - anchorAt : 0,
       x: p.x,
       y: p.y,
+      ...(words ? { words } : {}),
     };
   }
   return { anchors, fields };
@@ -211,7 +321,11 @@ export function applyTemplate(pieces: TextLine[], fields: Partial<Record<Templat
   const out: TemplateValues = {};
   const norms = pieces.map((p) => norm(p.text));
   for (const [field, rule] of Object.entries(fields) as [TemplateField, FieldRule][]) {
-    const tryAt = (i: number) => (i >= 0 && i < pieces.length ? extractField(field, pieces[i].text) : null);
+    const tryAt = (i: number) => {
+      if (i < 0 || i >= pieces.length) return null;
+      const text = applyWordRule(pieces[i], rule.words);
+      return text ? extractField(field, text) : null;
+    };
     let hit: ReturnType<typeof extractField> = null;
     // 1. Its label on the same piece (nearest to where it was, if the label repeats).
     if (rule.prefix) {
@@ -251,11 +365,13 @@ export function applyTemplate(pieces: TextLine[], fields: Partial<Record<Templat
   return out;
 }
 
-/** The values of the pieces the user tapped (field -> index into picturePieces()). */
-export function valuesFromPicks(pieces: TextLine[], picks: Partial<Record<TemplateField, number>>): TemplateValues {
+/** The values of what the user linked (field -> a piece, or some of its words). */
+export function valuesFromPicks(pieces: TextLine[], picks: Partial<Record<TemplateField, TextPick | number>>): TemplateValues {
   const out: TemplateValues = {};
-  for (const [field, i] of Object.entries(picks) as [TemplateField, number][]) {
-    const hit = pieces[i] ? extractField(field, pieces[i].text) : null;
+  for (const [field, raw] of Object.entries(picks) as [TemplateField, TextPick | number][]) {
+    const pick = toPick(raw);
+    const text = pick ? pickText(pieces, pick) : null;
+    const hit = text ? extractField(field, text) : null;
     if (!hit) continue;
     if (field === "amount") out.amount = hit.value as number;
     else if (field === "date") {
@@ -307,7 +423,13 @@ function parseSample(raw: string | null): TemplateSample | null {
       (p: unknown): p is TextLine =>
         !!p && typeof (p as TextLine).text === "string" && ["x", "y", "width", "height"].every((k) => typeof (p as Record<string, unknown>)[k] === "number"),
     );
-    return pieces.length === v.pieces.length ? { pieces, picks: v.picks } : null;
+    if (pieces.length !== v.pieces.length) return null;
+    const picks: Partial<Record<TemplateField, TextPick>> = {};
+    for (const [f, raw] of Object.entries(v.picks)) {
+      const pk = toPick(raw as TextPick | number);
+      if (pk && typeof pk.i === "number") picks[f as TemplateField] = pk;
+    }
+    return { pieces, picks };
   } catch {
     return null;
   }
@@ -316,7 +438,16 @@ function parseSample(raw: string | null): TemplateSample | null {
 const round = (n: number) => Math.round(n * 10000) / 10000;
 const sampleJson = (s: TemplateSample) =>
   JSON.stringify({
-    pieces: s.pieces.map((p) => ({ text: p.text.slice(0, 120), x: round(p.x), y: round(p.y), width: round(p.width), height: round(p.height) })),
+    pieces: s.pieces.map((p) => ({
+      text: p.text.slice(0, 120),
+      x: round(p.x),
+      y: round(p.y),
+      width: round(p.width),
+      height: round(p.height),
+      ...(p.words?.length
+        ? { words: p.words.map((w) => ({ text: w.text.slice(0, 60), x: round(w.x), y: round(w.y), width: round(w.width), height: round(w.height) })) }
+        : {}),
+    })),
     picks: s.picks,
   });
 
@@ -399,7 +530,7 @@ export async function saveImageTemplate(
  */
 export async function updateImageTemplate(
   t: ImageTemplate,
-  change: { name?: string; kind?: ReceiptKind; picks?: Partial<Record<TemplateField, number>>; removeField?: TemplateField },
+  change: { name?: string; kind?: ReceiptKind; picks?: Partial<Record<TemplateField, TextPick>>; removeField?: TemplateField },
 ): Promise<void> {
   let anchors = t.anchors;
   let fields = { ...t.fields };

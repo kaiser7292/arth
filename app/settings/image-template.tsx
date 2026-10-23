@@ -11,10 +11,13 @@ import {
   deleteImageTemplate,
   extractField,
   getImageTemplate,
+  pickText,
   TEMPLATE_FIELDS,
   updateImageTemplate,
   type ImageTemplate,
   type TemplateField,
+  type TextPick,
+  wordsOf,
 } from "@/services/receipt/image-templates";
 
 const KINDS: { kind: ReceiptKind; label: string }[] = [
@@ -63,9 +66,21 @@ export default function ImageTemplateScreen() {
     return t.kind === "credit" && d.creditLabel ? d.creditLabel : d.label;
   };
   const sampleValue = (f: TemplateField) => {
-    const i = sample?.picks[f];
-    return i != null ? sample?.pieces[i]?.text : undefined;
+    const pk = sample?.picks[f];
+    return pk && sample ? (pickText(sample.pieces, pk) ?? undefined) : undefined;
   };
+  const samePick = (a: TextPick | undefined, b: TextPick) => !!a && a.i === b.i && a.from === b.from && a.to === b.to;
+
+  // What a field can be linked to: each line of the sample, and each word of a line with several.
+  const options: { pick: TextPick; text: string }[] = sample
+    ? sample.pieces.flatMap((p, i) => {
+        const words = wordsOf(p);
+        return [
+          { pick: { i }, text: p.text },
+          ...(words.length > 1 ? words.map((w, j) => ({ pick: { i, from: j, to: j }, text: w.text })) : []),
+        ];
+      })
+    : [];
 
   const saveName = () => {
     const n = name.trim();
@@ -73,12 +88,12 @@ export default function ImageTemplateScreen() {
     else setName(t.name);
   };
 
-  const link = (f: TemplateField, i: number) => {
+  const link = (f: TemplateField, pick: TextPick) => {
     if (!sample) return;
     const picks = { ...sample.picks };
-    // A piece is one field: taking it from another field unlinks it there.
-    for (const k of Object.keys(picks) as TemplateField[]) if (picks[k] === i) delete picks[k];
-    picks[f] = i;
+    // The same text is one field: taking it from another field unlinks it there.
+    for (const k of Object.keys(picks) as TemplateField[]) if (samePick(picks[k], pick)) delete picks[k];
+    picks[f] = pick;
     setOpen(null);
     void updateImageTemplate(t, { picks });
   };
@@ -143,7 +158,7 @@ export default function ImageTemplateScreen() {
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Fields</Text>
           <Text className="text-xs text-muted-foreground mb-2">
             {sample
-              ? "Tap a field to link it to different text from the picture this template was taught on."
+              ? "Tap a field to link it to different text from the picture this template was taught on: a whole line, or one word of it."
               : "This template was saved before editing was possible, so it has no text to re-link. You can remove a field, or re-teach it with a new picture below."}
           </Text>
           {shown.map((d) => {
@@ -168,19 +183,19 @@ export default function ImageTemplateScreen() {
                   <View className="pb-3">
                     {sample && (
                       <View className="flex-row flex-wrap" style={{ gap: 6 }}>
-                        {sample.pieces.map((p, i) => {
-                          if (!extractField(d.field, p.text)) return null;
-                          const on = sample.picks[d.field] === i;
+                        {options.map((o) => {
+                          if (!extractField(d.field, o.text)) return null;
+                          const on = samePick(sample.picks[d.field], o.pick);
                           return (
                             <Pressable
-                              key={i}
-                              onPress={() => !on && link(d.field, i)}
+                              key={`${o.pick.i}:${o.pick.from ?? "all"}`}
+                              onPress={() => !on && link(d.field, o.pick)}
                               className="rounded-md px-2 py-1.5"
                               style={{ borderWidth: 1, borderColor: on ? theme.primary : theme.border, backgroundColor: on ? theme.alpha("primary", 0.1) : undefined, maxWidth: "100%" }}
                               accessibilityRole="radio"
                               accessibilityState={{ selected: on }}
                             >
-                              <Text className="text-xs" numberOfLines={1} style={{ color: on ? theme.primary : theme.foreground }}>{p.text}</Text>
+                              <Text className="text-xs" numberOfLines={1} style={{ color: on ? theme.primary : theme.foreground }}>{o.text}</Text>
                             </Pressable>
                           );
                         })}

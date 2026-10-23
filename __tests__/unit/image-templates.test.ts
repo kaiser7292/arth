@@ -7,6 +7,7 @@ import {
   matchTemplate,
   picturePieces,
   valuesFromPicks,
+  wordsOf,
   withTemplate,
 } from "../../services/receipt/image-templates";
 import { readReceipt } from "../../services/receipt/read-receipt";
@@ -89,6 +90,40 @@ describe("smart image templates", () => {
       party: "Ravi Kumar",
       ref: "220011223344",
     });
+  });
+
+  it("picks words of a line: the name is all but the last word, the amount the last", () => {
+    const W = (text: string, x: number, y: number) => ({ text, x, y, width: 0.08 * text.length * 0.1, height: 0.015 });
+    const line = (words: ReturnType<typeof W>[], y: number) => ({
+      ...L(words.map((w) => w.text).join(" "), y),
+      words,
+    });
+    const first = picturePieces([
+      L("Transaction Successful", 0.1),
+      L("Paid to", 0.2),
+      line([W("Fresh_Mart_RD_12", 0.2, 0.25), W("₹345", 0.8, 0.25)], 0.25),
+      L("Transfer Details", 0.4),
+    ]);
+    const i = first.findIndex((p) => p.text.startsWith("Fresh"));
+    const t = buildTemplate(first, { party: { i, from: 0, to: 0 }, amount: { i, from: 1, to: 1 } });
+    expect(t.fields.amount?.words).toEqual({ start: { fromEnd: true, k: 0 }, stop: { fromEnd: true, k: 0 } });
+    expect(valuesFromPicks(first, { party: { i, from: 0, to: 0 }, amount: { i, from: 1, to: 1 } })).toMatchObject({ party: "Fresh_Mart_RD_12", amount: 345 });
+
+    // Next time the name is three words; the split still holds.
+    const next = picturePieces([
+      L("Transaction Successful", 0.1),
+      L("Paid to", 0.2),
+      line([W("Big", 0.2, 0.25), W("Basket", 0.3, 0.25), W("Store", 0.4, 0.25), W("₹1,299.50", 0.8, 0.25)], 0.25),
+      L("Transfer Details", 0.4),
+    ]);
+    expect(applyTemplate(next, t.fields)).toMatchObject({ party: "Big Basket Store", amount: 1299.5 });
+  });
+
+  it("estimates words when the reader gave none", () => {
+    const w = wordsOf(L("Paid to Fresh Mart", 0.2, 0.1));
+    expect(w.map((x) => x.text)).toEqual(["Paid", "to", "Fresh", "Mart"]);
+    expect(w[0].x).toBeCloseTo(0.1);
+    expect(w[3].x).toBeGreaterThan(w[2].x);
   });
 
   it("takes values out of labelled text", () => {

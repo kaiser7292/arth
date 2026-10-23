@@ -1,12 +1,17 @@
 import { requireOptionalNativeModule } from "expo-modules-core";
 
-/** One recognised line, its box as a fraction of the image (0..1, top-left origin). */
-export interface TextLine {
+/** A recognised piece of text, its box as a fraction of the image (0..1, top-left origin). */
+export interface TextBox {
   text: string;
   x: number;
   y: number;
   width: number;
   height: number;
+}
+
+/** One recognised line, with its words when the reader gives them (Android). */
+export interface TextLine extends TextBox {
+  words?: TextBox[];
 }
 
 export interface TextReadResult {
