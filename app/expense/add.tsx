@@ -1233,8 +1233,21 @@ export default function AddExpenseScreen() {
                     setShowAccounts(false);
                   }}
                 />
+                {/* Tap to swap: money into the account instead of out of it. */}
                 <View className="items-center -mt-2 mb-2">
-                  <Ionicons name="arrow-down" size={18} color={colors.textSecondary} />
+                  <Pressable
+                    onPress={() => {
+                      setAccountId(toAccountId);
+                      setToAccountId(accountId);
+                    }}
+                    hitSlop={10}
+                    className="flex-row items-center px-3 py-1 rounded-full"
+                    accessibilityRole="button"
+                    accessibilityLabel="Swap from and to accounts"
+                  >
+                    <Ionicons name="swap-vertical" size={18} color={colors.textSecondary} />
+                    <Text className="text-xs text-muted-foreground ml-1">Swap</Text>
+                  </Pressable>
                 </View>
                 <AccountPicker
                   accounts={accounts}

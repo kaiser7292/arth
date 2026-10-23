@@ -128,6 +128,18 @@ interface AccountPickerProps {
   placeholder?: string;
 }
 
+// Every account type, not just spending ones: the same picker chooses both sides of a transfer.
+const PICKER_TYPE_LABEL: Record<string, string> = {
+  savings: "Savings",
+  bank: "Savings",
+  credit_card: "Credit Card",
+  wallet: "Wallet",
+  loan: "Loan",
+  demat: "Demat",
+  investment: "Investment",
+  pension: "Pension",
+};
+
 export function AccountPicker({
   accounts,
   accountId,
@@ -192,7 +204,7 @@ export function AccountPicker({
                 id: acct.id,
                 label: acct.account_label ?? `${acct.bank_name} ****${acct.account_identifier}`,
                 subtitle: withPickerBalance(
-                  `${acct.account_type === "credit_card" ? "Credit Card" : acct.account_type === "savings" ? "Savings" : acct.account_type === "loan" ? "Loan" : "Wallet"} · ${acct.bank_name}`,
+                  `${PICKER_TYPE_LABEL[acct.account_type] ?? "Account"} · ${acct.bank_name}`,
                   balances[acct.id],
                 ),
               }))}
