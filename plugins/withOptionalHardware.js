@@ -7,11 +7,13 @@ const { withAndroidManifest } = require("expo/config-plugins");
  *     Without it there are simply no messages to read; everything else works.
  *   - CAMERA ("Take a photo" on Add from a picture) implies a camera: 4.23.0 dropped 19 devices.
  *     Without one, the gallery still works.
+ *   - RECORD_AUDIO (voice entry and voice search) implies a microphone. Without one, type instead.
  */
 const FEATURES = [
   "android.hardware.telephony",
   "android.hardware.camera",
   "android.hardware.camera.autofocus",
+  "android.hardware.microphone",
 ];
 
 function withOptionalHardware(config) {

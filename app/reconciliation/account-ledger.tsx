@@ -1,5 +1,4 @@
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
 import { Badge, Button, Card, DateInput, FABMenu, FilterChip, Input, Money, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -25,7 +24,6 @@ import {
     updateCredit,
 } from "@/services/account-credit";
 import {
-    createTransfer,
     deleteTransfer,
     getTransfersForMonth,
     getTransfersInTotal,
@@ -33,8 +31,7 @@ import {
     reclassifyCreditAsTransfer,
 } from "@/services/account-transfer";
 import { getCurrentMonth } from "@/services/budget";
-import type { DematTarget } from "@/services/demat-transfer";
-import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
+import { handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
 import { isDematLikeAccountById } from "@/services/investment-accounts";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getAllAccounts } from "@/services/financial-account";
@@ -127,7 +124,7 @@ export default function AccountLedgerScreen() {
   const [cardFilter, setCardFilter] = useState<string>("all");
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   // All active accounts, refreshed alongside the ledger. Lets callbacks
-  // (e.g. handleSaveTransfer) look up the destination account type without
+  // (e.g. handleConvertConfirm) look up an account's type without
   // another round-trip to the DB.
   const [allAccountsState, setAllAccountsState] = useState<FinancialAccount[]>([]);
   const [showAddCredit, setShowAddCredit] = useState(false);
@@ -135,30 +132,6 @@ export default function AccountLedgerScreen() {
   const [creditAmount, setCreditAmount] = useState("");
   const [creditDescription, setCreditDescription] = useState("");
   const [creditDate, setCreditDate] = useState("");
-
-  // Transfer form state
-  const [showAddTransfer, setShowAddTransfer] = useState(false);
-  const [transferDirection, setTransferDirection] = useState<"in" | "out">("in");
-  const [transferAmount, setTransferAmount] = useState("");
-  const [transferDescription, setTransferDescription] = useState("");
-  const [transferDate, setTransferDate] = useState("");
-  const [transferAccountId, setTransferAccountId] = useState<string | null>(null);
-  const [transferAccountLabel, setTransferAccountLabel] = useState("");
-  const [showTransferAccountPicker, setShowTransferAccountPicker] = useState(false);
-
-  // When a transfer lands in a demat account, open the follow-up sheet so the
-  // user can declare fund/portfolio + optional bucket link. Holding the
-  // context here lets us chain the two flows without prop-drilling.
-  const [pendingDematTransfer, setPendingDematTransfer] = useState<
-    | {
-        transferId: string;
-        dematAccountId: string;
-        dematAccountLabel: string;
-        amount: number;
-        date: string;
-      }
-    | null
-  >(null);
 
   // Adjust-available form state
   const [showAdjust, setShowAdjust] = useState(autoOpenAdjust === "1");
@@ -553,101 +526,6 @@ const loadData = useCallback(async () => {
     [],
   );
 
-  // ── Transfer handlers ──
-
-  const handleCancelTransferForm = useCallback(() => {
-    setShowAddTransfer(false);
-    setTransferAmount("");
-    setTransferDescription("");
-    setTransferDate("");
-    setTransferAccountId(null);
-    setTransferAccountLabel("");
-    setTransferDirection("in");
-  }, []);
-
-  const handleSaveTransfer = useCallback(async () => {
-    if (!accountId || !transferAccountId) return;
-    const amount = parseFloat(transferAmount);
-    // Reject NaN, Infinity, zero, negatives, and absurdly large values that
-    // are almost certainly input typos rather than legitimate amounts.
-    if (!Number.isFinite(amount) || amount <= 0 || amount >= 1e12) {
-      alert("Invalid Amount", "Please enter a valid positive amount.");
-      return;
-    }
-    const fallbackDate = new Date().toISOString().split("T")[0];
-    const date = transferDate.trim() || fallbackDate;
-    // Only accept a fully-formed YYYY-MM-DD date (or the fallback). Prevents
-    // a stray string from reaching date.slice(0,7) in the side-effect path.
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      alert("Invalid Date", "Please pick a valid date.");
-      return;
-    }
-
-    const toAccountId = transferDirection === "out" ? transferAccountId : accountId;
-    const transferId = await createTransfer({
-      userId: DEFAULT_USER_ID,
-      fromAccountId: transferDirection === "out" ? accountId : transferAccountId,
-      toAccountId,
-      amount,
-      description: transferDescription.trim() || undefined,
-      date,
-      source: "manual",
-    });
-
-    // If money came FROM a demat account (redemption/withdrawal), subtract from
-    // the idle fund snapshot automatically — no picker needed.
-    const fromAccountId = transferDirection === "out" ? accountId : transferAccountId;
-    const fromAccount = allAccountsState.find((a) => a.id === fromAccountId);
-    if (fromAccount && (await isDematLikeAccountById(fromAccount))) {
-      try {
-        await handleDematWithdrawalSideEffects(transferId, fromAccount.id, amount, date);
-      } catch (e) {
-        alert("Warning", `Transfer saved but fund snapshot could not be updated: ${e instanceof Error ? e.message : String(e)}`);
-      }
-    }
-
-    // If the money landed in a demat account, open the follow-up sheet so the
-    // user can declare fund/portfolio + optional bucket. The sheet is
-    // dismissible — skipping leaves demat_target NULL and nothing is synced
-    // to snapshots or buckets. Reuses the in-memory account list populated
-    // by the data-refresh effect; no extra DB round-trip.
-    const toAccount = allAccountsState.find((a) => a.id === toAccountId);
-    if (toAccount && (await isDematLikeAccountById(toAccount))) {
-      const label =
-        toAccount.account_label ||
-        `${toAccount.bank_name} ****${toAccount.account_identifier}`;
-      setPendingDematTransfer({
-        transferId,
-        dematAccountId: toAccount.id,
-        dematAccountLabel: label,
-        amount,
-        date,
-      });
-    }
-
-    handleCancelTransferForm();
-  }, [accountId, allAccountsState, transferAccountId, transferAmount, transferDate, transferDirection, transferDescription, handleCancelTransferForm]);
-
-  const handleConfirmDematTarget = useCallback(
-    async (target: DematTarget, bucketId: string | null) => {
-      if (!pendingDematTransfer) return;
-      try {
-        await handleDematTransferSideEffects(
-          pendingDematTransfer.transferId,
-          pendingDematTransfer.dematAccountId,
-          pendingDematTransfer.amount,
-          pendingDematTransfer.date,
-          { target, bucketId },
-        );
-      } catch (e) {
-        alert("Error", e instanceof Error ? e.message : String(e));
-      } finally {
-        setPendingDematTransfer(null);
-      }
-    },
-    [pendingDematTransfer],
-  );
-
   const handleDeleteTransfer = useCallback(
     (id: string, description: string) => {
       alert("Delete Transfer", `Delete "${description}"?`, [
@@ -710,15 +588,6 @@ const loadData = useCallback(async () => {
       setConvertingCreditDate(null);
     },
     [convertingCreditId, convertingCreditUpdatedAt, convertingCreditAmount, convertingCreditDate, allAccountsState, alert],
-  );
-
-  const handleTransferAccountSelected = useCallback(
-    (selectedAccountId: string) => {
-      setTransferAccountId(selectedAccountId);
-      setTransferAccountLabel(accountMap.get(selectedAccountId) ?? "Selected");
-      setShowTransferAccountPicker(false);
-    },
-    [accountMap],
   );
 
   const handleSaveAdjustment = useCallback(async () => {
@@ -945,100 +814,6 @@ const loadData = useCallback(async () => {
                   style={{ backgroundColor: theme.primary }}
                 >
                   <Text className="text-meta font-semibold text-primary-foreground">{editingCreditId ? "Save" : "Add Credit"}</Text>
-                </Pressable>
-              </View>
-            </Card>
-          )}
-
-          {/* Transfer form (inline) */}
-          {showAddTransfer && (
-            <Card className="mx-4 mt-4">
-              <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Add Transfer
-              </Text>
-
-              {/* Direction toggle */}
-              <View className="flex-row mb-3">
-                <Pressable
-                  onPress={() => setTransferDirection("in")}
-                  className="flex-1 py-2 rounded-l-lg items-center border"
-                  style={transferDirection === "in"
-                    ? { borderColor: theme.success, backgroundColor: theme.success + "14" }
-                    : { borderColor: colors.border }
-                  }
-                >
-                  <Text className="text-label font-medium" style={{ color: transferDirection === "in" ? theme.success : colors.textSecondary }}>
-                    Money In ↓
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setTransferDirection("out")}
-                  className="flex-1 py-2 rounded-r-lg items-center border border-l-0"
-                  style={transferDirection === "out"
-                    ? { borderColor: theme.danger, backgroundColor: theme.danger + "14" }
-                    : { borderColor: colors.border }
-                  }
-                >
-                  <Text className="text-label font-medium" style={{ color: transferDirection === "out" ? theme.danger : colors.textSecondary }}>
-                    Money Out ↑
-                  </Text>
-                </Pressable>
-              </View>
-
-              {/* Account picker */}
-              <Text className="text-label font-medium text-muted-foreground mb-1">
-                {transferDirection === "in" ? "From Account" : "To Account"}
-              </Text>
-              <Pressable
-                onPress={() => setShowTransferAccountPicker(true)}
-                className="flex-row items-center border rounded-lg px-3 py-2.5 mb-3"
-                style={{ borderColor: colors.border }}
-              >
-                <Ionicons name="wallet-outline" size={16} color={transferAccountId ? theme.primary : colors.textSecondary} />
-                <Text
-                  className="flex-1 text-meta ml-2"
-                  style={{ color: transferAccountId ? colors.text : colors.textSecondary }}
-                >
-                  {transferAccountLabel || "Select account"}
-                </Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-              </Pressable>
-
-              <Input
-                placeholder="Amount"
-                formula
-                value={transferAmount}
-                onChangeText={setTransferAmount}
-                containerClassName="mb-3"
-              />
-              <TextInput
-                className="border border-border rounded-lg px-3 py-2.5 mb-3 text-meta text-foreground"
-                placeholder="Description (optional)"
-                placeholderTextColor={colors.textSecondary}
-                maxLength={200}
-                value={transferDescription}
-                onChangeText={setTransferDescription}
-              />
-              <DateInput
-                label="Date"
-                value={transferDate || new Date().toISOString().split("T")[0]}
-                onChange={setTransferDate}
-                containerClassName="mb-3"
-              />
-              <View className="flex-row">
-                <Pressable
-                  onPress={handleCancelTransferForm}
-                  className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border"
-                >
-                  <Text className="text-meta font-semibold text-muted-foreground">Cancel</Text>
-                </Pressable>
-                <Pressable
-                  onPress={handleSaveTransfer}
-                  className="flex-1 py-2.5 rounded-lg items-center"
-                  style={{ backgroundColor: transferAccountId ? theme.primary : colors.textSecondary + "40" }}
-                  disabled={!transferAccountId}
-                >
-                  <Text className="text-meta font-semibold text-primary-foreground">Add Transfer</Text>
                 </Pressable>
               </View>
             </Card>
@@ -1383,7 +1158,7 @@ const loadData = useCallback(async () => {
 
       {/* Animated FAB menu — hidden while any inline form is open so it doesn't overlap */}
       <FABMenu
-        hidden={showAddCredit || showAddTransfer || showAdjust}
+        hidden={showAddCredit || showAdjust}
         accessibilityLabel="Add transaction"
         items={[
           {
@@ -1410,9 +1185,16 @@ const loadData = useCallback(async () => {
             label: "Add Transfer",
             color: TRANSFER_COLOR,
             onPress: () => {
-              setTransferDate(new Date().toISOString().split("T")[0]);
-              setShowAddTransfer(true);
-              setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
+              // The same form as Add Credit, on Transfer and out of this account; date as for credits.
+              const today = formatLocalDate(new Date());
+              router.push({
+                pathname: "/expense/add",
+                params: {
+                  type: "transfer",
+                  prefillAccountId: accountId,
+                  prefillDate: today >= startDate && today <= endDate ? today : startDate,
+                },
+              });
             },
           },
           {
@@ -1427,19 +1209,6 @@ const loadData = useCallback(async () => {
         ] satisfies FABMenuItem[]}
       />
 
-      {/* Account picker for transfers.
-          Direction "out" = money FROM this account TO another (demat is valid destination).
-          Direction "in" = money INTO this account FROM another — demat is also allowed
-          as a source to support demat redemption/withdrawal flows. */}
-      <AccountPickerSheet
-        visible={showTransferAccountPicker}
-        onSelect={handleTransferAccountSelected}
-        onClose={() => setShowTransferAccountPicker(false)}
-        title={transferDirection === "in" ? "Transfer From" : "Transfer To"}
-        filterTypes={transferDirection === "out" ? ["savings", "wallet", "demat"] : ["savings", "wallet", "demat"]}
-        excludeAccountId={accountId}
-      />
-
       {/* Account picker for convert-credit-to-transfer */}
       <AccountPickerSheet
         visible={showConvertPicker}
@@ -1449,20 +1218,6 @@ const loadData = useCallback(async () => {
         filterTypes={["savings", "wallet", "demat"]}
         excludeAccountId={accountId}
       />
-
-      {/* Demat fund/portfolio + optional bucket follow-up after a transfer
-          lands in a demat account. Dismissible — skipping just leaves the
-          transfer as a plain account_transfers row. */}
-      {pendingDematTransfer && (
-        <DematTransferTargetSheet
-          visible={true}
-          dematAccountLabel={pendingDematTransfer.dematAccountLabel}
-          amount={pendingDematTransfer.amount}
-          date={pendingDematTransfer.date}
-          onConfirm={handleConfirmDematTarget}
-          onClose={() => setPendingDematTransfer(null)}
-        />
-      )}
 
       {/* v15.12.1: Source SMS viewer — shown when the user taps a transfer
           that was reclassified from an SMS credit/debit. The raw body + DLT

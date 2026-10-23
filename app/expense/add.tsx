@@ -21,6 +21,9 @@ import {
     type TransactionType,
 } from "@/components/expense/TransactionFormParts";
 import { createTransfer } from "@/services/account-transfer";
+import { DematTransferTargetSheet } from "@/components/expense/DematTransferTargetSheet";
+import { handleDematTransferSideEffects, handleDematWithdrawalSideEffects, type DematTarget } from "@/services/demat-transfer";
+import { isDematLikeAccountById } from "@/services/investment-accounts";
 import type { CreditKind } from "@/services/expense-types";
 import { getLastAccount, rememberAccount, type FormAccountSlot } from "@/services/form-memory";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
@@ -152,6 +155,15 @@ export default function AddExpenseScreen() {
   // Account state (V4)
   const [accountId, setAccountId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  // A transfer into a demat account: asked after saving whether it went to idle cash or holdings
+  // (and which investment bucket) - the same follow-up the old transfer sheets had.
+  const [pendingDematTransfer, setPendingDematTransfer] = useState<{
+    transferId: string;
+    dematAccountId: string;
+    dematAccountLabel: string;
+    amount: number;
+    date: string;
+  } | null>(null);
   const [showAccounts, setShowAccounts] = useState(false);
 
   // Split-tender state — extra payment legs (primary is the main amount/account
@@ -507,11 +519,12 @@ export default function AddExpenseScreen() {
       setErrors({});
       setSaving(true);
       try {
-        await createTransfer({
+        const transferAmount = parseAmount(amount)!;
+        const transferId = await createTransfer({
           userId: DEFAULT_USER_ID,
           fromAccountId: accountId,
           toAccountId,
-          amount: parseAmount(amount)!,
+          amount: transferAmount,
           description: description.trim() || undefined,
           date,
           source: "manual",
@@ -519,6 +532,27 @@ export default function AddExpenseScreen() {
         rememberAccount("transfer_from", accountId);
         rememberAccount("transfer_to", toAccountId);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Out of a demat account: comes off its idle cash snapshot.
+        const fromAccount = accounts.find((a) => a.id === accountId);
+        if (fromAccount && (await isDematLikeAccountById(fromAccount))) {
+          try {
+            await handleDematWithdrawalSideEffects(transferId, fromAccount.id, transferAmount, date);
+          } catch (e) {
+            alert("Warning", `Transfer saved but fund snapshot could not be updated: ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }
+        // Into a demat account: ask where it went before leaving.
+        const toAccount = accounts.find((a) => a.id === toAccountId);
+        if (toAccount && (await isDematLikeAccountById(toAccount))) {
+          setPendingDematTransfer({
+            transferId,
+            dematAccountId: toAccount.id,
+            dematAccountLabel: toAccount.account_label || `${toAccount.bank_name} ****${toAccount.account_identifier}`,
+            amount: transferAmount,
+            date,
+          });
+          return;
+        }
         navigateAfterSave();
       } catch (e) {
         logger.error("Save transfer failed:", e);
@@ -657,7 +691,7 @@ export default function AddExpenseScreen() {
     } finally {
       setSaving(false);
     }
-  }, [amount, description, merchantName, categoryId, paymentModeId, accountId, toAccountId, date, isRightSpend, splitConfig, selectedTagIds, extraLegs, isRefund, linkedExpenseId, otherPersonRefundShare, fulfillsReminderId, alert, navigateAfterSave, txType, creditKind, pickedRefund]);
+  }, [amount, description, merchantName, categoryId, paymentModeId, accountId, toAccountId, date, isRightSpend, splitConfig, selectedTagIds, extraLegs, isRefund, linkedExpenseId, otherPersonRefundShare, fulfillsReminderId, alert, navigateAfterSave, txType, creditKind, pickedRefund, accounts]);
 
   const handleDateShift = useCallback(
     (days: number) => {
@@ -1254,6 +1288,34 @@ export default function AddExpenseScreen() {
         }}
         onClose={() => setRefundPickerOpen(false)}
       />
+      {pendingDematTransfer && (
+        <DematTransferTargetSheet
+          visible={true}
+          dematAccountLabel={pendingDematTransfer.dematAccountLabel}
+          amount={pendingDematTransfer.amount}
+          date={pendingDematTransfer.date}
+          onConfirm={async (target: DematTarget, bucketId: string | null) => {
+            try {
+              await handleDematTransferSideEffects(
+                pendingDematTransfer.transferId,
+                pendingDematTransfer.dematAccountId,
+                pendingDematTransfer.amount,
+                pendingDematTransfer.date,
+                { target, bucketId },
+              );
+            } catch (e) {
+              alert("Error", e instanceof Error ? e.message : String(e));
+            } finally {
+              setPendingDematTransfer(null);
+              navigateAfterSave();
+            }
+          }}
+          onClose={() => {
+            setPendingDematTransfer(null);
+            navigateAfterSave();
+          }}
+        />
+      )}
     </ScreenContainer>
   );
 }

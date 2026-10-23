@@ -231,7 +231,7 @@
         {
           "photosPermission": "Arth reads a payment screenshot you choose, on this phone, to fill in a transaction.",
           "cameraPermission": "Arth uses the camera only when you take a photo of a payment or receipt, to read it on this phone.",
-          "microphonePermission": false
+          "microphonePermission": "Arth uses the microphone only while you add a transaction or search by voice."
         }
       ]
     ],
