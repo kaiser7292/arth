@@ -132,6 +132,14 @@
       "./plugins/withArmOnly",
       "./plugins/withAapt2Fix",
       "./plugins/withLargeHeap",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
+        }
+      ],
       "./plugins/withOptionalHardware",
       "./plugins/withReleaseSigning",
       "./plugins/withR8",
