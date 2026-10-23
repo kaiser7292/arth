@@ -1,37 +1,49 @@
 /**
- * A backup file opened with Arth ("Open with"), held until the app can show it.
+ * Something handed to Arth from another app, held until the app can show it:
+ *   - a backup opened with Arth ("Open with")        -> Backup & Restore
+ *   - an image shared to Arth (a payment screenshot) -> Add from screenshot
+ *   - text shared to Arth (a payment message)        -> Add from screenshot, read as text
  *
- * Android hands the file's address over at once, but on a cold start the root layout is still on
- * the splash screen (no screens to route to yet), and the biometric lock then replaces everything
- * with the lock screen and afterwards Home. Routing straight to Restore lost the file either way.
- * So app/+native-intent.tsx parks it here; the root layout opens Restore once the app is ready and
+ * It arrives at once, but on a cold start the root layout is still on the splash screen (no screens
+ * to route to yet), and the biometric lock then replaces everything with the lock screen and
+ * afterwards Home. So it's parked here; the root layout opens it once the app is ready and
  * unlocked, and the lock screen does so after unlocking.
  */
 
-let pending: string | null = null;
+export type Incoming = { kind: "backup"; uri: string } | { kind: "image"; uri: string } | { kind: "text"; text: string };
+
+let pending: Incoming | null = null;
 const listeners = new Set<() => void>();
 
-export function setIncomingFile(uri: string): void {
-  pending = uri;
+export function setIncoming(item: Incoming): void {
+  pending = item;
   listeners.forEach((l) => l());
 }
 
-/** The waiting file, if any - taken, so it's opened once. */
-export function takeIncomingFile(): string | null {
-  const uri = pending;
-  pending = null;
-  return uri;
+/** Back-compat for "Open with" backups. */
+export function setIncomingFile(uri: string): void {
+  setIncoming({ kind: "backup", uri });
 }
 
-export function hasIncomingFile(): boolean {
+/** The waiting item, if any - taken, so it's opened once. */
+export function takeIncoming(): Incoming | null {
+  const item = pending;
+  pending = null;
+  return item;
+}
+
+export function hasIncoming(): boolean {
   return pending != null;
 }
 
-export function onIncomingFile(listener: () => void): () => void {
+export function onIncoming(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
 
-export function restoreHrefFor(uri: string): string {
-  return `/settings/backup-restore?incoming=${encodeURIComponent(uri)}`;
+/** Where an incoming item opens. */
+export function hrefForIncoming(item: Incoming): string {
+  if (item.kind === "backup") return `/settings/backup-restore?incoming=${encodeURIComponent(item.uri)}`;
+  if (item.kind === "image") return `/expense/from-screenshot?uri=${encodeURIComponent(item.uri)}`;
+  return `/expense/from-screenshot?text=${encodeURIComponent(item.text.slice(0, 2000))}`;
 }

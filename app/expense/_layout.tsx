@@ -9,6 +9,7 @@ export default function ExpenseLayout() {
       <Stack.Screen name="add" />
       <Stack.Screen name="[id]" />
       <Stack.Screen name="review-queue" />
+      <Stack.Screen name="from-screenshot" />
       <Stack.Screen name="catch-up" options={{ ...stackOptions, headerShown: true, title: "Catch up" }} />
     </Stack>
   );

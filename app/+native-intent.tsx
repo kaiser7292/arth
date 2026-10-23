@@ -11,6 +11,9 @@ import { setIncomingFile } from "@/services/incoming-file";
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
   try {
+    // A share from another app on iPhone opens Arth with artha://dataUrl=...: the share hook in the
+    // root layout reads it; there's no screen by that name.
+    if (path.includes("dataUrl=")) return "/";
     if (/^(content|file):\/\//i.test(path)) {
       setIncomingFile(path);
       return "/";

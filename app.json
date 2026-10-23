@@ -207,6 +207,28 @@
             ]
           }
         }
+      ],
+      [
+        "expo-share-intent",
+        {
+          "androidIntentFilters": [
+            "image/*",
+            "text/*"
+          ],
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsImageWithMaxCount": 1,
+            "NSExtensionActivationSupportsText": true
+          },
+          "iosShareExtensionName": "Arth"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Arth reads a payment screenshot you choose, on this phone, to fill in a transaction.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {
@@ -218,6 +240,39 @@
         "projectId": "86f29bcf-403b-4a81-9931-107c6a6a266e"
       }
     },
-    "owner": "kaiser7292"
+    "owner": "kaiser7292",
+    "ios": {
+      "bundleIdentifier": "com.souravbaid.arth",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Arth reads a payment screenshot you choose, on this phone, to fill in a transaction.",
+        "NSFaceIDUsageDescription": "Arth uses Face ID to lock the app.",
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Arth backup",
+            "LSHandlerRank": "Owner",
+            "LSItemContentTypes": [
+              "com.souravbaid.arth.backup"
+            ]
+          }
+        ],
+        "UTExportedTypeDeclarations": [
+          {
+            "UTTypeIdentifier": "com.souravbaid.arth.backup",
+            "UTTypeDescription": "Arth backup",
+            "UTTypeConformsTo": [
+              "public.data"
+            ],
+            "UTTypeTagSpecification": {
+              "public.filename-extension": [
+                "arth",
+                "artha"
+              ]
+            }
+          }
+        ],
+        "LSSupportsOpeningDocumentsInPlace": false
+      }
+    }
   }
 }

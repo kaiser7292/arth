@@ -1454,6 +1454,12 @@ export default function ExpensesScreen() {
             onPress: () => router.push({ pathname: "/expense/add", params: { type: "credit" } }),
           },
           {
+            icon: "image-outline",
+            label: "From a Screenshot",
+            color: theme.primary,
+            onPress: () => router.push("/expense/from-screenshot"),
+          },
+          {
             icon: "swap-horizontal",
             label: "Add Transfer",
             color: TRANSFER_COLOR,
