@@ -12,6 +12,11 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 
 const patches = [
+  // expo-share-intent: don't crash when a shared file's details can't be read (empty cursor)
+  {
+    from: "patches/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt",
+    to:   "node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt",
+  },
   // expo-pdf-text-extract: add extractRows (coordinate-based PDF table extraction)
   {
     from: "patches/expo-pdf-text-extract/android/src/main/java/expo/modules/pdfextractor/PdfExtractorModule.kt",
