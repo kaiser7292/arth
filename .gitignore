@@ -61,3 +61,6 @@ build-*.log
 # Native build output of local Expo modules
 modules/*/android/build/
 modules/*/android/.cxx/
+
+# iPhone simulator builds downloaded from EAS for Appetize
+/ios-sim
