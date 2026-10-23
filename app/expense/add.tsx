@@ -88,6 +88,10 @@ export default function AddExpenseScreen() {
     prefillDate?: string;
     prefillSplitPersonId?: string;
     prefillCreditKind?: string;
+    /** Transfer destination, e.g. from a screenshot that names both accounts. */
+    prefillToAccountId?: string;
+    /** "detail": open the saved transaction afterwards (to link an EMI or SIP to its loan or investment). */
+    afterSave?: string;
   }>();
   const isRefund = params.type === "refund";
   const linkedExpenseId = params.linkExpenseId ?? null;
@@ -125,7 +129,7 @@ export default function AddExpenseScreen() {
   const [pickedRefund, setPickedRefund] = useState<{ id: string; summary: string } | null>(null);
   const [refundPickerOpen, setRefundPickerOpen] = useState(false);
   // Transfer destination.
-  const [toAccountId, setToAccountId] = useState<string | null>(null);
+  const [toAccountId, setToAccountId] = useState<string | null>(params.prefillToAccountId ?? null);
   const [showToAccounts, setShowToAccounts] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -431,7 +435,11 @@ export default function AddExpenseScreen() {
   // detail screen, so router.back() would return to that stale source. Land
   // the user on the expenses list instead so they see the new row they just
   // created. Refunds additionally pre-filter the list to Refunded expenses.
-  const navigateAfterSave = useCallback(() => {
+  const navigateAfterSave = useCallback((createdId?: string) => {
+    if (params.afterSave === "detail" && createdId) {
+      router.replace({ pathname: "/expense/[id]", params: { id: createdId } });
+      return;
+    }
     if (copyFromExpenseId) {
       router.dismissAll();
       if (isCreditDuplicate) {
@@ -447,7 +455,7 @@ export default function AddExpenseScreen() {
       return;
     }
     router.back();
-  }, [router, copyFromExpenseId, isRefund, isCreditDuplicate]);
+  }, [router, copyFromExpenseId, isRefund, isCreditDuplicate, params.afterSave]);
 
   const handleSave = useCallback(async () => {
     const validationErrors = validateExpense({
@@ -642,7 +650,7 @@ export default function AddExpenseScreen() {
 
       rememberAccount(isCredit ? "received" : "spent", accountId);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      navigateAfterSave();
+      navigateAfterSave(createdId);
     } catch (e) {
       logger.error("Save expense failed:", e);
       alert("Error", formatError("Save expense", e));
