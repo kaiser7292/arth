@@ -34,6 +34,7 @@ import { getOnboardingCompletedVersion } from "@/services/settings";
 import { runSmsScan } from "@/services/sms";
 import { settingsStorage } from "@/services/storage";
 import { hasIncoming, hrefForIncoming, onIncoming, setIncoming, takeIncoming } from "@/services/incoming-file";
+import { importHandedMessages } from "@/services/message-inbox";
 import { useShareIntent } from "expo-share-intent";
 import { logger } from "@/utils/logger";
 import * as BackgroundFetch from "expo-background-fetch";
@@ -342,6 +343,8 @@ export default function RootLayout(): React.JSX.Element {
       if (outcome.reason === "error") {
         logger.warn("App-open SMS scan failed:", outcome.error);
       }
+      // iPhone: bank messages the Shortcuts automation handed over while Arth was closed.
+      await importHandedMessages();
     };
 
     if (!appOpenScanRan.current) {

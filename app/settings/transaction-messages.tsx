@@ -240,6 +240,17 @@ export default function TransactionMessagesScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        {/* iPhone: no message access - a Shortcuts automation hands bank messages over instead. */}
+        {!isAndroid && (
+          <Card className="mb-3">
+            <Row
+              title="Bank messages on iPhone"
+              subtitle="Set up a Shortcut once and your bank's messages come in by themselves"
+              onPress={() => router.push("/settings/iphone-bank-messages")}
+              first
+            />
+          </Card>
+        )}
         {isAndroid && (
           <>
             <Card>

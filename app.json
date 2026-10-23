@@ -133,6 +133,7 @@
       "./plugins/withAapt2Fix",
       "./plugins/withLargeHeap",
       "./plugins/withOptionalHardware",
+      "./plugins/withBankMessageIntent",
       "./plugins/withReleaseSigning",
       "./plugins/withR8",
       [
@@ -223,7 +224,8 @@
             "NSExtensionActivationSupportsImageWithMaxCount": 1,
             "NSExtensionActivationSupportsText": true
           },
-          "iosShareExtensionName": "Arth"
+          "iosShareExtensionName": "ArthShare",
+          "iosShareExtensionDisplayName": "Arth"
         }
       ],
       [

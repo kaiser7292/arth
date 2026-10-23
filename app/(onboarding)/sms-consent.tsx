@@ -11,6 +11,25 @@ import { getCurrentAppVersion } from "@/services/onboarding";
 import { logger } from "@/utils/logger";
 import { useTheme } from "@/hooks/use-theme";
 
+/** iPhone: the ways payments come in without message access. */
+const IOS_ROUTES: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
+  {
+    icon: "chatbubble-ellipses-outline",
+    title: "Bank messages, through Shortcuts",
+    body: "Set up a Shortcuts automation once and each bank message is handed to Arth in the background. Takes two minutes.",
+  },
+  {
+    icon: "image-outline",
+    title: "Payment screenshots",
+    body: "Share a Google Pay, PhonePe or bank app screenshot to Arth, or add one with + then From a Picture.",
+  },
+  {
+    icon: "document-text-outline",
+    title: "Statements and by hand",
+    body: "Import a bank statement from Excel, or add a payment yourself, with voice if you like.",
+  },
+];
+
 export default function OnboardingSmsConsent() {
   const router = useRouter();
 
@@ -83,15 +102,26 @@ export default function OnboardingSmsConsent() {
         </View>
 
         <Text className="text-2xl font-bold text-foreground mb-2">
-          Read bank SMS?
+          How payments get into Arth
         </Text>
-        <Text className="text-sm text-muted-foreground mb-6 leading-5">
-          SMS auto-detect is only available on Android. You can still log expenses manually or import from Excel.
+        <Text className="text-sm text-muted-foreground mb-5 leading-5">
+          iPhone doesn&apos;t let apps read your messages, so on iPhone they come in these ways. Everything is read on this phone,
+          and you review it before it counts.
         </Text>
+        {IOS_ROUTES.map((r) => (
+          <View key={r.title} className="flex-row mb-4">
+            <Ionicons name={r.icon} size={20} color={theme.primary} style={{ marginTop: 1 }} />
+            <View className="flex-1 ml-3">
+              <Text className="text-sm font-semibold text-foreground">{r.title}</Text>
+              <Text className="text-xs text-muted-foreground mt-0.5 leading-4">{r.body}</Text>
+            </View>
+          </View>
+        ))}
       </ScrollView>
 
       <View className="px-6 pb-6 pt-2">
-        <Button title="Continue" onPress={advance} className="mb-3" />
+        <Button title="Set up bank messages" onPress={() => router.push("/settings/iphone-bank-messages")} className="mb-2" />
+        <Button title="Continue" variant="ghost" onPress={advance} className="mb-2" />
         {skipAllLink}
       </View>
     </ScreenContainer>

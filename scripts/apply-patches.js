@@ -12,6 +12,11 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 
 const patches = [
+  // expo-share-intent: a share-sheet name separate from the extension's target name (iOS)
+  {
+    from: "patches/expo-share-intent/plugin/build/ios/writeIosShareExtensionFiles.js",
+    to:   "node_modules/expo-share-intent/plugin/build/ios/writeIosShareExtensionFiles.js",
+  },
   // react-native-get-sms-android: don't crash on devices without SMS storage (Wi-Fi tablets)
   {
     from: "patches/react-native-get-sms-android/android/src/main/java/com/react/SmsModule.java",

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { View, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable, Platform } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, ScreenContainer, Text } from "@/components/ui";
@@ -20,11 +20,19 @@ const BULLETS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body
     title: "100% on your phone",
     body: "No cloud, no sign-up. Your data stays on your device and is backed up only when you say so.",
   },
-  {
-    icon: "sparkles-outline",
-    title: "Auto-detect from SMS",
-    body: "Arth reads your bank SMS to log expenses, find accounts, and spot recurring payments. You review before anything is saved.",
-  },
+  // iPhone gives apps no access to messages: there, payments come in from screenshots and from
+  // bank messages a Shortcuts automation hands over (services/message-inbox.ts).
+  Platform.OS === "ios"
+    ? {
+        icon: "sparkles-outline",
+        title: "From screenshots and bank messages",
+        body: "Share a payment screenshot to Arth, or set up a Shortcut once and your bank's messages come in by themselves. You review before anything is saved.",
+      }
+    : {
+        icon: "sparkles-outline",
+        title: "Auto-detect from SMS",
+        body: "Arth reads your bank SMS to log expenses, find accounts, and spot recurring payments. You review before anything is saved.",
+      },
   {
     icon: "notifications-outline",
     title: "Reminders for recurring payments",

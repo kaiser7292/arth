@@ -37,6 +37,7 @@ import {
   type ScanDetail,
   type ScanDetailCategory,
 } from "./sms-scan-logging";
+import type { RawSMS } from "./sms-reader";
 
 export interface ScanOutcome {
   ran: boolean;
@@ -89,6 +90,12 @@ export async function runSmsScan(
     accountIds?: string[];
     range?: "settings" | "since_last";
     onProgress?: (p: ScanProgress) => void;
+    /**
+     * Messages handed over instead of read from the phone's inbox - on iPhone, which gives apps no
+     * access to messages, by the "Add bank message to Arth" Shortcuts action (message-inbox.ts).
+     * They skip the inbox, its permission and the cooldown, and go through everything else.
+     */
+    messages?: RawSMS[];
   } = {},
 ): Promise<ScanOutcome> {
   const onProgress = options.onProgress;
@@ -106,15 +113,16 @@ export async function runSmsScan(
   const rangeStart = !manual ? null : sinceLast ? isoDay(sinceLastCheckTimestamp(startTime)) : getSmsStartDate();
   const rangeEnd = !manual ? null : sinceLast ? isoDay(startTime) : getSmsEndDate();
 
-  if (!isSmsDetectionEnabled()) {
+  const handed = options.messages;
+  if (!handed && !isSmsDetectionEnabled()) {
     return { ran: false, created: 0, credits: 0, skipped: 0, totalScanned: 0, reason: "sms_disabled" };
   }
 
-  if (!(await hasSmsPermission())) {
+  if (!handed && !(await hasSmsPermission())) {
     return { ran: false, created: 0, credits: 0, skipped: 0, totalScanned: 0, reason: "no_permission" };
   }
 
-  if (!manual) {
+  if (!manual && !handed) {
     const lastRun = getLastAutoScanRun();
     if (Date.now() - lastRun < SCAN_COOLDOWN_MS) {
       return { ran: false, created: 0, credits: 0, skipped: 0, totalScanned: 0, reason: "cooldown" };
@@ -123,7 +131,9 @@ export async function runSmsScan(
 
   try {
     // Phase 1: Read SMS from device (no account filtering here anymore)
-    const readResult = sinceLast
+    const readResult = handed
+      ? { messages: handed, count: handed.length, rawCount: handed.length, oldestRawTimestamp: 0, error: null }
+      : sinceLast
       ? await scanSinceLastCheck()
       : manual
         ? await manualReadSms()

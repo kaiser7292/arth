@@ -91,7 +91,7 @@ export default function SettingsScreen() {
         const needs: string[] = [];
         if (unread > 0) needs.push(`${unread} unread`);
         if (dupes > 0) needs.push(`${dupes} possible duplicate${dupes === 1 ? "" : "s"}`);
-        const base = !android ? "Duplicates" : smsOn ? "Reading on" : "Reading off";
+        const base = !android ? "Bank messages via Shortcuts" : smsOn ? "Reading on" : "Reading off";
         setMessagesLine(needs.length > 0 ? `${base} · ${needs.join(" · ")}` : `${base} · scan, templates, your name, duplicates`);
       });
     }, []),
