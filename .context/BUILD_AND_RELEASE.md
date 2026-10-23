@@ -99,7 +99,7 @@ All plugins live in `plugins/` and are registered in `app.json` under `expo.plug
 | `withAapt2Fix` | Writes `android.aapt2FromMavenOverride` to `gradle.properties` pointing to the SDK build-tools 35.0.0 AAPT2 binary. Prevents the AGP 8.11+ AAPT2 daemon crash on this Windows machine. |
 | `withDisableBackup` | Disables Android auto-backup (privacy — no finance data in cloud). |
 | `withLargeHeap` | Sets `android:largeHeap="true"` in the manifest. |
-| `withOptionalCamera` | Declares the camera as optional hardware. The CAMERA permission otherwise implies a required camera, and Play drops devices without one (19 devices in 4.23.0). |
+| `withOptionalHardware` | Declares telephony and the camera as optional hardware. READ_SMS and CAMERA otherwise imply them as required, and Play hides the app from Wi-Fi-only tablets and devices without a camera (19 devices dropped in 4.23.0). |
 | `withReleaseSigning` | Signs release builds with the Arth release key from `~/.arth/signing.properties` (see Signing). |
 
 **Never edit `android/app/build.gradle` or `android/gradle.properties` directly** — changes are wiped on the next prebuild. All permanent customisations must go through a config plugin.

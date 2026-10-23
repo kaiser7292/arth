@@ -132,7 +132,7 @@
       "./plugins/withArmOnly",
       "./plugins/withAapt2Fix",
       "./plugins/withLargeHeap",
-      "./plugins/withOptionalCamera",
+      "./plugins/withOptionalHardware",
       "./plugins/withReleaseSigning",
       "./plugins/withR8",
       [

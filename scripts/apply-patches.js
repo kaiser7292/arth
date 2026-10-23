@@ -12,6 +12,11 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 
 const patches = [
+  // react-native-get-sms-android: don't crash on devices without SMS storage (Wi-Fi tablets)
+  {
+    from: "patches/react-native-get-sms-android/android/src/main/java/com/react/SmsModule.java",
+    to:   "node_modules/react-native-get-sms-android/android/src/main/java/com/react/SmsModule.java",
+  },
   // expo-share-intent: don't crash when a shared file's details can't be read (empty cursor)
   {
     from: "patches/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt",
