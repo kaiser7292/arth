@@ -154,7 +154,7 @@ nav .w,footer .w{max-width:1080px}
   <div class="doc-section" id="privacy">
     <div class="doc-title">Privacy Policy</div>
     <div class="doc-body">
-      <span class="effective">Effective: 9 October 2026</span>
+      <span class="effective">Effective: 23 October 2026</span>
       <p>This policy covers Arth, the Android app published by Sourav Baid (&ldquo;we&rdquo;). Arth has no user accounts, no Arth cloud and no servers that receive your data. Your financial records are stored in a database on your phone, and we cannot see them.</p>
 
       <h3>Data stored on your device</h3>
@@ -169,6 +169,7 @@ nav .w,footer .w{max-width:1080px}
         <li><strong>Zerodha Kite</strong> (<a href="https://kite.trade/terms/">Kite Connect terms</a>, <a href="https://zerodha.com/privacy-policy/">Zerodha privacy policy</a>). Your Kite API key and API secret are stored encrypted on your device. When you connect, you sign in on Zerodha&rsquo;s own login page, and Arth exchanges the one-time login code for an access token directly with Zerodha. Your API secret is never sent anywhere; only a one-way checksum made from it goes to Zerodha. Arth then fetches your holdings and positions directly from Zerodha. None of this passes through any server of ours.</li>
         <li><strong>Angel One</strong> (<a href="https://www.angelone.in/disclaimer">terms</a>, <a href="https://www.angelone.in/privacy-policy">privacy policy</a>) <strong>and Zebpay</strong> (<a href="https://zebpay.com/in/legal-privacy">legal &amp; privacy</a>). The API keys, secrets, client ID, PIN and 2FA (TOTP) secret you enter are sent directly to Angel One or Zebpay to fetch your holdings. They are stored only on your device, encrypted, so Arth can refresh your session, and never pass through our servers.</li>
         <li><strong>Vault autofill for Kite.</strong> If you link a Vault entry to Kite, Arth fills your Zerodha user ID, password and 2FA code into Zerodha&rsquo;s login page on your device. They go only to Zerodha.</li>
+        <li><strong>Reading payment pictures.</strong> When you add a transaction from a picture, the text in it is read on your device by Google&rsquo;s ML Kit, which runs through Google Play services. The picture and the text read from it never leave your phone. Google Play services may download the text-reading model and send Google diagnostic and usage information about the reading itself (such as your phone&rsquo;s model and Android version, Arth&rsquo;s version, how long reading took and any error codes) under <a href="https://policies.google.com/privacy">Google&rsquo;s privacy policy</a>; see <a href="https://developers.google.com/ml-kit/android-data-disclosure">ML Kit&rsquo;s data disclosure</a>.</li>
         <li><strong>Voice entry.</strong> Voice entry uses your phone&rsquo;s speech recognition service (usually Google). Depending on your phone&rsquo;s settings, that service may process your voice on its own servers under its own privacy policy. Arth receives only the recognised text.</li>
       </ul>
       <p>Each of these services has its own privacy policy, which applies to the data you send them.</p>
@@ -177,6 +178,7 @@ nav .w,footer .w{max-width:1080px}
       <ul>
         <li><strong>Calendar</strong>, only if you turn on calendar sync, to add bills, EMIs and reminders to the calendar you choose.</li>
         <li><strong>Microphone</strong>, only while you use voice entry.</li>
+        <li><strong>Camera and photos</strong>, only when you add a transaction from a picture. The picture you choose, share to Arth or take is read on your device to fill in the transaction, and is never uploaded or sent anywhere. Arth sees only pictures you pick; it has no access to the rest of your photos. If you link your UPI IDs to accounts or teach Arth a picture layout, those are stored on your device like the rest of your data.</li>
         <li><strong>Notifications, alarms and start on boot</strong>, for reminders and the daily summary.</li>
         <li><strong>Fingerprint or face</strong>, for app lock. Biometric data is handled by Android and never seen by Arth.</li>
       </ul>
