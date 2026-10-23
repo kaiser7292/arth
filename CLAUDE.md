@@ -398,6 +398,7 @@ Shows savings rate + saved-this-FY. Guards:
 | `withAapt2Fix` | `plugins/withAapt2Fix.js` | Pins AAPT2 binary to prevent Windows AGP 8.11+ crash |
 | `withDisableBackup` | `plugins/withDisableBackup.js` | Disables Android cloud backup |
 | `withLargeHeap` | `plugins/withLargeHeap.js` | `android:largeHeap="true"` |
+| `withOptionalCamera` | `plugins/withOptionalCamera.js` | Marks the camera optional (`uses-feature required="false"`); without it the CAMERA permission makes Play hide the app from devices with no camera |
 | `withReleaseSigning` | `plugins/withReleaseSigning.js` | Release key from `~/.arth/signing.properties`; release build fails without it |
 | `withR8` | `plugins/withR8.js` | R8 minify + `proguard-android-optimize.txt` + keep rules for native libs without their own (SMS, MMKV, AES, widget, PdfBox, WebView, speech); excludes BouncyCastle post-quantum data files. New native library = check it still works in a release build, add a keep rule if not |
 
