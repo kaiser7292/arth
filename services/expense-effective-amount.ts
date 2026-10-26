@@ -42,17 +42,22 @@ function refundSubtractionSql(alias: string): string {
  * Returns a SQL expression equivalent to the effective (refund-adjusted)
  * amount for the expense row aliased as `alias`.
  *
- * For split-tender or split-hisaab expenses, `amount` already represents
- * the user's share. Refunds written against a split expense are modeled the
- * same way — credit row's amount is treated as user-share. So we subtract
- * from `amount` directly, not `split_original_amount`.
+ * For split-hisaab expenses, `amount` is the user's share but a refund comes
+ * back against the whole charge (`split_original_amount`) -
+ * adjustSplitAfterRefund shrinks the other person's Hisaab entry by their
+ * part of it. So the user keeps their proportion of what's left:
+ * (original − refunded) × share / original. The list rows
+ * (ExpenseListItem) show the same figure.
  *
  * Clamped to ≥ 0 so an over-refund (shouldn't happen but technically
  * possible if the user edits a credit amount upward) can't negative-bias
  * totals.
  */
 export function effectiveAmountSql(alias: string = "e"): string {
-  return `MAX(${alias}.amount - ${refundSubtractionSql(alias)}, 0)`;
+  const refunded = refundSubtractionSql(alias);
+  return `(CASE WHEN ${alias}.split_original_amount > 0
+    THEN MAX((${alias}.split_original_amount - ${refunded}) * ${alias}.amount / ${alias}.split_original_amount, 0)
+    ELSE MAX(${alias}.amount - ${refunded}, 0) END)`;
 }
 
 /**

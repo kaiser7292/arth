@@ -4,6 +4,7 @@ import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, ProgressBar, Text } from "@/components/ui";
+import { AnimatedNumber, PressableScale } from "@/components/motion";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { getCategories } from "@/services/category";
@@ -30,8 +31,12 @@ interface TopCategory {
 interface SummaryData {
   totalSpent: number;
   totalBudget: number;
-  rightSpendTotal: number;
-  rightSpendPct: number;
+  /** Spending marked discretionary (is_right_spend = 0). */
+  flexibleSpent: number;
+  flexiblePct: number;
+  prevFlexibleSpent: number;
+  /** Spending not marked either way yet. */
+  unclassifiedSpent: number;
   transactionCount: number;
   prevMonthSpent: number;
   topCategories: TopCategory[];
@@ -46,7 +51,7 @@ interface MonthlySummaryPageProps {
 }
 
 /**
- * The month's summary: total spent, budget compliance, top categories, unavoidable ratio.
+ * The month's summary: total spent, budget compliance, flexible spend, top categories.
  *
  * The single implementation, rendered by the Budget tab's swipe-pager and by
  * app/summary/[month].tsx. Each previously kept its own ~340-line copy of the same computation
@@ -71,13 +76,14 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
       const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
       const prevRange = getMonthDateRange(prevMonth);
 
-      const [categories, budgets, classification, topCats, txCount, prevSpent] = await Promise.all([
+      const [categories, budgets, classification, topCats, txCount, prevSpent, prevClassification] = await Promise.all([
         getCategories(DEFAULT_USER_ID),
         getBudgetsForMonth(DEFAULT_USER_ID, month),
         getSpendClassificationTotals(DEFAULT_USER_ID, startDate, endDate),
         getTopCategoriesBySpending(DEFAULT_USER_ID, startDate, endDate, 5),
         getExpenseCount(DEFAULT_USER_ID, startDate, endDate),
         getExpenseTotal(DEFAULT_USER_ID, prevRange.startDate, prevRange.endDate),
+        getSpendClassificationTotals(DEFAULT_USER_ID, prevRange.startDate, prevRange.endDate),
       ]);
 
       const totalSpent = classification.total;
@@ -90,8 +96,10 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
       setData({
         totalSpent,
         totalBudget,
-        rightSpendTotal: classification.unavoidable,
-        rightSpendPct: classification.unavoidablePct,
+        flexibleSpent: classification.discretionary,
+        flexiblePct: classification.discretionaryPct,
+        prevFlexibleSpent: prevClassification.discretionary,
+        unclassifiedSpent: classification.uncategorized,
         transactionCount: txCount,
         prevMonthSpent: prevSpent,
         topCategories: topCats.map((tc) => ({
@@ -242,55 +250,66 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
         )}
       </Card>
 
-      {/* Unavoidable Spend Ratio */}
-      <Card className="mx-4 mt-3">
-        <Text className="text-xs text-faint-foreground mb-2">Unavoidable Spend Ratio</Text>
-        <View className="flex-row items-center justify-between">
-          <Pressable
-            onPress={() =>
-              router.push({
-                pathname: "/budget/transactions",
-                params: { filterMonth: month, filterAvoidability: "unavoidable", title: "Unavoidable Expenses" },
-              })
-            }
-          >
-            <Text className="text-xl font-bold text-foreground">
-              {Math.round(data.rightSpendPct)}%
-            </Text>
-            <Text className="text-xs text-faint-foreground">
-              {formatAmount(data.rightSpendTotal)} of {formatAmount(data.totalSpent)}
-            </Text>
-          </Pressable>
-          <View
-            className="w-14 h-14 rounded-full items-center justify-center"
-            style={{
-              backgroundColor:
-                data.rightSpendPct >= 70 ? "#22C55E14" : data.rightSpendPct >= 40 ? "#F59E0B14" : "#EF444414",
-            }}
-          >
-            <Ionicons
-              name={
-                data.rightSpendPct >= 70 ? "thumbs-up" : data.rightSpendPct >= 40 ? "hand-right" : "thumbs-down"
-              }
-              size={24}
-              color={
-                data.rightSpendPct >= 70
-                  ? theme.success
-                  : data.rightSpendPct >= 40
-                    ? theme.warning
-                    : theme.danger
-              }
-            />
+      {/* Flexible spend: the part of the month you chose and could cut. Replaced the
+          "Unavoidable Spend Ratio", whose green-for-high scoring was left over from when the flag
+          meant "right spend" and read backwards once it meant "unavoidable". */}
+      <PressableScale
+        onPress={() =>
+          router.push({
+            pathname: "/budget/transactions",
+            params: { filterMonth: month, filterAvoidability: "avoidable", title: "Discretionary Expenses" },
+          })
+        }
+        accessibilityRole="button"
+      >
+        <Card className="mx-4 mt-3">
+          <View className="flex-row items-center justify-between mb-1">
+            <Text className="text-xs text-faint-foreground">Flexible spend</Text>
+            <Ionicons name="chevron-forward" size={14} color={theme.faintForeground} />
           </View>
-        </View>
-        {data.totalSpent > 0 && (
-          <ProgressBar value={(data.rightSpendPct) / 100} color={data.rightSpendPct >= 70
-                    ? theme.success
-                    : data.rightSpendPct >= 40
-                      ? theme.warning
-                      : theme.danger} height={8} animated={false} className="mt-3" />
-        )}
-      </Card>
+          <AnimatedNumber value={data.flexibleSpent} className="text-xl font-bold text-foreground" />
+          <Text className="text-xs text-muted-foreground mt-0.5">
+            {data.totalSpent > 0
+              ? `${data.flexiblePct}% of this month's spending was discretionary: the part you could cut back on.`
+              : "Spending you mark discretionary shows here."}
+          </Text>
+          {data.totalSpent > 0 && (
+            <ProgressBar
+              value={data.flexiblePct / 100}
+              color={theme.warning}
+              height={8}
+              className="mt-3"
+            />
+          )}
+          {data.prevFlexibleSpent > 0 && (
+            <Text className="text-xs text-faint-foreground mt-2">
+              {data.flexibleSpent > data.prevFlexibleSpent
+                ? `${formatAmount(data.flexibleSpent - data.prevFlexibleSpent)} more than last month (${formatAmount(data.prevFlexibleSpent)})`
+                : data.flexibleSpent < data.prevFlexibleSpent
+                  ? `${formatAmount(data.prevFlexibleSpent - data.flexibleSpent)} less than last month (${formatAmount(data.prevFlexibleSpent)})`
+                  : "Same as last month"}
+            </Text>
+          )}
+          {data.unclassifiedSpent > 0 && (
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/budget/transactions",
+                  params: { filterMonth: month, filterAvoidability: "unclassified", title: "Not Classified Yet" },
+                })
+              }
+              className="flex-row items-center mt-3 pt-3 border-t border-border"
+              accessibilityRole="button"
+            >
+              <Ionicons name="help-circle-outline" size={16} color={theme.mutedForeground} />
+              <Text className="text-xs text-muted-foreground flex-1 ml-2">
+                {formatAmount(data.unclassifiedSpent)} isn't marked unavoidable or discretionary yet
+              </Text>
+              <Text className="text-xs font-semibold text-primary">Classify</Text>
+            </Pressable>
+          )}
+        </Card>
+      </PressableScale>
 
       {/* Top Categories */}
       <Card className="mx-4 mt-3">

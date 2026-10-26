@@ -12,6 +12,7 @@ import {
   getFilteredExpenseSummary,
 } from "@/services/expense";
 import type { Expense, FilteredSummary } from "@/services/expense";
+import { sumRefundsByExpenseIds } from "@/services/expense-effective-amount";
 import { getCategories } from "@/services/category";
 import type { Category } from "@/services/category";
 import { getPaymentModes } from "@/services/payment-mode";
@@ -36,19 +37,22 @@ const PAGE_SIZE = 50;
  *
  * Params:
  *   filterMonth       — YYYY-MM, required
- *   filterAvoidability — 'unavoidable' | 'avoidable' | undefined
+ *   filterAvoidability — 'unavoidable' | 'avoidable' | 'unclassified' | undefined
+ *   categoryId        — optional, one category ("none" = expenses with no category)
  *   title             — optional header label
  */
 export default function BudgetTransactionsScreen() {
   const router = useRouter();
-  const { filterMonth, filterAvoidability, title } = useLocalSearchParams<{
+  const { filterMonth, filterAvoidability, categoryId, title } = useLocalSearchParams<{
     filterMonth?: string;
     filterAvoidability?: string;
+    categoryId?: string;
     title?: string;
   }>();
   const { colors } = useColorScheme();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [refundedMap, setRefundedMap] = useState<Map<string, number>>(new Map());
   const [summary, setSummary] = useState<FilteredSummary | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
@@ -78,14 +82,12 @@ export default function BudgetTransactionsScreen() {
       nature: "realized" as const,
       segment: "spend" as const,
       status: "approved" as const,
-      avoidability: filterAvoidability === "unavoidable"
-        ? ("unavoidable" as const)
-        : filterAvoidability === "avoidable"
-          ? ("avoidable" as const)
-          : undefined,
+      avoidability: (["unavoidable", "avoidable", "unclassified"] as const).find((a) => a === filterAvoidability),
+      categoryIds: categoryId && categoryId !== "none" ? [categoryId] : undefined,
+      noCategory: categoryId === "none" ? true : undefined,
       sortBy,
     }),
-    [startDate, endDate, filterAvoidability, sortBy],
+    [startDate, endDate, filterAvoidability, categoryId, sortBy],
   );
 
   useEffect(() => {
@@ -114,11 +116,16 @@ export default function BudgetTransactionsScreen() {
           getExpensesPaginated(DEFAULT_USER_ID, filters, PAGE_SIZE, offset),
           reset ? getFilteredExpenseSummary(DEFAULT_USER_ID, filters, "category") : Promise.resolve(null),
         ]);
+        // Refunds linked to these rows, so a refunded expense shows struck through / reduced,
+        // matching the total above (which already takes them off).
+        const refunds = await sumRefundsByExpenseIds(data.map((e) => e.id));
         if (reset) {
           setExpenses(data);
+          setRefundedMap(refunds);
           if (summaryResult) setSummary(summaryResult);
         } else {
           setExpenses((prev) => [...prev, ...data]);
+          setRefundedMap((prev) => new Map([...prev, ...refunds]));
         }
         setHasMore(data.length === PAGE_SIZE);
       } catch {
@@ -161,7 +168,9 @@ export default function BudgetTransactionsScreen() {
     ? "Unavoidable Expenses"
     : filterAvoidability === "avoidable"
       ? "Discretionary Expenses"
-      : "Expenses");
+      : filterAvoidability === "unclassified"
+        ? "Not Classified Yet"
+        : "Expenses");
 
   const handleItemPress = useCallback(
     (id: string) => router.push(`/expense/${id}`),
@@ -226,6 +235,7 @@ export default function BudgetTransactionsScreen() {
                 categoryMap={categoryMap}
                 paymentModeMap={paymentModeMap}
                 accountMap={accountMap}
+                refundedMap={refundedMap}
                 onPress={handleItemPress}
                 onLongPress={() => {}}
               />

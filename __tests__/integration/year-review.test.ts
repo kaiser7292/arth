@@ -51,7 +51,8 @@ function seed() {
       id TEXT PRIMARY KEY, user_id TEXT, account_id TEXT, amount REAL, category_id TEXT,
       merchant_name TEXT, raw_merchant_name TEXT, source TEXT DEFAULT 'manual',
       nature TEXT, status TEXT DEFAULT 'approved', deleted_at TEXT, reclassified_as_transfer INTEGER,
-      refund_of_expense_id TEXT, credit_kind TEXT, money_event TEXT, date TEXT, created_at TEXT
+      refund_of_expense_id TEXT, credit_kind TEXT, money_event TEXT, date TEXT, created_at TEXT,
+      split_original_amount REAL
     );
     CREATE TABLE expense_investment_links (id TEXT, expense_id TEXT, contribution_amount REAL);
     CREATE TABLE expense_loan_links (id TEXT, expense_id TEXT);

@@ -174,8 +174,10 @@ export interface ExpenseFilters {
    * (via credit.refund_of_expense_id). Only meaningful when nature='realized'.
    */
   refundedStatus?: "refunded" | "not_refunded";
-  /** Filter by is_right_spend: 'avoidable' = 0, 'unavoidable' = 1. */
-  avoidability?: "avoidable" | "unavoidable";
+  /** Filter by is_right_spend: 'avoidable' = 0, 'unavoidable' = 1, 'unclassified' = not set yet. */
+  avoidability?: "avoidable" | "unavoidable" | "unclassified";
+  /** Only expenses with no category (combine with nothing in categoryIds). */
+  noCategory?: boolean;
   /** Filter by merchant name (exact match from distinct list). */
   merchantNames?: string[];
   /** Filter by smart rule ID — matches expenses where any of these rules fired. */

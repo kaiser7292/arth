@@ -41,9 +41,14 @@ export function onIncoming(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-/** Where an incoming item opens. */
+/**
+ * Where an incoming item opens. Shares carry a one-off `at` so each opens as its own screen: a
+ * second share while the first one's screen is still up (share, switch back to the payment app,
+ * share the next) otherwise pointed at an identical address and nothing new opened.
+ */
 export function hrefForIncoming(item: Incoming): string {
   if (item.kind === "backup") return `/settings/backup-restore?incoming=${encodeURIComponent(item.uri)}`;
-  if (item.kind === "image") return `/expense/from-screenshot?uri=${encodeURIComponent(item.uri)}`;
-  return `/expense/from-screenshot?text=${encodeURIComponent(item.text.slice(0, 2000))}`;
+  const at = `&at=${Date.now()}`;
+  if (item.kind === "image") return `/expense/from-screenshot?uri=${encodeURIComponent(item.uri)}${at}`;
+  return `/expense/from-screenshot?text=${encodeURIComponent(item.text.slice(0, 2000))}${at}`;
 }

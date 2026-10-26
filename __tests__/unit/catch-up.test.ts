@@ -7,7 +7,9 @@ import type { DuplicateGroup } from "../../services/duplicate-detection";
 import type { Expense, ForecastMatchPair } from "../../services/expense";
 import {
   DeferredAction,
+  approvedAmounts,
   buildCatchUpDeck,
+  deckProgress,
   findSameMerchantCards,
   isCardStale,
   nextLiveIndex,
@@ -139,7 +141,35 @@ describe("summarizeLog", () => {
       { index: 3, outcome: "rejected", count: 2, approvedSpend: 0 },
       { index: 4, outcome: "resolved", count: 1, approvedSpend: 0 },
     ]);
-    expect(s).toEqual({ approved: 5, rejected: 2, skipped: 1, resolved: 1, approvedSpend: 1250 });
+    expect(s).toEqual({ approved: 5, rejected: 2, skipped: 1, resolved: 1, approvedSpend: 1250, approvedPaid: 1250 });
+  });
+});
+
+describe("approvedAmounts", () => {
+  it("adds your share to spending and the whole bill to paid; credits add nothing", () => {
+    const r = approvedAmounts([
+      exp("a", { amount: 500, split_original_amount: 1000 }),
+      exp("b", { amount: 200 }),
+      exp("c", { amount: 300, nature: "credit" }),
+    ]);
+    expect(r).toEqual({ approvedSpend: 700, approvedPaid: 1200 });
+  });
+});
+
+describe("deckProgress", () => {
+  const deck = buildCatchUpDeck(snap({ pending: ["a", "b", "c", "d", "e"].map((id) => exp(id)) }));
+
+  it("starts at 1 of all cards", () => {
+    expect(deckProgress(deck, 0, new Set(), new Set())).toEqual({ position: 1, total: 5 });
+  });
+
+  it("drops cards an earlier action dealt with instead of jumping", () => {
+    // Card 0 approved with "same again" covering c and d; now on b (index 1).
+    const resolved = new Set(["a", "c", "d"]);
+    expect(deckProgress(deck, 1, resolved, new Set([0]))).toEqual({ position: 2, total: 3 });
+    // b handled; c and d were skipped over, so e is the 3rd of 3.
+    resolved.add("b");
+    expect(deckProgress(deck, 4, resolved, new Set([0, 1]))).toEqual({ position: 3, total: 3 });
   });
 });
 

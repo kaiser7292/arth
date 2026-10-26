@@ -16,7 +16,8 @@ import type { PaymentMode } from "@/services/payment-mode";
 import { getActiveAccounts } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getBudget } from "@/services/budget";
-import { getExpensesPaginated, getCategoryMonthlyTrend } from "@/services/expense";
+import { getExpensesPaginated, getCategoryMonthlyTrend, getFilteredExpenseSummary } from "@/services/expense";
+import { sumRefundsByExpenseIds } from "@/services/expense-effective-amount";
 import type { Expense } from "@/services/expense";
 import type { MonthlyTotal } from "@/services/expense";
 import { formatAmount } from "@/utils/expense-validation";
@@ -45,6 +46,8 @@ export default function CategoryDetailScreen() {
   const [budgetAmount, setBudgetAmount] = useState(0);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalSpent, setTotalSpent] = useState(0);
+  const [txCount, setTxCount] = useState(0);
+  const [refunds, setRefunds] = useState<Map<string, number>>(new Map());
   const [trend, setTrend] = useState<MonthlyTotal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<ExpenseSortBy>(
@@ -61,15 +64,21 @@ export default function CategoryDetailScreen() {
     if (!categoryId || !selectedMonth) return;
     const { startDate, endDate } = getMonthDateRange(selectedMonth);
 
-    const [cat, budget, exps, trendData, pms, accts] = await Promise.all([
+    // Same scope as the Budget tab's figure for this category: approved spending, investment and
+    // loan payments left out, linked refunds taken off.
+    const filters = {
+      categoryIds: [categoryId],
+      startDate,
+      endDate,
+      sortBy,
+      status: "approved" as const,
+      segment: "spend" as const,
+    };
+    const [cat, budget, exps, summary, trendData, pms, accts] = await Promise.all([
       getCategoryById(categoryId),
       getBudget(DEFAULT_USER_ID, categoryId, selectedMonth),
-      getExpensesPaginated(
-        DEFAULT_USER_ID,
-        { categoryIds: [categoryId], startDate, endDate, sortBy },
-        200,
-        0,
-      ),
+      getExpensesPaginated(DEFAULT_USER_ID, filters, 200, 0),
+      getFilteredExpenseSummary(DEFAULT_USER_ID, filters, "category"),
       getCategoryMonthlyTrend(DEFAULT_USER_ID, categoryId, 6, initialMonth),
       getPaymentModes(DEFAULT_USER_ID),
       getActiveAccounts(DEFAULT_USER_ID),
@@ -78,7 +87,9 @@ export default function CategoryDetailScreen() {
     setCategory(cat);
     setBudgetAmount(budget?.amount ?? 0);
     setExpenses(exps);
-    setTotalSpent(exps.reduce((sum, e) => sum + e.amount, 0));
+    setTotalSpent(summary.total);
+    setTxCount(summary.count);
+    setRefunds(await sumRefundsByExpenseIds(exps.map((e) => e.id)));
     setTrend(trendData);
     setPaymentModes(pms);
     setAccounts(accts);
@@ -117,6 +128,7 @@ export default function CategoryDetailScreen() {
       category={category}
       paymentMode={item.payment_mode_id ? paymentModeMap.get(item.payment_mode_id) : null}
       account={item.account_id ? accountMap.get(item.account_id) : null}
+      refundedAmount={refunds.get(item.id) ?? 0}
       onPress={() => router.push(`/expense/${item.id}`)}
     />
   );
@@ -208,7 +220,7 @@ export default function CategoryDetailScreen() {
       {/* Transaction count */}
       <View className="px-4 py-2">
         <Text className="text-sm font-medium text-muted-foreground">
-          {expenses.length} transaction{expenses.length !== 1 ? "s" : ""}
+          {txCount} transaction{txCount !== 1 ? "s" : ""}
         </Text>
       </View>
 

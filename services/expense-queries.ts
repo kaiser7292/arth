@@ -153,9 +153,14 @@ export async function getExpensesPaginated(
     const refundedSub = `id IN (SELECT refund_of_expense_id FROM expenses WHERE refund_of_expense_id IS NOT NULL AND nature = 'credit' AND deleted_at IS NULL)`;
     conditions.push(filters.refundedStatus === "refunded" ? refundedSub : `NOT (${refundedSub})`);
   }
-  if (filters.avoidability) {
+  if (filters.avoidability === "unclassified") {
+    conditions.push("is_right_spend IS NULL");
+  } else if (filters.avoidability) {
     conditions.push("is_right_spend = ?");
     params.push(filters.avoidability === "unavoidable" ? 1 : 0);
+  }
+  if (filters.noCategory) {
+    conditions.push("category_id IS NULL");
   }
   if (filters.merchantNames && filters.merchantNames.length > 0) {
     const placeholders = filters.merchantNames.map(() => "?").join(",");
@@ -287,9 +292,14 @@ export async function getFilteredExpenseSummary(
     const refundedSub = `id IN (SELECT refund_of_expense_id FROM expenses WHERE refund_of_expense_id IS NOT NULL AND nature = 'credit' AND deleted_at IS NULL)`;
     conditions.push(filters.refundedStatus === "refunded" ? refundedSub : `NOT (${refundedSub})`);
   }
-  if (filters.avoidability) {
+  if (filters.avoidability === "unclassified") {
+    conditions.push("is_right_spend IS NULL");
+  } else if (filters.avoidability) {
     conditions.push("is_right_spend = ?");
     params.push(filters.avoidability === "unavoidable" ? 1 : 0);
+  }
+  if (filters.noCategory) {
+    conditions.push("category_id IS NULL");
   }
   if (filters.merchantNames && filters.merchantNames.length > 0) {
     const placeholders = filters.merchantNames.map(() => "?").join(",");
@@ -469,8 +479,9 @@ export async function getExpenseIdsByCategory(
  * This allows the same category to appear in both unavoidable and discretionary buckets.
  */
 export interface CategoryClassificationActual {
-  category_id: string;
-  is_unavoidable: number; // 1 = unavoidable, 0 = discretionary
+  /** null = expenses with no category. */
+  category_id: string | null;
+  is_unavoidable: number; // 1 = unavoidable, 0 = discretionary, -1 = not classified yet
   total: number;
 }
 
@@ -484,9 +495,9 @@ export async function getExpenseTotalsByCategoryAndClassification(
   // silently bucketed NULL (uncategorized-for-classification) expenses as
   // "unavoidable", inflating the unavoidable % on the spending-split screen
   // vs the monthly summary. Now: treat NULL as its own third group
-  // (0/1/NULL → discretionary/unavoidable/uncategorized). The spending-split
-  // UI still buckets NULL into discretionary for display if desired, but the
-  // raw data is honest.
+  // (0/1/NULL → discretionary/unavoidable/not classified). Expenses with no
+  // category are included (category_id NULL) so the groups add up to
+  // getSpendClassificationTotals for the same month.
   return db.getAllAsync<CategoryClassificationActual>(
     `SELECT category_id,
             CASE
@@ -498,7 +509,6 @@ export async function getExpenseTotalsByCategoryAndClassification(
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
        AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
-       AND category_id IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      GROUP BY category_id, is_unavoidable;`,
@@ -535,6 +545,7 @@ export async function getCategoryMonthlyTrend(
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
        AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND category_id = ? AND date >= ? AND date <= ?
+       ${NOT_INVESTMENT_LINKED}
      GROUP BY strftime('%Y-%m', date)
      ORDER BY month;`,
     userId,
@@ -587,6 +598,7 @@ export async function getTopCategoriesBySpending(
   return db.getAllAsync<CategoryActual>(
     `SELECT category_id, SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ? AND category_id IS NOT NULL
+     ${NOT_INVESTMENT_LINKED}
      GROUP BY category_id
      ORDER BY total DESC
      LIMIT ?;`,
@@ -608,7 +620,8 @@ export async function getExpenseCount(
   const db = getDatabase();
   const row = await db.getFirstAsync<{ count: number }>(
     `SELECT COUNT(*) as count FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?;`,
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
+     ${NOT_INVESTMENT_LINKED};`,
     userId,
     startDate,
     endDate,

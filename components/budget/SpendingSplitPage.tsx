@@ -3,18 +3,18 @@ import { useState, useCallback, useRef } from "react";
 import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ProgressBar, Text } from "@/components/ui";
+import { Card, ProgressBar, Text } from "@/components/ui";
+import { AnimatedNumber, Appear, Chevron, Collapse, PressableScale } from "@/components/motion";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { getCategories } from "@/services/category";
 import { getBudgetsForMonth } from "@/services/budget";
 import { getExpenseTotalsByCategoryAndClassification } from "@/services/expense";
-import { getSpendClassificationTotals } from "@/services/spend-classification";
 import { getYearlyPlanByFY } from "@/services/yearly-plan";
 import { formatAmount } from "@/utils/expense-validation";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { calculateSplit } from "@/utils/unavoidable-split";
-import type { SplitSnapshot } from "@/utils/unavoidable-split";
+import type { SplitBucket, SplitBucketDetail, SplitSnapshot } from "@/utils/unavoidable-split";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
@@ -26,81 +26,124 @@ import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 const UNAVOIDABLE_COLOR = BRAND_COLOR;
 const DISCRETIONARY_COLOR = STATUS_COLORS.warning;
 
+interface BucketMeta {
+  title: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  /** The /budget/transactions filter for this bucket. */
+  avoidability: "unavoidable" | "avoidable" | "unclassified";
+}
+
+const BUCKETS: Record<SplitBucket, BucketMeta> = {
+  unavoidable: {
+    title: "Unavoidable",
+    subtitle: "Bills and needs you have to pay",
+    icon: "lock-closed-outline",
+    avoidability: "unavoidable",
+  },
+  discretionary: {
+    title: "Discretionary",
+    subtitle: "Choices you could cut back on",
+    icon: "pricetag-outline",
+    avoidability: "avoidable",
+  },
+  unclassified: {
+    title: "Not classified yet",
+    subtitle: "Open one and mark it unavoidable or discretionary",
+    icon: "help-circle-outline",
+    avoidability: "unclassified",
+  },
+};
+
+const ORDER: SplitBucket[] = ["unavoidable", "discretionary", "unclassified"];
+
 interface SpendingSplitPageProps {
   month: string;
 }
 
 /**
- * The avoidable / discretionary spending breakdown for one month.
+ * The unavoidable / discretionary spending breakdown for one month.
  *
  * The single implementation, rendered by the Budget tab's swipe-pager and by
- * app/budget/spending-split.tsx. Each previously carried its own copy of the same calculation and
- * layout, ~270 and ~366 lines, so a change to how the split is presented had to be made twice.
- *
- * The month arrives as a prop rather than being owned here, because the two callers source it
+ * app/budget/spending-split.tsx. The month arrives as a prop because the two callers source it
  * differently: the pager takes the Budget tab's current month, the route owns a PeriodNavigator.
+ *
+ * Three groups by each expense's own flag (unavoidable / discretionary / not classified yet), so
+ * every amount here adds up to the month's spending and each group's list matches the number on
+ * it. Tap a group to see its categories; tap a category for its transactions in that group.
  */
 export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
   const [split, setSplit] = useState<SplitSnapshot | null>(null);
+  const [open, setOpen] = useState<SplitBucket | null>("discretionary");
   const [refreshing, setRefreshing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-  const sectionY = useRef({ unavoidable: 0, discretionary: 0 });
+  const sectionY = useRef<Record<SplitBucket, number>>({ unavoidable: 0, discretionary: 0, unclassified: 0 });
 
-  const { startDate, endDate } = getMonthDateRange(month);
+  const colorOf = (bucket: SplitBucket) =>
+    bucket === "unavoidable" ? UNAVOIDABLE_COLOR : bucket === "discretionary" ? DISCRETIONARY_COLOR : theme.mutedForeground;
 
   const loadData = useCallback(async () => {
+    const { startDate, endDate } = getMonthDateRange(month);
     try {
-      const [categories, budgets, actuals, classification] = await Promise.all([
+      const [categories, budgets, actuals] = await Promise.all([
         getCategories(DEFAULT_USER_ID),
         getBudgetsForMonth(DEFAULT_USER_ID, month),
         getExpenseTotalsByCategoryAndClassification(DEFAULT_USER_ID, startDate, endDate),
-        getSpendClassificationTotals(DEFAULT_USER_ID, startDate, endDate),
       ]);
 
-      const budgetMap = new Map(budgets.map((b) => [b.category_id, b.amount]));
-      const catNameMap = new Map(categories.map((c) => [c.id, c.name]));
-
-      const items = actuals.map((a) => ({
-        categoryId: a.category_id,
-        name: catNameMap.get(a.category_id) ?? "Unknown",
-        spent: a.total,
-        isUnavoidable: a.is_unavoidable === 1,
-      }));
-
+      // Income from the plan of the financial year this month belongs to (not today's).
       let monthlyIncome: number | null = null;
       try {
-        const startMonth = getFYStartMonth();
-        const fy = getCurrentFY(startMonth);
+        const [y, m] = month.split("-").map(Number);
+        const fy = getCurrentFY(getFYStartMonth(), new Date(y, m - 1, 1));
         const plan = await getYearlyPlanByFY(DEFAULT_USER_ID, String(fy));
-        if (plan) {
-          monthlyIncome = (plan.annual_salary_in_hand + plan.expected_bonus) / 12;
-        }
+        if (plan) monthlyIncome = (plan.annual_salary_in_hand + plan.expected_bonus) / 12;
       } catch {
         // No plan
       }
 
-      const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
-      const result = calculateSplit({ items, categoryBudgets: budgetMap, totalBudget, monthlyIncome });
-
-      const authoritative: SplitSnapshot = {
-        ...result,
-        unavoidableSpent: classification.unavoidable,
-        discretionarySpent: classification.discretionary + classification.uncategorized,
-        totalSpent: classification.total,
-        unavoidablePct: classification.unavoidablePct,
-        discretionaryPct: classification.discretionaryPct + classification.uncategorizedPct,
-      };
-
-      setSplit(authoritative);
+      setSplit(
+        calculateSplit({
+          items: actuals.map((a) => ({
+            categoryId: a.category_id,
+            spent: a.total,
+            bucket: a.is_unavoidable === 1 ? "unavoidable" : a.is_unavoidable === 0 ? "discretionary" : "unclassified",
+          })),
+          categories: categories.map((c) => ({ id: c.id, name: c.name, isUnavoidable: c.is_unavoidable === 1 })),
+          categoryBudgets: new Map(budgets.map((b) => [b.category_id, b.amount])),
+          monthlyIncome,
+        }),
+      );
     } catch {
       // DB not ready
     }
-  }, [month, startDate, endDate]);
+  }, [month]);
 
   useDataRefresh(loadData);
+
+  const openTransactions = (bucket: SplitBucket, categoryId?: string | null, name?: string) => {
+    const meta = BUCKETS[bucket];
+    router.push({
+      pathname: "/budget/transactions",
+      params: {
+        filterMonth: month,
+        filterAvoidability: meta.avoidability,
+        ...(categoryId !== undefined ? { categoryId: categoryId ?? "none" } : {}),
+        title: name ? `${name} · ${meta.title}` : meta.title,
+      },
+    });
+  };
+
+  const focusBucket = (bucket: SplitBucket) => {
+    setOpen(bucket);
+    scrollRef.current?.scrollTo({ y: sectionY.current[bucket], animated: true });
+  };
+
+  const visible = split ? ORDER.filter((b) => b !== "unclassified" || split.unclassified.spent > 0) : [];
+  const discretionaryLeft = split ? split.discretionary.budget - split.discretionary.spent : 0;
 
   return (
     <ScrollView
@@ -121,133 +164,94 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
     >
       {split && split.totalSpent > 0 ? (
         <>
-          {/* Donut chart */}
-          <View className="mx-4 mt-3 mb-2 p-4 rounded-lg bg-card border border-border items-center">
-            <DonutChart
-              segments={[
-                { label: "Unavoidable", value: split.unavoidableSpent, color: UNAVOIDABLE_COLOR },
-                { label: "Discretionary", value: split.discretionarySpent, color: DISCRETIONARY_COLOR },
-              ]}
-              centerValue={`${split.unavoidablePct}%`}
-              centerLabel="Unavoidable"
-              onSegmentPress={(index) => {
-                const y = index === 0 ? sectionY.current.unavoidable : sectionY.current.discretionary;
-                scrollRef.current?.scrollTo({ y, animated: true });
+          {/* Donut + legend */}
+          <Appear index={0}>
+            <Card className="mx-4 mt-3 mb-2">
+              <View className="flex-row items-center">
+                <DonutChart
+                  size={136}
+                  segments={visible.map((b) => ({ label: BUCKETS[b].title, value: split[b].spent, color: colorOf(b) }))}
+                  centerValue={`${split.unavoidable.pct}%`}
+                  centerLabel="Unavoidable"
+                />
+                <View className="flex-1 ml-4">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Spent this month</Text>
+                  <AnimatedNumber value={split.totalSpent} className="text-xl font-bold text-foreground mt-0.5 mb-2" />
+                  {visible.map((b) => (
+                    <Pressable
+                      key={b}
+                      onPress={() => focusBucket(b)}
+                      className="flex-row items-center py-1"
+                      accessibilityRole="button"
+                      accessibilityLabel={`${BUCKETS[b].title}: ${formatAmount(split[b].spent)}, ${split[b].pct} percent`}
+                    >
+                      <View className="w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: colorOf(b) }} />
+                      <Text className="text-xs text-foreground flex-1" numberOfLines={1}>{BUCKETS[b].title}</Text>
+                      <Text className="text-xs font-semibold text-foreground">{split[b].pct}%</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </Card>
+          </Appear>
+
+          {/* What it means */}
+          {(split.discretionary.budget > 0 || split.maxPossibleSavings !== null) && (
+            <Appear index={1}>
+              <Card className="mx-4 mb-2">
+                <View className="flex-row">
+                  {split.discretionary.budget > 0 && (
+                    <View className="flex-1">
+                      <Text className="text-xs text-faint-foreground">
+                        {discretionaryLeft >= 0 ? "Discretionary left" : "Discretionary over"}
+                      </Text>
+                      <Text
+                        className="text-base font-semibold"
+                        style={{ color: discretionaryLeft >= 0 ? theme.success : theme.danger }}
+                      >
+                        {formatAmount(Math.abs(discretionaryLeft))}
+                      </Text>
+                      <Text className="text-xs text-faint-foreground">of {formatAmount(split.discretionary.budget)} budget</Text>
+                    </View>
+                  )}
+                  {split.maxPossibleSavings !== null && (
+                    <View className={split.discretionary.budget > 0 ? "flex-1 items-end" : "flex-1"}>
+                      <Text className="text-xs text-faint-foreground">Could save up to</Text>
+                      <Text
+                        className="text-base font-semibold"
+                        style={{ color: split.maxPossibleSavings >= 0 ? theme.success : theme.danger }}
+                      >
+                        {formatAmount(split.maxPossibleSavings)}
+                      </Text>
+                      <Text className="text-xs text-faint-foreground">income minus unavoidable</Text>
+                    </View>
+                  )}
+                </View>
+              </Card>
+            </Appear>
+          )}
+
+          {visible.map((b, i) => (
+            <View
+              key={b}
+              onLayout={(e) => {
+                sectionY.current[b] = e.nativeEvent.layout.y;
               }}
-            />
-          </View>
-
-          {/* Summary metrics */}
-          <View className="mx-4 mb-2 p-4 rounded-lg bg-card border border-border">
-            <Pressable
-              onPress={() => router.push({ pathname: "/budget/transactions", params: { filterMonth: month, filterAvoidability: "unavoidable", title: "Unavoidable Expenses" } })}
-              className="flex-row items-center justify-between mb-3"
             >
-              <View className="flex-row items-center">
-                <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: UNAVOIDABLE_COLOR }} />
-                <Text className="text-sm text-foreground">Unavoidable</Text>
-              </View>
-              <View className="flex-row items-center">
-                <View className="items-end">
-                  <Text className="text-sm font-semibold text-foreground">
-                    {formatAmount(split.unavoidableSpent)}
-                  </Text>
-                  <Text className="text-xs text-faint-foreground">of {formatAmount(split.unavoidableBudget)} budget</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 6 }} />
-              </View>
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push({ pathname: "/budget/transactions", params: { filterMonth: month, filterAvoidability: "avoidable", title: "Discretionary Expenses" } })}
-              className="flex-row items-center justify-between mb-3"
-            >
-              <View className="flex-row items-center">
-                <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: DISCRETIONARY_COLOR }} />
-                <Text className="text-sm text-foreground">Discretionary</Text>
-              </View>
-              <View className="flex-row items-center">
-                <View className="items-end">
-                  <Text className="text-sm font-semibold text-foreground">
-                    {formatAmount(split.discretionarySpent)}
-                  </Text>
-                  <Text className="text-xs text-faint-foreground">of {formatAmount(split.discretionaryBudget)} budget</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 6 }} />
-              </View>
-            </Pressable>
-
-            <View className="h-[1px] bg-border mb-3" />
-
-            <View className="flex-row justify-between">
-              <View>
-                <Text className="text-xs text-faint-foreground">Unavoidable baseline</Text>
-                <Text className="text-sm font-semibold text-foreground">
-                  {formatAmount(split.unavoidableBudget)}/mo
-                </Text>
-              </View>
-              <View className="items-center">
-                <Text className="text-xs text-faint-foreground">Discretionary left</Text>
-                <Text
-                  className="text-sm font-semibold"
-                  style={{
-                    color:
-                      split.discretionaryBudget - split.discretionarySpent >= 0
-                        ? theme.success
-                        : theme.danger,
-                  }}
-                >
-                  {formatAmount(Math.max(split.discretionaryBudget - split.discretionarySpent, 0))}
-                </Text>
-              </View>
-              {split.maxPossibleSavings !== null && (
-                <View className="items-end">
-                  <Text className="text-xs text-faint-foreground">Max savings</Text>
-                  <Text className="text-sm font-semibold text-success">
-                    {formatAmount(Math.max(Math.round(split.maxPossibleSavings), 0))}
-                  </Text>
-                </View>
-              )}
+              <Appear index={i + 2}>
+                <BucketCard
+                  meta={BUCKETS[b]}
+                  detail={split[b]}
+                  color={colorOf(b)}
+                  open={open === b}
+                  onToggle={() => setOpen((cur) => (cur === b ? null : b))}
+                  onCategory={(categoryId, name) => openTransactions(b, categoryId, name)}
+                  onAll={() => openTransactions(b)}
+                  chevronColor={colors.textSecondary}
+                />
+              </Appear>
             </View>
-          </View>
-
-          {/* Unavoidable categories */}
-          <View
-            className="mx-4 mb-2 p-4 rounded-lg bg-card border border-border"
-            onLayout={(e) => { sectionY.current.unavoidable = e.nativeEvent.layout.y; }}
-          >
-            <View className="flex-row items-center mb-3">
-              <Ionicons name="lock-closed-outline" size={16} color={UNAVOIDABLE_COLOR} />
-              <Text className="text-sm font-semibold text-foreground ml-2">
-                Unavoidable ({split.unavoidableCategories.length})
-              </Text>
-            </View>
-            {split.unavoidableCategories.map((cat) => (
-              <CategoryRow key={cat.categoryId} name={cat.name} spent={cat.spent} budget={cat.budget} color={UNAVOIDABLE_COLOR} />
-            ))}
-            {split.unavoidableCategories.length === 0 && (
-              <Text className="text-xs text-faint-foreground">No unavoidable categories with spending</Text>
-            )}
-          </View>
-
-          {/* Discretionary categories */}
-          <View
-            className="mx-4 mb-4 p-4 rounded-lg bg-card border border-border"
-            onLayout={(e) => { sectionY.current.discretionary = e.nativeEvent.layout.y; }}
-          >
-            <View className="flex-row items-center mb-3">
-              <Ionicons name="pricetag-outline" size={16} color={DISCRETIONARY_COLOR} />
-              <Text className="text-sm font-semibold text-foreground ml-2">
-                Discretionary ({split.discretionaryCategories.length})
-              </Text>
-            </View>
-            {split.discretionaryCategories.map((cat) => (
-              <CategoryRow key={cat.categoryId} name={cat.name} spent={cat.spent} budget={cat.budget} color={DISCRETIONARY_COLOR} />
-            ))}
-            {split.discretionaryCategories.length === 0 && (
-              <Text className="text-xs text-faint-foreground">No discretionary categories with spending</Text>
-            )}
-          </View>
+          ))}
         </>
       ) : (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 80 }}>
@@ -264,20 +268,103 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
   );
 }
 
-function CategoryRow({ name, spent, budget, color }: { name: string; spent: number; budget: number; color: string }) {
-  const pct = budget > 0 ? spent / budget : 0;
+function BucketCard({
+  meta,
+  detail,
+  color,
+  open,
+  onToggle,
+  onCategory,
+  onAll,
+  chevronColor,
+}: {
+  meta: BucketMeta;
+  detail: SplitBucketDetail;
+  color: string;
+  open: boolean;
+  onToggle: () => void;
+  onCategory: (categoryId: string | null, name: string) => void;
+  onAll: () => void;
+  chevronColor: string;
+}) {
+  const overBudget = detail.budget > 0 && detail.spent > detail.budget;
   return (
-    <View className="mb-3 last:mb-0">
-      <View className="flex-row justify-between mb-1">
-        <Text className="text-sm text-foreground flex-1" numberOfLines={1}>
-          {name}
-        </Text>
-        <Text className="text-sm font-medium text-foreground ml-2">
-          {formatAmount(spent)}
-        </Text>
-        {budget > 0 && <Text className="text-xs text-faint-foreground ml-1">/ {formatAmount(budget)}</Text>}
-      </View>
-      {budget > 0 && <ProgressBar value={pct} color={color} height={6} animated={false} />}
-    </View>
+    <Card className="mx-4 mb-2">
+      <PressableScale onPress={onToggle} accessibilityRole="button" accessibilityState={{ expanded: open }}>
+        <View className="flex-row items-center">
+          <View className="w-9 h-9 rounded-full items-center justify-center mr-3 overflow-hidden">
+            <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: color, opacity: 0.12 }} />
+            <Ionicons name={meta.icon} size={17} color={color} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-sm font-semibold text-foreground">{meta.title}</Text>
+            <Text className="text-xs text-faint-foreground" numberOfLines={1}>{meta.subtitle}</Text>
+          </View>
+          <View className="items-end ml-2">
+            <AnimatedNumber value={detail.spent} className="text-base font-bold text-foreground" />
+            <Text className="text-xs text-faint-foreground">
+              {detail.pct}% of spend
+            </Text>
+          </View>
+          <View className="ml-2">
+            <Chevron open={open} color={chevronColor} />
+          </View>
+        </View>
+        {detail.budget > 0 && (
+          <View className="mt-3">
+            <ProgressBar value={detail.spent / detail.budget} color={overBudget ? STATUS_COLORS.error : color} height={6} />
+            <Text className="text-xs text-faint-foreground mt-1">
+              {formatAmount(detail.spent)} of {formatAmount(detail.budget)} budget
+              {overBudget ? ` · ${formatAmount(detail.spent - detail.budget)} over` : ""}
+            </Text>
+          </View>
+        )}
+      </PressableScale>
+
+      <Collapse open={open}>
+        <View className="mt-3 pt-3 border-t border-border">
+          {detail.categories.map((cat, i) => {
+            const catOver = cat.budget > 0 && cat.spent > cat.budget;
+            return (
+              <Pressable
+                key={cat.categoryId ?? "none"}
+                onPress={() => cat.spent > 0 && onCategory(cat.categoryId, cat.name)}
+                disabled={cat.spent <= 0}
+                className="py-2"
+                accessibilityRole="button"
+              >
+                <View className="flex-row items-center">
+                  <Text className="text-sm text-foreground flex-1" numberOfLines={1}>{cat.name}</Text>
+                  <Text className="text-sm font-medium text-foreground ml-2">
+                    {cat.spent > 0 ? formatAmount(cat.spent) : "Nothing yet"}
+                  </Text>
+                  {cat.budget > 0 && (
+                    <Text className="text-xs text-faint-foreground ml-1">/ {formatAmount(cat.budget)}</Text>
+                  )}
+                  {cat.spent > 0 && (
+                    <Ionicons name="chevron-forward" size={13} color={chevronColor} style={{ marginLeft: 4 }} />
+                  )}
+                </View>
+                {cat.budget > 0 && open && (
+                  <ProgressBar
+                    value={cat.spent / cat.budget}
+                    color={catOver ? STATUS_COLORS.error : color}
+                    height={5}
+                    delay={i * 40}
+                    className="mt-1.5"
+                  />
+                )}
+              </Pressable>
+            );
+          })}
+          <Pressable onPress={onAll} className="flex-row items-center justify-center pt-2 mt-1" accessibilityRole="button">
+            <Text className="text-sm font-semibold" style={{ color }}>
+              {meta.avoidability === "unclassified" ? "Classify these" : "See all transactions"}
+            </Text>
+            <Ionicons name="arrow-forward" size={14} color={color} style={{ marginLeft: 4 }} />
+          </Pressable>
+        </View>
+      </Collapse>
+    </Card>
   );
 }

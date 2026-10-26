@@ -175,11 +175,21 @@ export default function RootLayout(): React.JSX.Element {
   // A payment screenshot or message shared to Arth from another app. Not reset when the app goes to
   // the background: the fingerprint prompt can background it on some phones and would drop the share.
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntent({ resetOnBackground: false });
+  // A share made while Arth is running can reach us twice: the native event, and the parked copy
+  // read again when Arth comes back to the foreground (patches/expo-share-intent). Open it once.
+  const lastShare = useRef<{ key: string; at: number } | null>(null);
   useEffect(() => {
     if (!hasShareIntent) return;
     const image = (shareIntent.files ?? []).find(
       (f) => f.mimeType?.startsWith("image/") || /\.(?:png|jpe?g|webp|heic)$/i.test(f.fileName ?? f.path ?? ""),
     );
+    const key = image ? `img|${image.fileName}|${image.size}|${image.width}x${image.height}` : `txt|${shareIntent.text ?? ""}`;
+    const now = Date.now();
+    if (lastShare.current && lastShare.current.key === key && now - lastShare.current.at < 5000) {
+      resetShareIntent();
+      return;
+    }
+    lastShare.current = { key, at: now };
     if (image?.path) {
       const uri = /^(file|content):\/\//.test(image.path) ? image.path : `file://${image.path}`;
       setIncoming({ kind: "image", uri });

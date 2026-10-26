@@ -1,4 +1,4 @@
-﻿---
+---
 title: Setting and tracking a budget
 slug: budget
 summary: Monthly caps per category with a progress bar. Refunds subtract from the actual.
@@ -21,6 +21,9 @@ phrasings:
   - UI budget summary
   - UI budget progress bar
   - UI spending split
+  - UI flexible spend
+  - What is unavoidable vs discretionary?
+  - Why doesn't cashback reduce my budget?
   - UI rolling surplus
   - What is rolling surplus?
   - Why is my budget red?
@@ -67,7 +70,25 @@ This is separate from your **fiscal year** (Settings tab → Fiscal Year) - FY d
 - **Forecast expenses** (predictions from reminders) → do NOT count until you mark them as paid.
 - **Transfers between your own accounts** → do NOT count.
 - **Split-tender legs** → each leg counts on whichever category it was tagged with. Your share is whatever leg you paid.
-- **Hisaab splits** (you paid ₹1,000, friend owes ₹500) → only YOUR share (₹500) counts against your budget.
+- **Hisaab splits** (you paid ₹1,000, friend owes ₹500) → only YOUR share (₹500) counts against your budget. A refund on a split purchase comes back against the whole bill, so your share shrinks in proportion: a ₹400 refund on that ₹1,000 bill leaves your share at ₹300.
+- **Credits that aren't linked to an expense** (cashback, a refund you haven't linked) → do NOT reduce the budget. Link it to the purchase with **Record a Refund** if it should.
+- **Payments linked to an investment or a loan** (SIPs, EMIs) → do NOT count; they're savings and debt, not spending.
+
+Tap a category on the Budget tab to see the transactions behind its number. The list counts exactly what the bar counts: refunded expenses show struck through or reduced.
+
+## Spending split
+
+Swipe the Budget tab to **Spending Split**. Each expense is in one of three groups:
+
+- **Unavoidable** - bills and needs you have to pay.
+- **Discretionary** - choices you could cut back on.
+- **Not classified yet** - not marked either way. Open one and set it.
+
+Tap a group to see its categories, then a category to see its transactions in that group. A category's budget belongs to the group the category itself is set to (Settings → Categories), so it counts even before anything is spent. **Could save up to** is your planned monthly income minus your unavoidable costs (each counted at whichever is bigger: what's been spent, or its budget).
+
+## Monthly summary
+
+The third page of the Budget tab. **Flexible spend** is what you marked discretionary this month, how it compares with last month, and how much isn't classified yet.
 
 ## Common situations
 
