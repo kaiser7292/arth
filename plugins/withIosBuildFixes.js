@@ -39,10 +39,16 @@ function withIosBuildFixes(config) {
   config = withPodfile(config, (config) => {
     const podfile = config.modResults.contents;
     if (!podfile.includes(MARKER)) {
-      config.modResults.contents = podfile.replace(
+      const patched = podfile.replace(
         /(react_native_post_install\([\s\S]*?\n\s*\))/,
         `$1${POD_FIX}`
       );
+      if (!patched.includes(MARKER)) {
+        throw new Error(
+          "withIosBuildFixes: Podfile layout changed; could not find react_native_post_install(...) to add the iOS 15.1 deployment-target fix"
+        );
+      }
+      config.modResults.contents = patched;
     }
     return config;
   });

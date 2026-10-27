@@ -102,6 +102,7 @@ All plugins live in `plugins/` and are registered in `app.json` under `expo.plug
 | `withOptionalHardware` | Declares telephony and the camera as optional hardware. READ_SMS and CAMERA otherwise imply them as required, and Play hides the app from Wi-Fi-only tablets and devices without a camera (19 devices dropped in 4.23.0). |
 | `withShareTarget` | Shares go to a small `ShareTargetActivity` (no React) that forwards them to MainActivity in Arth's own task, so an app that shares "for a result" (Amazon Pay) can't start a second MainActivity. Must be listed before `expo-share-intent` in app.json. |
 | `withReleaseSigning` | Signs release builds with the Arth release key from `~/.arth/signing.properties` (see Signing). |
+| `withIosBuildFixes` | iOS only. Drops the `aps-environment` (push) entitlement that `expo-notifications` adds, since Arth only schedules local notifications and free Apple IDs can't sign it; raises pods below iOS 15.1 (Xcode 27 rejects under 15.0); sets `ENABLE_USER_SCRIPT_SANDBOXING = NO` so the JS bundle phase can write `main.jsbundle`. Must be listed before `expo-notifications` in app.json. Fails prebuild if the Podfile no longer has `react_native_post_install(...)`. |
 
 **Never edit `android/app/build.gradle` or `android/gradle.properties` directly** — changes are wiped on the next prebuild. All permanent customisations must go through a config plugin.
 
