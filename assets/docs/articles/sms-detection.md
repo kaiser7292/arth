@@ -1,8 +1,8 @@
 ---
 title: How SMS detection works
 slug: sms-detection
-summary: On-device parsing of bank SMS into expenses. Nothing leaves your phone. Android-only.
-tags: [sms, auto-detect, privacy, android, permission, banks]
+summary: On-device parsing of bank SMS into expenses. Nothing leaves your phone. On iPhone, bank messages come in through a Shortcuts automation.
+tags: [sms, auto-detect, privacy, android, iphone, shortcuts, permission, banks]
 contextKeys: [sms-settings, review-queue]
 phrasings:
   - How does SMS reading work?
@@ -10,6 +10,9 @@ phrasings:
   - Is reading my SMS safe?
   - Why does the app need SMS permission?
   - Can I use Arth without giving SMS access?
+  - Bank messages on iPhone
+  - Set up the Shortcuts automation
+  - Why didn't my bank message show up on iPhone?
   - Some SMS are not being picked up
   - Arth missed an expense from my bank
   - How do I turn off SMS auto-detect?
@@ -102,6 +105,29 @@ You can also send the message to the developer so a future update reads it for e
 ## Your first scan
 
 When you turn SMS on during setup, Arth asks how far back to read (1, 3 or 6 months) and then shows **Here's your money**: accounts found, money in and out, top spend, the next due bill, FDs and transfers spotted, and how much is waiting for review. A phone with a lot of history keeps reading in the background, and the summary appears on Home when it's done.
+
+## On iPhone
+
+iPhone doesn't let any app read your messages. Instead, a **Shortcuts automation** hands each bank message to Arth, which reads it on the phone the same way as on Android.
+
+**Set it up once** (Settings → Transaction Messages → Bank messages on iPhone):
+
+1. In the Shortcuts app, open **Automation**, tap **+** and choose **Message**.
+2. Leave **Sender** and **Message Contains** empty. Arth ignores anything that isn't a transaction (chats, OTPs, offers) without saving it.
+3. Choose **Run Immediately** and turn off **Notify When Run**.
+4. Add the action **Add bank message to Arth**, set Message to **Shortcut Input**, and tap Done.
+
+One automation covers money going out and coming in.
+
+**What you see:**
+
+- **A notification** for each message, like "₹185 debited · ••8689". Tap it to open **Just arrived**: what Arth read, with Approve, Edit and Reject. Turn the notifications off on the same settings screen.
+- **A Home card** ("3 bank messages read · 2 to review") when you open Arth.
+- **If Arth can't read a message**, Just arrived shows it with **Teach Arth**: show it the amount and shop once, and messages like it are read by themselves after that.
+
+**Missed one?** Copy the message in Messages, then tap **+ → Paste Bank Message** in Transactions. The Shortcuts action **Review bank message in Arth** does the same from Shortcuts.
+
+**Is it working?** The settings screen shows "Working — last message 2 min ago". If it says "Nothing received yet", check step 3.
 
 ## Related
 

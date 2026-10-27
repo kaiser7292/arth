@@ -11,6 +11,8 @@ export default function ExpenseLayout() {
       <Stack.Screen name="review-queue" />
       <Stack.Screen name="from-screenshot" />
       <Stack.Screen name="catch-up" options={{ ...stackOptions, headerShown: true, title: "Catch up" }} />
+      <Stack.Screen name="just-arrived" options={{ ...stackOptions, headerShown: true, title: "Just arrived" }} />
+      <Stack.Screen name="paste-message" options={{ ...stackOptions, headerShown: true, title: "Paste bank message" }} />
     </Stack>
   );
 }

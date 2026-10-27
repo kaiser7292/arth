@@ -13,6 +13,7 @@ import { LinkExpenseSheet } from "@/components/expense/LinkExpenseSheet";
 import { CheckInsCard } from "@/components/home/CheckInsCard";
 import { DueRow } from "@/components/home/DueRow";
 import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
+import { BankMessagesCard } from "@/components/home/BankMessagesCard";
 import { useAlert } from "@/hooks/use-alert";
 import { formatError } from "@/utils/error-message";
 import { BankBalanceSummary } from "@/components/home/BankBalanceSummary";
@@ -448,6 +449,9 @@ export default function HomeScreen() {
           />
           </Appear>
         )}
+
+        {/* iPhone: what the bank-message Shortcut handed over. Self-loading; Android never shows it. */}
+        <BankMessagesCard />
 
         {/* "Is <name> you?" — once, when bank SMS keep showing a name on transfers. Self-loading. */}
         <SelfNamePromptCard />

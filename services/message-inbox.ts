@@ -13,12 +13,21 @@
 import { Platform } from "react-native";
 import { File, Paths } from "expo-file-system";
 import { logger } from "@/utils/logger";
+import { settingsStorage } from "@/services/storage";
 import type { RawSMS } from "@/services/sms/sms-reader";
 import { runSmsScan, type ScanOutcome } from "@/services/sms/sms-orchestrator";
 
 /** Must match BankMessageInbox.fileName in AddBankMessageIntent.swift. */
 const INBOX_FILE = "bank-messages.jsonl";
 const READING_FILE = "bank-messages.reading.jsonl";
+/** Must match BankMessageInbox.settingsFileName: {"notify": bool}, read by the Shortcuts action. */
+const SETTINGS_FILE = "bank-messages-settings.json";
+/** Must match BankMessageInbox.openRequestFileName: left by "Review bank message in Arth". */
+const OPEN_REQUEST_FILE = "bank-messages-open";
+
+const LAST_ARRIVAL_KEY = "iphone_messages_last_arrival";
+const STATS_KEY = "iphone_messages_stats";
+const NOTIFY_KEY = "iphone_messages_notify";
 
 /** One line of the inbox file, as the Shortcuts action writes it. */
 interface InboxLine {
@@ -67,6 +76,7 @@ export function importHandedMessages(): Promise<ScanOutcome | null> {
       const messages = parseInbox(await reading.text());
       const outcome = messages.length ? await runSmsScan({ manual: false, messages }) : null;
       reading.delete();
+      if (outcome) recordArrival(messages, outcome);
       return outcome;
     } catch (e) {
       logger.warn("Importing handed-over bank messages failed:", e);
@@ -87,4 +97,156 @@ export async function waitingMessageCount(): Promise<number> {
     if (f.exists) n += parseInbox(await f.text()).length;
   }
   return n;
+}
+
+// ── What came in, for "Just arrived", the Home card and the setup screen ──
+
+/** The last batch of handed-over messages Arth read. */
+export interface Arrival {
+  /** When Arth read them (ms). */
+  at: number;
+  /** Messages in the batch. */
+  read: number;
+  /** Rows the batch added (expenses and credits). */
+  addedIds: string[];
+  /** Messages no parser or template could read. */
+  unreadable: { body: string; sender: string; date: number }[];
+  /** Opened in "Just arrived" (the Home card hides then). */
+  seen: boolean;
+}
+
+interface Stats {
+  /** Newest message handed over (ms), from its receivedAt. */
+  lastMessageAt: number | null;
+  /** "YYYY-MM" and how many messages came in that month. */
+  month: string;
+  monthCount: number;
+}
+
+const monthOf = (ms: number) => {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+function readJson<T>(key: string): T | null {
+  try {
+    const raw = settingsStorage.getString(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remember a batch: messages pasted in the app or read from the Shortcuts inbox. A batch that
+ * arrives before the last one was looked at is merged into it, so nothing drops off the card.
+ */
+export function recordArrival(
+  messages: RawSMS[],
+  outcome: { addedIds?: string[]; unreadable?: Arrival["unreadable"] },
+  now: number = Date.now(),
+): void {
+  if (messages.length === 0) return;
+  const prev = getLastArrival();
+  const keep = prev && !prev.seen ? prev : null;
+  const arrival: Arrival = {
+    at: now,
+    read: (keep?.read ?? 0) + messages.length,
+    addedIds: [...(keep?.addedIds ?? []), ...(outcome.addedIds ?? [])],
+    unreadable: [...(keep?.unreadable ?? []), ...(outcome.unreadable ?? [])].slice(-20),
+    seen: false,
+  };
+  settingsStorage.set(LAST_ARRIVAL_KEY, JSON.stringify(arrival));
+
+  const stats = getMessageStats(now);
+  const newest = Math.max(...messages.map((m) => Number(m.date) || 0));
+  const month = monthOf(now);
+  const inMonth = messages.filter((m) => monthOf(Number(m.date) || now) === month).length;
+  const next: Stats = {
+    lastMessageAt: Math.max(stats.lastMessageAt ?? 0, newest) || null,
+    month,
+    monthCount: (stats.month === month ? stats.monthCount : 0) + inMonth,
+  };
+  settingsStorage.set(STATS_KEY, JSON.stringify(next));
+}
+
+export function getLastArrival(): Arrival | null {
+  return readJson<Arrival>(LAST_ARRIVAL_KEY);
+}
+
+export function markArrivalSeen(): void {
+  const a = getLastArrival();
+  if (a && !a.seen) settingsStorage.set(LAST_ARRIVAL_KEY, JSON.stringify({ ...a, seen: true }));
+}
+
+/** Last message and this month's count, for the setup screen's status. */
+export function getMessageStats(now: number = Date.now()): Stats {
+  const s = readJson<Stats>(STATS_KEY);
+  const month = monthOf(now);
+  if (!s) return { lastMessageAt: null, month, monthCount: 0 };
+  return s.month === month ? s : { ...s, month, monthCount: 0 };
+}
+
+/** Newest message still waiting in the inbox (ms), or null. */
+export async function newestWaitingAt(): Promise<number | null> {
+  if (Platform.OS !== "ios") return null;
+  let newest: number | null = null;
+  for (const name of [INBOX_FILE, READING_FILE]) {
+    const f = new File(Paths.document, name);
+    if (!f.exists) continue;
+    for (const m of parseInbox(await f.text())) newest = Math.max(newest ?? 0, Number(m.date) || 0);
+  }
+  return newest;
+}
+
+// ── Notification switch (read by the Shortcuts action through a file) ──
+
+/** On by default: a notification each time the Shortcut hands a message over. */
+export function isArrivalNotifyOn(): boolean {
+  return settingsStorage.getBoolean(NOTIFY_KEY) ?? true;
+}
+
+export function setArrivalNotify(on: boolean): void {
+  settingsStorage.set(NOTIFY_KEY, on);
+  writeNotifyFile(on);
+}
+
+function writeNotifyFile(on: boolean): void {
+  if (Platform.OS !== "ios") return;
+  try {
+    const f = new File(Paths.document, SETTINGS_FILE);
+    f.write(JSON.stringify({ notify: on }));
+  } catch (e) {
+    logger.warn("Couldn't save the bank-message notification setting for Shortcuts:", e);
+  }
+}
+
+/** Keep the action's copy of the switch in step (it's missing on a fresh install = on). */
+export function syncArrivalNotifyFile(): void {
+  writeNotifyFile(isArrivalNotifyOn());
+}
+
+// ── "Review bank message in Arth" opened Arth ──
+
+/** True once after the Review action opened Arth; the request is used up. */
+export function takeOpenRequest(): boolean {
+  if (Platform.OS !== "ios") return false;
+  try {
+    const f = new File(Paths.document, OPEN_REQUEST_FILE);
+    if (!f.exists) return false;
+    f.delete();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A bank message pasted or typed in Arth: read like a handed-over one and kept for "Just arrived". */
+export async function addMessageText(text: string): Promise<ScanOutcome | null> {
+  const body = text.trim();
+  if (!body) return null;
+  const message = { _id: `pasted-${Date.now()}`, address: "Pasted", body, date: Date.now(), type: 1 } as RawSMS;
+  const outcome = await runSmsScan({ manual: true, messages: [message] });
+  recordArrival([message], outcome);
+  return outcome;
 }

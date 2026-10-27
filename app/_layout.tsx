@@ -34,7 +34,7 @@ import { getOnboardingCompletedVersion } from "@/services/settings";
 import { runSmsScan } from "@/services/sms";
 import { settingsStorage } from "@/services/storage";
 import { hasIncoming, hrefForIncoming, onIncoming, setIncoming, takeIncoming } from "@/services/incoming-file";
-import { importHandedMessages } from "@/services/message-inbox";
+import { importHandedMessages, syncArrivalNotifyFile, takeOpenRequest } from "@/services/message-inbox";
 import { useShareIntent } from "expo-share-intent";
 import { logger } from "@/utils/logger";
 import * as BackgroundFetch from "expo-background-fetch";
@@ -357,6 +357,8 @@ export default function RootLayout(): React.JSX.Element {
       }
       // iPhone: bank messages the Shortcuts automation handed over while Arth was closed.
       await importHandedMessages();
+      // The Shortcuts action's copy of the notification switch (missing on a fresh install).
+      syncArrivalNotifyFile();
     };
 
     if (!appOpenScanRan.current) {
@@ -470,12 +472,21 @@ export default function RootLayout(): React.JSX.Element {
       const item = takeIncoming();
       if (item) navigate(() => routerRef.current?.push(hrefForIncoming(item) as Href));
     };
+    // iPhone: "Review bank message in Arth" opens Arth and leaves a request to show what it read.
+    const checkOpenRequest = () => {
+      if (takeOpenRequest()) setIncoming({ kind: "bank-messages" });
+    };
+    checkOpenRequest();
+    const appState = AppState.addEventListener("change", (s) => {
+      if (s === "active") checkOpenRequest();
+    });
     // After the first screen has settled.
     later(open, 300);
     const off = onIncoming(() => later(open, 300));
     return () => {
       timers.forEach(clearTimeout);
       off();
+      appState.remove();
     };
   }, [dbReady, minSplashDone, lockEvaluated]);
 
@@ -483,8 +494,13 @@ export default function RootLayout(): React.JSX.Element {
   // Whitelist of valid deep-link screens to prevent arbitrary navigation
   const ALLOWED_SCREENS = ALLOWED_DEEP_LINK_SCREENS;
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
+    const handled = new Set<string>();
+    const onResponse = (response: Notifications.NotificationResponse) => {
+        // One tap, once: a tap that started Arth can come both from the listener and from the
+        // last-response check below.
+        const id = response.notification.request.identifier;
+        if (handled.has(id)) return;
+        handled.add(id);
         // Approve / Reject tapped while Arth is in the foreground (the background case goes to
         // the TaskManager task in services/transaction-alerts.ts). No navigation for these.
         if (response.actionIdentifier === "approve" || response.actionIdentifier === "reject") {
@@ -514,8 +530,19 @@ export default function RootLayout(): React.JSX.Element {
         }
         // Deep-link target, unknown until runtime.
         navigate(() => routerRef.current?.push(screen as Href));
-      },
-    );
+    };
+    const subscription = Notifications.addNotificationResponseReceivedListener(onResponse);
+    // A tap that started Arth (e.g. the iPhone "bank message" notification) may have arrived
+    // before the listener existed.
+    try {
+      const last = Notifications.getLastNotificationResponse();
+      if (last) {
+        Notifications.clearLastNotificationResponse();
+        onResponse(last);
+      }
+    } catch (e) {
+      logger.warn("Reading the notification that opened Arth failed:", e);
+    }
     return () => subscription.remove();
   }, []);
 

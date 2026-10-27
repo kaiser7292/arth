@@ -10,7 +10,12 @@
  * unlocked, and the lock screen does so after unlocking.
  */
 
-export type Incoming = { kind: "backup"; uri: string } | { kind: "image"; uri: string } | { kind: "text"; text: string };
+export type Incoming =
+  | { kind: "backup"; uri: string }
+  | { kind: "image"; uri: string }
+  | { kind: "text"; text: string }
+  /** iPhone: "Review bank message in Arth" opened Arth -> Just arrived. */
+  | { kind: "bank-messages" };
 
 let pending: Incoming | null = null;
 const listeners = new Set<() => void>();
@@ -48,6 +53,7 @@ export function onIncoming(listener: () => void): () => void {
  */
 export function hrefForIncoming(item: Incoming): string {
   if (item.kind === "backup") return `/settings/backup-restore?incoming=${encodeURIComponent(item.uri)}`;
+  if (item.kind === "bank-messages") return "/expense/just-arrived";
   const at = `&at=${Date.now()}`;
   if (item.kind === "image") return `/expense/from-screenshot?uri=${encodeURIComponent(item.uri)}${at}`;
   return `/expense/from-screenshot?text=${encodeURIComponent(item.text.slice(0, 2000))}${at}`;

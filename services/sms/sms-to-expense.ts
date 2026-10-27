@@ -870,13 +870,13 @@ export async function processParseResults(
   credits: number;
   skipped: number;
   errors: string[];
-  itemResults: Array<{ pendingSmsId: string; appliedRuleIds: string[] | null }>;
+  itemResults: Array<{ pendingSmsId: string; appliedRuleIds: string[] | null; expenseId: string | null }>;
 }> {
   let created = 0;
   let credits = 0;
   let skipped = 0;
   const errors: string[] = [];
-  const itemResults: Array<{ pendingSmsId: string; appliedRuleIds: string[] | null }> = [];
+  const itemResults: Array<{ pendingSmsId: string; appliedRuleIds: string[] | null; expenseId: string | null }> = [];
 
   let handled = 0;
   for (const item of items) {
@@ -895,7 +895,11 @@ export async function processParseResults(
       added: !result.error && (!!result.expenseId || result.isCredit === true),
     });
 
-    itemResults.push({ pendingSmsId: item.pendingSmsId, appliedRuleIds: result.appliedRuleIds ?? null });
+    itemResults.push({
+      pendingSmsId: item.pendingSmsId,
+      appliedRuleIds: result.appliedRuleIds ?? null,
+      expenseId: result.error ? null : result.expenseId ?? null,
+    });
 
     if (result.error) {
       errors.push(result.error);

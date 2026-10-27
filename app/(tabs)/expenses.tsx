@@ -4,7 +4,7 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { parseNLQuery } from "@/utils/nl-search";
 import { isSpeechRecognitionAvailable, SpeechRecognition, useSpeechRecognitionEvent } from "@/services/speech-recognition";
-import { View, FlatList, Pressable, TextInput, ScrollView } from "react-native";
+import { View, FlatList, Pressable, TextInput, ScrollView, Platform } from "react-native";
 import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -1355,6 +1355,17 @@ export default function ExpensesScreen() {
             color: theme.primary,
             onPress: () => router.push("/expense/from-screenshot"),
           },
+          // iPhone can't read SMS: a copied bank message is read here instead.
+          ...(Platform.OS === "ios"
+            ? [
+                {
+                  icon: "clipboard-outline" as const,
+                  label: "Paste Bank Message",
+                  color: theme.primary,
+                  onPress: () => router.push("/expense/paste-message"),
+                },
+              ]
+            : []),
           {
             icon: "swap-horizontal",
             label: "Add Transfer",

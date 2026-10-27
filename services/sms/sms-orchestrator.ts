@@ -46,6 +46,10 @@ export interface ScanOutcome {
   skipped: number;
   totalScanned: number;
   scanRunId?: string | null;
+  /** Rows this scan added (expenses and credits); "Just arrived" on iPhone shows these. */
+  addedIds?: string[];
+  /** Messages no parser or template could read, for "teach Arth". */
+  unreadable?: { body: string; sender: string; date: number }[];
   reason?: "sms_disabled" | "no_permission" | "cooldown" | "no_new_sms" | "error";
   error?: string;
 }
@@ -219,7 +223,13 @@ export async function runSmsScan(
     );
 
     // Phase 4: Process (create expenses/credits)
-    let processResult = { created: 0, credits: 0, skipped: 0, errors: [] as string[], itemResults: [] as Array<{ pendingSmsId: string; appliedRuleIds: string[] | null }> };
+    let processResult = {
+      created: 0,
+      credits: 0,
+      skipped: 0,
+      errors: [] as string[],
+      itemResults: [] as Array<{ pendingSmsId: string; appliedRuleIds: string[] | null; expenseId: string | null }>,
+    };
     if (passed.length > 0) {
       processResult = await processParseResults(
         DEFAULT_USER_ID,
@@ -351,6 +361,8 @@ export async function runSmsScan(
       skipped: processResult.skipped,
       totalScanned: readResult.count,
       scanRunId,
+      addedIds: processResult.itemResults.map((r) => r.expenseId).filter((id): id is string => !!id),
+      unreadable: parseResult.unrecognizedSms.map((s) => ({ body: s.body, sender: s.address, date: s.smsDate })),
     };
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : String(e);
