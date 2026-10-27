@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, ActivityIndicator, View } from "react-native";
+import { Pressable, ActivityIndicator, Platform, View } from "react-native";
 import Animated from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@/hooks/use-theme";
@@ -104,9 +104,11 @@ export function Button({
         <Text
           className={`text-body ${variant === "ghost" ? "font-medium" : "font-semibold"}`}
           style={label}
-          // A button label is one line; long ones shrink a little rather than wrap.
+          // A button label is one line; long ones shrink a little rather than wrap. Android only:
+          // on iPhone (iOS 26) the shrink ignored minimumFontScale and drew short labels like
+          // "Approve" at a few points even on a full-width button, so iOS truncates instead.
           numberOfLines={1}
-          adjustsFontSizeToFit
+          adjustsFontSizeToFit={Platform.OS === "android"}
           minimumFontScale={0.85}
         >
           {title}
