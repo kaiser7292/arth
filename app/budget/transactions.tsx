@@ -246,13 +246,27 @@ export default function BudgetTransactionsScreen() {
         options={{
           title: screenTitle,
           headerRight: () => (
-            <View style={{ flexDirection: "row", alignItems: "center", marginRight: 8 }}>
+            // Icons only, spaced like HeaderBackHome on the left: iOS 26 puts header buttons in a
+            // glass capsule, and a text label beside an icon looked cramped and lopsided in it.
+            <View style={{ flexDirection: "row", alignItems: "center", marginRight: 4, gap: 4 }}>
               {expenses.length > 0 && (
-                <Pressable onPress={selecting ? stopSelecting : () => setSelecting(true)} hitSlop={8} style={{ marginRight: 16 }}>
-                  <Text className="text-sm font-semibold text-primary">{selecting ? "Cancel" : "Select"}</Text>
+                <Pressable
+                  onPress={selecting ? stopSelecting : () => setSelecting(true)}
+                  hitSlop={8}
+                  style={{ padding: 4 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={selecting ? "Cancel selecting" : "Select transactions"}
+                >
+                  <Ionicons name={selecting ? "close" : "checkmark-circle-outline"} size={22} color={colors.tint} />
                 </Pressable>
               )}
-              <Pressable onPress={() => setShowSortSheet(true)} hitSlop={8}>
+              <Pressable
+                onPress={() => setShowSortSheet(true)}
+                hitSlop={8}
+                style={{ padding: 4 }}
+                accessibilityRole="button"
+                accessibilityLabel="Sort"
+              >
                 <Ionicons
                   name="swap-vertical-outline"
                   size={22}
