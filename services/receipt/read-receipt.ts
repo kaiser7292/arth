@@ -62,9 +62,21 @@ interface Line {
   height: number;
 }
 
-const MONTHS: Record<string, number> = {
-  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12,
-};
+const MONTH_NAMES = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];
+
+/**
+ * The month a word names: "Oct", "Sept", "October" - any start of a month's name, three letters
+ * or more. Null for anything else ("Octopus"). Taking only the first three or four letters missed
+ * every month written in full: "24 October 2026" (PhonePe) read as no date.
+ */
+function monthOf(word: string): number | null {
+  if (word.length < 3) return null;
+  const i = MONTH_NAMES.findIndex((name) => name.startsWith(word));
+  return i >= 0 ? i + 1 : null;
+}
 
 const APPS: [RegExp, string][] = [
   [/\bg\s?pay\b|google\s*pay|google\s*transaction\s*id/i, "Google Pay"],
@@ -184,12 +196,19 @@ export function parseDate(text: string, today: Date = new Date()): string | null
   const iso = (y: number, m: number, d: number) =>
     m >= 1 && m <= 12 && d >= 1 && d <= 31 ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
   const year = (y: string) => (y.length === 2 ? 2000 + Number(y) : Number(y));
-  // "18 Oct 2026", "18th October, 26", "18 Oct '26" (ICICI iMobile).
-  let m = t.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,4})[a-z]*,?\s+['’]?(\d{2,4})\b/);
-  if (m && MONTHS[m[2]]) return iso(year(m[3]), MONTHS[m[2]], Number(m[1]));
-  m = t.match(/\b([a-z]{3,4})[a-z]*\s+(\d{1,2}),?\s+['’]?(\d{4})\b/);
-  if (m && MONTHS[m[1]]) return iso(Number(m[3]), MONTHS[m[1]], Number(m[2]));
-  m = t.match(/\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b/);
+  // "18 Oct 2026", "18th October, 26", "18 Oct '26" (ICICI iMobile), "24 October 2026 at 3:11 PM"
+  // (PhonePe).
+  // Every candidate, not just the first: "12 items 2026" earlier on the line mustn't hide the date.
+  for (const c of t.matchAll(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,9})\.?,?\s+['’]?(\d{2,4})\b/g)) {
+    const month = monthOf(c[2]);
+    if (month) return iso(year(c[3]), month, Number(c[1]));
+  }
+  // "October 24, 2026", "Oct 24 2026".
+  for (const c of t.matchAll(/\b([a-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+['’]?(\d{4})\b/g)) {
+    const month = monthOf(c[1]);
+    if (month) return iso(Number(c[3]), month, Number(c[2]));
+  }
+  let m = t.match(/\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b/);
   if (m) return iso(year(m[3]), Number(m[2]), Number(m[1]));
   m = t.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
   if (m) return iso(Number(m[1]), Number(m[2]), Number(m[3]));

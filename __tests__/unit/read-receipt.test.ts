@@ -215,5 +215,27 @@ describe("parseDate", () => {
     ["Paid at 03:45PM, 18 Oct '26 IST", "2026-10-18"],
     ["Today, 9:10 am", "2026-10-23"],
     ["Yesterday", "2026-10-22"],
+    // Months written in full used to read as no date (only the first 3-4 letters were matched).
+    ["24 October 2026 at 3:11 PM", "2026-10-24"],
+    ["October 24, 2026", "2026-10-24"],
+    ["Sept 9, 2026", "2026-09-09"],
+    ["9th Sept. 2026", "2026-09-09"],
+    // A number-word-number earlier on the line doesn't hide the date.
+    ["Order 12 items 2026 · 5 June 2026", "2026-06-05"],
   ])("%s", (text, want) => expect(parseDate(text, TODAY)).toBe(want));
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  it.each(months.map((name, i) => [name, i + 1] as const))("%s, in full and short", (name, n) => {
+    const want = `2026-${String(n).padStart(2, "0")}-05`;
+    expect(parseDate(`5 ${name} 2026`, TODAY)).toBe(want);
+    expect(parseDate(`5 ${name.slice(0, 3)} 2026`, TODAY)).toBe(want);
+    expect(parseDate(`${name} 5, 2026`, TODAY)).toBe(want);
+  });
+
+  it.each([["5 Octopus 2026"], ["5 Ma 2026"], ["12 items 2026"]])("%s is not a date", (text) => {
+    expect(parseDate(text, TODAY)).toBeNull();
+  });
 });
