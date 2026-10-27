@@ -213,6 +213,7 @@
           }
         }
       ],
+      "./plugins/withShareTarget",
       [
         "expo-share-intent",
         {

@@ -100,6 +100,7 @@ All plugins live in `plugins/` and are registered in `app.json` under `expo.plug
 | `withDisableBackup` | Disables Android auto-backup (privacy — no finance data in cloud). |
 | `withLargeHeap` | Sets `android:largeHeap="true"` in the manifest. |
 | `withOptionalHardware` | Declares telephony and the camera as optional hardware. READ_SMS and CAMERA otherwise imply them as required, and Play hides the app from Wi-Fi-only tablets and devices without a camera (19 devices dropped in 4.23.0). |
+| `withShareTarget` | Shares go to a small `ShareTargetActivity` (no React) that forwards them to MainActivity in Arth's own task, so an app that shares "for a result" (Amazon Pay) can't start a second MainActivity. Must be listed before `expo-share-intent` in app.json. |
 | `withReleaseSigning` | Signs release builds with the Arth release key from `~/.arth/signing.properties` (see Signing). |
 
 **Never edit `android/app/build.gradle` or `android/gradle.properties` directly** — changes are wiped on the next prebuild. All permanent customisations must go through a config plugin.
