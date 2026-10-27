@@ -20,6 +20,10 @@ interface DonutChartProps {
   onSegmentPress?: (index: number, segment: DonutSegment) => void;
   /** Called when the ring/center itself is tapped (e.g. to show exact per-segment amounts). */
   onPress?: () => void;
+  /** Draw the label row under the ring. Off when the caller lays out its own legend beside it. */
+  showLegend?: boolean;
+  /** Thin line between wedges in this colour (the surface behind the chart), so small slices stay distinct. */
+  separatorColor?: string;
 }
 
 function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
@@ -66,6 +70,8 @@ function DonutChartBase({
   centerValue,
   onSegmentPress,
   onPress,
+  showLegend = true,
+  separatorColor,
 }: DonutChartProps) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
   if (total === 0) {
@@ -111,7 +117,13 @@ function DonutChartBase({
         <SpinIn style={{ position: "absolute", width: size, height: size }}>
           <Svg width={size} height={size}>
             {wedges.map((w, i) => (
-              <Path key={i} d={w.path} fill={w.segment.color} />
+              <Path
+                key={i}
+                d={w.path}
+                fill={w.segment.color}
+                stroke={separatorColor && wedges.length > 1 ? separatorColor : undefined}
+                strokeWidth={separatorColor && wedges.length > 1 ? 2 : 0}
+              />
             ))}
           </Svg>
         </SpinIn>
@@ -143,6 +155,7 @@ function DonutChartBase({
       </Pressable>
 
       {/* Legend — pressable when onSegmentPress provided */}
+      {showLegend && (
       <View className="flex-row flex-wrap justify-center mt-3 gap-x-4 gap-y-1">
         {segments.map(
           (segment, index) =>
@@ -167,6 +180,7 @@ function DonutChartBase({
             ),
         )}
       </View>
+      )}
     </View>
   );
 }

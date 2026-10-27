@@ -42,17 +42,42 @@ function refundSubtractionSql(alias: string): string {
  * Returns a SQL expression equivalent to the effective (refund-adjusted)
  * amount for the expense row aliased as `alias`.
  *
- * For split-tender or split-hisaab expenses, `amount` already represents
- * the user's share. Refunds written against a split expense are modeled the
- * same way — credit row's amount is treated as user-share. So we subtract
- * from `amount` directly, not `split_original_amount`.
+ * For split-hisaab expenses, `amount` is the user's share but a refund comes
+ * back against the whole charge (`split_original_amount`) -
+ * adjustSplitAfterRefund shrinks the other person's Hisaab entry by their
+ * part of it. So the user keeps their proportion of what's left:
+ * (original − refunded) × share / original. The list rows
+ * (ExpenseListItem) show the same figure.
  *
  * Clamped to ≥ 0 so an over-refund (shouldn't happen but technically
  * possible if the user edits a credit amount upward) can't negative-bias
  * totals.
  */
+/**
+ * The parts that take an expense from what was paid to what counts (effectiveAmountSql), for
+ * breakdowns that show gross → others' share → refunds → net:
+ *   gross       = what was paid (the whole bill when split)
+ *   othersShare = the part of the bill other people owe
+ *   myRefund    = your proportion of the refunds (the rest went back on their share)
+ * gross − othersShare − myRefund = effectiveAmountSql, exactly as the list rows show it.
+ */
+export function amountPartsSql(alias: string = "e"): { gross: string; othersShare: string; myRefund: string } {
+  const refunded = refundSubtractionSql(alias);
+  const split = `${alias}.split_original_amount > 0`;
+  return {
+    gross: `(CASE WHEN ${split} THEN ${alias}.split_original_amount ELSE ${alias}.amount END)`,
+    othersShare: `(CASE WHEN ${split} THEN MAX(${alias}.split_original_amount - ${alias}.amount, 0) ELSE 0 END)`,
+    myRefund: `(CASE WHEN ${split}
+      THEN MIN(${refunded}, ${alias}.split_original_amount) * ${alias}.amount / ${alias}.split_original_amount
+      ELSE MIN(${refunded}, ${alias}.amount) END)`,
+  };
+}
+
 export function effectiveAmountSql(alias: string = "e"): string {
-  return `MAX(${alias}.amount - ${refundSubtractionSql(alias)}, 0)`;
+  const refunded = refundSubtractionSql(alias);
+  return `(CASE WHEN ${alias}.split_original_amount > 0
+    THEN MAX((${alias}.split_original_amount - ${refunded}) * ${alias}.amount / ${alias}.split_original_amount, 0)
+    ELSE MAX(${alias}.amount - ${refunded}, 0) END)`;
 }
 
 /**

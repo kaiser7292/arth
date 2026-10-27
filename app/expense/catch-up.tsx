@@ -18,7 +18,9 @@ import { getCategories } from "@/services/category";
 import type { CatchUpCard, CatchUpLogEntry, CatchUpOutcome } from "@/services/catch-up";
 import {
   DeferredAction,
+  approvedAmounts,
   buildCatchUpDeck,
+  deckProgress,
   findSameMerchantCards,
   needsSourceAccount,
   nextLiveIndex,
@@ -229,6 +231,16 @@ export default function CatchUpScreen() {
             (target.kind === "uncategorized" && fresh.category_id != null);
           if (handled) {
             setResolved((r) => new Set(r).add(id));
+            // What was done on the edit screen counts in the summary like a swipe would: an
+            // approval there (often after changing the amount or splitting) adds what was saved.
+            const index = deckRef.current.indexOf(target);
+            const entry: CatchUpLogEntry =
+              !fresh || fresh.deleted_at != null || fresh.status === "rejected"
+                ? { index, outcome: "rejected", count: 1, approvedSpend: 0 }
+                : target.kind === "pending" && fresh.status === "approved"
+                  ? { index, outcome: "approved", count: 1, ...approvedAmounts([fresh]) }
+                  : { index, outcome: "resolved", count: 1, approvedSpend: 0 };
+            setLog((l) => [...l, entry]);
           } else {
             setDeck((prev) => prev.map((c) => (c === target ? ({ ...c, expense: fresh } as CatchUpCard) : c)));
           }
@@ -420,6 +432,7 @@ export default function CatchUpScreen() {
       outcome: CatchUpOutcome;
       count: number;
       approvedSpend?: number;
+      approvedPaid?: number;
       resolvedIds: string[];
       message: string;
       /** Move to the next card. False for a "same again" batch, which acts on cards ahead. */
@@ -427,7 +440,10 @@ export default function CatchUpScreen() {
     }) => {
       const at = currentIdx;
       undoPoint.current = { index: at, resolvedAdded: opts.resolvedIds, logLength: logRef.current.length };
-      setLog((l) => [...l, { index: at, outcome: opts.outcome, count: opts.count, approvedSpend: opts.approvedSpend ?? 0 }]);
+      setLog((l) => [
+        ...l,
+        { index: at, outcome: opts.outcome, count: opts.count, approvedSpend: opts.approvedSpend ?? 0, approvedPaid: opts.approvedPaid },
+      ]);
       setResolved((r) => {
         const next = new Set(r);
         opts.resolvedIds.forEach((id) => next.add(id));
@@ -522,7 +538,7 @@ export default function CatchUpScreen() {
       },
       outcome: "approved",
       count: 1,
-      approvedSpend: e.nature === "realized" ? e.amount : 0,
+      ...approvedAmounts([e]),
       resolvedIds: [e.id],
       message: `Approved ${e.merchant_name ?? "transaction"}`,
     });
@@ -552,7 +568,7 @@ export default function CatchUpScreen() {
             run: () => approveWithCategory(e, categoryId, taught),
             outcome: "approved",
             count: 1,
-            approvedSpend: e.nature === "realized" ? e.amount : 0,
+            ...approvedAmounts([e]),
             resolvedIds: [e.id],
             message: `Approved ${e.merchant_name ?? "transaction"}`,
           });
@@ -673,7 +689,7 @@ export default function CatchUpScreen() {
         run: () => approveBatchWithCategory(offer.expenses, offer.categoryId),
         outcome: "approved",
         count: n,
-        approvedSpend: offer.expenses.filter((e) => e.nature === "realized").reduce((s, e) => s + e.amount, 0),
+        ...approvedAmounts(offer.expenses),
         resolvedIds: ids,
         message: `Approved ${n} more from ${offer.merchant}`,
         advance: false,
@@ -733,6 +749,8 @@ export default function CatchUpScreen() {
   // ── Render ──
 
   const stats = summarizeLog(log);
+  const progress = deckProgress(deck, currentIdx, resolved, new Set(log.map((l) => l.index)));
+  const batchAmounts = batchOffer ? approvedAmounts(batchOffer.expenses) : null;
 
   if (loading) {
     return (
@@ -810,7 +828,7 @@ export default function CatchUpScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <DeckProgress position={currentIdx + 1} total={deck.length} />
+      <DeckProgress position={progress.position} total={progress.total} />
 
       <View className="flex-1 px-4">
         {batchOffer && (
@@ -821,8 +839,10 @@ export default function CatchUpScreen() {
               {batchOffer.categoryId && categoryMap.get(batchOffer.categoryId)
                 ? ` as ${categoryMap.get(batchOffer.categoryId)!.name}`
                 : ""}
-              {batchOffer.kind === "pending"
-                ? ` (${formatAmount(batchOffer.expenses.reduce((s, e) => s + e.amount, 0))})`
+              {batchOffer.kind === "pending" && batchAmounts
+                ? batchAmounts.approvedPaid !== batchAmounts.approvedSpend
+                  ? ` (your share ${formatAmount(batchAmounts.approvedSpend)} of ${formatAmount(batchAmounts.approvedPaid)})`
+                  : ` (${formatAmount(batchAmounts.approvedPaid)})`
                 : ""}
               ?
             </Text>

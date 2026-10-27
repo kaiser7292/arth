@@ -15,6 +15,8 @@ export interface BulkUpdateFields {
   account_id?: string;
   merchant_name?: string;
   date?: string;
+  /** 1 = unavoidable, 0 = discretionary. */
+  is_right_spend?: 0 | 1;
 }
 
 export async function bulkUpdateExpenses(
@@ -25,7 +27,7 @@ export async function bulkUpdateExpenses(
 
   const db = getDatabase();
   const setClauses: string[] = [];
-  const params: string[] = [];
+  const params: (string | number)[] = [];
 
   if (fields.category_id !== undefined) {
     setClauses.push("category_id = ?");
@@ -46,6 +48,10 @@ export async function bulkUpdateExpenses(
   if (fields.date !== undefined) {
     setClauses.push("date = ?");
     params.push(fields.date);
+  }
+  if (fields.is_right_spend !== undefined) {
+    setClauses.push("is_right_spend = ?");
+    params.push(fields.is_right_spend);
   }
 
   setClauses.push("updated_at = datetime('now')");

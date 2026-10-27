@@ -45,6 +45,12 @@ export function CatchUpDone({ stats, onViewSpending, onClose }: CatchUpDoneProps
               <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Spending approved</Text>
               {/* Counts up to what was just approved. */}
               <AnimatedNumber value={stats.approvedSpend} className="text-title font-bold text-foreground mt-1" />
+              {/* Split bills count only your share; say so, or the total looks short of the cards. */}
+              {stats.approvedPaid > stats.approvedSpend + 0.5 && (
+                <Text className="text-xs text-muted-foreground mt-1">
+                  Your share of {formatAmount(stats.approvedPaid)} paid
+                </Text>
+              )}
             </View>
           )}
           <Button title="See this month's spending" onPress={onViewSpending} />

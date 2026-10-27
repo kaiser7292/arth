@@ -315,15 +315,17 @@ describe("InvestmentBucket", () => {
   });
 
   describe("deleteInvestmentBucket", () => {
-    it("deletes contributions first then the bucket", async () => {
+    it("detaches what points at the bucket, then deletes contributions, then the bucket", async () => {
       await deleteInvestmentBucket("bucket-1");
-      expect(executedRuns.length).toBe(2);
-      expect(executedRuns[0].sql).toContain(
-        "DELETE FROM investment_contributions",
-      );
-      expect(executedRuns[1].sql).toContain(
-        "DELETE FROM investment_buckets",
-      );
+      const sqls = executedRuns.map((r) => r.sql);
+      const at = (s: string) => sqls.findIndex((q) => q.includes(s));
+      // Transfers lose the tag first, or foreign keys refuse the deletes below
+      // (investment-bucket-delete.test.ts runs this against real SQLite).
+      expect(at("UPDATE account_transfers SET linked_contribution_id = NULL")).toBeGreaterThanOrEqual(0);
+      expect(at("UPDATE account_transfers SET investment_bucket_id = NULL")).toBeGreaterThanOrEqual(0);
+      expect(at("UPDATE account_transfers")).toBeLessThan(at("DELETE FROM investment_contributions"));
+      expect(at("DELETE FROM investment_contributions")).toBeLessThan(at("DELETE FROM investment_buckets"));
+      expect(sqls[sqls.length - 1]).toContain("DELETE FROM investment_buckets");
     });
   });
 });

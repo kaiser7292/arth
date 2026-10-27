@@ -44,7 +44,7 @@ export interface FilterViewState {
   tagIds: string[];
   merchantNames?: string[];
   refundedStatus: "" | "refunded" | "not_refunded";
-  avoidability: "" | "avoidable" | "unavoidable";
+  avoidability: "" | "avoidable" | "unavoidable" | "unclassified";
   search: string;
 }
 

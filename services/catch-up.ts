@@ -134,8 +134,10 @@ export interface CatchUpLogEntry {
   outcome: CatchUpOutcome;
   /** Rows this action handled (0 for a skip). */
   count: number;
-  /** Debit amount approved, for the "₹X approved" line. Credits don't add to it. */
+  /** Debit amount approved, for the "₹X approved" line - your share when split. Credits don't add to it. */
   approvedSpend: number;
+  /** What was actually paid for those debits (the whole bill when split). Defaults to approvedSpend. */
+  approvedPaid?: number;
 }
 
 export interface CatchUpStats {
@@ -144,14 +146,50 @@ export interface CatchUpStats {
   skipped: number;
   resolved: number;
   approvedSpend: number;
+  approvedPaid: number;
+}
+
+/** What approving these adds to spending (your share) and what was actually paid. Credits add nothing. */
+export function approvedAmounts(expenses: readonly Expense[]): { approvedSpend: number; approvedPaid: number } {
+  let approvedSpend = 0;
+  let approvedPaid = 0;
+  for (const e of expenses) {
+    if (e.nature !== "realized") continue;
+    approvedSpend += e.amount;
+    approvedPaid += e.split_original_amount ?? e.amount;
+  }
+  return { approvedSpend, approvedPaid };
+}
+
+/**
+ * "N of M" for the progress bar, counting only cards you actually see. Cards an earlier action
+ * already dealt with (a "same again" batch, "keep newest", an approval on the edit screen) drop
+ * out of both numbers instead of making the count jump.
+ *
+ * `handled` = deck indexes acted on or skipped this session.
+ */
+export function deckProgress(
+  deck: readonly CatchUpCard[],
+  currentIdx: number,
+  resolvedIds: ReadonlySet<string>,
+  handled: ReadonlySet<number>,
+): { position: number; total: number } {
+  let done = 0;
+  for (const i of handled) if (i < currentIdx) done += 1;
+  let left = 0;
+  for (let i = Math.max(0, currentIdx); i < deck.length; i++) {
+    if (!isCardStale(deck[i], resolvedIds)) left += 1;
+  }
+  return { position: done + 1, total: done + left };
 }
 
 export function summarizeLog(log: readonly CatchUpLogEntry[]): CatchUpStats {
-  const s: CatchUpStats = { approved: 0, rejected: 0, skipped: 0, resolved: 0, approvedSpend: 0 };
+  const s: CatchUpStats = { approved: 0, rejected: 0, skipped: 0, resolved: 0, approvedSpend: 0, approvedPaid: 0 };
   for (const e of log) {
     if (e.outcome === "skipped") s.skipped += 1;
     else s[e.outcome] += e.count;
     s.approvedSpend += e.approvedSpend;
+    s.approvedPaid += e.approvedPaid ?? e.approvedSpend;
   }
   return s;
 }

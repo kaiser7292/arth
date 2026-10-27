@@ -76,6 +76,30 @@ describe("DB cold-start", () => {
     expect(getDatabase()).toBe(mockDb);
   });
 
+  it("opens the file once, even when several callers start at the same moment", async () => {
+    // Root layout, widget, alerts and calendar sync can all call initDatabase during start-up. A
+    // second open of the same file shares the native connection, and collecting either JS handle
+    // closes it under the other (the prepareAsync NullPointerException).
+    const { openDatabaseAsync } = jest.requireMock("expo-sqlite") as { openDatabaseAsync: jest.Mock };
+    const [a, b, c] = await Promise.all([initDatabase(), initDatabase(), initDatabase()]);
+    expect(openDatabaseAsync).toHaveBeenCalledTimes(1);
+    expect(a).toBe(b);
+    expect(b).toBe(c);
+  });
+
+  it("a failed start-up is retried from scratch, not handed back half-open", async () => {
+    const { openDatabaseAsync } = jest.requireMock("expo-sqlite") as { openDatabaseAsync: jest.Mock };
+    mockDb.execAsync.mockImplementationOnce(async () => {
+      throw new Error("boom");
+    });
+    await expect(initDatabase()).rejects.toThrow("boom");
+    expect(() => getDatabase()).toThrow("Database not initialized");
+    expect(mockDb.closeAsync).toHaveBeenCalled();
+
+    await expect(initDatabase()).resolves.toBe(mockDb);
+    expect(openDatabaseAsync).toHaveBeenCalledTimes(2);
+  });
+
   it("closeDatabase() resets singleton so next init opens fresh", async () => {
     await initDatabase();
     await closeDatabase();

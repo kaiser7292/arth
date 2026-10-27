@@ -429,6 +429,43 @@ export async function resetInvestmentBucket(id: string): Promise<void> {
   bumpDataVersion();
 }
 
+/** What still points at a bucket, so the delete confirmation can say what it changes. */
+export interface InvestmentBucketUsage {
+  contributions: number;
+  /** Transfers (to a demat or investment account) tagged with this bucket, recycle bin included. */
+  transfers: number;
+  /** Payments linked to this bucket, which count as investment rather than spending. */
+  linkedExpenses: number;
+  /** Smart rules that link matching payments to this bucket. */
+  rules: number;
+  /** Fixed deposits assigned to this bucket. */
+  fixedDeposits: number;
+}
+
+export async function getInvestmentBucketUsage(id: string): Promise<InvestmentBucketUsage> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<InvestmentBucketUsage>(
+    `SELECT
+       (SELECT COUNT(*) FROM investment_contributions WHERE investment_bucket_id = ?1) AS contributions,
+       (SELECT COUNT(*) FROM account_transfers
+          WHERE investment_bucket_id = ?1
+             OR linked_contribution_id IN (SELECT id FROM investment_contributions WHERE investment_bucket_id = ?1)) AS transfers,
+       (SELECT COUNT(*) FROM expense_investment_links WHERE investment_bucket_id = ?1) AS linkedExpenses,
+       (SELECT COUNT(*) FROM smart_rules WHERE action_link_to_investment_bucket_id = ?1) AS rules,
+       (SELECT COUNT(*) FROM investment_products WHERE investment_bucket_id = ?1) AS fixedDeposits;`,
+    id,
+  );
+  return row ?? { contributions: 0, transfers: 0, linkedExpenses: 0, rules: 0, fixedDeposits: 0 };
+}
+
+/**
+ * Delete a bucket and everything that only exists for it (its contributions), and detach what
+ * merely points at it. Without the detaching, foreign keys refused the delete whenever a transfer
+ * was tagged with the bucket (or linked to one of its contributions) - and the screen swallowed
+ * that error, so the bucket just stayed. Transfers keep their money movement and only lose the
+ * bucket tag; linked payments go back to counting as spending; smart rules stop linking to it;
+ * fixed deposits become unassigned.
+ */
 export async function deleteInvestmentBucket(id: string): Promise<void> {
   const db = getDatabase();
   // Same reasoning as updateInvestmentBucket: read the link before the row goes.
@@ -437,6 +474,18 @@ export async function deleteInvestmentBucket(id: string): Promise<void> {
     id,
   );
   await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `UPDATE account_transfers SET linked_contribution_id = NULL
+        WHERE linked_contribution_id IN (SELECT id FROM investment_contributions WHERE investment_bucket_id = ?);`,
+      id,
+    );
+    await db.runAsync("UPDATE account_transfers SET investment_bucket_id = NULL WHERE investment_bucket_id = ?;", id);
+    await db.runAsync(
+      "UPDATE smart_rules SET action_link_to_investment_bucket_id = NULL WHERE action_link_to_investment_bucket_id = ?;",
+      id,
+    );
+    await db.runAsync("DELETE FROM expense_investment_links WHERE investment_bucket_id = ?;", id);
+    await db.runAsync("UPDATE investment_products SET investment_bucket_id = NULL WHERE investment_bucket_id = ?;", id);
     await db.runAsync(
       "DELETE FROM investment_contributions WHERE investment_bucket_id = ?;",
       id,

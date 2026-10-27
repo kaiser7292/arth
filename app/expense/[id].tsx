@@ -224,7 +224,10 @@ export default function ExpenseDetailScreen() {
   const [showMultiSplitSheet, setShowMultiSplitSheet] = useState(false);
 
   useEffect(() => {
-    async function loadData() {
+    // `retried`: one more try before giving up. A one-off native error on load (seen as
+    // "NativeDatabase.prepareAsync ... NullPointerException" right after saving) shouldn't throw
+    // the user out of the screen; a real failure still fails twice and is reported.
+    async function loadData(retried = false) {
       try {
         const [exp, cats, pms, accts, merchants] = await Promise.all([
           getExpenseById(id),
@@ -327,12 +330,17 @@ export default function ExpenseDetailScreen() {
           router.back();
         }
       } catch (e) {
+        if (!retried) {
+          logger.warn("Load expense failed, retrying once:", e);
+          await new Promise((r) => setTimeout(r, 200));
+          return loadData(true);
+        }
         logger.error("Load expense failed:", e);
         alert("Error", formatError("Load expense", e));
         router.back();
       }
     }
-    loadData();
+    void loadData();
   }, [id, router]);
 
   // Refresh accounts + refund data when returning from any sub-screen

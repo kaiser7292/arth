@@ -157,7 +157,8 @@ class ExpoShareIntentModule : Module() {
                 if (intent.action == Intent.ACTION_SEND) {
                     val uri = intent.parcelable<Uri>(Intent.EXTRA_STREAM);
                     if (uri != null) {
-                        notifyShareIntent(mapOf( "files" to arrayOf(getFileInfo(uri), "type" to "file")))
+                        // Arth patch: "type" was inside the files array (a stray Pair), not beside it.
+                        notifyShareIntent(mapOf( "files" to arrayOf(getFileInfo(uri)), "type" to "file"))
                     } else {
                         notifyError("empty uri for file sharing: " + intent.action)
                     }
@@ -212,6 +213,14 @@ class ExpoShareIntentModule : Module() {
         }
 
         OnNewIntent {
+            // Arth patch: a share while Arth is already running. Also park it like a cold-start
+            // share, so if the event below doesn't reach JS (sent while the app is still in the
+            // background), the JS hook's refresh on returning to the foreground picks it up.
+            // JS clears it (clearShareIntent) once it has the share, so it's never handled twice.
+            if (it.type != null) {
+                ExpoShareIntentSingleton.intent = it
+                ExpoShareIntentSingleton.isPending = true
+            }
             handleShareIntent(it)
         }
 
@@ -316,7 +325,10 @@ class ExpoShareIntentModule : Module() {
                     val columnIndex = cursor.getColumnIndexOrThrow(column)
                     val fileName = cursor.getString(columnIndex)
                     Log.i("FileDirectory", "File name: $fileName")
-                    targetFile = File(context.cacheDir, fileName)
+                    // Arth patch: payment apps reuse one name for every receipt they share
+                    // ("share.jpg"), so the second share overwrote the first at the same path and
+                    // Arth opened the same address again. A unique name per share.
+                    targetFile = File(context.cacheDir, "${Date().time}_$fileName")
                 }
             } finally {
                 cursor?.close()

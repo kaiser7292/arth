@@ -21,9 +21,10 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getPersonsByIds } from "@/services/hisaab";
 import type { HisaabPerson } from "@/services/hisaab";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
+import { SpendBreakdown } from "@/components/expense/SpendBreakdown";
+import { buildSplitNote } from "@/utils/split-note";
 import { formatAmount } from "@/utils/format";
 
-import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Insight drill-down list.
@@ -43,7 +44,6 @@ export default function InsightFilteredListScreen() {
     title?: string;
   }>();
   const { colors } = useColorScheme();
-  const theme = useTheme();
 
   const ids = useMemo(
     () => (expenseIds ? expenseIds.split(",").filter((s) => s.length > 0) : []),
@@ -148,17 +148,17 @@ export default function InsightFilteredListScreen() {
     [expenses],
   );
 
-  // How much was refunded (applied to the gross/original amount)
+  // Your share of the refunds (on a split bill the rest went back on the other person's share), so
+  // gross − others' share − refunds comes to the net total.
   const refundDeduction = useMemo(
     () => expenses.reduce((sum, e) => {
       const refunded = refundedMap.get(e.id) ?? 0;
       const original = e.split_original_amount ?? e.amount;
-      return sum + Math.min(refunded, original);
+      const myProportion = original > 0 ? e.amount / original : 1;
+      return sum + Math.min(refunded, original) * myProportion;
     }, 0),
     [expenses, refundedMap],
   );
-
-  const hasAdjustments = grossTotal !== total;
 
   // Per-expense split note string
   const splitNoteMap = useMemo(() => {
@@ -225,55 +225,13 @@ export default function InsightFilteredListScreen() {
             </Text>
           </View>
 
-          {hasAdjustments ? (
-            // Expanded breakdown when adjustments exist
-            <View className="mt-2 pt-2 border-t border-border">
-              {/* Gross row */}
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="text-xs text-muted-foreground">
-                  {expenses.length} {expenses.length === 1 ? "transaction" : "transactions"} · gross
-                </Text>
-                <Text className="text-xs text-muted-foreground">
-                  {formatAmount(grossTotal)}
-                </Text>
-              </View>
-              {/* Split deduction */}
-              {splitDeduction > 0 && (
-                <View className="flex-row items-center justify-between mb-1">
-                  <Text className="text-xs" style={{ color: theme.warning }}>
-                    🤝 Others' share (split)
-                  </Text>
-                  <Text className="text-xs font-medium" style={{ color: theme.warning }}>
-                    −{formatAmount(splitDeduction)}
-                  </Text>
-                </View>
-              )}
-              {/* Refund deduction */}
-              {refundDeduction > 0 && (
-                <View className="flex-row items-center justify-between mb-1">
-                  <Text className="text-xs" style={{ color: theme.success }}>
-                    ↩ Refunds
-                  </Text>
-                  <Text className="text-xs font-medium" style={{ color: theme.success }}>
-                    −{formatAmount(refundDeduction)}
-                  </Text>
-                </View>
-              )}
-              {/* Net line */}
-              <View className="flex-row items-center justify-between pt-1.5 border-t border-border mt-0.5">
-                <Text className="text-xs font-semibold text-foreground">
-                  Net counted
-                </Text>
-                <Text className="text-xs font-bold text-foreground">
-                  {formatAmount(total)}
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <Text className="text-xs text-muted-foreground mt-0.5">
-              {expenses.length} {expenses.length === 1 ? "transaction" : "transactions"}
-            </Text>
-          )}
+          <SpendBreakdown
+            count={expenses.length}
+            gross={grossTotal}
+            othersShare={splitDeduction}
+            refunds={refundDeduction}
+            net={total}
+          />
         </View>
 
         {/* ── Transaction list ──────────────────────────────────────── */}
@@ -328,57 +286,4 @@ export default function InsightFilteredListScreen() {
       />
     </>
   );
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function buildSplitNote(
-  expense: Expense,
-  personMap: Map<string, HisaabPerson>,
-): string | null {
-  // No split at all
-  if (!expense.split_original_amount && !expense.split_person_id) return null;
-
-  const personName = expense.split_person_id
-    ? (personMap.get(expense.split_person_id)?.name ?? null)
-    : null;
-
-  const original = expense.split_original_amount;
-
-  switch (expense.split_mode) {
-    case "they_owe_full":
-      return personName
-        ? `Paid for ${personName} · ₹0 counted (they owe you)`
-        : "Paid for someone · ₹0 counted";
-
-    case "i_owe_full":
-      return personName
-        ? `${personName} paid · full amount counted`
-        : "Full amount counted (you owed)";
-
-    case "equal":
-      return original
-        ? `Your half of ${formatAmount(original)}`
-        : "Your half";
-
-    case "percentage":
-      return original && expense.split_pct != null
-        ? `Your ${expense.split_pct}% of ${formatAmount(original)}`
-        : null;
-
-    case "exact":
-      return original && original !== expense.amount
-        ? `Your ${formatAmount(expense.amount)} of ${formatAmount(original)}`
-        : null;
-
-    default:
-      // Legacy rows (pre-migration-024): reconstruct from amounts
-      if (original && original !== expense.amount) {
-        const pct = original > 0 ? Math.round((expense.amount / original) * 100) : null;
-        return pct != null
-          ? `Your ${pct}% of ${formatAmount(original)}`
-          : `Your share of ${formatAmount(original)}`;
-      }
-      return null;
-  }
 }

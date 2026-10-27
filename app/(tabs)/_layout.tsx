@@ -11,6 +11,7 @@ import * as Haptics from "expo-haptics";
 import { Tabs } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
+import { Text } from "@/components/ui";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
@@ -55,10 +56,20 @@ export default function TabLayout() {
           paddingTop: 8,
           ...Shadows.tabBar,
         },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
-        },
+        // A label that doesn't fit shrinks a little instead of being cut off: five tabs on an iPhone
+        // left "Transactions" as "Transactio...". The phone's text size still applies, capped so the
+        // labels keep fitting.
+        tabBarLabel: ({ color, children }) => (
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+            maxFontSizeMultiplier={1.2}
+            style={{ color, fontSize: 11, fontWeight: "600" }}
+          >
+            {children}
+          </Text>
+        ),
         headerShown: false,
         // Switching tabs: a short cross-fade with a slight sideways shift instead of a hard cut.
         // JS-driven here, so it's switched off explicitly for "Remove animations".

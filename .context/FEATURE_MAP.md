@@ -49,7 +49,7 @@
 
 **Where:** `app/(tabs)/budget.tsx`, `app/budget/[categoryId].tsx`, `app/budget/spending-split.tsx`, `app/budget/transactions.tsx`, `app/settings/budget-config.tsx`
 
-**Technical:** `services/budget.ts` (CRUD + rolling surplus), `services/analytics-forecast.ts` + `services/analytics/forecast-engine-v2.ts` (month-end projection — `forecast-engine.ts` is the legacy v1, don't add new logic there), `services/spend-classification.ts` (single source of truth for "unavoidable vs discretionary" — Monthly Summary and Spending Split both read this, so they should never disagree).
+**Technical:** `services/budget.ts` (CRUD + rolling surplus), `services/analytics-forecast.ts` + `services/analytics/forecast-engine-v2.ts` (month-end projection — `forecast-engine.ts` is the legacy v1, don't add new logic there), `services/spend-classification.ts` (single source of truth for "unavoidable vs discretionary" totals — Monthly Summary reads it; Spending Split groups the same rows per category via `getExpenseTotalsByCategoryAndClassification` + `utils/unavoidable-split.ts`, with identical filters, so they never disagree). Three buckets everywhere: unavoidable (is_right_spend=1), discretionary (0), not classified yet (NULL). A category's budget sits in the bucket of the category's own `is_unavoidable`. Every "spent" figure uses `effectiveAmountSql` (linked refunds off; on a split, the refund shrinks your share in proportion); unlinked credits never reduce a budget.
 
 ---
 
