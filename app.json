@@ -128,6 +128,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withIosBuildFixes",
       "./plugins/withDisableBackup",
       "./plugins/withArmOnly",
       "./plugins/withAapt2Fix",
