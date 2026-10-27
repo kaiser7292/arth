@@ -18,8 +18,12 @@ import {
   createInvestmentBucket,
   updateInvestmentBucket,
   deleteInvestmentBucket,
+  getInvestmentBucketUsage,
   resetInvestmentBucket,
 } from "@/services/yearly-plan";
+import type { InvestmentBucketUsage } from "@/services/yearly-plan";
+import { formatError } from "@/utils/error-message";
+import { logger } from "@/utils/logger";
 import type { YearlyPlan, InvestmentBucket } from "@/services/yearly-plan";
 import { getLifeMilestones } from "@/services/life-milestone";
 import type { LifeMilestone } from "@/services/life-milestone";
@@ -194,17 +198,31 @@ export default function InvestmentBucketsScreen() {
       {
         text: "Delete",
         style: "destructive",
-        onPress: () => {
+        onPress: async () => {
+          let usage: InvestmentBucketUsage | null = null;
+          try {
+            usage = await getInvestmentBucketUsage(bucket.id);
+          } catch (e) {
+            logger.warn("Bucket usage lookup failed:", e);
+          }
           alert(
             "Delete Bucket",
-            `Delete "${bucket.name}" and all its contributions? This cannot be undone.`,
+            describeBucketDelete(bucket.name, usage),
             [
               { text: "Cancel", style: "cancel" },
               {
                 text: "Delete",
                 style: "destructive",
                 onPress: async () => {
-                  await deleteInvestmentBucket(bucket.id);
+                  try {
+                    await deleteInvestmentBucket(bucket.id);
+                  } catch (e) {
+                    logger.error("Delete bucket failed:", e);
+                    alert(
+                      "Couldn't delete the bucket",
+                      `"${bucket.name}" is unchanged. ${formatError("Delete bucket", e)}`,
+                    );
+                  }
                   await loadData();
                 },
               },
@@ -804,4 +822,20 @@ export default function InvestmentBucketsScreen() {
       <FAB icon="add" onPress={() => setViewMode("add_bucket")} />
     </ScreenContainer>
   );
+}
+
+/** The delete confirmation: what goes, and what is only unlinked. */
+function describeBucketDelete(name: string, usage: InvestmentBucketUsage | null): string {
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const lines: string[] = [];
+  if (usage) {
+    if (usage.contributions > 0) lines.push(`• ${plural(usage.contributions, "contribution is", "contributions are")} deleted`);
+    if (usage.transfers > 0) lines.push(`• ${plural(usage.transfers, "transfer stays but loses", "transfers stay but lose")} this bucket`);
+    if (usage.linkedExpenses > 0)
+      lines.push(`• ${plural(usage.linkedExpenses, "linked payment counts", "linked payments count")} as spending again`);
+    if (usage.rules > 0) lines.push(`• ${plural(usage.rules, "smart rule stops", "smart rules stop")} linking payments to it`);
+    if (usage.fixedDeposits > 0) lines.push(`• ${plural(usage.fixedDeposits, "fixed deposit is", "fixed deposits are")} unassigned`);
+  }
+  const head = `Delete "${name}"? This cannot be undone.`;
+  return lines.length > 0 ? `${head}\n\n${lines.join("\n")}` : head;
 }
