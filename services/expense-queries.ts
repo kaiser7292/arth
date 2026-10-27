@@ -1,6 +1,7 @@
 import { getDatabase } from "@/database";
 import type { Expense, ExpenseFilters, CategoryActual, MonthlyTotal } from "./expense-types";
-import { effectiveAmountSql } from "./expense-effective-amount";
+import { NOT_SET } from "./expense-types";
+import { amountPartsSql, effectiveAmountSql } from "./expense-effective-amount";
 
 /**
  * v17.0.0 / v17.4.0: SQL fragment to exclude expenses that are linked to an
@@ -83,19 +84,30 @@ export async function getExpensesByIds(ids: string[]): Promise<Expense[]> {
 }
 
 /**
- * Get paginated expenses with optional filters and search.
+ * WHERE conditions for the Transactions filters, shared by the list (getExpensesPaginated) and its
+ * total (getFilteredExpenseSummary) so the two can never count different rows.
+ *
+ * Each multi-select list may include NOT_SET, meaning "has no value": no category, no payment mode,
+ * no account, no tags, no merchant. Combined with real ids it widens the match (OR), like picking
+ * one more option.
  */
-export async function getExpensesPaginated(
-  userId: string,
-  filters: ExpenseFilters = {},
-  limit = 50,
-  offset = 0,
-): Promise<Expense[]> {
-  const db = getDatabase();
-
+function buildFilterConditions(userId: string, filters: ExpenseFilters): { conditions: string[]; params: (string | number)[] } {
   const nature = filters.nature ?? "realized";
   const conditions: string[] = ["user_id = ?", "deleted_at IS NULL"];
   const params: (string | number)[] = [userId];
+
+  /** `col IN (ids)`, OR-ed with `none` when NOT_SET was picked. */
+  const inOrNone = (values: string[] | undefined, inSql: (placeholders: string) => string, none: string) => {
+    if (!values || values.length === 0) return;
+    const real = values.filter((v) => v !== NOT_SET);
+    const parts: string[] = [];
+    if (real.length > 0) {
+      parts.push(inSql(real.map(() => "?").join(",")));
+      params.push(...real);
+    }
+    if (real.length !== values.length) parts.push(none);
+    conditions.push(parts.length === 1 ? parts[0] : `(${parts.join(" OR ")})`);
+  };
 
   if (nature === "all") {
     conditions.push("nature IN ('realized', 'credit')");
@@ -120,26 +132,14 @@ export async function getExpensesPaginated(
     conditions.push("date <= ?");
     params.push(filters.endDate);
   }
-  if (filters.categoryIds && filters.categoryIds.length > 0) {
-    const placeholders = filters.categoryIds.map(() => "?").join(",");
-    conditions.push(`category_id IN (${placeholders})`);
-    params.push(...filters.categoryIds);
-  }
-  if (filters.paymentModeIds && filters.paymentModeIds.length > 0) {
-    const placeholders = filters.paymentModeIds.map(() => "?").join(",");
-    conditions.push(`payment_mode_id IN (${placeholders})`);
-    params.push(...filters.paymentModeIds);
-  }
-  if (filters.accountIds && filters.accountIds.length > 0) {
-    const placeholders = filters.accountIds.map(() => "?").join(",");
-    conditions.push(`account_id IN (${placeholders})`);
-    params.push(...filters.accountIds);
-  }
-  if (filters.tagIds && filters.tagIds.length > 0) {
-    const placeholders = filters.tagIds.map(() => "?").join(",");
-    conditions.push(`id IN (SELECT expense_id FROM expense_tags WHERE tag_id IN (${placeholders}))`);
-    params.push(...filters.tagIds);
-  }
+  inOrNone(filters.categoryIds, (ph) => `category_id IN (${ph})`, "category_id IS NULL");
+  inOrNone(filters.paymentModeIds, (ph) => `payment_mode_id IN (${ph})`, "payment_mode_id IS NULL");
+  inOrNone(filters.accountIds, (ph) => `account_id IN (${ph})`, "account_id IS NULL");
+  inOrNone(
+    filters.tagIds,
+    (ph) => `id IN (SELECT expense_id FROM expense_tags WHERE tag_id IN (${ph}))`,
+    "id NOT IN (SELECT expense_id FROM expense_tags)",
+  );
   if (filters.search) {
     conditions.push("(description LIKE ? OR merchant_name LIKE ?)");
     params.push(`%${filters.search}%`, `%${filters.search}%`);
@@ -159,14 +159,7 @@ export async function getExpensesPaginated(
     conditions.push("is_right_spend = ?");
     params.push(filters.avoidability === "unavoidable" ? 1 : 0);
   }
-  if (filters.noCategory) {
-    conditions.push("category_id IS NULL");
-  }
-  if (filters.merchantNames && filters.merchantNames.length > 0) {
-    const placeholders = filters.merchantNames.map(() => "?").join(",");
-    conditions.push(`merchant_name IN (${placeholders})`);
-    params.push(...filters.merchantNames);
-  }
+  inOrNone(filters.merchantNames, (ph) => `merchant_name IN (${ph})`, "(merchant_name IS NULL OR TRIM(merchant_name) = '')");
   if (filters.ruleIds && filters.ruleIds.length > 0) {
     const inPlaceholders = filters.ruleIds.map(() => "?").join(",");
     const likeParts = filters.ruleIds.map(() => `applied_rule_ids LIKE ?`).join(" OR ");
@@ -180,6 +173,22 @@ export async function getExpensesPaginated(
   } else if (filters.segment === "committed") {
     conditions.push(`(EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id) OR EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id))`);
   }
+  return { conditions, params };
+}
+
+/**
+ * Get paginated expenses with optional filters and search.
+ */
+export async function getExpensesPaginated(
+  userId: string,
+  filters: ExpenseFilters = {},
+  limit = 50,
+  offset = 0,
+): Promise<Expense[]> {
+  const db = getDatabase();
+
+  const nature = filters.nature ?? "realized";
+  const { conditions, params } = buildFilterConditions(userId, filters);
 
   params.push(limit, offset);
 
@@ -198,7 +207,7 @@ export async function getExpensesPaginated(
        category_id, payment_mode_id, account_id,
        date, transaction_time, due_date, is_right_spend,
        source, status, nature,
-       split_original_amount, split_person_id, split_pct, split_hisaab_entry_id,
+       split_original_amount, split_person_id, split_pct, split_hisaab_entry_id, split_mode,
        deleted_at, created_at
      FROM expenses
      WHERE ${conditions.join(" AND ")}
@@ -214,9 +223,21 @@ export interface FilteredSummaryGroup {
   count: number;
 }
 
+/** How the total gets from what was paid to what counts (expenses only, not credits). */
+export interface SummaryBreakdown {
+  /** What was paid - the whole bill when split. */
+  gross: number;
+  /** The part of split bills other people owe. */
+  othersShare: number;
+  /** Refunds, your share of them. */
+  refunds: number;
+}
+
 export interface FilteredSummary {
   total: number;
   count: number;
+  /** Set for expense (realized) summaries; gross − othersShare − refunds = total. */
+  breakdown?: SummaryBreakdown;
   groupBy: "category" | "account" | "payment_mode" | "merchant";
   groups: FilteredSummaryGroup[];
 }
@@ -233,92 +254,7 @@ export async function getFilteredExpenseSummary(
   const db = getDatabase();
 
   const nature = filters.nature ?? "realized";
-  const conditions: string[] = ["user_id = ?", "deleted_at IS NULL"];
-  const params: (string | number)[] = [userId];
-
-  if (nature === "all") {
-    conditions.push("nature IN ('realized', 'credit')");
-  } else {
-    conditions.push("nature = ?");
-    params.push(nature);
-  }
-  conditions.push(NOT_RECLASSIFIED);
-
-  if (filters.status) {
-    conditions.push("status = ?");
-    params.push(filters.status);
-  } else {
-    conditions.push("status != 'rejected'");
-  }
-
-  if (filters.startDate) {
-    conditions.push("date >= ?");
-    params.push(filters.startDate);
-  }
-  if (filters.endDate) {
-    conditions.push("date <= ?");
-    params.push(filters.endDate);
-  }
-  if (filters.categoryIds && filters.categoryIds.length > 0) {
-    const placeholders = filters.categoryIds.map(() => "?").join(",");
-    conditions.push(`category_id IN (${placeholders})`);
-    params.push(...filters.categoryIds);
-  }
-  if (filters.paymentModeIds && filters.paymentModeIds.length > 0) {
-    const placeholders = filters.paymentModeIds.map(() => "?").join(",");
-    conditions.push(`payment_mode_id IN (${placeholders})`);
-    params.push(...filters.paymentModeIds);
-  }
-  if (filters.accountIds && filters.accountIds.length > 0) {
-    const placeholders = filters.accountIds.map(() => "?").join(",");
-    conditions.push(`account_id IN (${placeholders})`);
-    params.push(...filters.accountIds);
-  }
-  if (filters.tagIds && filters.tagIds.length > 0) {
-    const placeholders = filters.tagIds.map(() => "?").join(",");
-    conditions.push(`id IN (SELECT expense_id FROM expense_tags WHERE tag_id IN (${placeholders}))`);
-    params.push(...filters.tagIds);
-  }
-  if (filters.search) {
-    conditions.push("(description LIKE ? OR merchant_name LIKE ?)");
-    params.push(`%${filters.search}%`, `%${filters.search}%`);
-  }
-  if (filters.expenseIds && filters.expenseIds.length > 0) {
-    const placeholders = filters.expenseIds.map(() => "?").join(",");
-    conditions.push(`id IN (${placeholders})`);
-    params.push(...filters.expenseIds);
-  }
-  if (filters.refundedStatus) {
-    const refundedSub = `id IN (SELECT refund_of_expense_id FROM expenses WHERE refund_of_expense_id IS NOT NULL AND nature = 'credit' AND deleted_at IS NULL)`;
-    conditions.push(filters.refundedStatus === "refunded" ? refundedSub : `NOT (${refundedSub})`);
-  }
-  if (filters.avoidability === "unclassified") {
-    conditions.push("is_right_spend IS NULL");
-  } else if (filters.avoidability) {
-    conditions.push("is_right_spend = ?");
-    params.push(filters.avoidability === "unavoidable" ? 1 : 0);
-  }
-  if (filters.noCategory) {
-    conditions.push("category_id IS NULL");
-  }
-  if (filters.merchantNames && filters.merchantNames.length > 0) {
-    const placeholders = filters.merchantNames.map(() => "?").join(",");
-    conditions.push(`merchant_name IN (${placeholders})`);
-    params.push(...filters.merchantNames);
-  }
-  if (filters.ruleIds && filters.ruleIds.length > 0) {
-    const inPlaceholders = filters.ruleIds.map(() => "?").join(",");
-    const likeParts = filters.ruleIds.map(() => `applied_rule_ids LIKE ?`).join(" OR ");
-    conditions.push(`(applied_rule_id IN (${inPlaceholders}) OR ${likeParts})`);
-    params.push(...filters.ruleIds);
-    params.push(...filters.ruleIds.map((id) => `%"${id}"%`));
-  }
-  if (filters.segment === "spend") {
-    conditions.push(`NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)`);
-    conditions.push(`NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id)`);
-  } else if (filters.segment === "committed") {
-    conditions.push(`(EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id) OR EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id))`);
-  }
+  const { conditions, params } = buildFilterConditions(userId, filters);
 
   const where = conditions.join(" AND ");
 
@@ -328,8 +264,19 @@ export async function getFilteredExpenseSummary(
   const useEffective = nature !== "credit" && nature !== "all";
   const amountExpr = useEffective ? `SUM(${effectiveAmountSql("expenses")})` : "COALESCE(SUM(amount), 0)";
 
-  const totalRow = await db.getFirstAsync<{ total: number | null; count: number }>(
-    `SELECT COALESCE(${amountExpr}, 0) as total, COUNT(*) as count FROM expenses WHERE ${where};`,
+  const parts = amountPartsSql("expenses");
+  const totalRow = await db.getFirstAsync<{
+    total: number | null;
+    count: number;
+    gross: number | null;
+    othersShare: number | null;
+    refunds: number | null;
+  }>(
+    `SELECT COALESCE(${amountExpr}, 0) as total, COUNT(*) as count,
+            COALESCE(SUM(${parts.gross}), 0) as gross,
+            COALESCE(SUM(${parts.othersShare}), 0) as othersShare,
+            COALESCE(SUM(${parts.myRefund}), 0) as refunds
+       FROM expenses WHERE ${where};`,
     ...params,
   );
 
@@ -348,6 +295,9 @@ export async function getFilteredExpenseSummary(
   return {
     total: totalRow?.total ?? 0,
     count: totalRow?.count ?? 0,
+    breakdown: useEffective
+      ? { gross: totalRow?.gross ?? 0, othersShare: totalRow?.othersShare ?? 0, refunds: totalRow?.refunds ?? 0 }
+      : undefined,
     groupBy,
     groups: groupRows.map((r) => ({ key: r.key, total: r.total ?? 0, count: r.count })),
   };

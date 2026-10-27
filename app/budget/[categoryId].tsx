@@ -9,6 +9,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { TrendBarChart } from "@/components/charts/TrendBarChart";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
+import { SpendBreakdown } from "@/components/expense/SpendBreakdown";
+import { getPersonsByIds } from "@/services/hisaab";
+import type { HisaabPerson } from "@/services/hisaab";
+import { buildSplitNote } from "@/utils/split-note";
 import { getCategoryById } from "@/services/category";
 import type { Category } from "@/services/category";
 import { getPaymentModes } from "@/services/payment-mode";
@@ -17,6 +21,7 @@ import { getActiveAccounts } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getBudget } from "@/services/budget";
 import { getExpensesPaginated, getCategoryMonthlyTrend, getFilteredExpenseSummary } from "@/services/expense";
+import type { SummaryBreakdown } from "@/services/expense";
 import { sumRefundsByExpenseIds } from "@/services/expense-effective-amount";
 import type { Expense } from "@/services/expense";
 import type { MonthlyTotal } from "@/services/expense";
@@ -48,6 +53,8 @@ export default function CategoryDetailScreen() {
   const [totalSpent, setTotalSpent] = useState(0);
   const [txCount, setTxCount] = useState(0);
   const [refunds, setRefunds] = useState<Map<string, number>>(new Map());
+  const [breakdown, setBreakdown] = useState<SummaryBreakdown | null>(null);
+  const [personMap, setPersonMap] = useState<Map<string, HisaabPerson>>(new Map());
   const [trend, setTrend] = useState<MonthlyTotal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<ExpenseSortBy>(
@@ -89,7 +96,13 @@ export default function CategoryDetailScreen() {
     setExpenses(exps);
     setTotalSpent(summary.total);
     setTxCount(summary.count);
-    setRefunds(await sumRefundsByExpenseIds(exps.map((e) => e.id)));
+    setBreakdown(summary.breakdown ?? null);
+    const [refundMap, persons] = await Promise.all([
+      sumRefundsByExpenseIds(exps.map((e) => e.id)),
+      getPersonsByIds([...new Set(exps.map((e) => e.split_person_id).filter(Boolean) as string[])]),
+    ]);
+    setRefunds(refundMap);
+    setPersonMap(persons);
     setTrend(trendData);
     setPaymentModes(pms);
     setAccounts(accts);
@@ -129,6 +142,7 @@ export default function CategoryDetailScreen() {
       paymentMode={item.payment_mode_id ? paymentModeMap.get(item.payment_mode_id) : null}
       account={item.account_id ? accountMap.get(item.account_id) : null}
       refundedAmount={refunds.get(item.id) ?? 0}
+      splitNote={buildSplitNote(item, personMap)}
       onPress={() => router.push(`/expense/${item.id}`)}
     />
   );
@@ -198,6 +212,16 @@ export default function CategoryDetailScreen() {
                 : `${formatAmount(Math.abs(remaining))} over budget (${Math.round(pct * 100)}% used)`}
             </Text>
           </>
+        )}
+        {/* Paid → others' share → refunds → counted; just the count when nothing was split or refunded. */}
+        {breakdown && (
+          <SpendBreakdown
+            count={txCount}
+            gross={breakdown.gross}
+            othersShare={breakdown.othersShare}
+            refunds={breakdown.refunds}
+            net={totalSpent}
+          />
         )}
       </Card>
 

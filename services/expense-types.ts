@@ -150,6 +150,21 @@ export interface SplitConfig {
   percentage?: number; // For "percentage" mode: other party's share %
 }
 
+/**
+ * In a filter's id list (categoryIds, paymentModeIds, accountIds, tagIds, merchantNames): match
+ * expenses that have no value there - no category, no tags, and so on.
+ */
+export const NOT_SET = "__none__";
+
+/** How NOT_SET reads in each Transactions filter. */
+export const NOT_SET_LABELS = {
+  category: "No category",
+  paymentMode: "No payment mode",
+  account: "No account",
+  tags: "No tags",
+  merchant: "No merchant",
+} as const;
+
 export interface ExpenseFilters {
   startDate?: string;
   endDate?: string;
@@ -176,8 +191,6 @@ export interface ExpenseFilters {
   refundedStatus?: "refunded" | "not_refunded";
   /** Filter by is_right_spend: 'avoidable' = 0, 'unavoidable' = 1, 'unclassified' = not set yet. */
   avoidability?: "avoidable" | "unavoidable" | "unclassified";
-  /** Only expenses with no category (combine with nothing in categoryIds). */
-  noCategory?: boolean;
   /** Filter by merchant name (exact match from distinct list). */
   merchantNames?: string[];
   /** Filter by smart rule ID — matches expenses where any of these rules fired. */

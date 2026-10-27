@@ -41,6 +41,7 @@ import { getTags, getTagsForExpenses } from "@/services/tags";
 import { getDistinctMerchantNames } from "@/services/merchant-alias";
 import { listRules, type SmartRule } from "@/services/smart-rules";
 import type { Expense } from "@/services/expense";
+import { NOT_SET, NOT_SET_LABELS } from "@/services/expense-types";
 import type { Category } from "@/services/category";
 import type { PaymentMode } from "@/services/payment-mode";
 import type { FinancialAccount } from "@/services/financial-account";
@@ -140,7 +141,7 @@ export default function ExpensesScreen() {
   const [filterMerchantNames, setFilterMerchantNames] = useState<string[]>([]);
   const [filterRefundedStatus, setFilterRefundedStatus] = useState<"" | "refunded" | "not_refunded">("");
   const [filterStatus, setFilterStatus] = useState<"" | "pending_review" | "approved">("");
-  const [filterAvoidability, setFilterAvoidability] = useState<"" | "avoidable" | "unavoidable">("");
+  const [filterAvoidability, setFilterAvoidability] = useState<"" | "avoidable" | "unavoidable" | "unclassified">("");
   const [filterNature, setFilterNature] = useState<"realized" | "committed" | "credit" | "transfers" | "all">("realized");
   const [showFilters, setShowFilters] = useState(false);
   const [savedViews, setSavedViews] = useState<SavedFilterView[]>(() => getSavedFilterViews());
@@ -176,6 +177,7 @@ export default function ExpensesScreen() {
       setFilterNature("realized");
       if (params.filterAvoidability === "unavoidable") setFilterAvoidability("unavoidable");
       else if (params.filterAvoidability === "avoidable") setFilterAvoidability("avoidable");
+      else if (params.filterAvoidability === "unclassified") setFilterAvoidability("unclassified");
       presetAppliedRef.current = true;
     }
   }, [presetParam]);
@@ -1064,18 +1066,19 @@ export default function ExpensesScreen() {
       <FullScreenFilter
         visible={showFilters}
         sections={[
-          { key: "category", label: "Category", type: "multi", options: categories.map((c) => ({ id: c.id, label: c.name })), selectedIds: filterCategoryIds, searchable: true },
-          { key: "paymentMode", label: "Payment Mode", type: "multi", options: paymentModes.map((p) => ({ id: p.id, label: p.name })), selectedIds: filterPaymentModeIds },
-          { key: "account", label: "Account", type: "multi", options: accounts.map((a) => ({ id: a.id, label: `${a.bank_name} ****${a.account_identifier}` })), selectedIds: filterAccountIds, searchable: true },
-          { key: "tags", label: "Tags", type: "multi", options: allTags.map((t) => ({ id: t.id, label: t.name, color: t.color })), selectedIds: filterTagIds },
-          { key: "merchant", label: "Merchant", type: "multi", options: allMerchantNames.map((m) => ({ id: m, label: m })), selectedIds: filterMerchantNames, searchable: true },
+          // Each list starts with "No ..." (NOT_SET): transactions with nothing set there.
+          { key: "category", label: "Category", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.category }, ...categories.map((c) => ({ id: c.id, label: c.name }))], selectedIds: filterCategoryIds, searchable: true },
+          { key: "paymentMode", label: "Payment Mode", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.paymentMode }, ...paymentModes.map((p) => ({ id: p.id, label: p.name }))], selectedIds: filterPaymentModeIds },
+          { key: "account", label: "Account", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.account }, ...accounts.map((a) => ({ id: a.id, label: `${a.bank_name} ****${a.account_identifier}` }))], selectedIds: filterAccountIds, searchable: true },
+          { key: "tags", label: "Tags", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.tags }, ...allTags.map((t) => ({ id: t.id, label: t.name, color: t.color }))], selectedIds: filterTagIds },
+          { key: "merchant", label: "Merchant", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.merchant }, ...allMerchantNames.map((m) => ({ id: m, label: m }))], selectedIds: filterMerchantNames, searchable: true },
           ...(allRules.length > 0 ? [{ key: "rule", label: "Smart Rule", type: "multi" as const, options: allRules.map((r) => ({ id: r.id, label: r.name })), selectedIds: filterRuleIds }] : []),
           ...(filterNature !== "transfers" ? [
             { key: "status", label: "Status", type: "single" as const, options: [{ id: "pending_review", label: "Pending Review" }, { id: "approved", label: "Approved" }], selectedIds: filterStatus ? [filterStatus] : [] },
           ] : []),
           ...(filterNature === "realized" ? [
             { key: "refundStatus", label: "Refund Status", type: "single" as const, options: [{ id: "refunded", label: "Refunded" }, { id: "not_refunded", label: "Not Refunded" }], selectedIds: filterRefundedStatus ? [filterRefundedStatus] : [] },
-            { key: "avoidability", label: "Avoidability", type: "single" as const, options: [{ id: "unavoidable", label: "Unavoidable" }, { id: "avoidable", label: "Avoidable" }], selectedIds: filterAvoidability ? [filterAvoidability] : [] },
+            { key: "avoidability", label: "Avoidability", type: "single" as const, options: [{ id: "unavoidable", label: "Unavoidable" }, { id: "avoidable", label: "Avoidable" }, { id: "unclassified", label: "Not classified" }], selectedIds: filterAvoidability ? [filterAvoidability] : [] },
           ] : []),
         ]}
         onApply={(selections) => {
@@ -1108,38 +1111,38 @@ export default function ExpensesScreen() {
       {hasNonDateFilters && !showFilters && (
         <View className="px-4 pb-2 flex-row flex-wrap">
           {filterCategoryIds.map((id) => {
-            const cat = categoryMap.get(id);
-            if (!cat) return null;
+            const name = id === NOT_SET ? NOT_SET_LABELS.category : categoryMap.get(id)?.name;
+            if (!name) return null;
             return (
               <Pressable key={`cat-${id}`} onPress={() => setFilterCategoryIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-label text-faint-foreground">{cat.name}</Text>
+                <Text className="text-label text-faint-foreground">{name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
           })}
           {filterPaymentModeIds.map((id) => {
-            const pm = paymentModeMap.get(id);
-            if (!pm) return null;
+            const name = id === NOT_SET ? NOT_SET_LABELS.paymentMode : paymentModeMap.get(id)?.name;
+            if (!name) return null;
             return (
               <Pressable key={`pm-${id}`} onPress={() => setFilterPaymentModeIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-label text-faint-foreground">{pm.name}</Text>
+                <Text className="text-label text-faint-foreground">{name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
           })}
           {filterAccountIds.map((id) => {
-            const acct = accountMap.get(id);
-            if (!acct) return null;
+            const name = id === NOT_SET ? NOT_SET_LABELS.account : accountMap.get(id)?.bank_name;
+            if (!name) return null;
             return (
               <Pressable key={`acct-${id}`} onPress={() => setFilterAccountIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-label text-faint-foreground">{acct.bank_name}</Text>
+                <Text className="text-label text-faint-foreground">{name}</Text>
                 <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
               </Pressable>
             );
           })}
           {filterMerchantNames.map((name) => (
             <Pressable key={`merchant-${name}`} onPress={() => setFilterMerchantNames((prev) => prev.filter((x) => x !== name))} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-label text-faint-foreground">{name}</Text>
+              <Text className="text-label text-faint-foreground">{name === NOT_SET ? NOT_SET_LABELS.merchant : name}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           ))}
@@ -1167,7 +1170,7 @@ export default function ExpensesScreen() {
           )}
           {filterAvoidability !== "" && (
             <Pressable onPress={() => setFilterAvoidability("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-label text-faint-foreground">{filterAvoidability === "avoidable" ? "Avoidable" : "Unavoidable"}</Text>
+              <Text className="text-label text-faint-foreground">{filterAvoidability === "avoidable" ? "Avoidable" : filterAvoidability === "unclassified" ? "Not classified" : "Unavoidable"}</Text>
               <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
             </Pressable>
           )}

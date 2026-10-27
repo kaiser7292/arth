@@ -39,7 +39,7 @@ export {
   changeTransactionNature,
 } from "./expense-crud";
 
-export type { FilteredSummary, FilteredSummaryGroup } from "./expense-queries";
+export type { FilteredSummary, FilteredSummaryGroup, SummaryBreakdown } from "./expense-queries";
 
 export {
   getExpenses,

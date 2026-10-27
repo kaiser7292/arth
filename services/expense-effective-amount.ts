@@ -53,6 +53,26 @@ function refundSubtractionSql(alias: string): string {
  * possible if the user edits a credit amount upward) can't negative-bias
  * totals.
  */
+/**
+ * The parts that take an expense from what was paid to what counts (effectiveAmountSql), for
+ * breakdowns that show gross → others' share → refunds → net:
+ *   gross       = what was paid (the whole bill when split)
+ *   othersShare = the part of the bill other people owe
+ *   myRefund    = your proportion of the refunds (the rest went back on their share)
+ * gross − othersShare − myRefund = effectiveAmountSql, exactly as the list rows show it.
+ */
+export function amountPartsSql(alias: string = "e"): { gross: string; othersShare: string; myRefund: string } {
+  const refunded = refundSubtractionSql(alias);
+  const split = `${alias}.split_original_amount > 0`;
+  return {
+    gross: `(CASE WHEN ${split} THEN ${alias}.split_original_amount ELSE ${alias}.amount END)`,
+    othersShare: `(CASE WHEN ${split} THEN MAX(${alias}.split_original_amount - ${alias}.amount, 0) ELSE 0 END)`,
+    myRefund: `(CASE WHEN ${split}
+      THEN MIN(${refunded}, ${alias}.split_original_amount) * ${alias}.amount / ${alias}.split_original_amount
+      ELSE MIN(${refunded}, ${alias}.amount) END)`,
+  };
+}
+
 export function effectiveAmountSql(alias: string = "e"): string {
   const refunded = refundSubtractionSql(alias);
   return `(CASE WHEN ${alias}.split_original_amount > 0

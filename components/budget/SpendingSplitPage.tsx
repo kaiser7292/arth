@@ -173,6 +173,10 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
                   segments={visible.map((b) => ({ label: BUCKETS[b].title, value: split[b].spent, color: colorOf(b) }))}
                   centerValue={`${split.unavoidable.pct}%`}
                   centerLabel="Unavoidable"
+                  // The legend is the column beside the ring; the chart's own label row under it
+                  // made the chart full-width and pushed that column off the card.
+                  showLegend={false}
+                  separatorColor={theme.card}
                 />
                 <View className="flex-1 ml-4">
                   <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Spent this month</Text>

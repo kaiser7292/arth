@@ -16,6 +16,9 @@ import {
   getExpenseCount,
 } from "@/services/expense";
 import { getSpendClassificationTotals } from "@/services/spend-classification";
+import { getFilteredExpenseSummary } from "@/services/expense";
+import type { SummaryBreakdown } from "@/services/expense";
+import { SpendBreakdown } from "@/components/expense/SpendBreakdown";
 import type { Category } from "@/services/category";
 import { formatAmount } from "@/utils/expense-validation";
 import { getMonthDateRange, getDaysElapsed, getDaysRemaining, getTotalDaysInMonth } from "@/utils/budget-helpers";
@@ -30,6 +33,8 @@ interface TopCategory {
 
 interface SummaryData {
   totalSpent: number;
+  /** Paid → others' share → refunds → counted, for the Total Spent card. */
+  breakdown: SummaryBreakdown | null;
   totalBudget: number;
   /** Spending marked discretionary (is_right_spend = 0). */
   flexibleSpent: number;
@@ -76,7 +81,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
       const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
       const prevRange = getMonthDateRange(prevMonth);
 
-      const [categories, budgets, classification, topCats, txCount, prevSpent, prevClassification] = await Promise.all([
+      const [categories, budgets, classification, topCats, txCount, prevSpent, prevClassification, summary] = await Promise.all([
         getCategories(DEFAULT_USER_ID),
         getBudgetsForMonth(DEFAULT_USER_ID, month),
         getSpendClassificationTotals(DEFAULT_USER_ID, startDate, endDate),
@@ -84,6 +89,8 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
         getExpenseCount(DEFAULT_USER_ID, startDate, endDate),
         getExpenseTotal(DEFAULT_USER_ID, prevRange.startDate, prevRange.endDate),
         getSpendClassificationTotals(DEFAULT_USER_ID, prevRange.startDate, prevRange.endDate),
+        // Same rows as the total above (approved spending, investment and loan payments out).
+        getFilteredExpenseSummary(DEFAULT_USER_ID, { startDate, endDate, status: "approved", segment: "spend" }, "category"),
       ]);
 
       const totalSpent = classification.total;
@@ -95,6 +102,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
 
       setData({
         totalSpent,
+        breakdown: summary.breakdown ?? null,
         totalBudget,
         flexibleSpent: classification.discretionary,
         flexiblePct: classification.discretionaryPct,
@@ -173,6 +181,17 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
               {formatAmount(data.avgPerDay)}/day avg
             </Text>
           </View>
+          {/* How the total gets from what was paid to what counts; nothing extra when there were no
+              splits or refunds (the count is already on the line above). */}
+          {data.breakdown && (data.breakdown.othersShare >= 0.5 || data.breakdown.refunds >= 0.5) && (
+            <SpendBreakdown
+              count={data.transactionCount}
+              gross={data.breakdown.gross}
+              othersShare={data.breakdown.othersShare}
+              refunds={data.breakdown.refunds}
+              net={data.totalSpent}
+            />
+          )}
         </Card>
       </Pressable>
 

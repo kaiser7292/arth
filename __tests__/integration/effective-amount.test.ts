@@ -1,5 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
-import { effectiveAmountSql } from "../../services/expense-effective-amount";
+import { amountPartsSql, effectiveAmountSql } from "../../services/expense-effective-amount";
 
 /**
  * effectiveAmountSql against a real SQLite engine: refunds come off what an expense counts as,
@@ -70,4 +70,40 @@ test("never goes below zero", () => {
   add("s", 500, { split: 1000 });
   add("rs", 1200, { refundOf: "s" });
   expect(effective("s")).toBe(0);
+});
+
+describe("amountPartsSql", () => {
+  function parts(id: string) {
+    const p = amountPartsSql("expenses");
+    return db
+      .prepare(
+        `SELECT ${p.gross} AS gross, ${p.othersShare} AS othersShare, ${p.myRefund} AS myRefund,
+                ${effectiveAmountSql("expenses")} AS net
+           FROM expenses WHERE id = ?`,
+      )
+      .get(id) as { gross: number; othersShare: number; myRefund: number; net: number };
+  }
+
+  test("plain expense with a refund: gross − refund = net", () => {
+    add("e", 1000);
+    add("r", 400, { refundOf: "e" });
+    expect(parts("e")).toEqual({ gross: 1000, othersShare: 0, myRefund: 400, net: 600 });
+  });
+
+  test("split bill with a refund: only your share of the refund comes off yours", () => {
+    // ₹1,000 bill, your share ₹500, ₹400 refunded on the bill.
+    add("e", 500, { split: 1000 });
+    add("r", 400, { refundOf: "e" });
+    const r = parts("e");
+    expect(r).toEqual({ gross: 1000, othersShare: 500, myRefund: 200, net: 300 });
+    expect(r.gross - r.othersShare - r.myRefund).toBe(r.net);
+  });
+
+  test("over-refunded split bill still adds up (to zero)", () => {
+    add("e", 500, { split: 1000 });
+    add("r", 1500, { refundOf: "e" });
+    const r = parts("e");
+    expect(r.net).toBe(0);
+    expect(r.gross - r.othersShare - r.myRefund).toBe(0);
+  });
 });
