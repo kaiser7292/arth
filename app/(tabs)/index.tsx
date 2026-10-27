@@ -477,7 +477,8 @@ export default function HomeScreen() {
                   )}
                 </View>
               </View>
-              <StatusPill label={healthLabel} color={statusColor} />
+              {/* No budget yet: there's nothing to be over, and "Set up your budget" below says so. */}
+              {totalBudget > 0 && <StatusPill label={healthLabel} color={statusColor} />}
             </View>
 
             {totalBudget > 0 && (
