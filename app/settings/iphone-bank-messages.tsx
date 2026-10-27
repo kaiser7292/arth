@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Linking, ScrollView, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { ShortcutSetupSteps } from "@/components/sms/ShortcutSetupSteps";
 import { Button, Card, ScreenContainer, Text, useToast } from "@/components/ui";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -13,25 +14,6 @@ import {
   setArrivalNotify,
   waitingMessageCount,
 } from "@/services/message-inbox";
-
-/**
- * The Shortcuts automation, step by step (wording follows iOS 17-18's Shortcuts app). One automation
- * for every message: "Add bank message to Arth" drops anything that isn't a transaction (chats,
- * OTPs, offers) on the phone, unsaved, so there's no keyword to choose and nothing to repeat for
- * money coming in.
- */
-const STEPS: { title: string; body: string }[] = [
-  { title: "Open Shortcuts", body: "Go to the Automation tab and tap + (New Automation), then choose Message." },
-  {
-    title: "Leave the filters empty",
-    body: 'Leave Sender and "Message Contains" empty, so every bank works. Arth ignores anything that isn\'t a transaction, chats and OTPs included, without saving it.',
-  },
-  { title: "Let it run by itself", body: 'Choose "Run Immediately" and turn off "Notify When Run". Tap Next.' },
-  {
-    title: "Hand it to Arth",
-    body: 'Tap "New Blank Automation", add the action "Add bank message to Arth" (search for Arth), set Message to Shortcut Input, and tap Done. That\'s it: money out and money in.',
-  },
-];
 
 /** "2 min ago", "3 h ago", "yesterday", "5 days ago". */
 function ago(ms: number, now: number = Date.now()): string {
@@ -108,9 +90,29 @@ export default function IphoneBankMessagesScreen() {
               className="mt-3"
             />
           )}
+          <Button
+            title="Paste bank message"
+            variant={waiting > 0 ? "outline" : "primary"}
+            onPress={() => router.push("/expense/paste-message")}
+            className="mt-3"
+          />
+          <Text className="text-xs text-muted-foreground mt-2 leading-4">
+            Missed one? Copy it in Messages and paste it here. In Shortcuts, &quot;Review bank message in Arth&quot; does the
+            same.
+          </Text>
         </Card>
 
         <Card className="mb-3">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Set it up once</Text>
+          <Text className="text-xs text-muted-foreground mb-2 leading-4">
+            iPhone doesn&apos;t let apps read your messages, and only you can create an automation, so this takes two
+            minutes in the Shortcuts app.
+          </Text>
+          <ShortcutSetupSteps />
+          <Button title="Open Shortcuts" variant="outline" onPress={() => void Linking.openURL("shortcuts://")} className="mt-2" />
+        </Card>
+
+        <Card>
           <View className="flex-row items-center">
             <View className="flex-1 mr-3">
               <Text className="text-sm font-medium text-foreground">Notify me</Text>
@@ -127,38 +129,6 @@ export default function IphoneBankMessagesScreen() {
               accessibilityLabel="Notify me about bank messages"
             />
           </View>
-        </Card>
-
-        <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Set it up once</Text>
-          <Text className="text-xs text-muted-foreground mb-2 leading-4">
-            iPhone doesn&apos;t let apps read your messages, and only you can create an automation, so this takes two
-            minutes in the Shortcuts app.
-          </Text>
-          {STEPS.map((s, i) => (
-            <View key={s.title} className="flex-row py-2">
-              <View
-                className="w-6 h-6 rounded-full items-center justify-center mr-3 mt-0.5"
-                style={{ backgroundColor: theme.alpha("primary", 0.12) }}
-              >
-                <Text className="text-xs font-semibold" style={{ color: theme.primary }}>{i + 1}</Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground">{s.title}</Text>
-                <Text className="text-xs text-muted-foreground mt-0.5 leading-4">{s.body}</Text>
-              </View>
-            </View>
-          ))}
-          <Button title="Open Shortcuts" variant="outline" onPress={() => void Linking.openURL("shortcuts://")} className="mt-2" />
-        </Card>
-
-        <Card>
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Missed one?</Text>
-          <Text className="text-xs text-muted-foreground mb-3 leading-4">
-            Copy the bank message in Messages and paste it into Arth. In Shortcuts you can also run &quot;Review bank message
-            in Arth&quot;, which opens Arth with it.
-          </Text>
-          <Button title="Paste bank message" variant="outline" onPress={() => router.push("/expense/paste-message")} />
         </Card>
       </ScrollView>
     </ScreenContainer>

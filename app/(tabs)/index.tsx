@@ -6,7 +6,7 @@ import { InsightsPage } from "@/components/home/pages/InsightsPage";
 import { ReviewQueuePage } from "@/components/home/pages/ReviewQueuePage";
 import { VaultPage } from "@/components/home/pages/VaultPage";
 import { SimulatorPage } from "@/components/home/pages/SimulatorPage";
-import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
 
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { LinkExpenseSheet } from "@/components/expense/LinkExpenseSheet";
@@ -14,6 +14,7 @@ import { CheckInsCard } from "@/components/home/CheckInsCard";
 import { DueRow } from "@/components/home/DueRow";
 import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
 import { BankMessagesCard } from "@/components/home/BankMessagesCard";
+import { IphoneMessagesSetupCard } from "@/components/home/IphoneMessagesSetupCard";
 import { useAlert } from "@/hooks/use-alert";
 import { formatError } from "@/utils/error-message";
 import { BankBalanceSummary } from "@/components/home/BankBalanceSummary";
@@ -74,6 +75,7 @@ import { dismissBackupWarning, getDataVersion, shouldShowBackupWarning } from "@
 import { isAmountsHidden, toggleAmountsHidden } from "@/services/privacy-mode";
 import { findAutoMatches, dismissReminderMatch, clearDismissalsForRule, pruneExpiredDismissals } from "@/services/reminder-matching";
 import { getSmsScanAccountIds, isSmsDetectionEnabled, runSmsScan } from "@/services/sms";
+import { importHandedMessages } from "@/services/message-inbox";
 import type { ReminderAutoMatch } from "@/services/reminder-matching";
 
 import {
@@ -172,12 +174,18 @@ export default function HomeScreen() {
     if (smsScanning) return;
     setSmsScanning(true);
     try {
+      if (Platform.OS === "ios") {
+        // iPhone can't read messages: take what the Shortcut handed over, else paste / set up.
+        const outcome = await importHandedMessages();
+        router.push(outcome ? "/expense/just-arrived" : "/settings/iphone-bank-messages");
+        return;
+      }
       const accountIds = getSmsScanAccountIds();
       await runSmsScan({ manual: true, accountIds, range: "since_last" });
     } finally {
       setSmsScanning(false);
     }
-  }, [smsScanning]);
+  }, [smsScanning, router]);
 
   // Collapsible sections — dues expanded by default so they're visible without a tap
   const [duesOpen, setDuesOpen] = useState(true);
@@ -357,10 +365,11 @@ export default function HomeScreen() {
       onPress: handleToggleAmountsHidden,
       accessibilityLabel: amountsHidden ? "Show amounts" : "Hide amounts",
     },
-    ...(isSmsDetectionEnabled() ? [{
+    ...(Platform.OS === "ios" || isSmsDetectionEnabled() ? [{
       icon: smsScanIcon,
       onPress: handleHomeScan,
       disabled: smsScanning,
+      accessibilityLabel: Platform.OS === "ios" ? "Bank messages: read, paste or set up" : "Scan messages",
     }] : []),
   ];
 
@@ -452,6 +461,8 @@ export default function HomeScreen() {
 
         {/* iPhone: what the bank-message Shortcut handed over. Self-loading; Android never shows it. */}
         <BankMessagesCard />
+        {/* iPhone, until the first bank message arrives: how to set up the Shortcut, or paste one. */}
+        <IphoneMessagesSetupCard />
 
         {/* "Is <name> you?" — once, when bank SMS keep showing a name on transfers. Self-loading. */}
         <SelfNamePromptCard />
