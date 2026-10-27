@@ -171,6 +171,8 @@ export default function RootLayout(): React.JSX.Element {
   const [dbReady, setDbReady] = useState(false);
   const [minSplashDone, setMinSplashDone] = useState(false);
   const [lockEvaluated, setLockEvaluated] = useState(false);
+  // The lock screen still has to be opened: the navigator mounts (behind the splash) first.
+  const [lockPending, setLockPending] = useState(false);
 
   // A payment screenshot or message shared to Arth from another app. Not reset when the app goes to
   // the background: the fingerprint prompt can background it on some phones and would drop the share.
@@ -389,12 +391,13 @@ export default function RootLayout(): React.JSX.Element {
       return;
     }
 
+    // Doesn't navigate itself: until lockEvaluated the layout renders only the splash, with no
+    // navigator, and navigating then crashed the app ("Attempted to navigate before mounting the
+    // Root Layout") - e.g. a share that started Arth while start-up took over 10 seconds.
     const evaluateLock = () => {
       if (!lockEvaluated && !lockEvaluationInProgress) {
         setLockEvaluationInProgress(true);
-        if (shouldShowLock() && routerRef.current) {
-          routerRef.current.replace("/(lock)/lock");
-        }
+        if (shouldShowLock()) setLockPending(true);
         setLockEvaluated(true);
         setLockEvaluationInProgress(false);
       }
@@ -408,26 +411,70 @@ export default function RootLayout(): React.JSX.Element {
     return () => sub.remove();
   }, [dbReady, minSplashDone, lockEvaluated, lockEvaluationInProgress]);
 
+  // Open the lock screen once the navigator exists; the splash covers the screen until then.
+  useEffect(() => {
+    if (!lockPending || !lockEvaluated) return;
+    let tries = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const go = () => {
+      try {
+        routerRef.current?.replace("/(lock)/lock");
+        setLockPending(false);
+      } catch (e) {
+        // Navigator not ready on this frame yet.
+        if (++tries < 20) timer = setTimeout(go, 50);
+        else {
+          logger.warn("Couldn't open the lock screen:", e);
+          setLockPending(false);
+        }
+      }
+    };
+    timer = setTimeout(go, 0);
+    return () => clearTimeout(timer);
+  }, [lockPending, lockEvaluated]);
+
   // Something handed over by another app - a backup opened with Arth (parked by
   // app/+native-intent.tsx), a screenshot or message shared to Arth (below) - opens once the app is
   // ready: after the splash, and after the lock screen when that's showing (the lock screen opens
   // it itself on unlock). Also when it arrives while Arth is already running.
   useEffect(() => {
     if (!dbReady || !minSplashDone || !lockEvaluated) return;
+    // Every timer this effect starts, so none fires after the layout is gone (a share can rebuild
+    // Arth's screen while one is waiting) and calls into a navigator that no longer exists.
+    const timers = new Set<ReturnType<typeof setTimeout>>();
+    const later = (fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+        timers.delete(t);
+        fn();
+      }, ms);
+      timers.add(t);
+    };
+    // The navigator can still be mounting (Arth just started, or its screen is being rebuilt):
+    // navigating then threw "Attempted to navigate before mounting the Root Layout" and closed the
+    // app. Wait for it instead.
+    const navigate = (go: () => void, attempt = 0) => {
+      try {
+        go();
+      } catch (e) {
+        if (attempt < 30) later(() => navigate(go, attempt + 1), 100);
+        else logger.warn("Couldn't open the shared item:", e);
+      }
+    };
     const open = () => {
       if (!hasIncoming() || !routerRef.current) return;
       if (getFlag("v15_biometric_lock") && shouldShowLock()) {
-        routerRef.current.replace("/(lock)/lock");
+        // The lock screen opens the item itself after unlocking.
+        navigate(() => routerRef.current?.replace("/(lock)/lock"));
         return;
       }
       const item = takeIncoming();
-      if (item) routerRef.current.push(hrefForIncoming(item) as Href);
+      if (item) navigate(() => routerRef.current?.push(hrefForIncoming(item) as Href));
     };
     // After the first screen has settled.
-    const t = setTimeout(open, 300);
-    const off = onIncoming(() => setTimeout(open, 300));
+    later(open, 300);
+    const off = onIncoming(() => later(open, 300));
     return () => {
-      clearTimeout(t);
+      timers.forEach(clearTimeout);
       off();
     };
   }, [dbReady, minSplashDone, lockEvaluated]);
@@ -448,15 +495,25 @@ export default function RootLayout(): React.JSX.Element {
         if (!screen || typeof screen !== "string" || !routerRef.current || !ALLOWED_SCREENS.has(screen)) {
           return;
         }
+        // A tap that starts Arth can arrive before the navigator has mounted; wait for it rather
+        // than throw ("Attempted to navigate before mounting the Root Layout").
+        const navigate = (go: () => void, attempt = 0) => {
+          try {
+            go();
+          } catch (e) {
+            if (attempt < 30) setTimeout(() => navigate(go, attempt + 1), 100);
+            else logger.warn("Couldn't open the notification's screen:", e);
+          }
+        };
         if (getFlag("v15_biometric_lock") && shouldShowLock()) {
           // Defer this navigation until after unlock instead of bypassing the
           // lock screen entirely — see services/biometric-lock.ts.
           setPendingDeepLink(screen);
-          routerRef.current.replace("/(lock)/lock");
+          navigate(() => routerRef.current?.replace("/(lock)/lock"));
           return;
         }
         // Deep-link target, unknown until runtime.
-        routerRef.current.push(screen as Href);
+        navigate(() => routerRef.current?.push(screen as Href));
       },
     );
     return () => subscription.remove();
@@ -594,6 +651,11 @@ export default function RootLayout(): React.JSX.Element {
           options={{ headerShown: false }}
         />
       </Stack>
+      {lockPending && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+          <SplashScreen step={initStep} />
+        </View>
+      )}
     </ThemeProvider>
     </ToastProvider>
     </GestureHandlerRootView>
