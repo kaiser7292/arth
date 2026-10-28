@@ -1,6 +1,6 @@
 # Arth — Your Finance, Your Way
 
-**Arth** is a personal finance app for Android that keeps your data entirely on your phone. No account, no cloud, no subscription, ever. Your transactions, balances, and spending patterns stay where they belong.
+**Arth** is a personal finance app for Android that keeps your data entirely on your phone. No account, no subscription, and nothing anyone else can read. Your transactions, balances, and spending patterns stay where they belong.
 
 **Self-sustaining SMS intelligence.** Arth reads bank and payment SMS messages to log transactions automatically. What sets it apart: if your bank introduces a new SMS format, you do not need to wait for an app update. You can write your own parsing template directly inside the app, teach Arth the new pattern once, and it handles every matching message from that point on. The app adapts to your banks, not the other way around.
 
@@ -12,7 +12,7 @@
 
 **Plan, simulate, and protect.** The goals section brings together your yearly savings plan, investment milestones, net worth balance sheet, and active loans in one view. The cash flow simulator lets you model future scenarios before committing to them. A built-in vault keeps sensitive credentials and notes secure and offline alongside everything else.
 
-Built with React Native and Expo. Open source. No data leaves your phone.
+Built with React Native and Expo. Open source. No data leaves your phone unless you choose to share it with your household, end-to-end encrypted.
 
 **Current version: v4.22.3** · [All releases](https://github.com/kaiser7292/arth/releases)
 
@@ -216,7 +216,7 @@ Full notes for every version: [GitHub Releases](https://github.com/kaiser7292/ar
 
 ## Architecture Notes
 
-- **100% local** — no server, no sync, no telemetry. SQLite is the single source of truth.
+- **Local-first** — SQLite on the phone is the single source of truth; no telemetry. The one exception is optional household sync (v4.28+): end-to-end encrypted changes through a relay that can't read them (`relay/`, `services/household/`).
 - **Balance chain model** — `account_month_balances` anchors each account's opening balance per month; closing = opening ± transactions.
 - **SMS pipeline** — four-stage: reader → parser → orchestrator → expense creator. All outcomes are logged for inspection in Scan Runs.
 - **Review queue** — auto-detected data always goes through approve/edit/reject before affecting budgets or balances.

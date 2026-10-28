@@ -93,7 +93,7 @@ artha/
 
 ## Key Architectural Decisions
 
-1. **100% local** — No server, no sync, no telemetry. SQLite single source of truth.
+1. **Local-first** — SQLite on the phone is the single source of truth; no telemetry. One deliberate exception (v4.28.0): households sync end-to-end encrypted changes through a Cloudflare relay (`relay/`, deployed at sync.souravbaid.com) that holds only sealed envelopes. Design: `docs/HOUSEHOLD_PHASE1_DESIGN.md`. The relay must never store IPs or plaintext (privacy policy + Play data safety depend on it).
 2. **Balance chain model** — `account_month_balances` stores opening balances; closing = opening − expenses + credits ± transfers ± adjustments. Chain builds forward from a seeded month.
 3. **SMS pipeline** — `sms-reader → sms-parser → sms-orchestrator → sms-to-expense`. Reader fetches raw SMS, parser extracts fields, orchestrator deduplicates + routes, sms-to-expense creates pending expenses.
 4. **Review queue** — All auto-detected data goes through approve/edit/reject before appearing in reports.

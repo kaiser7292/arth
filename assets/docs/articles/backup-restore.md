@@ -23,7 +23,7 @@ phrasings:
   - Restore a .json backup
 ---
 
-Arth is local-only - there is no cloud sync. Moving to a new phone, or protecting yourself from losing your phone, means keeping a backup file yourself.
+Arth keeps your data on your phone - there is no cloud copy of it. (A household shares only what you choose with its members; it isn't a backup.) Moving to a new phone, or protecting yourself from losing your phone, means keeping a backup file yourself.
 
 ## Where to find it
 

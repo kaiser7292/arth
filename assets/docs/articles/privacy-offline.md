@@ -1,7 +1,7 @@
 ---
 title: Privacy and offline-first
 slug: privacy-offline
-summary: What Arth stores, where, and exactly when it uses the internet. No Arth server, no account, no telemetry.
+summary: What Arth stores, where, and exactly when it uses the internet. No account, no telemetry, and no Arth server that can read your data.
 tags: [privacy, offline, local, cloud, security, permissions, internet, network, hide amounts, brokers, AI download, calendar]
 contextKeys: [onboarding, settings-about]
 phrasings:
@@ -23,7 +23,7 @@ phrasings:
   - Hide amounts on screen
 ---
 
-Arth is a **local-first** app. There is no Arth server. No account to create. No email to verify. No phone number. Your financial data stays on your phone.
+Arth is a **local-first** app. No account to create. No email to verify. No phone number. No Arth server that can read your data. Your financial data stays on your phone, unless you join a household and choose what to share.
 
 ## What's stored on your phone
 
@@ -37,6 +37,7 @@ Arth is a **local-first** app. There is no Arth server. No account to create. No
 Everything you track works in airplane mode. Arth only goes online for optional extras you switch on yourself:
 
 - **Broker connections** - [Zerodha Kite](kite-connect), [Angel One](angel-one) and [Zebpay](zebpay). Arth talks directly to the broker with your own API key. Nothing goes through an Arth server.
+- **Households** - if you start or join one, what you choose to share is locked on your phone (end-to-end encrypted) and passes through Arth's relay to the other members' phones. The relay can't read it and deletes it once everyone has it. See [Households](household).
 - **Help links** - links to a broker's terms or developer console open in your browser.
 
 And a few things leave the phone only because you send them somewhere:
@@ -47,7 +48,7 @@ And a few things leave the phone only because you send them somewhere:
 
 What Arth does **not** have:
 
-- No Arth server storing your data.
+- No Arth server that can read your data. The household relay only ever holds locked changes, and only while they're on their way.
 - No telemetry, analytics SDK or crash reporter.
 - No ads.
 

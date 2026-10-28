@@ -18,7 +18,7 @@ const BULLETS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body
   {
     icon: "phone-portrait-outline",
     title: "100% on your phone",
-    body: "No cloud, no sign-up. Your data stays on your device and is backed up only when you say so.",
+    body: "No account, no sign-up. Your data stays on your device, is shared only if you join a household, and is backed up only when you say so.",
   },
   // iPhone gives apps no access to messages: there, payments come in from screenshots and from
   // bank messages a Shortcuts automation hands over (services/message-inbox.ts).

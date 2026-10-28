@@ -27,7 +27,7 @@ phrasings:
   - FAB add button
 ---
 
-Arth is a private finance tracker that runs entirely on your phone. No account, no cloud, no sign-up. Everything you track works offline - only optional extras like broker connections and the one-time AI model download use the internet.
+Arth is a private finance tracker that runs on your phone. No account, no sign-up, and nothing leaves your phone unless you choose. Everything you track works offline - only optional extras like broker connections and sharing with your household use the internet.
 
 ## The three things to know
 
