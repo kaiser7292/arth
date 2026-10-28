@@ -116,6 +116,18 @@ function Action({ p, icon, uri, label, badge }: { p: Palette; icon: keyof typeof
   );
 }
 
+/** Expense, Voice, Picture and Catch up (with the count waiting), along the bottom of the larger widgets. */
+function QuickActions({ p, toCatchUp }: { p: Palette; toCatchUp: number }) {
+  return (
+    <FlexWidget style={{ flexDirection: "row", width: "match_parent" }}>
+      <Action p={p} icon="plus" uri={LINK.add} label="Expense" />
+      <Action p={p} icon="mic" uri={LINK.voice} label="Voice" />
+      <Action p={p} icon="picture" uri={LINK.picture} label="Picture" />
+      <Action p={p} icon="check" uri={LINK.catchUp} label="Catch up" badge={toCatchUp > 0 ? (toCatchUp > 99 ? "99+" : String(toCatchUp)) : undefined} />
+    </FlexWidget>
+  );
+}
+
 /** The budget bar with a line where an even spread would be by today. */
 function PaceBar({ p, pace, width }: { p: Palette; pace: MonthPace; width: number }) {
   const w = Math.max(40, Math.round(width));
@@ -271,18 +283,7 @@ export function MonthWidget({ data, scheme, compact, width }: Props & { compact:
         <TextWidget text="Set a budget in Arth to see what's left" style={{ fontSize: 12, marginTop: 4, color: p.rgba("mutedForeground") }} />
       )}
       <Spacer />
-      <FlexWidget style={{ flexDirection: "row", width: "match_parent" }}>
-        <Action p={p} icon="plus" uri={LINK.add} label="Expense" />
-        <Action p={p} icon="mic" uri={LINK.voice} label="Voice" />
-        <Action p={p} icon="picture" uri={LINK.picture} label="Picture" />
-        <Action
-          p={p}
-          icon="check"
-          uri={LINK.catchUp}
-          label="Catch up"
-          badge={data.toCatchUp > 0 ? (data.toCatchUp > 99 ? "99+" : String(data.toCatchUp)) : undefined}
-        />
-      </FlexWidget>
+      <QuickActions p={p} toCatchUp={data.toCatchUp} />
     </Frame>
   );
 }
@@ -376,25 +377,7 @@ export function ReviewWidget({ data, scheme }: Props) {
       )}
 
       <Spacer />
-      <FlexWidget style={{ flexDirection: "row", width: "match_parent", flexGap: 8 }}>
-        <FlexWidget
-          clickAction="OPEN_URI"
-          clickActionData={{ uri: LINK.add }}
-          accessibilityLabel="Add an expense"
-          style={{ flex: 1, height: 38, borderRadius: 14, backgroundColor: p.rgba("primary", 0.14), flexDirection: "row", justifyContent: "center", alignItems: "center" }}
-        >
-          <Icon name="plus" color={p.hex("primary")} size={16} />
-          <TextWidget text="Add" style={{ fontSize: 13, fontWeight: "700", marginLeft: 6, color: p.rgba("primary") }} />
-        </FlexWidget>
-        <FlexWidget
-          clickAction="OPEN_URI"
-          clickActionData={{ uri: LINK.catchUp }}
-          accessibilityLabel="Open Catch Up"
-          style={{ flex: 1, height: 38, borderRadius: 14, borderWidth: 1, borderColor: p.rgba("border"), justifyContent: "center", alignItems: "center" }}
-        >
-          <TextWidget text="Open Catch Up" style={{ fontSize: 13, fontWeight: "700", color: p.rgba("foreground") }} />
-        </FlexWidget>
-      </FlexWidget>
+      <QuickActions p={p} toCatchUp={data.toCatchUp} />
     </Frame>
   );
 }
