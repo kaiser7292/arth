@@ -12,7 +12,10 @@ export function HeaderBackHome() {
   const router = useRouter();
   const navigation = useNavigation();
   const { colors } = useColorScheme();
-  const canGoBack = navigation.canGoBack();
+  // The first screen of a section opened from another section (Together → Hisaab ledger) has
+  // nothing behind it in its own stack, but the app's history does: check both, or iPhone (no
+  // hardware back) is left without a way back.
+  const canGoBack = navigation.canGoBack() || router.canGoBack();
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 4, gap: 4 }}>
