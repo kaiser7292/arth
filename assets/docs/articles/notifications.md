@@ -1,7 +1,7 @@
 ---
 title: Notifications and the home screen widget
 slug: notifications
-summary: Approve or reject new bank transactions straight from a notification, get a daily digest of dues, and keep an Arth widget on your home screen.
+summary: Approve or reject new bank transactions straight from a notification or a home screen widget, get a daily digest of dues, and keep your budget on your home screen.
 tags: [notifications, alerts, approve from notification, new transactions, daily digest, dues, overdue, backup notification, widget, home screen widget, app lock]
 contextKeys: [notifications, settings-notifications, widget]
 phrasings:
@@ -17,6 +17,8 @@ phrasings:
   - Add Arth widget to home screen
   - Home screen widget
   - N to catch up widget
+  - Approve from the widget
+  - Budget left widget
   - Notifications are late
 ---
 
@@ -46,16 +48,17 @@ Background checks run roughly every 30 minutes, but Android decides the exact ti
 
 If you use [app lock](biometric-lock), notifications show **no amount, no merchant and no buttons**. Otherwise anyone holding your locked phone could read your spending or approve items. Tap the notification and unlock Arth to review.
 
-## Home screen widget
+## Home screen widgets
 
-Add the Arth widget from your phone's widget picker (long-press the home screen → Widgets → Arth). It shows:
+Long-press your home screen → **Widgets** → **Arth** and pick one of three:
 
-- how many items are waiting - "12 to catch up" - or **All caught up**, and
-- how much you've spent this month.
+- **Arth Catch Up** (small) - how many items are waiting, or **All caught up**, with buttons to add an expense or speak one.
+- **Arth this month** (medium) - what's left of this month's budget, a bar with a line showing where you should be by today, how much a day keeps you on track, and buttons for **Expense**, **Voice**, **Picture** and **Catch up**. Without a budget it shows what you've spent this month. Make it one row high and it shrinks to a single line.
+- **Arth review** (large) - the newest transactions waiting for review, with **Approve** and **Reject** buttons that work without opening Arth, plus payments due in the next 10 days.
 
-Tap it to open [Catch Up](catch-up). The count includes pending bank transactions and items that need a category; possible duplicates are only shown inside the app. The widget refreshes about every 30 minutes and whenever you use Arth.
+The count includes pending bank transactions and items that need a category; possible duplicates are only shown inside the app. Widgets refresh about every 30 minutes, after a background SMS check, and whenever you leave Arth.
 
-If [Hide amounts](home-cards) is on, the widget hides the spent figure too.
+The widgets hide amounts only when [Hide amounts](home-cards) is on in Arth. If [app lock](biometric-lock) is on, **Approve** and **Reject** on the review widget open Catch Up instead, so you unlock Arth before anything is approved.
 
 ## Common situations
 
