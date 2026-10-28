@@ -28,6 +28,9 @@ interface Extra {
   payee?: string;
   amount?: number;
   split?: string;
+  to?: string;
+  type?: string;
+  description?: string | null;
 }
 
 const extraOf = (i: HouseholdItem): Extra => {
@@ -99,6 +102,14 @@ export async function reconcileMirrors(h: Household, userId: string = DEFAULT_US
       const what = i.merchant || i.category_name || "Shared";
       entries.push({ ref: ref(h.id, i.id), personId, type: "credit", amount: mine, date, description: `${what}, your share`, merchant: i.merchant });
       expenses.push({ ref: ref(h.id, i.id), amount: mine, date, merchant: i.merchant, categoryName: i.category_name, description: `Paid by ${who}` });
+    } else if (i.kind === "ledger" && x.to === h.my_member_id && (x.amount ?? 0) > 0) {
+      // Their Hisaab with me, turned round: what they lent me I borrowed, and so on.
+      //   their debit (they gave / I owe them)      → my credit
+      //   their credit (I gave / they owe me)       → my debit
+      //   their settlement (I paid them back)       → my debit
+      const type = x.type === "debit" ? "credit" : "debit";
+      const what = x.description?.trim() || (x.type === "settlement" ? "Settle-up" : "Entry");
+      entries.push({ ref: ref(h.id, i.id), personId, type, amount: round2(x.amount as number), date, description: `${what} (from ${who})`, merchant: null });
     } else if (i.kind === "settle" && (x.amount ?? 0) > 0) {
       const amount = round2(x.amount as number);
       if (x.payee === h.my_member_id && x.payer === i.member_id) {

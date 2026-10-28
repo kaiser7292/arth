@@ -6,7 +6,7 @@ import { getSavingsTrend } from "@/services/savings-tracker";
 import { getFYStartMonth } from "@/services/settings";
 import { getCurrentFY } from "@/utils/fiscal-year";
 import { toIsoDate } from "@/utils/date";
-import { getPersonBalance } from "@/services/hisaab";
+import { getPersonBalance, hisaabExcludeDeletedLinkSql } from "@/services/hisaab";
 import { newId } from "./crypto";
 import { getMemberLinks, sharedInfoFor } from "./shares";
 import { refreshedGoalParts } from "./plans";
@@ -156,8 +156,45 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
     if (ref) localRefs.set(p.id, ref);
   }
 
-  // My Hisaab balance with each member, so their phone can show whether both agree.
+  // My whole Hisaab with each member, so their side of it matches: settle-ups, entries made by
+  // hand, the opening balance, and splits older than the shared window. Left out: entries the
+  // shared transactions above already carry (their "owes"), settle-ups shared as "settle" items,
+  // and rows Together wrote from their side (household_ref) - those came from them.
+  const covered = new Set(items.filter((i) => i.kind === "tx" && i.extra?.owes).map((i) => localRefs.get(i.id)).filter(Boolean) as string[]);
+  const settleEntries = new Set(mine.filter((r) => r.kind === "settle" && r.local_ref).map((r) => r.local_ref as string));
+  const ledgerIdByEntry = new Map(mine.filter((r) => r.kind === "ledger" && r.local_ref).map((r) => [r.local_ref as string, r.id]));
   for (const [memberId, personId] of await getMemberLinks(h.id)) {
+    const person = await getDatabase().getFirstAsync<{ initial_balance: number; created_at: string }>(
+      "SELECT initial_balance, created_at FROM hisaab_persons WHERE id = ?;",
+      personId,
+    );
+    if (person && Math.abs(person.initial_balance ?? 0) > 0.005) {
+      items.push({
+        id: `opening:${memberId}`,
+        kind: "ledger",
+        date: person.created_at.slice(0, 10),
+        extra: { to: memberId, type: person.initial_balance > 0 ? "debit" : "credit", amount: round2(Math.abs(person.initial_balance)), description: "Opening balance" },
+      });
+    }
+    const entries = await getDatabase().getAllAsync<{ id: string; type: string; amount: number; date: string; description: string | null; linked_expense_id: string | null }>(
+      `SELECT e.id, e.type, e.amount, e.date, e.description, e.linked_expense_id FROM hisaab_entries e
+       WHERE e.hisaab_person_id = ? AND e.household_ref IS NULL AND ${hisaabExcludeDeletedLinkSql("e")};`,
+      personId,
+    );
+    for (const e of entries) {
+      if (settleEntries.has(e.id)) continue;
+      if (e.type === "debit" && e.linked_expense_id && covered.has(e.linked_expense_id)) continue;
+      const id = ledgerIdByEntry.get(e.id) ?? `ledger:${newId()}`;
+      localRefs.set(id, e.id);
+      items.push({
+        id,
+        kind: "ledger",
+        date: e.date.slice(0, 10),
+        month: e.date.slice(0, 7),
+        extra: { to: memberId, type: e.type, amount: round2(e.amount), description: e.description ?? null },
+      });
+    }
+    // My balance with them, so their phone can show whether both agree.
     items.push({ id: `net:${memberId}`, kind: "net", extra: { balance: round2(await getPersonBalance(personId)) } });
   }
 

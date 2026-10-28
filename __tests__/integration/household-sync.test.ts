@@ -302,6 +302,43 @@ test("settling up moves both Hisaabs to zero", async () => {
   expect([ab.amount, ab.theirs]).toEqual([0, 0]);
 });
 
+test("everything already in Sourav's Hisaab with her reaches Aastha: settle-ups, opening balance", async () => {
+  const { getBalances } = require("../../services/household/settle");
+  const { getMemberLinks } = require("../../services/household/shares");
+  on(sourav);
+  const sh = (await getActiveHousehold())!;
+  const aasthaId = (await getMembers(sh.id)).find((m) => m.name === "Aastha")!.id;
+  const personId = (await getMemberLinks(sh.id)).get(aasthaId);
+  // Recorded on Sourav's phone by hand, before or outside the household: she started owing 2,000
+  // and later paid him back 5,000.
+  sourav.db.prepare("UPDATE hisaab_persons SET initial_balance = 2000 WHERE id = ?").run(personId);
+  sourav.db
+    .prepare("INSERT INTO hisaab_entries (id, hisaab_person_id, amount, description, date, type, created_at) VALUES ('manual-settle', ?, 5000, 'GPay', '2026-09-10', 'settlement', datetime('now'))")
+    .run(personId);
+  await sync(sourav);
+  await sync(aastha);
+  await sync(sourav);
+  await sync(aastha);
+
+  on(sourav);
+  const [sb] = await getBalances((await getActiveHousehold())!);
+  on(aastha);
+  const [ab] = await getBalances((await getActiveHousehold())!);
+  expect(sb.amount).toBe(-3000); // he now owes her 3,000
+  expect(ab.amount).toBe(3000);
+  expect(ab.theirs).toBe(3000); // both phones agree
+  const mirrored = aastha.db.prepare("SELECT type, amount, description FROM hisaab_entries WHERE household_ref IS NOT NULL AND description LIKE '%GPay%'").get();
+  expect(mirrored).toEqual({ type: "debit", amount: 5000, description: "GPay (from Sourav)" });
+
+  // Back to square for the next steps.
+  sourav.db.prepare("DELETE FROM hisaab_entries WHERE id = 'manual-settle'").run();
+  sourav.db.prepare("UPDATE hisaab_persons SET initial_balance = 0 WHERE id = ?").run(personId);
+  await sync(sourav);
+  await sync(aastha);
+  on(aastha);
+  expect((await getBalances((await getActiveHousehold())!))[0].amount).toBe(0);
+});
+
 test("a budget starts once the other accepts it; goals add up each person's part", async () => {
   const plans = require("../../services/household/plans");
   const month = today().slice(0, 7);
