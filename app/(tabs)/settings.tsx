@@ -133,6 +133,12 @@ export default function SettingsScreen() {
             <SettingsRow icon="list-outline" label="Audit Log" subtitle="See every action taken on detected and manual records" onPress={() => router.push("/settings/audit-log")} />
           </Card>
 
+          {getFlag("household") && (
+            <Card title="Together" className="mb-4">
+              <SettingsRow icon="people-outline" label="Household" subtitle="Share household spending with your partner or family" onPress={() => router.push("/settings/household")} />
+            </Card>
+          )}
+
           <Card title="Integrations" className="mb-4">
             <SettingsRow icon="trending-up-outline" label="Zerodha Kite" subtitle="Connect your Zerodha account to sync portfolio" onPress={() => router.push("/settings/kite-connect")} />
             <SettingsRow icon="bar-chart-outline" label="Angel One" subtitle="Connect your Angel One account to sync portfolio" onPress={() => router.push("/settings/angel-connect" as any)} />

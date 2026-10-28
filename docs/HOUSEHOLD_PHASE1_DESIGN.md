@@ -50,7 +50,7 @@ Defaults in **bold**:
 |---|---|---|
 | Household categories in full | **On** | Each approved transaction in a household category: date, amount you paid, your share (after splits), household category, merchant |
 | Totals of everything else | **On** | Per month, per your own category: one total (e.g. "Shopping ₹4,800"). No transactions, no merchants |
-| Every transaction | Off | All approved spends and credits, like a joint account. Turning it on replaces the two above |
+| Every transaction | Off | All approved spends, like a joint account (income is never shared). Turning it on replaces the two above |
 | Savings rate | Off | Per month, a percentage. Never income or salary |
 | Account balances | Off | Name, type and balance of each account you tick |
 
@@ -86,18 +86,17 @@ A change (an **op**) before encryption:
 
 ```json
 { "v": 1, "hh": "<household id>", "m": "<member id>", "dev": "<device id>",
-  "seq": 42, "at": 1793158652987, "kind": "tx.upsert", "body": { ... } }
+  "seq": 42, "at": 1793158652987, "body": { "kind": "items.upsert", "items": [ ... ] } }
 ```
 
 | kind | body | notes |
 |---|---|---|
-| `member.profile` | name, colour, public keys | first op of every member |
+| `member.profile` | name, colour | public keys come only from the creator's `member.approve` (or the join bundle) |
 | `member.settings` | the sharing choices | so others know what to expect |
-| `tx.upsert` | share id, date, paid, my share, household category or own category name, merchant, kind (spend / refund) | share id is random, not the local expense id |
-| `tx.delete` | share id | |
-| `total.month` | month, category name, amount | replaces that month's totals |
-| `savings.month` | month, rate % | |
-| `balance.set` / `balance.delete` | account label, type, balance, as-of | |
+| `items.upsert` | up to 60 items: id, kind (`tx` / `total` / `savings` / `balance`), month, date, paid, my share, category, merchant, extra | a tx id is random and stable per expense, never the local expense id |
+| `items.delete` | ids | only the author's own items |
+| `resync.request` | from (member id) | "re-send everything": sent when the relay already deleted ops this phone missed |
+| `member.leave` | | the leaver's only op left on the relay |
 | `household.rename`, `household.categories` | | creator only |
 | `member.approve`, `member.remove`, `household.rekey` | | creator only; receivers check the author |
 | `snapshot.begin` / `snapshot.end` | | wraps a full re-send of the member's current state (3.4) |
@@ -119,9 +118,9 @@ A sync: send the outbox → fetch new ops for every member since the cursors →
 The relay deletes ops once every active member has acknowledged them, and anything older than 90 days. A phone that falls further behind (or a newly approved member) asks for a resync; every other member's phone then sends a **snapshot**: its full current shared state for the last 13 months, chunked into ops between `snapshot.begin` and `snapshot.end`. The receiver replaces that member's items with the snapshot.
 
 ### 3.5 Publishing local changes
-A publisher hooks the existing write paths (approve, edit, reject, delete, restore from recycle bin, category change, split change, bulk approve) through one function, `queueHouseholdChanges(expenseIds)`, which recomputes what should be shared for those expenses and writes the difference to the outbox. Monthly totals and savings rate are recomputed for affected months. Turning on a household or changing sharing settings triggers a full recompute (a snapshot).
+As built (`services/household/publisher.ts`): on every sync the publisher recomputes, from the database, everything this phone should share for the last 13 months, compares it with what it already shared (its own rows in `household_items`) and queues only the difference. This catches every write path (approve, edit, split, refund, recategorise, delete, restore) without hooking any of them; a sync is requested a few seconds after any data change. Changing sharing choices, household categories, or someone joining triggers a full re-send (a snapshot).
 
-Only approved, non-deleted debits and credits count, excluding transfers, forecasts and ledger adjustments. "My share" uses `effectiveAmountSql` so splits and linked refunds match the rest of the app.
+Only approved, non-deleted spends count, excluding transfers, forecasts, ledger adjustments, and spends linked to investments or loans. "My share" uses `effectiveAmountSql` so splits and linked refunds match the rest of the app.
 
 ---
 
@@ -131,7 +130,7 @@ Only approved, non-deleted debits and credits count, excluding transfers, foreca
 |---|---|---|
 | Household key | 32 random bytes | SecureStore `household_key_<id>`; in the encrypted backup |
 | Member keys | X25519 (to receive keys) + Ed25519 (to sign ops) | SecureStore `household_member_<id>`; in the encrypted backup |
-| Relay token | `HMAC-SHA256(household key, "arth-relay-v1")` | derived, never stored; the relay stores only its SHA-256 |
+| Relay token | `SHA-512("arth-relay-token-v1" ‖ household key)`, first 32 bytes | derived, never stored; the relay stores only its SHA-256 |
 | Invite secret | 32 random bytes, one use, 24 h | only in the QR / link fragment and the inviter's phone |
 
 **Invite and join, in detail**
@@ -162,15 +161,17 @@ Only approved, non-deleted debits and credits count, excluding transfers, foreca
 | PUT | `/v1/h/:hh/log/:member/:seq` | upload one op (≤ 64 KB). Same seq twice = no-op |
 | GET | `/v1/h/:hh/log?since=m1:12,m2:40` | ops after each cursor, up to 500 per page |
 | POST | `/v1/h/:hh/ack` | this phone's cursors (lets the relay prune) |
-| POST | `/v1/h/:hh/token` | swap token (rekey), authorised with the current token |
+| POST | `/v1/h/:hh/token` | swap token (rekey), authorised with the current token. The old token may still **read** the log for 14 days, so phones that haven't synced yet can fetch the rekey op |
 | DELETE | `/v1/h/:hh/member/:member` | leave: delete that member's log and cursor now |
 | DELETE | `/v1/h/:hh` | close household |
 | POST | `/v1/invites` | register invite (auth: household token) |
 | POST/GET | `/v1/invites/:id/request` | joiner posts / inviter reads join request (auth: invite proof) |
 | POST/GET | `/v1/invites/:id/accept` | inviter posts / joiner collects the key bundle |
 
+`GET /log` also returns `heads`: the highest seq each member has ever written, kept after its ops are pruned. A phone restored from a backup continues after it; the old phone sees someone else now writes as it and stops ("moved"). A closed household answers 404 (wrong token: 401), so phones can tell the two apart.
+
 ### 5.2 Tables (relay)
-`households(id, token_hash, created_at, last_active_at)` · `log(hh, member, seq, blob, size, created_at)` · `cursors(hh, member, acked_json, updated_at)` · `invites(id, hh, expires_at, request_blob, accept_blob)`.
+`households(id, token_hash, old_token_hash, old_token_until, created_at, last_active_at)` · `heads(hh, member, max_seq)` · `log(hh, member, seq, blob, size, created_at)` · `cursors(hh, member, acked_json, updated_at)` · `invites(id, hh, expires_at, request_blob, accept_blob)`.
 
 ### 5.3 Limits and clean-up
 64 KB per op · 2,000 ops per household per day · 5 household creations per IP per minute (Cloudflare rate-limiting binding, in memory; no IP is ever stored) · ops deleted when acknowledged by all active members or after 90 days · invites after 24 h · households idle for 12 months deleted · Worker logs nothing about request bodies; no analytics.
@@ -198,7 +199,7 @@ Checklist from CLAUDE.md, all in the same change:
 1. Migration with `CREATE TABLE IF NOT EXISTS` + indexes; register in `database/migrations/index.ts`.
 2. Every table and column in `TABLE_SCHEMAS.ts`.
 3. All tables in `BACKUP_TABLES` (others' shared items too, so a restore doesn't need a full resync).
-4. Cascades in `data-cleanup.ts`; deleting a category removes its `household_category_map` rows; `permanentlyDeleteExpense` queues a `tx.delete`.
+4. Cascades: deleting a category removes its `household_category_map` rows, deleting an account its `household_balance_accounts` rows (every delete path). Deleted expenses need nothing: the publisher sees they're gone and sends `items.delete`.
 5. Household keys added to the backup payload next to `vaultKey`, and restored the same way.
 6. MMKV: only `household_bg_sync_registered` (device-only) in `SETTINGS_REGISTRY`.
 7. Guard tests (`backup-coverage`, `settings-backup-coverage`) must pass.

@@ -14,6 +14,7 @@ import { CheckInsCard } from "@/components/home/CheckInsCard";
 import { DueRow } from "@/components/home/DueRow";
 import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
 import { BankMessagesCard } from "@/components/home/BankMessagesCard";
+import { HouseholdCard } from "@/components/home/HouseholdCard";
 import { IphoneMessagesSetupCard } from "@/components/home/IphoneMessagesSetupCard";
 import { useAlert } from "@/hooks/use-alert";
 import { formatError } from "@/utils/error-message";
@@ -463,6 +464,8 @@ export default function HomeScreen() {
         <BankMessagesCard />
         {/* iPhone, until the first bank message arrives: how to set up the Shortcut, or paste one. */}
         <IphoneMessagesSetupCard />
+        {/* Together: what someone else in the household just shared. Self-loading; hidden outside one. */}
+        <HouseholdCard />
 
         {/* "Is <name> you?" — once, when bank SMS keep showing a name on transfers. Self-loading. */}
         <SelfNamePromptCard />

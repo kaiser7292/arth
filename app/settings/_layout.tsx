@@ -50,6 +50,12 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="sms-templates/index" options={{ title: "Message Templates" }} />
       <Stack.Screen name="image-templates" options={{ title: "Picture Templates" }} />
       <Stack.Screen name="iphone-bank-messages" options={{ title: "Bank Messages" }} />
+      <Stack.Screen name="household/index" options={{ title: "Household" }} />
+      <Stack.Screen name="household/start" options={{ title: "Start a Household" }} />
+      <Stack.Screen name="household/invite" options={{ title: "Invite" }} />
+      <Stack.Screen name="household/join" options={{ title: "Join a Household" }} />
+      <Stack.Screen name="household/share" options={{ title: "What You Share" }} />
+      <Stack.Screen name="household/categories" options={{ title: "Household Categories" }} />
       <Stack.Screen name="image-template" options={{ title: "Picture Template" }} />
       <Stack.Screen name="sms-templates/new" options={{ title: "Teach Arth" }} />
       <Stack.Screen name="sms-templates/confirm" options={{ title: "Teach Arth" }} />

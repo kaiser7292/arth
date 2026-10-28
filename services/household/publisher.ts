@@ -163,8 +163,10 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
     const ids = await getBalanceAccountIds(h.id);
     if (ids.length) {
       const balances = await getComputedBalances(ids).catch(() => ({}) as Record<string, number | null>);
+      // A label or bank name only: never the account number.
       const accounts = await getDatabase().getAllAsync<{ id: string; name: string; account_type: string }>(
-        `SELECT id, name, account_type FROM financial_accounts WHERE id IN (${ids.map(() => "?").join(",")});`,
+        `SELECT id, COALESCE(NULLIF(account_label, ''), bank_name) AS name, account_type
+         FROM financial_accounts WHERE id IN (${ids.map(() => "?").join(",")});`,
         ...ids,
       );
       for (const a of accounts) {

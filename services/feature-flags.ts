@@ -41,6 +41,8 @@ export const V15_FLAGS = {
   v17_expense_investment_link: true,
   /** v17.0.0: proper loan management (Add Loan wizard, amortization, live outstanding). Off = loans fall back to scalar. */
   v17_loans_v1: true,
+  /** Together, Phase 1: households (docs/HOUSEHOLD_PHASE1_DESIGN.md). Off = Settings row and Home card hidden, no sync. */
+  household: true,
 } as const;
 
 // Type name kept generic (not "V15FlagName") since V15_FLAGS now also holds v17+ flags.

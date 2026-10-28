@@ -63,6 +63,27 @@ const PENDING_JOIN = "arth_household_join";
 
 const clean = (s: string, max = 40) => s.replace(/\s+/g, " ").trim().slice(0, max);
 
+// URLSearchParams isn't complete on every React Native version: a plain encoder/decoder instead.
+function encodeParams(params: Record<string, string>): string {
+  return Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join("&");
+}
+
+function decodeParams(text: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of text.split("&")) {
+    const eq = part.indexOf("=");
+    if (eq <= 0) continue;
+    try {
+      out[decodeURIComponent(part.slice(0, eq))] = decodeURIComponent(part.slice(eq + 1).replace(/\+/g, " "));
+    } catch {
+      /* skip a malformed pair */
+    }
+  }
+  return out;
+}
+
 // ─── Start ───
 
 export async function startHousehold(householdName: string, myName: string): Promise<Household> {
@@ -140,16 +161,16 @@ export async function createInvite(): Promise<Invite> {
   const { expiresAt } = await relay.createInvite(h.relay_url, relayToken(key), id, h.id, await sha256Hex(proof));
   await writePendingInvites([...(await readPendingInvites()), { id, secret: toBase64(secret), expiresAt }]);
 
-  const params = new URLSearchParams({
+  const params: Record<string, string> = {
     v: "1",
     i: id,
     s: toBase64Url(secret),
-    k: mine.boxPublic.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
+    k: toBase64Url(fromBase64(mine.boxPublic)),
     h: h.name,
     b: me?.name ?? "",
-  });
-  if (h.relay_url !== DEFAULT_RELAY_URL) params.set("r", h.relay_url);
-  return { id, link: `${INVITE_PAGE_URL}#${params.toString()}`, expiresAt };
+  };
+  if (h.relay_url !== DEFAULT_RELAY_URL) params.r = h.relay_url;
+  return { id, link: `${INVITE_PAGE_URL}#${encodeParams(params)}`, expiresAt };
 }
 
 export interface JoinRequest {
@@ -259,22 +280,26 @@ export interface InviteLink {
 export function parseInviteLink(text: string): InviteLink | null {
   const hash = text.includes("#") ? text.slice(text.indexOf("#") + 1) : "";
   if (!hash) return null;
-  const p = new URLSearchParams(hash);
-  const inviteId = p.get("i");
-  const secret = p.get("s");
-  const k = p.get("k");
-  if (p.get("v") !== "1" || !inviteId || !secret || !k) return null;
+  const p = decodeParams(hash);
+  const inviteId = p.i;
+  const secret = p.s;
+  const k = p.k;
+  if (p.v !== "1" || !inviteId || !secret || !k) return null;
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(inviteId)) return null;
-  const relayUrl = p.get("r") || DEFAULT_RELAY_URL;
+  const relayUrl = p.r || DEFAULT_RELAY_URL;
   if (!/^https?:\/\//.test(relayUrl)) return null;
-  return {
-    inviteId,
-    secret,
-    inviterBoxPublic: toBase64(fromBase64(k)),
-    householdName: clean(p.get("h") ?? "") || "a household",
-    inviterName: clean(p.get("b") ?? ""),
-    relayUrl,
-  };
+  try {
+    return {
+      inviteId,
+      secret,
+      inviterBoxPublic: toBase64(fromBase64(k)),
+      householdName: clean(p.h ?? "") || "a household",
+      inviterName: clean(p.b ?? ""),
+      relayUrl,
+    };
+  } catch {
+    return null;
+  }
 }
 
 interface PendingJoin {

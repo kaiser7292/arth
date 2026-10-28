@@ -3,6 +3,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { Text } from "@/components/ui";
 import { ALLOWED_DEEP_LINK_SCREENS } from "@/constants/routes";
 import { initDatabase } from "@/database";
+import { useHouseholdSync } from "@/hooks/use-household-sync";
 import { AlertProvider } from "@/hooks/use-alert";
 import { ToastProvider } from "@/components/ui";
 import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
@@ -566,6 +567,9 @@ export default function RootLayout(): React.JSX.Element {
     if (!routerRef.current) return;
     routerRef.current.replace("/(onboarding)/welcome");
   }, [dbReady, minSplashDone, lockEvaluated]);
+
+  // Household sync (Together): on open, on return, and after changes. No-op outside a household.
+  useHouseholdSync(dbReady && minSplashDone);
 
   // Show error screen first if initialization failed
   if (initError) {

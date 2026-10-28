@@ -59,6 +59,14 @@ export function syncHousehold(): Promise<SyncResult> {
 }
 
 let debounce: ReturnType<typeof setTimeout> | null = null;
+/** A sync's own "data changed" signal must not schedule another sync. */
+let quietUntil = 0;
+
+/** For the app-wide data-change listener: sync soon after the person changes something. */
+export function requestSyncAfterChange(): void {
+  if (Date.now() < quietUntil) return;
+  requestSync();
+}
 
 /** Sync a few seconds from now; repeated calls push it back (a burst of edits = one sync). */
 export function requestSync(delayMs = 5000): void {
@@ -86,11 +94,13 @@ async function run(): Promise<SyncResult> {
     h = (await getActiveHousehold()) ?? h;
     if (result.status && result.status !== "active") return result;
     await updateHousehold(h.id, { last_sync_at: new Date().toISOString(), last_sync_error: null });
-    if (result.changed) bumpDataVersion();
+    quietUntil = Date.now() + 1500;
+    bumpDataVersion();
     return result;
   } catch (e) {
     if (e instanceof RelayError && e.status === 404) {
       await endHousehold(h, "closed");
+      quietUntil = Date.now() + 1500;
       bumpDataVersion();
       return { ran: true, changed: true, status: "closed" };
     }
