@@ -10,7 +10,7 @@ Arth - Your Finance, Your Way
 
 ## Short description (max 80)
 
-Private money manager: auto-tracked from bank SMS, shared only if you choose.
+Track spends from bank SMS, budgets and goals, privately. Share with family too.
 
 ## Full description (max 4,000)
 
