@@ -1,59 +1,109 @@
-PROPRIETARY LICENSE — ALL RIGHTS RESERVED
+Arth — Copyright (c) 2025-2026 Sourav Baid
 
-Copyright (c) 2025-2026 Sourav Baid. All rights reserved.
+Required Notice: Copyright (c) 2025-2026 Sourav Baid (https://github.com/kaiser7292/artha)
 
-Artha is proprietary software. This repository, its source code, compiled
-binaries (including APK / AAB files), assets, documentation, and derivative
-works are the exclusive property of Sourav Baid.
+This software is licensed under the PolyForm Noncommercial License 1.0.0,
+reproduced in full below, together with the Commercial Use terms in this
+section.
 
-NO LICENSE IS GRANTED by making this source code available (whether via a
-private repository, a tester invitation, a collaboration arrangement, a
-leak, a fork, or any other means of access). Access to the source does
-not imply permission to use it.
+## Commercial Use
 
-You may NOT, without prior written permission from Sourav Baid:
+Personal and other non-commercial use is permitted under the PolyForm
+Noncommercial License below. No notice or permission is required for it.
 
-  1. Copy, reproduce, or redistribute any portion of this repository, in
-     source or binary form.
-  2. Modify, adapt, translate, or create derivative works.
-  3. Use the code, assets, or any portion of the work for commercial
-     purposes of any kind, including but not limited to selling,
-     sub-licensing, incorporating into another product, using in a paid
-     service, or monetizing via advertising.
-  4. Use the code or assets for non-commercial purposes, including but not
-     limited to personal side-projects, educational demos, or learning
-     exercises that are shared publicly.
-  5. Publish the source code or any portion thereof publicly.
-  6. Reverse engineer, decompile, or disassemble compiled binaries
-     (including distributed APK / AAB files) except to the extent the
-     applicable law expressly permits such activity despite this limitation.
-  7. Remove or alter any copyright, trademark, or other proprietary notices.
+Any commercial use requires prior written permission from Sourav Baid.
+Commercial use includes use by or on behalf of a business, use in a
+product or service offered for a fee, and any use that generates revenue
+directly or indirectly.
 
-The only permitted use of compiled binaries (e.g. APKs downloaded from an
-official distribution channel such as the Google Play Store) is:
+To request permission, write to souravbaid270@gmail.com stating:
+  1. Your legal name (or your organisation's) and address;
+  2. The nature of your business;
+  3. The purpose and scope of the intended use;
+  4. Whether you will modify, redistribute, or offer the software to
+     others, and how;
+  5. The expected number of users or deployments.
 
-  - Installation on personal devices for personal, non-commercial use by
-    the installing end-user.
-  - Normal end-user interaction with the application as intended.
+No commercial rights are granted until written permission is given.
+Permission may be refused, or granted subject to a fee or other terms.
 
-Any use beyond this — including enterprise deployment, redistribution,
-bundling, or resale of the compiled app — requires a separate commercial
-license obtained in writing from Sourav Baid.
+The names "Arth" and "Artha" and their logos are not licensed for any use.
 
-This license does NOT grant rights to any trademarks, service marks, trade
-names, logos, or brand indicia (including but not limited to the name
-"Artha"), whether registered or unregistered.
+Third-party dependencies bundled via package.json retain their own
+licenses and are not governed by this file.
 
-THIS WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR TITLE. IN NO EVENT
-SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
-LIABILITY ARISING FROM OR IN CONNECTION WITH THIS WORK OR ITS USE.
+---
 
-THIRD-PARTY DEPENDENCIES bundled via package.json retain their own
-licenses and are not governed by this file. See the `node_modules/` tree
-or the output of `npx license-checker` for their individual terms.
+# PolyForm Noncommercial License 1.0.0
 
-For commercial licensing enquiries, contact:
-  Sourav Baid
-  (Contact details to be added on request)
+<https://polyformproject.org/licenses/noncommercial/1.0.0>
+
+## Acceptance
+
+In order to get any license under these terms, you must agree to them as both strict obligations and conditions to all your licenses.
+
+## Copyright License
+
+The licensor grants you a copyright license for the software to do everything you might do with the software that would otherwise infringe the licensor's copyright in it for any permitted purpose.  However, you may only distribute the software according to [Distribution License](#distribution-license) and make changes or new works based on the software according to [Changes and New Works License](#changes-and-new-works-license).
+
+## Distribution License
+
+The licensor grants you an additional copyright license to distribute copies of the software.  Your license to distribute covers distributing the software with changes and new works permitted by [Changes and New Works License](#changes-and-new-works-license).
+
+## Notices
+
+You must ensure that anyone who gets a copy of any part of the software from you also gets a copy of these terms or the URL for them above, as well as copies of any plain-text lines beginning with `Required Notice:` that the licensor provided with the software.  For example:
+
+> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
+
+## Changes and New Works License
+
+The licensor grants you an additional copyright license to make changes and new works based on the software for any permitted purpose.
+
+## Patent License
+
+The licensor grants you a patent license for the software that covers patent claims the licensor can license, or becomes able to license, that you would infringe by using the software.
+
+## Noncommercial Purposes
+
+Any noncommercial purpose is a permitted purpose.
+
+## Personal Uses
+
+Personal use for research, experiment, and testing for the benefit of public knowledge, personal study, private entertainment, hobby projects, amateur pursuits, or religious observance, without any anticipated commercial application, is use for a permitted purpose.
+
+## Noncommercial Organizations
+
+Use by any charitable organization, educational institution, public research organization, public safety or health organization, environmental protection organization, or government institution is use for a permitted purpose regardless of the source of funding or obligations resulting from the funding.
+
+## Fair Use
+
+You may have "fair use" rights for the software under the law. These terms do not limit them.
+
+## No Other Rights
+
+These terms do not allow you to sublicense or transfer any of your licenses to anyone else, or prevent the licensor from granting licenses to anyone else.  These terms do not imply any other licenses.
+
+## Patent Defense
+
+If you make any written claim that the software infringes or contributes to infringement of any patent, your patent license for the software granted under these terms ends immediately. If your company makes such a claim, your patent license ends immediately for work on behalf of your company.
+
+## Violations
+
+The first time you are notified in writing that you have violated any of these terms, or done anything with the software not covered by your licenses, your licenses can nonetheless continue if you come into full compliance with these terms, and take practical steps to correct past violations, within 32 days of receiving notice.  Otherwise, all your licenses end immediately.
+
+## No Liability
+
+***As far as the law allows, the software comes as is, without any warranty or condition, and the licensor will not be liable to you for any damages arising out of these terms or the use or nature of the software, under any kind of legal claim.***
+
+## Definitions
+
+The **licensor** is the individual or entity offering these terms, and the **software** is the software the licensor makes available under these terms.
+
+**You** refers to the individual or entity agreeing to these terms.
+
+**Your company** is any legal entity, sole proprietorship, or other kind of organization that you work for, plus all organizations that have control over, are under the control of, or are under common control with that organization.  **Control** means ownership of substantially all the assets of an entity, or the power to direct its management and policies by vote, contract, or otherwise.  Control can be direct or indirect.
+
+**Your licenses** are all the licenses granted to you for the software under these terms.
+
+**Use** means anything you do with the software requiring one of your licenses.
