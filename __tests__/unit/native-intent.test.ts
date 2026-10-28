@@ -17,6 +17,20 @@ describe("Open with Arth", () => {
     expect(hasIncoming()).toBe(false);
   });
 
+  it("parks a widget button's screen when it starts Arth, so it opens after the splash and lock", () => {
+    expect(redirectSystemPath({ path: "artha://expense/from-screenshot", initial: true })).toBe("/");
+    const taken = takeIncoming();
+    expect(taken).toEqual({ kind: "link", href: "/expense/from-screenshot" });
+    expect(hrefForIncoming(taken!)).toBe("/expense/from-screenshot");
+    expect(redirectSystemPath({ path: "artha://?voice=1", initial: true })).toBe("/");
+    expect(takeIncoming()).toEqual({ kind: "link", href: "/?voice=1" });
+  });
+
+  it("lets a widget link route normally while Arth is already running", () => {
+    expect(redirectSystemPath({ path: "artha://expense/add", initial: false })).toBe("artha://expense/add");
+    expect(hasIncoming()).toBe(false);
+  });
+
   it("leaves every other link alone (the Kite login return, routes)", () => {
     expect(redirectSystemPath({ path: "artha://kite-callback?request_token=x", initial: false })).toBe("artha://kite-callback?request_token=x");
     expect(redirectSystemPath({ path: "/settings/merchants", initial: false })).toBe("/settings/merchants");

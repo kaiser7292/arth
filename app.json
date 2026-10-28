@@ -142,13 +142,35 @@
         {
           "widgets": [
             {
+              "name": "ArthCatchUp",
+              "label": "Arth Catch Up",
+              "description": "What's waiting to review, with Add and Voice buttons",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
               "name": "ArthSummary",
-              "label": "Arth summary",
-              "description": "Items to catch up and this month's spending",
+              "label": "Arth this month",
+              "description": "Budget left against the pace of the month, with quick add",
               "minWidth": "180dp",
-              "minHeight": "80dp",
-              "targetCellWidth": 3,
-              "targetCellHeight": 1,
+              "minHeight": "40dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "ArthReview",
+              "label": "Arth review",
+              "description": "Approve or reject new transactions, and see payments due soon",
+              "minWidth": "250dp",
+              "minHeight": "250dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 4,
               "resizeMode": "horizontal|vertical",
               "updatePeriodMillis": 1800000
             }

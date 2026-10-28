@@ -3,6 +3,7 @@
  *   - a backup opened with Arth ("Open with")        -> Backup & Restore
  *   - an image shared to Arth (a payment screenshot) -> Add from screenshot
  *   - text shared to Arth (a payment message)        -> Add from screenshot, read as text
+ *   - a home-screen widget button that started Arth  -> the screen it names
  *
  * It arrives at once, but on a cold start the root layout is still on the splash screen (no screens
  * to route to yet), and the biometric lock then replaces everything with the lock screen and
@@ -15,7 +16,9 @@ export type Incoming =
   | { kind: "image"; uri: string }
   | { kind: "text"; text: string }
   /** iPhone: "Review bank message in Arth" opened Arth -> Just arrived. */
-  | { kind: "bank-messages" };
+  | { kind: "bank-messages" }
+  /** A home-screen widget button that started Arth: an app path like "/expense/add". */
+  | { kind: "link"; href: string };
 
 let pending: Incoming | null = null;
 const listeners = new Set<() => void>();
@@ -54,6 +57,7 @@ export function onIncoming(listener: () => void): () => void {
 export function hrefForIncoming(item: Incoming): string {
   if (item.kind === "backup") return `/settings/backup-restore?incoming=${encodeURIComponent(item.uri)}`;
   if (item.kind === "bank-messages") return "/expense/just-arrived";
+  if (item.kind === "link") return item.href;
   const at = `&at=${Date.now()}`;
   if (item.kind === "image") return `/expense/from-screenshot?uri=${encodeURIComponent(item.uri)}${at}`;
   return `/expense/from-screenshot?text=${encodeURIComponent(item.text.slice(0, 2000))}${at}`;

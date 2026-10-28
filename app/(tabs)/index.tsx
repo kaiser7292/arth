@@ -1,6 +1,6 @@
 import { AiSetupCard } from "@/components/home/AiSetupCard";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { InsightsPage } from "@/components/home/pages/InsightsPage";
 import { ReviewQueuePage } from "@/components/home/pages/ReviewQueuePage";
@@ -348,6 +348,14 @@ export default function HomeScreen() {
     overallStatus === "warning" ? "Watch Spending" : "Over Budget";
 
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
+  // The home-screen widget's Voice button opens artha://?voice=1: open the sheet once, then drop
+  // the param so coming back to Home doesn't open it again.
+  const { voice } = useLocalSearchParams<{ voice?: string }>();
+  useEffect(() => {
+    if (voice !== "1") return;
+    setShowVoiceSheet(true);
+    router.setParams({ voice: undefined });
+  }, [voice, router]);
   // "Hide amounts" privacy toggle — masks every money figure app-wide
   // (formatAmount/formatCompact/formatNumber all check this). Local state
   // here is just for the icon itself; the actual masking is read live by
