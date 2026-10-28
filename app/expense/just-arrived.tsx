@@ -16,6 +16,7 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getLastArrival, importHandedMessages, markArrivalSeen } from "@/services/message-inbox";
 import type { Arrival } from "@/services/message-inbox";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
+import { formatDate } from "@/utils/date";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
@@ -146,26 +147,28 @@ export default function JustArrivedScreen() {
                 </View>
               </View>
               <Text className="text-xs text-muted-foreground mt-0.5">
-                {credit ? "Received" : "Paid"} · {e.date}
-                {e.transaction_time ? ` ${e.transaction_time}` : ""}
+                {credit ? "Received" : "Paid"} · {formatDate(e.date)}
+                {e.transaction_time && e.transaction_time !== "00:00:00" ? `, ${e.transaction_time.slice(0, 5)}` : ""}
               </Text>
               <Row label={credit ? "From" : "To"} value={e.merchant_name ?? e.description ?? "Not read"} />
               <Row label={credit ? "Into" : "From"} value={acct ? `${acct.bank_name} ••${acct.account_identifier}` : "Account not matched"} />
               {!credit && <Row label="Category" value={cat?.name ?? "Pick on Edit"} last />}
-              <View className="flex-row mt-3" style={{ gap: 8 }}>
-                <View style={{ flex: 1 }}>
-                  <Button title="Reject" variant="outline" onPress={() => void act(e, "reject")} disabled={busy != null} />
-                </View>
+              {/* Approve gets its own row: three pill buttons side by side leave each label too
+                  little room, and iOS shrinks it to a few points instead of the intended 85%. */}
+              <View className="mt-3">
+                {needsMore ? (
+                  // A card repayment needs the account it was paid from: the detail screen asks.
+                  <Button title="Review" onPress={() => router.push(`/expense/${e.id}`)} disabled={busy != null} />
+                ) : (
+                  <Button title="Approve" onPress={() => void act(e, "approve")} loading={busy === e.id} disabled={busy != null} />
+                )}
+              </View>
+              <View className="flex-row mt-2" style={{ gap: 8 }}>
                 <View style={{ flex: 1 }}>
                   <Button title="Edit" variant="outline" onPress={() => router.push(`/expense/${e.id}`)} disabled={busy != null} />
                 </View>
-                <View style={{ flex: 1.3 }}>
-                  {needsMore ? (
-                    // A card repayment needs the account it was paid from: the detail screen asks.
-                    <Button title="Review" onPress={() => router.push(`/expense/${e.id}`)} disabled={busy != null} />
-                  ) : (
-                    <Button title="Approve" onPress={() => void act(e, "approve")} loading={busy === e.id} disabled={busy != null} />
-                  )}
+                <View style={{ flex: 1 }}>
+                  <Button title="Reject" variant="outline" onPress={() => void act(e, "reject")} disabled={busy != null} />
                 </View>
               </View>
             </Card>
