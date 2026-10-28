@@ -5,7 +5,9 @@
 ```
 1. Make and commit all code changes
 2. Bump version in ALL of these (same X.Y.Z everywhere):
-     app.json           →  expo.version + expo.android.versionCode
+     app.json           →  expo.version + expo.android.versionCode + expo.ios.buildNumber
+                           (buildNumber = the versionCode, as a string, so iPhone and Android
+                           builds of a release carry the same version and build number)
      package.json       →  "version"
      package-lock.json  →  top-level "version" + packages[""].version (first two "version" lines)
 3. Commit everything + push:  git push origin master
@@ -34,6 +36,8 @@ Examples: `2.11.3` → `21103`
   "versionCode": 21103
 }
 ```
+
+iPhone uses the same numbers: `expo.version` is its version (CFBundleShortVersionString) and `expo.ios.buildNumber` its build (CFBundleVersion); set the build number to the versionCode (`"42800"` for 4.28.0). A build made on the Mac from the released commit then matches the Android release.
 
 `app.json` is what the app actually reads (Settings shows `expoConfig.version`, and prebuild copies it into the Android `versionName`/`versionCode`). `package.json` / `package-lock.json` aren't read at runtime, but keep them in sync — they drifted from 3.12.0 to 3.16.7 unnoticed before being fixed in 3.16.8.
 

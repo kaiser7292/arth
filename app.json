@@ -283,7 +283,7 @@
     "owner": "kaiser7292",
     "ios": {
       "bundleIdentifier": "com.souravbaid.arth",
-      "buildNumber": "5",
+      "buildNumber": "42800",
       "supportsTablet": false,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Arth reads a payment screenshot you choose, on this phone, to fill in a transaction.",
