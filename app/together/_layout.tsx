@@ -10,6 +10,7 @@ export default function TogetherLayout() {
       <Stack.Screen name="settle" options={{ title: "Settle Up" }} />
       <Stack.Screen name="budget" options={{ title: "Household Budget" }} />
       <Stack.Screen name="goal" options={{ title: "Shared Goal" }} />
+      <Stack.Screen name="transactions" options={{ title: "Shared Transactions" }} />
     </Stack>
   );
 }

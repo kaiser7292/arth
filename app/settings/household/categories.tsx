@@ -9,6 +9,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { categoriesRemapped, saveHouseholdCategories } from "@/services/household/household";
 import { getActiveHousehold, getCategoryMap, getHouseholdCategories, setCategoryMapping } from "@/services/household/store";
 import type { Household, HouseholdCategory } from "@/services/household/types";
+import { createFromTheirs, getTheirCategories, mapTheirCategory, type TheirCategory } from "@/services/household/their-categories";
 import { formatError } from "@/utils/error-message";
 
 const NOT_SHARED = "__none__";
@@ -26,6 +27,8 @@ export default function HouseholdCategoriesScreen() {
   const [map, setMap] = useState<Map<string, string>>(new Map());
   const [picking, setPicking] = useState<{ id: string; name: string } | null>(null);
   const [newName, setNewName] = useState("");
+  const [theirs, setTheirs] = useState<TheirCategory[]>([]);
+  const [mappingTheirs, setMappingTheirs] = useState<TheirCategory | null>(null);
 
   const load = useCallback(async () => {
     const hh = await getActiveHousehold();
@@ -42,6 +45,7 @@ export default function HouseholdCategoriesScreen() {
     setHcats(c);
     setMap(m);
     setMine(own);
+    setTheirs(await getTheirCategories(hh).catch(() => []));
   }, []);
   useDataRefresh(load);
 
@@ -61,6 +65,54 @@ export default function HouseholdCategoriesScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        {theirs.length > 0 && (
+          <Card className="mb-3">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Their categories</Text>
+            <Text className="text-xs text-muted-foreground mb-2 leading-4">
+              Categories others in {h.name} file shared bills under that you don&apos;t have. Your share of those bills goes where you choose.
+            </Text>
+            {theirs.map((t) => (
+              <View key={t.name} className="py-2.5 border-b border-border">
+                <View className="flex-row items-center">
+                  <View className="flex-1 mr-2">
+                    <Text className="text-sm text-foreground">{t.name}</Text>
+                    <Text className="text-xs text-muted-foreground">
+                      {t.members.join(", ")}
+                      {t.mappedTo ? ` · goes to your ${mine.find((c) => c.id === t.mappedTo)?.name ?? "category"}` : t.suggestion ? ` · closest: your ${t.suggestion.name}` : ""}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => setMappingTheirs(t)}
+                    className="px-3 py-1 rounded-full border mr-2"
+                    style={{ borderColor: theme.alpha("foreground", 0.15) }}
+                    accessibilityRole="button"
+                  >
+                    <Text className="text-xs" style={{ color: theme.primary }}>{t.mappedTo ? "Change" : "Map"}</Text>
+                  </Pressable>
+                  {!t.mappedTo && (
+                    <Pressable
+                      onPress={async () => {
+                        try {
+                          await createFromTheirs(h, t.name);
+                          toast(`Added ${t.name} to your categories`);
+                          await load();
+                        } catch (e) {
+                          toast(formatError("Categories", e), { tone: "danger" });
+                        }
+                      }}
+                      className="px-3 py-1 rounded-full"
+                      style={{ backgroundColor: theme.alpha("primary", 0.12) }}
+                      accessibilityRole="button"
+                    >
+                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Create</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            ))}
+          </Card>
+        )}
+
         <Card className="mb-3">
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Household categories</Text>
           <Text className="text-xs text-muted-foreground mb-2 leading-4">
@@ -157,6 +209,19 @@ export default function HouseholdCategoriesScreen() {
           await load();
         }}
         onClose={() => setPicking(null)}
+      />
+
+      <SelectSheet<string>
+        visible={!!mappingTheirs}
+        title={mappingTheirs ? `Their "${mappingTheirs.name}" goes to` : ""}
+        value={mappingTheirs?.mappedTo ?? mappingTheirs?.suggestion?.id ?? null}
+        options={mine.map((c) => ({ value: c.id, label: c.name }))}
+        onChange={async (v) => {
+          if (!mappingTheirs) return;
+          await mapTheirCategory(h, mappingTheirs.name, v);
+          await load();
+        }}
+        onClose={() => setMappingTheirs(null)}
       />
     </ScreenContainer>
   );

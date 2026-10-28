@@ -4,6 +4,7 @@ import { permanentlyDeleteExpense } from "@/services/expense-crud";
 import { generateUUID } from "@/utils/uuid";
 import { getMemberLinks } from "./shares";
 import { bestCategoryMatch, categoryWords, getCategoryMap, getHouseholdCategories, getItems, getMembers } from "./store";
+import { getTheirCategoryMap } from "./their-categories";
 import type { Household, HouseholdItem } from "./types";
 
 /**
@@ -55,7 +56,13 @@ async function categoryResolver(h: Household, userId: string): Promise<(...names
   // Loose: same name, a word in common, or the same kind of spending.
   const byName = (name: string) => bestCategoryMatch(name, mine)?.id ?? null;
   const key = (s: string) => categoryWords(s).join("");
+  const theirs = await getTheirCategoryMap(h.id);
   return (...names) => {
+    // My own choice for their category comes first ("Pets" → my "Family").
+    for (const name of names) {
+      const chosen = name ? theirs.get(name.toLowerCase()) : undefined;
+      if (chosen && mine.some((c) => c.id === chosen)) return chosen;
+    }
     for (const name of names) {
       if (!name) continue;
       const hc = hcats.find((c) => key(c.name) === key(name));
@@ -202,12 +209,13 @@ export async function reconcileMirrors(h: Household, userId: string = DEFAULT_US
     household_ref: string;
     amount: number;
     split_original_amount: number | null;
+    category_id: string | null;
     date: string;
     transaction_time: string | null;
     merchant_name: string | null;
     description: string | null;
   }>(
-    "SELECT id, household_ref, amount, split_original_amount, date, transaction_time, merchant_name, description FROM expenses WHERE household_ref LIKE ?;",
+    "SELECT id, household_ref, amount, split_original_amount, category_id, date, transaction_time, merchant_name, description FROM expenses WHERE household_ref LIKE ?;",
     like,
   );
   const expenseByRef = new Map(haveExpenses.map((e) => [e.household_ref, e]));
@@ -255,6 +263,21 @@ export async function reconcileMirrors(h: Household, userId: string = DEFAULT_US
       changed = true;
     }
   }
+  // Category: fill it in when it had none, and follow my choice for their category when I make one
+  // ("map Pets to Family" re-files the bills that already came in). Otherwise leave yours alone.
+  const chosen = await getTheirCategoryMap(h.id);
+  for (const d of expenses) {
+    const have = expenseByRef.get(d.ref);
+    if (!have) continue;
+    const explicit = [d.categoryName, d.ownCategory].some((n) => !!n && chosen.has(n.toLowerCase()));
+    if (have.category_id && !explicit) continue;
+    const want = resolve(d.categoryName, d.ownCategory);
+    if (want && want !== have.category_id) {
+      await db.runAsync("UPDATE expenses SET category_id = ?, updated_at = datetime('now') WHERE id = ?;", want, have.id);
+      changed = true;
+    }
+  }
+
   const wantExpense = new Set(expenses.map((e) => e.ref));
   for (const e of haveExpenses) {
     if (!wantExpense.has(e.household_ref)) {

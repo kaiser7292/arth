@@ -260,6 +260,7 @@ export async function hardDeleteCategory(id: string): Promise<boolean> {
     await db.runAsync("UPDATE recurring_transactions SET category_id = NULL WHERE category_id = ?;", id);
     await db.runAsync("UPDATE hisaab_entries SET category_id = NULL WHERE category_id = ?;", id);
     await db.runAsync("DELETE FROM household_category_map WHERE local_category_id = ?;", id);
+    await db.runAsync("UPDATE household_their_categories SET local_category_id = NULL WHERE local_category_id = ?;", id);
     await db.runAsync("DELETE FROM categories WHERE id = ?;", id);
   });
 

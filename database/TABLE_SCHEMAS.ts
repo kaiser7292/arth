@@ -668,6 +668,8 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
   // migration 087
   household_expense_shares: ["expense_id", "household_id", "shared", "split", "my_pct", "updated_at"] as const,
   household_member_links: ["household_id", "member_id", "hisaab_person_id"] as const,
+  // migration 089
+  household_their_categories: ["household_id", "name", "local_category_id", "updated_at"] as const,
 
   // v16.0.0 — cash-flow simulator (migration 025)
   simulation_scenarios: [

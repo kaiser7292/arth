@@ -335,6 +335,7 @@ export async function endHousehold(h: Household, status: HouseholdStatus): Promi
       "household_items",
       "household_balance_accounts",
       "household_category_map",
+      "household_their_categories",
       "household_categories",
       "household_members",
     ]) {

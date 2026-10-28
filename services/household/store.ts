@@ -93,6 +93,7 @@ export async function deleteHouseholdData(id: string): Promise<void> {
       "household_events",
       "household_expense_shares",
       "household_member_links",
+      "household_their_categories",
       "household_cursors",
       "household_outbox",
       "household_items",

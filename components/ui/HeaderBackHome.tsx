@@ -12,23 +12,20 @@ export function HeaderBackHome() {
   const router = useRouter();
   const navigation = useNavigation();
   const { colors } = useColorScheme();
-  // The first screen of a section opened from another section (Together → Hisaab ledger) has
-  // nothing behind it in its own stack, but the app's history does: check both, or iPhone (no
-  // hardware back) is left without a way back.
-  const canGoBack = navigation.canGoBack() || router.canGoBack();
+  // Always a way back. Whether there's a screen behind can't be trusted at the moment the header
+  // draws: the first screen of a section opened from elsewhere (Home → Hisaab, Together → ledger)
+  // reported nothing behind it, and iPhone has no hardware back. With nothing to go back to, back
+  // goes Home.
+  const goBack = () => {
+    if (navigation.canGoBack() || router.canGoBack()) router.back();
+    else router.replace("/(tabs)");
+  };
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 4, gap: 4 }}>
-      {canGoBack && (
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          accessibilityLabel="Go back"
-          style={{ padding: 4 }}
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.tint} />
-        </Pressable>
-      )}
+      <Pressable onPress={goBack} hitSlop={8} accessibilityLabel="Go back" style={{ padding: 4 }}>
+        <Ionicons name="chevron-back" size={24} color={colors.tint} />
+      </Pressable>
       <Pressable
         onPress={() => router.replace("/(tabs)")}
         hitSlop={8}

@@ -7,28 +7,16 @@ import { Avatar, ago } from "@/components/household/HouseholdBits";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { formatAmount } from "@/utils/format";
-import { getStatement, type Statement, type StatementRow } from "@/services/household/statement";
+import { getStatement, type Statement } from "@/services/household/statement";
 import { ensureMemberLinks, linkMember, linkMemberToNewPerson, type LinkSuggestion } from "@/services/household/shares";
 import { syncHousehold, requestSync } from "@/services/household/sync";
 import { getBudgetState, getGoals, type BudgetState, type Goal } from "@/services/household/plans";
+import { getTheirCategories } from "@/services/household/their-categories";
 
 const thisMonth = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
-
-function dayLabel(date: string): string {
-  const today = new Date();
-  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const y = new Date(today);
-  y.setDate(today.getDate() - 1);
-  if (date === iso(today)) return "Today";
-  if (date === iso(y)) return "Yesterday";
-  const d = new Date(`${date}T00:00:00`);
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-}
-
-const SPLIT_LABEL: Record<string, string> = { equal: "split equally", payer_all: "shared, paid in full", custom: "custom split" };
 
 /**
  * Together: the household's shared money in one statement (Together rework). Who paid what, what
@@ -42,9 +30,9 @@ export default function TogetherScreen() {
   const [month, setMonth] = useState(thisMonth());
   const [s, setS] = useState<Statement | null | undefined>(undefined);
   const [suggestions, setSuggestions] = useState<LinkSuggestion[]>([]);
-  const [who, setWho] = useState<string | null>(null);
   const [budget, setBudget] = useState<BudgetState | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [theirCount, setTheirCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
 
   const load = useCallback(async () => {
@@ -54,20 +42,19 @@ export default function TogetherScreen() {
       setSuggestions(await ensureMemberLinks(st.household).catch(() => []));
       setBudget(await getBudgetState(st.household, month).catch(() => null));
       setGoals(await getGoals(st.household).catch(() => []));
+      setTheirCount((await getTheirCategories(st.household).catch(() => [])).filter((t) => t.needsChoice).length);
     }
   }, [month]);
   useDataRefresh(load);
 
-  const rows = useMemo(() => (s?.rows ?? []).filter((r) => !who || r.member.id === who), [s, who]);
-  const groups = useMemo(() => {
-    const out: { date: string; rows: StatementRow[] }[] = [];
-    for (const r of rows) {
-      const last = out[out.length - 1];
-      if (last && last.date === r.date) last.rows.push(r);
-      else out.push({ date: r.date, rows: [r] });
+  const byCategory = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const r of s?.rows ?? []) {
+      if (r.relation.kind === "settle" || r.relation.kind === "personal" || !r.category) continue;
+      totals.set(r.category, (totals.get(r.category) ?? 0) + r.paid);
     }
-    return out;
-  }, [rows]);
+    return [...totals.entries()].sort((x, y) => y[1] - x[1]);
+  }, [s]);
 
   const syncNow = async () => {
     setSyncing(true);
@@ -299,71 +286,71 @@ export default function TogetherScreen() {
             )}
           </Card>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2" contentContainerStyle={{ gap: 6 }}>
-            {[{ id: null as string | null, name: "Everyone" }, ...s.members.map((m) => ({ id: m.id, name: m.id === h.my_member_id ? "You" : m.name }))].map((c) => {
-              const on = who === c.id;
+          {theirCount > 0 && (
+            <Pressable onPress={() => router.push("/settings/household/categories")}>
+              <Card className="mb-3">
+                <View className="flex-row items-center">
+                  <Ionicons name="pricetags-outline" size={18} color={theme.warning} />
+                  <Text className="text-sm text-foreground flex-1 ml-2">
+                    {theirCount} categor{theirCount === 1 ? "y" : "ies"} from your household you don&apos;t have. Map or create them.
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
+                </View>
+              </Card>
+            </Pressable>
+          )}
+
+          {/* Totals, like the accounts screens: tap one for its transactions. */}
+          <Card className="mb-3">
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Shared spending</Text>
+            {s.byMember.map((b) => {
+              const count = s.rows.filter((r) => r.member.id === b.member.id && r.relation.kind !== "settle" && r.relation.kind !== "personal").length;
               return (
                 <Pressable
-                  key={c.id ?? "all"}
-                  onPress={() => setWho(c.id)}
-                  className="px-3 py-1.5 rounded-full border"
-                  style={{ borderColor: on ? "transparent" : theme.alpha("foreground", 0.15), backgroundColor: on ? theme.alpha("primary", 0.12) : "transparent" }}
+                  key={b.member.id}
+                  onPress={() => router.push({ pathname: "/together/transactions", params: { month, member: b.member.id } })}
+                  className="flex-row items-center py-2.5 border-b border-border"
                   accessibilityRole="button"
-                  accessibilityState={{ selected: on }}
                 >
-                  <Text className="text-xs" style={{ color: on ? theme.primary : theme.mutedForeground }}>{c.name}</Text>
+                  <Avatar member={b.member} size={28} />
+                  <View className="flex-1 ml-3">
+                    <Text className="text-sm text-foreground">{b.member.id === h.my_member_id ? "You" : b.member.name}</Text>
+                    <Text className="text-xs text-muted-foreground">{count} shared bill{count === 1 ? "" : "s"} paid</Text>
+                  </View>
+                  <Text className="text-sm font-semibold text-foreground mr-1">{formatAmount(b.paid)}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
                 </Pressable>
               );
             })}
-          </ScrollView>
+            <Pressable
+              onPress={() => router.push({ pathname: "/together/transactions", params: { month } })}
+              className="flex-row items-center pt-2.5"
+              accessibilityRole="button"
+            >
+              <Text className="text-sm flex-1" style={{ color: theme.primary }}>All transactions</Text>
+              <Ionicons name="chevron-forward" size={14} color={theme.primary} />
+            </Pressable>
+          </Card>
 
-          {groups.length === 0 ? (
-            <Card>
-              <Text className="text-sm text-muted-foreground">
-                No shared spending in this month yet. Spending in household categories is shared as you approve it; any other
-                transaction can be shared from its screen.
-              </Text>
+          {byCategory.length > 0 && (
+            <Card className="mb-3">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">By category</Text>
+              {byCategory.map(([c, amount]) => (
+                <Pressable
+                  key={c}
+                  onPress={() => router.push({ pathname: "/together/transactions", params: { month, category: c } })}
+                  className="flex-row items-center py-2.5 border-b border-border"
+                  accessibilityRole="button"
+                >
+                  <Text className="text-sm text-foreground flex-1">{c}</Text>
+                  <Text className="text-sm text-foreground mr-1">{formatAmount(amount)}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
+                </Pressable>
+              ))}
             </Card>
-          ) : (
-            groups.map((g) => (
-              <View key={g.date} className="mb-2">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-1">{dayLabel(g.date)}</Text>
-                <Card>
-                  {g.rows.map((r, idx) => (
-                    <Pressable
-                      key={r.id}
-                      disabled={!r.expenseId}
-                      onPress={() => r.expenseId && router.push(`/expense/${r.expenseId}`)}
-                      className={`flex-row items-center py-2.5 ${idx < g.rows.length - 1 ? "border-b border-border" : ""}`}
-                    >
-                      <Avatar member={r.member} size={28} />
-                      <View className="flex-1 ml-3 mr-2">
-                        <Text className="text-sm text-foreground" numberOfLines={1}>{r.merchant || r.category || "Shared"}</Text>
-                        <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-                          {r.relation.kind === "settle"
-                            ? "Settle-up"
-                            : [r.category, r.relation.kind === "personal" ? "personal" : SPLIT_LABEL[r.split ?? "equal"]].filter(Boolean).join(" · ")}
-                        </Text>
-                      </View>
-                      <View className="items-end">
-                        <Text className="text-sm text-foreground">{formatAmount(r.paid)}</Text>
-                        {r.relation.kind === "you_owe" && (
-                          <Text className="text-xs" style={{ color: theme.danger }}>you owe {formatAmount(r.relation.amount)}</Text>
-                        )}
-                        {r.relation.kind === "owes_you" && (
-                          <Text className="text-xs" style={{ color: theme.primary }}>
-                            {r.relation.with} owes {formatAmount(r.relation.amount)}
-                          </Text>
-                        )}
-                      </View>
-                    </Pressable>
-                  ))}
-                </Card>
-              </View>
-            ))
           )}
 
-          {s.totalsOnly.length > 0 && !who && (
+          {s.totalsOnly.length > 0 && (
             <Card className="mt-2">
               <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Personal spending · totals only</Text>
               {s.totalsOnly
