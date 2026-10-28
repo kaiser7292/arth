@@ -27,6 +27,14 @@ CREATE TABLE IF NOT EXISTS cursors (
   PRIMARY KEY (hh, member)
 );
 
+-- Highest seq each member has written (kept after pruning; see GET /log "heads").
+CREATE TABLE IF NOT EXISTS heads (
+  hh TEXT NOT NULL,
+  member TEXT NOT NULL,
+  max_seq INTEGER NOT NULL,
+  PRIMARY KEY (hh, member)
+);
+
 CREATE TABLE IF NOT EXISTS quota (
   hh TEXT NOT NULL,
   day TEXT NOT NULL,

@@ -126,6 +126,9 @@ test("prunes ops once every other member has acknowledged them", async () => {
 
   await call("POST", `/v1/h/${HH}/ack`, { body: { member: M2, cursors: { [M1]: 2 } } });
   assert.equal(count(), 1);
+  // The highest seq survives pruning.
+  const after = await call("GET", `/v1/h/${HH}/log?since=${M1}:3`);
+  assert.deepEqual(after.body.heads, { [M1]: 3 });
 });
 
 test("enforces the daily quota", async () => {
@@ -157,7 +160,7 @@ test("closing deletes everything for the household", async () => {
   const { call, env } = await withHousehold();
   await call("PUT", `/v1/h/${HH}/log/${M1}/1`, { body: { blob: "AA" } });
   assert.equal((await call("DELETE", `/v1/h/${HH}`)).status, 200);
-  for (const t of ["households", "log", "cursors", "quota", "invites"]) {
+  for (const t of ["households", "log", "cursors", "heads", "quota", "invites"]) {
     assert.equal(env.DB.db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n, 0, t);
   }
 });

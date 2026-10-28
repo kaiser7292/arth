@@ -154,6 +154,7 @@ async function deleteHousehold(env, hh) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM log WHERE hh = ?1").bind(hh),
     env.DB.prepare("DELETE FROM cursors WHERE hh = ?1").bind(hh),
+    env.DB.prepare("DELETE FROM heads WHERE hh = ?1").bind(hh),
     env.DB.prepare("DELETE FROM quota WHERE hh = ?1").bind(hh),
     env.DB.prepare("DELETE FROM invites WHERE hh = ?1").bind(hh),
     env.DB.prepare("DELETE FROM households WHERE id = ?1").bind(hh),
@@ -223,6 +224,11 @@ async function route(request, env, now) {
       const inserted = (res.meta && res.meta.changes) > 0;
       if (inserted) {
         await env.DB.prepare(
+          "INSERT INTO heads (hh, member, max_seq) VALUES (?1, ?2, ?3) ON CONFLICT (hh, member) DO UPDATE SET max_seq = MAX(max_seq, ?3)",
+        )
+          .bind(hh, member, seq)
+          .run();
+        await env.DB.prepare(
           "INSERT INTO quota (hh, day, count) VALUES (?1, ?2, 1) ON CONFLICT (hh, day) DO UPDATE SET count = count + 1",
         )
           .bind(hh, day)
@@ -253,12 +259,18 @@ async function route(request, env, now) {
       )
         .bind(hh)
         .all();
+      const { results: headRows } = await env.DB.prepare("SELECT member, max_seq FROM heads WHERE hh = ?1")
+        .bind(hh)
+        .all();
       const more = results.length > limit;
       return json({
         ops: results.slice(0, limit).map((r) => ({ m: r.member, seq: r.seq, blob: r.blob })),
         more,
         // Lets a phone notice it fell behind ops the relay has already deleted (min > its cursor + 1).
         ranges: Object.fromEntries(ranges.map((r) => [r.member, { min: r.min, max: r.max }])),
+        // Highest seq each member has ever written, kept after its ops are pruned: a phone restored
+        // from a backup continues after it, and the old phone sees someone else now writes as it.
+        heads: Object.fromEntries(headRows.map((r) => [r.member, r.max_seq])),
       });
     }
 
@@ -295,6 +307,7 @@ async function route(request, env, now) {
       await env.DB.batch([
         env.DB.prepare("DELETE FROM log WHERE hh = ?1 AND member = ?2").bind(hh, member),
         env.DB.prepare("DELETE FROM cursors WHERE hh = ?1 AND member = ?2").bind(hh, member),
+        env.DB.prepare("DELETE FROM heads WHERE hh = ?1 AND member = ?2").bind(hh, member),
       ]);
       return json({ ok: true });
     }
