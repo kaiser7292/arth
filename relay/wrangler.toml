@@ -1,0 +1,27 @@
+# Arth household relay. Deploy steps: README.md in this folder.
+name = "arth-relay"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+routes = [{ pattern = "sync.souravbaid.com", custom_domain = true }]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "arth-relay"
+# Filled in once with the id printed by `npx wrangler@4 d1 create arth-relay`.
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# New households per IP address: counted in memory by Cloudflare, never stored.
+[[ratelimits]]
+name = "CREATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }
+
+# Daily clean-up: old ops, expired invites, idle households.
+[triggers]
+crons = ["17 3 * * *"]
+
+# No request logs: the relay keeps nothing about who called it.
+[observability]
+enabled = false

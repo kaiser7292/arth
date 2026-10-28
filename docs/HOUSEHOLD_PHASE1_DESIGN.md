@@ -173,7 +173,7 @@ Only approved, non-deleted debits and credits count, excluding transfers, foreca
 `households(id, token_hash, created_at, last_active_at)` · `log(hh, member, seq, blob, size, created_at)` · `cursors(hh, member, acked_json, updated_at)` · `invites(id, hh, expires_at, request_blob, accept_blob)`.
 
 ### 5.3 Limits and clean-up
-64 KB per op · 2,000 ops per household per day · 10 household creations per IP per day (Cloudflare rate-limiting binding, in memory; no IP is ever stored) · ops deleted when acknowledged by all active members or after 90 days · invites after 24 h · households idle for 12 months deleted · Worker logs nothing about request bodies; no analytics.
+64 KB per op · 2,000 ops per household per day · 5 household creations per IP per minute (Cloudflare rate-limiting binding, in memory; no IP is ever stored) · ops deleted when acknowledged by all active members or after 90 days · invites after 24 h · households idle for 12 months deleted · Worker logs nothing about request bodies; no analytics.
 
 ---
 
@@ -269,7 +269,7 @@ Form answers after Phase 1 (on top of today's broker entries in `docs/PLAY_STORE
 - Deletion: **Yes**. Explain: leaving a household deletes your entries from the relay; the relay deletes everything within 90 days anyway; closing the household deletes it.
 
 Design rules this adds, so the answers stay true:
-1. The Worker never writes an IP address (or anything derived from one) to D1 or logs. The "10 creations per IP per day" limit uses Cloudflare's rate-limiting binding, which counts in memory, not D1.
+1. The Worker never writes an IP address (or anything derived from one) to D1 or logs. The per-IP limit on new households uses Cloudflare's rate-limiting binding, which counts in memory, not D1.
 2. The device id and names only ever travel inside encrypted ops (already so).
 3. Leaving calls a new `DELETE /v1/h/:hh/member/:member` that deletes that member's log and cursor rows on the relay immediately.
 4. No analytics, crash reporting or logging of request bodies on the relay.
