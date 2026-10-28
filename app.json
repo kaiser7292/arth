@@ -137,6 +137,7 @@
       "./plugins/withBankMessageIntent",
       "./plugins/withReleaseSigning",
       "./plugins/withR8",
+      "./plugins/withMlKitModels",
       [
         "react-native-android-widget",
         {
