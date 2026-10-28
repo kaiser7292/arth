@@ -108,14 +108,14 @@ export default function ShareScreen() {
           <Row
             title="Household categories in full"
             body="Each approved spend in a household category: date, amount, your share and merchant."
-            value={choices.householdCategories}
+            value={choices.householdCategories && !choices.allTransactions}
             onChange={(v) => set({ householdCategories: v })}
             disabled={choices.allTransactions}
           />
           <Row
             title="Totals of everything else"
             body="One total a month per category. No transactions, no merchants."
-            value={choices.otherTotals}
+            value={choices.otherTotals && !choices.allTransactions}
             onChange={(v) => set({ otherTotals: v })}
             disabled={choices.allTransactions}
           />

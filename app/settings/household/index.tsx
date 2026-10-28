@@ -66,6 +66,7 @@ export default function HouseholdScreen() {
   const [loaded, setLoaded] = useState(false);
   const [h, setH] = useState<Household | null>(null);
   const [members, setMembers] = useState<HouseholdMember[]>([]);
+  const [everMembers, setEverMembers] = useState<HouseholdMember[]>([]);
   const [events, setEvents] = useState<HouseholdEvent[]>([]);
   const [items, setItems] = useState<HouseholdItem[]>([]);
   const [requests, setRequests] = useState<JoinRequest[]>([]);
@@ -77,8 +78,10 @@ export default function HouseholdScreen() {
     const hh = await getHousehold();
     setH(hh);
     if (hh && hh.status === "active") {
-      const [m, e, it] = await Promise.all([getMembers(hh.id), getEvents(hh.id, 30), getItems(hh.id)]);
-      setMembers(m);
+      // Everyone who was ever in it, so activity from someone who left still shows their name.
+      const [all, e, it] = await Promise.all([getMembers(hh.id, true), getEvents(hh.id, 30), getItems(hh.id)]);
+      setEverMembers(all);
+      setMembers(all.filter((m) => !m.removed_at));
       setEvents(e);
       setItems(it);
       if (hh.role === "creator") getJoinRequests().then(setRequests).catch(() => undefined);
@@ -183,7 +186,7 @@ export default function HouseholdScreen() {
 
   // ── In a household ──
   const isCreator = h.role === "creator";
-  const nameOf = (id: string | null) => (id === h.my_member_id ? "You" : (members.find((m) => m.id === id)?.name ?? "Someone"));
+  const nameOf = (id: string | null) => (id === h.my_member_id ? "You" : (everMembers.find((m) => m.id === id)?.name ?? "Someone"));
   const month = new Date().toISOString().slice(0, 7);
   const sharedThisMonth = (memberId: string) =>
     items.filter((i) => i.member_id === memberId && i.month === month && (i.kind === "tx" || i.kind === "total")).reduce((s, i) => s + (i.my_share ?? 0), 0);
