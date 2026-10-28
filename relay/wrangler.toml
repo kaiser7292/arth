@@ -10,7 +10,7 @@ routes = [{ pattern = "sync.souravbaid.com", custom_domain = true }]
 binding = "DB"
 database_name = "arth-relay"
 # Filled in once with the id printed by `npx wrangler@4 d1 create arth-relay`.
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "8f6ef061-c6cf-48f6-804c-4f8230e76b24"
 
 # New households per IP address: counted in memory by Cloudflare, never stored.
 [[ratelimits]]
