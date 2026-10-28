@@ -110,8 +110,11 @@ export default function TogetherScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} refreshControl={<RefreshControl refreshing={syncing} onRefresh={syncNow} />}>
-        <PeriodNavigator mode="month" value={month} onChange={setMonth} />
+      <PeriodNavigator mode="month" value={month} onChange={setMonth} />
+      <ScrollView
+        contentContainerStyle={{ paddingTop: 12, paddingBottom: 40 }}
+        refreshControl={<RefreshControl refreshing={syncing} onRefresh={syncNow} />}
+      >
         <View className="px-4">
           {suggestions.map((sg) => (
             <Card key={sg.member.id} className="mb-3">

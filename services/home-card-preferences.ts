@@ -19,6 +19,7 @@ export type HomeCardId =
   | "check_ins"
   | "total_spent"
   | "hisaab"
+  | "household"
   | "insights"
   | "credit_cards"
   | "bank_balances"
@@ -77,6 +78,12 @@ export const HOME_CARDS: HomeCardMeta[] = [
     id: "hisaab",
     label: "Hisaab — Family Ledger",
     description: "Quick access to shared expense tracking with family & friends",
+    defaultVisible: true,
+  },
+  {
+    id: "household",
+    label: "Together — Household",
+    description: "What your household spent together this month and who owes whom (only when you're in a household)",
     defaultVisible: true,
   },
   {
