@@ -154,11 +154,11 @@ nav .w,footer .w{max-width:1080px}
   <div class="doc-section" id="privacy">
     <div class="doc-title">Privacy Policy</div>
     <div class="doc-body">
-      <span class="effective">Effective: 23 October 2026</span>
-      <p>This policy covers Arth, the Android app published by Sourav Baid (&ldquo;we&rdquo;). Arth has no user accounts, no Arth cloud and no servers that receive your data. Your financial records are stored in a database on your phone, and we cannot see them.</p>
+      <span class="effective">Effective: 29 October 2026</span>
+      <p>This policy covers Arth, the Android app published by Sourav Baid (&ldquo;we&rdquo;). Arth has no user accounts and no servers that can read your data. Your financial records are stored in a database on your phone, and we cannot see them. If you join a household (optional), what you choose to share travels end-to-end encrypted through a relay that cannot read it; see <em>Households</em> below.</p>
 
       <h3>Data stored on your device</h3>
-      <p>Transactions, accounts, balances, budgets, loans, investments, family ledger (Hisaab) entries, reminders, settings and any passwords you save in the Vault are stored only on your device. Vault entries and broker credentials are encrypted with a key protected by Android&rsquo;s secure keystore. None of this is sent to us.</p>
+      <p>Transactions, accounts, balances, budgets, loans, investments, family ledger (Hisaab) entries, reminders, settings, any passwords you save in the Vault, and what members of your household share with you are stored only on your device. Vault entries and broker credentials are encrypted with a key protected by Android&rsquo;s secure keystore. None of this is sent to us.</p>
 
       <h3>SMS messages</h3>
       <p>If you allow it, Arth reads the SMS messages on your phone to find bank, card and UPI transaction alerts. It keeps only messages from banks and payment services and ignores personal messages. From those alerts it extracts the amount, date, merchant, account or card last 4 digits and balance, and uses them to add your transactions and keep account balances up to date. Recognised alerts are stored on your device so you can review them. SMS messages are processed only on your device and are never uploaded, shared or sent to any server, including ours. You can turn SMS reading off in Settings, and revoke the permission in Android settings, at any time.</p>
@@ -174,11 +174,22 @@ nav .w,footer .w{max-width:1080px}
       </ul>
       <p>Each of these services has its own privacy policy, which applies to the data you send them.</p>
 
+      <h3 id="households">Households (optional)</h3>
+      <p>If you start or join a household, you and up to four others can see shared spending together. Nothing is shared just by joining.</p>
+      <ul>
+        <li><strong>What is sent.</strong> Only what you choose: transactions you mark shared (amount, your share, date, time, merchant, category and description) and how they are split; monthly category totals, a monthly savings rate or account balances (name, type and balance), if you turn those on; your Hisaab entries with the members of your household; settle-ups, a household budget and shared goals you create; the name you give yourself; and your sharing choices. Never sent: transactions you keep personal (beyond totals you choose to share), income, SMS text, account or card numbers, the Vault, loans or broker data.</li>
+        <li><strong>How.</strong> Everything is encrypted on your phone (XSalsa20-Poly1305, signed with Ed25519) with a key that only your household&rsquo;s phones have, before it leaves. Neither we nor our hosting provider can read it. Joining needs an invite from the household and approval on the inviting phone, and both phones show a check code to compare.</li>
+        <li><strong>The relay.</strong> Encrypted changes pass through a relay we run on Cloudflare (<a href="https://www.cloudflare.com/privacypolicy/">Cloudflare privacy policy</a>), our hosting provider. It stores only encrypted data, random household and member identifiers, and when and how much was sent. Cloudflare sees your phone&rsquo;s IP address when it connects, as with any website; the relay does not store it. There are no analytics or logs of what is sent.</li>
+        <li><strong>How long.</strong> Each change is deleted from the relay once every phone in the household has it, and in any case after 90 days. Invites expire after 24 hours. A household no phone has used for 12 months is deleted.</li>
+        <li><strong>The other members.</strong> What you share is stored on their phones, under their control, like the rest of their Arth data. Removing someone changes the household&rsquo;s key so they cannot read anything sent afterwards; what they already had stays on their phone.</li>
+        <li><strong>Leaving.</strong> Leave in Settings &rarr; Household: your shared data is deleted from the relay at once and from the other phones when they next sync. Whoever started the household can close it, which deletes it from the relay. Splits and Hisaab entries already on your phone stay, because they record real money between you.</li>
+      </ul>
+
       <h3>Other permissions</h3>
       <ul>
         <li><strong>Calendar</strong>, only if you turn on calendar sync, to add bills, EMIs and reminders to the calendar you choose.</li>
         <li><strong>Microphone</strong>, only while you use voice entry.</li>
-        <li><strong>Camera and photos</strong>, only when you add a transaction from a picture. The picture you choose, share to Arth or take is read on your device to fill in the transaction, and is never uploaded or sent anywhere. Arth sees only pictures you pick; it has no access to the rest of your photos. If you link your UPI IDs to accounts or teach Arth a picture layout, those are stored on your device like the rest of your data.</li>
+        <li><strong>Camera</strong>, also to scan a household invite QR code, read on your device. <strong>Camera and photos</strong>, only when you add a transaction from a picture. The picture you choose, share to Arth or take is read on your device to fill in the transaction, and is never uploaded or sent anywhere. Arth sees only pictures you pick; it has no access to the rest of your photos. If you link your UPI IDs to accounts or teach Arth a picture layout, those are stored on your device like the rest of your data.</li>
         <li><strong>Notifications, alarms and start on boot</strong>, for reminders and the daily summary.</li>
         <li><strong>Fingerprint or face</strong>, for app lock. Biometric data is handled by Android and never seen by Arth.</li>
       </ul>
@@ -190,7 +201,7 @@ nav .w,footer .w{max-width:1080px}
       <p>Arth contains no analytics, advertising, crash-reporting or tracking libraries. We do not sell or share your data, and we have no visibility into how you use the app.</p>
 
       <h3>Keeping and deleting your data</h3>
-      <p>Your data stays on your device until you delete it. You can delete individual records in the app (deleted items are kept in the Recycle Bin for 30 days), disconnect any broker in Settings, or remove everything by clearing Arth&rsquo;s storage or uninstalling the app. Because we hold none of your data, there is nothing for us to delete on our side.</p>
+      <p>Your data stays on your device until you delete it. You can delete individual records in the app (deleted items are kept in the Recycle Bin for 30 days), disconnect any broker in Settings, leave a household, or remove everything by clearing Arth&rsquo;s storage or uninstalling the app. We hold none of your data in a form we can read; the only thing on our side is a household&rsquo;s encrypted changes, deleted as described under <em>Households</em>.</p>
 
       <h3>Grievance contact</h3>
       <p>For any question or complaint about how Arth handles personal data, including under India&rsquo;s Digital Personal Data Protection Act, 2023, contact the developer: Sourav Baid, <a href="mailto:souravbaid270@gmail.com">souravbaid270@gmail.com</a>.</p>
@@ -208,7 +219,8 @@ nav .w,footer .w{max-width:1080px}
   <div class="doc-section" id="delete-data">
     <div class="doc-title">Delete your Arth data</div>
     <div class="doc-body">
-      <p>Arth (by Sourav Baid) has no user accounts and no servers that store your data. Everything Arth keeps is on your phone, so you can delete it yourself at any time, without asking us.</p>
+      <p>Arth (by Sourav Baid) has no user accounts and no servers that can read your data. Everything Arth keeps is on your phone, so you can delete it yourself at any time, without asking us.</p>
+      <p><strong>In a household?</strong> Leave it first (Settings &rarr; Household &rarr; Leave household). That deletes what you shared from Arth&rsquo;s relay at once and from the other members&rsquo; phones when they next sync. Uninstalling without leaving also works: what you shared is deleted from the relay within 90 days.</p>
       <h3>Delete everything</h3>
       <ol>
         <li>Optional: if you want a copy first, open Arth &rarr; <strong>Settings &rarr; Backup &amp; Restore</strong> and create a backup.</li>

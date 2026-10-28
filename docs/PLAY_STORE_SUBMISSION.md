@@ -52,6 +52,7 @@ phone (SMS, transactions, everything in the database) is **not** collected and i
 | Data type | Collected | Shared | Ephemeral | Required? | Purpose |
 |---|---|---|---|---|---|
 | Personal info → **User IDs** (Zerodha / Angel One client ID) | Yes | No | Yes | Optional | App functionality |
+| **Device or other IDs** (random household and member IDs the household relay keeps; v4.28+) | Yes | No | No | Optional | App functionality |
 | Financial info → **Other financial info** (user's own broker API keys/secrets and access tokens, sent only to the broker to fetch holdings; the Kite secret itself is never sent, only a checksum) | Yes | No | Yes | Optional | App functionality |
 
 Not declared, with reasoning (keep in case Google asks):
@@ -61,6 +62,13 @@ Not declared, with reasoning (keep in case Google asks):
   (collected, ephemeral, optional, app functionality).
 - **Sharing** — sending credentials to a broker because the user asked to connect it is a
   user-initiated transfer, which Play exempts from "sharing".
+- **Households (v4.28+)** — what members share (transactions, totals, Hisaab entries, names,
+  budgets, goals) is end-to-end encrypted on the phone; neither we nor Cloudflare can read it, so
+  Play's E2E rule says it isn't "collected". Cloudflare hosts the relay for us (a service provider,
+  not "sharing"); members sharing with each other is user-initiated. The relay never stores IP
+  addresses. Only the random household/member IDs are declared (row above).
+- **Deletion question** — still **Yes**: leaving a household deletes your entries from the relay at
+  once, and the relay deletes everything within 90 days anyway.
 
 ## 3. Other App content forms
 

@@ -10,11 +10,11 @@ Arth - Your Finance, Your Way
 
 ## Short description (max 80)
 
-Plan, track and grow your money privately. Auto-tracked from bank SMS. No cloud.
+Private money manager: auto-tracked from bank SMS, shared only if you choose.
 
 ## Full description (max 4,000)
 
-Arth is an SMS-based money manager that brings your financial life into one private app. It reads the transaction alerts your bank already sends you, on your phone, and turns them into accounts, budgets, loans, goals and net worth that stay up to date by themselves. No bank login, no account to create, no cloud, no ads.
+Arth is an SMS-based money manager that brings your financial life into one private app. It reads the transaction alerts your bank already sends you, on your phone, and turns them into accounts, budgets, loans, goals and net worth that stay up to date by themselves. No bank login, no account to create, no ads, and nothing leaves your phone unless you choose to share it.
 
 SEE IT ALL IN ONE PLACE
 • Savings accounts, credit cards, wallets, deposits, loans and EPF in one place, with month-by-month ledgers
@@ -39,6 +39,7 @@ SPEND WITH INTENT
 
 MONEY WITH PEOPLE
 • Hisaab, a family ledger for money lent and borrowed, where splitting an expense records each person's share automatically
+• Households: share household spending with your partner or family, end-to-end encrypted. Bills split themselves, Hisaab stays the same on both phones, and you can agree a budget and save for goals together. Nothing personal is shared by default
 
 WHY ARTH ASKS FOR SMS PERMISSION
 Reading bank SMS is how Arth tracks your money without asking for your bank login. With your permission, Arth reads transaction SMS from banks, card issuers, UPI apps and EPFO to:
@@ -51,7 +52,7 @@ INVESTMENTS (OPTIONAL)
 Connect your own Zerodha Kite, Angel One or Zebpay API key to see holdings alongside everything else. Read-only: Arth never places orders or moves money. Arth is not affiliated with any broker.
 
 PRIVATE BY DESIGN
-• No sign-up and no Arth servers: your data lives in a database on your phone
+• No sign-up, and no Arth server can read your data: it lives on your phone, and households sync end-to-end encrypted
 • App lock with fingerprint or face, and an encrypted Vault for logins
 • Encrypted backups you control, saved wherever you choose
 • No analytics, no ads, no tracking
