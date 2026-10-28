@@ -1,5 +1,32 @@
 jest.mock("@/services/sms/sms-orchestrator", () => ({ runSmsScan: jest.fn() }));
-jest.mock("expo-file-system", () => ({ File: jest.fn(), Paths: {} }));
+jest.mock("react-native", () => ({ Platform: { OS: "ios" } }));
+// An in-memory Documents folder: file name -> contents.
+const mockFiles = new Map<string, string>();
+jest.mock("expo-file-system", () => ({
+  Paths: {},
+  File: class {
+    name: string;
+    constructor(_dir: unknown, fileName: string) {
+      this.name = fileName;
+    }
+    get exists() {
+      return mockFiles.has(this.name);
+    }
+    async text() {
+      return mockFiles.get(this.name) ?? "";
+    }
+    move(to: { name: string }) {
+      mockFiles.set(to.name, mockFiles.get(this.name) ?? "");
+      mockFiles.delete(this.name);
+    }
+    delete() {
+      mockFiles.delete(this.name);
+    }
+    write(text: string) {
+      mockFiles.set(this.name, text);
+    }
+  },
+}));
 const mockStore = new Map<string, string | boolean>();
 jest.mock("@/services/storage", () => ({
   settingsStorage: {
@@ -8,9 +35,11 @@ jest.mock("@/services/storage", () => ({
     set: (k: string, v: string | boolean) => void mockStore.set(k, v),
   },
 }));
+import { runSmsScan } from "@/services/sms/sms-orchestrator";
 import {
   getLastArrival,
   getMessageStats,
+  importHandedMessages,
   isArrivalNotifyOn,
   markArrivalSeen,
   parseInbox,
@@ -82,5 +111,34 @@ describe("arrivals (what Just arrived and the Home card show)", () => {
 
   it("notifies by default", () => {
     expect(isArrivalNotifyOn()).toBe(true);
+  });
+});
+
+describe("importHandedMessages (reading what the Shortcuts action left)", () => {
+  beforeEach(() => {
+    mockStore.clear();
+    mockFiles.clear();
+    (runSmsScan as jest.Mock).mockReset().mockResolvedValue({ ran: true, addedIds: ["e1"], unreadable: [] });
+  });
+  const line = (body: string) => JSON.stringify({ body, sender: "", receivedAt: 1792700000000 }) + "\n";
+
+  it("reads the inbox, scans it and clears the file", async () => {
+    mockFiles.set("bank-messages.jsonl", line("INR 153.00 debited A/c no. XX8689"));
+    await importHandedMessages();
+    expect(runSmsScan).toHaveBeenCalledTimes(1);
+    expect((runSmsScan as jest.Mock).mock.calls[0][0].messages[0].body).toContain("153.00");
+    expect(mockFiles.size).toBe(0);
+    expect(getLastArrival()).toMatchObject({ read: 1, addedIds: ["e1"] });
+  });
+
+  // Arth opening with nothing waiting (the usual case) used to leave a settled promise behind, so
+  // every later call - the notification tap, Just arrived - got its empty result and the inbox
+  // file was never read again while Arth stayed open.
+  it("still reads messages that arrive after a run that found nothing waiting", async () => {
+    await expect(importHandedMessages()).resolves.toBeNull();
+    mockFiles.set("bank-messages.jsonl", line("INR 153.00 debited A/c no. XX8689"));
+    await importHandedMessages();
+    expect(runSmsScan).toHaveBeenCalledTimes(1);
+    expect(getLastArrival()).toMatchObject({ read: 1, addedIds: ["e1"] });
   });
 });

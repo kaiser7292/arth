@@ -64,28 +64,33 @@ let importing: Promise<ScanOutcome | null> | null = null;
 /** Read and clear the inbox (iPhone only). Safe to call often: concurrent calls share one run. */
 export function importHandedMessages(): Promise<ScanOutcome | null> {
   if (Platform.OS !== "ios") return Promise.resolve(null);
-  importing ??= (async () => {
-    try {
-      const reading = new File(Paths.document, READING_FILE);
-      // A previous run that stopped half way left its file: read that first.
-      if (!reading.exists) {
-        const inbox = new File(Paths.document, INBOX_FILE);
-        if (!inbox.exists) return null;
-        inbox.move(reading);
-      }
-      const messages = parseInbox(await reading.text());
-      const outcome = messages.length ? await runSmsScan({ manual: false, messages }) : null;
-      reading.delete();
-      if (outcome) recordArrival(messages, outcome);
-      return outcome;
-    } catch (e) {
-      logger.warn("Importing handed-over bank messages failed:", e);
-      return null;
-    } finally {
-      importing = null;
-    }
-  })();
+  // Cleared in .finally, which always runs after this assignment. Clearing inside the async body
+  // ran first when nothing was waiting (no await), then the assignment kept a settled promise
+  // forever, and every later call got its empty result: the inbox was never read again.
+  importing ??= readInbox().finally(() => {
+    importing = null;
+  });
   return importing;
+}
+
+async function readInbox(): Promise<ScanOutcome | null> {
+  try {
+    const reading = new File(Paths.document, READING_FILE);
+    // A previous run that stopped half way left its file: read that first.
+    if (!reading.exists) {
+      const inbox = new File(Paths.document, INBOX_FILE);
+      if (!inbox.exists) return null;
+      inbox.move(reading);
+    }
+    const messages = parseInbox(await reading.text());
+    const outcome = messages.length ? await runSmsScan({ manual: false, messages }) : null;
+    reading.delete();
+    if (outcome) recordArrival(messages, outcome);
+    return outcome;
+  } catch (e) {
+    logger.warn("Importing handed-over bank messages failed:", e);
+    return null;
+  }
 }
 
 /** How many messages are waiting (for the setup screen). */
