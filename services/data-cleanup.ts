@@ -373,6 +373,7 @@ export async function cleanupData(
       await db.runAsync(`UPDATE hisaab_entries SET linked_account_credit_id = NULL WHERE linked_account_credit_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
       // Delete expense splits referencing these expenses
       await db.runAsync(`DELETE FROM expense_splits WHERE expense_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
+      await db.runAsync(`DELETE FROM household_expense_shares WHERE expense_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
 
       const expenseResult = await db.runAsync(`DELETE FROM expenses WHERE ${condition};`, ...params);
       result.expensesDeleted = expenseResult.changes;

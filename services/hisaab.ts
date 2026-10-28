@@ -219,6 +219,7 @@ export async function hardDeletePerson(id: string): Promise<void> {
       "UPDATE expenses SET split_person_id = NULL, split_pct = NULL, split_original_amount = NULL, split_hisaab_entry_id = NULL WHERE split_person_id = ?;",
       id,
     );
+    await db.runAsync("DELETE FROM household_member_links WHERE hisaab_person_id = ?;", id);
     await db.runAsync("DELETE FROM hisaab_persons WHERE id = ? AND is_active = 0;", id);
   });
   bumpDataVersion();

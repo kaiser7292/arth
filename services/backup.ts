@@ -173,6 +173,9 @@ export const BACKUP_TABLES = [
   "household_outbox",
   "household_cursors",
   "household_events",
+  // migration 087 - shared transactions and Hisaab links (after expenses / hisaab_persons)
+  "household_expense_shares",
+  "household_member_links",
 ];
 
 // ---------------------------------------------------------------------------

@@ -81,6 +81,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "applied_rule_manually", // migration 066 — 1 when rule was applied via ⚡ button (not auto-fired)
     "money_event", // migration 080 — fd_open / fd_closure / self_transfer / sip review hint
     "credit_kind", // migration 080 — salary / interest / refund / cashback / reimbursement / gift / other
+    "household_ref", // migration 087 - written by Together (households)
   ] as const,
 
   budgets: [
@@ -345,6 +346,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "settlement_source",
     "created_at",
     "updated_at",
+    "household_ref", // migration 087
   ] as const,
 
 
@@ -663,6 +665,9 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
   household_outbox: ["household_id", "seq", "op_json", "created_at", "sent_at"] as const,
   household_cursors: ["household_id", "member_id", "last_seq"] as const,
   household_events: ["id", "household_id", "member_id", "type", "payload_json", "at"] as const,
+  // migration 087
+  household_expense_shares: ["expense_id", "household_id", "shared", "split", "my_pct", "updated_at"] as const,
+  household_member_links: ["household_id", "member_id", "hisaab_person_id"] as const,
 
   // v16.0.0 — cash-flow simulator (migration 025)
   simulation_scenarios: [

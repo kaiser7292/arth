@@ -209,9 +209,8 @@ test("start, invite, join with matching codes, approve", async () => {
   const souravShopping = addCategory(sourav, "Shopping");
   addSpend(sourav, souravGroceries, 2300, "BigBasket");
   addSpend(sourav, souravShopping, 4800, "Myntra");
-  // ₹1,200 dinner bill split 50/50 in a household category: paid 1200, my share 600.
   const souravRent = addCategory(sourav, "Rent");
-  addSpend(sourav, souravRent, 600, "Landlord", today(), 1200);
+  addSpend(sourav, souravRent, 25000, "Landlord");
 
   const h = await startHousehold("Home", "Sourav");
   expect(h.role).toBe("creator");
@@ -243,29 +242,64 @@ test("start, invite, join with matching codes, approve", async () => {
   expect((await getMembers(ah.id)).map((m) => m.name).sort()).toEqual(["Aastha", "Sourav"]);
 });
 
-test("each sees what the other chose to share, and nothing more", async () => {
+test("household spending is shared and split; each phone keeps its own Hisaab and budget in step", async () => {
   on(aastha);
   const groceries = aastha.db.prepare("SELECT id FROM categories WHERE name = 'Groceries'").get() as { id: string };
   addSpend(aastha, groceries.id, 1100, "Zepto");
 
-  await sync(sourav);
-  await sync(aastha);
-  await sync(sourav);
-  await sync(aastha);
+  for (let i = 0; i < 2; i++) {
+    await sync(sourav);
+    await sync(aastha);
+  }
 
+  // Sourav's household-category spends were split equally with Aastha, the ordinary way.
+  on(sourav);
+  const bb = sourav.db.prepare("SELECT amount, split_original_amount FROM expenses WHERE merchant_name = 'BigBasket'").get() as { amount: number; split_original_amount: number };
+  expect([bb.amount, bb.split_original_amount]).toEqual([1150, 2300]);
+
+  // Aastha sees his shared transactions in full, with what she owes; the rest only as a total.
   const fromSourav = await othersItems(aastha);
-  const tx = fromSourav.filter((i) => i.kind === "tx").sort((a, b) => a.paid! - b.paid!);
-  // Household categories in full: Groceries (BigBasket) and Rent (split, my share 600 of 1200).
+  const tx = fromSourav.filter((i) => i.kind === "tx").sort((x, y) => x.paid! - y.paid!);
   expect(tx.map((t) => [t.category_name, t.merchant, t.paid, t.my_share])).toEqual([
-    ["Rent", "Landlord", 1200, 600],
-    ["Groceries", "BigBasket", 2300, 2300],
+    ["Groceries", "BigBasket", 2300, 1150],
+    ["Rent", "Landlord", 25000, 12500],
   ]);
-  // Everything else only as a monthly total, with no merchant.
-  const totals = fromSourav.filter((i) => i.kind === "total");
-  expect(totals.map((t) => [t.category_name, t.my_share, t.merchant])).toEqual([["Shopping", 4800, null]]);
+  const aasthaId = (await getActiveHousehold())!.my_member_id;
+  void aasthaId;
+  on(aastha);
+  const aasthaMe = (await getActiveHousehold())!.my_member_id;
+  expect(tx.map((t) => JSON.parse(t.payload_json!).owes[aasthaMe])).toEqual([1150, 12500]);
+  expect(fromSourav.filter((i) => i.kind === "total").map((t) => [t.category_name, t.my_share, t.merchant])).toEqual([["Shopping", 4800, null]]);
 
-  const fromAastha = await othersItems(sourav);
-  expect(fromAastha.map((t) => [t.kind, t.category_name, t.merchant, t.my_share])).toEqual([["tx", "Groceries", "Zepto", 1100]]);
+  // On Aastha's phone: her half of his bills is in her budget ("Paid by Sourav") and her Hisaab.
+  const mine = aastha.db.prepare("SELECT amount, description, category_id FROM expenses WHERE household_ref IS NOT NULL ORDER BY amount").all() as { amount: number; description: string; category_id: string | null }[];
+  expect(mine.map((m) => [m.amount, m.description])).toEqual([[1150, "Paid by Sourav"], [12500, "Paid by Sourav"]]);
+  expect(mine[0].category_id).toBe(groceries.id);
+
+  const { getBalances } = require("../../services/household/settle");
+  // Sourav: she owes him 1150 + 12500 - 550 (her Zepto, split) = 13100. Both phones agree.
+  on(sourav);
+  const [sb] = await getBalances((await getActiveHousehold())!);
+  expect(sb.amount).toBe(13100);
+  on(aastha);
+  const [ab] = await getBalances((await getActiveHousehold())!);
+  expect(ab.amount).toBe(-13100);
+  expect(ab.theirs).toBe(-13100);
+});
+
+test("settling up moves both Hisaabs to zero", async () => {
+  const { recordSettleUp, getBalances } = require("../../services/household/settle");
+  on(aastha);
+  const souravMember = (await getMembers((await getActiveHousehold())!.id)).find((m) => m.name === "Sourav")!;
+  await recordSettleUp({ memberId: souravMember.id, amount: 13100, date: today(), paidBy: "me" });
+  await sync(aastha);
+  await sync(sourav);
+  await sync(aastha);
+  on(sourav);
+  expect((await getBalances((await getActiveHousehold())!))[0].amount).toBe(0);
+  on(aastha);
+  const [ab] = await getBalances((await getActiveHousehold())!);
+  expect([ab.amount, ab.theirs]).toEqual([0, 0]);
 });
 
 test("the relay only ever holds sealed bytes", () => {
@@ -278,19 +312,35 @@ test("the relay only ever holds sealed bytes", () => {
 
 test("deleting an expense removes it from the other phone", async () => {
   on(sourav);
-  sourav.db.prepare("UPDATE expenses SET deleted_at = datetime('now') WHERE merchant_name = 'BigBasket'").run();
+  sourav.db.prepare("UPDATE expenses SET deleted_at = datetime('now') WHERE merchant_name = 'Myntra'").run();
   await sync(sourav);
   await sync(aastha);
-  const tx = (await othersItems(aastha)).filter((i) => i.kind === "tx");
-  expect(tx.map((t) => t.merchant)).toEqual(["Landlord"]);
+  expect((await othersItems(aastha)).filter((i) => i.kind === "total")).toEqual([]);
+});
+
+test("making one transaction personal takes it back, on both phones", async () => {
+  const { setShareChoice } = require("../../services/household/shares");
+  on(sourav);
+  const bbId = (sourav.db.prepare("SELECT id FROM expenses WHERE merchant_name = 'BigBasket'").get() as { id: string }).id;
+  await setShareChoice((await getActiveHousehold())!, bbId, { shared: false, split: "equal", myPct: null });
+  const bb = sourav.db.prepare("SELECT amount, split_original_amount FROM expenses WHERE id = ?").get(bbId) as { amount: number; split_original_amount: number | null };
+  expect([bb.amount, bb.split_original_amount]).toEqual([2300, null]);
+  await sync(sourav);
+  await sync(aastha);
+  expect((await othersItems(aastha)).filter((i) => i.kind === "tx").map((t) => t.merchant)).toEqual(["Landlord"]);
+  expect((aastha.db.prepare("SELECT amount FROM expenses WHERE household_ref IS NOT NULL").all() as { amount: number }[]).map((r) => r.amount)).toEqual([12500]);
 });
 
 test("turning a choice off takes what it shared back", async () => {
   on(aastha);
   await setSharingChoices({ householdCategories: false, otherTotals: false, allTransactions: false, savingsRate: false, balances: false });
+  const { setShareChoice } = require("../../services/household/shares");
+  const zepto = (aastha.db.prepare("SELECT id FROM expenses WHERE merchant_name = 'Zepto'").get() as { id: string }).id;
+  await setShareChoice((await getActiveHousehold())!, zepto, { shared: false, split: "equal", myPct: null });
   await sync(aastha);
   await sync(sourav);
-  expect(await othersItems(sourav)).toEqual([]);
+  // Settle-ups stay: they're history between the two of them, not something one person "shares".
+  expect((await othersItems(sourav)).filter((i) => i.kind !== "net" && i.kind !== "settle")).toEqual([]);
 });
 
 test("a removed member is told, loses everything, and can't read what comes next", async () => {
@@ -332,7 +382,7 @@ test("leaving: the leaver's data goes from the relay and the other phone", async
   await setSharingChoices({ householdCategories: true, otherTotals: true, allTransactions: false, savingsRate: false, balances: false });
   await sync(aastha);
   await sync(sourav);
-  expect((await othersItems(sourav)).length).toBeGreaterThan(0);
+  expect((await othersItems(sourav)).filter((i) => i.kind !== "net").length).toBeGreaterThan(0);
 
   on(aastha);
   const aasthaMember = (await getActiveHousehold())!.my_member_id;
@@ -343,6 +393,7 @@ test("leaving: the leaver's data goes from the relay and the other phone", async
 
   await sync(sourav);
   expect(await othersItems(sourav)).toEqual([]);
+  // Their splits stay in Sourav's Hisaab (real money), just no longer tied to the household.
   const members = await getMembers((await getActiveHousehold())!.id);
   expect(members.map((m) => m.name)).toEqual(["Sourav"]);
 });
@@ -371,20 +422,4 @@ test("restored on a new phone: it carries on as the same member, and the old pho
   const old = await syncHousehold();
   expect(old.status).toBe("moved");
   expect((await getHousehold())!.status).toBe("moved");
-});
-
-test("one sync's many ops read as one activity line", async () => {
-  on(sourav);
-  const { addSharedEvent, getEvents } = require("../../services/household/store");
-  const h = (await getHousehold())!;
-  sourav.db.exec("DELETE FROM household_events");
-  await addSharedEvent(h.id, "someone", 60);
-  await addSharedEvent(h.id, "someone", 60);
-  await addSharedEvent(h.id, "someone", 19);
-  await addSharedEvent(h.id, "other", 2);
-  const events = await getEvents(h.id);
-  expect(events.map((e: { member_id: string; payload_json: string }) => [e.member_id, JSON.parse(e.payload_json).count])).toEqual([
-    ["other", 2],
-    ["someone", 139],
-  ]);
 });

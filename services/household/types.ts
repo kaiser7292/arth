@@ -62,7 +62,13 @@ export interface HouseholdCategory {
   sort_order: number;
 }
 
-export type ItemKind = "tx" | "total" | "savings" | "balance";
+/**
+ * tx: a transaction (shared, or every transaction when chosen) · total: a month's total for one of
+ * the author's categories · savings: a month's savings rate · balance: an account balance ·
+ * settle: a settle-up between two members · net: the author's Hisaab balance with one member
+ * (id "net:<member id>"), so the other phone can say whether both agree.
+ */
+export type ItemKind = "tx" | "total" | "savings" | "balance" | "settle" | "net";
 
 export interface HouseholdItem {
   household_id: string;
@@ -89,7 +95,7 @@ export interface HouseholdEvent {
   at: string;
 }
 
-export type EventType = "created" | "joined" | "left" | "removed" | "renamed" | "shared" | "rekeyed" | "closed";
+export type EventType = "created" | "joined" | "left" | "removed" | "renamed" | "shared" | "rekeyed" | "closed" | "settled";
 
 /** The sharing choices, as sent to the others in `member.settings`. */
 export interface SharingChoices {
@@ -112,8 +118,11 @@ export interface SharedItem {
   myShare?: number | null;
   category?: string | null;
   merchant?: string | null;
-  /** tx: "spend" | "refund" | "credit"; balance: account label/type; savings: rate */
-  extra?: Record<string, string | number | null>;
+  /**
+   * tx: shared, split, owes {member id: amount} · settle: payer, payee, amount · net: balance ·
+   * balance: label, type, asOf · savings: rate
+   */
+  extra?: Record<string, unknown>;
 }
 
 export interface MemberPublic {

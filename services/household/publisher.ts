@@ -6,7 +6,9 @@ import { getSavingsTrend } from "@/services/savings-tracker";
 import { getFYStartMonth } from "@/services/settings";
 import { getCurrentFY } from "@/utils/fiscal-year";
 import { toIsoDate } from "@/utils/date";
+import { getPersonBalance } from "@/services/hisaab";
 import { newId } from "./crypto";
+import { getMemberLinks, sharedInfoFor } from "./shares";
 import {
   choicesOf,
   deleteItem,
@@ -68,6 +70,7 @@ async function spendRows(userId: string, from: string): Promise<SpendRow[]> {
      LEFT JOIN categories c ON c.id = e.category_id
      WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND e.deleted_at IS NULL
        AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)
+       AND e.household_ref IS NULL
        AND e.date >= ?
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = e.id)
@@ -92,10 +95,18 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
   const txId = (ref: string) => idByRef.get(ref) ?? newId();
 
   const from = firstShareDate(now);
-  const rows = choices.allTransactions || choices.householdCategories || choices.otherTotals ? await spendRows(userId, from) : [];
+  const rows = await spendRows(userId, from);
 
-  if (choices.allTransactions) {
-    for (const r of rows) {
+  // Shared transactions always go in full (that's what sharing one means), with who owes what;
+  // the rest go in full only with "every transaction", otherwise as monthly totals if chosen.
+  const shared = await sharedInfoFor(h, rows.map((r) => r.id));
+  const map = await getCategoryMap(h.id);
+  const hcats = new Map((await getHouseholdCategories(h.id)).map((c) => [c.id, c.name]));
+  const totals = new Map<string, { month: string; name: string; sum: number }>();
+  for (const r of rows) {
+    const info = shared.get(r.id);
+    const hcatName = r.category_id ? hcats.get(map.get(r.category_id) ?? "") : undefined;
+    if (info || choices.allTransactions) {
       const id = txId(r.id);
       localRefs.set(id, r.id);
       items.push({
@@ -105,42 +116,38 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
         date: r.date.slice(0, 10),
         paid: round2(r.gross),
         myShare: round2(r.effective),
-        category: r.category_name ?? "Uncategorized",
+        category: info ? (hcatName ?? r.category_name ?? "Uncategorized") : (r.category_name ?? "Uncategorized"),
         merchant: r.merchant_name,
+        extra: info ? { shared: 1, split: info.split, owes: info.owes } : undefined,
       });
+    } else if (choices.otherTotals) {
+      const month = r.date.slice(0, 7);
+      const name = r.category_name ?? "Uncategorized";
+      const key = `total:${month}:${r.category_id ?? "none"}`;
+      const t = totals.get(key) ?? { month, name, sum: 0 };
+      t.sum += r.effective;
+      totals.set(key, t);
     }
-  } else {
-    const map = choices.householdCategories ? await getCategoryMap(h.id) : new Map<string, string>();
-    const hcats = new Map((await getHouseholdCategories(h.id)).map((c) => [c.id, c.name]));
-    const totals = new Map<string, { month: string; name: string; sum: number }>();
-    for (const r of rows) {
-      const hcatName = r.category_id ? hcats.get(map.get(r.category_id) ?? "") : undefined;
-      if (hcatName) {
-        const id = txId(r.id);
-        localRefs.set(id, r.id);
-        items.push({
-          id,
-          kind: "tx",
-          month: r.date.slice(0, 7),
-          date: r.date.slice(0, 10),
-          paid: round2(r.gross),
-          myShare: round2(r.effective),
-          category: hcatName,
-          merchant: r.merchant_name,
-        });
-      } else if (choices.otherTotals) {
-        const month = r.date.slice(0, 7);
-        const name = r.category_name ?? "Uncategorized";
-        const key = `total:${month}:${r.category_id ?? "none"}`;
-        const t = totals.get(key) ?? { month, name, sum: 0 };
-        t.sum += r.effective;
-        totals.set(key, t);
-      }
+  }
+  for (const [id, t] of totals) {
+    if (t.sum <= 0) continue;
+    items.push({ id, kind: "total", month: t.month, myShare: round2(t.sum), category: t.name });
+  }
+
+  // Settle-ups I recorded stay shared while their Hisaab entry exists.
+  for (const s of mine.filter((r) => r.kind === "settle")) {
+    const alive = s.local_ref
+      ? await getDatabase().getFirstAsync<{ id: string }>("SELECT id FROM hisaab_entries WHERE id = ?;", s.local_ref)
+      : null;
+    if (alive) {
+      items.push(itemFromRow(s));
+      localRefs.set(s.id, s.local_ref as string);
     }
-    for (const [id, t] of totals) {
-      if (t.sum <= 0) continue;
-      items.push({ id, kind: "total", month: t.month, myShare: round2(t.sum), category: t.name });
-    }
+  }
+
+  // My Hisaab balance with each member, so their phone can show whether both agree.
+  for (const [memberId, personId] of await getMemberLinks(h.id)) {
+    items.push({ id: `net:${memberId}`, kind: "net", extra: { balance: round2(await getPersonBalance(personId)) } });
   }
 
   if (choices.savingsRate) {

@@ -16,6 +16,8 @@ import { getDeviceId } from "./device";
 import { addHouseholdKeyVersion, deleteHouseholdKeys, getHouseholdKey, getMemberKeys } from "./keys";
 import { applyOp, type ApplyResult } from "./apply";
 import { publish } from "./publisher";
+import { reconcileMirrors } from "./mirror";
+import { applyPendingShares, detachHouseholdLinks, ensureMemberLinks } from "./shares";
 import { relay, RelayError } from "./relay-client";
 import {
   enqueue,
@@ -133,6 +135,10 @@ async function syncOnce(start: Household): Promise<SyncResult> {
   let snapshotNeeded = false;
   let creatorShouldRekey = false;
 
+  // ── 0. On this phone, no network needed: link members to Hisaab, share what should be shared ──
+  await ensureMemberLinks(h);
+  if ((await applyPendingShares(h, DEFAULT_USER_ID)) > 0) changed = true;
+
   // ── 1. Pull ──
   let headChecked = false;
   for (let page = 0; page < 50; page++) {
@@ -238,17 +244,20 @@ async function syncOnce(start: Household): Promise<SyncResult> {
     if (!log.more || !progressed) break;
   }
 
-  // ── 2. Queue this phone's changes ──
+  // ── 2. Keep my side in step with theirs: my part of their bills, their settle-ups ──
+  if (await reconcileMirrors(h, DEFAULT_USER_ID)) changed = true;
+
+  // ── 3. Queue this phone's changes ──
   if (snapshotNeeded) {
     await updateHousehold(h.id, { needs_snapshot: 1 });
     h = (await getActiveHousehold()) ?? h;
   }
   await publish(h, DEFAULT_USER_ID);
 
-  // ── 3. Send ──
+  // ── 4. Send ──
   await pushOutbox(h, device);
 
-  // ── 4. Tell the relay what this phone has, so it can delete it ──
+  // ── 5. Tell the relay what this phone has, so it can delete it ──
   const cursors = await getCursors(h.id);
   await relay.ack(h.relay_url, await tokenFor(h), h.id, h.my_member_id, cursors);
   await pruneOutbox(h.id);
@@ -316,6 +325,8 @@ export async function rekey(start: Household): Promise<void> {
  */
 export async function endHousehold(h: Household, status: HouseholdStatus): Promise<void> {
   const db = getDatabase();
+  // Splits and Hisaab entries stay (they're real money between people); only the links go.
+  await detachHouseholdLinks(h.id);
   await db.withTransactionAsync(async () => {
     for (const table of [
       "household_cursors",
