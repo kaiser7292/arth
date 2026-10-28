@@ -2,6 +2,7 @@ import { fromBase64, openFrom } from "./crypto";
 import { addHouseholdKeyVersion, getMemberKeys } from "./keys";
 import {
   addEvent,
+  addSharedEvent,
   deleteItem,
   deleteMemberItems,
   getMember,
@@ -58,7 +59,7 @@ export async function applyOp(h: Household, author: HouseholdMember, op: Op): Pr
         await upsertItem(h.id, author.id, it);
       }
       if (author.id !== h.my_member_id && (body.items?.length ?? 0) > 0) {
-        await addEvent(h.id, author.id, "shared", { count: body.items.length });
+        await addSharedEvent(h.id, author.id, body.items.length);
       }
       return { changed: true };
     }

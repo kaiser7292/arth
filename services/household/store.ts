@@ -443,6 +443,29 @@ export async function addEvent(householdId: string, memberId: string | null, typ
   );
 }
 
+/**
+ * "Aastha shared 12 updates": adds to that person's latest "shared" line when it's the newest line
+ * in the feed and under half an hour old, so one sync (many ops) reads as one line.
+ */
+export async function addSharedEvent(householdId: string, memberId: string, count: number): Promise<void> {
+  const db = getDatabase();
+  const last = await db.getFirstAsync<{ id: string; member_id: string | null; type: string; payload_json: string | null; recent: number }>(
+    `SELECT id, member_id, type, payload_json, (at >= datetime('now', '-30 minutes')) AS recent
+     FROM household_events WHERE household_id = ? ORDER BY at DESC, rowid DESC LIMIT 1;`,
+    householdId,
+  );
+  if (last && last.type === "shared" && last.member_id === memberId && last.recent) {
+    const prev = last.payload_json ? ((JSON.parse(last.payload_json) as { count?: number }).count ?? 0) : 0;
+    await db.runAsync(
+      "UPDATE household_events SET payload_json = ?, at = datetime('now') WHERE id = ?;",
+      JSON.stringify({ count: prev + count }),
+      last.id,
+    );
+    return;
+  }
+  await addEvent(householdId, memberId, "shared", { count });
+}
+
 export async function getEvents(householdId: string, limit = 50): Promise<HouseholdEvent[]> {
   return getDatabase().getAllAsync<HouseholdEvent>(
     "SELECT * FROM household_events WHERE household_id = ? ORDER BY at DESC, rowid DESC LIMIT ?;",

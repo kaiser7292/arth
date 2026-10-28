@@ -372,3 +372,19 @@ test("restored on a new phone: it carries on as the same member, and the old pho
   expect(old.status).toBe("moved");
   expect((await getHousehold())!.status).toBe("moved");
 });
+
+test("one sync's many ops read as one activity line", async () => {
+  on(sourav);
+  const { addSharedEvent, getEvents } = require("../../services/household/store");
+  const h = (await getHousehold())!;
+  sourav.db.exec("DELETE FROM household_events");
+  await addSharedEvent(h.id, "someone", 60);
+  await addSharedEvent(h.id, "someone", 60);
+  await addSharedEvent(h.id, "someone", 19);
+  await addSharedEvent(h.id, "other", 2);
+  const events = await getEvents(h.id);
+  expect(events.map((e: { member_id: string; payload_json: string }) => [e.member_id, JSON.parse(e.payload_json).count])).toEqual([
+    ["other", 2],
+    ["someone", 139],
+  ]);
+});
