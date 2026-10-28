@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 import * as Clipboard from "expo-clipboard";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { QrScanner } from "@/components/household/QrScanner";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, Input, ScreenContainer, Text, useToast } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
@@ -36,7 +36,6 @@ export default function JoinScreen() {
   const [step, setStep] = useState<Step | null>(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
   const scanned = useRef(false);
 
   // Where to start: a link that opened Arth, a join already waiting, or the scanner.
@@ -134,24 +133,7 @@ export default function JoinScreen() {
             <Text className="text-sm text-muted-foreground mb-3 leading-5">
               On the other phone: Settings → Household → Invite someone. Then scan the code it shows.
             </Text>
-            {permission?.granted ? (
-              <View style={{ borderRadius: 16, overflow: "hidden", aspectRatio: 1 }}>
-                <CameraView
-                  style={{ flex: 1 }}
-                  facing="back"
-                  barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-                  onBarcodeScanned={(r) => onScanned(r.data)}
-                />
-              </View>
-            ) : (
-              <Card>
-                <View className="items-center py-4">
-                  <Ionicons name="qr-code-outline" size={40} color={theme.primary} />
-                  <Text className="text-sm text-foreground mt-3 text-center">Arth uses the camera only to scan the invite code.</Text>
-                  <Button title="Scan the code" className="mt-4 self-stretch" onPress={() => void requestPermission()} />
-                </View>
-              </Card>
-            )}
+            <QrScanner onScanned={onScanned} />
             <Button title="Paste an invite link" variant="outline" className="mt-4" onPress={() => void pasteLink()} />
           </>
         )}
