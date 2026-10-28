@@ -33,7 +33,7 @@ const ENDED: Record<string, { title: string; body: string }> = {
 };
 
 function eventLine(e: HouseholdEvent, who: string): string {
-  const p = e.payload_json ? (JSON.parse(e.payload_json) as { count?: number; name?: string }) : {};
+  const p = e.payload_json ? (JSON.parse(e.payload_json) as { count?: number; name?: string; amount?: number }) : {};
   switch (e.type) {
     case "created":
       return `${who} started ${p.name ?? "the household"}`;
@@ -45,8 +45,8 @@ function eventLine(e: HouseholdEvent, who: string): string {
       return `${who} was removed`;
     case "renamed":
       return `${who} renamed it ${p.name ?? ""}`;
-    case "shared":
-      return `${who} shared ${p.count ?? "some"} update${p.count === 1 ? "" : "s"}`;
+    case "settled":
+      return `${who} settled up ${p.amount ? formatAmount(p.amount) : ""}`.trim();
     case "rekeyed":
       return "The household key was changed";
     default:
@@ -187,9 +187,8 @@ export default function HouseholdScreen() {
   // ── In a household ──
   const isCreator = h.role === "creator";
   const nameOf = (id: string | null) => (id === h.my_member_id ? "You" : (everMembers.find((m) => m.id === id)?.name ?? "Someone"));
-  const month = new Date().toISOString().slice(0, 7);
-  const sharedThisMonth = (memberId: string) =>
-    items.filter((i) => i.member_id === memberId && i.month === month && (i.kind === "tx" || i.kind === "total")).reduce((s, i) => s + (i.my_share ?? 0), 0);
+  // Moments only: who joined, left, settled up. Spending lives in Together; sync is never news.
+  const moments = events.filter((e) => e.type !== "shared" && e.type !== "rekeyed");
 
   return (
     <ScreenContainer padTop={false}>
@@ -197,6 +196,8 @@ export default function HouseholdScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={syncNow} />}
       >
+        <Button title="Open Together" onPress={() => router.push("/together")} className="mb-3" />
+
         <Card className="mb-3">
           <View className="flex-row items-center">
             <View className="flex-row mr-3">
@@ -248,7 +249,7 @@ export default function HouseholdScreen() {
                   {m.id === h.my_member_id ? `${m.name} (you)` : m.name}
                   {m.role === "creator" ? " · started it" : ""}
                 </Text>
-                <Text className="text-xs text-muted-foreground">Shared {formatAmount(sharedThisMonth(m.id))} this month</Text>
+                {m.joined_at ? <Text className="text-xs text-muted-foreground">Joined {ago(m.joined_at)}</Text> : null}
               </View>
               {isCreator && m.id !== h.my_member_id && (
                 <Pressable
@@ -301,10 +302,10 @@ export default function HouseholdScreen() {
           </Pressable>
         </Card>
 
-        {events.length > 0 && (
+        {moments.length > 0 && (
           <Card className="mb-3">
             <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Activity</Text>
-            {events.slice(0, 15).map((e) => (
+            {moments.slice(0, 15).map((e) => (
               <View key={e.id} className="flex-row items-center justify-between py-1.5">
                 <Text className="text-sm text-foreground flex-1 mr-2">{eventLine(e, nameOf(e.member_id))}</Text>
                 <Text className="text-xs text-muted-foreground">{ago(e.at)}</Text>

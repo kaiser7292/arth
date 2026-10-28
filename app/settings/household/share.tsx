@@ -106,14 +106,13 @@ export default function ShareScreen() {
         <Card className="mb-3">
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Spending</Text>
           <Row
-            title="Household categories in full"
-            body="Each approved spend in a household category: date, amount, your share and merchant."
-            value={choices.householdCategories && !choices.allTransactions}
+            title="Share household spending by default"
+            body="Spends in household categories are shared and split equally as you approve them. Change any one from its screen."
+            value={choices.householdCategories}
             onChange={(v) => set({ householdCategories: v })}
-            disabled={choices.allTransactions}
           />
           <Row
-            title="Totals of everything else"
+            title="Totals of your personal spending"
             body="One total a month per category. No transactions, no merchants."
             value={choices.otherTotals && !choices.allTransactions}
             onChange={(v) => set({ otherTotals: v })}
@@ -121,7 +120,7 @@ export default function ShareScreen() {
           />
           <Row
             title="Every transaction"
-            body="All approved spends, like a joint account. Replaces the two above. Income is never shared."
+            body="Your personal spends too, in full but not split, like a joint account. Replaces the totals. Income is never shared."
             value={choices.allTransactions}
             onChange={(v) => set({ allTransactions: v })}
           />

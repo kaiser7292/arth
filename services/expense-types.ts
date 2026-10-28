@@ -85,6 +85,8 @@ export interface Expense {
   money_event?: MoneyEvent | null;
   /** migration 080 — what a credit is (salary, interest, …). NULL for debits and older credits. */
   credit_kind?: CreditKind | null;
+  /** migration 087 — set on rows Together writes from what another household member shared. */
+  household_ref?: string | null;
   created_at: string;
   updated_at: string;
 }

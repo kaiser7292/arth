@@ -31,6 +31,7 @@ import { MultiSplitSheet } from "@/components/expense/MultiSplitSheet";
 import { RecurringRuleSheet } from "@/components/expense/RecurringRuleSheet";
 import { RefundTargetSheet } from "@/components/expense/RefundTargetSheet";
 import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
+import { SharedWithHome } from "@/components/household/SharedWithHome";
 import { SplitSheet } from "@/components/expense/SplitSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
 import { Button, Input, LoadingState, ScreenContainer, Sheet, Text, useToast } from "@/components/ui";
@@ -2626,6 +2627,20 @@ export default function ExpenseDetailScreen() {
                 )}
               </View>
               )}
+
+              {/* Together: shared with the household and how it's split (not on my share of someone else's bill). */}
+              {expense && expense.nature === "realized" && !expense.household_ref && !expense.deleted_at && (
+                <SharedWithHome
+                  expenseId={expense.id}
+                  categoryId={expense.category_id}
+                  total={expense.split_original_amount ?? expense.amount}
+                />
+              )}
+              {expense?.household_ref ? (
+                <Text className="text-xs text-muted-foreground mt-3">
+                  Your share of a bill someone in your household paid. It updates when they change it.
+                </Text>
+              ) : null}
 
               {/* 4b. Tags */}
               <View className="mx-4 mt-3" ref={tagsSectionRef} collapsable={false}>

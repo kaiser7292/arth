@@ -6,6 +6,7 @@ import { DeckCard } from "@/components/check-in/DeckParts";
 import { TYPE_ICONS } from "@/constants/icons";
 import type { FooterAction } from "@/components/check-in/DeckParts";
 import { useTheme } from "@/hooks/use-theme";
+import { SharedWithHome } from "@/components/household/SharedWithHome";
 import type { Category } from "@/services/category";
 import type { CatchUpCard } from "@/services/catch-up";
 import { splitDuplicateGroup } from "@/services/catch-up";
@@ -343,6 +344,9 @@ function SingleExpenseBody({
           onAddPerson={onAddPerson}
         />
       )}
+
+      {/* Together: shared with the household, and how it's split. Hidden outside a household. */}
+      {canSplit && <SharedWithHome expenseId={expense.id} categoryId={categoryId} total={total} />}
 
       {editingDescription ? (
         <View className="flex-row items-center mt-3 rounded-lg border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>

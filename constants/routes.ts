@@ -37,6 +37,7 @@ export const ALLOWED_DEEP_LINK_SCREENS = new Set([
   "insights/filtered",
   "hisaab/persons",
   "hisaab/ledger",
+  "together",
   "simulator",
   "loans/add",
   "loans/import-schedule",

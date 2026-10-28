@@ -632,6 +632,10 @@ export default function RootLayout(): React.JSX.Element {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="together"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="summary"
           options={{ headerShown: false }}
         />
