@@ -190,16 +190,18 @@ export async function getHouseholdCategories(householdId: string): Promise<House
   );
 }
 
-export async function setHouseholdCategories(householdId: string, list: { id: string; name: string }[]): Promise<void> {
+/** shared: shared by default (omitted = yes, as households before migration 088 behaved). */
+export async function setHouseholdCategories(householdId: string, list: { id: string; name: string; shared?: boolean }[]): Promise<void> {
   const db = getDatabase();
   await db.runAsync("DELETE FROM household_categories WHERE household_id = ?;", householdId);
   for (let i = 0; i < list.length; i++) {
     await db.runAsync(
-      "INSERT INTO household_categories (household_id, id, name, sort_order) VALUES (?, ?, ?, ?);",
+      "INSERT INTO household_categories (household_id, id, name, sort_order, shared_default) VALUES (?, ?, ?, ?, ?);",
       householdId,
       list[i].id,
       list[i].name,
       i,
+      list[i].shared === false ? 0 : 1,
     );
   }
   // A mapping to a household category that no longer exists means "not shared in full".
@@ -243,6 +245,63 @@ export async function setCategoryMapping(householdId: string, localCategoryId: s
  * Maps my categories onto the household's by name, for any category not mapped yet ("Grocery" →
  * Groceries, "Rent & maintenance" → Rent). Never changes a mapping the person chose.
  */
+// "out" too: "Dining out" is food, not "Travel & Going Out".
+const STOP_WORDS = new Set(["and", "the", "of", "for", "other", "misc", "general", "my", "out"]);
+
+/** "Groceries & Supplies" → ["grocery", "supply"]: lower-case words, singular, no filler words. */
+export function categoryWords(name: string): string[] {
+  return name
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((w) => w && !STOP_WORDS.has(w))
+    .map((w) => w.replace(/ies$/, "y").replace(/s$/, ""));
+}
+
+/** Words that mean the same kind of spending, for categories named differently on two phones. */
+const SYNONYMS: string[][] = [
+  ["grocery", "supply", "supermarket", "kirana", "vegetable", "fruit", "provision", "daily", "milk", "household"],
+  ["rent", "utility", "electricity", "water", "gas", "internet", "wifi", "broadband", "bill", "maintenance", "society", "maid", "help", "home", "house"],
+  ["food", "dining", "restaurant", "eating", "meal", "swiggy", "zomato", "cafe", "snack", "takeaway"],
+  ["car", "vehicle", "fuel", "petrol", "diesel", "transport", "commute", "cab", "taxi", "auto", "parking", "toll", "bike"],
+  ["health", "medicine", "medical", "pharmacy", "doctor", "hospital", "clinic", "wellness", "fitness", "gym"],
+  ["travel", "going", "out", "trip", "vacation", "holiday", "movie", "entertainment", "outing", "flight", "hotel"],
+  ["subscription", "ott", "netflix", "streaming", "membership", "app", "recharge", "mobile", "phone"],
+  ["shopping", "gift", "clothe", "clothing", "apparel", "fashion", "electronic", "amazon", "flipkart"],
+  ["family", "kid", "child", "school", "education", "parent", "baby", "pet"],
+  ["insurance", "premium", "policy"],
+  ["emi", "loan", "credit"],
+];
+
+/**
+ * How well two category names match, loosely: 3 same words, 2 a word in common (or one the start
+ * of the other, 4+ letters), 1 words that mean the same kind of spending, 0 no match.
+ */
+export function categoryMatchScore(a: string, b: string): number {
+  const wa = categoryWords(a);
+  const wb = categoryWords(b);
+  if (!wa.length || !wb.length) return 0;
+  if (wa.join("") === wb.join("")) return 3;
+  const close = (x: string, y: string) => x === y || (x.length >= 4 && y.length >= 4 && (x.startsWith(y) || y.startsWith(x)));
+  if (wa.some((x) => wb.some((y) => close(x, y)))) return 2;
+  const groups = (ws: string[]) => new Set(SYNONYMS.flatMap((g, i) => (ws.some((w) => g.some((s) => close(w, s))) ? [i] : [])));
+  const ga = groups(wa);
+  return [...groups(wb)].some((g) => ga.has(g)) ? 1 : 0;
+}
+
+/** The best match for a name among candidates (ties: the first), or undefined. */
+export function bestCategoryMatch<T extends { name: string }>(name: string, candidates: T[]): T | undefined {
+  let best: T | undefined;
+  let bestScore = 0;
+  for (const c of candidates) {
+    const s = categoryMatchScore(name, c.name);
+    if (s > bestScore) {
+      best = c;
+      bestScore = s;
+    }
+  }
+  return best;
+}
+
 export async function autoMapCategories(householdId: string, userId: string): Promise<void> {
   const db = getDatabase();
   const hcats = await getHouseholdCategories(householdId);
@@ -251,16 +310,12 @@ export async function autoMapCategories(householdId: string, userId: string): Pr
     userId,
   );
   const map = await getCategoryMap(householdId);
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
   for (const c of mine) {
     if (map.has(c.id)) continue;
-    const n = norm(c.name);
-    const hit = hcats.find((h) => {
-      const hn = norm(h.name);
-      const stem = hn.replace(/ies$/, "y").replace(/s$/, "");
-      return n === hn || n === stem || n.startsWith(stem) || hn.startsWith(n);
-    });
-    if (hit && n.length >= 3) await setCategoryMapping(householdId, c.id, hit.id);
+    // Loose on purpose: same name, a word in common, or the same kind of spending
+    // ("Groceries" → Grocery & Supplies, "Electricity" → Rent & Utilities, "Petrol" → Car & Vehicles).
+    const hit = bestCategoryMatch(c.name, hcats);
+    if (hit) await setCategoryMapping(householdId, c.id, hit.id);
   }
 }
 

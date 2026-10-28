@@ -655,7 +655,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
   household_members: [
     "household_id", "id", "name", "colour", "box_public", "sign_public", "role", "settings_json", "joined_at", "removed_at",
   ] as const,
-  household_categories: ["household_id", "id", "name", "sort_order"] as const,
+  household_categories: ["household_id", "id", "name", "sort_order", "shared_default" /* 088 */] as const,
   household_category_map: ["household_id", "local_category_id", "household_category_id"] as const,
   household_balance_accounts: ["household_id", "account_id"] as const,
   household_items: [

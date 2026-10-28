@@ -4,8 +4,9 @@ import { createPerson } from "@/services/hisaab";
 import { getExpenseById } from "@/services/expense-queries";
 import { removeSplit, splitExistingExpense } from "@/services/expense-splits";
 import { applyMultiSplit, removeMultiSplit } from "@/services/expense-multi-split";
-import { getCategoryMap, getHouseholdCategories, getMembers } from "./store";
-import type { Household, HouseholdMember } from "./types";
+import { newId } from "./crypto";
+import { autoMapCategories, enqueue, getCategoryMap, getHouseholdCategories, getMembers, setHouseholdCategories } from "./store";
+import { DEFAULT_HOUSEHOLD_CATEGORIES, type Household, type HouseholdMember } from "./types";
 
 /**
  * Shared or personal, per transaction (Together rework). Design: docs/HOUSEHOLD_PHASE1_DESIGN.md,
@@ -116,12 +117,38 @@ async function writeChoice(householdId: string, expenseId: string, c: ShareChoic
   );
 }
 
-/** Whether this category counts as household spending (mapped to a household category). */
+/** Whether spends in this category are shared by default (mapped to a household category marked so). */
 export async function isHouseholdCategory(h: Household, categoryId: string | null): Promise<boolean> {
   if (!categoryId) return false;
   const map = await getCategoryMap(h.id);
   const id = map.get(categoryId);
-  return !!id && (await getHouseholdCategories(h.id)).some((c) => c.id === id);
+  return !!id && (await getHouseholdCategories(h.id)).some((c) => c.id === id && !!c.shared_default);
+}
+
+const catKey = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
+
+/**
+ * Keeps the household's list holding all of Arth's default categories (so everyone's defaults map
+ * by name), adding any missing as not shared by default. Only the phone of whoever started the
+ * household changes the list; everyone maps their own categories onto it.
+ */
+export async function ensureHouseholdCategories(h: Household, userId: string = DEFAULT_USER_ID): Promise<boolean> {
+  let changed = false;
+  if (h.role === "creator") {
+    const have = await getHouseholdCategories(h.id);
+    const missing = DEFAULT_HOUSEHOLD_CATEGORIES.filter((n) => !have.some((c) => catKey(c.name) === catKey(n)));
+    if (missing.length) {
+      const list = [
+        ...have.map((c) => ({ id: c.id, name: c.name, shared: !!c.shared_default })),
+        ...missing.map((n) => ({ id: newId(), name: n, shared: false })),
+      ];
+      await setHouseholdCategories(h.id, list);
+      await enqueue(h.id, [{ kind: "household.categories", categories: list }]);
+      changed = true;
+    }
+  }
+  await autoMapCategories(h.id, userId);
+  return changed;
 }
 
 /**
@@ -217,7 +244,8 @@ export async function applyPendingShares(h: Household, userId: string = DEFAULT_
 
   const since = (h.joined_at ?? h.created_at).slice(0, 10);
   const map = await getCategoryMap(h.id);
-  const householdCats = [...new Set(map.keys())];
+  const sharedIds = new Set((await getHouseholdCategories(h.id)).filter((c) => c.shared_default).map((c) => c.id));
+  const householdCats = [...map.entries()].filter(([, hc]) => sharedIds.has(hc)).map(([local]) => local);
   const personIds = targets.map((t) => t.personId);
   const ph = (n: number) => Array.from({ length: n }, () => "?").join(",");
 

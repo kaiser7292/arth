@@ -1,3 +1,5 @@
+import { DEFAULT_CATEGORIES } from "@/database/defaults/categories";
+
 /**
  * Household data shapes: database rows and the ops phones send each other.
  * Design: docs/HOUSEHOLD_PHASE1_DESIGN.md §3.
@@ -11,7 +13,12 @@ export const INVITE_PAGE_URL = "https://souravbaid.com/join";
 
 export const MAX_MEMBERS = 5;
 
-export const DEFAULT_HOUSEHOLD_CATEGORIES = ["Groceries", "Rent", "Utilities", "Household help", "Fuel"];
+/**
+ * A household's categories are Arth's default categories, so everyone's defaults map by name. The
+ * ones here are also shared (and split) by default; whoever started the household can change that.
+ */
+export const DEFAULT_HOUSEHOLD_CATEGORIES = DEFAULT_CATEGORIES.map((c) => c.name).filter((n) => n !== "Unknown");
+export const SHARED_BY_DEFAULT = ["Rent & Utilities", "Grocery & Supplies"];
 
 /** Member colours, in join order. */
 export const MEMBER_COLOURS = ["#378ADD", "#D4537E", "#1D9E75", "#BA7517", "#7F77DD"];
@@ -60,6 +67,8 @@ export interface HouseholdCategory {
   id: string;
   name: string;
   sort_order: number;
+  /** 1 = spends in it are shared and split as they're approved. */
+  shared_default: number;
 }
 
 /**
@@ -167,7 +176,7 @@ export type OpBody =
   | { kind: "snapshot.end" }
   | { kind: "resync.request"; from: string }
   | { kind: "household.rename"; name: string }
-  | { kind: "household.categories"; categories: { id: string; name: string }[] }
+  | { kind: "household.categories"; categories: { id: string; name: string; shared?: boolean }[] }
   | { kind: "member.approve"; member: MemberPublic }
   | { kind: "member.remove"; memberId: string }
   | { kind: "member.leave" }

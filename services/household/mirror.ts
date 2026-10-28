@@ -3,7 +3,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { permanentlyDeleteExpense } from "@/services/expense-crud";
 import { generateUUID } from "@/utils/uuid";
 import { getMemberLinks } from "./shares";
-import { getCategoryMap, getHouseholdCategories, getItems, getMembers } from "./store";
+import { bestCategoryMatch, categoryWords, getCategoryMap, getHouseholdCategories, getItems, getMembers } from "./store";
 import type { Household, HouseholdItem } from "./types";
 
 /**
@@ -31,6 +31,8 @@ interface Extra {
   to?: string;
   type?: string;
   description?: string | null;
+  time?: string | null;
+  ownCategory?: string | null;
 }
 
 const extraOf = (i: HouseholdItem): Extra => {
@@ -42,7 +44,7 @@ const extraOf = (i: HouseholdItem): Extra => {
 };
 
 /** Their category (a household category name, or their own) → one of mine. */
-async function categoryResolver(h: Household, userId: string): Promise<(name: string | null) => string | null> {
+async function categoryResolver(h: Household, userId: string): Promise<(...names: (string | null | undefined)[]) => string | null> {
   const db = getDatabase();
   const hcats = await getHouseholdCategories(h.id);
   const map = await getCategoryMap(h.id);
@@ -50,15 +52,21 @@ async function categoryResolver(h: Household, userId: string): Promise<(name: st
     "SELECT id, name FROM categories WHERE user_id = ? AND is_active = 1 ORDER BY sort_order;",
     userId,
   );
-  return (name) => {
-    if (!name) return null;
-    const n = name.trim().toLowerCase();
-    const hc = hcats.find((c) => c.name.trim().toLowerCase() === n);
-    if (hc) {
-      const local = [...map.entries()].find(([, v]) => v === hc.id)?.[0];
-      if (local) return local;
+  // Loose: same name, a word in common, or the same kind of spending.
+  const byName = (name: string) => bestCategoryMatch(name, mine)?.id ?? null;
+  const key = (s: string) => categoryWords(s).join("");
+  return (...names) => {
+    for (const name of names) {
+      if (!name) continue;
+      const hc = hcats.find((c) => key(c.name) === key(name));
+      if (hc) {
+        const local = [...map.entries()].find(([, v]) => v === hc.id)?.[0];
+        if (local) return local;
+      }
+      const found = byName(name);
+      if (found) return found;
     }
-    return mine.find((c) => c.name.trim().toLowerCase() === n)?.id ?? null;
+    return null;
   };
 }
 
@@ -74,10 +82,15 @@ interface DesiredEntry {
 
 interface DesiredExpense {
   ref: string;
+  /** My share. */
   amount: number;
+  /** The whole bill they paid: stored as the split's original amount, so Arth shows it as split. */
+  bill: number;
   date: string;
+  time: string;
   merchant: string | null;
   categoryName: string | null;
+  ownCategory: string | null;
   description: string;
 }
 
@@ -100,8 +113,21 @@ export async function reconcileMirrors(h: Household, userId: string = DEFAULT_US
       const mine = round2(x.owes?.[h.my_member_id] ?? 0);
       if (mine <= 0) continue;
       const what = i.merchant || i.category_name || "Shared";
-      entries.push({ ref: ref(h.id, i.id), personId, type: "credit", amount: mine, date, description: `${what}, your share`, merchant: i.merchant });
-      expenses.push({ ref: ref(h.id, i.id), amount: mine, date, merchant: i.merchant, categoryName: i.category_name, description: `Paid by ${who}` });
+      // The ledger is already theirs and shows the amount: the description is just what it was for.
+      entries.push({ ref: ref(h.id, i.id), personId, type: "credit", amount: mine, date, description: what, merchant: i.merchant });
+      const bill = round2(i.paid ?? mine);
+      const note = typeof x.description === "string" && x.description.trim() ? x.description.trim() : null;
+      expenses.push({
+        ref: ref(h.id, i.id),
+        amount: mine,
+        bill: Math.max(bill, mine),
+        date,
+        time: typeof x.time === "string" && /^\d{2}:\d{2}/.test(x.time) ? x.time : "00:00:00",
+        merchant: i.merchant,
+        categoryName: i.category_name,
+        ownCategory: typeof x.ownCategory === "string" ? x.ownCategory : null,
+        description: note ? `${note} · paid by ${who}` : `Paid by ${who}`,
+      });
     } else if (i.kind === "ledger" && x.to === h.my_member_id && (x.amount ?? 0) > 0) {
       // Their Hisaab with me, turned round: what they lent me I borrowed, and so on.
       //   their debit (they gave / I owe them)      → my credit
@@ -109,15 +135,15 @@ export async function reconcileMirrors(h: Household, userId: string = DEFAULT_US
       //   their settlement (I paid them back)       → my debit
       const type = x.type === "debit" ? "credit" : "debit";
       const what = x.description?.trim() || (x.type === "settlement" ? "Settle-up" : "Entry");
-      entries.push({ ref: ref(h.id, i.id), personId, type, amount: round2(x.amount as number), date, description: `${what} (from ${who})`, merchant: null });
+      entries.push({ ref: ref(h.id, i.id), personId, type, amount: round2(x.amount as number), date, description: what, merchant: null });
     } else if (i.kind === "settle" && (x.amount ?? 0) > 0) {
       const amount = round2(x.amount as number);
       if (x.payee === h.my_member_id && x.payer === i.member_id) {
         // They paid me back.
-        entries.push({ ref: ref(h.id, i.id), personId, type: "settlement", amount, date, description: `Settle-up from ${who}`, merchant: null });
+        entries.push({ ref: ref(h.id, i.id), personId, type: "settlement", amount, date, description: "Settle-up", merchant: null });
       } else if (x.payer === h.my_member_id && x.payee === i.member_id) {
         // They recorded that I paid them.
-        entries.push({ ref: ref(h.id, i.id), personId, type: "debit", amount, date, description: `Settle-up to ${who}`, merchant: null });
+        entries.push({ ref: ref(h.id, i.id), personId, type: "debit", amount, date, description: "Settle-up", merchant: null });
       }
     }
   }
@@ -171,8 +197,17 @@ export async function reconcileMirrors(h: Household, userId: string = DEFAULT_US
 
   // My share of their bills, in my budget
   const resolve = await categoryResolver(h, userId);
-  const haveExpenses = await db.getAllAsync<{ id: string; household_ref: string; amount: number; date: string; merchant_name: string | null; description: string | null }>(
-    "SELECT id, household_ref, amount, date, merchant_name, description FROM expenses WHERE household_ref LIKE ?;",
+  const haveExpenses = await db.getAllAsync<{
+    id: string;
+    household_ref: string;
+    amount: number;
+    split_original_amount: number | null;
+    date: string;
+    transaction_time: string | null;
+    merchant_name: string | null;
+    description: string | null;
+  }>(
+    "SELECT id, household_ref, amount, split_original_amount, date, transaction_time, merchant_name, description FROM expenses WHERE household_ref LIKE ?;",
     like,
   );
   const expenseByRef = new Map(haveExpenses.map((e) => [e.household_ref, e]));
@@ -180,24 +215,39 @@ export async function reconcileMirrors(h: Household, userId: string = DEFAULT_US
     const have = expenseByRef.get(d.ref);
     if (!have) {
       await db.runAsync(
-        `INSERT INTO expenses (id, user_id, amount, description, category_id, date, source, status, nature, merchant_name, household_ref, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'manual', 'approved', 'realized', ?, ?, datetime('now'), datetime('now'));`,
+        `INSERT INTO expenses (id, user_id, amount, split_original_amount, split_pct, description, category_id, date, transaction_time,
+           source, status, nature, merchant_name, household_ref, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', 'realized', ?, ?, datetime('now'), datetime('now'));`,
         generateUUID(),
         userId,
         d.amount,
+        d.bill > d.amount ? d.bill : null,
+        d.bill > d.amount ? Math.round((d.amount / d.bill) * 100) : null,
         d.description,
-        resolve(d.categoryName),
+        resolve(d.categoryName, d.ownCategory),
         d.date,
+        d.time,
         d.merchant,
         d.ref,
       );
       changed = true;
-    } else if (have.amount !== d.amount || have.date.slice(0, 10) !== d.date || have.merchant_name !== d.merchant || have.description !== d.description) {
+    } else if (
+      have.amount !== d.amount ||
+      (have.split_original_amount ?? have.amount) !== d.bill ||
+      have.date.slice(0, 10) !== d.date ||
+      (have.transaction_time ?? "00:00:00") !== d.time ||
+      have.merchant_name !== d.merchant ||
+      have.description !== d.description
+    ) {
       // The category is left as it is: you may have changed it.
       await db.runAsync(
-        "UPDATE expenses SET amount = ?, date = ?, merchant_name = ?, description = ?, updated_at = datetime('now') WHERE id = ?;",
+        `UPDATE expenses SET amount = ?, split_original_amount = ?, split_pct = ?, date = ?, transaction_time = ?, merchant_name = ?,
+           description = ?, updated_at = datetime('now') WHERE id = ?;`,
         d.amount,
+        d.bill > d.amount ? d.bill : null,
+        d.bill > d.amount ? Math.round((d.amount / d.bill) * 100) : null,
         d.date,
+        d.time,
         d.merchant,
         d.description,
         have.id,

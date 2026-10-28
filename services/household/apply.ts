@@ -97,7 +97,7 @@ export async function applyOp(h: Household, author: HouseholdMember, op: Op): Pr
     case "household.categories":
       await setHouseholdCategories(
         h.id,
-        (body.categories ?? []).slice(0, 30).map((c) => ({ id: String(c.id), name: String(c.name).slice(0, 40) })),
+        (body.categories ?? []).slice(0, 30).map((c) => ({ id: String(c.id), name: String(c.name).slice(0, 40), shared: c.shared !== false })),
       );
       return { changed: true, needsSnapshot: true };
 

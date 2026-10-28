@@ -261,8 +261,8 @@ test("household spending is shared and split; each phone keeps its own Hisaab an
   const fromSourav = await othersItems(aastha);
   const tx = fromSourav.filter((i) => i.kind === "tx").sort((x, y) => x.paid! - y.paid!);
   expect(tx.map((t) => [t.category_name, t.merchant, t.paid, t.my_share])).toEqual([
-    ["Groceries", "BigBasket", 2300, 1150],
-    ["Rent", "Landlord", 25000, 12500],
+    ["Grocery & Supplies", "BigBasket", 2300, 1150],
+    ["Rent & Utilities", "Landlord", 25000, 12500],
   ]);
   const aasthaId = (await getActiveHousehold())!.my_member_id;
   void aasthaId;
@@ -328,7 +328,7 @@ test("everything already in Sourav's Hisaab with her reaches Aastha: settle-ups,
   expect(ab.amount).toBe(3000);
   expect(ab.theirs).toBe(3000); // both phones agree
   const mirrored = aastha.db.prepare("SELECT type, amount, description FROM hisaab_entries WHERE household_ref IS NOT NULL AND description LIKE '%GPay%'").get();
-  expect(mirrored).toEqual({ type: "debit", amount: 5000, description: "GPay (from Sourav)" });
+  expect(mirrored).toEqual({ type: "debit", amount: 5000, description: "GPay" });
 
   // Back to square for the next steps.
   sourav.db.prepare("DELETE FROM hisaab_entries WHERE id = 'manual-settle'").run();
@@ -343,7 +343,7 @@ test("a budget starts once the other accepts it; goals add up each person's part
   const plans = require("../../services/household/plans");
   const month = today().slice(0, 7);
   on(sourav);
-  await plans.proposeBudget({ Groceries: 15000, Rent: 25000 }, "Let's eat out less");
+  await plans.proposeBudget({ "Grocery & Supplies": 15000, "Rent & Utilities": 25000 }, "Let's eat out less");
   await sync(sourav);
   await sync(aastha);
   on(aastha);
@@ -355,9 +355,9 @@ test("a budget starts once the other accepts it; goals add up each person's part
   await sync(sourav);
   on(sourav);
   st = await plans.getBudgetState((await getActiveHousehold())!, month);
-  expect(st.active.amounts).toEqual({ Groceries: 15000, Rent: 25000 });
+  expect(st.active.amounts).toEqual({ "Grocery & Supplies": 15000, "Rent & Utilities": 25000 });
   // Rent this month: 25,000 paid by Sourav, shared.
-  expect(st.lines.find((l: { category: string }) => l.category === "Rent")).toEqual({ category: "Rent", budget: 25000, spent: 25000 });
+  expect(st.lines.find((l: { category: string }) => l.category === "Rent & Utilities")).toEqual({ category: "Rent & Utilities", budget: 25000, spent: 25000 });
 
   const goalId = await plans.createGoal("Goa trip", 150000, `${new Date().getFullYear() + 1}-01-31`);
   await plans.setMyGoalPart(goalId, { amount: 60000 });

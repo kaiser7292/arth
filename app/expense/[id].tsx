@@ -32,6 +32,7 @@ import { RecurringRuleSheet } from "@/components/expense/RecurringRuleSheet";
 import { RefundTargetSheet } from "@/components/expense/RefundTargetSheet";
 import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
 import { SharedWithHome } from "@/components/household/SharedWithHome";
+import { HouseholdShareLink } from "@/components/household/HouseholdShareLink";
 import { SplitSheet } from "@/components/expense/SplitSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
 import { Button, Input, LoadingState, ScreenContainer, Sheet, Text, useToast } from "@/components/ui";
@@ -2418,8 +2419,9 @@ export default function ExpenseDetailScreen() {
                 )}
               </View>
 
-              {/* 4. Split Section — not applicable for credits */}
-              {expense.nature !== "credit" && (
+              {/* 4. Split Section — not applicable for credits, nor my share of a household member's
+                  bill (Together keeps that one; its split is theirs) */}
+              {expense.nature !== "credit" && !expense.household_ref && (
               <View className="mx-4 mt-3">
                 {multiSplitSummary ? (
                   /* ── Multi-split active ── */
@@ -2630,16 +2632,18 @@ export default function ExpenseDetailScreen() {
 
               {/* Together: shared with the household and how it's split (not on my share of someone else's bill). */}
               {expense && expense.nature === "realized" && !expense.household_ref && !expense.deleted_at && (
-                <SharedWithHome
-                  expenseId={expense.id}
-                  categoryId={expense.category_id}
-                  total={expense.split_original_amount ?? expense.amount}
-                />
+                <View className="mx-4">
+                  <SharedWithHome
+                    expenseId={expense.id}
+                    categoryId={expense.category_id}
+                    total={expense.split_original_amount ?? expense.amount}
+                  />
+                </View>
               )}
               {expense?.household_ref ? (
-                <Text className="text-xs text-muted-foreground mt-3">
-                  Your share of a bill someone in your household paid. It updates when they change it.
-                </Text>
+                <View className="mx-4">
+                  <HouseholdShareLink householdRef={expense.household_ref} />
+                </View>
               ) : null}
 
               {/* 4b. Tags */}

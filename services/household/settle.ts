@@ -81,7 +81,7 @@ export async function recordSettleUp(input: SettleUpInput): Promise<void> {
       entryId,
       personId,
       amount,
-      input.paidBy === "me" ? `Settle-up to ${member?.name ?? "them"}` : `Settle-up from ${member?.name ?? "them"}`,
+      "Settle-up",
       input.date,
       input.paidBy === "me" ? "debit" : "settlement",
       new Date().toISOString(),

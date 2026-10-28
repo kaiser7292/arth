@@ -17,7 +17,7 @@ import { addHouseholdKeyVersion, deleteHouseholdKeys, getHouseholdKey, getMember
 import { applyOp, type ApplyResult } from "./apply";
 import { publish } from "./publisher";
 import { reconcileMirrors } from "./mirror";
-import { applyPendingShares, detachHouseholdLinks, ensureMemberLinks } from "./shares";
+import { applyPendingShares, detachHouseholdLinks, ensureHouseholdCategories, ensureMemberLinks } from "./shares";
 import { relay, RelayError } from "./relay-client";
 import {
   enqueue,
@@ -136,6 +136,7 @@ async function syncOnce(start: Household): Promise<SyncResult> {
   let creatorShouldRekey = false;
 
   // ── 0. On this phone, no network needed: link members to Hisaab, share what should be shared ──
+  if (await ensureHouseholdCategories(h, DEFAULT_USER_ID)) changed = true;
   await ensureMemberLinks(h);
   if ((await applyPendingShares(h, DEFAULT_USER_ID)) > 0) changed = true;
 

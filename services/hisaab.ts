@@ -54,6 +54,8 @@ export interface HisaabEntry {
    * Only meaningful for type='settlement'.
    */
   settlement_source: "created" | "linked";
+  /** migration 087 — set when Together wrote this entry from another household member's phone. */
+  household_ref?: string | null;
   created_at: string;
   updated_at: string;
 }

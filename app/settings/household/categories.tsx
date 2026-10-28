@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, Switch, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, Input, ScreenContainer, SelectSheet, Text, useToast } from "@/components/ui";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -49,7 +49,7 @@ export default function HouseholdCategoriesScreen() {
   const isCreator = h.role === "creator";
   const nameOf = (id: string | undefined) => hcats.find((c) => c.id === id)?.name;
 
-  const saveList = async (list: { id?: string; name: string }[]) => {
+  const saveList = async (list: { id?: string; name: string; shared?: boolean }[]) => {
     try {
       await saveHouseholdCategories(list);
       await load();
@@ -65,18 +65,33 @@ export default function HouseholdCategoriesScreen() {
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Household categories</Text>
           <Text className="text-xs text-muted-foreground mb-2 leading-4">
             {isCreator
-              ? "The household's shared spending. Everyone maps their own categories onto these."
-              : "Set by whoever started the household. Map your own categories onto these below."}
+              ? "Arth's categories, so everyone's map by name. Spends in the ones marked shared are shared and split as they're approved."
+              : "Set by whoever started the household. Spends in the ones marked shared are shared and split as they're approved."}
           </Text>
           {hcats.map((c) => (
             <View key={c.id} className="flex-row items-center py-2 border-b border-border">
-              <Text className="text-sm text-foreground flex-1">{c.name}</Text>
+              <View className="flex-1">
+                <Text className="text-sm text-foreground">{c.name}</Text>
+                {!isCreator && c.shared_default ? <Text className="text-xs" style={{ color: theme.primary }}>Shared by default</Text> : null}
+              </View>
+              {isCreator && (
+                <View className="flex-row items-center mr-3">
+                  <Text className="text-xs text-muted-foreground mr-1">Shared</Text>
+                  <Switch
+                    value={!!c.shared_default}
+                    onValueChange={(v) =>
+                      void saveList(hcats.map((x) => ({ id: x.id, name: x.name, shared: x.id === c.id ? v : !!x.shared_default })))
+                    }
+                    accessibilityLabel={`${c.name} shared by default`}
+                  />
+                </View>
+              )}
               {isCreator && (
                 <Pressable
                   hitSlop={8}
                   accessibilityRole="button"
                   accessibilityLabel={`Remove ${c.name}`}
-                  onPress={() => void saveList(hcats.filter((x) => x.id !== c.id))}
+                  onPress={() => void saveList(hcats.filter((x) => x.id !== c.id).map((x) => ({ id: x.id, name: x.name, shared: !!x.shared_default })))}
                 >
                   <Ionicons name="close" size={18} color={theme.mutedForeground} />
                 </Pressable>
@@ -93,7 +108,7 @@ export default function HouseholdCategoriesScreen() {
                 variant="outline"
                 onPress={() => {
                   if (!newName.trim()) return;
-                  void saveList([...hcats, { name: newName.trim() }]);
+                  void saveList([...hcats.map((x) => ({ id: x.id, name: x.name, shared: !!x.shared_default })), { name: newName.trim(), shared: false }]);
                   setNewName("");
                 }}
               />

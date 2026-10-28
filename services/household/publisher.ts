@@ -58,13 +58,15 @@ interface SpendRow {
   category_id: string | null;
   category_name: string | null;
   merchant_name: string | null;
+  description: string | null;
+  transaction_time: string | null;
   gross: number;
   effective: number;
 }
 
 async function spendRows(userId: string, from: string): Promise<SpendRow[]> {
   return getDatabase().getAllAsync<SpendRow>(
-    `SELECT e.id, e.date, e.category_id, c.name AS category_name, e.merchant_name,
+    `SELECT e.id, e.date, e.category_id, c.name AS category_name, e.merchant_name, e.description, e.transaction_time,
             CASE WHEN e.split_original_amount > 0 THEN e.split_original_amount ELSE e.amount END AS gross,
             ${effectiveAmountSql("e")} AS effective
      FROM expenses e
@@ -119,7 +121,18 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
         myShare: round2(r.effective),
         category: info ? (hcatName ?? r.category_name ?? "Uncategorized") : (r.category_name ?? "Uncategorized"),
         merchant: r.merchant_name,
-        extra: info ? { shared: 1, split: info.split, owes: info.owes } : undefined,
+        // A shared bill carries what the others need to record their share of it in full.
+        extra: info
+          ? {
+              shared: 1,
+              split: info.split,
+              owes: info.owes,
+              description: r.description?.trim() || null,
+              time: r.transaction_time ?? null,
+              // Their own category too, in case the household one doesn't match anything on the other phone.
+              ownCategory: r.category_name ?? null,
+            }
+          : undefined,
       });
     } else if (choices.otherTotals) {
       const month = r.date.slice(0, 7);

@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useMemo, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { getDatabase } from "@/database";
 import { useBackOverride } from "@/hooks/use-back-override";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -143,6 +144,19 @@ export default function LedgerScreen() {
         getLinkedAccountIdsForEntries(entriesData),
       ]);
       if (seq !== loadSeqRef.current) return;
+      // Together: an entry written from a household member's shared bill opens "Paid by …", my
+      // share of that bill (the two carry the same household_ref).
+      const refs = entriesData.filter((e) => e.household_ref && !e.linked_expense_id).map((e) => e.household_ref as string);
+      if (refs.length) {
+        const rows = await getDatabase().getAllAsync<{ id: string; household_ref: string }>(
+          `SELECT id, household_ref FROM expenses WHERE deleted_at IS NULL AND household_ref IN (${refs.map(() => "?").join(",")});`,
+          ...refs,
+        );
+        const byRef = new Map(rows.map((r) => [r.household_ref, r.id]));
+        for (const e of entriesData) {
+          if (e.household_ref && !e.linked_expense_id && byRef.has(e.household_ref)) e.linked_expense_id = byRef.get(e.household_ref) ?? null;
+        }
+      }
       setEntries(entriesData);
       setAccountMap(acctMap);
       setAccountIdMap(acctIdMap);
@@ -227,6 +241,13 @@ export default function LedgerScreen() {
   };
 
   const handleDeleteEntry = (entry: HisaabEntry) => {
+    if (entry.household_ref) {
+      alert(
+        `From ${person?.name ?? "their"}'s phone`,
+        `This entry comes from ${person?.name ?? "their"}'s side of your household; it would come back on the next sync. Ask them to remove it there.`,
+      );
+      return;
+    }
     alert("Delete Entry", `Delete this ${entry.type} of ${formatAmount(entry.amount)}?`, [
       { text: "Cancel", style: "cancel" },
       {
@@ -241,6 +262,13 @@ export default function LedgerScreen() {
   };
 
   const handleEditEntry = (entry: HisaabEntry) => {
+    if (entry.household_ref) {
+      alert(
+        `From ${person?.name ?? "their"}'s phone`,
+        `This entry comes from ${person?.name ?? "their"}'s side of your household and updates when they change it. Ask them to change it there.`,
+      );
+      return;
+    }
     setEditingId(entry.id);
     setFormAmount(String(entry.amount));
     setFormDescription(entry.description ?? "");

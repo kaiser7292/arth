@@ -44,6 +44,7 @@ import {
 import { endHousehold, pushOutbox, rekey, requestSync, syncHousehold } from "./sync";
 import {
   DEFAULT_HOUSEHOLD_CATEGORIES,
+  SHARED_BY_DEFAULT,
   DEFAULT_RELAY_URL,
   INVITE_PAGE_URL,
   MAX_MEMBERS,
@@ -109,7 +110,7 @@ export async function startHousehold(householdName: string, myName: string): Pro
     role: "creator",
   };
   await upsertMember(id, meMember);
-  const categories = DEFAULT_HOUSEHOLD_CATEGORIES.map((n) => ({ id: newId(), name: n }));
+  const categories = DEFAULT_HOUSEHOLD_CATEGORIES.map((n) => ({ id: newId(), name: n, shared: SHARED_BY_DEFAULT.includes(n) }));
   await setHouseholdCategories(id, categories);
   await autoMapCategories(id, DEFAULT_USER_ID);
   await enqueue(id, [{ kind: "household.categories", categories }]);
@@ -443,11 +444,11 @@ export async function renameHousehold(name: string): Promise<void> {
   requestSync(0);
 }
 
-export async function saveHouseholdCategories(list: { id?: string; name: string }[]): Promise<void> {
+export async function saveHouseholdCategories(list: { id?: string; name: string; shared?: boolean }[]): Promise<void> {
   const h = await requireActive();
   if (h.role !== "creator") throw new Error("Only the person who started the household can change its categories");
   const categories = list
-    .map((c) => ({ id: c.id ?? newId(), name: clean(c.name) }))
+    .map((c) => ({ id: c.id ?? newId(), name: clean(c.name), shared: c.shared !== false }))
     .filter((c) => c.name)
     .slice(0, 30);
   await setHouseholdCategories(h.id, categories);
