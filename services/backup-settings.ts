@@ -122,6 +122,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("iphone_messages_last_arrival", "string", PROGRESS),
   S("iphone_messages_stats", "string", DEVICE("counts what this iPhone's Shortcut handed over")),
   S("iphone_messages_notify", "boolean", DEVICE("mirrored to a file the Shortcuts action on this iPhone reads")),
+  S("iphone_messages_setup_card_dismissed", "boolean", DEVICE("the Shortcuts automation is set up per iPhone")),
   S("patterns_rebuilt_on", "string", PROGRESS),
   S("duplicate_scan_cache_v1", "string", DEVICE("cache, rebuilt from the database")),
   S("data_version", "number", DEVICE("in-memory cache invalidation counter")),

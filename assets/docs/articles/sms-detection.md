@@ -13,6 +13,8 @@ phrasings:
   - Bank messages on iPhone
   - Set up the Shortcuts automation
   - Why didn't my bank message show up on iPhone?
+  - Shortcuts asks me to paste the message
+  - I can't find Notify When Run
   - Some SMS are not being picked up
   - Arth missed an expense from my bank
   - How do I turn off SMS auto-detect?
@@ -114,10 +116,12 @@ iPhone doesn't let any app read your messages. Instead, a **Shortcuts automation
 
 1. In the Shortcuts app, open **Automation**, tap **+** and choose **Message**.
 2. Leave **Sender** and **Message Contains** empty. Arth ignores anything that isn't a transaction (chats, OTPs, offers) without saving it.
-3. Choose **Run Immediately** and turn off **Notify When Run**.
-4. Add the action **Add bank message to Arth**, set Message to **Shortcut Input**, and tap Done.
+3. Choose **Run Immediately** and tap Next. If you see **Notify When Run**, turn it off (newer iOS doesn't have it). iOS may still show a short "Running your automation" notice: that comes from iOS, not Arth.
+4. Tap **New Blank Automation** and add the action **Add bank message to Arth**. Tap the light-blue **Message** and pick **Shortcut Input**, then tap Done.
 
-One automation covers money going out and coming in.
+One automation covers money going out and coming in. Don't add more (one for "Rs", one for "INR"): a message that matches two of them reaches Arth twice.
+
+The same steps are on **Home** until your first bank message arrives, and the **scan** button at the top of Home opens them any time.
 
 **What you see:**
 
@@ -125,9 +129,11 @@ One automation covers money going out and coming in.
 - **A Home card** ("3 bank messages read · 2 to review") when you open Arth.
 - **If Arth can't read a message**, Just arrived shows it with **Teach Arth**: show it the amount and shop once, and messages like it are read by themselves after that.
 
-**Missed one?** Copy the message in Messages, then tap **+ → Paste Bank Message** in Transactions. The Shortcuts action **Review bank message in Arth** does the same from Shortcuts.
+**Missed one?** Copy the message in Messages, then tap the **scan** button at the top of Home → **Paste bank message**, or **+ → Paste Bank Message** in Transactions. The Shortcuts action **Review bank message in Arth** does the same from Shortcuts.
 
 **Is it working?** The settings screen shows "Working — last message 2 min ago". If it says "Nothing received yet", check step 3.
+
+**Shortcuts asks you to paste the message every time?** Step 4 was missed: open the automation, tap the action's **Message** and pick **Shortcut Input**.
 
 ## Related
 
