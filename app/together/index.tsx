@@ -10,6 +10,7 @@ import { formatAmount } from "@/utils/format";
 import { getStatement, type Statement, type StatementRow } from "@/services/household/statement";
 import { ensureMemberLinks, linkMember, linkMemberToNewPerson, type LinkSuggestion } from "@/services/household/shares";
 import { syncHousehold, requestSync } from "@/services/household/sync";
+import { getBudgetState, getGoals, type BudgetState, type Goal } from "@/services/household/plans";
 
 const thisMonth = () => {
   const d = new Date();
@@ -42,12 +43,18 @@ export default function TogetherScreen() {
   const [s, setS] = useState<Statement | null | undefined>(undefined);
   const [suggestions, setSuggestions] = useState<LinkSuggestion[]>([]);
   const [who, setWho] = useState<string | null>(null);
+  const [budget, setBudget] = useState<BudgetState | null>(null);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [syncing, setSyncing] = useState(false);
 
   const load = useCallback(async () => {
     const st = await getStatement(month);
     setS(st);
-    if (st) setSuggestions(await ensureMemberLinks(st.household).catch(() => []));
+    if (st) {
+      setSuggestions(await ensureMemberLinks(st.household).catch(() => []));
+      setBudget(await getBudgetState(st.household, month).catch(() => null));
+      setGoals(await getGoals(st.household).catch(() => []));
+    }
   }, [month]);
   useDataRefresh(load);
 
@@ -198,6 +205,95 @@ export default function TogetherScreen() {
                 </View>
               );
             })}
+          </Card>
+
+          {/* Household budget: agreed together; spent counts every shared bill, whoever paid. */}
+          <Card className="mb-3">
+            <View className="flex-row items-center justify-between mb-1">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Household budget</Text>
+              {budget?.active && !budget.pending && (
+                <Pressable onPress={() => router.push("/together/budget")} hitSlop={8}>
+                  <Text className="text-xs" style={{ color: theme.primary }}>Change</Text>
+                </Pressable>
+              )}
+            </View>
+            {budget?.pending && budget.pending.by.id !== h.my_member_id && (
+              <Pressable
+                onPress={() => router.push({ pathname: "/together/budget", params: { review: budget.pending!.id } })}
+                className="flex-row items-center justify-between py-2"
+              >
+                <Text className="text-sm text-foreground flex-1 mr-2">
+                  {budget.pending.by.name} proposed a budget of {formatAmount(Object.values(budget.pending.amounts).reduce((a, v) => a + v, 0))} a month
+                </Text>
+                <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Review</Text>
+              </Pressable>
+            )}
+            {budget?.pending && budget.pending.by.id === h.my_member_id && (
+              <Text className="text-sm text-muted-foreground py-1">
+                Waiting for {budget.pending.waitingFor.map((m) => m.name).join(", ")} to accept your budget.
+              </Text>
+            )}
+            {budget?.active ? (
+              <>
+                {budget.lines.map((l) => {
+                  const ratio = l.budget > 0 ? l.spent / l.budget : 1;
+                  return (
+                    <View key={l.category} className="py-1.5">
+                      <View className="flex-row justify-between">
+                        <Text className="text-sm text-foreground">{l.category}</Text>
+                        <Text className="text-xs" style={{ color: ratio > 1 ? theme.danger : ratio > 0.85 ? theme.warning : theme.mutedForeground }}>
+                          {formatAmount(l.spent)} of {formatAmount(l.budget)}
+                        </Text>
+                      </View>
+                      <View className="h-1.5 rounded-full overflow-hidden mt-1" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                        <View style={{ width: `${Math.min(100, ratio * 100)}%`, height: "100%", backgroundColor: ratio > 1 ? theme.danger : ratio > 0.85 ? theme.warning : theme.primary }} />
+                      </View>
+                    </View>
+                  );
+                })}
+                <Text className="text-xs text-muted-foreground mt-1">
+                  {formatAmount(budget.total.spent)} of {formatAmount(budget.total.budget)} together this month
+                </Text>
+              </>
+            ) : (
+              !budget?.pending && (
+                <Pressable onPress={() => router.push("/together/budget")} className="py-1">
+                  <Text className="text-sm" style={{ color: theme.primary }}>Agree a budget together</Text>
+                </Pressable>
+              )
+            )}
+          </Card>
+
+          {/* Shared goals: each person saves their own part. */}
+          <Card className="mb-3">
+            <View className="flex-row items-center justify-between mb-1">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Goals together</Text>
+              <Pressable onPress={() => router.push("/together/goal")} hitSlop={8}>
+                <Text className="text-xs" style={{ color: theme.primary }}>New goal</Text>
+              </Pressable>
+            </View>
+            {goals.length === 0 ? (
+              <Text className="text-sm text-muted-foreground py-1">A trip, a house, a wedding: start one and each of you adds your part.</Text>
+            ) : (
+              goals.map((g) => (
+                <Pressable key={g.id} onPress={() => router.push({ pathname: "/together/goal", params: { id: g.id } })} className="py-2">
+                  <View className="flex-row justify-between">
+                    <Text className="text-sm text-foreground">{g.name}</Text>
+                    <Text className="text-xs text-muted-foreground">
+                      {formatAmount(g.total)} of {formatAmount(g.target)}
+                    </Text>
+                  </View>
+                  <View className="flex-row h-1.5 rounded-full overflow-hidden mt-1" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                    {g.parts.map((p) => (
+                      <View key={p.member.id} style={{ width: `${g.target > 0 ? Math.min(100, (p.amount / g.target) * 100) : 0}%`, backgroundColor: p.member.colour ?? theme.primary }} />
+                    ))}
+                  </View>
+                  {g.perMonthNeeded ? (
+                    <Text className="text-xs text-muted-foreground mt-1">{formatAmount(g.perMonthNeeded)} a month together to make it by {g.by}</Text>
+                  ) : null}
+                </Pressable>
+              ))
+            )}
           </Card>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2" contentContainerStyle={{ gap: 6 }}>

@@ -66,9 +66,10 @@ export interface HouseholdCategory {
  * tx: a transaction (shared, or every transaction when chosen) · total: a month's total for one of
  * the author's categories · savings: a month's savings rate · balance: an account balance ·
  * settle: a settle-up between two members · net: the author's Hisaab balance with one member
- * (id "net:<member id>"), so the other phone can say whether both agree.
+ * (id "net:<member id>"), so the other phone can say whether both agree · budget / budget_ok /
+ * goal / goal_progress: planning together (plans.ts).
  */
-export type ItemKind = "tx" | "total" | "savings" | "balance" | "settle" | "net";
+export type ItemKind = "tx" | "total" | "savings" | "balance" | "settle" | "net" | "budget" | "budget_ok" | "goal" | "goal_progress";
 
 export interface HouseholdItem {
   household_id: string;
@@ -95,7 +96,18 @@ export interface HouseholdEvent {
   at: string;
 }
 
-export type EventType = "created" | "joined" | "left" | "removed" | "renamed" | "shared" | "rekeyed" | "closed" | "settled";
+export type EventType =
+  | "created"
+  | "joined"
+  | "left"
+  | "removed"
+  | "renamed"
+  | "shared"
+  | "rekeyed"
+  | "closed"
+  | "settled"
+  | "budget_proposed"
+  | "goal_started";
 
 /** The sharing choices, as sent to the others in `member.settings`. */
 export interface SharingChoices {

@@ -1,7 +1,7 @@
 ---
 title: Households - sharing with your partner or family
 slug: household
-summary: Share household spending with up to 4 others. Each of you keeps your own Arth and chooses what to share; it travels end-to-end encrypted.
+summary: Share household spending with up to 4 others, split bills automatically, keep Hisaab in step on both phones, and plan a budget and goals together. End-to-end encrypted.
 tags: [household, together, partner, family, couple, share, privacy, invite]
 contextKeys: [household]
 phrasings:
@@ -17,6 +17,11 @@ phrasings:
   - Remove someone from my household
   - The check codes don't match
   - Household not syncing
+  - Split groceries with my wife automatically
+  - Who owes whom in our household
+  - Settle up with my partner
+  - Household budget together
+  - Shared goal with my partner
   - I got a new phone, is my household still there?
 ---
 
@@ -47,6 +52,27 @@ Nothing is shared just by joining. Under **What you share**:
 The screen shows a preview of what the others will see this month. Pending items, income, message text, notes, account numbers, the Vault, loans and investments are never shared.
 
 Under **Household categories** you choose which of your own categories count as which household category. Arth matches most by name ("Grocery" → Groceries).
+
+## Shared or personal
+
+Each transaction is shared with the household or kept personal. Spends in household categories (Groceries, Rent, Utilities, Household help, Fuel, or whatever your household set) are shared as you approve them, and split equally. On a Catch Up card or a transaction's screen, **Shared with Home** turns it on or off and picks the split: **Split equally**, **I pay all** (they see it, nobody owes anything) or **Custom** (your share in %).
+
+A shared, split transaction works like any split in Arth: your budget counts your share, and the other person owes you theirs in Hisaab.
+
+## Together
+
+Home shows your household's month: spent together, each person's part, who owes whom and the latest shared spends. Tap it for **Together**: every shared transaction from everyone, newest first, with what it means between you ("you owe ₹1,150"). Personal spending only shows as monthly totals, if its owner shares those.
+
+## Hisaab, on both phones
+
+Each person in your household is a person in your Hisaab. When they share a bill split with you, your part goes into that Hisaab and into your budget ("Paid by Aastha") by itself; when you share one, it goes into theirs. Together shows your balance with each person and **Both phones agree** when their phone says the same.
+
+**Settle up** records a payment either way. If you paid by UPI or bank transfer, pick that payment so it isn't counted as spending on top of your share of the bills.
+
+## Budget and goals together
+
+- **Household budget**: anyone proposes an amount per household category; it starts once everyone has accepted. Suggest changes sends it back. Spent counts every shared bill, whoever paid.
+- **Goals together**: start one (a trip, a house) and each of you adds your part, from one of your investment buckets (kept up to date by itself) or an amount.
 
 ## Keeping in sync
 

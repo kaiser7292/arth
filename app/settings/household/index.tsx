@@ -45,6 +45,10 @@ function eventLine(e: HouseholdEvent, who: string): string {
       return `${who} was removed`;
     case "renamed":
       return `${who} renamed it ${p.name ?? ""}`;
+    case "budget_proposed":
+      return `${who} proposed a household budget`;
+    case "goal_started":
+      return `${who} started a goal${p.name ? `: ${p.name}` : ""}`;
     case "settled":
       return `${who} settled up ${p.amount ? formatAmount(p.amount) : ""}`.trim();
     case "rekeyed":

@@ -302,6 +302,41 @@ test("settling up moves both Hisaabs to zero", async () => {
   expect([ab.amount, ab.theirs]).toEqual([0, 0]);
 });
 
+test("a budget starts once the other accepts it; goals add up each person's part", async () => {
+  const plans = require("../../services/household/plans");
+  const month = today().slice(0, 7);
+  on(sourav);
+  await plans.proposeBudget({ Groceries: 15000, Rent: 25000 }, "Let's eat out less");
+  await sync(sourav);
+  await sync(aastha);
+  on(aastha);
+  let st = await plans.getBudgetState((await getActiveHousehold())!, month);
+  expect(st.active).toBeNull();
+  expect(st.pending.by.name).toBe("Sourav");
+  await plans.acceptBudget(st.pending.id);
+  await sync(aastha);
+  await sync(sourav);
+  on(sourav);
+  st = await plans.getBudgetState((await getActiveHousehold())!, month);
+  expect(st.active.amounts).toEqual({ Groceries: 15000, Rent: 25000 });
+  // Rent this month: 25,000 paid by Sourav, shared.
+  expect(st.lines.find((l: { category: string }) => l.category === "Rent")).toEqual({ category: "Rent", budget: 25000, spent: 25000 });
+
+  const goalId = await plans.createGoal("Goa trip", 150000, `${new Date().getFullYear() + 1}-01-31`);
+  await plans.setMyGoalPart(goalId, { amount: 60000 });
+  await sync(sourav);
+  await sync(aastha);
+  on(aastha);
+  await plans.setMyGoalPart(goalId, { amount: 48000 });
+  await sync(aastha);
+  await sync(sourav);
+  on(sourav);
+  const [goal] = await plans.getGoals((await getActiveHousehold())!);
+  expect([goal.name, goal.target, goal.total]).toEqual(["Goa trip", 150000, 108000]);
+  expect(goal.parts.map((p: { member: { name: string }; amount: number }) => [p.member.name, p.amount]).sort()).toEqual([["Aastha", 48000], ["Sourav", 60000]]);
+  expect(goal.perMonthNeeded).toBeGreaterThan(0);
+});
+
 test("the relay only ever holds sealed bytes", () => {
   const blobs = (relayDb.prepare("SELECT blob FROM log").all() as { blob: string }[]).map((r) => Buffer.from(r.blob, "base64").toString("latin1"));
   const everything = JSON.stringify(relayDb.prepare("SELECT * FROM households").all()) + blobs.join("");
@@ -340,7 +375,7 @@ test("turning a choice off takes what it shared back", async () => {
   await sync(aastha);
   await sync(sourav);
   // Settle-ups stay: they're history between the two of them, not something one person "shares".
-  expect((await othersItems(sourav)).filter((i) => i.kind !== "net" && i.kind !== "settle")).toEqual([]);
+  expect((await othersItems(sourav)).filter((i) => i.kind === "tx" || i.kind === "total")).toEqual([]);
 });
 
 test("a removed member is told, loses everything, and can't read what comes next", async () => {
@@ -382,7 +417,7 @@ test("leaving: the leaver's data goes from the relay and the other phone", async
   await setSharingChoices({ householdCategories: true, otherTotals: true, allTransactions: false, savingsRate: false, balances: false });
   await sync(aastha);
   await sync(sourav);
-  expect((await othersItems(sourav)).filter((i) => i.kind !== "net").length).toBeGreaterThan(0);
+  expect((await othersItems(sourav)).filter((i) => i.kind === "tx" || i.kind === "total").length).toBeGreaterThan(0);
 
   on(aastha);
   const aasthaMember = (await getActiveHousehold())!.my_member_id;

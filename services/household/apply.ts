@@ -1,3 +1,4 @@
+import { getDatabase } from "@/database";
 import { fromBase64, openFrom } from "./crypto";
 import { addHouseholdKeyVersion, getMemberKeys } from "./keys";
 import {
@@ -55,6 +56,20 @@ export async function applyOp(h: Household, author: HouseholdMember, op: Op): Pr
       // An item from yourself on another phone is only possible after a move; take it as-is.
       for (const it of body.items ?? []) {
         if (!it || typeof it.id !== "string") continue;
+        // New moments from someone else go in the activity list: settle-ups, budgets, goals.
+        if (author.id !== h.my_member_id && (it.kind === "settle" || it.kind === "budget" || it.kind === "goal")) {
+          const seen = await getDatabase().getFirstAsync<{ id: string }>(
+            "SELECT id FROM household_items WHERE household_id = ? AND id = ?;",
+            h.id,
+            it.id,
+          );
+          if (!seen) {
+            const x = (it.extra ?? {}) as { amount?: number; name?: string };
+            if (it.kind === "settle") await addEvent(h.id, author.id, "settled", { amount: x.amount });
+            if (it.kind === "budget") await addEvent(h.id, author.id, "budget_proposed");
+            if (it.kind === "goal") await addEvent(h.id, author.id, "goal_started", { name: x.name });
+          }
+        }
         await upsertItem(h.id, author.id, it);
       }
       return { changed: true };

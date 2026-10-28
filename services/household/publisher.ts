@@ -9,6 +9,7 @@ import { toIsoDate } from "@/utils/date";
 import { getPersonBalance } from "@/services/hisaab";
 import { newId } from "./crypto";
 import { getMemberLinks, sharedInfoFor } from "./shares";
+import { refreshedGoalParts } from "./plans";
 import {
   choicesOf,
   deleteItem,
@@ -143,6 +144,16 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
       items.push(itemFromRow(s));
       localRefs.set(s.id, s.local_ref as string);
     }
+  }
+
+  // Budgets, acceptances and goals I made stay as they are; my goal parts follow their bucket.
+  for (const p of mine.filter((r) => r.kind === "budget" || r.kind === "budget_ok" || r.kind === "goal")) {
+    items.push(itemFromRow(p));
+  }
+  for (const p of await refreshedGoalParts(h, mine)) {
+    items.push(p);
+    const ref = mine.find((r) => r.id === p.id)?.local_ref;
+    if (ref) localRefs.set(p.id, ref);
   }
 
   // My Hisaab balance with each member, so their phone can show whether both agree.
