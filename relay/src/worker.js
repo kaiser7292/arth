@@ -24,6 +24,8 @@ export const LIMITS = {
   opTtlMs: 90 * 24 * 60 * 60 * 1000,
   inviteTtlMs: 24 * 60 * 60 * 1000,
   idleHouseholdMs: 365 * 24 * 60 * 60 * 1000,
+  /** After a rekey the old token may still read the log this long, so phones that haven't synced yet can fetch the rekey op. */
+  oldTokenGraceMs: 14 * 24 * 60 * 60 * 1000,
   maxBodyBytes: 96 * 1024,
 };
 
@@ -87,14 +89,23 @@ function bearer(request) {
   return m[1];
 }
 
-/** Checks the relay token for household `hh`; bumps its activity at most once a day. */
-async function authHousehold(env, request, hh, now) {
+/**
+ * Checks the relay token for household `hh`; bumps its activity at most once a day. A closed (or
+ * never created) household answers 404, so phones can tell "closed" from "wrong key". IDs are 128-bit
+ * random, so this reveals nothing guessable. `readOnly` routes also accept the previous token for a
+ * while after a rekey.
+ */
+async function authHousehold(env, request, hh, now, readOnly = false) {
   const tokenHash = await sha256Hex(bearer(request));
-  const row = await env.DB.prepare("SELECT token_hash, last_active_at FROM households WHERE id = ?1")
+  const row = await env.DB.prepare(
+    "SELECT token_hash, old_token_hash, old_token_until, last_active_at FROM households WHERE id = ?1",
+  )
     .bind(hh)
     .first();
-  // Same answer whether the household doesn't exist or the token is wrong.
-  if (!row || row.token_hash !== tokenHash) throw new HttpError(401, "unauthorized");
+  if (!row) throw new HttpError(404, "gone");
+  const current = row.token_hash === tokenHash;
+  const previous = readOnly && row.old_token_hash === tokenHash && row.old_token_until > now;
+  if (!current && !previous) throw new HttpError(401, "unauthorized");
   if (now - row.last_active_at > DAY_MS) {
     await env.DB.prepare("UPDATE households SET last_active_at = ?2 WHERE id = ?1").bind(hh, now).run();
   }
@@ -204,8 +215,9 @@ async function route(request, env, now) {
 
   if (p[0] === "h" && p.length >= 2) {
     const hh = checkId(p[1]);
-    await authHousehold(env, request, hh, now);
     const rest = p.slice(2);
+    const readOnly = method === "GET" && rest.length === 1 && rest[0] === "log";
+    await authHousehold(env, request, hh, now, readOnly);
 
     // PUT /v1/h/:hh/log/:member/:seq
     if (method === "PUT" && rest.length === 3 && rest[0] === "log") {
@@ -297,7 +309,11 @@ async function route(request, env, now) {
     // POST /v1/h/:hh/token { tokenHash }  (rekey after removing a member)
     if (method === "POST" && rest.length === 1 && rest[0] === "token") {
       const tokenHash = checkHash((await readJson(request)).tokenHash);
-      await env.DB.prepare("UPDATE households SET token_hash = ?2 WHERE id = ?1").bind(hh, tokenHash).run();
+      await env.DB.prepare(
+        "UPDATE households SET old_token_hash = token_hash, old_token_until = ?3, token_hash = ?2 WHERE id = ?1",
+      )
+        .bind(hh, tokenHash, now + LIMITS.oldTokenGraceMs)
+        .run();
       return json({ ok: true });
     }
 

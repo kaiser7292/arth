@@ -7,6 +7,7 @@ import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as SecureStore from "expo-secure-store";
+import { exportHouseholdKeys, importHouseholdKeys } from "@/services/household/keys";
 import * as Sharing from "expo-sharing";
 import Aes from "react-native-aes-crypto";
 import { shareFile } from "@/services/share-file";
@@ -161,6 +162,17 @@ export const BACKUP_TABLES = [
   "investment_schedule_entries",
   // v3.16.x — integration credential store (migration 075). Independent, no FKs.
   "integration_credentials",
+  // migration 086 - households (Together). households first; the rest point at it (and at
+  // categories / financial_accounts, listed earlier). The keys travel separately (householdKeys).
+  "households",
+  "household_members",
+  "household_categories",
+  "household_category_map",
+  "household_balance_accounts",
+  "household_items",
+  "household_outbox",
+  "household_cursors",
+  "household_events",
 ];
 
 // ---------------------------------------------------------------------------
@@ -325,7 +337,9 @@ export async function createBackup(password: string): Promise<BackupResult> {
     try { vaultKey = await SecureStore.getItemAsync(VAULT_KEY_STORE); } catch { /* ignore */ }
 
     // Settings (preferences and decisions kept outside the database) - see services/backup-settings.ts.
-    const payload = JSON.stringify({ metadata, data: tableData, vaultKey, settings: exportSettings() });
+    // Household keys (SecureStore), so a restore continues as the same household member.
+    const householdKeys = await exportHouseholdKeys();
+    const payload = JSON.stringify({ metadata, data: tableData, vaultKey, settings: exportSettings(), householdKeys });
 
     // 3. Generate salt and IV (as hex strings)
     const saltHex = arrayToHex(Crypto.getRandomBytes(SALT_LENGTH));
@@ -564,6 +578,7 @@ export async function restoreFromData(
   data: Record<string, unknown[]>,
   vaultKey?: string | null,
   settings?: SettingValue[] | null,
+  householdKeys?: Record<string, string> | null,
 ): Promise<RestoreResult> {
   const db = getDatabase();
   const tablesRestored: string[] = [];
@@ -716,6 +731,11 @@ export async function restoreFromData(
     try { await SecureStore.setItemAsync(VAULT_KEY_STORE, vaultKey); } catch { /* ignore */ }
   }
 
+  // Household keys: absent in backups made before households - nothing to restore then.
+  if (householdKeys) {
+    try { await importHouseholdKeys(householdKeys); } catch { /* ignore */ }
+  }
+
   // Settings kept outside the database. Absent in backups made before they were included -
   // then the device's current settings are left as they are.
   if (settings) {
@@ -816,6 +836,7 @@ export async function restoreBackup(
       data: Record<string, unknown[]>;
       vaultKey?: string | null;
       settings?: SettingValue[] | null;
+      householdKeys?: Record<string, string> | null;
     };
     try {
       parsed = JSON.parse(payload);
@@ -841,7 +862,7 @@ export async function restoreBackup(
     }
 
     // 7. Restore tables via shared restoreFromData helper
-    return await restoreFromData(parsed.data, parsed.vaultKey, parsed.settings);
+    return await restoreFromData(parsed.data, parsed.vaultKey, parsed.settings, parsed.householdKeys);
   } catch (e) {
     try { await getDatabase().execAsync("PRAGMA foreign_keys = ON;"); } catch { /* ignore */ }
     return {

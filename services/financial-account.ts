@@ -996,6 +996,7 @@ export async function hardDeleteAccount(accountId: string): Promise<void> {
     // Unlink recurring transactions
     await db.runAsync("UPDATE recurring_transactions SET account_id = NULL WHERE account_id = ?;", accountId);
     // Delete the account
+    await db.runAsync("DELETE FROM household_balance_accounts WHERE account_id = ?;", accountId);
     await db.runAsync("DELETE FROM financial_accounts WHERE id = ? AND is_active = 0;", accountId);
   });
   bumpDataVersion();

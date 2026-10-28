@@ -65,7 +65,7 @@ test("creates a household once; the token is checked on every call", async () =>
   assert.equal(again.status, 409);
   assert.equal((await call("GET", `/v1/h/${HH}/log`, { token: "tok_wrongwrongwrongwrongwrong" })).status, 401);
   assert.equal((await call("GET", `/v1/h/${HH}/log`, { token: null })).status, 401);
-  assert.equal((await call("GET", `/v1/h/hh_doesnotexist000000/log`)).status, 401);
+  assert.equal((await call("GET", `/v1/h/hh_doesnotexist000000/log`)).status, 404);
   assert.equal((await call("GET", `/v1/h/${HH}/log`)).status, 200);
 });
 
@@ -152,8 +152,20 @@ test("rekey swaps the token; the old one stops working", async () => {
   const { call } = await withHousehold();
   const newToken = "tok_bbbbbbbbbbbbbbbbbbbbbbbb";
   assert.equal((await call("POST", `/v1/h/${HH}/token`, { body: { tokenHash: await sha256Hex(newToken) } })).status, 200);
-  assert.equal((await call("GET", `/v1/h/${HH}/log`)).status, 401);
   assert.equal((await call("GET", `/v1/h/${HH}/log`, { token: newToken })).status, 200);
+  // The old token may still read for a while (to fetch the rekey op), but not write.
+  assert.equal((await call("GET", `/v1/h/${HH}/log`)).status, 200);
+  assert.equal((await call("PUT", `/v1/h/${HH}/log/${M1}/1`, { body: { blob: "AA" } })).status, 401);
+  assert.equal((await call("POST", `/v1/h/${HH}/ack`, { body: { member: M1, cursors: {} } })).status, 401);
+  const later = T0 + LIMITS.oldTokenGraceMs + 1;
+  assert.equal((await call("GET", `/v1/h/${HH}/log`, { now: later })).status, 401);
+  assert.equal((await call("GET", `/v1/h/${HH}/log`, { token: newToken, now: later })).status, 200);
+});
+
+test("a closed household answers 404", async () => {
+  const { call } = await withHousehold();
+  await call("DELETE", `/v1/h/${HH}`);
+  assert.equal((await call("GET", `/v1/h/${HH}/log`)).status, 404);
 });
 
 test("closing deletes everything for the household", async () => {

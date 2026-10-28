@@ -556,6 +556,7 @@ export async function cleanupData(
         await db.runAsync("DELETE FROM merchant_corrections WHERE category_id = ?;", cat.id);
         await db.runAsync("UPDATE merchant_aliases SET category_id = NULL WHERE category_id = ?;", cat.id);
         await db.runAsync("UPDATE recurring_transactions SET category_id = NULL WHERE category_id = ?;", cat.id);
+        await db.runAsync("DELETE FROM household_category_map WHERE local_category_id = ?;", cat.id);
         await db.runAsync("DELETE FROM categories WHERE id = ?;", cat.id);
       }
       result.categoriesDeleted = deletable.length;
@@ -606,6 +607,7 @@ export async function cleanupData(
         await db.runAsync("UPDATE expenses SET account_id = NULL WHERE account_id = ?;", acct.id);
         await db.runAsync("UPDATE recurring_transactions SET account_id = NULL WHERE account_id = ?;", acct.id);
         // Delete the account itself
+        await db.runAsync("DELETE FROM household_balance_accounts WHERE account_id = ?;", acct.id);
         await db.runAsync("DELETE FROM financial_accounts WHERE id = ?;", acct.id);
       }
       result.accountsDeleted = accounts.length;

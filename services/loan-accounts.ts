@@ -1070,6 +1070,7 @@ export async function deleteLoanFully(loanId: string): Promise<void> {
     await db.runAsync("DELETE FROM loan_accounts WHERE id = ?;", loanId);
 
     // Drop the financial_accounts shell too.
+    await db.runAsync("DELETE FROM household_balance_accounts WHERE account_id = ?;", loan.financial_account_id);
     await db.runAsync(
       "DELETE FROM financial_accounts WHERE id = ?;",
       loan.financial_account_id,

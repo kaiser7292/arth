@@ -644,6 +644,25 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "updated_at",
     "sample_lines", // 085 (the sample picture's text + which piece each field is, for editing)
   ] as const,
+  // migration 086 — households (Together)
+  households: [
+    "id", "name", "my_member_id", "role", "relay_url", "key_version", "status",
+    "share_household_categories", "share_other_totals", "share_all_transactions", "share_savings_rate", "share_balances",
+    "next_seq", "needs_snapshot", "last_device_id", "created_at", "joined_at", "left_at", "last_sync_at", "last_sync_error",
+  ] as const,
+  household_members: [
+    "household_id", "id", "name", "colour", "box_public", "sign_public", "role", "settings_json", "joined_at", "removed_at",
+  ] as const,
+  household_categories: ["household_id", "id", "name", "sort_order"] as const,
+  household_category_map: ["household_id", "local_category_id", "household_category_id"] as const,
+  household_balance_accounts: ["household_id", "account_id"] as const,
+  household_items: [
+    "household_id", "id", "member_id", "kind", "month", "date", "paid", "my_share", "category_name", "merchant",
+    "payload_json", "local_ref", "updated_at",
+  ] as const,
+  household_outbox: ["household_id", "seq", "op_json", "created_at", "sent_at"] as const,
+  household_cursors: ["household_id", "member_id", "last_seq"] as const,
+  household_events: ["id", "household_id", "member_id", "type", "payload_json", "at"] as const,
 
   // v16.0.0 — cash-flow simulator (migration 025)
   simulation_scenarios: [

@@ -278,6 +278,8 @@ export async function mergeLoanFinancialAccounts(
       dropFaId,
     );
 
+    await db.runAsync("DELETE FROM household_balance_accounts WHERE account_id = ?;", dropFaId);
+
     // Finally — remove the dropped FA.
     await db.runAsync(
       "DELETE FROM financial_accounts WHERE id = ?;",

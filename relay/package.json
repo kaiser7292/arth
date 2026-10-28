@@ -1,7 +1,6 @@
 {
   "name": "arth-relay",
   "private": true,
-  "type": "module",
   "description": "Encrypted mailbox for Arth household sync (Cloudflare Worker + D1). See README.md.",
   "scripts": {
     "test": "node --test test/*.test.mjs",

@@ -4,6 +4,9 @@
 CREATE TABLE IF NOT EXISTS households (
   id TEXT PRIMARY KEY NOT NULL,
   token_hash TEXT NOT NULL,
+  -- the token before the last rekey: may still read the log for a while (see oldTokenGraceMs)
+  old_token_hash TEXT,
+  old_token_until INTEGER,
   created_at INTEGER NOT NULL,
   last_active_at INTEGER NOT NULL
 );

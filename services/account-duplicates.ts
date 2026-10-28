@@ -258,6 +258,7 @@ export async function mergeAccounts(keepId: string, dropId: string): Promise<voi
         newer.last_known_balance, newer.last_balance_date, keepId,
       );
     }
+    await db.runAsync(`DELETE FROM household_balance_accounts WHERE account_id = ?;`, dropId);
     await db.runAsync(`DELETE FROM financial_accounts WHERE id = ?;`, dropId);
   });
 
