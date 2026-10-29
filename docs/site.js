@@ -67,7 +67,13 @@ if (window.IntersectionObserver) {
     var steps   = wrap.querySelectorAll('.pin-step');
     var screens = wrap.querySelectorAll('.pscr');
     var n = steps.length;
-    if (!n || screens.length !== n) return;
+    // Screens either follow the steps one to one, or say which steps they show (data-s="2 3"),
+    // which is how Together's two phones each keep a screen up across several steps.
+    var tagged = wrap.querySelector('.pscr[data-s]') != null;
+    if (!n || (!tagged && screens.length !== n)) return;
+    function shows(sc, k, i) {
+      return tagged ? (sc.getAttribute('data-s') || '').split(' ').indexOf(String(i)) !== -1 : k === i;
+    }
     var cur = -1;
 
     all.push(function(){
@@ -87,10 +93,10 @@ if (window.IntersectionObserver) {
       }
       if (i === cur) return;
       cur = i;
-      for (var k = 0; k < n; k++) {
-        steps[k].classList.toggle('on', k === i);
-        screens[k].classList.toggle('on', k === i);
-      }
+      // The step on the wrap too, so animations inside the phones can key off it.
+      wrap.setAttribute('data-s', String(i));
+      for (var k = 0; k < n; k++) steps[k].classList.toggle('on', k === i);
+      for (var j = 0; j < screens.length; j++) screens[j].classList.toggle('on', shows(screens[j], j, i));
     });
   });
 
@@ -200,6 +206,85 @@ if (window.IntersectionObserver) {
   } else {
     inView = true; sync();
   }
+}());
+
+// Stories (home): a phone and its steps, one step at a time. Each phone shows the screens whose
+// data-s lists the current step. Plays on its own while on screen, 3 s a step. Tapping a step
+// shows it and holds there a while, then carries on.
+// Visitors who prefer reduced motion get the steps to tap, but nothing moves by itself.
+[].forEach.call(document.querySelectorAll('.story'), function (story) {
+  var steps = story.querySelectorAll('.tog-step');
+  var screens = story.querySelectorAll('.pscr[data-s]');
+  var bar = story.querySelector('.tog-prog i');
+  var n = steps.length, cur = 0, timer = null, inView = false, heldUntil = 0;
+  if (!n) return;
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var HOLD = 12000, STEP_MS = 3000;
+
+  function readMs() {
+    return STEP_MS;
+  }
+  function go(i) {
+    cur = i;
+    story.setAttribute('data-s', String(i));
+    for (var k = 0; k < n; k++) steps[k].classList.toggle('on', k === i);
+    [].forEach.call(screens, function (sc) {
+      sc.classList.toggle('on', sc.getAttribute('data-s').split(' ').indexOf(String(i)) !== -1);
+    });
+  }
+  function restartBar(ms) {
+    if (!bar) return;
+    story.style.setProperty('--tog-ms', ms + 'ms');
+    bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
+  }
+  function schedule() {
+    clearTimeout(timer);
+    timer = null;
+    var run = !reduced && inView && !document.hidden;
+    story.classList.toggle('auto', !reduced);
+    story.classList.toggle('paused', !run);
+    if (!run) return;
+    var wait = Math.max(readMs(cur), heldUntil - Date.now());
+    restartBar(wait);
+    timer = setTimeout(function () { go((cur + 1) % n); schedule(); }, wait);
+  }
+  function setInView(v) {
+    // Also restarts a story that should be playing but isn't (the page was hidden and the
+    // browser never said it came back).
+    if (v === inView && !(v && !timer)) return;
+    inView = v;
+    schedule();
+  }
+
+  [].forEach.call(steps, function (b, i) {
+    b.addEventListener('click', function () { heldUntil = Date.now() + HOLD; go(i); schedule(); });
+  });
+  document.addEventListener('visibilitychange', schedule);
+  go(0);
+
+  // On screen? A plain position check on scroll: IntersectionObserver never reports in some
+  // embedded views, and one rect read per scroll is cheap.
+  function check() {
+    var r = story.getBoundingClientRect();
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    setInView(r.top < h * 0.75 && r.bottom > h * 0.25);
+  }
+  window.addEventListener('scroll', check, { passive: true });
+  window.addEventListener('resize', check, { passive: true });
+  check();
+});
+
+// FAQ: a link to /faq#some-question opens that answer and scrolls to it.
+(function () {
+  function openFromHash() {
+    var id = decodeURIComponent((location.hash || '').slice(1));
+    var d = id && document.getElementById(id);
+    if (!d || d.tagName !== 'DETAILS') return;
+    d.open = true;
+    d.scrollIntoView({ block: 'start' });
+  }
+  openFromHash();
+  window.addEventListener('hashchange', openFromHash);
 }());
 
 /* Direct download: point the button at the newest release's APK (each release names its own,

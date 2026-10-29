@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arth: private personal finance for Android</title>
-<meta name="description" content="Arth tracks every account, budget, investment and loan on your phone. It reads bank SMS and payment screenshots for you, plans your year and never sends your data to a server. Free on Android, with iPhone on the way.">
+<title>Arth: private money manager for you and your household</title>
+<meta name="description" content="Arth reads your transaction SMS and keeps every account, budget, loan and goal on your phone. Share spending with your partner or family, split bills and plan together, end-to-end encrypted. Free on Android, iPhone on the way.">
 <link rel="canonical" href="https://souravbaid.com/">
 <link rel="icon" href="/favicon.png" type="image/png">
-<meta property="og:title" content="Arth: private personal finance for Android">
-<meta property="og:description" content="Arth tracks every account, budget, investment and loan on your phone. It reads bank SMS and payment screenshots for you, plans your year and never sends your data to a server. Free on Android, with iPhone on the way.">
+<meta property="og:title" content="Arth: private money manager for you and your household">
+<meta property="og:description" content="Arth reads your transaction SMS and keeps every account, budget, loan and goal on your phone. Share spending with your partner or family, split bills and plan together, end-to-end encrypted. Free on Android, iPhone on the way.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://souravbaid.com/">
 <meta property="og:image" content="https://souravbaid.com/play/icon-512.png">
@@ -17,7 +17,7 @@
 <meta name="google-site-verification" content="U_mznNja_0eXsOeS7oTMlBWynf_dMyiI6AMACCViwdo">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap">
-<link rel="stylesheet" href="/site.css?v=4.20.1">
+<link rel="stylesheet" href="/site.css?v=4.28.14">
 <script>document.documentElement.classList.add('js')</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Arth","operatingSystem":"Android","applicationCategory":"FinanceApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"INR"},"description":"A private, local-first personal finance app for Android. Track expenses, accounts, investments, and loans. Stored on your device.","url":"https://souravbaid.com","author":{"@type":"Person","name":"Sourav Baid"}}</script>
 </head>
@@ -38,7 +38,6 @@
       <a href="/features" class="nav-link">Features</a>
       <a href="/whats-new" class="nav-link">What's new</a>
       <a href="/faq" class="nav-link">FAQ</a>
-      <a href="/legal#privacy" class="nav-link">Privacy</a>
       <a href="/contact" class="nav-link">Contact</a>
     </div>
     <a href="/#early-access" class="btn">
@@ -60,9 +59,6 @@
       <a href="/faq" class="mob-link">FAQ
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
       </a>
-      <a href="/legal#privacy" class="mob-link">Privacy
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
-      </a>
       <a href="/contact" class="mob-link">Contact
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
       </a>
@@ -75,15 +71,15 @@
 <section class="hero">
   <div class="w hero-grid">
     <div class="hero-copy">
-      <h1 class="reveal reveal-d1">Every&nbsp;account. Every&nbsp;rupee. <span>One&nbsp;place</span>.</h1>
-      <p class="hero-sub reveal reveal-d2">Savings, credit cards, wallets, demat, pension and loans — tracked in one ledger that lives on your phone.</p>
+      <h1 class="reveal reveal-d1">Know where your money goes. <span>Decide&nbsp;together</span> where it&nbsp;should.</h1>
+      <p class="hero-sub reveal reveal-d2">Arth reads the transaction SMS you already get and keeps every account, bill and goal in one place on your phone. Share what you choose with the people you live with.</p>
       <div class="hero-acts reveal reveal-d3">
         <a href="#early-access" class="btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3.6v16.8a1 1 0 0 0 1.52.85l13.7-8.4a1 1 0 0 0 0-1.7L6.52 2.75A1 1 0 0 0 5 3.6z"/></svg>
           Get early access on Google Play
         </a>
-        <a href="/features" class="btn-g">
-          See everything it does
+        <a href="#together" class="btn-g">
+          See how households work
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
         </a>
       </div>
@@ -91,54 +87,31 @@
 
     <div class="hero-ph reveal reveal-d2">
       <div>
-      <div class="phone" id="hero-phone" role="img" aria-label="The Arth home screen, showing this month's spending and projections">
+      <div class="phone" id="hero-phone" role="img" aria-label="Arth's home screen: this month's spending, and the household's Together card showing what was spent together and who owes whom">
         <div class="phone-scr">
-
-          <!-- Insights -->
           <div class="pscr on">
             <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-            <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Arth · अर्थ</div><div class="p-hdr-s">September 2026</div></div></div>
-            <div class="p-tabs"><div class="p-tab">Overview</div><div class="p-tab on">Insights</div><div class="p-tab">Queue</div><div class="p-tab">Simulator</div></div>
+            <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Arth · अर्थ</div><div class="p-hdr-s">October 2026</div></div></div>
             <div class="p-body">
               <div class="p-card">
-                <div class="p-r"><span class="p-mut">Month so far</span><span class="p-num" style="font-size:1.15em">₹84,210</span></div>
+                <div class="p-r"><span class="p-mut">Spent this month</span><span class="p-num" style="font-size:1.15em">₹62,480</span></div>
+                <div class="p-bar"><div class="p-bar-f" style="width:69%"></div></div>
+                <div class="p-r p-sm"><span class="p-mut">Budget ₹90,000</span><span class="p-num p-grn">On track ✓</span></div>
+              </div>
+              <div class="p-lbl">People &amp; money</div>
+              <div class="p-card" style="border:1px solid rgba(45,212,191,.35)">
+                <div class="p-r"><span style="font-weight:700">Together · Home</span><span class="p-sm p-mut">2 people</span></div>
+                <div class="p-sm p-mut" style="margin-top:.5em">Spent together</div>
+                <div class="p-big" style="font-size:1.6em">₹48,200</div>
+                <div class="tog-bar"><i style="flex:26.8;background:var(--pteal)"></i><i style="flex:21.4;background:#F472B6"></i></div>
+                <div class="p-sm p-mut"><span class="p-tl">●</span> You ₹26,800 &nbsp; <span style="color:#F472B6">●</span> Jane ₹21,400</div>
                 <div class="p-hr"></div>
-                <div class="p-r p-sm"><span class="p-mut">Fixed (done)</span><span class="p-num">₹12,400</span></div>
-                <div class="p-bar"><div class="p-bar-f" style="width:32%"></div></div>
-                <div class="p-r p-sm" style="margin-top:.5em"><span class="p-mut">Variable (projected)</span><span class="p-num">₹52,300</span></div>
-                <div class="p-bar"><div class="p-bar-f" style="width:78%"></div></div>
-                <div class="p-sm p-mut">₹2,180/day pace · 9 days left</div>
-                <div class="p-hr"></div>
-                <div class="p-r"><span class="p-r-n">Projected total</span><span class="p-num">₹96,140</span></div>
-                <div class="p-r p-sm" style="margin-top:.25em"><span class="p-mut">Budget</span><span class="p-num p-mut">₹1,05,000</span></div>
-                <div class="p-r p-sm" style="margin-top:.25em"><span class="p-mut">Breathing room</span><span class="p-num p-grn">+₹8,860 ✓</span></div>
-              </div>
-              <div class="p-lbl">Insights</div>
-              <div class="p-card" style="padding:.7em .8em">
-                <div class="p-li">
-                  <div class="p-ic" style="background:rgba(248,113,113,.15);color:var(--pred)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/></svg></div>
-                  <div style="flex:1"><div style="font-weight:600">Shopping 42% over budget</div><div class="p-sm p-mut">₹14,200 of ₹10,000 budget</div></div>
-                </div>
+                <div class="p-r"><span style="font-weight:600">Jane owes you</span><span class="p-num p-grn">₹1,150</span></div>
+                <div class="p-sm p-grn" style="margin-top:.2em">✓ Both phones agree</div>
               </div>
               <div class="p-card" style="padding:.7em .8em">
-                <div class="p-li">
-                  <div class="p-ic" style="background:rgba(251,191,36,.15);color:var(--pamber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l9 17H3z"/><path d="M12 10v4M12 17h.01"/></svg></div>
-                  <div style="flex:1"><div style="font-weight:600">Subscriptions 18% over</div><div class="p-sm p-mut">₹1,180 of ₹1,000 budget</div></div>
-                </div>
-              </div>
-              <div class="p-card" style="padding:.7em .8em">
-                <div class="p-li">
-                  <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg></div>
-                  <div style="flex:1"><div style="font-weight:600">Fuel 43% under budget</div><div class="p-sm p-mut">₹3,420 of ₹6,000 budget</div></div>
-                </div>
-              </div>
-              <div class="p-lbl">Top merchants</div>
-              <div class="p-card" style="padding:.75em .8em">
-                <div class="p-r p-sm"><span>Swiggy</span><span class="p-num">₹6,480</span></div>
-                <div class="p-hr" style="margin:.45em 0"></div>
-                <div class="p-r p-sm"><span>BigBasket</span><span class="p-num">₹5,210</span></div>
-                <div class="p-hr" style="margin:.45em 0"></div>
-                <div class="p-r p-sm"><span>Amazon</span><span class="p-num">₹4,890</span></div>
+                <div class="p-li"><div class="p-ic" style="background:rgba(251,191,36,.15);color:var(--pamber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 4h10v5a5 5 0 01-10 0z"/><path d="M12 14v4M9 21h6"/></svg></div>
+                <div style="flex:1"><div style="font-weight:600">Goa in December</div><div class="p-sm p-mut">₹62,000 of ₹1,00,000 together</div></div></div>
               </div>
             </div>
             <div class="p-nav">
@@ -149,11 +122,8 @@
               <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Settings</div>
             </div>
           </div>
-
-
         </div>
-      </div>
-      </div>
+      </div></div>
     </div>
   </div>
   <div class="hero-glow" aria-hidden="true"></div>
@@ -164,21 +134,788 @@
 <div class="trust">
   <div class="w">
     <div class="trust-l">
-      <div class="trust-i" style="--i:0"><span class="dot"></span>Zero data collection</div>
-      <div class="trust-i" style="--i:1"><span class="dot"></span>No sign-up</div>
-      <div class="trust-i" style="--i:2"><span class="dot"></span>Works fully offline</div>
-      <div class="trust-i" style="--i:3"><span class="dot"></span>25+ Indian banks SMS</div>
-      <div class="trust-i" style="--i:4"><span class="dot"></span>Encrypted local backup</div>
+      <div class="trust-i" style="--i:0"><span class="dot"></span>No sign-up</div>
+      <div class="trust-i" style="--i:1"><span class="dot"></span>Lives on your phone</div>
+      <div class="trust-i" style="--i:2"><span class="dot"></span>Shared only with your household, end-to-end encrypted</div>
+      <div class="trust-i" style="--i:3"><span class="dot"></span>Reads your transaction SMS</div>
+      <div class="trust-i" style="--i:4"><span class="dot"></span>Backups you keep</div>
     </div>
   </div>
 </div>
 
+<!-- THE PROBLEMS -->
+<section class="sec prob" id="why">
+  <div class="w">
+    <div class="sec-lbl reveal">Sound familiar?</div>
+    <h2 class="sec-h reveal reveal-d1">Your money is spread across your life. Arth puts it back together.</h2>
+    <div class="feat-g prob-g">
+      <div class="feat-c reveal">
+        <div class="feat-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
+        <div class="feat-t">&ldquo;Where did it all go?&rdquo;</div>
+        <div class="feat-d">Six banking apps, forty transaction messages a week, and a card bill that still surprises you. Arth turns the messages you already get into one picture, without your bank password.</div>
+      </div>
+      <div class="feat-c reveal reveal-d1">
+        <div class="feat-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="9.5" r="2.8"/><path d="M2.5 20a6.5 6.5 0 0113 0M14.5 15.2A5 5 0 0121.5 20"/></svg></div>
+        <div class="feat-t">&ldquo;Who paid for what?&rdquo;</div>
+        <div class="feat-d">Rent on your card, groceries on theirs, a trip paid from both, and a chat thread of &ldquo;I'll send it later&rdquo;. Arth splits a bill once and keeps both phones agreeing on who owes whom.</div>
+      </div>
+      <div class="feat-c reveal reveal-d2">
+        <div class="feat-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
+        <div class="feat-t">&ldquo;Are we on track?&rdquo;</div>
+        <div class="feat-d">The car, the trip, the home loan, retirement: guessed at, never planned. Arth plans your year, projects the month, and shows whether your goals will actually land.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCROLL-PINNED: EVERY DAY -->
+<section class="pin-s" id="how">
+  <div class="w">
+    <div class="sec-lbl reveal">Every day</div>
+    <h2 class="sec-h reveal reveal-d1">One message. Everything updates.</h2>
+    <p class="sec-sub reveal reveal-d2">Scroll to follow a single transaction SMS all the way through.</p>
+  </div>
+
+  <div class="pin-wrap story" data-s="0">
+    <div class="pin-stage">
+      <div class="w pin-grid">
+
+        <div class="pin-copy">
+          <div class="pin-step on">
+            <div class="pin-n">STEP 01</div>
+            <h3 class="pin-t">A transaction SMS arrives.</h3>
+            <p class="pin-d">The same SMS you already ignore a dozen times a week. You don't open the app, and you don't type anything.</p>
+            <div class="pin-rail"><span class="on"></span><span></span><span></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 02</div>
+            <h3 class="pin-t">Arth works out what it was.</h3>
+            <p class="pin-d">It reads the amount and the account, recognises the merchant, and categorises the spend, then puts the result in a queue, not in your books. A format it hasn't seen? Show it one message and it reads that format from then on.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 03</div>
+            <h3 class="pin-t">You approve it. It lands.</h3>
+            <p class="pin-d">One tap and the expense is recorded against the right card, on the right date, in the right category. You can edit it, or reject it outright if it isn't a valid spend.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 04</div>
+            <h3 class="pin-t">Everything downstream moves with it.</h3>
+            <p class="pin-d">The category budget, the month's pace, the projected total and your closing balance all recalculate. That's the whole loop — and you typed nothing.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+          </div>
+        </div>
+
+        <div class="pin-ph">
+          <div class="phone" role="img" aria-label="Walkthrough: a transaction SMS arrives, Arth parses it, you approve it, and your budget updates">
+            <div class="phone-scr">
+
+              <!-- 01 lock screen -->
+              <div class="pscr on" data-s="0">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-body" style="align-items:center;gap:0;padding-top:2.6em">
+                  <div style="font-family:'Outfit',sans-serif;font-size:4.4em;font-weight:300;letter-spacing:-.04em;line-height:1">10:24</div>
+                  <div class="p-mut" style="margin-top:.35em">Wednesday, 24 September</div>
+                  <div class="p-card" style="width:100%;margin-top:2.6em;background:rgba(255,255,255,.08)">
+                    <div class="p-li" style="margin-bottom:.55em">
+                      <div class="p-ic" style="background:rgba(45,212,191,.2);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 9l9-6 9 6"/><path d="M5 9v10h14V9"/></svg></div>
+                      <div style="flex:1;font-weight:700">HDFC Bank</div>
+                      <div class="p-sm p-mut">now</div>
+                    </div>
+                    <div class="p-sm" style="line-height:1.6">Rs 2,450.00 debited from A/c XX4417. Info: UPI/SWIGGY. Avl Bal Rs 42,180.22</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 02 review queue -->
+              <div class="pscr" data-s="1">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Review Queue</span></div><span style="width:1em"></span></div>
+                <div class="p-pills"><div class="p-pill on">1 pending</div><div class="p-pill">Approved</div><div class="p-pill">Rejected</div></div>
+                <div class="p-body">
+                  <div class="p-card" style="box-shadow:0 0 0 1.5px var(--pteal)">
+                    <div class="p-r"><span class="p-lbl">HDFC Bank</span><span class="p-sm p-mut">Just now</span></div>
+                    <div class="p-sm p-mut" style="margin:.5em 0;line-height:1.55">Rs 2,450.00 debited from A/c XX4417. Info: UPI/SWIGGY. Avl Bal Rs 42,180.22</div>
+                    <div class="p-hr"></div>
+                    <div class="p-r p-sm"><span class="p-mut">Amount</span><span class="p-num">₹2,450.00</span></div>
+                    <div class="p-r p-sm" style="margin-top:.35em"><span class="p-mut">Merchant</span><span class="p-num">Swiggy</span></div>
+                    <div class="p-r p-sm" style="margin-top:.35em"><span class="p-mut">Category</span><span class="p-num p-tl">Food</span></div>
+                    <div class="p-r p-sm" style="margin-top:.35em"><span class="p-mut">Account</span><span class="p-num">HDFC ••4417</span></div>
+                    <div class="p-li" style="margin-top:.85em;gap:.45em">
+                      <div style="flex:1;text-align:center;background:var(--pteal);color:#08201D;border-radius:.55em;padding:.5em 0;font-weight:700">Approve</div>
+                      <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.5em 0">Edit</div>
+                      <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.5em 0;color:var(--pred)">Reject</div>
+                    </div>
+                  </div>
+                  <div class="p-sm p-mut" style="text-align:center;margin-top:.3em">Nothing is recorded until you decide.</div>
+                </div>
+              </div>
+
+              <!-- 03 transactions -->
+              <div class="pscr" data-s="2">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Transactions</div><div class="p-hdr-s">Nothing pending</div></div></div>
+                <div class="p-tabs"><div class="p-tab">All</div><div class="p-tab on">Expenses</div><div class="p-tab">Credits</div><div class="p-tab">Transfers</div></div>
+                <div class="p-body">
+                  <div class="p-lbl">Today · 24 Sep</div>
+                  <div class="p-card" style="padding:.7em .8em;box-shadow:0 0 0 1.5px var(--pteal)">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M16 3c-2 2-2 6 0 8v10"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Swiggy <span class="p-chip" style="background:rgba(45,212,191,.2);color:var(--pteal)">NEW</span></div><div class="p-sm p-mut">Food · HDFC ••4417</div></div>
+                      <div class="p-num">₹2,450</div>
+                    </div>
+                  </div>
+                  <div class="p-card" style="padding:.7em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.7 12h10.6L21 7H6"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Blinkit</div><div class="p-sm p-mut">Groceries · HDFC ••4417</div></div>
+                      <div class="p-num">₹642</div>
+                    </div>
+                  </div>
+                  <div class="p-lbl">Yesterday · 23 Sep</div>
+                  <div class="p-card" style="padding:.7em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(167,139,250,.15);color:#A78BFA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M12 8v13M2 12h20"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Amazon</div><div class="p-sm p-mut">Shopping · Axis ••2290</div></div>
+                      <div class="p-num">₹2,340</div>
+                    </div>
+                  </div>
+                  <div class="p-card" style="padding:.7em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(96,165,250,.15);color:#60A5FA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 13l1.5-5h11L19 13"/><rect x="3" y="13" width="18" height="5" rx="1.5"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Indian Oil</div><div class="p-sm p-mut">Fuel · HDFC ••8302</div></div>
+                      <div class="p-num">₹1,850</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 04 budget + forecast -->
+              <div class="pscr" data-s="3">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Budget</div></div></div>
+                <div class="p-month"><span>&lsaquo;</span><div class="p-month-p">Sep 2026 ▾</div><span>&rsaquo;</span></div>
+                <div class="p-body" style="gap:.6em">
+                  <div class="p-lbl">Categories</div>
+                  <div style="box-shadow:0 0 0 1.5px var(--pteal);border-radius:.8em;padding:.5em .55em;margin:-.15em -.1em">
+                    <div class="p-li" style="margin-bottom:.15em">
+                      <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M16 3c-2 2-2 6 0 8v10"/></svg></div>
+                      <div style="flex:1;font-weight:600">Food</div>
+                      <div class="p-num p-red">₹20,690<span class="p-mut" style="font-weight:400"> / ₹20,000</span></div>
+                    </div>
+                    <div class="p-bar"><div class="p-bar-f" style="width:100%;background:var(--pred)"></div></div>
+                    <div class="p-r p-sm"><span class="p-red">₹690 over · was ₹1,760 left</span><span class="p-mut">103%</span></div>
+                  </div>
+                  <div>
+                    <div class="p-li" style="margin-bottom:.15em">
+                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.7 12h10.6L21 7H6"/></svg></div>
+                      <div style="flex:1;font-weight:600">Groceries</div>
+                      <div class="p-num p-grn">₹9,980<span class="p-mut" style="font-weight:400"> / ₹15,000</span></div>
+                    </div>
+                    <div class="p-bar"><div class="p-bar-f" style="width:66%"></div></div>
+                    <div class="p-r p-sm p-mut"><span>₹5,020 left</span><span>66%</span></div>
+                  </div>
+                  <div>
+                    <div class="p-li" style="margin-bottom:.15em">
+                      <div class="p-ic" style="background:rgba(96,165,250,.15);color:#60A5FA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 13l1.5-5h11L19 13"/><rect x="3" y="13" width="18" height="5" rx="1.5"/></svg></div>
+                      <div style="flex:1;font-weight:600">Fuel</div>
+                      <div class="p-num p-grn">₹3,420<span class="p-mut" style="font-weight:400"> / ₹6,000</span></div>
+                    </div>
+                    <div class="p-bar"><div class="p-bar-f" style="width:57%"></div></div>
+                    <div class="p-r p-sm p-mut"><span>₹2,580 left</span><span>57%</span></div>
+                  </div>
+                  <div class="p-hr"></div>
+                  <div class="p-card">
+                    <div class="p-r p-sm"><span class="p-mut">Projected total</span><span class="p-num">₹98,590</span></div>
+                    <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Budget</span><span class="p-num p-mut">₹1,05,000</span></div>
+                    <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Breathing room</span><span class="p-num p-grn">+₹6,410</span></div>
+                    <div class="p-sm p-mut" style="margin-top:.35em">Recalculated just now</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCROLL-PINNED: AUTOMATION -->
+<section class="pin-s" id="automation">
+  <div class="w">
+    <div class="sec-lbl reveal">Every day, without you</div>
+    <h2 class="sec-h reveal reveal-d1">Teach it once. It never asks again.</h2>
+    <p class="sec-sub reveal reveal-d2">Each of these takes about a minute to configure. After that they run on their own.</p>
+  </div>
+
+  <div class="pin-wrap story" data-s="0">
+    <div class="pin-stage">
+      <div class="w pin-grid">
+
+        <div class="pin-copy">
+          <div class="pin-step on">
+            <div class="pin-n">STEP 01</div>
+            <h3 class="pin-t">Write one rule. It runs forever.</h3>
+            <p class="pin-d">When a transaction matches, set the category, approve it without asking, and split it with whoever it should be split with. Rules stack in priority order.</p>
+            <div class="pin-rail"><span class="on"></span><span></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 02</div>
+            <h3 class="pin-t">For the spends no SMS will catch.</h3>
+            <p class="pin-d">Cash, the autorickshaw, a friend covering lunch. Say it out loud and it is logged with the amount, merchant, category and account already filled in.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 03</div>
+            <h3 class="pin-t">Shared money keeps its own books.</h3>
+            <p class="pin-d">Anything split routes into that person's ledger on its own, carrying a running balance you can settle or export whenever you want to.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span></div>
+          </div>
+        </div>
+
+        <div class="pin-ph">
+          <div class="phone" role="img" aria-label="Arth automation screens: smart rule, voice expense entry and the family ledger">
+            <div class="phone-scr">
+
+              <!-- 02 smart rule -->
+              <div class="pscr on" data-s="0"">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Rule</span></div><span style="width:1em"></span></div>
+                <div class="p-body">
+                  <div class="p-lbl">When · conditions</div>
+                  <div class="p-pills" style="padding:0"><div class="p-pill on">Match ALL</div><div class="p-pill">Match ANY</div></div>
+                  <div class="p-card" style="padding:.75em .8em">
+                    <div class="p-r p-sm"><span class="p-mut">Field</span><span class="p-num">Merchant</span></div>
+                    <div class="p-hr" style="margin:.45em 0"></div>
+                    <div class="p-r p-sm"><span class="p-mut">Operator</span><span class="p-num">contains</span></div>
+                    <div class="p-hr" style="margin:.45em 0"></div>
+                    <div class="p-r p-sm"><span class="p-mut">Value</span><span class="p-num p-tl">bigbazaar</span></div>
+                  </div>
+                  <div class="p-lbl">Then · actions</div>
+                  <div class="p-card" style="padding:.7em .8em">
+                    <div class="p-li" style="margin-bottom:.55em">
+                      <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Set category</div><div class="p-sm p-mut">Groceries</div></div>
+                    </div>
+                    <div class="p-li" style="margin-bottom:.55em">
+                      <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Auto-approve from review</div><div class="p-sm p-mut">Skips the queue entirely</div></div>
+                    </div>
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Auto split with person</div><div class="p-sm p-mut">Priya · 50%</div></div>
+                    </div>
+                  </div>
+                  <div class="p-li" style="gap:.45em">
+                    <div style="flex:1;text-align:center;background:var(--pteal);color:#08201D;border-radius:.55em;padding:.5em 0;font-weight:700">Save rule</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 03 voice expense -->
+              <div class="pscr" data-s="1">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t" style="opacity:.35">Arth · अर्थ</div><div class="p-hdr-s" style="opacity:.35">September 2026</div></div></div>
+                <div class="p-body" style="opacity:.3;flex:0 0 auto">
+                  <div class="p-card">
+                    <div class="p-r"><span class="p-mut">Month so far</span><span class="p-num">₹84,210</span></div>
+                    <div class="p-bar"><div class="p-bar-f" style="width:72%"></div></div>
+                    <div class="p-r p-sm p-mut"><span>₹20,790 remaining</span><span>9 days left</span></div>
+                  </div>
+                  <div class="p-lbl">Today · 24 Sep</div>
+                  <div class="p-card" style="padding:.7em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.7 12h10.6L21 7H6"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Blinkit</div><div class="p-sm p-mut">Groceries</div></div>
+                      <div class="p-num">₹642</div>
+                    </div>
+                  </div>
+                  <div class="p-card" style="padding:.7em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(167,139,250,.15);color:#A78BFA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M12 8v13M2 12h20"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Amazon</div><div class="p-sm p-mut">Shopping</div></div>
+                      <div class="p-num">₹2,340</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:auto;background:var(--psurf);border-radius:1.2em 1.2em 0 0;padding:.9em 1.15em 1.9em">
+                  <div style="width:2.4em;height:.28em;border-radius:1em;background:var(--pborder);margin:0 auto .9em"></div>
+                  <div class="p-r"><span class="p-hdr-t" style="font-size:1.1em">Voice Expense</span><span class="p-mut" style="font-size:1.1em">×</span></div>
+                  <div style="display:flex;flex-direction:column;align-items:center;margin-top:1.4em">
+                    <div style="width:4.4em;height:4.4em;border-radius:50%;border:2px solid var(--pred);display:flex;align-items:center;justify-content:center">
+                      <div style="width:1.9em;height:1.9em;border-radius:50%;background:var(--pred)"></div>
+                    </div>
+                    <div style="font-weight:600;margin-top:.9em">Listening…</div>
+                    <div class="p-sm p-mut" style="margin-top:.35em;text-align:center">Try: "450 at Swiggy for lunch, UPI, HDFC"</div>
+                  </div>
+                  <div style="text-align:center;border:1px solid var(--pborder);border-radius:.6em;padding:.55em 0;margin-top:1.3em;color:var(--pteal);font-weight:600">Open expense form</div>
+                </div>
+              </div>
+
+              <!-- 04 hisaab ledger -->
+              <div class="pscr" data-s="2">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Ledger</span></div><span style="width:1em"></span></div>
+                <div class="p-body">
+                  <div class="p-card" style="text-align:center">
+                    <div class="p-mut p-sm">Priya Sharma</div>
+                    <div class="p-big p-grn" style="margin:.2em 0">+₹12,480</div>
+                    <div class="p-sm p-mut">owes you</div>
+                    <div class="p-li" style="gap:.45em;margin-top:.8em">
+                      <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.45em 0;color:var(--pteal);font-weight:600">Settle</div>
+                      <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.45em 0;color:var(--pteal);font-weight:600">Export</div>
+                    </div>
+                  </div>
+                  <div class="p-lbl">13 entries</div>
+                  <div class="p-card" style="padding:.65em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">BigBazaar</div><div class="p-sm p-mut">Groceries · split 50% · 24 Sep</div></div>
+                      <div class="p-num p-grn">+₹625</div>
+                    </div>
+                  </div>
+                  <div class="p-card" style="padding:.65em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Dinner</div><div class="p-sm p-mut">Food · split 50% · 22 Sep</div></div>
+                      <div class="p-num p-grn">+₹1,120</div>
+                    </div>
+                  </div>
+                  <div class="p-card" style="padding:.65em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Cab</div><div class="p-sm p-mut">Travel · split 50% · 21 Sep</div></div>
+                      <div class="p-num p-grn">+₹240</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="w">
+    <div class="auto-g">
+      <div class="auto-c reveal">
+        <div class="auto-t">Merchant categories</div>
+        <div class="auto-d">Built-in rules for 450+ Indian merchants and store brands file Swiggy under Food and Uber under Travel. Change any of them, or add your own.</div>
+      </div>
+      <div class="auto-c reveal reveal-d1">
+        <div class="auto-t">Merchant aliases</div>
+        <div class="auto-d">"PAY*SWIGGY FOODBANGALORE" becomes Swiggy, once, everywhere — including in past records.</div>
+      </div>
+      <div class="auto-c reveal reveal-d2">
+        <div class="auto-t">Statement reconciliation</div>
+        <div class="auto-d">Import the bank's PDF and Arth matches it line by line against what it recorded, flagging anything missing or extra.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SCROLL-PINNED: EVERY MONTH -->
+<section class="pin-s" id="insights">
+  <div class="w">
+    <div class="sec-lbl reveal">Every month</div>
+    <h2 class="sec-h reveal reveal-d1">Then it starts telling you things.</h2>
+    <p class="sec-sub reveal reveal-d2">Capture is the boring half. This is the half that changes what you do.</p>
+  </div>
+
+  <div class="pin-wrap story" data-s="0">
+    <div class="pin-stage">
+      <div class="w pin-grid">
+
+        <div class="pin-copy">
+          <div class="pin-step on">
+            <div class="pin-n">STEP 01</div>
+            <h3 class="pin-t">It notices what you don't.</h3>
+            <p class="pin-d">Sunday is your most expensive day of the week, by a factor of two. Nobody works that out by staring at a bank statement.</p>
+            <div class="pin-rail"><span class="on"></span><span></span><span></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 02</div>
+            <h3 class="pin-t">It tells you where the month lands.</h3>
+            <p class="pin-d">Planned against actual, line by line, with the variance on each one — while there are still days left to do something about it.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 03</div>
+            <h3 class="pin-t">It lets you test a decision first.</h3>
+            <p class="pin-d">Model a raise, a new EMI or an early prepayment, and watch the next six months redraw before you commit to any of it.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">STEP 04</div>
+            <h3 class="pin-t">And the things you'd rather not hear.</h3>
+            <p class="pin-d">No term cover. Savings rate under 30%. Corpus runs dry in 13 years. Blunt, specific, and with the arithmetic shown.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+          </div>
+        </div>
+
+        <div class="pin-ph">
+          <div class="phone" role="img" aria-label="Arth analysis screens: spending patterns, month-end projection, cash-flow simulator and retirement risk flags">
+            <div class="phone-scr">
+
+              <!-- 01 spending personality -->
+              <div class="pscr on" data-s="0">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Spending Personality</span></div><span style="width:1em"></span></div>
+                <div class="p-body">
+                  <div class="p-lbl">Day of week pattern</div>
+                  <div class="p-card">
+                    <div class="p-sm p-amb">₹9,840</div>
+                    <div class="p-days">
+                      <div class="hi"><i style="height:100%"></i></div>
+                      <div><i style="height:32%"></i></div>
+                      <div><i style="height:27%"></i></div>
+                      <div><i style="height:34%"></i></div>
+                      <div><i style="height:24%"></i></div>
+                      <div><i style="height:29%"></i></div>
+                      <div><i style="height:46%"></i></div>
+                    </div>
+                    <div class="p-dayl"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+                  </div>
+                  <div class="p-card">
+                    <div class="p-r">
+                      <div><div class="p-sm p-mut">Weekday avg</div><div class="p-num">₹3,060<span class="p-mut p-sm" style="font-weight:400">/day</span></div></div>
+                      <div class="p-sm p-mut">vs</div>
+                      <div style="text-align:right"><div class="p-sm p-mut">Weekend avg</div><div class="p-num">₹6,180<span class="p-mut p-sm" style="font-weight:400">/day</span></div></div>
+                    </div>
+                    <div class="p-sm p-mut" style="text-align:center;margin-top:.5em">You spend 2.0× more on weekends</div>
+                  </div>
+                  <div class="p-lbl">Behavioural insights</div>
+                  <div class="p-card" style="padding:.7em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(251,191,36,.15);color:var(--pamber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Weekend spender</div><div class="p-sm p-mut" style="line-height:1.5">Your most expensive day is Sunday — 2.0× your weekday average.</div></div>
+                    </div>
+                  </div>
+                  <div class="p-card" style="padding:.7em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(248,113,113,.15);color:var(--pred)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Rising spending</div><div class="p-sm p-mut" style="line-height:1.5">Groceries are up against your 3-month average.</div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 02 month-end projection -->
+              <div class="pscr" data-s="1">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Sept End Projection</span></div><span style="width:1em"></span></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-lbl">Planned vs actual</div>
+                    <div class="p-r" style="margin-top:.5em">
+                      <div><div class="p-sm p-mut">Planned</div><div class="p-num">₹4,58,700</div></div>
+                      <div style="text-align:center"><div class="p-sm p-mut">Actual</div><div class="p-num">₹4,49,030</div></div>
+                      <div style="text-align:right"><div class="p-sm p-mut">Variance</div><div class="p-num p-grn">−₹9,670</div></div>
+                    </div>
+                  </div>
+                  <div class="p-card" style="padding:.75em .8em">
+                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Salary</span><span class="p-num p-mut">₹2,83,400</span><span class="p-num" style="width:5.2em;text-align:right">₹2,83,240</span><span class="p-num p-grn" style="width:3.4em;text-align:right">−₹160</span></div>
+                    <div class="p-hr" style="margin:.4em 0"></div>
+                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Rent</span><span class="p-num p-mut">₹20,000</span><span class="p-num" style="width:5.2em;text-align:right">₹20,000</span><span class="p-num p-mut" style="width:3.4em;text-align:right">₹0</span></div>
+                    <div class="p-hr" style="margin:.4em 0"></div>
+                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">SIP</span><span class="p-num p-mut">₹17,000</span><span class="p-num" style="width:5.2em;text-align:right">₹17,000</span><span class="p-num p-mut" style="width:3.4em;text-align:right">₹0</span></div>
+                    <div class="p-hr" style="margin:.4em 0"></div>
+                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Weekend</span><span class="p-num p-mut">₹2,000</span><span class="p-num" style="width:5.2em;text-align:right">₹2,690</span><span class="p-num p-red" style="width:3.4em;text-align:right">+₹690</span></div>
+                    <div class="p-hr" style="margin:.4em 0"></div>
+                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Utilities</span><span class="p-num p-mut">₹390</span><span class="p-num" style="width:5.2em;text-align:right">₹387</span><span class="p-num p-grn" style="width:3.4em;text-align:right">−₹3</span></div>
+                  </div>
+                  <div class="p-lbl">Already happened · 17</div>
+                  <div class="p-card" style="padding:.6em .8em">
+                    <div class="p-li">
+                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
+                      <div style="flex:1"><div style="font-weight:600">Rent</div><div class="p-sm p-mut">Planned ₹20,000</div></div>
+                      <div class="p-num">₹20,000</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 03 simulator -->
+              <div class="pscr" data-s="2">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Simulator</div><div class="p-hdr-s">What-if scenarios</div></div></div>
+                <div class="p-pills"><div class="p-pill">Salary hike</div><div class="p-pill on">New EMI</div><div class="p-pill">Prepay</div></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-r"><span class="p-lbl">Scenario</span><span class="p-sm p-tl">Edit</span></div>
+                    <div class="p-r" style="margin-top:.5em"><span class="p-r-n">Car loan EMI</span><span class="p-num">₹18,500<span class="p-mut p-sm" style="font-weight:400">/mo</span></span></div>
+                    <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Starts</span><span class="p-num p-mut">Nov 2026 · 60 months</span></div>
+                  </div>
+                  <div class="p-lbl">Projected bank balance</div>
+                  <div class="p-card" style="padding:.8em .8em">
+                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Oct</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:100%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,70,380</span></div>
+                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Nov</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:88%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,51,880</span></div>
+                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Dec</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:78%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,33,380</span></div>
+                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Jan</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:67%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,14,880</span></div>
+                    <div class="p-li"><span class="p-sm p-mut" style="width:2.4em">Feb</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:56%;background:var(--pamber)"></div></div><span class="p-num p-sm p-amb" style="width:4.6em;text-align:right">₹96,380</span></div>
+                  </div>
+                  <div class="p-flag" style="border-color:var(--pamber)">
+                    <b class="p-amb">HEADS UP</b>
+                    <div class="p-sm" style="line-height:1.5">Drops below your ₹1,00,000 buffer in February.</div>
+                  </div>
+                  <div class="p-r p-sm"><span class="p-mut">Without this change</span><span class="p-num p-grn">₹2,16,380 by Feb</span></div>
+                </div>
+              </div>
+
+              <!-- 04 retirement readiness -->
+              <div class="pscr" data-s="3">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Retirement Readiness</span></div><span style="width:1em"></span></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-r"><span class="p-sm">6% withdrawal rate</span><span class="p-num p-red">13 yrs</span></div>
+                    <div class="p-r p-sm"><span class="p-mut">₹8.2L/mo · ₹98.2L/yr</span><span class="p-red">Runs out</span></div>
+                  </div>
+                  <div class="p-lbl">Risk flags</div>
+                  <div class="p-flag" style="border-color:var(--pred)">
+                    <b class="p-red">CRITICAL</b>
+                    <div style="font-weight:600">No term life insurance</div>
+                    <div class="p-sm p-mut" style="line-height:1.5">With dependents, cover of at least 10× annual income is non-negotiable.</div>
+                  </div>
+                  <div class="p-flag" style="border-color:var(--pred)">
+                    <b class="p-red">CRITICAL</b>
+                    <div style="font-weight:600">No health insurance</div>
+                    <div class="p-sm p-mut" style="line-height:1.5">One hospitalisation can wipe out years of savings.</div>
+                  </div>
+                  <div class="p-flag" style="border-color:var(--pamber)">
+                    <b class="p-amb">HIGH</b>
+                    <div style="font-weight:600">Single income reliance</div>
+                    <div class="p-sm p-mut" style="line-height:1.5">Build a six-month emergency fund as priority.</div>
+                  </div>
+                  <div class="p-flag" style="border-color:#60A5FA">
+                    <b style="color:#60A5FA">MEDIUM</b>
+                    <div style="font-weight:600">Savings rate below 30%</div>
+                    <div class="p-sm p-mut" style="line-height:1.5">Currently 29%. For early retirement, aim for 40–50%.</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOGETHER -->
+<section class="pin-s tog-pin" id="together">
+  <div class="w">
+    <div class="sec-lbl reveal">Together</div>
+    <h2 class="sec-h reveal reveal-d1" style="max-width:22ch">Your money stays yours. What you share, you share together.</h2>
+    <p class="sec-sub reveal reveal-d2" style="max-width:62ch">Rent on one card, groceries on the other, the holiday from both. Arth keeps one honest picture for the people you live with: no joint account, no shared password, no spreadsheet.</p>
+  </div>
+
+  <div class="pin-wrap story" data-s="0">
+    <div class="pin-stage">
+      <div class="w pin-grid">
+
+        <div class="pin-copy">
+          <div class="pin-step on">
+            <div class="pin-n">7:42 PM</div>
+            <h3 class="pin-t">Jane buys groceries on her card.</h3>
+            <p class="pin-d">The transaction SMS arrives and Arth has it ready in Catch Up: amount, shop, category.</p>
+            <div class="pin-rail"><span class="on"></span><span></span><span></span><span></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">7:42 PM</div>
+            <h3 class="pin-t">She splits it with John, half each.</h3>
+            <p class="pin-d">One tap. Her budget counts her half; John owes her the rest.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">7:43 PM</div>
+            <h3 class="pin-t">It travels locked.</h3>
+            <p class="pin-d">Sealed on Jane's phone, opened only on John's. Arth's relay in between can't read it.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">7:43 PM</div>
+            <h3 class="pin-t">John's phone files his half.</h3>
+            <p class="pin-d">In his budget under Groceries, in his Hisaab with Jane. Nobody typed anything twice.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+          </div>
+          <div class="pin-step">
+            <div class="pin-n">SUNDAY</div>
+            <h3 class="pin-t">He settles up. Both phones agree.</h3>
+            <p class="pin-d">All square on both sides, and the Goa trip they're saving for keeps moving.</p>
+            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+          </div>
+        </div>
+
+        <div class="pin-ph">
+          <div class="tog-stage">
+        <figure class="tog-ph">
+          <div class="phone" role="img" aria-label="John's phone">
+            <div class="phone-scr">
+              <div class="pscr on" data-s="0 1">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Together</div><div class="p-hdr-s">Home · 2 people</div></div></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-sm p-mut">Spent together · October</div>
+                    <div class="p-big">₹45,900</div>
+                    <div class="tog-bar"><i style="flex:26.8;background:var(--pteal)"></i><i style="flex:21.4;background:#F472B6"></i></div>
+                    <div class="p-hr"></div>
+                    <div style="font-weight:600">All square with Jane</div>
+                    <div class="p-sm p-grn" style="margin-top:.2em">✓ Both phones agree</div>
+                  </div>
+                  <div class="p-lbl">Latest</div>
+                  <div class="p-card" style="padding:.7em .8em"><div class="p-r p-sm"><span><b>Rent</b><br><span class="p-mut">You paid · shown, not split</span></span><span class="p-num">₹25,000</span></div></div></div>
+              </div><div class="pscr" data-s="2">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Together</div><div class="p-hdr-s">Home · syncing…</div></div></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-sm p-mut">Spent together · October</div>
+                    <div class="p-big">₹45,900</div>
+                    <div class="tog-bar"><i style="flex:26.8;background:var(--pteal)"></i><i style="flex:21.4;background:#F472B6"></i></div>
+                    <div class="p-hr"></div>
+                    <div style="font-weight:600">All square with Jane</div>
+                    <div class="p-sm p-tl" style="margin-top:.2em">Receiving 1 change…</div>
+                  </div>
+                  <div class="p-card tog-incoming" style="padding:.7em .8em"><div class="p-li"><div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div><div style="flex:1"><div style="font-weight:600">Locked update from Jane</div><div class="p-sm p-mut">Opened only on this phone</div></div></div></div></div>
+              </div><div class="pscr" data-s="3">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">BigBasket</div><div class="p-hdr-s">Groceries · today, 7:42 pm</div></div></div>
+                <div class="p-body">
+                  <div class="p-card" style="padding:1em .95em">
+                    <span class="p-chip" style="background:rgba(244,114,182,.16);color:#F472B6">PAID BY JANE</span>
+                    <div class="p-big" style="margin-top:.45em">₹1,150</div>
+                    <div class="p-sm p-mut">Your share of ₹2,300</div>
+                    <div class="p-hr"></div>
+                    <div class="p-r p-sm"><span class="p-mut">In your budget</span><span>Groceries ✓</span></div>
+                    <div class="p-r p-sm" style="margin-top:.35em"><span class="p-mut">In Hisaab</span><span>You owe Jane ₹1,150</span></div>
+                  </div>
+                  <div class="p-card" style="padding:.65em .8em;text-align:center;background:var(--pteal);color:#08201D;font-weight:700">Settle up ₹1,150</div></div>
+              </div><div class="pscr" data-s="4">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Together</div><div class="p-hdr-s">Home · 2 people</div></div></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-sm p-mut">Spent together · October</div>
+                    <div class="p-big">₹48,200</div>
+                    <div class="tog-bar"><i style="flex:26.8;background:var(--pteal)"></i><i style="flex:21.4;background:#F472B6"></i></div>
+                    <div class="p-hr"></div>
+                    <div style="font-weight:600">All square with Jane</div>
+                    <div class="p-sm p-grn" style="margin-top:.2em">✓ Both phones agree</div>
+                  </div>
+                  <div class="p-lbl">Latest</div>
+                  <div class="p-card" style="padding:.7em .8em"><div class="p-r p-sm"><span><b>Settle-up</b><br><span class="p-mut">You paid Jane · UPI</span></span><span class="p-num">₹1,150</span></div></div>
+                  <div class="p-card" style="padding:.7em .8em"><div class="p-r p-sm"><span><b>BigBasket</b><br><span class="p-mut">Jane paid · your share ₹1,150</span></span><span class="p-num">₹2,300</span></div></div></div>
+              </div>
+            </div>
+          </div>
+          <figcaption><i style="background:var(--pteal)"></i>John's phone</figcaption>
+        </figure>
+        <div class="tog-fly" aria-hidden="true"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></span></div>
+        <figure class="tog-ph">
+          <div class="phone" role="img" aria-label="Jane's phone">
+            <div class="phone-scr">
+              <div class="pscr on" data-s="0">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Catch Up</div><div class="p-hdr-s">1 new</div></div></div>
+                <div class="p-body">
+                  <div class="tog-sms">
+                    <div class="p-sm p-mut">Messages · now</div>
+                    <div class="p-sm">₹2,300 spent on card XX4417 at BIGBASKET</div>
+                  </div>
+                  <div class="p-card" style="padding:1em .95em">
+                    <div class="p-r"><span class="p-chip" style="background:rgba(45,212,191,.15);color:var(--pteal)">FROM SMS</span><span class="p-sm p-mut">7:42 pm</span></div>
+                    <div class="p-big" style="margin-top:.5em">₹2,300</div>
+                    <div style="font-weight:600">BigBasket</div>
+                    <div class="p-r p-sm" style="margin-top:.5em"><span class="p-mut">Category</span><span class="p-tl" style="font-weight:600">Groceries ✓</span></div>
+                  </div></div>
+              </div><div class="pscr" data-s="1">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Catch Up</div><div class="p-hdr-s">1 new</div></div></div>
+                <div class="p-body">
+                  <div class="p-card" style="padding:1em .95em">
+                    <div class="p-big">₹2,300</div>
+                    <div style="font-weight:600">BigBasket</div>
+                    <div class="p-hr"></div>
+                    <div class="p-lbl">Split</div>
+                    <div class="tog-pick"><span class="on">Half with John</span><span>Custom</span></div>
+                    <div class="p-r p-sm" style="margin-top:.6em"><span class="p-mut">Your share</span><span>₹1,150</span></div>
+                    <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">John owes you</span><span class="p-grn">₹1,150</span></div>
+                  </div>
+                  <div class="p-card tog-tap" style="padding:.65em .8em;text-align:center;background:var(--pteal);color:#08201D;font-weight:700">Approve →</div></div>
+              </div><div class="pscr" data-s="2 3">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Together</div><div class="p-hdr-s">Home · 2 people</div></div></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-sm p-mut">Spent together · October</div>
+                    <div class="p-big">₹48,200</div>
+                    <div class="tog-bar"><i style="flex:26.8;background:var(--pteal)"></i><i style="flex:21.4;background:#F472B6"></i></div>
+                    <div class="p-hr"></div>
+                    <div style="font-weight:600">John owes you ₹1,150</div>
+                    <div class="p-sm p-mut" style="margin-top:.2em">Waiting for John's phone…</div>
+                  </div>
+                  <div class="p-lbl">Latest</div>
+                  <div class="p-card" style="padding:.7em .8em"><div class="p-r p-sm"><span><b>BigBasket</b><br><span class="p-mut">You paid · John owes ₹1,150</span></span><span class="p-num">₹2,300</span></div></div></div>
+              </div><div class="pscr" data-s="4">
+                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
+                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Together</div><div class="p-hdr-s">Home · 2 people</div></div></div>
+                <div class="p-body">
+                  <div class="p-card">
+                    <div class="p-sm p-mut">Spent together · October</div>
+                    <div class="p-big">₹48,200</div>
+                    <div class="tog-bar"><i style="flex:26.8;background:var(--pteal)"></i><i style="flex:21.4;background:#F472B6"></i></div>
+                    <div class="p-hr"></div>
+                    <div style="font-weight:600">All square with John</div>
+                    <div class="p-sm p-grn" style="margin-top:.2em">✓ John paid you ₹1,150 · both phones agree</div>
+                  </div>
+                  <div class="p-card" style="padding:.7em .8em"><div class="p-li"><div class="p-ic" style="background:rgba(251,191,36,.15);color:var(--pamber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 4h10v5a5 5 0 01-10 0z"/><path d="M12 14v4M9 21h6"/></svg></div><div style="flex:1"><div style="font-weight:600">Goa in December</div><div class="p-sm p-mut">₹62,000 of ₹1,00,000 together</div></div></div></div></div>
+              </div>
+            </div>
+          </div>
+          <figcaption><i style="background:#F472B6"></i>Jane's phone</figcaption>
+        </figure>
+      </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOGETHER: what it does -->
+<section class="sec tog tog-after">
+  <div class="w">
+    <div class="tog-copy">
+        <div class="check-l tog-l reveal reveal-d1">
+          <div class="check-i"><span class="check-m">✓</span><span><b>Invite with a QR code.</b> Up to five people, each with their own Arth on their own phone.</span></div>
+          <div class="check-i"><span class="check-m">✓</span><span><b>You decide what they see.</b> Household spending is shared; everything else stays personal unless you say so.</span></div>
+          <div class="check-i"><span class="check-m">✓</span><span><b>Split a bill once.</b> Your share lands in your budget, theirs in their Hisaab, and Arth tells you when both phones agree.</span></div>
+          <div class="check-i"><span class="check-m">✓</span><span><b>Used your partner's card?</b> Say so, and it files itself against their account, not yours.</span></div>
+          <div class="check-i"><span class="check-m">✓</span><span><b>Plan as a team.</b> Agree a household budget, and save towards a goal from both sides.</span></div>
+        </div>
+        <p class="tog-note reveal reveal-d2">What you share is locked on your phone before it leaves. Arth's relay can't read it, and deletes it once everyone has it. <a href="/faq#households">How households work →</a></p>
+      </div>
+  </div>
+</section>
+
 <!-- FEATURES -->
 <section class="sec show" id="features">
   <div class="w">
-    <div class="sec-lbl reveal">What Arth does</div>
+    <div class="sec-lbl reveal">Every year, and everything else</div>
     <h2 class="sec-h reveal reveal-d1">From today's coffee to next year's net worth.</h2>
-    <p class="sec-sub reveal reveal-d2">Five areas, each built out properly rather than bolted on.</p>
+    <p class="sec-sub reveal reveal-d2">Loans, investments, insurance, tax and the plan for the year. Five areas, each built out properly rather than bolted on.</p>
     <div class="show-g">
       <div class="show-tabs reveal">
       <div class="show-it on" style="--c:#14B8A6">
@@ -189,7 +926,7 @@
         </button>
         <div class="show-p" id="show-p-track" role="region" aria-labelledby="show-t-track">
           <div class="show-pi">
-            <ul class="show-l"><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Reads SMS from 25+ Indian banks</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Swipe through new spends in Catch Up</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Reads payment screenshots and receipts</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Hisaab for money lent to family</span></li></ul>
+            <ul class="show-l"><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Reads your transaction SMS, any format</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Swipe through new spends in Catch Up</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Reads payment screenshots and receipts</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Hisaab for money lent to family</span></li></ul>
             <a class="show-more" href="/features#track">Everything in Track <span aria-hidden="true">→</span></a>
           </div>
         </div>
@@ -217,7 +954,7 @@
         </button>
         <div class="show-p" id="show-p-grow" role="region" aria-labelledby="show-t-grow">
           <div class="show-pi">
-            <ul class="show-l"><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Zerodha, Angel One and ZebPay synced</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>FDs, PPF, NPS, EPF, gold and bonds</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Net worth over time <span class="badge-new">NEW</span></span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Balance sheet and capital gains</span></li></ul>
+            <ul class="show-l"><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Zerodha, Angel One and ZebPay synced</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>FDs, PPF, NPS, EPF, gold and bonds</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Net worth over time</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Balance sheet and capital gains</span></li></ul>
             <a class="show-more" href="/features#grow">Everything in Grow <span aria-hidden="true">→</span></a>
           </div>
         </div>
@@ -245,7 +982,7 @@
         </button>
         <div class="show-p" id="show-p-understand" role="region" aria-labelledby="show-t-understand">
           <div class="show-pi">
-            <ul class="show-l"><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Insights that flag what changed</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Reports on health, retirement and loans</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Year in Review <span class="badge-new">NEW</span></span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Ask your own AI assistant about it</span></li></ul>
+            <ul class="show-l"><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Insights that flag what changed</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Reports on health, retirement and loans</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Year in Review</span></li><li><span class="show-ck"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></span><span>Ask your own AI assistant about it</span></li></ul>
             <a class="show-more" href="/features#understand">Everything in Understand <span aria-hidden="true">→</span></a>
           </div>
         </div>
@@ -267,7 +1004,7 @@
                 <div class="p-sm p-mut">UPI · Savings ••4821</div>
                 <div class="p-hr"></div>
                 <div class="p-r p-sm"><span class="p-mut">Category</span><span class="p-tl" style="font-weight:600">Food delivery ✓ suggested</span></div>
-                <div class="p-r p-sm" style="margin-top:.35em"><span class="p-mut">Split</span><span>Half with Riya</span></div>
+                <div class="p-r p-sm" style="margin-top:.35em"><span class="p-mut">Split</span><span>Half with Jane</span></div>
               </div>
               <div class="p-card" style="padding:.6em .8em;background:var(--psurf2)"><div class="p-sm p-mut">Approve 3 more from Swiggy?</div></div>
               <div style="display:flex;gap:.6em;margin-top:auto;margin-bottom:1.6em">
@@ -375,598 +1112,16 @@
   </div>
 </section>
 
-<!-- SCROLL-PINNED WALKTHROUGH -->
-<section class="pin-s" id="how">
-  <div class="w">
-    <div class="sec-lbl reveal">How it works</div>
-    <h2 class="sec-h reveal reveal-d1">One message. Everything updates.</h2>
-    <p class="sec-sub reveal reveal-d2">Scroll to follow a single bank SMS all the way through.</p>
-  </div>
-
-  <div class="pin-wrap" id="pin-wrap">
-    <div class="pin-stage">
-      <div class="w pin-grid">
-
-        <div class="pin-copy">
-          <div class="pin-step on">
-            <div class="pin-n">STEP 01</div>
-            <h3 class="pin-t">Your bank sends a message.</h3>
-            <p class="pin-d">The same SMS you already ignore a dozen times a week. You don't open the app, and you don't type anything.</p>
-            <div class="pin-rail"><span class="on"></span><span></span><span></span><span></span></div>
-          </div>
-          <div class="pin-step">
-            <div class="pin-n">STEP 02</div>
-            <h3 class="pin-t">Arth works out what it was.</h3>
-            <p class="pin-d">It reads the amount and the account, recognises the merchant, and categorises the spend — then puts the result in a queue, not in your books.</p>
-            <div class="pin-rail"><span class="on"></span><span class="on"></span><span></span><span></span></div>
-          </div>
-          <div class="pin-step">
-            <div class="pin-n">STEP 03</div>
-            <h3 class="pin-t">You approve it. It lands.</h3>
-            <p class="pin-d">One tap and the expense is recorded against the right card, on the right date, in the right category. You can edit it, or reject it outright if it isn't a valid spend.</p>
-            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
-          </div>
-          <div class="pin-step">
-            <div class="pin-n">STEP 04</div>
-            <h3 class="pin-t">Everything downstream moves with it.</h3>
-            <p class="pin-d">The category budget, the month's pace, the projected total and your closing balance all recalculate. That's the whole loop — and you typed nothing.</p>
-            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
-          </div>
-        </div>
-
-        <div class="pin-ph">
-          <div class="phone" role="img" aria-label="Walkthrough: a bank SMS arrives, Arth parses it, you approve it, and your budget updates">
-            <div class="phone-scr">
-
-              <!-- 01 lock screen -->
-              <div class="pscr on">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-body" style="align-items:center;gap:0;padding-top:2.6em">
-                  <div style="font-family:'Outfit',sans-serif;font-size:4.4em;font-weight:300;letter-spacing:-.04em;line-height:1">10:24</div>
-                  <div class="p-mut" style="margin-top:.35em">Wednesday, 24 September</div>
-                  <div class="p-card" style="width:100%;margin-top:2.6em;background:rgba(255,255,255,.08)">
-                    <div class="p-li" style="margin-bottom:.55em">
-                      <div class="p-ic" style="background:rgba(45,212,191,.2);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 9l9-6 9 6"/><path d="M5 9v10h14V9"/></svg></div>
-                      <div style="flex:1;font-weight:700">HDFC Bank</div>
-                      <div class="p-sm p-mut">now</div>
-                    </div>
-                    <div class="p-sm" style="line-height:1.6">Rs 2,450.00 debited from A/c XX4417. Info: UPI/SWIGGY. Avl Bal Rs 42,180.22</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 02 review queue -->
-              <div class="pscr">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Review Queue</span></div><span style="width:1em"></span></div>
-                <div class="p-pills"><div class="p-pill on">1 pending</div><div class="p-pill">Approved</div><div class="p-pill">Rejected</div></div>
-                <div class="p-body">
-                  <div class="p-card" style="box-shadow:0 0 0 1.5px var(--pteal)">
-                    <div class="p-r"><span class="p-lbl">HDFC Bank</span><span class="p-sm p-mut">Just now</span></div>
-                    <div class="p-sm p-mut" style="margin:.5em 0;line-height:1.55">Rs 2,450.00 debited from A/c XX4417. Info: UPI/SWIGGY. Avl Bal Rs 42,180.22</div>
-                    <div class="p-hr"></div>
-                    <div class="p-r p-sm"><span class="p-mut">Amount</span><span class="p-num">₹2,450.00</span></div>
-                    <div class="p-r p-sm" style="margin-top:.35em"><span class="p-mut">Merchant</span><span class="p-num">Swiggy</span></div>
-                    <div class="p-r p-sm" style="margin-top:.35em"><span class="p-mut">Category</span><span class="p-num p-tl">Food</span></div>
-                    <div class="p-r p-sm" style="margin-top:.35em"><span class="p-mut">Account</span><span class="p-num">HDFC ••4417</span></div>
-                    <div class="p-li" style="margin-top:.85em;gap:.45em">
-                      <div style="flex:1;text-align:center;background:var(--pteal);color:#08201D;border-radius:.55em;padding:.5em 0;font-weight:700">Approve</div>
-                      <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.5em 0">Edit</div>
-                      <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.5em 0;color:var(--pred)">Reject</div>
-                    </div>
-                  </div>
-                  <div class="p-sm p-mut" style="text-align:center;margin-top:.3em">Nothing is recorded until you decide.</div>
-                </div>
-              </div>
-
-              <!-- 03 transactions -->
-              <div class="pscr">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Transactions</div><div class="p-hdr-s">Nothing pending</div></div></div>
-                <div class="p-tabs"><div class="p-tab">All</div><div class="p-tab on">Expenses</div><div class="p-tab">Credits</div><div class="p-tab">Transfers</div></div>
-                <div class="p-body">
-                  <div class="p-lbl">Today · 24 Sep</div>
-                  <div class="p-card" style="padding:.7em .8em;box-shadow:0 0 0 1.5px var(--pteal)">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M16 3c-2 2-2 6 0 8v10"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Swiggy <span class="p-chip" style="background:rgba(45,212,191,.2);color:var(--pteal)">NEW</span></div><div class="p-sm p-mut">Food · HDFC ••4417</div></div>
-                      <div class="p-num">₹2,450</div>
-                    </div>
-                  </div>
-                  <div class="p-card" style="padding:.7em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.7 12h10.6L21 7H6"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Blinkit</div><div class="p-sm p-mut">Groceries · HDFC ••4417</div></div>
-                      <div class="p-num">₹642</div>
-                    </div>
-                  </div>
-                  <div class="p-lbl">Yesterday · 23 Sep</div>
-                  <div class="p-card" style="padding:.7em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(167,139,250,.15);color:#A78BFA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M12 8v13M2 12h20"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Amazon</div><div class="p-sm p-mut">Shopping · Axis ••2290</div></div>
-                      <div class="p-num">₹2,340</div>
-                    </div>
-                  </div>
-                  <div class="p-card" style="padding:.7em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(96,165,250,.15);color:#60A5FA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 13l1.5-5h11L19 13"/><rect x="3" y="13" width="18" height="5" rx="1.5"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Indian Oil</div><div class="p-sm p-mut">Fuel · HDFC ••8302</div></div>
-                      <div class="p-num">₹1,850</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 04 budget + forecast -->
-              <div class="pscr">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Budget</div></div></div>
-                <div class="p-month"><span>&lsaquo;</span><div class="p-month-p">Sep 2026 ▾</div><span>&rsaquo;</span></div>
-                <div class="p-body" style="gap:.6em">
-                  <div class="p-lbl">Categories</div>
-                  <div style="box-shadow:0 0 0 1.5px var(--pteal);border-radius:.8em;padding:.5em .55em;margin:-.15em -.1em">
-                    <div class="p-li" style="margin-bottom:.15em">
-                      <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M16 3c-2 2-2 6 0 8v10"/></svg></div>
-                      <div style="flex:1;font-weight:600">Food</div>
-                      <div class="p-num p-red">₹20,690<span class="p-mut" style="font-weight:400"> / ₹20,000</span></div>
-                    </div>
-                    <div class="p-bar"><div class="p-bar-f" style="width:100%;background:var(--pred)"></div></div>
-                    <div class="p-r p-sm"><span class="p-red">₹690 over · was ₹1,760 left</span><span class="p-mut">103%</span></div>
-                  </div>
-                  <div>
-                    <div class="p-li" style="margin-bottom:.15em">
-                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.7 12h10.6L21 7H6"/></svg></div>
-                      <div style="flex:1;font-weight:600">Groceries</div>
-                      <div class="p-num p-grn">₹9,980<span class="p-mut" style="font-weight:400"> / ₹15,000</span></div>
-                    </div>
-                    <div class="p-bar"><div class="p-bar-f" style="width:66%"></div></div>
-                    <div class="p-r p-sm p-mut"><span>₹5,020 left</span><span>66%</span></div>
-                  </div>
-                  <div>
-                    <div class="p-li" style="margin-bottom:.15em">
-                      <div class="p-ic" style="background:rgba(96,165,250,.15);color:#60A5FA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 13l1.5-5h11L19 13"/><rect x="3" y="13" width="18" height="5" rx="1.5"/></svg></div>
-                      <div style="flex:1;font-weight:600">Fuel</div>
-                      <div class="p-num p-grn">₹3,420<span class="p-mut" style="font-weight:400"> / ₹6,000</span></div>
-                    </div>
-                    <div class="p-bar"><div class="p-bar-f" style="width:57%"></div></div>
-                    <div class="p-r p-sm p-mut"><span>₹2,580 left</span><span>57%</span></div>
-                  </div>
-                  <div class="p-hr"></div>
-                  <div class="p-card">
-                    <div class="p-r p-sm"><span class="p-mut">Projected total</span><span class="p-num">₹98,590</span></div>
-                    <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Budget</span><span class="p-num p-mut">₹1,05,000</span></div>
-                    <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Breathing room</span><span class="p-num p-grn">+₹6,410</span></div>
-                    <div class="p-sm p-mut" style="margin-top:.35em">Recalculated just now</div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- SCROLL-PINNED: AUTOMATION -->
-<section class="pin-s" id="automation">
-  <div class="w">
-    <div class="sec-lbl reveal">Automation</div>
-    <h2 class="sec-h reveal reveal-d1">Teach it once. It never asks again.</h2>
-    <p class="sec-sub reveal reveal-d2">Each of these takes about a minute to configure. After that they run on their own.</p>
-  </div>
-
-  <div class="pin-wrap">
-    <div class="pin-stage">
-      <div class="w pin-grid">
-
-        <div class="pin-copy">
-          <div class="pin-step on">
-            <div class="pin-n">STEP 01</div>
-            <h3 class="pin-t">Teach it a format it has never seen.</h3>
-            <p class="pin-d">Paste one message from your bank and tag the amount, the account and the merchant. No regex, no coding. It reads that format from then on.</p>
-            <div class="pin-rail"><span class="on"></span><span></span><span></span><span></span></div>
-          </div>
-          <div class="pin-step">
-            <div class="pin-n">STEP 02</div>
-            <h3 class="pin-t">Write one rule. It runs forever.</h3>
-            <p class="pin-d">When a transaction matches, set the category, approve it without asking, and split it with whoever it should be split with. Rules stack in priority order.</p>
-            <div class="pin-rail"><span class="on"></span><span class="on"></span><span></span><span></span></div>
-          </div>
-          <div class="pin-step">
-            <div class="pin-n">STEP 03</div>
-            <h3 class="pin-t">For the spends no SMS will catch.</h3>
-            <p class="pin-d">Cash, the autorickshaw, a friend covering lunch. Say it out loud and it is logged with the amount, merchant, category and account already filled in.</p>
-            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
-          </div>
-          <div class="pin-step">
-            <div class="pin-n">STEP 04</div>
-            <h3 class="pin-t">Shared money keeps its own books.</h3>
-            <p class="pin-d">Anything split routes into that person's ledger on its own, carrying a running balance you can settle or export whenever you want to.</p>
-            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
-          </div>
-        </div>
-
-        <div class="pin-ph">
-          <div class="phone" role="img" aria-label="Arth automation screens: SMS template builder, smart rule, voice expense entry and the family ledger">
-            <div class="phone-scr">
-
-              <!-- 01 smart sms template -->
-              <div class="pscr on">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">New Template</span></div><span style="width:1em"></span></div>
-                <div class="p-body">
-                  <div class="p-lbl">Sample message</div>
-                  <div class="p-card">
-                    <div class="p-sm" style="line-height:1.65">Rs <span class="p-tag">1,250.00</span> spent on ICICI Card <span class="p-tag">XX8821</span> at <span class="p-tag">BIGBAZAAR</span> on 24-Sep</div>
-                    <div class="p-sm p-mut" style="margin-top:.5em">Tap any part to tag it</div>
-                  </div>
-                  <div class="p-lbl">Tagged fields</div>
-                  <div class="p-card" style="padding:.75em .8em">
-                    <div class="p-r p-sm"><span class="p-mut">Amount</span><span class="p-num p-tl">1,250.00</span></div>
-                    <div class="p-hr" style="margin:.45em 0"></div>
-                    <div class="p-r p-sm"><span class="p-mut">Account</span><span class="p-num p-tl">XX8821</span></div>
-                    <div class="p-hr" style="margin:.45em 0"></div>
-                    <div class="p-r p-sm"><span class="p-mut">Merchant</span><span class="p-num p-tl">BIGBAZAAR</span></div>
-                    <div class="p-hr" style="margin:.45em 0"></div>
-                    <div class="p-r p-sm"><span class="p-mut">Sender contains</span><span class="p-num">ICICIB</span></div>
-                  </div>
-                  <div class="p-li" style="gap:.45em">
-                    <div style="flex:1;text-align:center;background:var(--pteal);color:#08201D;border-radius:.55em;padding:.5em 0;font-weight:700">Test template</div>
-                  </div>
-                  <div class="p-card" style="padding:.6em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Matches 14 of 14</div><div class="p-sm p-mut">Past messages from this sender</div></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 02 smart rule -->
-              <div class="pscr">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Rule</span></div><span style="width:1em"></span></div>
-                <div class="p-body">
-                  <div class="p-lbl">When · conditions</div>
-                  <div class="p-pills" style="padding:0"><div class="p-pill on">Match ALL</div><div class="p-pill">Match ANY</div></div>
-                  <div class="p-card" style="padding:.75em .8em">
-                    <div class="p-r p-sm"><span class="p-mut">Field</span><span class="p-num">Merchant</span></div>
-                    <div class="p-hr" style="margin:.45em 0"></div>
-                    <div class="p-r p-sm"><span class="p-mut">Operator</span><span class="p-num">contains</span></div>
-                    <div class="p-hr" style="margin:.45em 0"></div>
-                    <div class="p-r p-sm"><span class="p-mut">Value</span><span class="p-num p-tl">bigbazaar</span></div>
-                  </div>
-                  <div class="p-lbl">Then · actions</div>
-                  <div class="p-card" style="padding:.7em .8em">
-                    <div class="p-li" style="margin-bottom:.55em">
-                      <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Set category</div><div class="p-sm p-mut">Groceries</div></div>
-                    </div>
-                    <div class="p-li" style="margin-bottom:.55em">
-                      <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Auto-approve from review</div><div class="p-sm p-mut">Skips the queue entirely</div></div>
-                    </div>
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(45,212,191,.15);color:var(--pteal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Auto split with person</div><div class="p-sm p-mut">Priya · 50%</div></div>
-                    </div>
-                  </div>
-                  <div class="p-li" style="gap:.45em">
-                    <div style="flex:1;text-align:center;background:var(--pteal);color:#08201D;border-radius:.55em;padding:.5em 0;font-weight:700">Save rule</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 03 voice expense -->
-              <div class="pscr">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t" style="opacity:.35">Arth · अर्थ</div><div class="p-hdr-s" style="opacity:.35">September 2026</div></div></div>
-                <div class="p-body" style="opacity:.3;flex:0 0 auto">
-                  <div class="p-card">
-                    <div class="p-r"><span class="p-mut">Month so far</span><span class="p-num">₹84,210</span></div>
-                    <div class="p-bar"><div class="p-bar-f" style="width:72%"></div></div>
-                    <div class="p-r p-sm p-mut"><span>₹20,790 remaining</span><span>9 days left</span></div>
-                  </div>
-                  <div class="p-lbl">Today · 24 Sep</div>
-                  <div class="p-card" style="padding:.7em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.7 12h10.6L21 7H6"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Blinkit</div><div class="p-sm p-mut">Groceries</div></div>
-                      <div class="p-num">₹642</div>
-                    </div>
-                  </div>
-                  <div class="p-card" style="padding:.7em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(167,139,250,.15);color:#A78BFA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M12 8v13M2 12h20"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Amazon</div><div class="p-sm p-mut">Shopping</div></div>
-                      <div class="p-num">₹2,340</div>
-                    </div>
-                  </div>
-                </div>
-                <div style="margin-top:auto;background:var(--psurf);border-radius:1.2em 1.2em 0 0;padding:.9em 1.15em 1.9em">
-                  <div style="width:2.4em;height:.28em;border-radius:1em;background:var(--pborder);margin:0 auto .9em"></div>
-                  <div class="p-r"><span class="p-hdr-t" style="font-size:1.1em">Voice Expense</span><span class="p-mut" style="font-size:1.1em">×</span></div>
-                  <div style="display:flex;flex-direction:column;align-items:center;margin-top:1.4em">
-                    <div style="width:4.4em;height:4.4em;border-radius:50%;border:2px solid var(--pred);display:flex;align-items:center;justify-content:center">
-                      <div style="width:1.9em;height:1.9em;border-radius:50%;background:var(--pred)"></div>
-                    </div>
-                    <div style="font-weight:600;margin-top:.9em">Listening…</div>
-                    <div class="p-sm p-mut" style="margin-top:.35em;text-align:center">Try: "450 at Swiggy for lunch, UPI, HDFC"</div>
-                  </div>
-                  <div style="text-align:center;border:1px solid var(--pborder);border-radius:.6em;padding:.55em 0;margin-top:1.3em;color:var(--pteal);font-weight:600">Open expense form</div>
-                </div>
-              </div>
-
-              <!-- 04 hisaab ledger -->
-              <div class="pscr">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Ledger</span></div><span style="width:1em"></span></div>
-                <div class="p-body">
-                  <div class="p-card" style="text-align:center">
-                    <div class="p-mut p-sm">Priya Sharma</div>
-                    <div class="p-big p-grn" style="margin:.2em 0">+₹12,480</div>
-                    <div class="p-sm p-mut">owes you</div>
-                    <div class="p-li" style="gap:.45em;margin-top:.8em">
-                      <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.45em 0;color:var(--pteal);font-weight:600">Settle</div>
-                      <div style="flex:1;text-align:center;border:1px solid var(--pborder);border-radius:.55em;padding:.45em 0;color:var(--pteal);font-weight:600">Export</div>
-                    </div>
-                  </div>
-                  <div class="p-lbl">13 entries</div>
-                  <div class="p-card" style="padding:.65em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">BigBazaar</div><div class="p-sm p-mut">Groceries · split 50% · 24 Sep</div></div>
-                      <div class="p-num p-grn">+₹625</div>
-                    </div>
-                  </div>
-                  <div class="p-card" style="padding:.65em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Dinner</div><div class="p-sm p-mut">Food · split 50% · 22 Sep</div></div>
-                      <div class="p-num p-grn">+₹1,120</div>
-                    </div>
-                  </div>
-                  <div class="p-card" style="padding:.65em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Cab</div><div class="p-sm p-mut">Travel · split 50% · 21 Sep</div></div>
-                      <div class="p-num p-grn">+₹240</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <div class="w">
-    <div class="auto-g">
-      <div class="auto-c reveal">
-        <div class="auto-t">Merchant categories</div>
-        <div class="auto-d">Built-in rules for 450+ Indian merchants and store brands file Swiggy under Food and Uber under Travel. Change any of them, or add your own.</div>
-      </div>
-      <div class="auto-c reveal reveal-d1">
-        <div class="auto-t">Merchant aliases</div>
-        <div class="auto-d">"PAY*SWIGGY FOODBANGALORE" becomes Swiggy, once, everywhere — including in past records.</div>
-      </div>
-      <div class="auto-c reveal reveal-d2">
-        <div class="auto-t">Statement reconciliation</div>
-        <div class="auto-d">Import the bank's PDF and Arth matches it line by line against what it recorded, flagging anything missing or extra.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- SCROLL-PINNED: WHAT IT FINDS -->
-<section class="pin-s" id="insights">
-  <div class="w">
-    <div class="sec-lbl reveal">Beyond tracking</div>
-    <h2 class="sec-h reveal reveal-d1">Then it starts telling you things.</h2>
-    <p class="sec-sub reveal reveal-d2">Capture is the boring half. This is the half that changes what you do.</p>
-  </div>
-
-  <div class="pin-wrap">
-    <div class="pin-stage">
-      <div class="w pin-grid">
-
-        <div class="pin-copy">
-          <div class="pin-step on">
-            <div class="pin-n">STEP 01</div>
-            <h3 class="pin-t">It notices what you don't.</h3>
-            <p class="pin-d">Sunday is your most expensive day of the week, by a factor of two. Nobody works that out by staring at a bank statement.</p>
-            <div class="pin-rail"><span class="on"></span><span></span><span></span><span></span></div>
-          </div>
-          <div class="pin-step">
-            <div class="pin-n">STEP 02</div>
-            <h3 class="pin-t">It tells you where the month lands.</h3>
-            <p class="pin-d">Planned against actual, line by line, with the variance on each one — while there are still days left to do something about it.</p>
-            <div class="pin-rail"><span class="on"></span><span class="on"></span><span></span><span></span></div>
-          </div>
-          <div class="pin-step">
-            <div class="pin-n">STEP 03</div>
-            <h3 class="pin-t">It lets you test a decision first.</h3>
-            <p class="pin-d">Model a raise, a new EMI or an early prepayment, and watch the next six months redraw before you commit to any of it.</p>
-            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
-          </div>
-          <div class="pin-step">
-            <div class="pin-n">STEP 04</div>
-            <h3 class="pin-t">And the things you'd rather not hear.</h3>
-            <p class="pin-d">No term cover. Savings rate under 30%. Corpus runs dry in 13 years. Blunt, specific, and with the arithmetic shown.</p>
-            <div class="pin-rail"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
-          </div>
-        </div>
-
-        <div class="pin-ph">
-          <div class="phone" role="img" aria-label="Arth analysis screens: spending patterns, month-end projection, cash-flow simulator and retirement risk flags">
-            <div class="phone-scr">
-
-              <!-- 01 spending personality -->
-              <div class="pscr on">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Spending Personality</span></div><span style="width:1em"></span></div>
-                <div class="p-body">
-                  <div class="p-lbl">Day of week pattern</div>
-                  <div class="p-card">
-                    <div class="p-sm p-amb">₹9,840</div>
-                    <div class="p-days">
-                      <div class="hi"><i style="height:100%"></i></div>
-                      <div><i style="height:32%"></i></div>
-                      <div><i style="height:27%"></i></div>
-                      <div><i style="height:34%"></i></div>
-                      <div><i style="height:24%"></i></div>
-                      <div><i style="height:29%"></i></div>
-                      <div><i style="height:46%"></i></div>
-                    </div>
-                    <div class="p-dayl"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
-                  </div>
-                  <div class="p-card">
-                    <div class="p-r">
-                      <div><div class="p-sm p-mut">Weekday avg</div><div class="p-num">₹3,060<span class="p-mut p-sm" style="font-weight:400">/day</span></div></div>
-                      <div class="p-sm p-mut">vs</div>
-                      <div style="text-align:right"><div class="p-sm p-mut">Weekend avg</div><div class="p-num">₹6,180<span class="p-mut p-sm" style="font-weight:400">/day</span></div></div>
-                    </div>
-                    <div class="p-sm p-mut" style="text-align:center;margin-top:.5em">You spend 2.0× more on weekends</div>
-                  </div>
-                  <div class="p-lbl">Behavioural insights</div>
-                  <div class="p-card" style="padding:.7em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(251,191,36,.15);color:var(--pamber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Weekend spender</div><div class="p-sm p-mut" style="line-height:1.5">Your most expensive day is Sunday — 2.0× your weekday average.</div></div>
-                    </div>
-                  </div>
-                  <div class="p-card" style="padding:.7em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(248,113,113,.15);color:var(--pred)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Rising spending</div><div class="p-sm p-mut" style="line-height:1.5">Groceries are up against your 3-month average.</div></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 02 month-end projection -->
-              <div class="pscr">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Sept End Projection</span></div><span style="width:1em"></span></div>
-                <div class="p-body">
-                  <div class="p-card">
-                    <div class="p-lbl">Planned vs actual</div>
-                    <div class="p-r" style="margin-top:.5em">
-                      <div><div class="p-sm p-mut">Planned</div><div class="p-num">₹4,58,700</div></div>
-                      <div style="text-align:center"><div class="p-sm p-mut">Actual</div><div class="p-num">₹4,49,030</div></div>
-                      <div style="text-align:right"><div class="p-sm p-mut">Variance</div><div class="p-num p-grn">−₹9,670</div></div>
-                    </div>
-                  </div>
-                  <div class="p-card" style="padding:.75em .8em">
-                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Salary</span><span class="p-num p-mut">₹2,83,400</span><span class="p-num" style="width:5.2em;text-align:right">₹2,83,240</span><span class="p-num p-grn" style="width:3.4em;text-align:right">−₹160</span></div>
-                    <div class="p-hr" style="margin:.4em 0"></div>
-                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Rent</span><span class="p-num p-mut">₹20,000</span><span class="p-num" style="width:5.2em;text-align:right">₹20,000</span><span class="p-num p-mut" style="width:3.4em;text-align:right">₹0</span></div>
-                    <div class="p-hr" style="margin:.4em 0"></div>
-                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">SIP</span><span class="p-num p-mut">₹17,000</span><span class="p-num" style="width:5.2em;text-align:right">₹17,000</span><span class="p-num p-mut" style="width:3.4em;text-align:right">₹0</span></div>
-                    <div class="p-hr" style="margin:.4em 0"></div>
-                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Weekend</span><span class="p-num p-mut">₹2,000</span><span class="p-num" style="width:5.2em;text-align:right">₹2,690</span><span class="p-num p-red" style="width:3.4em;text-align:right">+₹690</span></div>
-                    <div class="p-hr" style="margin:.4em 0"></div>
-                    <div class="p-r p-sm"><span class="p-mut" style="flex:1">Utilities</span><span class="p-num p-mut">₹390</span><span class="p-num" style="width:5.2em;text-align:right">₹387</span><span class="p-num p-grn" style="width:3.4em;text-align:right">−₹3</span></div>
-                  </div>
-                  <div class="p-lbl">Already happened · 17</div>
-                  <div class="p-card" style="padding:.6em .8em">
-                    <div class="p-li">
-                      <div class="p-ic" style="background:rgba(52,211,153,.15);color:var(--pgreen)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
-                      <div style="flex:1"><div style="font-weight:600">Rent</div><div class="p-sm p-mut">Planned ₹20,000</div></div>
-                      <div class="p-num">₹20,000</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 03 simulator -->
-              <div class="pscr">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><div style="flex:1"><div class="p-hdr-t">Simulator</div><div class="p-hdr-s">What-if scenarios</div></div></div>
-                <div class="p-pills"><div class="p-pill">Salary hike</div><div class="p-pill on">New EMI</div><div class="p-pill">Prepay</div></div>
-                <div class="p-body">
-                  <div class="p-card">
-                    <div class="p-r"><span class="p-lbl">Scenario</span><span class="p-sm p-tl">Edit</span></div>
-                    <div class="p-r" style="margin-top:.5em"><span class="p-r-n">Car loan EMI</span><span class="p-num">₹18,500<span class="p-mut p-sm" style="font-weight:400">/mo</span></span></div>
-                    <div class="p-r p-sm" style="margin-top:.3em"><span class="p-mut">Starts</span><span class="p-num p-mut">Nov 2026 · 60 months</span></div>
-                  </div>
-                  <div class="p-lbl">Projected bank balance</div>
-                  <div class="p-card" style="padding:.8em .8em">
-                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Oct</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:100%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,70,380</span></div>
-                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Nov</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:88%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,51,880</span></div>
-                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Dec</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:78%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,33,380</span></div>
-                    <div class="p-li" style="margin-bottom:.45em"><span class="p-sm p-mut" style="width:2.4em">Jan</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:67%"></div></div><span class="p-num p-sm" style="width:4.6em;text-align:right">₹1,14,880</span></div>
-                    <div class="p-li"><span class="p-sm p-mut" style="width:2.4em">Feb</span><div class="p-bar" style="flex:1;margin:0"><div class="p-bar-f" style="width:56%;background:var(--pamber)"></div></div><span class="p-num p-sm p-amb" style="width:4.6em;text-align:right">₹96,380</span></div>
-                  </div>
-                  <div class="p-flag" style="border-color:var(--pamber)">
-                    <b class="p-amb">HEADS UP</b>
-                    <div class="p-sm" style="line-height:1.5">Drops below your ₹1,00,000 buffer in February.</div>
-                  </div>
-                  <div class="p-r p-sm"><span class="p-mut">Without this change</span><span class="p-num p-grn">₹2,16,380 by Feb</span></div>
-                </div>
-              </div>
-
-              <!-- 04 retirement readiness -->
-              <div class="pscr">
-                <div class="p-stat"><span>10:24</span><span class="p-stat-i"><svg viewBox="0 0 17 12" fill="currentColor"><rect y="8.5" width="3" height="3.5" rx=".7"/><rect x="4.7" y="6" width="3" height="6" rx=".7"/><rect x="9.4" y="3" width="3" height="9" rx=".7"/><rect x="14" width="3" height="12" rx=".7"/></svg><svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.2 4.4a10.2 10.2 0 0113.6 0"/><path d="M3.9 7.2a6.2 6.2 0 018.2 0"/><circle cx="8" cy="10.2" r=".95" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.8" fill="currentColor"/><path d="M23.4 4.3v3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" opacity=".55"/></svg></span></div>
-                <div class="p-hdr"><span class="p-chev">&lsaquo;</span><div style="flex:1;text-align:center"><span class="p-hdr-t">Retirement Readiness</span></div><span style="width:1em"></span></div>
-                <div class="p-body">
-                  <div class="p-card">
-                    <div class="p-r"><span class="p-sm">6% withdrawal rate</span><span class="p-num p-red">13 yrs</span></div>
-                    <div class="p-r p-sm"><span class="p-mut">₹8.2L/mo · ₹98.2L/yr</span><span class="p-red">Runs out</span></div>
-                  </div>
-                  <div class="p-lbl">Risk flags</div>
-                  <div class="p-flag" style="border-color:var(--pred)">
-                    <b class="p-red">CRITICAL</b>
-                    <div style="font-weight:600">No term life insurance</div>
-                    <div class="p-sm p-mut" style="line-height:1.5">With dependents, cover of at least 10× annual income is non-negotiable.</div>
-                  </div>
-                  <div class="p-flag" style="border-color:var(--pred)">
-                    <b class="p-red">CRITICAL</b>
-                    <div style="font-weight:600">No health insurance</div>
-                    <div class="p-sm p-mut" style="line-height:1.5">One hospitalisation can wipe out years of savings.</div>
-                  </div>
-                  <div class="p-flag" style="border-color:var(--pamber)">
-                    <b class="p-amb">HIGH</b>
-                    <div style="font-weight:600">Single income reliance</div>
-                    <div class="p-sm p-mut" style="line-height:1.5">Build a six-month emergency fund as priority.</div>
-                  </div>
-                  <div class="p-flag" style="border-color:#60A5FA">
-                    <b style="color:#60A5FA">MEDIUM</b>
-                    <div style="font-weight:600">Savings rate below 30%</div>
-                    <div class="p-sm p-mut" style="line-height:1.5">Currently 29%. For early retirement, aim for 40–50%.</div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- PRIVACY (dark) -->
 <section class="prv">
   <div class="w">
-    <div class="sec-lbl reveal">Privacy first</div>
-    <h2 class="sec-h reveal reveal-d1" style="color:var(--dark-text);max-width:18ch">Zero snooping. Zero tracking. Zero compromise.</h2>
-    <p class="sec-sub reveal reveal-d2" style="margin-bottom:32px">A database that lives only on your phone, protected by its own encryption. No account, no sign-up, nothing to breach. Share with your household only if you choose, end-to-end encrypted. <a href="/legal#privacy" style="color:var(--teal)">Read exactly what goes where →</a></p>
+    <div class="sec-lbl reveal">Private by default</div>
+    <h2 class="sec-h reveal reveal-d1" style="color:var(--dark-text);max-width:18ch">Private by default. Shared by choice.</h2>
+    <p class="sec-sub reveal reveal-d2" style="margin-bottom:32px">Your data lives in a database on your phone, protected by its own encryption. No account, no sign-up, nothing to breach. Share with your household only if you choose: it's locked before it leaves your phone. <a href="/legal#privacy" style="color:var(--teal)">Read exactly what goes where →</a></p>
     <div class="prv-stats" id="prv-stats">
       <div class="prv-s reveal"><div class="prv-n" data-count="0" data-suffix="">0</div><div class="prv-l">Arth servers that can read your data. Households sync through a relay that only ever holds locked envelopes.</div></div>
       <div class="prv-s reveal reveal-d1"><div class="prv-n" data-count="0" data-suffix="">0</div><div class="prv-l">Third-party analytics, trackers, or crash reporters</div></div>
-      <div class="prv-s reveal reveal-d2"><div class="prv-n" data-count="100" data-suffix="%">100%</div><div class="prv-l">Offline. Works without internet, always, by design</div></div>
+      <div class="prv-s reveal reveal-d2"><div class="prv-n" data-count="100" data-suffix="%">100%</div><div class="prv-l">Of what you share is encrypted on your phone before it leaves. Everything else never leaves at all.</div></div>
     </div>
   </div>
 </section>
@@ -977,10 +1132,10 @@
     <div class="sms-g">
       <div>
         <div class="sec-lbl reveal">Auto-detection</div>
-        <h2 class="sec-h reveal reveal-d1" style="margin-bottom:10px">Your bank messages, understood automatically.</h2>
-        <p class="reveal reveal-d2" style="color:var(--muted);font-size:.95rem;line-height:1.75">Arth reads your inbox and recognises transactions from 25+ Indian banks, the moment the message arrives.</p>
+        <h2 class="sec-h reveal reveal-d1" style="margin-bottom:10px">Your transaction SMS, understood automatically.</h2>
+        <p class="reveal reveal-d2" style="color:var(--muted);font-size:.95rem;line-height:1.75">Arth reads your transaction SMS the moment it arrives: debits, credits, card spends, wallets and more. A format it hasn't seen? Show it one message and it learns it.</p>
         <div class="check-l reveal reveal-d3">
-          <div class="check-i"><span class="check-m">✓</span>SBI, HDFC, ICICI, Axis, Kotak and 20+ more</div>
+          <div class="check-i"><span class="check-m">✓</span>Learns any new format from one example</div>
           <div class="check-i"><span class="check-m">✓</span>Debits, credits, transfers and card spends</div>
         </div>
       </div>
@@ -1101,6 +1256,6 @@
     <p class="ft-cp">© 2026 Sourav Baid · Arth is a personal project and is not affiliated with any financial institution. App screens show sample data.</p>
   </div>
 </footer>
-<script src="/site.js?v=4.20.1" defer></script>
+<script src="/site.js?v=4.28.14" defer></script>
 </body>
 </html>

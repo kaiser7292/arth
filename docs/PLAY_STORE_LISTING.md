@@ -10,7 +10,7 @@ Arth - Your Finance, Your Way
 
 ## Short description (max 80)
 
-Track spends from bank SMS, budgets and goals, privately. Share with family too.
+Track spends from transaction SMS, budgets and goals, privately. Share with family too.
 
 ## Full description (max 4,000)
 
@@ -42,7 +42,7 @@ MONEY WITH PEOPLE
 • Households: share household spending with your partner or family, end-to-end encrypted. Split bills with them, Hisaab stays the same on both phones, and you can agree a budget and save for goals together. Nothing personal is shared by default
 
 WHY ARTH ASKS FOR SMS PERMISSION
-Reading bank SMS is how Arth tracks your money without asking for your bank login. With your permission, Arth reads transaction SMS from banks, card issuers, UPI apps and EPFO to:
+Reading transaction SMS is how Arth tracks your money without asking for your bank login. With your permission, Arth reads transaction SMS from banks, card issuers, UPI apps and EPFO to:
 • record your spending, income and refunds
 • keep account balances and credit card limits up to date
 • track card dues and your EPF balance
