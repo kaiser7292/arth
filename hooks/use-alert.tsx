@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useCallback, useRef } from "react";
 import {
+  Alert,
   View,
   Text,
   Pressable,
   Modal,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -87,6 +89,27 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
     (title, message, buttons) => {
       const resolvedButtons =
         buttons && buttons.length > 0 ? buttons : [{ text: "OK" }];
+
+      // iPhone: the system alert. This provider's <Modal> lives at the app's root, and iOS won't
+      // present it while a screen is already shown modally on top (the transaction screen is
+      // presentation: "modal"): the alert never appeared, so "Remove Split" seemed to do nothing,
+      // and the never-shown Modal could leave the screen ignoring taps. The system alert always
+      // shows on top of whatever is open.
+      if (Platform.OS === "ios") {
+        Alert.alert(
+          title,
+          message,
+          resolvedButtons.map((b) => ({
+            text: b.text,
+            style: b.style,
+            onPress: () => {
+              Promise.resolve(b.onPress?.()).catch((e) => logger.error("Alert button handler error:", e));
+            },
+          })),
+          { cancelable: true },
+        );
+        return;
+      }
       alertGenRef.current += 1;
       setAlertState({ title, message, buttons: resolvedButtons });
       setLoadingIdx(null);
