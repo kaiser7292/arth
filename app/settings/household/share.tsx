@@ -112,15 +112,8 @@ export default function ShareScreen() {
             onChange={(v) => set({ householdCategories: v })}
           />
           <Row
-            title="Totals of your personal spending"
-            body="One total a month per category. No transactions, no merchants."
-            value={choices.otherTotals && !choices.allTransactions}
-            onChange={(v) => set({ otherTotals: v })}
-            disabled={choices.allTransactions}
-          />
-          <Row
             title="Every transaction"
-            body="Your personal spends too, in full but not split, like a joint account. Replaces the totals. Income is never shared."
+            body="Your personal spends too, in full but not split, like a joint account. Income is never shared."
             value={choices.allTransactions}
             onChange={(v) => set({ allTransactions: v })}
           />

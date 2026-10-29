@@ -286,7 +286,6 @@ export default function HouseholdScreen() {
                 {[
                   h.share_all_transactions ? "every transaction" : null,
                   !h.share_all_transactions && h.share_household_categories ? "household categories" : null,
-                  !h.share_all_transactions && h.share_other_totals ? "totals of the rest" : null,
                   h.share_savings_rate ? "savings rate" : null,
                   h.share_balances ? "balances" : null,
                 ]

@@ -287,8 +287,18 @@ export async function applyPendingShares(h: Household, userId: string = DEFAULT_
  * For my transaction: is it shared, and what does each other member owe for it. Shared = split with
  * household members (by Together or by hand), or marked shared with "I pay all".
  */
-export async function sharedInfoFor(h: Household, expenseIds: string[]): Promise<Map<string, { split: SplitKind; owes: Record<string, number> }>> {
-  const out = new Map<string, { split: SplitKind; owes: Record<string, number> }>();
+/**
+ * How each of my transactions is shared: who owes what. Normally I paid and the others owe me
+ * (their "debit" entries). When my split says another member paid ("Sourav paid, I owe him"), the
+ * bill goes out as theirs - paidBy - with what I owe, so their phone can file it against the account
+ * it came from. Rows Together wrote from someone else's side (household_ref) never count: those
+ * came from them.
+ */
+export async function sharedInfoFor(
+  h: Household,
+  expenseIds: string[],
+): Promise<Map<string, { split: SplitKind; owes: Record<string, number>; paidBy?: string }>> {
+  const out = new Map<string, { split: SplitKind; owes: Record<string, number>; paidBy?: string }>();
   if (expenseIds.length === 0) return out;
   const db = getDatabase();
   const links = await getMemberLinks(h.id);
@@ -302,7 +312,7 @@ export async function sharedInfoFor(h: Household, expenseIds: string[]): Promise
   if (memberByPerson.size) {
     const entries = await db.getAllAsync<{ linked_expense_id: string; hisaab_person_id: string; amount: number }>(
       `SELECT linked_expense_id, hisaab_person_id, amount FROM hisaab_entries
-       WHERE type = 'debit' AND linked_expense_id IN (${ph})
+       WHERE type = 'debit' AND household_ref IS NULL AND linked_expense_id IN (${ph})
          AND hisaab_person_id IN (${[...memberByPerson.keys()].map(() => "?").join(",")});`,
       ...expenseIds,
       ...memberByPerson.keys(),
@@ -314,11 +324,52 @@ export async function sharedInfoFor(h: Household, expenseIds: string[]): Promise
       cur.owes[memberId] = Math.round(((cur.owes[memberId] ?? 0) + en.amount) * 100) / 100;
       out.set(en.linked_expense_id, cur);
     }
+    // Paid by someone else in the household: one "credit" entry on my bill.
+    const paidByOthers = await db.getAllAsync<{ linked_expense_id: string; hisaab_person_id: string; amount: number }>(
+      `SELECT linked_expense_id, hisaab_person_id, amount FROM hisaab_entries
+       WHERE type = 'credit' AND household_ref IS NULL AND linked_expense_id IN (${ph})
+         AND hisaab_person_id IN (${[...memberByPerson.keys()].map(() => "?").join(",")});`,
+      ...expenseIds,
+      ...memberByPerson.keys(),
+    );
+    for (const en of paidByOthers) {
+      const memberId = memberByPerson.get(en.hisaab_person_id);
+      if (!memberId || out.has(en.linked_expense_id) || en.amount <= 0) continue;
+      out.set(en.linked_expense_id, { split: "custom", owes: { [h.my_member_id]: Math.round(en.amount * 100) / 100 }, paidBy: memberId });
+    }
   }
   for (const c of choices) {
     if (c.shared && c.split === "payer_all" && !out.has(c.expense_id)) out.set(c.expense_id, { split: "payer_all", owes: {} });
   }
   return out;
+}
+
+/**
+ * A split on this transaction that the Shared with Home buttons don't own, said in words: another
+ * member paid it ("Sourav paid · you owe him ₹3,737"), or another member recorded it as paid by me
+ * and it's filed here ("Aastha owes you ₹3,737 for it"). Null when it's an ordinary household split
+ * (or none), which the buttons control.
+ */
+export async function fixedSplitNote(h: Household, expenseId: string): Promise<string | null> {
+  const links = await getMemberLinks(h.id);
+  if (links.size === 0) return null;
+  const nameByPerson = new Map<string, string>();
+  for (const m of await getMembers(h.id)) {
+    const p = links.get(m.id);
+    if (p) nameByPerson.set(p, m.name);
+  }
+  const rows = await getDatabase().getAllAsync<{ type: string; amount: number; household_ref: string | null; hisaab_person_id: string }>(
+    "SELECT type, amount, household_ref, hisaab_person_id FROM hisaab_entries WHERE linked_expense_id = ?;",
+    expenseId,
+  );
+  for (const r of rows) {
+    const who = nameByPerson.get(r.hisaab_person_id);
+    if (!who) continue;
+    const amount = `₹${Math.round(r.amount).toLocaleString("en-IN")}`;
+    if (r.household_ref) return `${who} recorded this bill as paid by you. ${who} owes you ${amount}, on both phones.`;
+    if (r.type === "credit") return `${who} paid this. You owe ${who} ${amount}, and it shows as ${who}'s bill to the household.`;
+  }
+  return null;
 }
 
 /** Leaving / removed: the splits stay (they're real money between people); only the links go. */

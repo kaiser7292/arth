@@ -35,8 +35,7 @@ import type { Household, OpBody, SharedItem } from "./types";
  *
  * Shared, by the person's choices:
  *   household categories  each approved spend in a category mapped to a household category
- *   totals of the rest    per month, per own category, one total
- *   every transaction     each approved spend (replaces the two above)
+ *   every transaction     each approved spend, personal ones too (not split)
  *   savings rate          per month, from the yearly plan, when there is one
  *   balances              the accounts ticked, current balance
  * Never: pending items, income, raw SMS, notes, account numbers.
@@ -75,6 +74,9 @@ async function spendRows(userId: string, from: string): Promise<SpendRow[]> {
        AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)
        AND e.household_ref IS NULL
        AND e.date >= ?
+       -- A bill someone else in the household recorded, filed here against what I paid: it's theirs
+       -- to share, and it already is.
+       AND NOT EXISTS (SELECT 1 FROM hisaab_entries hr WHERE hr.linked_expense_id = e.id AND hr.household_ref IS NOT NULL)
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = e.id)
      ORDER BY e.date;`,
@@ -101,11 +103,12 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
   const rows = await spendRows(userId, from);
 
   // Shared transactions always go in full (that's what sharing one means), with who owes what;
-  // the rest go in full only with "every transaction", otherwise as monthly totals if chosen.
+  // the rest go in full only with "every transaction". (Monthly totals of personal spending were
+  // dropped in 4.28.2: nobody could tell what they were for. Old "total" items are deleted below
+  // like anything else this phone no longer shares.)
   const shared = await sharedInfoFor(h, rows.map((r) => r.id));
   const map = await getCategoryMap(h.id);
   const hcats = new Map((await getHouseholdCategories(h.id)).map((c) => [c.id, c.name]));
-  const totals = new Map<string, { month: string; name: string; sum: number }>();
   for (const r of rows) {
     const info = shared.get(r.id);
     const hcatName = r.category_id ? hcats.get(map.get(r.category_id) ?? "") : undefined;
@@ -127,6 +130,8 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
               shared: 1,
               split: info.split,
               owes: info.owes,
+              // Set when another member paid it (my split says so): the bill is theirs, I owe them.
+              ...(info.paidBy ? { paidBy: info.paidBy } : {}),
               description: r.description?.trim() || null,
               time: r.transaction_time ?? null,
               // Their own category too, in case the household one doesn't match anything on the other phone.
@@ -134,18 +139,7 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
             }
           : undefined,
       });
-    } else if (choices.otherTotals) {
-      const month = r.date.slice(0, 7);
-      const name = r.category_name ?? "Uncategorized";
-      const key = `total:${month}:${r.category_id ?? "none"}`;
-      const t = totals.get(key) ?? { month, name, sum: 0 };
-      t.sum += r.effective;
-      totals.set(key, t);
     }
-  }
-  for (const [id, t] of totals) {
-    if (t.sum <= 0) continue;
-    items.push({ id, kind: "total", month: t.month, myShare: round2(t.sum), category: t.name });
   }
 
   // Settle-ups I recorded stay shared while their Hisaab entry exists.
@@ -189,14 +183,29 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
         extra: { to: memberId, type: person.initial_balance > 0 ? "debit" : "credit", amount: round2(Math.abs(person.initial_balance)), description: "Opening balance" },
       });
     }
-    const entries = await getDatabase().getAllAsync<{ id: string; type: string; amount: number; date: string; description: string | null; linked_expense_id: string | null }>(
-      `SELECT e.id, e.type, e.amount, e.date, e.description, e.linked_expense_id FROM hisaab_entries e
+    // With what the entry was for, so the other phone shows more than an amount.
+    const entries = await getDatabase().getAllAsync<{
+      id: string;
+      type: string;
+      amount: number;
+      date: string;
+      description: string | null;
+      linked_expense_id: string | null;
+      merchant: string | null;
+      category: string | null;
+    }>(
+      `SELECT e.id, e.type, e.amount, e.date, e.description, e.linked_expense_id,
+              COALESCE(x.merchant_name, e.merchant_name) AS merchant, COALESCE(xc.name, ec.name) AS category
+       FROM hisaab_entries e
+       LEFT JOIN expenses x ON x.id = e.linked_expense_id
+       LEFT JOIN categories xc ON xc.id = x.category_id
+       LEFT JOIN categories ec ON ec.id = e.category_id
        WHERE e.hisaab_person_id = ? AND e.household_ref IS NULL AND ${hisaabExcludeDeletedLinkSql("e")};`,
       personId,
     );
     for (const e of entries) {
       if (settleEntries.has(e.id)) continue;
-      if (e.type === "debit" && e.linked_expense_id && covered.has(e.linked_expense_id)) continue;
+      if ((e.type === "debit" || e.type === "credit") && e.linked_expense_id && covered.has(e.linked_expense_id)) continue;
       const id = ledgerIdByEntry.get(e.id) ?? `ledger:${newId()}`;
       localRefs.set(id, e.id);
       items.push({
@@ -204,7 +213,14 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
         kind: "ledger",
         date: e.date.slice(0, 10),
         month: e.date.slice(0, 7),
-        extra: { to: memberId, type: e.type, amount: round2(e.amount), description: e.description ?? null },
+        extra: {
+          to: memberId,
+          type: e.type,
+          amount: round2(e.amount),
+          description: e.description ?? null,
+          ...(e.merchant ? { merchant: e.merchant } : {}),
+          ...(e.category ? { category: e.category } : {}),
+        },
       });
     }
     // My balance with them, so their phone can show whether both agree.

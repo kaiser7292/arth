@@ -26,14 +26,14 @@ export interface Statement {
   members: HouseholdMember[];
   month: string;
   rows: StatementRow[];
-  /** Personal spending shared only as monthly totals. */
-  totalsOnly: { member: HouseholdMember; category: string; amount: number }[];
   together: number;
   byMember: { member: HouseholdMember; paid: number }[];
   balances: Balance[];
 }
 
-const extraOf = (i: HouseholdItem): { owes?: Record<string, number>; split?: string; shared?: number; payer?: string; payee?: string; amount?: number } => {
+const extraOf = (
+  i: HouseholdItem,
+): { owes?: Record<string, number>; split?: string; shared?: number; payer?: string; payee?: string; amount?: number; paidBy?: string } => {
   try {
     return i.payload_json ? JSON.parse(i.payload_json) : {};
   } catch {
@@ -50,7 +50,6 @@ export async function getStatement(month: string): Promise<Statement | null> {
   const me = h.my_member_id;
 
   const rows: StatementRow[] = [];
-  const totalsOnly: Statement["totalsOnly"] = [];
   const paidBy = new Map<string, number>();
   for (const i of items) {
     const member = byId.get(i.member_id);
@@ -58,8 +57,19 @@ export async function getStatement(month: string): Promise<Statement | null> {
     const x = extraOf(i);
     if (i.kind === "tx") {
       const paid = i.paid ?? 0;
+      // Usually the sender paid. paidBy: their split says another member did ("used Sourav's card").
+      const payer = (x.paidBy && byId.get(x.paidBy)) || member;
       let relation: StatementRow["relation"];
       if (!x.shared) relation = { kind: "personal", amount: 0 };
+      else if (payer.id !== member.id) {
+        const owed = x.owes?.[member.id] ?? 0;
+        relation =
+          payer.id === me
+            ? { kind: "owes_you", amount: owed, with: member.name }
+            : member.id === me
+              ? { kind: "you_owe", amount: owed, with: payer.name }
+              : { kind: "shared", amount: 0 };
+      }
       else if (i.member_id === me) {
         const owed = Object.entries(x.owes ?? {});
         const sum = owed.reduce((s, [, v]) => s + v, 0);
@@ -71,10 +81,10 @@ export async function getStatement(month: string): Promise<Statement | null> {
         const mine = x.owes?.[me] ?? 0;
         relation = mine > 0 ? { kind: "you_owe", amount: mine, with: member.name } : { kind: "shared", amount: 0 };
       }
-      if (x.shared) paidBy.set(i.member_id, (paidBy.get(i.member_id) ?? 0) + paid);
+      if (x.shared) paidBy.set(payer.id, (paidBy.get(payer.id) ?? 0) + paid);
       rows.push({
         id: i.id,
-        member,
+        member: payer,
         date: (i.date ?? "").slice(0, 10),
         merchant: i.merchant,
         category: i.category_name,
@@ -98,8 +108,6 @@ export async function getStatement(month: string): Promise<Statement | null> {
         split: null,
         expenseId: null,
       });
-    } else if (i.kind === "total") {
-      totalsOnly.push({ member, category: i.category_name ?? "Other", amount: i.my_share ?? 0 });
     }
   }
   rows.sort((a, b) => (a.date === b.date ? a.id.localeCompare(b.id) : b.date.localeCompare(a.date)));
@@ -109,7 +117,6 @@ export async function getStatement(month: string): Promise<Statement | null> {
     members,
     month,
     rows,
-    totalsOnly,
     together: [...paidBy.values()].reduce((s, v) => s + v, 0),
     byMember: members.map((m) => ({ member: m, paid: paidBy.get(m.id) ?? 0 })),
     balances: await getBalances(h),

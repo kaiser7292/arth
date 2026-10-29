@@ -6,7 +6,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { getFlag } from "@/services/feature-flags";
 import { formatAmount } from "@/utils/format";
 import { getActiveHousehold, getMembers } from "@/services/household/store";
-import { effectiveChoice, setShareChoice, type ShareChoice, type SplitKind } from "@/services/household/shares";
+import { effectiveChoice, fixedSplitNote, setShareChoice, type ShareChoice, type SplitKind } from "@/services/household/shares";
 import { requestSync } from "@/services/household/sync";
 import type { Household } from "@/services/household/types";
 
@@ -35,6 +35,7 @@ export function SharedWithHome({ expenseId, categoryId, total, onChanged }: Prop
   const [others, setOthers] = useState<string[]>([]);
   const [choice, setChoice] = useState<ShareChoice | null>(null);
   const [pct, setPct] = useState("");
+  const [fixed, setFixed] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!getFlag("household")) return;
@@ -42,6 +43,7 @@ export function SharedWithHome({ expenseId, categoryId, total, onChanged }: Prop
     setH(hh);
     if (!hh) return;
     setOthers((await getMembers(hh.id)).filter((m) => m.id !== hh.my_member_id).map((m) => m.name));
+    setFixed(await fixedSplitNote(hh, expenseId).catch(() => null));
     const c = await effectiveChoice(hh, expenseId, categoryId);
     setChoice(c);
     setPct(c.myPct != null ? String(Math.round(c.myPct)) : "");
@@ -52,6 +54,20 @@ export function SharedWithHome({ expenseId, categoryId, total, onChanged }: Prop
   }, [load]);
 
   if (!h || !choice || others.length === 0) return null;
+
+  // Split by who actually paid: the household sees it that way, and the buttons below would only
+  // contradict it. Change it from the split above.
+  if (fixed) {
+    return (
+      <View className="mt-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: theme.alpha("primary", 0.06) }}>
+        <View className="flex-row items-center">
+          <Ionicons name="home-outline" size={16} color={theme.primary} />
+          <Text className="text-sm text-foreground flex-1 ml-2">Shared with {h.name}</Text>
+        </View>
+        <Text className="text-xs text-muted-foreground mt-2 leading-4">{fixed}</Text>
+      </View>
+    );
+  }
 
   const save = async (next: ShareChoice) => {
     setChoice(next);

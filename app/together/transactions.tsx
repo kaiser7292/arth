@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { Card, PeriodNavigator, ScreenContainer, Sheet, Text } from "@/components/ui";
 import { Avatar } from "@/components/household/HouseholdBits";
 import { StatementList } from "@/components/household/StatementList";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -26,7 +26,9 @@ const thisMonth = () => {
 
 /**
  * Together's transactions: the household's shared spending for a month, filtered by person,
- * category, what it means for you, or a search. Opened from a total on Together.
+ * category, what it means for you, or a search. Opened from a total on Together. The filters live
+ * in one sheet behind a Filter button: a row of chips per filter doesn't fit once a household has
+ * a few people and a dozen categories.
  */
 export default function TogetherTransactionsScreen() {
   const theme = useTheme();
@@ -36,6 +38,7 @@ export default function TogetherTransactionsScreen() {
   const [category, setCategory] = useState<string | null>(params.category ?? null);
   const [kind, setKind] = useState<Kind>("all");
   const [query, setQuery] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [s, setS] = useState<Statement | null>(null);
 
   useDataRefresh(
@@ -63,17 +66,23 @@ export default function TogetherTransactionsScreen() {
 
   const total = rows.filter((r) => r.relation.kind !== "settle").reduce((sum, r) => sum + r.paid, 0);
 
-  const Chip = ({ on, label, onPress, avatar }: { on: boolean; label: string; onPress: () => void; avatar?: React.ReactNode }) => (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center px-3 py-1.5 rounded-full border"
-      style={{ borderColor: on ? "transparent" : theme.alpha("foreground", 0.15), backgroundColor: on ? theme.alpha("primary", 0.12) : "transparent" }}
-      accessibilityRole="button"
-      accessibilityState={{ selected: on }}
-    >
+  const nameOf = (id: string) => (id === s?.household.my_member_id ? "You" : (s?.members.find((m) => m.id === id)?.name ?? "Someone"));
+  const active = [member ? nameOf(member) : null, category, kind !== "all" ? KINDS.find((k) => k.kind === kind)?.label : null].filter(Boolean) as string[];
+  const clearFilters = () => {
+    setMember(null);
+    setCategory(null);
+    setKind("all");
+  };
+
+  const Option = ({ on, label, onPress, avatar }: { on: boolean; label: string; onPress: () => void; avatar?: React.ReactNode }) => (
+    <Pressable onPress={onPress} className="flex-row items-center px-5 py-3" accessibilityRole="radio" accessibilityState={{ checked: on }}>
       {avatar}
-      <Text className="text-xs" style={{ color: on ? theme.primary : theme.mutedForeground }}>{label}</Text>
+      <Text className="text-sm flex-1" style={{ color: on ? theme.primary : theme.foreground, fontWeight: on ? "600" : "400" }}>{label}</Text>
+      {on && <Ionicons name="checkmark" size={18} color={theme.primary} />}
     </Pressable>
+  );
+  const Heading = ({ children }: { children: string }) => (
+    <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 pt-4 pb-1">{children}</Text>
   );
 
   return (
@@ -81,48 +90,48 @@ export default function TogetherTransactionsScreen() {
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
       <ScrollView contentContainerStyle={{ paddingTop: 12, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <View className="px-4">
-          <View className="flex-row items-center rounded-xl border px-3 mb-3" style={{ borderColor: theme.alpha("foreground", 0.15), minHeight: 42 }}>
-            <Ionicons name="search" size={16} color={theme.mutedForeground} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search merchant, category or person"
-              placeholderTextColor={theme.mutedForeground}
-              className="flex-1 text-sm text-foreground ml-2 py-2"
-              accessibilityLabel="Search"
-            />
-            {query ? (
-              <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityLabel="Clear search">
-                <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
-              </Pressable>
-            ) : null}
-          </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2" contentContainerStyle={{ gap: 6 }}>
-            <Chip on={!member} label="Everyone" onPress={() => setMember(null)} />
-            {(s?.members ?? []).map((m) => (
-              <Chip
-                key={m.id}
-                on={member === m.id}
-                label={m.id === s?.household.my_member_id ? "You" : m.name}
-                onPress={() => setMember(member === m.id ? null : m.id)}
-                avatar={<View className="mr-1.5"><Avatar member={m} size={16} /></View>}
+          <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
+            <View className="flex-1 flex-row items-center rounded-xl border px-3" style={{ borderColor: theme.alpha("foreground", 0.15), minHeight: 42 }}>
+              <Ionicons name="search" size={16} color={theme.mutedForeground} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search merchant, category or person"
+                placeholderTextColor={theme.mutedForeground}
+                className="flex-1 text-sm text-foreground ml-2 py-2"
+                accessibilityLabel="Search"
               />
-            ))}
-          </ScrollView>
-          {categories.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2" contentContainerStyle={{ gap: 6 }}>
-              <Chip on={!category} label="All categories" onPress={() => setCategory(null)} />
-              {categories.map((c) => (
-                <Chip key={c} on={category === c} label={c} onPress={() => setCategory(category === c ? null : c)} />
-              ))}
-            </ScrollView>
+              {query ? (
+                <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityLabel="Clear search">
+                  <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
+                </Pressable>
+              ) : null}
+            </View>
+            <Pressable
+              onPress={() => setFiltersOpen(true)}
+              className="flex-row items-center rounded-xl border px-3"
+              style={{
+                minHeight: 42,
+                borderColor: active.length ? theme.primary : theme.alpha("foreground", 0.15),
+                backgroundColor: active.length ? theme.alpha("primary", 0.1) : "transparent",
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={active.length ? `Filter, ${active.length} on` : "Filter"}
+            >
+              <Ionicons name="options-outline" size={16} color={active.length ? theme.primary : theme.mutedForeground} />
+              <Text className="text-sm ml-1.5" style={{ color: active.length ? theme.primary : theme.foreground }}>
+                {active.length ? `Filter · ${active.length}` : "Filter"}
+              </Text>
+            </Pressable>
+          </View>
+          {active.length > 0 && (
+            <View className="flex-row items-center mb-3">
+              <Text className="text-xs text-muted-foreground flex-1" numberOfLines={1}>{active.join(" · ")}</Text>
+              <Pressable onPress={clearFilters} hitSlop={8} accessibilityRole="button">
+                <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Clear</Text>
+              </Pressable>
+            </View>
           )}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3" contentContainerStyle={{ gap: 6 }}>
-            {KINDS.map((k) => (
-              <Chip key={k.kind} on={kind === k.kind} label={k.label} onPress={() => setKind(k.kind)} />
-            ))}
-          </ScrollView>
 
           <Card className="mb-2">
             <View className="flex-row justify-between items-center">
@@ -134,6 +143,44 @@ export default function TogetherTransactionsScreen() {
           <StatementList rows={rows} empty="Nothing matches in this month." />
         </View>
       </ScrollView>
+
+      <Sheet visible={filtersOpen} onClose={() => setFiltersOpen(false)}>
+        <View className="flex-row items-center justify-between px-5 pb-1">
+          <Text className="text-heading font-bold text-foreground">Filter</Text>
+          <View className="flex-row items-center" style={{ gap: 16 }}>
+            {active.length > 0 && (
+              <Pressable onPress={clearFilters} hitSlop={8} accessibilityRole="button">
+                <Text className="text-sm" style={{ color: theme.primary }}>Clear</Text>
+              </Pressable>
+            )}
+            <Pressable onPress={() => setFiltersOpen(false)} hitSlop={8} accessibilityLabel="Close">
+              <Ionicons name="close" size={20} color={theme.mutedForeground} />
+            </Pressable>
+          </View>
+        </View>
+        <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ paddingBottom: 16 }}>
+          <Heading>Paid by</Heading>
+          <Option on={!member} label="Everyone" onPress={() => setMember(null)} />
+          {(s?.members ?? []).map((m) => (
+            <Option
+              key={m.id}
+              on={member === m.id}
+              label={nameOf(m.id)}
+              onPress={() => setMember(m.id)}
+              avatar={<View className="mr-2.5"><Avatar member={m} size={20} /></View>}
+            />
+          ))}
+          <Heading>Show</Heading>
+          {KINDS.map((k) => (
+            <Option key={k.kind} on={kind === k.kind} label={k.label} onPress={() => setKind(k.kind)} />
+          ))}
+          {categories.length > 0 && <Heading>Category</Heading>}
+          {categories.length > 0 && <Option on={!category} label="All categories" onPress={() => setCategory(null)} />}
+          {categories.map((c) => (
+            <Option key={c} on={category === c} label={c} onPress={() => setCategory(c)} />
+          ))}
+        </ScrollView>
+      </Sheet>
     </ScreenContainer>
   );
 }

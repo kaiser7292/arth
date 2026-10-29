@@ -125,6 +125,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("iphone_messages_setup_card_dismissed", "boolean", DEVICE("the Shortcuts automation is set up per iPhone")),
   S("household_device_id", "string", DEVICE("identifies this phone to its household; a restored copy must get its own")),
   S("household_relay_url", "string", DEVICE("only set when testing against a local relay")),
+  S("household_paid_bills_skipped", "string"),
   S("patterns_rebuilt_on", "string", PROGRESS),
   S("duplicate_scan_cache_v1", "string", DEVICE("cache, rebuilt from the database")),
   S("data_version", "number", DEVICE("in-memory cache invalidation counter")),

@@ -257,7 +257,8 @@ test("household spending is shared and split; each phone keeps its own Hisaab an
   const bb = sourav.db.prepare("SELECT amount, split_original_amount FROM expenses WHERE merchant_name = 'BigBasket'").get() as { amount: number; split_original_amount: number };
   expect([bb.amount, bb.split_original_amount]).toEqual([1150, 2300]);
 
-  // Aastha sees his shared transactions in full, with what she owes; the rest only as a total.
+  // Aastha sees his shared transactions in full, with what she owes; nothing of the rest (monthly
+  // totals of personal spending were dropped in 4.28.2).
   const fromSourav = await othersItems(aastha);
   const tx = fromSourav.filter((i) => i.kind === "tx").sort((x, y) => x.paid! - y.paid!);
   expect(tx.map((t) => [t.category_name, t.merchant, t.paid, t.my_share])).toEqual([
@@ -269,7 +270,7 @@ test("household spending is shared and split; each phone keeps its own Hisaab an
   on(aastha);
   const aasthaMe = (await getActiveHousehold())!.my_member_id;
   expect(tx.map((t) => JSON.parse(t.payload_json!).owes[aasthaMe])).toEqual([1150, 12500]);
-  expect(fromSourav.filter((i) => i.kind === "total").map((t) => [t.category_name, t.my_share, t.merchant])).toEqual([["Shopping", 4800, null]]);
+  expect(fromSourav.filter((i) => i.kind === "total")).toEqual([]);
 
   // On Aastha's phone: her half of his bills is in her budget ("Paid by Sourav") and her Hisaab.
   const mine = aastha.db.prepare("SELECT amount, description, category_id FROM expenses WHERE household_ref IS NOT NULL ORDER BY amount").all() as { amount: number; description: string; category_id: string | null }[];
@@ -337,6 +338,113 @@ test("everything already in Sourav's Hisaab with her reaches Aastha: settle-ups,
   await sync(aastha);
   on(aastha);
   expect((await getBalances((await getActiveHousehold())!))[0].amount).toBe(0);
+});
+
+test("a bill put on Sourav's card is filed against his card transaction, and both Hisaabs agree", async () => {
+  const { getMemberLinks, sharedInfoFor } = require("../../services/household/shares");
+  const { splitExistingExpense, removeSplit } = require("../../services/expense-splits");
+  const { getBalances } = require("../../services/household/settle");
+  const { getStatement } = require("../../services/household/statement");
+  const { getUnfiledPaidBills, fileToAccount } = require("../../services/household/paid-bills");
+
+  // Aastha shops on Sourav's card: her Arth reads the SMS, and she records that Sourav paid and
+  // she owes him all of it.
+  on(aastha);
+  const ah = (await getActiveHousehold())!;
+  const souravId = (await getMembers(ah.id)).find((m) => m.name === "Sourav")!.id;
+  const souravPerson = (await getMemberLinks(ah.id)).get(souravId);
+  const shopping = addCategory(aastha, "Shopping & Gifts");
+  const nykaa = addSpend(aastha, shopping, 3737, "RAZ*NYKAA");
+  await splitExistingExpense(nykaa, { paidBy: souravPerson, splitMode: "i_owe_full", personId: souravPerson }, { skipAutoApprove: true });
+  const info = (await sharedInfoFor(ah, [nykaa])).get(nykaa);
+  expect(info).toEqual({ split: "custom", owes: { [ah.my_member_id]: 3737 }, paidBy: souravId });
+
+  // The same purchase on Sourav's phone, from his card's SMS.
+  on(sourav);
+  const card = (sourav.db.prepare("SELECT id FROM categories WHERE name = 'Shopping'").get() as { id: string }).id;
+  const his = addSpend(sourav, card, 3737, "RAZ*NYKAA");
+  for (let i = 0; i < 2; i++) {
+    await sync(aastha);
+    await sync(sourav);
+  }
+
+  // Filed by itself: his card keeps the whole bill, his budget nothing, Aastha owes him 3,737.
+  const e = sourav.db.prepare("SELECT amount, split_original_amount, split_hisaab_entry_id FROM expenses WHERE id = ?").get(his) as {
+    amount: number;
+    split_original_amount: number;
+    split_hisaab_entry_id: string;
+  };
+  expect([e.amount, e.split_original_amount]).toEqual([0, 3737]);
+  const entry = sourav.db.prepare("SELECT type, amount, description, linked_expense_id, household_ref FROM hisaab_entries WHERE id = ?").get(e.split_hisaab_entry_id) as {
+    type: string;
+    amount: number;
+    description: string;
+    linked_expense_id: string;
+    household_ref: string | null;
+  };
+  expect([entry.type, entry.amount, entry.description, entry.linked_expense_id]).toEqual(["debit", 3737, "RAZ*NYKAA", his]);
+  expect(entry.household_ref).not.toBeNull();
+  // No "Paid by Aastha" expense: the spend is his.
+  expect(sourav.db.prepare("SELECT COUNT(*) AS n FROM expenses WHERE household_ref IS NOT NULL AND merchant_name = 'RAZ*NYKAA'").get()).toEqual({ n: 0 });
+  // His transaction doesn't go back out as a second copy of the bill.
+  on(aastha);
+  expect((await othersItems(aastha)).filter((i) => i.merchant === "RAZ*NYKAA")).toEqual([]);
+
+  // Together shows it as Sourav's bill on both phones, and both Hisaabs agree.
+  on(sourav);
+  const sh = (await getActiveHousehold())!;
+  const row = (await getStatement(today().slice(0, 7)))!.rows.find((r: { merchant: string }) => r.merchant === "RAZ*NYKAA");
+  expect([row.member.name, row.relation.kind, row.relation.amount]).toEqual(["Sourav", "owes_you", 3737]);
+  expect((await getBalances(sh))[0].amount).toBe(3737);
+  on(aastha);
+  const arow = (await getStatement(today().slice(0, 7)))!.rows.find((r: { merchant: string }) => r.merchant === "RAZ*NYKAA");
+  expect([arow.member.name, arow.relation.kind]).toEqual(["Sourav", "you_owe"]);
+  const [ab] = await getBalances(ah);
+  expect([ab.amount, ab.theirs]).toEqual([-3737, -3737]);
+
+  // She takes the split off: his transaction is his in full again.
+  await removeSplit(nykaa);
+  await sync(aastha);
+  await sync(sourav);
+  expect(sourav.db.prepare("SELECT amount, split_original_amount, split_hisaab_entry_id FROM expenses WHERE id = ?").get(his)).toEqual({
+    amount: 3737,
+    split_original_amount: null,
+    split_hisaab_entry_id: null,
+  });
+
+  // A bill he has no transaction for yet waits in Together until he picks the account.
+  on(aastha);
+  const cab = addSpend(aastha, shopping, 640, "Uber");
+  await splitExistingExpense(cab, { paidBy: souravPerson, splitMode: "i_owe_full", personId: souravPerson }, { skipAutoApprove: true });
+  await sync(aastha);
+  await sync(sourav);
+  on(sourav);
+  const [bill] = await getUnfiledPaidBills(sh);
+  expect([bill.merchant, bill.bill, bill.owed, bill.from]).toEqual(["Uber", 640, 640, "Aastha"]);
+  sourav.db
+    .prepare("INSERT INTO financial_accounts (id, user_id, account_identifier, bank_name, account_type) VALUES ('acc-hdfc', 'default-user', '1234', 'HDFC', 'credit_card')")
+    .run();
+  const added = await fileToAccount(bill, "acc-hdfc");
+  expect(sourav.db.prepare("SELECT account_id, amount, split_original_amount, merchant_name FROM expenses WHERE id = ?").get(added)).toEqual({
+    account_id: "acc-hdfc",
+    amount: 0,
+    split_original_amount: 640,
+    merchant_name: "Uber",
+  });
+  expect(await getUnfiledPaidBills(sh)).toEqual([]);
+
+  // Back to square for the next steps: once she takes the bill away, his copy is unfiled.
+  on(aastha);
+  await removeSplit(cab);
+  aastha.db.prepare("DELETE FROM expenses WHERE id IN (?, ?)").run(nykaa, cab);
+  await sync(aastha);
+  await sync(sourav);
+  expect(sourav.db.prepare("SELECT amount, split_original_amount FROM expenses WHERE id = ?").get(added)).toEqual({ amount: 640, split_original_amount: null });
+  sourav.db.prepare("DELETE FROM expenses WHERE id IN (?, ?)").run(his, added);
+  await sync(sourav);
+  await sync(aastha);
+  on(sourav);
+  expect((await getBalances(sh))[0].amount).toBe(0);
 });
 
 test("a budget starts once the other accepts it; goals add up each person's part", async () => {
@@ -451,10 +559,10 @@ test("leaving: the leaver's data goes from the relay and the other phone", async
   await approveJoin((await getJoinRequests())[0]);
   on(aastha);
   expect((await checkJoin()).status).toBe("joined");
-  await setSharingChoices({ householdCategories: true, otherTotals: true, allTransactions: false, savingsRate: false, balances: false });
+  await setSharingChoices({ householdCategories: true, otherTotals: false, allTransactions: true, savingsRate: false, balances: false });
   await sync(aastha);
   await sync(sourav);
-  expect((await othersItems(sourav)).filter((i) => i.kind === "tx" || i.kind === "total").length).toBeGreaterThan(0);
+  expect((await othersItems(sourav)).filter((i) => i.kind === "tx").length).toBeGreaterThan(0);
 
   on(aastha);
   const aasthaMember = (await getActiveHousehold())!.my_member_id;
@@ -478,8 +586,10 @@ test("restored on a new phone: it carries on as the same member, and the old pho
   on(newSourav);
   setRelayUrl(RELAY);
 
-  // The old phone sent more after the backup was made.
+  // The old phone sent more after the backup was made (alone in the household now, so only with
+  // "every transaction" does a spend go out).
   on(sourav);
+  await setSharingChoices({ householdCategories: true, otherTotals: false, allTransactions: true, savingsRate: false, balances: false });
   addSpend(sourav, "cat-grocery", 450, "Blinkit");
   await sync(sourav);
   const headBefore = (relayDb.prepare("SELECT max_seq FROM heads WHERE member = ?").get((await getActiveHousehold())!.my_member_id) as { max_seq: number }).max_seq;

@@ -44,7 +44,6 @@ Both phones show a 6-digit check code while someone joins. Approve only if the t
 Nothing is shared just by joining. Under **What you share**:
 
 - **Household categories in full** - each approved spend in a household category (Groceries, Rent, Utilities, Household help, Fuel), with the amount, your share and the merchant.
-- **Totals of everything else** - one total a month per category. No transactions, no merchants.
 - **Every transaction** - all approved spends, like a joint account.
 - **Savings rate** - a percentage each month, never your salary.
 - **Account balances** - only the accounts you pick.
@@ -59,9 +58,13 @@ Each transaction is shared with the household or kept personal. Spends in househ
 
 A shared, split transaction works like any split in Arth: your budget counts your share, and the other person owes you theirs in Hisaab.
 
+### Paid with someone else's card
+
+If you split a bill as **paid by** another member (you used their card, or they paid at the counter), it goes to the household as their bill, and you owe them your share. On their phone, Arth looks for the matching transaction (the same amount within a few days, usually from their card's SMS) and splits it: the card keeps the whole bill, their budget only their share. If it can't tell which transaction it was, **Together** asks them: pick the transaction, pick the account it was paid from, or keep it in Hisaab only.
+
 ## Together
 
-Home shows your household's month: spent together, each person's part, who owes whom and the latest shared spends. Tap it for **Together**: every shared transaction from everyone, newest first, with what it means between you ("you owe ₹1,150"). Personal spending only shows as monthly totals, if its owner shares those.
+Home shows your household's month: spent together, each person's part, who owes whom and the latest shared spends. Tap it for **Together**: every shared transaction from everyone, newest first, with what it means between you ("you owe ₹1,150"). Personal spending only shows if its owner shares every transaction. **All transactions** has search and a **Filter** for who paid, what it means for you and category.
 
 ## Hisaab, on both phones
 

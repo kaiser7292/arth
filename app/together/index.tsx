@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, PeriodNavigator, ScreenContainer, Text, useToast } from "@/components/ui";
 import { Avatar, ago } from "@/components/household/HouseholdBits";
+import { PaidBillsCard } from "@/components/household/PaidBillsCard";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { formatAmount } from "@/utils/format";
@@ -21,7 +22,7 @@ const thisMonth = () => {
 /**
  * Together: the household's shared money in one statement (Together rework). Who paid what, what
  * it means between you, your balance with each person and whether both phones agree, and settling
- * up. Personal spending only appears here as monthly totals, if its owner shares those.
+ * up. Personal spending appears only if its owner shares every transaction.
  */
 export default function TogetherScreen() {
   const router = useRouter();
@@ -46,15 +47,6 @@ export default function TogetherScreen() {
     }
   }, [month]);
   useDataRefresh(load);
-
-  const byCategory = useMemo(() => {
-    const totals = new Map<string, number>();
-    for (const r of s?.rows ?? []) {
-      if (r.relation.kind === "settle" || r.relation.kind === "personal" || !r.category) continue;
-      totals.set(r.category, (totals.get(r.category) ?? 0) + r.paid);
-    }
-    return [...totals.entries()].sort((x, y) => y[1] - x[1]);
-  }, [s]);
 
   const syncNow = async () => {
     setSyncing(true);
@@ -197,6 +189,8 @@ export default function TogetherScreen() {
             })}
           </Card>
 
+          <PaidBillsCard household={h} reloadKey={s} />
+
           {/* Household budget: agreed together; spent counts every shared bill, whoever paid. */}
           <Card className="mb-3">
             <View className="flex-row items-center justify-between mb-1">
@@ -331,40 +325,6 @@ export default function TogetherScreen() {
               <Ionicons name="chevron-forward" size={14} color={theme.primary} />
             </Pressable>
           </Card>
-
-          {byCategory.length > 0 && (
-            <Card className="mb-3">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">By category</Text>
-              {byCategory.map(([c, amount]) => (
-                <Pressable
-                  key={c}
-                  onPress={() => router.push({ pathname: "/together/transactions", params: { month, category: c } })}
-                  className="flex-row items-center py-2.5 border-b border-border"
-                  accessibilityRole="button"
-                >
-                  <Text className="text-sm text-foreground flex-1">{c}</Text>
-                  <Text className="text-sm text-foreground mr-1">{formatAmount(amount)}</Text>
-                  <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
-                </Pressable>
-              ))}
-            </Card>
-          )}
-
-          {s.totalsOnly.length > 0 && (
-            <Card className="mt-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Personal spending · totals only</Text>
-              {s.totalsOnly
-                .sort((a, b) => b.amount - a.amount)
-                .slice(0, 12)
-                .map((t) => (
-                  <View key={`${t.member.id}-${t.category}`} className="flex-row items-center py-1.5">
-                    <Avatar member={t.member} size={20} />
-                    <Text className="text-sm text-foreground flex-1 ml-2">{t.category}</Text>
-                    <Text className="text-sm text-muted-foreground">{formatAmount(t.amount)}</Text>
-                  </View>
-                ))}
-            </Card>
-          )}
 
           <Text className="text-xs text-muted-foreground text-center mt-4">
             {h.last_sync_error

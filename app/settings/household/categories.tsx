@@ -16,7 +16,7 @@ const NOT_SHARED = "__none__";
 
 /**
  * Household categories (the household's short list, set by whoever started it) and which of my own
- * categories count as each. Spends in a mapped category are shared in full; the rest only as totals.
+ * categories count as each. Spends in a mapped category are household spending; the rest stay personal.
  */
 export default function HouseholdCategoriesScreen() {
   const toast = useToast();
@@ -171,7 +171,7 @@ export default function HouseholdCategoriesScreen() {
         <Card>
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Your categories</Text>
           <Text className="text-xs text-muted-foreground mb-2 leading-4">
-            Spends in a mapped category are shared in full. The rest count only as totals, if you share totals.
+            Tap one to say which household category it counts as. Spends in those are household spending; the rest stay personal.
           </Text>
           {mine.map((c) => {
             const mapped = nameOf(map.get(c.id));
@@ -181,11 +181,11 @@ export default function HouseholdCategoriesScreen() {
                 className="flex-row items-center py-2.5 border-b border-border"
                 onPress={() => setPicking(c)}
                 accessibilityRole="button"
-                accessibilityLabel={`${c.name}: ${mapped ?? "not shared in full"}`}
+                accessibilityLabel={`${c.name}: ${mapped ?? "personal"}`}
               >
                 <Text className="text-sm text-foreground flex-1">{c.name}</Text>
                 <Text className="text-sm mr-1" style={{ color: mapped ? theme.primary : theme.mutedForeground }}>
-                  {mapped ?? "Not in full"}
+                  {mapped ?? "Personal"}
                 </Text>
                 <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
               </Pressable>
@@ -200,7 +200,7 @@ export default function HouseholdCategoriesScreen() {
         value={picking ? (map.get(picking.id) ?? NOT_SHARED) : null}
         options={[
           ...hcats.map((c) => ({ value: c.id, label: c.name })),
-          { value: NOT_SHARED, label: "Not household spending", description: "Shared only as a monthly total, if you share totals" },
+          { value: NOT_SHARED, label: "Personal", description: "Not household spending. Shared only if you share every transaction" },
         ]}
         onChange={async (v) => {
           if (!picking) return;

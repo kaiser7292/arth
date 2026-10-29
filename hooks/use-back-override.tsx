@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BackHandler } from "react-native";
 import { useNavigation } from "expo-router";
+import { HeaderBackHome } from "@/components/ui/HeaderBackHome";
 
 /**
  * Intercepts hardware back + Stack header back when a sub-view is active.
@@ -14,7 +15,10 @@ export function useBackOverride(isSubView: boolean, goBack: () => void): void {
 
   useEffect(() => {
     if (!isSubView) {
-      navigation.setOptions({ headerLeft: undefined });
+      // Back to the stack's own back + home. Not `undefined`: that drops to the platform default,
+      // which is a bare arrow on Android and nothing at all on iPhone when the screen is the
+      // first of its section (Hisaab ledger opened from Together or a transaction).
+      navigation.setOptions({ headerLeft: () => <HeaderBackHome /> });
       return;
     }
 
