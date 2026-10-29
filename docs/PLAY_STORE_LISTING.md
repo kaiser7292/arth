@@ -39,7 +39,7 @@ SPEND WITH INTENT
 
 MONEY WITH PEOPLE
 • Hisaab, a family ledger for money lent and borrowed, where splitting an expense records each person's share automatically
-• Households: share household spending with your partner or family, end-to-end encrypted. Bills split themselves, Hisaab stays the same on both phones, and you can agree a budget and save for goals together. Nothing personal is shared by default
+• Households: share household spending with your partner or family, end-to-end encrypted. Split bills with them, Hisaab stays the same on both phones, and you can agree a budget and save for goals together. Nothing personal is shared by default
 
 WHY ARTH ASKS FOR SMS PERMISSION
 Reading bank SMS is how Arth tracks your money without asking for your bank login. With your permission, Arth reads transaction SMS from banks, card issuers, UPI apps and EPFO to:
