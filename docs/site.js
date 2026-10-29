@@ -137,8 +137,9 @@ if (window.IntersectionObserver) {
 }());
 
 // "What Arth does" showcase (home): one area open at a time, the phone shows its screen.
-// Auto-advances while on screen (unless the visitor prefers reduced motion); hovering or
-// focusing pauses it, and picking an area by hand stops it for good.
+// Auto-advances while on screen (unless the visitor prefers reduced motion). Clicking or tapping
+// an area shows it and pauses there; scrolling the page plays it again. A mouse resting over it
+// doesn't pause anything.
 (function(){
   var sec = document.querySelector('.show');
   if (!sec) return;
@@ -163,11 +164,11 @@ if (window.IntersectionObserver) {
   }
 
   var auto = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  var inView = false, hovered = false, timer = null, remaining = MS, startedAt = 0;
+  var inView = false, held = false, heldAtY = 0, timer = null, remaining = MS, startedAt = 0;
   sec.style.setProperty('--show-ms', MS + 'ms');
   if (auto) sec.classList.add('auto', 'paused');
 
-  function running() { return auto && inView && !hovered; }
+  function running() { return auto && inView && !held; }
   function sync() {
     clearTimeout(timer);
     if (!running()) {
@@ -183,29 +184,34 @@ if (window.IntersectionObserver) {
       sync();
     }, remaining);
   }
-  function stop() {
-    auto = false; clearTimeout(timer);
-    sec.classList.remove('auto', 'paused');
-  }
-
   [].forEach.call(items, function (it, i) {
     it.querySelector('.show-t').addEventListener('click', function () {
-      stop();
+      // Hold on the area picked; a fresh 3 s once scrolling resumes it.
+      held = true; heldAtY = window.scrollY; remaining = MS; startedAt = 0;
       if (i !== cur) go(i, true);
+      sync();
     });
   });
-  sec.addEventListener('mouseenter', function () { hovered = true; sync(); });
-  sec.addEventListener('mouseleave', function () { hovered = false; sync(); });
-  sec.addEventListener('focusin', function () { hovered = true; sync(); });
-  sec.addEventListener('focusout', function () { hovered = false; sync(); });
 
-  if (window.IntersectionObserver) {
-    new IntersectionObserver(function (es) {
-      inView = es[0].isIntersecting; sync();
-    }, { threshold: 0.35 }).observe(sec.querySelector('.show-g'));
-  } else {
-    inView = true; sync();
+  // On screen? A position check on scroll (IntersectionObserver never reports in some embedded
+  // views). Scrolling a little after a click also plays it again.
+  var g = sec.querySelector('.show-g');
+  function check() {
+    var r = g.getBoundingClientRect();
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    var v = r.top < h * 0.7 && r.bottom > h * 0.3;
+    var resume = held && Math.abs(window.scrollY - heldAtY) > 40;
+    if (resume) {
+      held = false;
+      remaining = MS; startedAt = 0;
+      var bar = items[cur].querySelector('.show-bar i'); // this area's bar starts again from empty
+      if (bar) { bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = ''; }
+    }
+    if (v !== inView || resume) { inView = v; sync(); }
   }
+  window.addEventListener('scroll', check, { passive: true });
+  window.addEventListener('resize', check, { passive: true });
+  check();
 }());
 
 // Stories (home): a phone and its steps, one step at a time. Each phone shows the screens whose

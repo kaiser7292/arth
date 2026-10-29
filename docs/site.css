@@ -649,16 +649,32 @@ footer{background:var(--dark-bg);padding-block:24px}
 .story-s .tog-d{color:var(--dark-muted)}
 .story-s .tog-prog{background:var(--dark-border)}
 .story-s .tog-prog i{background:var(--teal)}
+/* Motion inside the phones: on the stories, the five-area showcase, the hero, and each
+   features-page phone once it scrolls into view. Runs again whenever a screen comes up. */
 @media(prefers-reduced-motion:no-preference){
-  .story .pscr.on .p-body > *:not(.tog-sms):not(.tog-incoming){animation:storyIn .55s cubic-bezier(.2,.8,.3,1) both}
-  .story .pscr.on .p-body > :nth-child(2){animation-delay:.08s}
-  .story .pscr.on .p-body > :nth-child(3){animation-delay:.16s}
-  .story .pscr.on .p-body > :nth-child(4){animation-delay:.24s}
-  .story .pscr.on .p-body > :nth-child(5){animation-delay:.32s}
-  .story .pscr.on .p-body > :nth-child(n+6){animation-delay:.4s}
-  .story .pscr.on .p-bar-f{transform-origin:left;animation:storyBar 1.1s cubic-bezier(.2,.8,.3,1) .25s both}
-  .story .pscr.on .tog-bar i{transform-origin:left;animation:storyBar 1s cubic-bezier(.2,.8,.3,1) .2s both}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-body > *:not(.tog-sms):not(.tog-incoming){animation:storyIn .55s cubic-bezier(.2,.8,.3,1) both}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-body > :nth-child(2){animation-delay:.08s}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-body > :nth-child(3){animation-delay:.16s}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-body > :nth-child(4){animation-delay:.24s}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-body > :nth-child(5){animation-delay:.32s}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-body > :nth-child(n+6){animation-delay:.4s}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-bar-f{transform-origin:left;animation:storyBar 1.1s cubic-bezier(.2,.8,.3,1) .25s both}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .tog-bar i{transform-origin:left;animation:storyBar 1s cubic-bezier(.2,.8,.3,1) .2s both}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-days i{transform-origin:bottom;animation:storyCol .9s cubic-bezier(.2,.8,.3,1) both}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-days > div:nth-child(2) i{animation-delay:.05s}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-days > div:nth-child(3) i{animation-delay:.1s}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-days > div:nth-child(4) i{animation-delay:.15s}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-days > div:nth-child(5) i{animation-delay:.2s}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-days > div:nth-child(6) i{animation-delay:.25s}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-days > div:nth-child(7) i{animation-delay:.3s}
+  /* line charts draw themselves, then their shading and end dot appear */
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-body svg[style*="width:100%"] path[fill="none"]{stroke-dasharray:1000;animation:storyDraw 1.6s ease-out .35s both}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-body svg[style*="width:100%"] path[fill^="url"]{animation:storyFade .8s ease 1.2s both}
+  :is(.story,.show-ph,.hero-ph.visible,.grp-ph.visible) .pscr.on .p-body svg[style*="width:100%"] circle{animation:storyFade .4s ease 1.7s both}
 }
+@keyframes storyCol{from{transform:scaleY(0)}to{transform:none}}
+@keyframes storyDraw{from{stroke-dashoffset:1000}to{stroke-dashoffset:0}}
+@keyframes storyFade{from{opacity:0}to{opacity:1}}
 @keyframes storyIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes storyBar{from{transform:scaleX(0)}to{transform:none}}
 @media(max-width:860px){
