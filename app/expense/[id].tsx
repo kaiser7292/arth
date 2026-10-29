@@ -2634,6 +2634,8 @@ export default function ExpenseDetailScreen() {
               {expense && expense.nature === "realized" && !expense.household_ref && !expense.deleted_at && (
                 <View className="mx-4">
                   <SharedWithHome
+                    // Re-read when the split changes: it says how the bill is shared.
+                    key={`${expense.split_hisaab_entry_id ?? ""}:${expense.split_original_amount ?? ""}`}
                     expenseId={expense.id}
                     categoryId={expense.category_id}
                     total={expense.split_original_amount ?? expense.amount}

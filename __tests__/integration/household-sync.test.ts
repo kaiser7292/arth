@@ -242,23 +242,41 @@ test("start, invite, join with matching codes, approve", async () => {
   expect((await getMembers(ah.id)).map((m) => m.name).sort()).toEqual(["Aastha", "Sourav"]);
 });
 
-test("household spending is shared and split; each phone keeps its own Hisaab and budget in step", async () => {
+test("household spending is shown; bills split by hand are shared; each phone keeps its own Hisaab and budget in step", async () => {
+  const { getMemberLinks } = require("../../services/household/shares");
+  const { splitExistingExpense } = require("../../services/expense-splits");
   on(aastha);
   const groceries = aastha.db.prepare("SELECT id FROM categories WHERE name = 'Groceries'").get() as { id: string };
-  addSpend(aastha, groceries.id, 1100, "Zepto");
+  const zepto = addSpend(aastha, groceries.id, 1100, "Zepto");
 
   for (let i = 0; i < 2; i++) {
     await sync(sourav);
     await sync(aastha);
   }
 
-  // Sourav's household-category spends were split equally with Aastha, the ordinary way.
+  // Arth never splits by itself (4.28.2): his grocery bill is only shown, not split.
   on(sourav);
-  const bb = sourav.db.prepare("SELECT amount, split_original_amount FROM expenses WHERE merchant_name = 'BigBasket'").get() as { amount: number; split_original_amount: number };
-  expect([bb.amount, bb.split_original_amount]).toEqual([1150, 2300]);
+  const bbRow = () => sourav.db.prepare("SELECT id, amount, split_original_amount FROM expenses WHERE merchant_name = 'BigBasket'").get() as { id: string; amount: number; split_original_amount: number | null };
+  expect([bbRow().amount, bbRow().split_original_amount]).toEqual([2300, null]);
 
-  // Aastha sees his shared transactions in full, with what she owes; nothing of the rest (monthly
-  // totals of personal spending were dropped in 4.28.2).
+  // Each splits their bills by hand, the ordinary way.
+  const sh = (await getActiveHousehold())!;
+  const aasthaPerson = (await getMemberLinks(sh.id)).get((await getMembers(sh.id)).find((m) => m.name === "Aastha")!.id);
+  const landlord = (sourav.db.prepare("SELECT id FROM expenses WHERE merchant_name = 'Landlord'").get() as { id: string }).id;
+  for (const id of [bbRow().id, landlord]) await splitExistingExpense(id, { paidBy: "me", splitMode: "equal", personId: aasthaPerson }, { skipAutoApprove: true });
+  on(aastha);
+  const ah0 = (await getActiveHousehold())!;
+  const souravPerson = (await getMemberLinks(ah0.id)).get((await getMembers(ah0.id)).find((m) => m.name === "Sourav")!.id);
+  await splitExistingExpense(zepto, { paidBy: "me", splitMode: "equal", personId: souravPerson }, { skipAutoApprove: true });
+  for (let i = 0; i < 2; i++) {
+    await sync(sourav);
+    await sync(aastha);
+  }
+  on(sourav);
+  expect([bbRow().amount, bbRow().split_original_amount]).toEqual([1150, 2300]);
+
+  // Aastha sees his split bills in full, with what she owes; nothing of the rest (Shopping isn't a
+  // household category, and monthly totals of personal spending were dropped in 4.28.2).
   const fromSourav = await othersItems(aastha);
   const tx = fromSourav.filter((i) => i.kind === "tx").sort((x, y) => x.paid! - y.paid!);
   expect(tx.map((t) => [t.category_name, t.merchant, t.paid, t.my_share])).toEqual([
@@ -498,24 +516,40 @@ test("deleting an expense removes it from the other phone", async () => {
   expect((await othersItems(aastha)).filter((i) => i.kind === "total")).toEqual([]);
 });
 
-test("making one transaction personal takes it back, on both phones", async () => {
+test("a split removed by hand stays removed; making one personal takes it back, on both phones", async () => {
   const { setShareChoice } = require("../../services/household/shares");
+  const { removeSplit } = require("../../services/expense-splits");
   on(sourav);
   const bbId = (sourav.db.prepare("SELECT id FROM expenses WHERE merchant_name = 'BigBasket'").get() as { id: string }).id;
+  await removeSplit(bbId);
+  for (let i = 0; i < 2; i++) {
+    await sync(sourav);
+    await sync(aastha);
+  }
+  // Still unsplit after syncing (in 4.28 the household split it again straight away).
+  const bb = () => sourav.db.prepare("SELECT amount, split_original_amount FROM expenses WHERE id = ?").get(bbId) as { amount: number; split_original_amount: number | null };
+  expect([bb().amount, bb().split_original_amount]).toEqual([2300, null]);
+  // Still shown (a household category), but she owes nothing for it, and her "Paid by" copy is gone.
+  const bbItem = (await othersItems(aastha)).find((t) => t.merchant === "BigBasket")!;
+  expect(JSON.parse(bbItem.payload_json!).owes).toEqual({});
+  expect((aastha.db.prepare("SELECT amount FROM expenses WHERE household_ref IS NOT NULL").all() as { amount: number }[]).map((r) => r.amount)).toEqual([12500]);
+
+  // Personal: gone from her phone. The switch never splits or unsplits anything.
+  on(sourav);
   await setShareChoice((await getActiveHousehold())!, bbId, { shared: false, split: "equal", myPct: null });
-  const bb = sourav.db.prepare("SELECT amount, split_original_amount FROM expenses WHERE id = ?").get(bbId) as { amount: number; split_original_amount: number | null };
-  expect([bb.amount, bb.split_original_amount]).toEqual([2300, null]);
   await sync(sourav);
   await sync(aastha);
   expect((await othersItems(aastha)).filter((i) => i.kind === "tx").map((t) => t.merchant)).toEqual(["Landlord"]);
-  expect((aastha.db.prepare("SELECT amount FROM expenses WHERE household_ref IS NOT NULL").all() as { amount: number }[]).map((r) => r.amount)).toEqual([12500]);
+  expect([bb().amount, bb().split_original_amount]).toEqual([2300, null]);
 });
 
 test("turning a choice off takes what it shared back", async () => {
   on(aastha);
   await setSharingChoices({ householdCategories: false, otherTotals: false, allTransactions: false, savingsRate: false, balances: false });
   const { setShareChoice } = require("../../services/household/shares");
+  const { removeSplit } = require("../../services/expense-splits");
   const zepto = (aastha.db.prepare("SELECT id FROM expenses WHERE merchant_name = 'Zepto'").get() as { id: string }).id;
+  await removeSplit(zepto);
   await setShareChoice((await getActiveHousehold())!, zepto, { shared: false, split: "equal", myPct: null });
   await sync(aastha);
   await sync(sourav);

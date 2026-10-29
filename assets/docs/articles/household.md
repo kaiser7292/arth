@@ -54,9 +54,9 @@ Under **Household categories** you choose which of your own categories count as 
 
 ## Shared or personal
 
-Each transaction is shared with the household or kept personal. Spends in household categories (Groceries, Rent, Utilities, Household help, Fuel, or whatever your household set) are shared as you approve them, and split equally. On a Catch Up card or a transaction's screen, **Shared with Home** turns it on or off and picks the split: **Split equally**, **I pay all** (they see it, nobody owes anything) or **Custom** (your share in %).
+There is one split, in one place: the transaction's **Split**. Split a bill with someone in your household there (equally, by amount or %, and who paid), and it's a shared bill on both phones: your budget counts your share, and the other person owes you theirs in Hisaab. Remove the split and it's gone on both phones. Arth never splits anything by itself.
 
-A shared, split transaction works like any split in Arth: your budget counts your share, and the other person owes you theirs in Hisaab.
+Separately, **Shared with Home** on a Catch Up card or a transaction's screen says whether the household *sees* a transaction you haven't split: in Together, in full, with nobody owing anything. Spends in household categories (Groceries, Rent, Utilities, or whatever your household set) are shown by default; turn the switch off to keep one personal.
 
 ### Paid with someone else's card
 

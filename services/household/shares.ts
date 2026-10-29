@@ -1,9 +1,6 @@
 import { getDatabase } from "@/database";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { createPerson } from "@/services/hisaab";
-import { getExpenseById } from "@/services/expense-queries";
-import { removeSplit, splitExistingExpense } from "@/services/expense-splits";
-import { applyMultiSplit, removeMultiSplit } from "@/services/expense-multi-split";
 import { newId } from "./crypto";
 import { autoMapCategories, enqueue, getCategoryMap, getHouseholdCategories, getMembers, setHouseholdCategories } from "./store";
 import { DEFAULT_HOUSEHOLD_CATEGORIES, type Household, type HouseholdMember } from "./types";
@@ -12,17 +9,17 @@ import { DEFAULT_HOUSEHOLD_CATEGORIES, type Household, type HouseholdMember } fr
  * Shared or personal, per transaction (Together rework). Design: docs/HOUSEHOLD_PHASE1_DESIGN.md,
  * "Shared transactions and Hisaab".
  *
- * A shared transaction is split with the others in the household using Arth's ordinary split: the
- * same expense_splits / hisaab entries a split by hand makes. So budgets count my share, Insights
- * show others' share, and my Hisaab with each member is right without anything new.
+ * One split, in one place (4.28.2). Splitting a bill with someone in the household is Arth's
+ * ordinary split, made by hand on the transaction; it's a shared bill on both phones. Separately,
+ * whether the household *sees* a transaction that isn't split:
  *
  *   default    my approved spend in a category that counts as household spending, made after I
- *              joined, is shared and split equally - unless I said "personal" for it
- *   my choice  household_expense_shares: shared or personal, and the split ("equal", "payer_all" =
- *              I pay all and it's just shown to the household, "custom" = my_pct is my share)
+ *              joined, is shown (not split) - unless I said "personal" for it
+ *   my choice  household_expense_shares.shared: shown or personal. (split / my_pct are left over
+ *              from 4.28, when this module also split bills; they're no longer read.)
  *
- * Splits this module applies are marked by a choice row (shared = 1), so turning one personal again
- * removes that split; a split made by hand (no row) is left alone.
+ * Nothing here adds or removes a split. In 4.28 it did, and a split removed by hand came straight
+ * back on the next sync.
  */
 
 export type SplitKind = "equal" | "payer_all" | "custom";
@@ -162,131 +159,20 @@ export async function effectiveChoice(h: Household, expenseId: string, categoryI
 }
 
 /**
- * Records the choice (from Catch Up or the transaction screen) and, for an approved transaction,
- * applies or removes the split right away.
+ * Records whether the household sees this transaction (Catch Up, the transaction screen). Only that:
+ * splitting is done with Arth's ordinary split, in one place, and a choice here never adds or removes
+ * one (in 4.28 both did, and each undid the other on the next sync).
  */
 export async function setShareChoice(h: Household, expenseId: string, c: ShareChoice): Promise<void> {
   await writeChoice(h.id, expenseId, c);
-  const e = await getExpenseById(expenseId);
-  if (e?.status === "approved") await applyChoice(h, expenseId, c);
 }
 
-/** The others in the household this phone can split with (members linked to a Hisaab person). */
-async function splitTargets(h: Household): Promise<{ memberId: string; personId: string }[] | null> {
-  const others = (await getMembers(h.id)).filter((m) => m.id !== h.my_member_id);
-  if (others.length === 0) return null;
-  const links = await getMemberLinks(h.id);
-  const out = others.map((m) => ({ memberId: m.id, personId: links.get(m.id) ?? "" }));
-  // Everyone must be linked first, or the split would leave someone out.
-  return out.every((o) => o.personId) ? out : null;
+/** Run by every sync: forgets choices for transactions that no longer exist. Never splits anything. */
+export async function applyPendingShares(_h: Household, _userId: string = DEFAULT_USER_ID): Promise<number> {
+  await getDatabase().runAsync("DELETE FROM household_expense_shares WHERE expense_id NOT IN (SELECT id FROM expenses);");
+  return 0;
 }
 
-async function householdSplitPersons(expenseId: string, personIds: string[]): Promise<boolean> {
-  if (personIds.length === 0) return false;
-  const row = await getDatabase().getFirstAsync<{ n: number }>(
-    `SELECT COUNT(*) AS n FROM hisaab_entries WHERE linked_expense_id = ? AND type = 'debit'
-       AND hisaab_person_id IN (${personIds.map(() => "?").join(",")});`,
-    expenseId,
-    ...personIds,
-  );
-  return (row?.n ?? 0) > 0;
-}
-
-/** Applies a choice to an approved expense: split it with the household, or take that split away. */
-async function applyChoice(h: Household, expenseId: string, c: ShareChoice): Promise<void> {
-  const e = await getExpenseById(expenseId);
-  if (!e || e.status !== "approved" || e.nature !== "realized" || e.deleted_at) return;
-  const targets = await splitTargets(h);
-  const personIds = targets?.map((t) => t.personId) ?? [];
-  const alreadyHousehold = await householdSplitPersons(expenseId, personIds);
-
-  const wantSplit = c.shared && c.split !== "payer_all";
-  if (!wantSplit) {
-    if (alreadyHousehold) {
-      if (e.split_hisaab_entry_id) await removeSplit(expenseId);
-      else await removeMultiSplit(expenseId);
-    }
-    return;
-  }
-  if (!targets) return;
-  // A split made by hand with someone outside the household: leave it.
-  if ((e.split_hisaab_entry_id || e.split_original_amount) && !alreadyHousehold) return;
-
-  const total = e.split_original_amount ?? e.amount;
-  const myPct = c.split === "custom" && c.myPct != null ? Math.max(0, Math.min(100, c.myPct)) : 100 / (targets.length + 1);
-  if (targets.length === 1) {
-    await splitExistingExpense(
-      expenseId,
-      c.split === "custom"
-        ? { paidBy: "me", splitMode: "percentage", personId: targets[0].personId, percentage: Math.round((100 - myPct) * 100) / 100 }
-        : { paidBy: "me", splitMode: "equal", personId: targets[0].personId },
-      { skipAutoApprove: true },
-    );
-  } else {
-    const each = Math.round(((total * (100 - myPct)) / 100 / targets.length) * 100) / 100;
-    await applyMultiSplit(expenseId, {
-      feeAbsorbed: true,
-      splits: targets.map((t) => ({ personId: t.personId, description: e.description ?? e.merchant_name ?? "Shared", amount: each })),
-    });
-  }
-}
-
-/**
- * Applies the default and any choices not applied yet: run by every sync, before anything goes
- * out, so a transaction approved anywhere (Catch Up, bulk, edit) is shared the same way.
- */
-export async function applyPendingShares(h: Household, userId: string = DEFAULT_USER_ID): Promise<number> {
-  const db = getDatabase();
-  const targets = await splitTargets(h);
-  if (!targets) return 0;
-  // Forget choices for expenses that no longer exist.
-  await db.runAsync("DELETE FROM household_expense_shares WHERE expense_id NOT IN (SELECT id FROM expenses);");
-
-  const since = (h.joined_at ?? h.created_at).slice(0, 10);
-  const map = await getCategoryMap(h.id);
-  const sharedIds = new Set((await getHouseholdCategories(h.id)).filter((c) => c.shared_default).map((c) => c.id));
-  const householdCats = [...map.entries()].filter(([, hc]) => sharedIds.has(hc)).map(([local]) => local);
-  const personIds = targets.map((t) => t.personId);
-  const ph = (n: number) => Array.from({ length: n }, () => "?").join(",");
-
-  // Candidates: approved spends with a choice to share, or (by default) in a household category
-  // since joining, that aren't split with the household yet and have no other split.
-  const rows = await db.getAllAsync<{ id: string; choice_shared: number | null }>(
-    `SELECT e.id, s.shared AS choice_shared FROM expenses e
-     LEFT JOIN household_expense_shares s ON s.expense_id = e.id
-     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND e.deleted_at IS NULL
-       AND e.household_ref IS NULL
-       AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)
-       AND e.split_original_amount IS NULL
-       AND NOT EXISTS (SELECT 1 FROM expense_splits x WHERE x.expense_id = e.id)
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id)
-       AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = e.id)
-       AND NOT EXISTS (SELECT 1 FROM hisaab_entries he WHERE he.linked_expense_id = e.id AND he.type = 'debit'
-                       AND he.hisaab_person_id IN (${ph(personIds.length)}))
-       AND (
-         (s.shared = 1 AND s.split != 'payer_all')
-         OR (s.expense_id IS NULL AND ? = 1 AND e.date >= ?
-             AND e.category_id IN (${householdCats.length ? ph(householdCats.length) : "NULL"}))
-       )
-     LIMIT 200;`,
-    userId,
-    ...personIds,
-    h.share_household_categories ? 1 : 0,
-    since,
-    ...householdCats,
-  );
-  for (const r of rows) {
-    const choice: ShareChoice = r.choice_shared != null ? ((await getShareChoice(r.id)) as ShareChoice) : { shared: true, split: "equal", myPct: null };
-    if (r.choice_shared == null) await writeChoice(h.id, r.id, choice);
-    await applyChoice(h, r.id, choice);
-  }
-  return rows.length;
-}
-
-/**
- * For my transaction: is it shared, and what does each other member owe for it. Shared = split with
- * household members (by Together or by hand), or marked shared with "I pay all".
- */
 /**
  * How each of my transactions is shared: who owes what. Normally I paid and the others owe me
  * (their "debit" entries). When my split says another member paid ("Sourav paid, I owe him"), the
@@ -338,17 +224,34 @@ export async function sharedInfoFor(
       out.set(en.linked_expense_id, { split: "custom", owes: { [h.my_member_id]: Math.round(en.amount * 100) / 100 }, paidBy: memberId });
     }
   }
-  for (const c of choices) {
-    if (c.shared && c.split === "payer_all" && !out.has(c.expense_id)) out.set(c.expense_id, { split: "payer_all", owes: {} });
+  // Split with a member: always shared (it's a shared bill, and it's in both Hisaabs). Otherwise my
+  // choice, or by default a spend in a household category since I joined - shown, not split.
+  const visibleByDefault = new Set<string>();
+  if (h.share_household_categories) {
+    const map = await getCategoryMap(h.id);
+    const sharedIds = new Set((await getHouseholdCategories(h.id)).filter((c) => c.shared_default).map((c) => c.id));
+    const since = (h.joined_at ?? h.created_at).slice(0, 10);
+    const rows = await db.getAllAsync<{ id: string; category_id: string | null; date: string }>(
+      `SELECT id, category_id, date FROM expenses WHERE id IN (${ph});`,
+      ...expenseIds,
+    );
+    for (const r of rows) {
+      const hc = r.category_id ? map.get(r.category_id) : undefined;
+      if (hc && sharedIds.has(hc) && r.date.slice(0, 10) >= since) visibleByDefault.add(r.id);
+    }
+  }
+  for (const id of expenseIds) {
+    if (out.has(id)) continue;
+    const c = choiceById.get(id);
+    if (c ? !!c.shared : visibleByDefault.has(id)) out.set(id, { split: "payer_all", owes: {} });
   }
   return out;
 }
 
 /**
- * A split on this transaction that the Shared with Home buttons don't own, said in words: another
- * member paid it ("Sourav paid · you owe him ₹3,737"), or another member recorded it as paid by me
- * and it's filed here ("Aastha owes you ₹3,737 for it"). Null when it's an ordinary household split
- * (or none), which the buttons control.
+ * This transaction's split with a household member, said in words: another member paid it ("Sourav
+ * paid · you owe him ₹3,737"), another member recorded it as paid by me ("Aastha owes you ₹3,737"),
+ * or I split it with them. Null when it isn't split with anyone in the household.
  */
 export async function fixedSplitNote(h: Household, expenseId: string): Promise<string | null> {
   const links = await getMemberLinks(h.id);
@@ -368,6 +271,7 @@ export async function fixedSplitNote(h: Household, expenseId: string): Promise<s
     const amount = `₹${Math.round(r.amount).toLocaleString("en-IN")}`;
     if (r.household_ref) return `${who} recorded this bill as paid by you. ${who} owes you ${amount}, on both phones.`;
     if (r.type === "credit") return `${who} paid this. You owe ${who} ${amount}, and it shows as ${who}'s bill to the household.`;
+    if (r.type === "debit") return `Split with ${who}: ${who} owes you ${amount}, on both phones. Change or remove it from the split above.`;
   }
   return null;
 }

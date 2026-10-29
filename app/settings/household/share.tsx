@@ -106,8 +106,8 @@ export default function ShareScreen() {
         <Card className="mb-3">
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Spending</Text>
           <Row
-            title="Share household spending by default"
-            body="Spends in household categories are shared and split equally as you approve them. Change any one from its screen."
+            title="Show household spending by default"
+            body="Spends in household categories appear in Together, in full but not split. Split one from its screen to share the cost; hide one there too."
             value={choices.householdCategories}
             onChange={(v) => set({ householdCategories: v })}
           />
