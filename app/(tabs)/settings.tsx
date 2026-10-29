@@ -19,6 +19,7 @@ import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
 import { PRIVACY_POLICY_URL, TERMS_URL } from "@/components/sms/SmsDisclosure";
 import { isDemoBuild, seedDemoData } from "@/services/demo-data";
 import { useTheme } from "@/hooks/use-theme";
+import { AppUpdateRow } from "@/components/settings/AppUpdateRow";
 
 const THEME_OPTIONS: { value: "system" | "light" | "dark"; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { value: "system", label: "System", icon: "phone-portrait-outline" },
@@ -238,6 +239,7 @@ export default function SettingsScreen() {
                 <Text className="text-sm font-medium text-foreground">अर्थ</Text>
               </View>
             </View>
+            <AppUpdateRow />
             <View className="flex-row items-center justify-between py-2">
               <Text className="text-sm" style={{ color: colors.textSecondary }}>Version</Text>
               <Text className="text-sm font-medium" style={{ color: colors.text }}>

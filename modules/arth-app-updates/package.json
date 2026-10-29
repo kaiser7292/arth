@@ -1,0 +1,8 @@
+{
+  "name": "arth-app-updates",
+  "version": "1.0.0",
+  "description": "Where Arth was installed from, and Google Play's in-app update for Play installs (Android only).",
+  "main": "index.ts",
+  "license": "UNLICENSED",
+  "private": true
+}

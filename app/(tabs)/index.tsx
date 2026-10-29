@@ -16,6 +16,7 @@ import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
 import { BankMessagesCard } from "@/components/home/BankMessagesCard";
 import { HouseholdCard } from "@/components/home/HouseholdCard";
 import { IphoneMessagesSetupCard } from "@/components/home/IphoneMessagesSetupCard";
+import { AppUpdateCard } from "@/components/home/AppUpdateCard";
 import { useAlert } from "@/hooks/use-alert";
 import { formatError } from "@/utils/error-message";
 import { BankBalanceSummary } from "@/components/home/BankBalanceSummary";
@@ -472,6 +473,8 @@ export default function HomeScreen() {
         <BankMessagesCard />
         {/* iPhone, until the first bank message arrives: how to set up the Shortcut, or paste one. */}
         <IphoneMessagesSetupCard />
+        {/* Android: a newer Arth on Play (Play installs) or GitHub (APKs). Self-loading. */}
+        <AppUpdateCard />
 
         {/* "Is <name> you?" — once, when bank SMS keep showing a name on transfers. Self-loading. */}
         <SelfNamePromptCard />

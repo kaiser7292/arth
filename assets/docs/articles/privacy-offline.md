@@ -39,6 +39,7 @@ Everything you track works in airplane mode. Arth only goes online for optional 
 - **Broker connections** - [Zerodha Kite](kite-connect), [Angel One](angel-one) and [Zebpay](zebpay). Arth talks directly to the broker with your own API key. Nothing goes through an Arth server.
 - **Households** - if you start or join one, what you choose to share is locked on your phone (end-to-end encrypted) and passes through Arth's relay to the other members' phones. The relay can't read it and deletes it once everyone has it. See [Households](household).
 - **Help links** - links to a broker's terms or developer console open in your browser.
+- **New versions** (Android) - if Arth came from the Play Store, it asks the Play Store app on your phone whether there's a newer version. If you installed the APK from GitHub, it asks GitHub for the latest release, at most once a day. Nothing about you or your data is sent. Turn it off in Settings → Tell me about new versions.
 
 And a few things leave the phone only because you send them somewhere:
 
