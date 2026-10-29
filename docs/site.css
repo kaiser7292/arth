@@ -699,3 +699,18 @@ footer{background:var(--dark-bg);padding-block:24px}
   .tog-pin .pin-ph .tog-ph .phone{max-width:min(170px,42vw)}
   .tog-pin .tog-ph:last-of-type{margin-top:18px}
 }
+
+/* ── Home: three ways to get Arth ── */
+.opt-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px auto 8px;max-width:1040px;text-align:left}
+.opt{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:20px 18px;display:flex;flex-direction:column}
+.opt-tag{align-self:flex-start;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#134E4A;background:#99F6E4;border-radius:20px;padding:3px 10px;margin-bottom:12px}
+.opt h3{color:#fff;font-size:1.1rem;font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
+.cta .opt .opt-s{font-size:.86rem;color:rgba(255,255,255,.72);line-height:1.6;margin:0 0 10px;max-width:none}
+.opt-l{margin:0 0 16px;padding-left:20px;color:rgba(255,255,255,.85);font-size:.84rem;line-height:1.6}
+.opt-l li{margin-bottom:5px}
+.opt-l b{color:#fff;font-weight:600}
+.opt-acts{display:flex;flex-direction:column;gap:8px;margin-top:auto}
+.opt-acts .btn-inv{margin-bottom:0;justify-content:center;font-size:.92rem;padding:11px 18px}
+.cta .opt .opt-n{font-size:.76rem;color:rgba(255,255,255,.55);line-height:1.6;margin:12px 0 0;max-width:none}
+.opt-n a{color:rgba(255,255,255,.8);text-decoration:underline}
+@media(max-width:900px){.opt-g{grid-template-columns:1fr;max-width:520px}}
