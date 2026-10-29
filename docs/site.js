@@ -146,7 +146,7 @@ if (window.IntersectionObserver) {
   var screens = sec.querySelectorAll('#show-phone .pscr');
   var n = items.length;
   if (!n || screens.length !== n) return;
-  var MS = 6500, cur = 0;
+  var MS = 3000, cur = 0;
 
   function go(i, animate) {
     cur = i;
