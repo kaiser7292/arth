@@ -50,8 +50,9 @@ The milestone's progress bar fills as linked buckets grow and as you log direct 
 
 1. **Goals tab → Investment Buckets → +**.
 2. Fill: name, instrument type (mutual fund, FD, RD, chit, PPF, EPF, stocks, other), target amount (optional), FY.
-3. Optionally link to a milestone.
-4. Tap **Save**.
+3. Optionally add a **target date**. The amount then means the total for the whole goal: Arth shows what to put away each month and works out the yearly share for your plan. The goal also appears under Milestones, which holds its total and date.
+4. Without a date, you can link it to a milestone instead.
+5. Tap **Save**.
 
 ## Log a contribution
 

@@ -10,7 +10,7 @@ import {
   useRouter,
 } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, FAB, Input, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, DateInput, FAB, Input, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import {
   getYearlyPlanByFY,
   getInvestmentBuckets,
@@ -25,7 +25,8 @@ import type { InvestmentBucketUsage } from "@/services/yearly-plan";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import type { YearlyPlan, InvestmentBucket } from "@/services/yearly-plan";
-import { getLifeMilestones } from "@/services/life-milestone";
+import { getLifeMilestones, getMilestoneMonthlyNeeded } from "@/services/life-milestone";
+import { goalMonthlyNeeded, saveDatedGoal } from "@/services/dated-goal";
 import type { LifeMilestone } from "@/services/life-milestone";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth, getDataVersion } from "@/services/settings";
@@ -79,6 +80,9 @@ export default function InvestmentBucketsScreen() {
   const [newBucketTarget, setNewBucketTarget] = useState("");
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
   const [editingBucketId, setEditingBucketId] = useState<string | null>(null);
+  // With a date, the amount above is the goal's total rather than this year's target.
+  const [newBucketDate, setNewBucketDate] = useState("");
+  const [goalMilestone, setGoalMilestone] = useState<LifeMilestone | null>(null);
 
   const loadData = useCallback(async () => {
     // Stamp includes what is being VIEWED, not just the data version. Version alone asks
@@ -136,6 +140,18 @@ export default function InvestmentBucketsScreen() {
     }, [loadData]),
   );
 
+  const dateLabel = (date: string) =>
+    new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+
+  /** A dated goal's line in the list: its total, date and what it needs each month. */
+  const goalLine = (bucket: InvestmentBucket): string | null => {
+    const goal = goalBehind(bucket);
+    if (!goal?.target_date) return null;
+    const monthly = getMilestoneMonthlyNeeded(goal);
+    const need = monthly ? ` · ${formatAmount(Math.ceil(monthly))} a month` : "";
+    return `${formatAmount(goal.target_amount)} by ${dateLabel(goal.target_date)}${need}`;
+  };
+
   // ─── Bucket Actions ──────────────────────────────────────
 
   const handleAddBucket = async () => {
@@ -146,7 +162,34 @@ export default function InvestmentBucketsScreen() {
       return;
     }
     if (isNaN(target) || target <= 0) {
-      alert("Invalid Target", "Enter a valid annual target amount.");
+      alert("Invalid Target", newBucketDate ? "Enter a valid target amount." : "Enter a valid annual target amount.");
+      return;
+    }
+
+    if (newBucketDate) {
+      if (goalMonthlyNeeded(target, 0, newBucketDate) === null) {
+        alert("Date has passed", "Choose a target date from this month onwards.");
+        return;
+      }
+      try {
+        await saveDatedGoal({
+          userId: DEFAULT_USER_ID,
+          name,
+          total: target,
+          targetDate: newBucketDate,
+          financialYear: fyStr,
+          fyStartMonth: startMonth,
+          yearlyPlanId: plan?.id,
+          bucketId: editingBucketId ?? undefined,
+          milestoneId: goalMilestone?.id,
+        });
+      } catch (e) {
+        logger.error("Save dated goal failed:", e);
+        alert("Couldn't save the goal", formatError("Save goal", e));
+        return;
+      }
+      await loadData();
+      resetBucketForm();
       return;
     }
 
@@ -233,11 +276,23 @@ export default function InvestmentBucketsScreen() {
     ]);
   };
 
+  /**
+   * The milestone holding this bucket's total and date. Same name, because that's how a dated goal
+   * is saved; a bucket someone linked by hand to another dated milestone keeps its yearly target.
+   */
+  const goalBehind = (bucket: InvestmentBucket): LifeMilestone | null => {
+    const linked = milestones.find((m) => m.id === bucket.linked_milestone_id);
+    return linked?.target_date && linked.name === bucket.name ? linked : null;
+  };
+
   const handleEditBucket = (bucket: InvestmentBucket) => {
     setEditingBucketId(bucket.id);
     setNewBucketName(bucket.name);
-    setNewBucketTarget(String(bucket.annual_target));
     setSelectedMilestoneId(bucket.linked_milestone_id);
+    const goal = goalBehind(bucket);
+    setGoalMilestone(goal);
+    setNewBucketDate(goal?.target_date ?? "");
+    setNewBucketTarget(String(goal ? goal.target_amount : bucket.annual_target));
     setViewMode("add_bucket");
   };
 
@@ -246,6 +301,8 @@ export default function InvestmentBucketsScreen() {
     setNewBucketTarget("");
     setSelectedMilestoneId(null);
     setEditingBucketId(null);
+    setNewBucketDate("");
+    setGoalMilestone(null);
     setViewMode("buckets");
   };
 
@@ -384,7 +441,7 @@ export default function InvestmentBucketsScreen() {
                   containerClassName="mb-3"
                 />
                 <Input
-                  label="Annual Target (Rs)"
+                  label={newBucketDate ? "Total Target (Rs)" : "Annual Target (Rs)"}
                   value={newBucketTarget}
                   onChangeText={setNewBucketTarget}
                   keyboardType="numeric"
@@ -392,8 +449,41 @@ export default function InvestmentBucketsScreen() {
                   placeholder="e.g. 420000"
                   containerClassName="mb-3"
                 />
-
-                {/* Milestone Picker */}
+                <DateInput
+                  label="Target Date (optional)"
+                  value={newBucketDate}
+                  onChange={setNewBucketDate}
+                  minimumDate={new Date()}
+                  maximumDate={null}
+                  containerClassName="mb-3"
+                />
+                {newBucketDate ? (
+                  <View className="mb-4">
+                    {(() => {
+                      const total = parseFloat(newBucketTarget);
+                      const monthly = isNaN(total) ? null : goalMonthlyNeeded(total, goalMilestone?.current_saved ?? 0, newBucketDate);
+                      if (monthly === null) return null;
+                      return (
+                        <Text className="text-xs mb-2" style={{ color: theme.primary }}>
+                          {monthly > 0
+                            ? `${formatAmount(Math.ceil(monthly))} a month gets you there by ${dateLabel(newBucketDate)}`
+                            : "You've already saved this much"}
+                        </Text>
+                      );
+                    })()}
+                    <Pressable
+                      onPress={() => {
+                        setNewBucketDate("");
+                        setGoalMilestone(null);
+                        setSelectedMilestoneId(null);
+                      }}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                    >
+                      <Text className="text-xs font-medium" style={{ color: colors.blue }}>Remove date</Text>
+                    </Pressable>
+                  </View>
+                ) : (
                 <View className="mb-4">
                   <Text className="text-xs font-medium text-muted-foreground mb-1.5">
                     Link to Life Milestone (optional)
@@ -442,6 +532,7 @@ export default function InvestmentBucketsScreen() {
                     ))}
                   </ScrollView>
                 </View>
+                )}
 
                 <View className="flex-row">
                   <View className="flex-1 mr-2">
@@ -732,7 +823,7 @@ export default function InvestmentBucketsScreen() {
                                 color={colors.textSecondary}
                               />
                               <Text className="text-xs text-muted-foreground ml-1" numberOfLines={1}>
-                                {milestones.find((m) => m.id === bucket.linked_milestone_id)?.name ?? "Linked milestone"}
+                                {goalLine(bucket) ?? milestones.find((m) => m.id === bucket.linked_milestone_id)?.name ?? "Linked milestone"}
                               </Text>
                             </View>
                           )}
