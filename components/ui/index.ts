@@ -23,6 +23,7 @@ export { MetricRow } from "./MetricRow";
 export { PeriodNavigator } from "./PeriodNavigator";
 export { ProgressBar } from "./ProgressBar";
 export { ScreenContainer } from "./ScreenContainer";
+export { SearchField } from "./SearchField";
 export { SectionHeader } from "./SectionHeader";
 export { SelectSheet } from "./SelectSheet";
 export type { SelectOption } from "./SelectSheet";

@@ -12,7 +12,9 @@ import { useBackOverride } from "@/hooks/use-back-override";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, DateInput, FAB, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, DateInput, FAB, Input, LoadingState, ScreenContainer, SearchField, Text } from "@/components/ui";
+import { matchesSearch } from "@/utils/amount-search";
+import { transactionTitle } from "@/utils/transaction-title";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useAlert } from "@/hooks/use-alert";
@@ -20,6 +22,7 @@ import { useAlert } from "@/hooks/use-alert";
 import {
   getEntries,
   getEntriesByDateRange,
+  getLinkedTransactionTypes,
   createEntry,
   updateEntry,
   deleteEntry,
@@ -44,6 +47,8 @@ type SortOption = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
 
 export default function LedgerScreen() {
   const alert = useAlert();
+  const [linkedTypes, setLinkedTypes] = useState<Map<string, string>>(new Map());
+  const [search, setSearch] = useState("");
   const { personId, personName, fromDate: fromDateParam, toDate: toDateParam } = useLocalSearchParams<{
     personId: string;
     personName: string;
@@ -134,6 +139,12 @@ export default function LedgerScreen() {
         openingPromise,
       ]);
       if (seq !== loadSeqRef.current) return;
+      // Only labels the row's link, so it can't be allowed to stop the ledger loading.
+      getLinkedTransactionTypes(entriesData.map((e) => e.linked_expense_id).filter((id): id is string => !!id))
+        .then((types) => {
+          if (seq === loadSeqRef.current) setLinkedTypes(types);
+        })
+        .catch(() => {});
       setPerson(personData);
       setBalance(bal);
       const catMap = new Map<string, string>();
@@ -309,7 +320,9 @@ export default function LedgerScreen() {
   }, []);
 
   const sortedEntries = useMemo(() => {
-    const sorted = [...entries];
+    const sorted = entries.filter((e) =>
+      matchesSearch(search, [e.description, e.merchant_name, e.category_id ? categoryMap.get(e.category_id) : null], [e.amount]),
+    );
     switch (sortBy) {
       case "date_desc":
         sorted.sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at));
@@ -325,7 +338,7 @@ export default function LedgerScreen() {
         break;
     }
     return sorted;
-  }, [entries, sortBy]);
+  }, [entries, sortBy, search, categoryMap]);
 
   // ─── Loading ───────────────────────────────────────────
 
@@ -853,6 +866,8 @@ export default function LedgerScreen() {
             );
           })()}
 
+          {entries.length > 0 && <SearchField value={search} onChangeText={setSearch} className="mb-2" />}
+
           {/* Entry count */}
           {sortedEntries.length > 0 && (
             <Text className="text-xs text-faint-foreground mb-2">
@@ -867,10 +882,10 @@ export default function LedgerScreen() {
               <View className="items-center py-4">
                 <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
                 <Text className="text-base font-medium text-foreground mt-2">
-                  {filterActive ? "No entries in this range" : "No entries yet"}
+                  {search.trim() ? "Nothing matches your search" : filterActive ? "No entries in this range" : "No entries yet"}
                 </Text>
                 <Text className="text-sm text-muted-foreground mt-1 text-center">
-                  {filterActive ? "Try a different date range" : "Add a debit or credit to start tracking"}
+                  {search.trim() ? "Try another name or amount" : filterActive ? "Try a different date range" : "Add a debit or credit to start tracking"}
                 </Text>
               </View>
             </Card>
@@ -902,6 +917,7 @@ export default function LedgerScreen() {
                   onViewExpense={(expenseId) => router.push(`/expense/${expenseId}`)}
                   categoryMap={categoryMap}
                   accountMap={accountMap}
+                  linkedType={entry.linked_expense_id ? linkedTypes.get(entry.linked_expense_id) : undefined}
                 />
               );
             })
@@ -956,7 +972,9 @@ function EntryCard({
   onViewExpense,
   categoryMap,
   accountMap,
+  linkedType,
 }: {
+  linkedType?: string;
   entry: HisaabEntry;
   onPress: () => void;
   onLongPress: () => void;
@@ -981,8 +999,10 @@ function EntryCard({
   const description = entry.description?.trim() || null;
   const merchant = entry.merchant_name?.trim() || null;
   // With no description the merchant is the title — don't repeat it below.
+  const categoryName = entry.category_id ? categoryMap?.get(entry.category_id) : null;
   const subtitle = [
-    entry.category_id ? categoryMap?.get(entry.category_id) : null,
+    // With neither description nor merchant the category is the title.
+    description || merchant ? categoryName : null,
     description ? merchant : null,
     accountMap?.get(entry.id),
   ].filter(Boolean).join(" · ");
@@ -1005,7 +1025,7 @@ function EntryCard({
               className="text-sm font-medium text-foreground"
               numberOfLines={1}
             >
-              {description || merchant || label}
+              {transactionTitle(entry, categoryName, label)}
             </Text>
             {subtitle ? (
               <Text className="text-label text-faint-foreground" numberOfLines={1}>
@@ -1031,7 +1051,7 @@ function EntryCard({
                 >
                   <Ionicons name="receipt-outline" size={10} color={colors.blue} />
                   <Text className="text-label font-medium ml-0.5" style={{ color: theme.primary }}>
-                    Expense
+                    {linkedType ?? "Transaction"}
                   </Text>
                 </Pressable>
               )}

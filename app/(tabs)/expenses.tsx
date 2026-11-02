@@ -3,6 +3,7 @@ import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { parseNLQuery } from "@/utils/nl-search";
+import { matchesSearch } from "@/utils/amount-search";
 import { isSpeechRecognitionAvailable, SpeechRecognition, useSpeechRecognitionEvent } from "@/services/speech-recognition";
 import { View, FlatList, Pressable, TextInput, ScrollView, Platform } from "react-native";
 import Animated from "react-native-reanimated";
@@ -654,6 +655,11 @@ export default function ExpensesScreen() {
     loadExpenses(true);
   }, [selectedExpenseIds, exitBulkMode, loadExpenses]);
 
+  const shownTransfers = useMemo(
+    () => transfers.filter((t) => matchesSearch(debouncedSearch, [t.description], [t.amount])),
+    [transfers, debouncedSearch],
+  );
+
   const renderTransferItem = useCallback(
     ({ item }: { item: AccountTransfer }) => {
       const fromAccount = accountMap.get(item.from_account_id);
@@ -857,7 +863,7 @@ export default function ExpensesScreen() {
             value={search}
             onChangeText={handleSearchChange}
             onSubmitEditing={applyNLSearch}
-            placeholder="Try 'food last month'…"
+            placeholder="Try 'food last month' or '>5000'"
             placeholderTextColor={colors.tabIconDefault}
             maxLength={100}
             accessibilityLabel="Search expenses"
@@ -1214,7 +1220,7 @@ export default function ExpensesScreen() {
                   initialNumToRender={12}
                   maxToRenderPerBatch={10}
                   windowSize={7}
-                  data={transfers}
+                  data={shownTransfers}
                   keyExtractor={(item) => item.id}
                   renderItem={renderTransferItem}
                   contentContainerStyle={{ paddingBottom: 80 }}

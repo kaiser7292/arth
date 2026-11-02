@@ -657,6 +657,23 @@ export async function getExpenseByLinkedEntry(
 /**
  * Get all entries for a person, ordered by date descending.
  */
+/** What each linked transaction actually is (Expense, Credit, Refund), by id. */
+export async function getLinkedTransactionTypes(expenseIds: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const ids = [...new Set(expenseIds)];
+  for (let i = 0; i < ids.length; i += 500) {
+    const chunk = ids.slice(i, i + 500);
+    const rows = await getDatabase().getAllAsync<{ id: string; nature: string; refund_of_expense_id: string | null }>(
+      `SELECT id, nature, refund_of_expense_id FROM expenses WHERE id IN (${chunk.map(() => "?").join(",")});`,
+      ...chunk,
+    );
+    for (const r of rows) {
+      out.set(r.id, r.refund_of_expense_id ? "Refund" : r.nature === "credit" ? "Credit" : "Expense");
+    }
+  }
+  return out;
+}
+
 export async function getEntries(
   personId: string,
 ): Promise<HisaabEntry[]> {

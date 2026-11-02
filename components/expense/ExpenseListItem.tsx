@@ -1,5 +1,6 @@
 
 
+import { transactionTitle } from "@/utils/transaction-title";
 import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Category } from "@/services/category";
@@ -98,7 +99,7 @@ function ExpenseListItemInner({
             className="text-sm font-semibold text-foreground shrink"
             numberOfLines={1}
           >
-            {expense.description || expense.merchant_name || "No description"}
+            {transactionTitle(expense, category?.name)}
           </Text>
           {isPending && (
             <View

@@ -1,3 +1,4 @@
+import { parseAmountQuery } from "@/utils/amount-search";
 import { getDatabase } from "@/database";
 import type { Expense, ExpenseFilters, CategoryActual, MonthlyTotal } from "./expense-types";
 import { NOT_SET } from "./expense-types";
@@ -141,8 +142,15 @@ function buildFilterConditions(userId: string, filters: ExpenseFilters): { condi
     "id NOT IN (SELECT expense_id FROM expense_tags)",
   );
   if (filters.search) {
-    conditions.push("(description LIKE ? OR merchant_name LIKE ?)");
-    params.push(`%${filters.search}%`, `%${filters.search}%`);
+    const range = parseAmountQuery(filters.search);
+    if (range) {
+      // A number can be a name too ("Store 99"). A split shows its full amount, so match that as well.
+      conditions.push("(description LIKE ? OR merchant_name LIKE ? OR amount BETWEEN ? AND ? OR split_original_amount BETWEEN ? AND ?)");
+      params.push(`%${filters.search}%`, `%${filters.search}%`, range.min, range.max, range.min, range.max);
+    } else {
+      conditions.push("(description LIKE ? OR merchant_name LIKE ?)");
+      params.push(`%${filters.search}%`, `%${filters.search}%`);
+    }
   }
   if (filters.expenseIds && filters.expenseIds.length > 0) {
     const placeholders = filters.expenseIds.map(() => "?").join(",");

@@ -20,6 +20,8 @@ export interface AccountCredit {
   user_id: string;
   amount: number;
   description: string | null;
+  merchant_name?: string | null;
+  category_id?: string | null;
   date: string;
   source: "manual" | "sms_auto";
   /**
@@ -84,7 +86,7 @@ export async function getCreditsForMonth(
     // an SMS-detected refund. Applies uniformly to CC, savings, wallets,
     // loans, demat — every account type that goes through this loader.
     // v15.12.1: include raw_source_text and source_sms_address for source SMS modal
-    `SELECT id, account_id, user_id, amount, description, date, source,
+    `SELECT id, account_id, user_id, amount, description, merchant_name, category_id, date, source,
             refund_of_expense_id, raw_source_text, source_sms_address,
             created_at, updated_at, deleted_at
      FROM expenses

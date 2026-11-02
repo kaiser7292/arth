@@ -1,5 +1,5 @@
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { Badge, Button, Card, DateInput, FABMenu, FilterChip, Input, Money, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { Badge, Button, Card, DateInput, FABMenu, FilterChip, Input, Money, PeriodNavigator, ScreenContainer, SearchField, Text } from "@/components/ui";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
@@ -41,6 +41,9 @@ import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatLocalDate } from "@/utils/fiscal-year";
 import { formatAdjustmentDescription, formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
+import { matchesSearch } from "@/utils/amount-search";
+import { transactionTitle } from "@/utils/transaction-title";
+import { getCategories } from "@/services/category";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -55,6 +58,8 @@ interface LedgerEntry {
   amount: number;
   splitPersonName: string | null;
   description: string;
+  /** Searchable alongside the description. */
+  merchant?: string | null;
   date: string;
   source: string;
   isRefund: boolean;
@@ -122,6 +127,7 @@ export default function AccountLedgerScreen() {
   const [isCreditCard, setIsCreditCard] = useState(false);
   const [poolSiblings, setPoolSiblings] = useState<{ id: string; last4: string }[]>([]);
   const [cardFilter, setCardFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   // All active accounts, refreshed alongside the ledger. Lets callbacks
   // (e.g. handleConvertConfirm) look up an account's type without
@@ -178,8 +184,8 @@ export default function AccountLedgerScreen() {
     if (cardFilter !== "all" && poolSiblings.length > 1) {
       result = result.filter((e) => e.sourceAccountId === cardFilter);
     }
-    return result;
-  }, [entries, cardFilter, poolSiblings, filterMode]);
+    return result.filter((e) => matchesSearch(search, [e.description, e.merchant, e.counterAccountName, e.splitPersonName], [e.amount]));
+  }, [entries, cardFilter, poolSiblings, filterMode, search]);
 
 const loadData = useCallback(async () => {
       if (!accountId) return;
@@ -371,6 +377,14 @@ const loadData = useCallback(async () => {
       // account ledger at all.
       const settlementByCreditId = await getSettlementsForCredits(credits.map((c) => c.id));
 
+      // Names rows that have no description or merchant, so it can't be allowed to stop the load.
+      const categoryNames = new Map<string, string>();
+      try {
+        for (const c of await getCategories(DEFAULT_USER_ID)) categoryNames.set(c.id, c.name);
+      } catch (e) {
+        logger.warn("Ledger category names failed (non-fatal):", e);
+      }
+
       for (const exp of expenses) {
         const isAdjustment = exp.nature === "ledger_adjustment";
         const isNegativeAdj = isAdjustment && (exp.description ?? "").includes(" -]");
@@ -384,7 +398,8 @@ const loadData = useCallback(async () => {
           splitPersonName: exp.split_person_id ? (personMap.get(exp.split_person_id) ?? null) : null,
           description: isAdjustment
             ? formatAdjustmentDescription(exp.description)
-            : (exp.description || exp.merchant_name || "Expense"),
+            : transactionTitle(exp, exp.category_id ? categoryNames.get(exp.category_id) : null, "Expense"),
+          merchant: exp.merchant_name,
           reclassifiedAsTransfer: exp.reclassified_as_transfer === 1,
           linkedTransferId: exp.linked_transfer_id,
           date: exp.date,
@@ -408,7 +423,8 @@ const loadData = useCallback(async () => {
           type: "credit",
           amount: cr.amount,
           splitPersonName: null,
-          description: cr.description || "Credit",
+          description: transactionTitle(cr, cr.category_id ? categoryNames.get(cr.category_id) : null, "Credit"),
+          merchant: cr.merchant_name,
           linkedHisaabPersonId: settlement?.personId,
           linkedHisaabPersonName: settlement?.personName,
           date: cr.date,
@@ -879,6 +895,8 @@ const loadData = useCallback(async () => {
             </Text>
           </View>
 
+          {entries.length > 0 && <SearchField value={search} onChangeText={setSearch} className="mx-4 mb-2" />}
+
           {/* Per-card filter chips — only for shared-pool CCs */}
           {poolSiblings.length > 1 && (
             <ScrollView
@@ -1043,6 +1061,13 @@ const loadData = useCallback(async () => {
                           <Text className="text-label font-semibold text-primary">SMS</Text>
                         </View>
                       )}
+                      {!entry.isRefund && !isTransfer && (
+                        <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: entryColor + "14" }}>
+                          <Text className="text-label font-semibold" style={{ color: entryColor }}>
+                            {entry.isAdjustment ? "ADJUSTMENT" : entry.type === "credit" ? "CREDIT" : "EXPENSE"}
+                          </Text>
+                        </View>
+                      )}
                       {entry.isRefund && (
                         <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: theme.success + "14" }}>
                           <Text className="text-label font-semibold" style={{ color: theme.success }}>REFUND</Text>
@@ -1132,7 +1157,7 @@ const loadData = useCallback(async () => {
             <View className="items-center py-12">
               <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />
               <Text className="text-meta text-muted-foreground mt-3">
-                No transactions this month
+                {search.trim() ? "Nothing matches your search" : "No transactions this month"}
               </Text>
             </View>
           )}

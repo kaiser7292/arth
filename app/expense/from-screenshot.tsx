@@ -292,7 +292,8 @@ export default function FromScreenshotScreen() {
     if (rememberUpi && unlinked.length) {
       for (const u of unlinked) await addUpiId(u.account.id, u.id).catch(() => {});
     }
-    const description = [guess.note, guess.app, guess.ref ? `ref ${guess.ref}` : null].filter(Boolean).join(" · ");
+    // Only the payment's own note: "app · ref" here used to take the merchant's place in every list.
+    const description = guess.note ?? "";
     const base: Record<string, string> = {};
     if (guess.amount) base.prefillAmount = String(guess.amount);
     if (guess.date) base.prefillDate = guess.date;

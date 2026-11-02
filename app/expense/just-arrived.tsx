@@ -1,3 +1,4 @@
+import { transactionTitle } from "@/utils/transaction-title";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -210,7 +211,7 @@ export default function JustArrivedScreen() {
           handled.map((e) => (
             <Pressable key={e.id} onPress={() => router.push(`/expense/${e.id}`)} className="flex-row justify-between py-2">
               <Text className="text-sm text-foreground flex-1" numberOfLines={1}>
-                {e.merchant_name ?? e.description ?? "Transaction"}
+                {transactionTitle(e, e.category_id ? categories.get(e.category_id)?.name : null)}
               </Text>
               <Text className="text-sm text-muted-foreground ml-2">
                 {formatAmount(e.amount)} · {e.status === "approved" ? "Approved" : "Rejected"}

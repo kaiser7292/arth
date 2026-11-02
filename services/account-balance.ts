@@ -1155,6 +1155,7 @@ export async function getLedgerExpenses(
   reclassified_as_transfer: number | null;
   linked_transfer_id: string | null;
   merchant_name: string | null;
+  category_id: string | null;
   date: string;
   source: string;
   refund_of_expense_id: string | null;
@@ -1162,7 +1163,7 @@ export async function getLedgerExpenses(
 }>> {
   const db = getDatabase();
   return db.getAllAsync(
-    `SELECT id, account_id, amount, split_original_amount, split_person_id, description, merchant_name, date, source, refund_of_expense_id, nature, reclassified_as_transfer, linked_transfer_id
+    `SELECT id, account_id, amount, split_original_amount, split_person_id, description, merchant_name, category_id, date, source, refund_of_expense_id, nature, reclassified_as_transfer, linked_transfer_id
      FROM expenses
      WHERE account_id = ? AND deleted_at IS NULL
        AND nature IN ('realized', 'ledger_adjustment') AND status = 'approved'

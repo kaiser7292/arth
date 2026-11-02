@@ -238,6 +238,14 @@ export default function AccountAddScreen() {
                 </Text>
               </Pressable>
             ))}
+            {/* A deposit has its own form (rate, tenure, maturity), the same one Investments opens. */}
+            <Pressable
+              onPress={() => router.push("/investments/add-fd")}
+              className="px-4 py-3 rounded-lg mr-2 mb-2 border bg-card border-transparent"
+              accessibilityRole="button"
+            >
+              <Text className="text-sm text-muted-foreground">Fixed deposit</Text>
+            </Pressable>
           </View>
 
           {/* ── Bank Detail Fields (savings, credit_card, loan) ── */}
